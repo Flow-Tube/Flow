@@ -99,6 +99,12 @@ object EnhancedMusicPlayerManager {
 
     /** The restored track and where it stopped, used once by the next play of that same track. */
     private var resumePosition: Pair<String, Long>? = null
+
+    /** A song started before the controller connected, such as a link opening the app; sent on connect. */
+    private var playBeforeConnect: (() -> Unit)? = null
+
+    /** Counts started queues, so a saved queue read meanwhile knows a newer one replaced it. */
+    private var queueStarts = 0
     private var audioSettingsPersistence: AudioSettingsPersistence? = null
 
     // Audio Settings State
@@ -263,8 +269,15 @@ object EnhancedMusicPlayerManager {
                 if (controller != null) {
                     setupPlayerListener(controller)
 
+                    val startedBeforeConnect = playBeforeConnect
+                    playBeforeConnect = null
                     scope.launch {
-                        restoreSavedQueue()
+                        if (startedBeforeConnect != null) {
+                            Log.d("EnhancedMusicPlayer", "Starting the song asked for before the controller connected")
+                            startedBeforeConnect()
+                        } else {
+                            restoreSavedQueue()
+                        }
                         restoreAudioSettings()
                     }
 
@@ -626,6 +639,10 @@ object EnhancedMusicPlayerManager {
         sourceName: String? = null,
         localUriOverrides: Map<String, Uri> = emptyMap(),
     ) {
+        queueStarts++
+        if (player == null && controllerFuture != null) {
+            playBeforeConnect = { playTrack(track, audioUrl, queue, startIndex, startPositionMs, sourceName, localUriOverrides) }
+        }
         val restoredStart = resumePosition?.takeIf { (id, _) -> id == track.videoId && startPositionMs == 0L }?.second
         resumePosition = null
         player?.stop()
@@ -787,7 +804,12 @@ object EnhancedMusicPlayerManager {
      */
     private suspend fun restoreSavedQueue() {
         try {
+            val starts = queueStarts
             val restored = queuePersistence?.restoreQueue()?.let(::restoredMusicQueue) ?: return
+            if (queueStarts != starts) {
+                Log.d("EnhancedMusicPlayer", "Saved queue skipped: a newer queue started while it was read")
+                return
+            }
             val controller = player
             val loadedItem = controller?.currentMediaItem
             // The system media controls may already have resumed this queue in the service.
