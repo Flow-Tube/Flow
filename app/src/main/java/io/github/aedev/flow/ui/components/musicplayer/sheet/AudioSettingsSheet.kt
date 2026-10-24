@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatterySaver
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,10 +43,11 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private const val TEMPO_ROWS = 3
+private const val OUTPUT_ROWS = 2
 private const val PITCH_STEPS = 23
 private val SliderRowPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
 
-/** The music player's audio settings: the equalizer panel, tempo and pitch, and loudness normalisation. */
+/** The music player's audio settings: the equalizer panel, tempo and pitch, loudness normalisation and offload. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioSettingsSheet(onDismiss: () -> Unit) {
@@ -55,6 +57,7 @@ fun AudioSettingsSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val preferences = remember { PlayerPreferences(context) }
     val normalizationEnabled by preferences.musicLoudnessNormalizationEnabled.collectAsState(initial = true)
+    val offloadEnabled by preferences.musicAudioOffloadEnabled.collectAsState(initial = false)
     val customSpeedsEnabled by preferences.customSpeedsEnabled.collectAsState(initial = false)
     val customSpeedPresetsRaw by preferences.customSpeedPresets.collectAsState(initial = "")
     val scope = rememberCoroutineScope()
@@ -127,7 +130,15 @@ fun AudioSettingsSheet(onDismiss: () -> Unit) {
                     checked = normalizationEnabled,
                     onCheckedChange = { enabled -> scope.launch { preferences.setMusicLoudnessNormalizationEnabled(enabled) } },
                     leadingIcon = Icons.Filled.GraphicEq,
-                    shape = flowRowGroupShape(0, 1),
+                    shape = flowRowGroupShape(0, OUTPUT_ROWS),
+                )
+                FlowSwitchRow(
+                    title = stringResource(R.string.music_audio_offload_title),
+                    supportingText = stringResource(R.string.music_audio_offload_desc),
+                    checked = offloadEnabled,
+                    onCheckedChange = { enabled -> scope.launch { preferences.setMusicAudioOffloadEnabled(enabled) } },
+                    leadingIcon = Icons.Filled.BatterySaver,
+                    shape = flowRowGroupShape(1, OUTPUT_ROWS),
                 )
             }
         }

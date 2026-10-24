@@ -412,6 +412,9 @@ class Media3MusicService : MediaLibraryService() {
 
     @OptIn(UnstableApi::class)
     private fun observeOffload() {
+        lifecycleScope.launch {
+            prefs.musicAudioOffloadEnabled.collect { enabled -> updateOffload { it.copy(enabledByUser = enabled) } }
+        }
         player.addAudioOffloadListener(
             object : ExoPlayer.AudioOffloadListener {
                 override fun onOffloadedPlayback(isOffloadedPlayback: Boolean) {

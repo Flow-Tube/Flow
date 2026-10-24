@@ -99,6 +99,7 @@ class PlayerPreferences(
         val CONTENT_LANGUAGE = stringPreferencesKey("content_language")
         val ORIGINAL_TITLES = booleanPreferencesKey("original_titles")
         val MUSIC_LOUDNESS_NORMALIZATION_ENABLED = booleanPreferencesKey("music_loudness_normalization_enabled")
+        val MUSIC_AUDIO_OFFLOAD_ENABLED = booleanPreferencesKey("music_audio_offload_enabled")
         val SKIP_SILENCE_ENABLED = booleanPreferencesKey("skip_silence_enabled")
         val SPONSOR_BLOCK_ENABLED = booleanPreferencesKey("sponsor_block_enabled")
         val AUTO_PIP_ENABLED = booleanPreferencesKey("auto_pip_enabled")
@@ -1432,6 +1433,18 @@ class PlayerPreferences(
     suspend fun setMusicLoudnessNormalizationEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MUSIC_LOUDNESS_NORMALIZATION_ENABLED] = enabled
+        }
+    }
+
+    val musicAudioOffloadEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.MUSIC_AUDIO_OFFLOAD_ENABLED] ?: false
+            }
+
+    suspend fun setMusicAudioOffloadEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_AUDIO_OFFLOAD_ENABLED] = enabled
         }
     }
 

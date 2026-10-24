@@ -2164,6 +2164,8 @@
     <string name="music_content_country_title">Content country</string>
     <string name="music_normalize_volume_title">Normalize volume</string>
     <string name="music_normalize_volume_desc">Level every track to the YouTube Music loudness target</string>
+    <string name="music_audio_offload_title">Audio offload</string>
+    <string name="music_audio_offload_desc">Saves battery. Some phones play silence with it on</string>
     <string name="section_other_versions">Other versions</string>
     <string name="music_blocked_artists_title">Blocked artists</string>
     <string name="music_blocked_artists_empty">No blocked artists</string>
