@@ -56,12 +56,14 @@ class RssSubscriptionServiceTest {
         title: String = "Title $id",
         description: String? = null,
         ageHours: Long = 2L,
+        isShort: Boolean? = null,
     ) = ChannelRssEntry(
         videoId = id,
         title = title,
         thumbnailUrl = null,
         publishedAtMillis = System.currentTimeMillis() - ageHours * hour,
         description = description,
+        isShort = isShort,
     )
 
     private fun rss(
@@ -108,6 +110,28 @@ class RssSubscriptionServiceTest {
             rss("UCa", entry("v1", title = "Members-only livestream replay"), entry("v2"))
 
             assertThat(sweep("UCa").videos.map { it.id }).containsExactly("v2")
+        }
+
+    @Test
+    fun `entries the feed links as reels are filed as Shorts without a Shorts tab lookup (1393)`() =
+        runTest {
+            rss("UCa", entry("v1", isShort = false), entry("r1", ageHours = 3, isShort = true))
+
+            val chunk = sweep("UCa")
+
+            coVerify(exactly = 0) { reelIndex.markReels(any(), any(), any()) }
+            assertThat(chunk.videos.associate { it.id to it.isShort }).containsExactly("v1", false, "r1", true)
+        }
+
+    @Test
+    fun `a reel stays filed as a Short when the lookup for an unlinked entry fails (1393)`() =
+        runTest {
+            coEvery { reelIndex.markReels(any(), any(), any()) } returns null
+            rss("UCa", entry("v1"), entry("r1", ageHours = 3, isShort = true))
+
+            val chunk = sweep("UCa")
+
+            assertThat(chunk.videos.associate { it.id to it.isShort }).containsExactly("v1", false, "r1", true)
         }
 
     @Test

@@ -1,6 +1,7 @@
 package io.github.aedev.flow.data.subscriptions
 
 import io.github.aedev.flow.data.local.entity.SubscriptionFeedEntity
+import io.github.aedev.flow.data.model.Video
 
 /**
  * The stored reel verdicts a refresh may reuse instead of asking a channel's Shorts tab again.
@@ -17,3 +18,20 @@ internal fun trustedReelVerdicts(
     rows
         .filter { row -> row.cachedAt <= (lastFeedFetchAt[row.channelId] ?: 0L) }
         .associate { it.videoId to it.isShort }
+
+/**
+ * Classifies a channel's RSS slice without asking its Shorts tab, or returns null when some entry
+ * has no verdict. The feed's own link outranks a stored verdict, so a row filed wrong by an older
+ * pass is repaired as soon as its entry is read again.
+ */
+internal fun classifiedFromVerdicts(
+    videos: List<Video>,
+    linkVerdicts: Map<String, Boolean>,
+    storedVerdicts: Map<String, Boolean>,
+): List<Video>? {
+    if (videos.isEmpty()) return null
+    return videos.map { video ->
+        val isShort = linkVerdicts[video.id] ?: storedVerdicts[video.id] ?: return null
+        video.copy(isShort = isShort)
+    }
+}

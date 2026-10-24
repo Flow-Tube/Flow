@@ -2,6 +2,7 @@ package io.github.aedev.flow.data.subscriptions
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.entity.SubscriptionFeedEntity
+import io.github.aedev.flow.data.model.Video
 import org.junit.Test
 
 /** A reel verdict is reused only when a pass that read its channel in full stored it. */
@@ -51,5 +52,65 @@ class SubscriptionReelVerdictsTest {
     @Test
     fun `a channel never read in full has no trusted verdicts`() {
         assertThat(trustedReelVerdicts(listOf(row("seeded", "UCb", cachedAt = 10L)), emptyMap())).isEmpty()
+    }
+
+    private fun video(id: String) =
+        Video(
+            id = id,
+            title = id,
+            channelName = "UCa",
+            channelId = "UCa",
+            thumbnailUrl = "",
+            duration = 0,
+            viewCount = 0L,
+            uploadDate = "",
+        )
+
+    @Test
+    fun `link verdicts classify the slice without a lookup`() {
+        val classified =
+            classifiedFromVerdicts(
+                videos = listOf(video("reel"), video("video")),
+                linkVerdicts = mapOf("reel" to true, "video" to false),
+                storedVerdicts = emptyMap(),
+            )
+
+        assertThat(classified?.map { it.id to it.isShort }).containsExactly("reel" to true, "video" to false).inOrder()
+    }
+
+    @Test
+    fun `a link verdict repairs a stored one`() {
+        val classified =
+            classifiedFromVerdicts(
+                videos = listOf(video("reel")),
+                linkVerdicts = mapOf("reel" to true),
+                storedVerdicts = mapOf("reel" to false),
+            )
+
+        assertThat(classified?.single()?.isShort).isTrue()
+    }
+
+    @Test
+    fun `a stored verdict fills an entry the link leaves open`() {
+        val classified =
+            classifiedFromVerdicts(
+                videos = listOf(video("reel"), video("old")),
+                linkVerdicts = mapOf("reel" to true),
+                storedVerdicts = mapOf("old" to false),
+            )
+
+        assertThat(classified?.map { it.isShort }).containsExactly(true, false).inOrder()
+    }
+
+    @Test
+    fun `an entry with no verdict at all leaves the slice for a lookup`() {
+        val classified =
+            classifiedFromVerdicts(
+                videos = listOf(video("reel"), video("unknown")),
+                linkVerdicts = mapOf("reel" to true),
+                storedVerdicts = emptyMap(),
+            )
+
+        assertThat(classified).isNull()
     }
 }

@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.shorts.ChannelReelIndex
 import io.github.aedev.flow.data.subscriptions.ChannelRssClient
 import io.github.aedev.flow.data.subscriptions.ChannelRssEntry
 import io.github.aedev.flow.data.subscriptions.ChannelUploadsClient
+import io.github.aedev.flow.data.subscriptions.classifiedFromVerdicts
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.formatYouTubeRelativeTime
 import io.github.aedev.flow.utils.parsePremiereTimestamp
@@ -111,7 +112,7 @@ class RssSubscriptionService
                                 .map { channelId ->
                                     async(Dispatchers.IO) {
                                         val result = fetchRssVideos(channelId, minimumDateMillis, knownVideoIds)
-                                        Triple(channelId, result, knownReels(channelId, result.videos, storedReelVerdicts))
+                                        Triple(channelId, result, knownReels(channelId, result, storedReelVerdicts))
                                     }
                                 }.awaitAll()
                         }
@@ -311,6 +312,7 @@ class RssSubscriptionService
             val videoTimestamps: Map<String, Long>,
             val videos: List<Video>,
             val needsChannelFallback: Boolean,
+            val linkVerdicts: Map<String, Boolean> = emptyMap(),
             /** The feed lists an upload inside the window, whether or not it survived the filters. */
             val hasRecentEntries: Boolean = false,
             val failed: Boolean = false,
@@ -325,7 +327,7 @@ class RssSubscriptionService
 
         /**
          * RSS gives accurate dates for all recent uploads (including Shorts) but never a duration or a
-         * Shorts/live flag, so its timestamps double as the date source for the Phase 2 tab items.
+         * live flag, so its timestamps double as the date source for the Phase 2 tab items.
          */
         private suspend fun fetchRssVideos(
             channelId: String,
@@ -347,6 +349,7 @@ class RssSubscriptionService
 
             val timestamps = mutableMapOf<String, Long>()
             val videos = mutableListOf<Video>()
+            val linkVerdicts = mutableMapOf<String, Boolean>()
             var newestTimestamp = 0L
 
             for (entry in feed.entries) {
@@ -356,6 +359,7 @@ class RssSubscriptionService
                 if (publishedAt > newestTimestamp) newestTimestamp = publishedAt
                 if (publishedAt > minimumDateMillis && !entry.isPaidOrMembersOnly()) {
                     videos += entry.toVideo(channelId = channelId, channelName = feed.channelName)
+                    entry.isShort?.let { linkVerdicts[entry.videoId] = it }
                 }
             }
 
@@ -377,25 +381,23 @@ class RssSubscriptionService
                 videoTimestamps = timestamps,
                 videos = videos,
                 needsChannelFallback = videos.isEmpty() && newestTimestamp > minimumDateMillis,
+                linkVerdicts = linkVerdicts,
                 hasRecentEntries = newestTimestamp > minimumDateMillis,
             )
         }
 
         /**
-         * RSS cannot tell a reel from a video. When the store already classified every entry, or the
-         * Shorts tab was read within the cache window, the answer is reused; otherwise the channel
-         * needs a Shorts check, one full browse, and null holds it for the checks stage.
+         * Each entry's link, else a stored verdict, classifies the slice without a browse. When some
+         * entry has neither, a Shorts tab read within the cache window is reused; otherwise the
+         * channel needs a Shorts check, one full browse, and null holds it for the checks stage.
          */
         private suspend fun knownReels(
             channelId: String,
-            videos: List<Video>,
+            result: RssResult,
             storedReelVerdicts: Map<String, Boolean>,
-        ): List<Video>? {
-            if (videos.isNotEmpty() && videos.all { it.id in storedReelVerdicts }) {
-                return videos.map { it.copy(isShort = storedReelVerdicts.getValue(it.id)) }
-            }
-            return channelReelIndex.markReelsIfCached(channelId, videos)
-        }
+        ): List<Video>? =
+            classifiedFromVerdicts(result.videos, result.linkVerdicts, storedReelVerdicts)
+                ?: channelReelIndex.markReelsIfCached(channelId, result.videos)
 
         private fun ChannelRssEntry.toVideo(
             channelId: String,
@@ -416,7 +418,7 @@ class RssSubscriptionService
                 timestampIsExact = true,
                 channelThumbnailUrl = "",
                 description = description.orEmpty(),
-                isShort = false,
+                isShort = isShort == true,
                 isLive = false,
                 isUpcoming = isUpcoming,
             )
