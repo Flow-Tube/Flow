@@ -70,13 +70,18 @@ class DownloadUtil
                     .setCacheWriteDataSinkFactory(null)
                     .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
+            // A song read from a cached start still holds its music:// uri when the cache runs out.
+            val networkFactory =
+                ResolvingDataSource.Factory(DefaultDataSource.Factory(context, OkHttpDataSource.Factory(okHttpClient))) { dataSpec ->
+                    if (dataSpec.uri.scheme == LocalCopyDataSource.MUSIC_SCHEME) resolveStream(dataSpec) else dataSpec
+                }
+
             val musicCacheFactory =
                 CacheDataSource
                     .Factory()
                     .setCache(musicCache)
-                    .setUpstreamDataSourceFactory(
-                        DefaultDataSource.Factory(context, OkHttpDataSource.Factory(okHttpClient)),
-                    ).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                    .setUpstreamDataSourceFactory(networkFactory)
+                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
             val cachedDataSourceFactory =
                 downloadCacheFactory
@@ -112,24 +117,7 @@ class DownloadUtil
                         Log.w(TAG, "[Player] musicCache check error for $mediaId", e)
                     }
 
-                    songUrlCache[mediaId]?.takeIf(::isReusable)?.let { (url, ua, _) ->
-                        Log.d(TAG, "[Player] Using cached URL for $mediaId")
-                        return@Factory buildPlaybackDataSpec(dataSpec, url, ua)
-                    }
-
-                    val playbackData =
-                        runBlocking(Dispatchers.IO) {
-                            MusicPlayerUtils.playerResponseForPlayback(mediaId)
-                        }.getOrThrow()
-
-                    val streamUrl = playbackData.streamUrl
-                    val userAgent = playbackData.usedClient.userAgent
-                    val expiration = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds - 60) * 1000L
-
-                    songUrlCache[mediaId] = Triple(streamUrl, userAgent, expiration)
-                    Log.d(TAG, "[Player] Resolved $mediaId via ${playbackData.usedClient.clientName}")
-
-                    buildPlaybackDataSpec(dataSpec, streamUrl, userAgent)
+                    resolveStream(dataSpec)
                 }
             val localFirst = LocalCopyDataSource.Factory(DefaultDataSource.Factory(context), resolvingFactory, ::downloadedSongUri)
             return RefusedStreamRetryDataSource.Factory(localFirst) { dataSpec, url ->
@@ -137,6 +125,28 @@ class DownloadUtil
                 if (mediaId != null) onStreamRefused(mediaId, url)
                 mediaId != null
             }
+        }
+
+        private fun resolveStream(dataSpec: DataSpec): DataSpec {
+            val mediaId = dataSpec.key ?: error("No media id (key) in dataSpec")
+            songUrlCache[mediaId]?.takeIf(::isReusable)?.let { (url, ua, _) ->
+                Log.d(TAG, "[Player] Using cached URL for $mediaId")
+                return buildPlaybackDataSpec(dataSpec, url, ua)
+            }
+
+            val playbackData =
+                runBlocking(Dispatchers.IO) {
+                    MusicPlayerUtils.playerResponseForPlayback(mediaId)
+                }.getOrThrow()
+
+            val streamUrl = playbackData.streamUrl
+            val userAgent = playbackData.usedClient.userAgent
+            val expiration = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds - 60) * 1000L
+
+            songUrlCache[mediaId] = Triple(streamUrl, userAgent, expiration)
+            Log.d(TAG, "[Player] Resolved $mediaId via ${playbackData.usedClient.clientName}")
+
+            return buildPlaybackDataSpec(dataSpec, streamUrl, userAgent)
         }
 
         private fun onStreamRefused(
