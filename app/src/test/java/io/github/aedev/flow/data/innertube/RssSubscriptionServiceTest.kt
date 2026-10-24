@@ -124,6 +124,17 @@ class RssSubscriptionServiceTest {
         }
 
     @Test
+    fun `every reel the feed links is reported, though the feed keeps only the newest (1393)`() =
+        runTest {
+            rss("UCa", entry("v1", isShort = false), entry("r1", ageHours = 3, isShort = true), entry("r2", ageHours = 4, isShort = true))
+
+            val chunk = sweep("UCa")
+
+            assertThat(chunk.videos.filter { it.isShort }.map { it.id }).containsExactly("r1")
+            assertThat(chunk.reelIds).containsExactly("r1", "r2")
+        }
+
+    @Test
     fun `a reel stays filed as a Short when the lookup for an unlinked entry fails (1393)`() =
         runTest {
             coEvery { reelIndex.markReels(any(), any(), any()) } returns null

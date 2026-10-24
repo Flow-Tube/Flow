@@ -161,6 +161,7 @@ class SubscriptionFeedRepository
             var failedChannelIds = emptySet<String>()
             var failedChannelReasons = emptyMap<String, String>()
             var incompleteChannelIds = emptySet<String>()
+            var reelIds = emptySet<String>()
             val writtenChannelIds = HashSet<String>()
 
             rssSubscriptionService
@@ -173,6 +174,7 @@ class SubscriptionFeedRepository
                     failedChannelIds = chunk.failedChannelIds
                     failedChannelReasons = chunk.failedChannelReasons
                     incompleteChannelIds = chunk.incompleteChannelIds
+                    reelIds = chunk.reelIds
                     if (chunk.videos.isNotEmpty()) {
                         latestChunkVideos = chunk.videos
                         previewVideos =
@@ -194,6 +196,7 @@ class SubscriptionFeedRepository
                             failedChannelIds = emptySet(),
                             refreshTime = System.currentTimeMillis(),
                             dropUnfollowed = false,
+                            reelIds = reelIds,
                         )
                         writtenChannelIds += settled
                         previewVideos = withContext(PerformanceDispatcher.diskIO) { loadCachedFeed(plan.scope) }
@@ -219,6 +222,7 @@ class SubscriptionFeedRepository
                     failedChannelIds = failedChannelIds + incompleteChannelIds,
                     refreshTime = System.currentTimeMillis(),
                     dropUnfollowed = plan.isFullRefresh,
+                    reelIds = reelIds,
                 )
             }
             val done =
@@ -247,6 +251,7 @@ class SubscriptionFeedRepository
             failedChannelIds: Set<String>,
             refreshTime: Long,
             dropUnfollowed: Boolean,
+            reelIds: Set<String>,
         ) {
             val written = channelIds.toHashSet()
             val subscribedChannelIds =
@@ -263,6 +268,7 @@ class SubscriptionFeedRepository
                     now = refreshTime,
                     windowMs = SUBSCRIPTION_CACHE_WINDOW_MS,
                     maxPerChannel = MAX_ROWS_PER_CHANNEL,
+                    reelIds = reelIds,
                 )
 
             val entities = write.rows.map { it.toEntity(refreshTime) }
