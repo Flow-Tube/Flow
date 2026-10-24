@@ -32,7 +32,7 @@ internal class MusicLoadErrorPolicy(
     override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
         val error = loadErrorInfo.exception
         if (isUnretryableResolve(error)) return C.TIME_UNSET
-        val connectionLost = isConnectionLoss(error) || (error is IOException && isOffline())
+        val connectionLost = countsAsLostConnection(error, loadErrorInfo.loadEventInfo.uri.scheme, isOffline)
         return retryDelayMs(loadErrorInfo.errorCount, connectionLost) ?: super.getRetryDelayMsFor(loadErrorInfo)
     }
 
@@ -74,6 +74,16 @@ internal class MusicLoadErrorPolicy(
                 ?.block
                 ?.takeIf { it in ViewerBlocks }
 
+        /**
+         * Offline, any read error of a streamed song is the dropped connection. A file on the device
+         * does not come back with the network, so it fails as any other error would.
+         */
+        fun countsAsLostConnection(
+            error: Throwable,
+            uriScheme: String?,
+            isOffline: () -> Boolean,
+        ): Boolean = isConnectionLoss(error) || (error is IOException && uriScheme !in DeviceSchemes && isOffline())
+
         fun isConnectionLoss(error: Throwable): Boolean =
             causes(error).any {
                 it is UnknownHostException ||
@@ -86,6 +96,8 @@ internal class MusicLoadErrorPolicy(
         private fun causes(error: Throwable): Sequence<Throwable> = generateSequence(error) { it.cause }.take(MAX_CAUSE_DEPTH)
 
         private const val MAX_CAUSE_DEPTH = 8
+
+        private val DeviceSchemes = setOf("file", "content", "android.resource")
 
         private val ViewerBlocks = setOf(PlaybackBlock.REGION, PlaybackBlock.RATE_LIMITED, PlaybackBlock.MEMBERS_OR_PAID)
     }

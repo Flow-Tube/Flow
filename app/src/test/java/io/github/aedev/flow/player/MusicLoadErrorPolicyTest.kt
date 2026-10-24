@@ -36,6 +36,19 @@ class MusicLoadErrorPolicyTest {
     }
 
     @Test
+    fun `offline, a streamed song's read error waits for the network`() {
+        assertThat(MusicLoadErrorPolicy.countsAsLostConnection(IOException("Malformed URL"), "https") { true }).isTrue()
+        assertThat(MusicLoadErrorPolicy.countsAsLostConnection(IOException("Malformed URL"), "music") { true }).isTrue()
+        assertThat(MusicLoadErrorPolicy.countsAsLostConnection(IOException("Response code: 403"), "https") { false }).isFalse()
+    }
+
+    @Test
+    fun `offline, a file on the device that cannot be read is not waited for`() {
+        assertThat(MusicLoadErrorPolicy.countsAsLostConnection(IOException("EACCES"), "content") { true }).isFalse()
+        assertThat(MusicLoadErrorPolicy.countsAsLostConnection(IOException("ENOENT"), "file") { true }).isFalse()
+    }
+
+    @Test
     fun `a song gone from every client or a resolve out of time is not retried by the loader`() {
         assertThat(MusicLoadErrorPolicy.isUnretryableResolve(IOException(VideoUnavailableException("abc")))).isTrue()
         assertThat(MusicLoadErrorPolicy.isUnretryableResolve(MusicResolveTimeoutException("abc", 30_000L))).isTrue()
