@@ -4,24 +4,31 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class MusicOffloadStateTest {
+    private val optedIn = MusicOffloadState(enabledByUser = true)
+
     @Test
-    fun `untouched sound while playing may offload`() {
-        assertThat(MusicOffloadState().allowed).isTrue()
+    fun `offload stays off until the listener turns it on`() {
+        assertThat(MusicOffloadState().allowed).isFalse()
+    }
+
+    @Test
+    fun `untouched sound while playing may offload once turned on`() {
+        assertThat(optedIn.allowed).isTrue()
     }
 
     @Test
     fun `an equalizer that changes the sound keeps offload off`() {
-        assertThat(MusicOffloadState(processing = true).allowed).isFalse()
+        assertThat(optedIn.copy(processing = true).allowed).isFalse()
     }
 
     @Test
     fun `a changed speed or pitch keeps offload off`() {
-        assertThat(MusicOffloadState(playbackChanged = true).allowed).isFalse()
+        assertThat(optedIn.copy(playbackChanged = true).allowed).isFalse()
     }
 
     @Test
     fun `a long pause gives offload up until playback resumes`() {
-        val paused = MusicOffloadState(pausedLong = true)
+        val paused = optedIn.copy(pausedLong = true)
 
         assertThat(paused.allowed).isFalse()
         assertThat(paused.copy(pausedLong = false).allowed).isTrue()

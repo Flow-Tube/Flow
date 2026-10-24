@@ -18,12 +18,13 @@ fun Player.togglePlayPause() {
 }
 
 fun Player.toggleRepeatMode() {
-    repeatMode = when (repeatMode) {
-        REPEAT_MODE_OFF -> REPEAT_MODE_ALL
-        REPEAT_MODE_ALL -> REPEAT_MODE_ONE
-        REPEAT_MODE_ONE -> REPEAT_MODE_OFF
-        else -> REPEAT_MODE_OFF
-    }
+    repeatMode =
+        when (repeatMode) {
+            REPEAT_MODE_OFF -> REPEAT_MODE_ALL
+            REPEAT_MODE_ALL -> REPEAT_MODE_ONE
+            REPEAT_MODE_ONE -> REPEAT_MODE_OFF
+            else -> REPEAT_MODE_OFF
+        }
 }
 
 fun Player.getQueueWindows(): List<Timeline.Window> {
@@ -49,11 +50,12 @@ fun Player.getQueueWindows(): List<Timeline.Window> {
             }
         }
         if (firstMediaItemIndex != C.INDEX_UNSET && queue.size < queueSize) {
-            firstMediaItemIndex = timeline.getPreviousWindowIndex(
-                firstMediaItemIndex,
-                REPEAT_MODE_OFF,
-                shuffleModeEnabled
-            )
+            firstMediaItemIndex =
+                timeline.getPreviousWindowIndex(
+                    firstMediaItemIndex,
+                    REPEAT_MODE_OFF,
+                    shuffleModeEnabled,
+                )
             if (firstMediaItemIndex != C.INDEX_UNSET) {
                 queue.addFirst(timeline.getWindow(firstMediaItemIndex, Timeline.Window()))
             }
@@ -69,11 +71,12 @@ fun Player.getCurrentQueueIndex(): Int {
     var index = 0
     var currentIndex = currentMediaItemIndex
     while (currentIndex != C.INDEX_UNSET) {
-        currentIndex = currentTimeline.getPreviousWindowIndex(
-            currentIndex,
-            REPEAT_MODE_OFF,
-            shuffleModeEnabled
-        )
+        currentIndex =
+            currentTimeline.getPreviousWindowIndex(
+                currentIndex,
+                REPEAT_MODE_OFF,
+                shuffleModeEnabled,
+            )
         if (currentIndex != C.INDEX_UNSET) {
             index++
         }
@@ -81,15 +84,14 @@ fun Player.getCurrentQueueIndex(): Int {
     return index
 }
 
-
 val Player.mediaItems: List<MediaItem>
-    get() = object : AbstractList<MediaItem>() {
-        override val size: Int
-            get() = mediaItemCount
+    get() =
+        object : AbstractList<MediaItem>() {
+            override val size: Int
+                get() = mediaItemCount
 
-        override fun get(index: Int): MediaItem = getMediaItemAt(index)
-    }
-
+            override fun get(index: Int): MediaItem = getMediaItemAt(index)
+        }
 
 fun Player.findNextMediaItemById(mediaId: String): MediaItem? {
     for (i in currentMediaItemIndex until mediaItemCount) {
@@ -100,20 +102,23 @@ fun Player.findNextMediaItemById(mediaId: String): MediaItem? {
     return null
 }
 
+/** Songs advance gaplessly, so a device that cannot keep that while offloaded plays them in PCM. */
 fun Player.setOffloadEnabled(enabled: Boolean) {
-    trackSelectionParameters = trackSelectionParameters.buildUpon()
-        .setAudioOffloadPreferences(
-            TrackSelectionParameters.AudioOffloadPreferences
-                .Builder()
-                .setAudioOffloadMode(
-                    if (enabled) {
-                        TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
-                    } else {
-                        TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
-                    }
-                )
-                .build()
-        ).build()
+    trackSelectionParameters =
+        trackSelectionParameters
+            .buildUpon()
+            .setAudioOffloadPreferences(
+                TrackSelectionParameters.AudioOffloadPreferences
+                    .Builder()
+                    .setAudioOffloadMode(
+                        if (enabled) {
+                            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+                        } else {
+                            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+                        },
+                    ).setIsGaplessSupportRequired(true)
+                    .build(),
+            ).build()
 }
 
 val Player.isPlayable: Boolean

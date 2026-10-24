@@ -412,6 +412,9 @@ class Media3MusicService : MediaLibraryService() {
 
     @OptIn(UnstableApi::class)
     private fun observeOffload() {
+        lifecycleScope.launch {
+            prefs.musicAudioOffloadEnabled.collect { enabled -> updateOffload { it.copy(enabledByUser = enabled) } }
+        }
         player.addAudioOffloadListener(
             object : ExoPlayer.AudioOffloadListener {
                 override fun onOffloadedPlayback(isOffloadedPlayback: Boolean) {
@@ -1744,14 +1747,28 @@ class Media3MusicService : MediaLibraryService() {
             val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
             lifecycleScope.launch {
                 val restored = withContext(Dispatchers.IO) { queuePersistence.restoreQueue() }?.let(::restoredMusicQueue)
-                if (restored == null) {
-                    result.setException(IllegalStateException("No saved music queue to resume"))
-                } else {
-                    // A queue saved shuffled is already in its shuffled order.
-                    applyingSavedShuffle = true
-                    player.shuffleModeEnabled = restored.shuffleEnabled
-                    applyingSavedShuffle = false
-                    result.set(musicResumptionItems(restored))
+                when {
+                    restored == null -> {
+                        result.setException(IllegalStateException("No saved music queue to resume"))
+                    }
+
+                    // A play on an empty player asked for this, but a song the app or a link started
+                    // while the saved queue was read is newer, and resuming would replace it.
+                    isForPlayback && player.currentMediaItem != null -> {
+                        Log.d(TAG, "Resumption skipped: ${player.currentMediaItem?.mediaId} started while the saved queue was read")
+                        result.setException(IllegalStateException("A newer queue started while resuming"))
+                    }
+
+                    else -> {
+                        // A queue saved shuffled is already in its shuffled order. System UI asking for
+                        // the recent item only shows it, so the live player's flag stays as it is.
+                        if (isForPlayback) {
+                            applyingSavedShuffle = true
+                            player.shuffleModeEnabled = restored.shuffleEnabled
+                            applyingSavedShuffle = false
+                        }
+                        result.set(musicResumptionItems(restored))
+                    }
                 }
             }
             return result

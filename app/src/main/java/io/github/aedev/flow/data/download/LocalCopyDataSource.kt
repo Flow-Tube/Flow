@@ -81,7 +81,7 @@ internal class LocalCopyDataSource(
         override fun createDataSource(): DataSource = LocalCopyDataSource(local.createDataSource(), remote.createDataSource(), localCopyOf)
     }
 
-    private companion object {
+    internal companion object {
         const val MUSIC_SCHEME = "music"
         val DEVICE_SCHEMES = setOf("file", "content", "android.resource")
     }
