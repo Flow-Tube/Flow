@@ -296,9 +296,9 @@ class SubscriptionFeedRepository
          * has already enriched. The channel is deliberately *not* marked as fetched: RSS alone
          * cannot see livestreams, so the feed still owes it a full pass.
          *
-         * [reelVideoIds] is the caller's reel verdict for these entries. RSS marks none of them, so
-         * without it every seeded reel reaches the feed as an ordinary upload and stays there until
-         * the channel's next full refresh — visible even with Shorts switched off (#903).
+         * [reelVideoIds] is the caller's reel verdict for these entries, from their links or the
+         * Shorts tab. Without it every seeded reel reaches the feed as an ordinary upload and stays
+         * there until the channel's next full refresh, visible even with Shorts switched off (#903).
          */
         suspend fun seedFromNotificationCheck(
             channelId: String,
