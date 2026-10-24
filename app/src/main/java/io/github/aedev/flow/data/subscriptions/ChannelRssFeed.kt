@@ -8,6 +8,8 @@ data class ChannelRssEntry(
     val publishedAtMillis: Long = 0L,
     val viewCount: Long = 0L,
     val description: String? = null,
+    /** From the entry's link: YouTube links a reel as `/shorts/`. Null when the link says neither. */
+    val isShort: Boolean? = null,
 )
 
 /**
