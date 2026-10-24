@@ -222,7 +222,13 @@ class SubscriptionCheckWorker(
         val latestVideo = feed.entries.firstOrNull() ?: return emptyList()
         if (subscription.lastVideoId == latestVideo.videoId) return emptyList()
 
-        val reelVideoIds = dependencies.channelReelIndex().reelIds(subscription.channelId).orEmpty()
+        val linkedReelIds = feed.entries.filter { it.isShort == true }.mapTo(HashSet()) { it.videoId }
+        val reelVideoIds =
+            if (feed.entries.all { it.isShort != null }) {
+                linkedReelIds
+            } else {
+                linkedReelIds + dependencies.channelReelIndex().reelIds(subscription.channelId).orEmpty()
+            }
 
         // The channel moved on, so hand the whole page to the feed cache. Rows land without a
         // duration — the feed's on-demand enrichment fills that in, and the next full refresh of

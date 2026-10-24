@@ -52,6 +52,7 @@ object ChannelRssParser {
             var description: String? = null
             var publishedAt = 0L
             var viewCount = 0L
+            var isShort: Boolean? = null
 
             var eventType = parser.eventType
             while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -67,6 +68,7 @@ object ChannelRssParser {
                             description = null
                             publishedAt = 0L
                             viewCount = 0L
+                            isShort = null
                         } else if (insideEntry) {
                             when {
                                 tagName.equals("videoId", ignoreCase = true) -> {
@@ -95,6 +97,10 @@ object ChannelRssParser {
                                 tagName.equals("statistics", ignoreCase = true) && viewCount == 0L -> {
                                     viewCount = parser.getAttributeValue(null, "views")?.toLongOrNull() ?: 0L
                                 }
+
+                                tagName.equals("link", ignoreCase = true) && isShort == null -> {
+                                    isShort = reelVerdict(parser.getAttributeValue(null, "href"))
+                                }
                             }
                         } else if (tagName.equals("name", ignoreCase = true) && channelName == null) {
                             // Only the feed-level <author> carries a <name> in a channel feed.
@@ -116,6 +122,7 @@ object ChannelRssParser {
                                         publishedAtMillis = publishedAt,
                                         viewCount = viewCount,
                                         description = description,
+                                        isShort = isShort,
                                     )
                             }
                         }
@@ -127,6 +134,15 @@ object ChannelRssParser {
             Log.e(TAG, "Error parsing RSS XML", e)
         }
         return ChannelRssFeed(channelName = channelName?.takeIf { it.isNotBlank() }, entries = entries)
+    }
+
+    private fun reelVerdict(href: String?): Boolean? {
+        val path = href?.substringAfter("://", "")?.substringAfter('/', "") ?: return null
+        return when {
+            path.startsWith("shorts/") -> true
+            path.startsWith("watch") -> false
+            else -> null
+        }
     }
 
     private fun parseTimestamp(value: String?): Long {

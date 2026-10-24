@@ -161,6 +161,7 @@ class SubscriptionFeedRepository
             var failedChannelIds = emptySet<String>()
             var failedChannelReasons = emptyMap<String, String>()
             var incompleteChannelIds = emptySet<String>()
+            var reelIds = emptySet<String>()
             val writtenChannelIds = HashSet<String>()
 
             rssSubscriptionService
@@ -173,6 +174,7 @@ class SubscriptionFeedRepository
                     failedChannelIds = chunk.failedChannelIds
                     failedChannelReasons = chunk.failedChannelReasons
                     incompleteChannelIds = chunk.incompleteChannelIds
+                    reelIds = chunk.reelIds
                     if (chunk.videos.isNotEmpty()) {
                         latestChunkVideos = chunk.videos
                         previewVideos =
@@ -194,6 +196,7 @@ class SubscriptionFeedRepository
                             failedChannelIds = emptySet(),
                             refreshTime = System.currentTimeMillis(),
                             dropUnfollowed = false,
+                            reelIds = reelIds,
                         )
                         writtenChannelIds += settled
                         previewVideos = withContext(PerformanceDispatcher.diskIO) { loadCachedFeed(plan.scope) }
@@ -219,6 +222,7 @@ class SubscriptionFeedRepository
                     failedChannelIds = failedChannelIds + incompleteChannelIds,
                     refreshTime = System.currentTimeMillis(),
                     dropUnfollowed = plan.isFullRefresh,
+                    reelIds = reelIds,
                 )
             }
             val done =
@@ -247,6 +251,7 @@ class SubscriptionFeedRepository
             failedChannelIds: Set<String>,
             refreshTime: Long,
             dropUnfollowed: Boolean,
+            reelIds: Set<String>,
         ) {
             val written = channelIds.toHashSet()
             val subscribedChannelIds =
@@ -263,6 +268,7 @@ class SubscriptionFeedRepository
                     now = refreshTime,
                     windowMs = SUBSCRIPTION_CACHE_WINDOW_MS,
                     maxPerChannel = MAX_ROWS_PER_CHANNEL,
+                    reelIds = reelIds,
                 )
 
             val entities = write.rows.map { it.toEntity(refreshTime) }
@@ -296,9 +302,9 @@ class SubscriptionFeedRepository
          * has already enriched. The channel is deliberately *not* marked as fetched: RSS alone
          * cannot see livestreams, so the feed still owes it a full pass.
          *
-         * [reelVideoIds] is the caller's reel verdict for these entries. RSS marks none of them, so
-         * without it every seeded reel reaches the feed as an ordinary upload and stays there until
-         * the channel's next full refresh — visible even with Shorts switched off (#903).
+         * [reelVideoIds] is the caller's reel verdict for these entries, from their links or the
+         * Shorts tab. Without it every seeded reel reaches the feed as an ordinary upload and stays
+         * there until the channel's next full refresh, visible even with Shorts switched off (#903).
          */
         suspend fun seedFromNotificationCheck(
             channelId: String,

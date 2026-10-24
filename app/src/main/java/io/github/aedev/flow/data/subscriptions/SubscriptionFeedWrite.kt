@@ -19,6 +19,9 @@ internal data class SubscriptionFeedWrite(
  * two (#1099). The lookback window still ages rows out, and each channel keeps its newest
  * [maxPerChannel].
  *
+ * A cached row of an upload the pass knows is a reel ([reelIds]) is filed as a Short: an earlier
+ * pass that could not tell may have kept it as a video, and RSS repeats a reel for weeks (#1393).
+ *
  * A channel that failed this pass is not stamped fresh, so the next pass retries it instead of
  * showing it empty for the whole TTL (#1094). A channel unsubscribed while the refresh ran is
  * dropped, fetched rows and all.
@@ -32,9 +35,11 @@ internal fun subscriptionFeedWrite(
     now: Long,
     windowMs: Long,
     maxPerChannel: Int,
+    reelIds: Set<String> = emptySet(),
 ): SubscriptionFeedWrite {
+    val cached = cachedSlice.map { if (!it.isShort && it.id in reelIds) it.copy(isShort = true) else it }
     val priorById =
-        cachedSlice
+        cached
             .filter { it.id.isNotBlank() }
             .groupBy { it.id }
             .mapValues { (_, candidates) -> SubscriptionFeedMerger.mergeDuplicates(candidates, now) }
@@ -42,7 +47,7 @@ internal fun subscriptionFeedWrite(
         SubscriptionFeedMerger
             .mergeSubscriptionFeed(
                 freshVideos = freshVideos.map { fresh -> fresh.preservingEnrichedMetadata(priorById[fresh.id]) },
-                cachedVideos = cachedSlice,
+                cachedVideos = cached,
                 now = now,
                 windowMs = windowMs,
                 maxItems = Int.MAX_VALUE,

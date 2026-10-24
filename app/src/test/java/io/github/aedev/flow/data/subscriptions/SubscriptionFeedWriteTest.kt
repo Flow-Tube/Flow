@@ -14,6 +14,7 @@ class SubscriptionFeedWriteTest {
         channelId: String,
         ageHours: Long = 1L,
         duration: Int = 0,
+        isShort: Boolean = false,
     ) = Video(
         id = id,
         title = id,
@@ -24,6 +25,7 @@ class SubscriptionFeedWriteTest {
         viewCount = 0L,
         uploadDate = "",
         timestamp = now - ageHours * hour,
+        isShort = isShort,
     )
 
     private fun write(
@@ -33,6 +35,7 @@ class SubscriptionFeedWriteTest {
         failed: Set<String> = emptySet(),
         subscribed: Set<String> = setOf("UCa", "UCb", "UCc"),
         maxPerChannel: Int = 60,
+        reelIds: Set<String> = emptySet(),
     ) = subscriptionFeedWrite(
         channelIds = channels,
         freshVideos = fresh,
@@ -42,6 +45,7 @@ class SubscriptionFeedWriteTest {
         now = now,
         windowMs = 60L * 24L * hour,
         maxPerChannel = maxPerChannel,
+        reelIds = reelIds,
     )
 
     private val both = listOf("UCa", "UCb")
@@ -153,5 +157,31 @@ class SubscriptionFeedWriteTest {
             )
 
         assertThat(result.rows.single().duration).isEqualTo(321)
+    }
+
+    @Test
+    fun `a cached reel kept as a video is filed as a Short when the pass knows it is a reel (1393)`() {
+        val result =
+            write(
+                channels = listOf("UCa"),
+                fresh = listOf(video("newest", "UCa", isShort = true)),
+                cached = listOf(video("older", "UCa", ageHours = 5), video("upload", "UCa", ageHours = 6)),
+                reelIds = setOf("newest", "older"),
+            )
+
+        assertThat(result.rows.associate { it.id to it.isShort })
+            .containsExactly("newest", true, "older", true, "upload", false)
+    }
+
+    @Test
+    fun `a cached Short is never turned back into a video`() {
+        val result =
+            write(
+                channels = listOf("UCa"),
+                fresh = emptyList(),
+                cached = listOf(video("reel", "UCa", isShort = true)),
+            )
+
+        assertThat(result.rows.single().isShort).isTrue()
     }
 }

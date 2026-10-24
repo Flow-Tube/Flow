@@ -22,7 +22,10 @@ class ChannelRssParserTest {
     private fun entriesOf(xml: String): List<ChannelRssEntry> = parse(xml).entries
 
     /** A channel feed shaped like YouTube's, entries newest first. */
-    private fun feed(vararg ids: String): String =
+    private fun feed(
+        vararg ids: String,
+        links: Map<String, String> = emptyMap(),
+    ): String =
         buildString {
             // No leading whitespace: an XML declaration must start at offset 0.
             append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
@@ -32,11 +35,13 @@ class ChannelRssParserTest {
                     "xmlns=\"http://www.w3.org/2005/Atom\">",
             )
             append("<title>Channel Name</title>")
+            append("<link rel=\"alternate\" href=\"https://www.youtube.com/channel/x\"/>")
             append("<author><name>Uploader Name</name><uri>https://www.youtube.com/channel/x</uri></author>")
             ids.forEach { id ->
                 append("<entry>")
                 append("<yt:videoId>$id</yt:videoId>")
                 append("<title>Title $id</title>")
+                links[id]?.let { append("<link rel=\"alternate\" href=\"$it\"/>") }
                 append("<published>2026-05-01T12:00:00+00:00</published>")
                 append("<media:group>")
                 append("<media:title>Title $id</media:title>")
@@ -184,5 +189,30 @@ class ChannelRssParserTest {
     @Test
     fun `empty feed announces nothing`() {
         assertEquals(emptyList<ChannelRssEntry>(), ChannelRssParser.newEntriesSince(emptyList(), lastVideoId = "aaa"))
+    }
+
+    @Test
+    fun `entry link tells a reel from a video`() {
+        val entries =
+            entriesOf(
+                feed(
+                    "reel",
+                    "video",
+                    links =
+                        mapOf(
+                            "reel" to "https://www.youtube.com/shorts/reel",
+                            "video" to "https://www.youtube.com/watch?v=video",
+                        ),
+                ),
+            )
+
+        assertEquals(listOf(true, false), entries.map { it.isShort })
+    }
+
+    @Test
+    fun `entry without a recognised link has no reel verdict`() {
+        val entries = entriesOf(feed("bare", "other", links = mapOf("other" to "https://www.youtube.com/live/other")))
+
+        assertEquals(listOf(null, null), entries.map { it.isShort })
     }
 }
