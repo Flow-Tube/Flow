@@ -83,6 +83,6 @@ internal class LocalCopyDataSource(
 
     internal companion object {
         const val MUSIC_SCHEME = "music"
-        private val DEVICE_SCHEMES = setOf("file", "content", "android.resource")
+        val DEVICE_SCHEMES = setOf("file", "content", "android.resource")
     }
 }

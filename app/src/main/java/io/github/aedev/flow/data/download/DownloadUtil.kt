@@ -43,7 +43,7 @@ class DownloadUtil
     ) {
         companion object {
             private const val TAG = "DownloadUtil"
-            private const val CHUNK_LENGTH = 512 * 1024L // 512KB for cache check
+            private const val CHUNK_LENGTH = 512 * 1024L // per stream request
             private val URL_RANGE_PARAM_REGEX = Regex("""([?&])range=\d+-\d*(&?)""")
         }
 
@@ -70,7 +70,7 @@ class DownloadUtil
                     .setCacheWriteDataSinkFactory(null)
                     .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
-            // A song read from a cached start still holds its music:// uri when the cache runs out.
+            // A cache read that outlives its span (evicted meanwhile) still holds the music:// uri.
             val networkFactory =
                 ResolvingDataSource.Factory(DefaultDataSource.Factory(context, OkHttpDataSource.Factory(okHttpClient))) { dataSpec ->
                     if (dataSpec.uri.scheme == LocalCopyDataSource.MUSIC_SCHEME) resolveStream(dataSpec) else dataSpec
@@ -95,10 +95,14 @@ class DownloadUtil
 
                     val mediaId = dataSpec.key ?: error("No media id (key) in dataSpec")
 
+                    // A cache hit is bounded to the bytes actually held: an open-ended read would make
+                    // the cache fetch the rest itself, and record the end of that fetch as the song's
+                    // length. ChunkStitchingDataSource opens the next piece where this one stops.
                     try {
-                        if (downloadCache.isCached(mediaId, dataSpec.position, maxOf(dataSpec.length, 1))) {
+                        val span = downloadCache.cachedSpan(mediaId, dataSpec)
+                        if (span > 0) {
                             Log.d(TAG, "[Player] Serving from downloadCache: $mediaId")
-                            return@Factory dataSpec
+                            return@Factory dataSpec.subrange(0, span)
                         }
                     } catch (e: Exception) {
                         Log.w(TAG, "[Player] downloadCache check error for $mediaId", e)
@@ -109,9 +113,10 @@ class DownloadUtil
                     }
 
                     try {
-                        if (musicCache.isCached(mediaId, dataSpec.position, CHUNK_LENGTH)) {
+                        val span = musicCache.cachedSpan(mediaId, dataSpec)
+                        if (span > 0) {
                             Log.d(TAG, "[Player] Serving from musicCache: $mediaId")
-                            return@Factory dataSpec
+                            return@Factory dataSpec.subrange(0, span)
                         }
                     } catch (e: Exception) {
                         Log.w(TAG, "[Player] musicCache check error for $mediaId", e)
@@ -120,12 +125,19 @@ class DownloadUtil
                     resolveStream(dataSpec)
                 }
             val localFirst = LocalCopyDataSource.Factory(DefaultDataSource.Factory(context), resolvingFactory, ::downloadedSongUri)
-            return RefusedStreamRetryDataSource.Factory(localFirst) { dataSpec, url ->
-                val mediaId = dataSpec.key
-                if (mediaId != null) onStreamRefused(mediaId, url)
-                mediaId != null
-            }
+            val refusalRetrying =
+                RefusedStreamRetryDataSource.Factory(localFirst) { dataSpec, url ->
+                    val mediaId = dataSpec.key
+                    if (mediaId != null) onStreamRefused(mediaId, url)
+                    mediaId != null
+                }
+            return ChunkStitchingDataSource.Factory(refusalRetrying)
         }
+
+        private fun SimpleCache.cachedSpan(
+            key: String,
+            dataSpec: DataSpec,
+        ): Long = getCachedLength(key, dataSpec.position, dataSpec.length).coerceAtLeast(0L)
 
         private fun resolveStream(dataSpec: DataSpec): DataSpec {
             val mediaId = dataSpec.key ?: error("No media id (key) in dataSpec")
