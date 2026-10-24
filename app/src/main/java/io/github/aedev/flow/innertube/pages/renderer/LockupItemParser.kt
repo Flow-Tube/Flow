@@ -15,6 +15,9 @@ import kotlinx.serialization.json.JsonObject
 
 private const val LOCKUP_CONTENT_TYPE_COURSE = "LOCKUP_CONTENT_TYPE_COURSE"
 
+// A channel's Home tab lists the reels it collaborated on as plain video lockups of this type.
+private const val LOCKUP_CONTENT_TYPE_SHORT = "LOCKUP_CONTENT_TYPE_SHORT"
+
 internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
     val contentId = this["contentId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
     val metadata = this["metadata"].objectOrNull()?.get("lockupMetadataViewModel").objectOrNull()
@@ -66,7 +69,10 @@ internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
 
         else -> {
             FeedItem.VideoItem(
-                lockupVideo(contentId, title, parts, badges, itemOwner, collaborators).copy(membersOnlyText = membersOnly),
+                lockupVideo(contentId, title, parts, badges, itemOwner, collaborators).copy(
+                    membersOnlyText = membersOnly,
+                    isShort = contentType == LOCKUP_CONTENT_TYPE_SHORT,
+                ),
             )
         }
     }

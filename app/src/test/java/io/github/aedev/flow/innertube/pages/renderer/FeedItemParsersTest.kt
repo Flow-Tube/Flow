@@ -170,6 +170,24 @@ class FeedItemParsersTest {
     }
 
     @Test
+    fun `a short lockup on a Home tab stays a video but is marked a Short (1393)`() {
+        val parsed =
+            item(
+                lockup(
+                    "hqr_k5p2KZ8",
+                    "LOCKUP_CONTENT_TYPE_SHORT",
+                    "How to Use Ultrafast Properly",
+                    rows = row("12K views", "10 days ago"),
+                    overlays = durationOverlay("0:28"),
+                ),
+            )
+
+        val video = (parsed as FeedItem.VideoItem).video
+        assertTrue(video.isShort)
+        assertEquals(28, video.duration)
+    }
+
+    @Test
     fun `a plural relative date resolves to days rather than seconds`() {
         val fourDays =
             (
