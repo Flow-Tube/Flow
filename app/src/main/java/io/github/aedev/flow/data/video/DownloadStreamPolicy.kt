@@ -147,6 +147,18 @@ object DownloadStreamPolicy {
     }
 
     /**
+     * The tracks a video download can pair with: one entry per track, its best AAC, in
+     * [buildDownloadAudioFormats] order so the original comes first. A video with one track gives one
+     * entry, and the dialog then shows no choice.
+     */
+    fun audioTrackChoices(streams: List<Format>): List<Format> =
+        streams
+            .filter(::isAacFormat)
+            .groupBy { listOf(it.audioTrack?.id.orEmpty(), audioLocale(it)?.toLanguageTag().orEmpty(), it.isOriginal.toString()) }
+            .values
+            .map { track -> track.maxBy(::audioBitrate) }
+
+    /**
      * The row an audio-only download opens on: [pickAacAudio]'s track, so the original unless a
      * language is set. The remembered row wins only when it is that same track, or the last dub
      * someone downloaded would become the default for every later video.

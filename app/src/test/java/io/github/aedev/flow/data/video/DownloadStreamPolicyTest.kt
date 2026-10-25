@@ -218,6 +218,23 @@ class DownloadStreamPolicyTest {
     }
 
     @Test
+    fun `a video download offers each track once, at its best aac, original first`() {
+        val en = audio(140, averageBitrate = 129_477, trackId = "en.4", trackName = "English original")
+        val enLow = audio(139, averageBitrate = 48_000, trackId = "en.4", trackName = "English original")
+        val ar = audio(140, averageBitrate = 129_483, trackId = "ar.3", trackName = "Arabic")
+        val arLow = audio(139, averageBitrate = 48_000, trackId = "ar.3", trackName = "Arabic")
+        val opus = audio(251, mimeType = OPUS, bitrate = 160_000, trackId = "ar.3", trackName = "Arabic")
+
+        val choices =
+            DownloadStreamPolicy.audioTrackChoices(
+                DownloadStreamPolicy.buildDownloadAudioFormats(listOf(arLow, opus, ar, enLow, en)),
+            )
+
+        assertThat(choices).containsExactly(en, ar).inOrder()
+        assertThat(DownloadStreamPolicy.audioTrackChoices(listOf(audio(140, bitrate = 128_000), audio(139, bitrate = 48_000)))).hasSize(1)
+    }
+
+    @Test
     fun `an audio-only download defaults to the original when every dub shares its bitrate`() {
         val streams =
             DownloadStreamPolicy.buildDownloadAudioFormats(
