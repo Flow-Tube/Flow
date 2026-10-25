@@ -64,6 +64,11 @@ class PlayerFactory {
         return result
     }
 
+    /** Drops the preferences read for the released player, so the next one is built with today's settings. */
+    fun clearPreferences() {
+        cachedPrefs = null
+    }
+
     suspend fun preloadPreferences(context: Context) {
         if (cachedPrefs != null) return
         val prefs = PlayerPreferences(context)

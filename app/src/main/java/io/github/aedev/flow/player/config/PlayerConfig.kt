@@ -29,14 +29,16 @@ object PlayerConfig {
     /** Back buffer duration for low-memory devices. */
     const val LOW_MEMORY_BACK_BUFFER_DURATION_MS = 0
 
-    /** Hard runtime cap for main-player max buffer */
-    const val MAX_SAFE_MAIN_BUFFER_MS = 45_000
+    /** The longest max buffer the main player takes, the top of the Custom slider. Bytes stop it sooner. */
+    const val MAX_SAFE_MAIN_BUFFER_MS = 180_000
 
     /** Hard runtime cap for main-player min buffer so low-RAM devices do not over-retain media. */
     const val MAX_SAFE_MAIN_MIN_BUFFER_MS = 20_000
 
-    /** Runtime caps used when Android reports a small app heap. */
+    /** Max buffer cap on a device Android flags as low-RAM. */
     const val LOW_MEMORY_MAX_SAFE_MAIN_BUFFER_MS = 18_000
+
+    /** Min buffer cap when Android reports a small app heap. */
     const val LOW_MEMORY_MAX_SAFE_MAIN_MIN_BUFFER_MS = 8_000
 
     const val MAIN_TARGET_BUFFER_BYTES = 32 * 1024 * 1024
@@ -44,6 +46,13 @@ object PlayerConfig {
     /** Smaller target buffer budgets for devices with 256-384 MB app heaps. */
     const val LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES = 4 * 1024 * 1024
     const val MID_MEMORY_MAIN_TARGET_BUFFER_BYTES = 12 * 1024 * 1024
+
+    /**
+     * A max buffer longer than the stock profiles may hold up to this share of the app heap, since
+     * Media3's allocator keeps buffered media in heap arrays: 1/5 of a 256 MB heap is about 51 MB.
+     */
+    const val LONG_BUFFER_HEAP_DIVISOR = 5
+    const val MAX_LONG_BUFFER_BYTES = 128 * 1024 * 1024
 
     /** Explicit target buffer budget per shorts player in the pooled shorts stack. */
     const val SHORTS_TARGET_BUFFER_BYTES = 4 * 1024 * 1024
@@ -86,10 +95,10 @@ object PlayerConfig {
 
     /**
      * Media3 holds the current quality while more than this is buffered. At its 25 s default a full
-     * 45 s buffer drains for 20 s before a collapsed network steps down; the midpoint of the main
-     * buffer window cuts that to 12.5 s.
+     * 45 s buffer drains for 20 s before a collapsed network steps down; the midpoint of the 20 s to
+     * 45 s window it was tuned on cuts that to 12.5 s.
      */
-    const val ABR_MAX_BUFFER_FOR_QUALITY_DECREASE_MS = (MAX_SAFE_MAIN_MIN_BUFFER_MS + MAX_SAFE_MAIN_BUFFER_MS) / 2
+    const val ABR_MAX_BUFFER_FOR_QUALITY_DECREASE_MS = 32_500
 
     /** Interval for bandwidth checks during playback (5 seconds) */
     const val BANDWIDTH_CHECK_INTERVAL_MS = 5000L

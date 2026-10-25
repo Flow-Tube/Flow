@@ -8,6 +8,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import io.github.aedev.flow.data.local.BufferDurations
+import io.github.aedev.flow.data.local.BufferProfile
 import io.github.aedev.flow.player.config.PlayerConfig
 
 /**
@@ -21,6 +22,8 @@ import io.github.aedev.flow.player.config.PlayerConfig
 @UnstableApi
 object LoadControlFactory {
     private const val TAG = "LoadControlFactory"
+    private const val BYTES_PER_MB = 1024L * 1024L
+    private val StockMaxBufferMs = BufferProfile.entries.maxOf { it.maxBuffer }
 
     /**
      * Main video player: stored user preferences, re-capped against what this device's heap can
@@ -36,33 +39,7 @@ object LoadControlFactory {
     ): DefaultLoadControl {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
         val memoryClassMb = activityManager?.memoryClass ?: 256
-        val isLowMemoryDevice = activityManager?.isLowRamDevice == true || memoryClassMb <= 256
-        val isConstrainedHeap = isLowMemoryDevice || memoryClassMb <= 384
-
-        val maxSafeMinBufferMs =
-            if (isLowMemoryDevice) {
-                PlayerConfig.LOW_MEMORY_MAX_SAFE_MAIN_MIN_BUFFER_MS
-            } else {
-                PlayerConfig.MAX_SAFE_MAIN_MIN_BUFFER_MS
-            }
-        val maxSafeBufferMs =
-            if (isLowMemoryDevice) {
-                PlayerConfig.LOW_MEMORY_MAX_SAFE_MAIN_BUFFER_MS
-            } else {
-                PlayerConfig.MAX_SAFE_MAIN_BUFFER_MS
-            }
-        val targetBufferBytes =
-            when {
-                isLowMemoryDevice -> PlayerConfig.LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES
-                isConstrainedHeap -> PlayerConfig.MID_MEMORY_MAIN_TARGET_BUFFER_BYTES
-                else -> PlayerConfig.MAIN_TARGET_BUFFER_BYTES
-            }
-        val backBufferMs =
-            if (isConstrainedHeap) {
-                PlayerConfig.LOW_MEMORY_BACK_BUFFER_DURATION_MS
-            } else {
-                PlayerConfig.BACK_BUFFER_DURATION_MS
-            }
+        val budget = videoBudget(memoryClassMb, isLowRamDevice = activityManager?.isLowRamDevice == true, requestedMaxMs = maxMs)
 
         val buffers =
             BufferDurations.sanitize(
@@ -70,15 +47,15 @@ object LoadControlFactory {
                 maxMs = maxMs,
                 playbackMs = playbackMs,
                 rebufferMs = rebufferMs,
-                maxSafeMinMs = maxSafeMinBufferMs,
-                maxSafeMaxMs = maxSafeBufferMs,
+                maxSafeMinMs = budget.maxSafeMinMs,
+                maxSafeMaxMs = budget.maxSafeMaxMs,
             )
 
         Log.d(
             TAG,
             "Buffer config: min=${buffers.minMs}ms, max=${buffers.maxMs}ms, playback=${buffers.playbackMs}ms, " +
-                "rebuffer=${buffers.rebufferMs}ms, target=${targetBufferBytes / 1024 / 1024}MB, " +
-                "back=${backBufferMs}ms, heap=${memoryClassMb}MB",
+                "rebuffer=${buffers.rebufferMs}ms, target=${budget.targetBufferBytes / 1024 / 1024}MB, " +
+                "back=${budget.backBufferMs}ms, heap=${memoryClassMb}MB",
         )
 
         return build(
@@ -86,9 +63,50 @@ object LoadControlFactory {
             maxMs = buffers.maxMs,
             playbackMs = buffers.playbackMs,
             rebufferMs = buffers.rebufferMs,
-            backBufferMs = backBufferMs,
+            backBufferMs = budget.backBufferMs,
             retainBackBufferFromKeyframe = true,
-            targetBufferBytes = targetBufferBytes,
+            targetBufferBytes = budget.targetBufferBytes,
+        )
+    }
+
+    /** What the main video player may buffer on this device, before the user's durations are applied. */
+    internal data class VideoBudget(
+        val maxSafeMinMs: Int,
+        val maxSafeMaxMs: Int,
+        val targetBufferBytes: Int,
+        val backBufferMs: Int,
+    )
+
+    /**
+     * The stock profiles keep the byte targets they always had, so default playback holds no more
+     * memory than before. Only a Custom max longer than every profile raises the byte target to a
+     * share of the heap, which is what lets a 120 s or 180 s choice take effect (#1438). A device
+     * Android flags as low-RAM never gets more than 18 s.
+     */
+    internal fun videoBudget(
+        memoryClassMb: Int,
+        isLowRamDevice: Boolean,
+        requestedMaxMs: Int,
+    ): VideoBudget {
+        val isLowMemoryDevice = isLowRamDevice || memoryClassMb <= 256
+        val isConstrainedHeap = isLowMemoryDevice || memoryClassMb <= 384
+        val tierBytes =
+            when {
+                isLowMemoryDevice -> PlayerConfig.LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES
+                isConstrainedHeap -> PlayerConfig.MID_MEMORY_MAIN_TARGET_BUFFER_BYTES
+                else -> PlayerConfig.MAIN_TARGET_BUFFER_BYTES
+            }
+        val wantsLongBuffer = !isLowRamDevice && requestedMaxMs > StockMaxBufferMs
+        val longBufferBytes =
+            (memoryClassMb.toLong() * BYTES_PER_MB / PlayerConfig.LONG_BUFFER_HEAP_DIVISOR)
+                .coerceAtMost(PlayerConfig.MAX_LONG_BUFFER_BYTES.toLong())
+                .toInt()
+        return VideoBudget(
+            maxSafeMinMs =
+                if (isLowMemoryDevice) PlayerConfig.LOW_MEMORY_MAX_SAFE_MAIN_MIN_BUFFER_MS else PlayerConfig.MAX_SAFE_MAIN_MIN_BUFFER_MS,
+            maxSafeMaxMs = if (isLowRamDevice) PlayerConfig.LOW_MEMORY_MAX_SAFE_MAIN_BUFFER_MS else PlayerConfig.MAX_SAFE_MAIN_BUFFER_MS,
+            targetBufferBytes = if (wantsLongBuffer) maxOf(tierBytes, longBufferBytes) else tierBytes,
+            backBufferMs = if (isConstrainedHeap) PlayerConfig.LOW_MEMORY_BACK_BUFFER_DURATION_MS else PlayerConfig.BACK_BUFFER_DURATION_MS,
         )
     }
 
