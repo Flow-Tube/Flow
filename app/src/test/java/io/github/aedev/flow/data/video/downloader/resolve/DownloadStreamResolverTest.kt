@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
 import io.github.aedev.flow.data.video.downloader.tags.DownloadTags
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
+import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.AudioTrack
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor.VideoExtractionResult
 import io.mockk.every
 import io.mockk.mockk
@@ -21,6 +22,7 @@ class DownloadStreamResolverTest {
         videoCodec: String? = null,
         videoItag: Int? = null,
         audioItag: Int? = null,
+        audioTrackId: String? = null,
     ) = DownloadRequest(
         tags = DownloadTags(kind = kind, videoId = "v", title = "t"),
         audioOnly = audioOnly,
@@ -28,6 +30,7 @@ class DownloadStreamResolverTest {
         videoCodec = videoCodec,
         videoItag = videoItag,
         audioItag = audioItag,
+        audioTrackId = audioTrackId,
     )
 
     private fun result(
@@ -94,6 +97,21 @@ class DownloadStreamResolverTest {
     }
 
     @Test
+    fun `a picked dub keeps its track although every dub shares the itag`() {
+        val dubs = listOf(dub("ar.3", "Arabic", 129_483), dub("en.4", "English original", 129_477), dub("es.3", "Spanish", 129_480))
+
+        assertThat(streams(select(request(audioItag = 140, audioTrackId = "en.4"), audio = dubs)).audio.audioTrack?.id).isEqualTo("en.4")
+        assertThat(streams(select(request(audioItag = 140, audioTrackId = "es.3"), audio = dubs)).audio.audioTrack?.id).isEqualTo("es.3")
+    }
+
+    @Test
+    fun `a track that is gone falls back to the original, not to the first dub`() {
+        val dubs = listOf(dub("ar.3", "Arabic", 129_483), dub("en.4", "English original", 129_477))
+
+        assertThat(streams(select(request(audioItag = 140, audioTrackId = "fr.3"), audio = dubs)).audio.audioTrack?.id).isEqualTo("en.4")
+    }
+
+    @Test
     fun `songs and audio-only downloads fetch no video`() {
         assertThat(streams(select(request(kind = DownloadKind.MUSIC))).video).isNull()
         assertThat(streams(select(request(audioOnly = true))).video).isNull()
@@ -137,6 +155,12 @@ class DownloadStreamResolverTest {
             lastModified = null,
             signatureCipher = null,
         )
+
+        fun dub(
+            id: String,
+            name: String,
+            bitrate: Int,
+        ) = format(140, "audio/mp4; codecs=\"mp4a.40.2\"", bitrate = bitrate).copy(audioTrack = AudioTrack(displayName = name, id = id))
 
         val AAC = format(140, "audio/mp4; codecs=\"mp4a.40.2\"", bitrate = 128_000)
         val OPUS = format(251, "audio/webm; codecs=\"opus\"", bitrate = 160_000)

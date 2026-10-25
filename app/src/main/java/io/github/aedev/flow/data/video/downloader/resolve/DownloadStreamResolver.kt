@@ -104,13 +104,18 @@ class DownloadStreamResolver
                 // A song is only its audio, so it is the one download the song quality setting shapes.
                 val quality = if (request.wantsAudioOnly) defaults.musicQuality else MusicAudioQuality.HIGH
 
+                // Every dub of a video shares one itag (140 for AAC), so a picked track is found by its
+                // track id first, or the itag alone lands on whichever dub sorts first (#1444).
+                val trackFormats =
+                    request.audioTrackId
+                        ?.let { id -> audioFormats.filter { it.audioTrack?.id == id } }
+                        .orEmpty()
+                val itagPool = if (request.audioTrackId != null) trackFormats else audioFormats
                 val audio =
                     request.audioItag
-                        ?.let { itag -> audioFormats.firstOrNull { it.itag == itag } }
+                        ?.let { itag -> itagPool.firstOrNull { it.itag == itag } }
                         ?.takeIf { DownloadStreamPolicy.isAacFormat(it) }
-                        ?: request.audioTrackId?.let { id ->
-                            DownloadStreamPolicy.pickAacAudio(audioFormats.filter { it.audioTrack?.id == id }, language, quality)
-                        }
+                        ?: DownloadStreamPolicy.pickAacAudio(trackFormats, language, quality)
                         ?: DownloadStreamPolicy.pickAacAudio(audioFormats, language, quality)
                         ?: return if (result.audioFormats.any { !it.url.isNullOrBlank() }) {
                             ResolveOutcome.NoCompatibleAudio
