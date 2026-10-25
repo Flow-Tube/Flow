@@ -237,6 +237,7 @@
     <string name="play_mode_suggestion_body">This video is less than 2 minutes long. Would you like to switch to a specialized player?</string>
     <string name="shorts_player">Shorts Player</string>
     <string name="music_player">Music Player</string>
+    <string name="music_service_disabled">Music can\'t play. Flow\'s music service is turned off on this device.</string>
     <plurals name="channels_count">
         <item quantity="one">%d channel</item>
         <item quantity="other">%d channels</item>

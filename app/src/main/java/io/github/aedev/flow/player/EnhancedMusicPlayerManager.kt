@@ -13,10 +13,12 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.AudioSettingsPersistence
 import io.github.aedev.flow.data.local.QueuePersistence
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.musicvideo.MusicVideoItems
 import io.github.aedev.flow.player.musicvideo.MusicVideoPlanner
 import io.github.aedev.flow.service.Media3MusicService
@@ -258,7 +260,23 @@ object EnhancedMusicPlayerManager {
         queuePersistence = QueuePersistence.getInstance(context)
         audioSettingsPersistence = AudioSettingsPersistence.getInstance(context)
 
-        val sessionToken = SessionToken(context, ComponentName(context, Media3MusicService::class.java))
+        connectController(context)
+        startPositionUpdates()
+    }
+
+    /**
+     * Builds the controller for the music service. False when Android reports the service missing,
+     * which happens when the component is disabled on the device (a blocker app, some ROMs): Media3
+     * then throws from the token, and that has to cost music playback, not the app (#1439).
+     */
+    private fun connectController(context: Context): Boolean {
+        val sessionToken =
+            try {
+                SessionToken(context, ComponentName(context, Media3MusicService::class.java))
+            } catch (e: IllegalArgumentException) {
+                PlayerDiagnostics.logError("EnhancedMusicPlayer", "music service unavailable: ${e.message}", e)
+                return false
+            }
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
 
         controllerFuture?.addListener({
@@ -305,8 +323,7 @@ object EnhancedMusicPlayerManager {
                 e.printStackTrace()
             }
         }, MoreExecutors.directExecutor())
-
-        startPositionUpdates()
+        return true
     }
 
     private fun setupPlayerListener(controller: Player) {
@@ -639,6 +656,11 @@ object EnhancedMusicPlayerManager {
         sourceName: String? = null,
         localUriOverrides: Map<String, Uri> = emptyMap(),
     ) {
+        val context = appContext
+        if (player == null && controllerFuture == null && context != null && !connectController(context)) {
+            showPlaybackWarning(context.getString(R.string.music_service_disabled))
+            return
+        }
         queueStarts++
         if (player == null && controllerFuture != null) {
             playBeforeConnect = { playTrack(track, audioUrl, queue, startIndex, startPositionMs, sourceName, localUriOverrides) }
