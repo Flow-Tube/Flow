@@ -1484,6 +1484,7 @@
     <string name="buffer_desc_datasaver">Smaller buffers that use less data</string>
     <string name="buffer_profile_custom_desc">Manually configure buffer sizes</string>
     <string name="buffer_custom_mode_desc">Larger buffers stall less but take longer to start.</string>
+    <string name="buffer_long_memory_note">Long buffers stop early when memory runs low.</string>
     <string name="buffer_switch_to_custom">Switch to \'Custom\' to enable sliders.</string>
     <string name="buffer_label_min">Min Buffer: %1$ds</string>
     <string name="buffer_label_max">Max Buffer: %1$ds</string>

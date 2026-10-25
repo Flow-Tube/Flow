@@ -7,7 +7,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.BufferProfile
+import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.ui.components.settings.SettingEntry
+import io.github.aedev.flow.ui.components.settings.SettingsFootnote
 import io.github.aedev.flow.ui.components.settings.SettingsGroupScope
 import io.github.aedev.flow.ui.components.settings.SettingsPage
 import io.github.aedev.flow.ui.components.settings.option
@@ -18,6 +20,10 @@ import kotlin.math.roundToInt
 
 private const val MS_PER_SECOND = 1000f
 private val PresetProfiles = listOf(BufferProfile.STABLE, BufferProfile.AGGRESSIVE, BufferProfile.DATASAVER)
+
+// The ranges end where the player's caps do, so a slider never offers a value it would ignore (#1438).
+private val MinBufferRange = 1_000..PlayerConfig.MAX_SAFE_MAIN_MIN_BUFFER_MS
+private val MaxBufferRange = 30_000..PlayerConfig.MAX_SAFE_MAIN_BUFFER_MS
 
 /** How much video the player holds ahead: a preset, or the four durations set by hand. */
 @Composable
@@ -58,12 +64,16 @@ internal fun BufferSettingsScreen(
                 onClick = { viewModel.setProfile(BufferProfile.CUSTOM) },
             )
             if (profile == BufferProfile.CUSTOM) {
-                millisSlider(BufferIndex.minBuffer, minBuffer, 1_000..60_000, 1_000, viewModel::setMinBuffer)
-                millisSlider(BufferIndex.maxBuffer, maxBuffer, 30_000..180_000, 5_000, viewModel::setMaxBuffer)
+                millisSlider(BufferIndex.minBuffer, minBuffer, MinBufferRange, 1_000, viewModel::setMinBuffer)
+                millisSlider(BufferIndex.maxBuffer, maxBuffer, MaxBufferRange, 5_000, viewModel::setMaxBuffer)
                 millisSlider(BufferIndex.startBuffer, startBuffer, 500..5_000, 500, viewModel::setStartBuffer)
                 millisSlider(BufferIndex.rebuffer, rebuffer, 1_000..10_000, 500, viewModel::setRebuffer)
             }
         }
+        if (profile == BufferProfile.CUSTOM) {
+            item("buffer.custom.memory") { SettingsFootnote(stringResource(R.string.buffer_long_memory_note)) }
+        }
+        item("buffer.restart") { SettingsFootnote(stringResource(R.string.cache_size_applies_on_restart)) }
     }
 }
 

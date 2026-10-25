@@ -3885,7 +3885,7 @@ enum class BufferProfile(
     AGGRESSIVE("Fast Start", 5_000, 30_000, 500, 2_500),
 
     // Balanced: Good default for most connections
-    STABLE("Balanced", 30_000, 50_000, 2_500, 5_000),
+    STABLE("Balanced", 20_000, 50_000, 2_500, 5_000),
 
     // Data Saver: Minimize data usage with smaller buffers
     DATASAVER("Data Saver", 12_000, 25_000, 1_500, 3_000),
