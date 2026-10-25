@@ -153,6 +153,17 @@ class PlayabilityVerdictTest {
     }
 
     @Test
+    fun `a gone video and a country, membership or sign-in refusal stay failed, a wall does not`() {
+        assertThat(PlayabilityVerdict.isLasting(isGone = true, block = null)).isTrue()
+        listOf(PlaybackBlock.REGION, PlaybackBlock.MEMBERS_OR_PAID, PlaybackBlock.LOGIN_REQUIRED).forEach { block ->
+            assertThat(PlayabilityVerdict.isLasting(isGone = false, block = block)).isTrue()
+        }
+        listOf(PlaybackBlock.BOT_WALL, PlaybackBlock.NETWORK_WALL, PlaybackBlock.RATE_LIMITED, null).forEach { block ->
+            assertThat(PlayabilityVerdict.isLasting(isGone = false, block = block)).isFalse()
+        }
+    }
+
+    @Test
     fun `a refusal is written with its subreason and whether details came back`() {
         val status =
             Json { ignoreUnknownKeys = true }.decodeFromString<PlayerResponse.PlayabilityStatus>(

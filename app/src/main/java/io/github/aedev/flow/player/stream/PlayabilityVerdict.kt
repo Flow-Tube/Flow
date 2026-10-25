@@ -10,6 +10,7 @@ private val RateLimitReason = Regex("""try again later""", RegexOption.IGNORE_CA
 private val MembersOrPaidReason =
     Regex("""members-only|join this channel|requires payment|premium members""", RegexOption.IGNORE_CASE)
 private const val HAS_DETAILS = "details=yes"
+private val LastingBlocks = setOf(PlaybackBlock.REGION, PlaybackBlock.MEMBERS_OR_PAID, PlaybackBlock.LOGIN_REQUIRED)
 
 // Clients the ladder skipped without asking say nothing about the video.
 private val NotAskedReason = Regex("""demoted|no visitorData|PoToken unavailable|not asked""")
@@ -92,6 +93,16 @@ internal object PlayabilityVerdict {
             MembersOrPaidReason.containsMatchIn(reason) -> PlaybackBlock.MEMBERS_OR_PAID
             else -> null
         }
+
+    /**
+     * Whether a failed play stays failed for this viewer, so the video may be hidden: it is gone, or
+     * refused for the viewer's country, a membership, or a sign-in this app cannot offer. Walls and
+     * rate limits pass, so they never hide anything.
+     */
+    fun isLasting(
+        isGone: Boolean,
+        block: PlaybackBlock?,
+    ): Boolean = isGone || block in LastingBlocks
 
     /** Every client that answered was bot-walled, so the refusal is about this viewer only. */
     fun everyClientWalled(failureReasons: List<String>): Boolean {

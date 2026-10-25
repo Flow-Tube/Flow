@@ -51,7 +51,7 @@ const val DEFAULT_BACKGROUND_PLAY_ENABLED = true
 
 val DEFAULT_NAV_TAB_ORDER = listOf(0, 1, 2, 3, 4, 5, 6)
 
-private const val MAX_UNPLAYABLE_VIDEO_IDS = 300
+private const val MAX_UNPLAYABLE_VIDEO_IDS = 1_000
 
 /**
  * Preferences that never leave the device in a backup: the proxy password, and SponsorBlock's

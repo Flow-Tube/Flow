@@ -13,6 +13,8 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
+import io.github.aedev.flow.player.stream.PlaybackBlock
+import io.github.aedev.flow.player.stream.PlaybackBlockedException
 import io.github.aedev.flow.player.stream.PlaybackFailure
 import io.github.aedev.flow.player.stream.ResolvedPlayback
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModelHarness.Companion.video
@@ -240,6 +242,45 @@ class PlaybackSessionApplierTest {
             assertThat(state.errorHint).isEqualTo("RuntimeException: newpipe unavailable")
             assertThat(state.relatedVideos.map { it.id }).containsExactly("rel_1")
             coVerify(exactly = 0) { harness.playerPreferences.markVideoUnplayable(any()) }
+        }
+
+    @Test
+    fun `a region-blocked video is marked unplayable`() =
+        runTest(testDispatcher) {
+            every { InnerTubeVideoStreamExtractor.blockOf(VIDEO_ID) } returns PlaybackBlock.REGION
+
+            applier().apply(
+                ResolvedPlayback.Failed(PlaybackFailure.EXTRACTION, PlaybackBlockedException(PlaybackBlock.REGION), emptyList()),
+                load(),
+            )
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { harness.playerPreferences.markVideoUnplayable(VIDEO_ID) }
+        }
+
+    @Test
+    fun `a bot wall leaves the video unmarked`() =
+        runTest(testDispatcher) {
+            every { InnerTubeVideoStreamExtractor.blockOf(VIDEO_ID) } returns PlaybackBlock.BOT_WALL
+
+            applier().apply(
+                ResolvedPlayback.Failed(PlaybackFailure.EXTRACTION, PlaybackBlockedException(PlaybackBlock.BOT_WALL), emptyList()),
+                load(),
+            )
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { harness.playerPreferences.markVideoUnplayable(any()) }
+        }
+
+    @Test
+    fun `a removed video is marked although no block is recorded`() =
+        runTest(testDispatcher) {
+            every { InnerTubeVideoStreamExtractor.isGone(VIDEO_ID) } returns true
+
+            applier().apply(ResolvedPlayback.Failed(PlaybackFailure.EXTRACTION, null, emptyList()), load())
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { harness.playerPreferences.markVideoUnplayable(VIDEO_ID) }
         }
 
     @Test
