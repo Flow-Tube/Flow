@@ -164,6 +164,23 @@ class PlayabilityVerdictTest {
     }
 
     @Test
+    fun `one answer refuses the viewer only for their country or a membership`() {
+        fun refuses(
+            status: String,
+            reason: String?,
+        ) = PlayabilityVerdict.refusesViewer(PlayerResponse.PlayabilityStatus(status = status, reason = reason), hasVideoDetails = true)
+
+        assertThat(refuses("UNPLAYABLE", "The uploader has not made this video available in your country")).isTrue()
+        assertThat(refuses("UNPLAYABLE", "Join this channel to get access to members-only content like this video")).isTrue()
+        assertThat(refuses("UNPLAYABLE", "Playback on other apps has been disabled by the video owner")).isFalse()
+        assertThat(refuses("ERROR", "Video unavailable")).isFalse()
+        assertThat(refuses("LOGIN_REQUIRED", "Sign in to confirm your age")).isFalse()
+        assertThat(refuses("LOGIN_REQUIRED", "Sign in to confirm you're not a bot")).isFalse()
+        assertThat(refuses("UNPLAYABLE", "This content isn't available, try again later")).isFalse()
+        assertThat(refuses("OK", null)).isFalse()
+    }
+
+    @Test
     fun `a refusal is written with its subreason and whether details came back`() {
         val status =
             Json { ignoreUnknownKeys = true }.decodeFromString<PlayerResponse.PlayabilityStatus>(

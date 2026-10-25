@@ -104,6 +104,21 @@ internal object PlayabilityVerdict {
         block: PlaybackBlock?,
     ): Boolean = isGone || block in LastingBlocks
 
+    /**
+     * Whether one `/player` answer, asked in English, refuses the video to this viewer for their
+     * country or a membership. One client's ERROR is no proof the video is gone, and a plain
+     * UNPLAYABLE is how app clients refuse label and kids videos the web clients still serve, so
+     * neither counts.
+     */
+    fun refusesViewer(
+        status: PlayerResponse.PlayabilityStatus,
+        hasVideoDetails: Boolean,
+    ): Boolean =
+        when (viewerBlock(refusal(status, hasVideoDetails))) {
+            PlaybackBlock.REGION, PlaybackBlock.MEMBERS_OR_PAID -> true
+            else -> false
+        }
+
     /** Every client that answered was bot-walled, so the refusal is about this viewer only. */
     fun everyClientWalled(failureReasons: List<String>): Boolean {
         val answered = failureReasons.filterNot { NotAskedReason.containsMatchIn(it) || NoAnswerReason.containsMatchIn(it) }

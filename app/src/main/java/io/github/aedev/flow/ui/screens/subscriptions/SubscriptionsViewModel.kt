@@ -397,7 +397,7 @@ class SubscriptionsViewModel
                     try {
                         val enrichedById = mutableMapOf<String, Video>()
                         candidates.chunked(DURATION_ENRICHMENT_BATCH_SIZE).forEach { batch ->
-                            val enrichedBatch =
+                            val lookups =
                                 supervisorScope {
                                     batch
                                         .map { video ->
@@ -405,14 +405,15 @@ class SubscriptionsViewModel
                                                 fetchSubscriptionPlayerMetadata(video, DURATION_METADATA_TIMEOUT_MS)
                                             }
                                         }.awaitAll()
-                                }
+                                }.filterNotNull()
                             withContext(Dispatchers.Main.immediate) {
                                 val attemptedAt = System.currentTimeMillis()
                                 batch.forEach { video ->
                                     durationEnrichmentAttemptedAt[video.id] = attemptedAt
                                 }
                             }
-                            enrichedBatch.filterNotNull().associateByTo(enrichedById) { it.id }
+                            lookups.filter { it.refusedToViewer }.forEach { playerPreferences.markVideoUnplayable(it.videoId) }
+                            lookups.mapNotNull { it.enriched }.associateByTo(enrichedById) { it.id }
                         }
 
                         if (enrichedById.isEmpty()) return@launch
