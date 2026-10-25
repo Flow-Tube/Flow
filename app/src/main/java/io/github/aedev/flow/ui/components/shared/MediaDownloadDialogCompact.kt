@@ -150,11 +150,11 @@ fun MediaDownloadDialogCompact(
                 ?: codecsForHeight.firstOrNull() ?: "",
         )
     }
-    var selectedAudioIndex by remember(audioStreams, lastAudioLabel) {
+    var selectedAudioIndex by remember(audioStreams, lastAudioLabel, preferredLang) {
         mutableStateOf(
-            audioStreams.indexOfFirst { audioOptionLabel(it, audioLabelStrings) == lastAudioLabel }.takeIf { it >= 0 }
-                ?: audioStreams.indices.maxByOrNull { DownloadStreamPolicy.audioBitrateKbps(audioStreams[it]) }
-                ?: 0,
+            DownloadStreamPolicy.defaultAudioIndex(audioStreams, preferredLang, lastAudioLabel) {
+                audioOptionLabel(it, audioLabelStrings)
+            },
         )
     }
 

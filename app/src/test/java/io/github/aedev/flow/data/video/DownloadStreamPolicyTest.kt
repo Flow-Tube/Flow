@@ -194,6 +194,58 @@ class DownloadStreamPolicyTest {
     }
 
     @Test
+    fun `the audio list opens on the original track, then the dubs by language`() {
+        val ar = audio(140, averageBitrate = 129_483, trackId = "ar.3", trackName = "Arabic")
+        val enLow = audio(139, averageBitrate = 48_000, trackId = "en.4", trackName = "English original")
+        val en = audio(140, averageBitrate = 129_477, trackId = "en.4", trackName = "English original")
+        val fr = audio(140, averageBitrate = 129_479, trackId = "fr.3", trackName = "French")
+
+        assertThat(DownloadStreamPolicy.buildDownloadAudioFormats(listOf(fr, ar, enLow, en)))
+            .containsExactly(en, enLow, ar, fr)
+            .inOrder()
+    }
+
+    @Test
+    fun `two tracks in one language keep their own rows together`() {
+        val hans = audio(140, averageBitrate = 129_000, trackId = "zh-Hans.3", trackName = "Chinese (Simplified)")
+        val hansLow = audio(139, averageBitrate = 48_000, trackId = "zh-Hans.3", trackName = "Chinese (Simplified)")
+        val hant = audio(140, averageBitrate = 129_000, trackId = "zh-Hant.3", trackName = "Chinese (Traditional)")
+        val hantLow = audio(139, averageBitrate = 48_000, trackId = "zh-Hant.3", trackName = "Chinese (Traditional)")
+
+        assertThat(DownloadStreamPolicy.buildDownloadAudioFormats(listOf(hant, hansLow, hantLow, hans)))
+            .containsExactly(hans, hansLow, hant, hantLow)
+            .inOrder()
+    }
+
+    @Test
+    fun `an audio-only download defaults to the original when every dub shares its bitrate`() {
+        val streams =
+            DownloadStreamPolicy.buildDownloadAudioFormats(
+                listOf(
+                    audio(140, averageBitrate = 129_483, trackId = "ar.3", trackName = "Arabic"),
+                    audio(140, averageBitrate = 129_477, trackId = "en.4", trackName = "English original"),
+                ),
+            )
+
+        val index = DownloadStreamPolicy.defaultAudioIndex(streams, preferredLang = "", rememberedLabel = null) { "" }
+
+        assertThat(streams[index].audioTrack?.id).isEqualTo("en.4")
+    }
+
+    @Test
+    fun `a remembered dub does not become the default for the next video`() {
+        val ar = audio(140, averageBitrate = 129_000, trackId = "ar.3", trackName = "Arabic")
+        val en = audio(140, averageBitrate = 129_000, trackId = "en.4", trackName = "English original")
+        val enLow = audio(139, averageBitrate = 48_000, trackId = "en.4", trackName = "English original")
+        val streams = listOf(en, enLow, ar)
+        val labels = mapOf(en to "M4A 129 en", enLow to "M4A 48 en", ar to "M4A 129 ar")
+
+        assertThat(DownloadStreamPolicy.defaultAudioIndex(streams, "", "M4A 129 ar") { labels.getValue(it) }).isEqualTo(0)
+        assertThat(DownloadStreamPolicy.defaultAudioIndex(streams, "", "M4A 48 en") { labels.getValue(it) }).isEqualTo(1)
+        assertThat(DownloadStreamPolicy.defaultAudioIndex(streams, "ar", "M4A 129 ar") { labels.getValue(it) }).isEqualTo(2)
+    }
+
+    @Test
     fun `aac is taken even when opus has the higher bitrate`() {
         val opus = audio(251, mimeType = OPUS, bitrate = 160_000)
         val aac = audio(140, bitrate = 128_000)

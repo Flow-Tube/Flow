@@ -93,7 +93,9 @@ object DownloadStreamPolicy {
     /**
      * The audio formats a download can use: AAC only, since every download is an MP4 or M4A and
      * Media3 cuts the start of Opus in MP4. DRC twins and URL-less formats are dropped, one entry
-     * per (bitrate, track, language, role), highest bitrate first.
+     * per (bitrate, track, language, role). The original track comes first, then the dubs by
+     * language, each highest bitrate first: dubs often share one bitrate, so a bitrate-first list
+     * opened on whichever dub sorted first (#1444).
      */
     fun buildDownloadAudioFormats(formats: List<Format>): List<Format> =
         formats
@@ -107,8 +109,10 @@ object DownloadStreamPolicy {
                     format.isOriginal.toString(),
                 ).joinToString("|")
             }.sortedWith(
-                compareByDescending<Format> { audioBitrateKbps(it) }
-                    .thenBy { audioLocale(it)?.displayLanguage.orEmpty() },
+                compareByDescending<Format> { it.isOriginal }
+                    .thenBy { audioLocale(it)?.displayLanguage.orEmpty() }
+                    .thenBy { it.audioTrack?.id.orEmpty() }
+                    .thenByDescending { audioBitrateKbps(it) },
             )
 
     /**
@@ -140,6 +144,25 @@ object DownloadStreamPolicy {
             MusicAudioQuality.LOW -> candidates.minByOrNull(::audioBitrate)
             MusicAudioQuality.HIGH, MusicAudioQuality.AUTO -> candidates.maxByOrNull(::audioBitrate)
         }
+    }
+
+    /**
+     * The row an audio-only download opens on: [pickAacAudio]'s track, so the original unless a
+     * language is set. The remembered row wins only when it is that same track, or the last dub
+     * someone downloaded would become the default for every later video.
+     */
+    fun defaultAudioIndex(
+        streams: List<Format>,
+        preferredLang: String?,
+        rememberedLabel: String?,
+        labelOf: (Format) -> String,
+    ): Int {
+        val pick = pickAacAudio(streams, preferredLang) ?: return 0
+        val remembered =
+            streams.indexOfFirst {
+                labelOf(it) == rememberedLabel && it.audioTrack?.id == pick.audioTrack?.id && it.isOriginal == pick.isOriginal
+            }
+        return remembered.takeIf { it >= 0 } ?: streams.indexOf(pick).coerceAtLeast(0)
     }
 
     fun isAacFormat(format: Format): Boolean = containerOf(format.mimeType) == AUDIO_MP4
