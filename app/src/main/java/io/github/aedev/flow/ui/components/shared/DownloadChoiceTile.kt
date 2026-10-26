@@ -12,6 +12,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonColors
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,6 +41,7 @@ internal fun DownloadChoiceTile(
     checked: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    colors: ToggleButtonColors = ToggleButtonDefaults.toggleButtonColors(),
 ) {
     val haptics = LocalHapticFeedback.current
     val themeShapes = MaterialTheme.shapes
@@ -50,6 +53,7 @@ internal fun DownloadChoiceTile(
         },
         shapes = ToggleButtonShapes(shape = themeShapes.medium, pressedShape = themeShapes.small, checkedShape = themeShapes.extraLarge),
         contentPadding = TilePadding,
+        colors = colors,
         modifier = modifier.heightIn(min = TileMinHeight),
     ) {
         Column(modifier = Modifier.weight(1f)) {

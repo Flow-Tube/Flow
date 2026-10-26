@@ -24,6 +24,7 @@ import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerChaptersSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerCommentsPanelHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerDescriptionSheetHost
+import io.github.aedev.flow.ui.screens.player.dialogs.PlayerDownloadSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerLiveChatColumn
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerQueueSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSettingsSheetHost
@@ -152,6 +153,18 @@ internal fun PlayerDetailSideColumn(
             screenState.activeSheet == PlayerSheet.Queue -> {
                 BackHandler(onBack = closeSheet)
                 PlayerQueueSheetHost(
+                    asSidePanel = true,
+                    expandedHeight = paneHeight,
+                    onDismiss = closeSheet,
+                )
+            }
+
+            screenState.activeSheet == PlayerSheet.Download -> {
+                BackHandler(onBack = closeSheet)
+                PlayerDownloadSheetHost(
+                    video = video,
+                    uiState = uiState,
+                    playerState = playerState,
                     asSidePanel = true,
                     expandedHeight = paneHeight,
                     onDismiss = closeSheet,

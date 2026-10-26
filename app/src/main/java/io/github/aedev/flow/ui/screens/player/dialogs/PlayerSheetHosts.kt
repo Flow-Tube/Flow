@@ -35,9 +35,12 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.data.model.uploadDateMillis
 import io.github.aedev.flow.player.EnhancedPlayerManager
+import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.state.SubtitleOption
 import io.github.aedev.flow.ui.components.shared.FlowDescriptionBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowNoteEditorDialog
+import io.github.aedev.flow.ui.components.shared.MediaDownloadPrompt
+import io.github.aedev.flow.ui.components.shared.MediaSheetSlot
 import io.github.aedev.flow.ui.components.shared.MediaSleepTimerSheet
 import io.github.aedev.flow.ui.components.shared.commentTimestampToMs
 import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
@@ -231,6 +234,35 @@ internal fun PlayerTranscriptSheetHost(
         enableVerticalDismiss = !asSidePanel,
         onSheetProgressChange = onSheetProgressChange,
         modifier = if (asSidePanel) Modifier.fillMaxSize() else Modifier,
+    )
+}
+
+@Composable
+internal fun PlayerDownloadSheetHost(
+    video: Video,
+    uiState: VideoPlayerUiState,
+    playerState: EnhancedPlayerState,
+    asSidePanel: Boolean,
+    expandedHeight: Dp?,
+    onDismiss: () -> Unit,
+    collapsedHeight: Dp = 0.dp,
+    onSheetProgressChange: (Float) -> Unit = {},
+) {
+    MediaDownloadPrompt(
+        streamSizes = uiState.streamSizes,
+        videoFormats = uiState.innerTubeVideoFormats,
+        audioFormats = uiState.innerTubeAudioFormats,
+        video = video,
+        subtitles = playerState.availableSubtitles,
+        currentPlayingHeight = playerState.effectiveQuality,
+        onDismiss = onDismiss,
+        slot =
+            MediaSheetSlot(
+                expandedHeight = expandedHeight ?: defaultSheetExpandedHeight(),
+                collapsedHeight = collapsedHeight,
+                asSidePanel = asSidePanel,
+                onProgressChange = onSheetProgressChange,
+            ),
     )
 }
 

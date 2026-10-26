@@ -13,6 +13,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonColors
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -48,6 +50,7 @@ fun <T> FlowConnectedToggleGroup(
     onSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    colors: ToggleButtonColors = ToggleButtonDefaults.toggleButtonColors(),
 ) {
     val haptics = LocalHapticFeedback.current
     Row(
@@ -63,6 +66,7 @@ fun <T> FlowConnectedToggleGroup(
                     onSelected(option.value)
                 },
                 shapes = connectedButtonShapes(index = index, count = options.size),
+                colors = colors,
                 contentPadding = ContentPadding,
                 modifier = Modifier.weight(1f),
             ) {

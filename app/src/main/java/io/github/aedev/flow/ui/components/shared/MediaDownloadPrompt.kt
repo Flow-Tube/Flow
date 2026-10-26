@@ -18,8 +18,9 @@ import io.github.aedev.flow.player.state.SubtitleOption
 import kotlinx.coroutines.flow.first
 
 /**
- * What every Download button opens: the menu in the style chosen in settings. With Ask every time
- * off nothing opens, and the choice the Classic sheet would open on downloads at once (#1432).
+ * What every Download button opens: the menu in the style chosen in settings, in [slot] when the
+ * screen keeps one for its sheets. With Ask every time off nothing opens, and the choice the Classic
+ * sheet would open on downloads at once (#1432).
  */
 @Composable
 fun MediaDownloadPrompt(
@@ -30,6 +31,7 @@ fun MediaDownloadPrompt(
     onDismiss: () -> Unit,
     subtitles: List<SubtitleOption> = emptyList(),
     currentPlayingHeight: Int = 0,
+    slot: MediaSheetSlot? = null,
 ) {
     val context = LocalContext.current
     val prefs = remember(context) { PlayerPreferences(context) }
@@ -50,13 +52,14 @@ fun MediaDownloadPrompt(
         }
 
         style == DownloadDialogStyle.COMPACT -> {
-            MediaDownloadDialogCompact(
+            MediaDownloadSheetCompact(
                 streamSizes = streamSizes,
                 innerTubeVideoFormats = videoFormats,
                 innerTubeAudioFormats = audioFormats,
                 video = video,
                 currentPlayingHeight = currentPlayingHeight,
                 subtitles = subtitles,
+                slot = slot,
                 onDismiss = onDismiss,
             )
         }
@@ -68,6 +71,7 @@ fun MediaDownloadPrompt(
                 innerTubeAudioFormats = audioFormats,
                 video = video,
                 subtitles = subtitles,
+                slot = slot,
                 onDismiss = onDismiss,
             )
         }
@@ -100,8 +104,11 @@ private suspend fun downloadDefaultChoice(
         context = context,
         video = video,
         format = format,
-        audioStreams = DownloadStreamPolicy.buildDownloadAudioFormats(audioFormats),
-        preferredLang = prefs.preferredAudioLanguage.first(),
+        audio =
+            DownloadStreamPolicy.pickAacAudio(
+                DownloadStreamPolicy.buildDownloadAudioFormats(audioFormats),
+                prefs.preferredAudioLanguage.first(),
+            ),
         subtitleOptions = subtitleOptions,
         subtitleChoice = defaultDownloadSubtitle(subtitleOptions, prefs.lastDownloadSubtitleLanguage.first()),
         prefs = prefs,

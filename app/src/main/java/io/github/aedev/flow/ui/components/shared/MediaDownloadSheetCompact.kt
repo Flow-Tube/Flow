@@ -1,34 +1,23 @@
 package io.github.aedev.flow.ui.components.shared
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.VideoLibrary
-import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -65,16 +54,16 @@ private val downloadPrefsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO
 
 private const val UNRANKED_CODEC = 99
 
-@OptIn(ExperimentalMaterial3Api::class)
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun MediaDownloadDialogCompact(
+fun MediaDownloadSheetCompact(
     streamSizes: Map<String, Long>,
     innerTubeVideoFormats: List<PlayerResponse.StreamingData.Format> = emptyList(),
     innerTubeAudioFormats: List<PlayerResponse.StreamingData.Format> = emptyList(),
     video: Video,
     currentPlayingHeight: Int = 0,
     subtitles: List<SubtitleOption> = emptyList(),
+    slot: MediaSheetSlot? = null,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -165,12 +154,12 @@ fun MediaDownloadDialogCompact(
 
     val selectedSizeText = approxDownloadSizeLabel(streamSizes[VideoCodecUtils.streamSizeKey(selectedHeight, selectedCodec)])
 
-    fun confirmDownload() {
+    fun confirmDownload(): Boolean {
         val finalTitle = title.trim().ifBlank { video.title }
         val taggedVideo = video.copy(title = finalTitle)
         if (isAudioMode) {
-            val stream = audioStreams.getOrNull(selectedAudioIndex) ?: return
-            if (!DownloadLauncher.startAudioOnlyDownload(context, taggedVideo, stream, threads)) return
+            val stream = audioStreams.getOrNull(selectedAudioIndex) ?: return false
+            if (!DownloadLauncher.startAudioOnlyDownload(context, taggedVideo, stream, threads)) return false
             Toast
                 .makeText(
                     context,
@@ -181,19 +170,18 @@ fun MediaDownloadDialogCompact(
                 prefs.setLastDownloadAudioChoice(audioOptionLabel(stream, audioLabelStrings))
                 prefs.setDownloadThreads(threads)
             }
-            onDismiss()
-            return
+            return true
         }
 
         val stream =
             videoStreams.firstOrNull {
                 DownloadStreamPolicy.videoHeight(it) == selectedHeight &&
                     DownloadStreamPolicy.videoCodecKey(it) == selectedCodec
-            } ?: return
+            } ?: return false
         val audio = videoAudio
         if (audio == null) {
             Toast.makeText(context, context.getString(R.string.download_no_compatible_audio), Toast.LENGTH_LONG).show()
-            return
+            return false
         }
         val subtitle = subtitleChoice?.toDownloadSubtitle() ?: DownloadSubtitle.OFF.takeIf { subtitleOptions.isNotEmpty() }
         DownloadLauncher.startVideoDownload(context, taggedVideo, stream, audio, threads, subtitle)
@@ -202,183 +190,142 @@ fun MediaDownloadDialogCompact(
             prefs.setLastDownloadVideoChoice(selectedHeight, selectedCodec)
             prefs.setDownloadThreads(threads)
         }
-        onDismiss()
+        return true
     }
 
-    BasicAlertDialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
-        ) {
-            Column(
-                modifier =
-                    Modifier.padding(
-                        start = FlowDialogDefaults.ContentPadding,
-                        top = FlowDialogDefaults.ContentPadding,
-                        end = FlowDialogDefaults.ContentPadding,
-                        bottom = FlowDialogDefaults.BottomPadding,
-                    ),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.download_video),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
-                    }
-                }
+    val haptics = LocalHapticFeedback.current
+    DownloadSheetFrame(
+        title = stringResource(R.string.download_video),
+        slot = slot,
+        onDismiss = onDismiss,
+        footer = { sheet ->
+            DownloadSheetButton(
+                label = stringResource(R.string.download),
+                enabled = (isAudioMode && hasAudio) || (!isAudioMode && hasVideo && selectedCodec.isNotEmpty()),
+                onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                    if (confirmDownload()) sheet.close()
+                },
+            )
+        },
+    ) {
+        Column(modifier = Modifier.padding(horizontal = DownloadSheetPadding)) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text(stringResource(R.string.download_title_label)) },
+                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
-                Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(stringResource(R.string.download_title_label)) },
-                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                if (hasVideo && hasAudio) {
-                    FlowConnectedToggleGroup(
-                        options =
-                            listOf(
-                                FlowToggleOption(
-                                    value = false,
-                                    label = stringResource(R.string.video),
-                                    icon = Icons.Outlined.VideoLibrary,
-                                ),
-                                FlowToggleOption(
-                                    value = true,
-                                    label = stringResource(R.string.download_audio),
-                                    icon = Icons.Outlined.MusicNote,
-                                ),
+            if (hasVideo && hasAudio) {
+                FlowConnectedToggleGroup(
+                    options =
+                        listOf(
+                            FlowToggleOption(
+                                value = false,
+                                label = stringResource(R.string.video),
+                                icon = Icons.Outlined.VideoLibrary,
                             ),
-                        selected = isAudioMode,
-                        onSelected = { isAudioMode = it },
-                    )
-                    Spacer(Modifier.height(16.dp))
-                }
-
-                if (!isAudioMode && hasVideo) {
-                    DownloadDropdownRow(
-                        label = stringResource(R.string.quality),
-                        value = listOfNotNull("${selectedHeight}p", selectedSizeText).joinToString(separatorDot),
-                        options =
-                            heights.map { h ->
-                                "${h}p" to { selectedHeight = h }
-                            },
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    DownloadDropdownRow(
-                        label = stringResource(R.string.download_format_label),
-                        value = codecOptionLabel(selectedCodec, separatorDot),
-                        options =
-                            codecsForHeight.map { codec ->
-                                codecOptionLabel(codec, separatorDot) to { selectedCodec = codec }
-                            },
-                    )
-                    if (audioTracks.size > 1) {
-                        Spacer(Modifier.height(10.dp))
-                        DownloadDropdownRow(
-                            label = stringResource(R.string.audio_track),
-                            value = videoAudio?.let(DownloadStreamPolicy::audioLanguageLabel).orEmpty(),
-                            options =
-                                audioTracks.map { track ->
-                                    DownloadStreamPolicy.audioLanguageLabel(track).orEmpty() to { videoAudio = track }
-                                },
-                        )
-                    }
-                    if (subtitleOptions.isNotEmpty()) {
-                        Spacer(Modifier.height(10.dp))
-                        DownloadSubtitleRow(
-                            options = subtitleOptions,
-                            selected = subtitleChoice,
-                            onSelect = { subtitleChoice = it },
-                        )
-                    }
-                } else if (isAudioMode && hasAudio) {
-                    DownloadDropdownRow(
-                        label = stringResource(R.string.download_audio),
-                        value = audioStreams.getOrNull(selectedAudioIndex)?.let { audioOptionLabel(it, audioLabelStrings) } ?: "",
-                        options =
-                            audioStreams.mapIndexed { index, stream ->
-                                audioOptionLabel(stream, audioLabelStrings) to { selectedAudioIndex = index }
-                            },
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.no_download_streams),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
+                            FlowToggleOption(
+                                value = true,
+                                label = stringResource(R.string.download_audio),
+                                icon = Icons.Outlined.MusicNote,
+                            ),
+                        ),
+                    selected = isAudioMode,
+                    onSelected = { isAudioMode = it },
+                    colors = downloadToggleColors(slot),
+                )
                 Spacer(Modifier.height(16.dp))
+            }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.download_threads_label),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    val currentThreads = threads.coerceIn(MIN_THREADS, MAX_THREADS)
-                    val haptics = LocalHapticFeedback.current
-                    FilledTonalIconButton(
-                        onClick = {
-                            haptics.performHapticFeedback(
-                                if (currentThreads > MIN_THREADS) HapticFeedbackType.SegmentTick else HapticFeedbackType.Reject,
-                            )
-                            threads = (currentThreads - 1).coerceAtLeast(MIN_THREADS)
+            if (!isAudioMode && hasVideo) {
+                DownloadDropdownRow(
+                    label = stringResource(R.string.quality),
+                    value = listOfNotNull("${selectedHeight}p", selectedSizeText).joinToString(separatorDot),
+                    options =
+                        heights.map { h ->
+                            "${h}p" to { selectedHeight = h }
                         },
-                        enabled = currentThreads > MIN_THREADS,
-                    ) {
-                        Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.download_threads_decrease))
-                    }
-                    Text(
-                        text = currentThreads.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                    FilledTonalIconButton(
-                        onClick = {
-                            haptics.performHapticFeedback(
-                                if (currentThreads < MAX_THREADS) HapticFeedbackType.SegmentTick else HapticFeedbackType.Reject,
-                            )
-                            threads = (currentThreads + 1).coerceAtMost(MAX_THREADS)
+                )
+                Spacer(Modifier.height(10.dp))
+                DownloadDropdownRow(
+                    label = stringResource(R.string.download_format_label),
+                    value = codecOptionLabel(selectedCodec, separatorDot),
+                    options =
+                        codecsForHeight.map { codec ->
+                            codecOptionLabel(codec, separatorDot) to { selectedCodec = codec }
                         },
-                        enabled = currentThreads < MAX_THREADS,
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.download_threads_increase))
-                    }
+                )
+                if (audioTracks.size > 1) {
+                    Spacer(Modifier.height(10.dp))
+                    DownloadAudioTrackRow(tracks = audioTracks, selected = videoAudio, onSelect = { videoAudio = it })
                 }
-
-                Spacer(Modifier.height(FlowDialogDefaults.ActionsSpacing))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-                    Spacer(Modifier.width(8.dp))
-                    val confirmHaptics = LocalHapticFeedback.current
-                    Button(
-                        onClick = {
-                            confirmHaptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                            confirmDownload()
+                if (subtitleOptions.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    DownloadSubtitleRow(
+                        options = subtitleOptions,
+                        selected = subtitleChoice,
+                        onSelect = { subtitleChoice = it },
+                    )
+                }
+            } else if (isAudioMode && hasAudio) {
+                DownloadDropdownRow(
+                    label = stringResource(R.string.download_audio),
+                    value = audioStreams.getOrNull(selectedAudioIndex)?.let { audioOptionLabel(it, audioLabelStrings) } ?: "",
+                    options =
+                        audioStreams.mapIndexed { index, stream ->
+                            audioOptionLabel(stream, audioLabelStrings) to { selectedAudioIndex = index }
                         },
-                        shapes = ButtonDefaults.shapes(),
-                        enabled = (isAudioMode && hasAudio) || (!isAudioMode && hasVideo && selectedCodec.isNotEmpty()),
-                    ) { Text(stringResource(R.string.download)) }
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.no_download_streams),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.download_threads_label),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                val currentThreads = threads.coerceIn(MIN_THREADS, MAX_THREADS)
+                FilledTonalIconButton(
+                    onClick = {
+                        haptics.performHapticFeedback(
+                            if (currentThreads > MIN_THREADS) HapticFeedbackType.SegmentTick else HapticFeedbackType.Reject,
+                        )
+                        threads = (currentThreads - 1).coerceAtLeast(MIN_THREADS)
+                    },
+                    enabled = currentThreads > MIN_THREADS,
+                ) {
+                    Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.download_threads_decrease))
+                }
+                Text(
+                    text = currentThreads.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                FilledTonalIconButton(
+                    onClick = {
+                        haptics.performHapticFeedback(
+                            if (currentThreads < MAX_THREADS) HapticFeedbackType.SegmentTick else HapticFeedbackType.Reject,
+                        )
+                        threads = (currentThreads + 1).coerceAtMost(MAX_THREADS)
+                    },
+                    enabled = currentThreads < MAX_THREADS,
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.download_threads_increase))
                 }
             }
         }

@@ -120,6 +120,7 @@ internal fun rememberPlayerMediaSheetGeometry(
                 is PlayerSheet.Settings,
                 PlayerSheet.Chapters,
                 PlayerSheet.Description,
+                PlayerSheet.Download,
                 PlayerSheet.Queue,
                 PlayerSheet.SleepTimer,
                 -> true

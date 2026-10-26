@@ -44,11 +44,13 @@ import io.github.aedev.flow.ui.components.shared.FlowCommentsBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowDescriptionBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
+import io.github.aedev.flow.ui.components.shared.MediaSheetSlot
 import io.github.aedev.flow.ui.components.shared.applyVideoCommentFilters
+import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
 import io.github.aedev.flow.ui.components.shared.rememberVideoShareAction
 import io.github.aedev.flow.ui.components.shared.videoCommentSortFor
 import io.github.aedev.flow.ui.components.shorts.SHORTS_SHEET_HEIGHT_FRACTION
-import io.github.aedev.flow.ui.components.shorts.ShortsDownloadDialog
+import io.github.aedev.flow.ui.components.shorts.ShortsDownloadSheet
 import io.github.aedev.flow.ui.components.shorts.ShortsReelActions
 import io.github.aedev.flow.ui.components.shorts.ShortsReelPage
 import io.github.aedev.flow.ui.components.shorts.ShortsSettingsSheet
@@ -148,7 +150,7 @@ fun ShortsScreen(
             sheetInsets.containerHeightPx = constraints.maxHeight.toFloat()
             sheetInsets.shrinkEnabled = canShrinkReel
         }
-        val screenSheetOpen = showCommentsSheet || showDescriptionSheet || settingsSheet.isOpen
+        val screenSheetOpen = showCommentsSheet || showDescriptionSheet || settingsSheet.isOpen || settingsSheet.downloadVideo != null
 
         when {
             uiState.isLoading && uiState.shorts.isEmpty() -> {
@@ -297,7 +299,18 @@ fun ShortsScreen(
                 bottomContentPadding = bottomNavOverlayPadding,
             )
         }
-        ShortsDownloadDialog(state = settingsSheet)
+        if (settingsSheet.downloadVideo != null) {
+            DisposableEffect(Unit) { onDispose { sheetInsets.release() } }
+            ShortsDownloadSheet(
+                state = settingsSheet,
+                slot =
+                    MediaSheetSlot(
+                        expandedHeight = sheetExpandedHeight ?: defaultSheetExpandedHeight(),
+                        bottomPadding = bottomNavOverlayPadding,
+                        onProgressChange = { progress -> sheetInsets.follow(sheetExpandedHeightPx * progress) },
+                    ),
+            )
+        }
 
         ShortsTopBar(
             visible = uiState.shorts.isNotEmpty() && !isInPip,

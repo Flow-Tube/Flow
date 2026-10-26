@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.shorts.ShortAudioTrack
 import io.github.aedev.flow.data.shorts.ShortVideoQuality
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.ui.components.shared.MediaDownloadPrompt
+import io.github.aedev.flow.ui.components.shared.MediaSheetSlot
 import io.github.aedev.flow.ui.screens.shorts.ShortsViewModel
 
 internal enum class ShortsSettingsPage {
@@ -83,8 +84,12 @@ internal class ShortsSettingsSheetState {
     }
 }
 
+/** The download sheet [ShortsSettingsSheetState.prepareDownload] readied, opened in [slot] like the reel's other sheets. */
 @Composable
-internal fun ShortsDownloadDialog(state: ShortsSettingsSheetState) {
+internal fun ShortsDownloadSheet(
+    state: ShortsSettingsSheetState,
+    slot: MediaSheetSlot,
+) {
     val video = state.downloadVideo ?: return
     if (state.videoFormats.isEmpty()) return
     MediaDownloadPrompt(
@@ -92,6 +97,7 @@ internal fun ShortsDownloadDialog(state: ShortsSettingsSheetState) {
         videoFormats = state.videoFormats,
         audioFormats = state.audioFormats,
         video = video,
+        slot = slot,
         onDismiss = { state.downloadVideo = null },
     )
 }

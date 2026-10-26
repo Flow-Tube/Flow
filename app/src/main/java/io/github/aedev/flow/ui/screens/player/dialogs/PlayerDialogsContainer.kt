@@ -10,7 +10,6 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.dlna.DlnaCastManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
-import io.github.aedev.flow.ui.components.shared.MediaDownloadPrompt
 import io.github.aedev.flow.ui.components.videoplayer.DlnaDevicePickerDialog
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
@@ -35,14 +34,15 @@ internal fun PlayerDialogsContainer(
     val playerPreferences = prefs.preferences
     val coroutineScope = rememberCoroutineScope()
 
-    if (screenState.activeSheet == PlayerSheet.Download) {
-        MediaDownloadPrompt(
-            streamSizes = uiState.streamSizes,
-            videoFormats = uiState.innerTubeVideoFormats,
-            audioFormats = uiState.innerTubeAudioFormats,
+    if (screenState.activeSheet == PlayerSheet.Download && !hostedInSidePanel) {
+        PlayerDownloadSheetHost(
             video = video,
-            subtitles = playerState.availableSubtitles,
-            currentPlayingHeight = playerState.effectiveQuality,
+            uiState = uiState,
+            playerState = playerState,
+            asSidePanel = false,
+            expandedHeight = mediaSheetExpandedHeight,
+            collapsedHeight = mediaSheetCollapsedHeight,
+            onSheetProgressChange = onMediaSheetProgressChange,
             onDismiss = { screenState.closeSheet() },
         )
     }

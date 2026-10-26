@@ -24,9 +24,9 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The Classic sheet and the compact dialog offer the same resolutions and open on the same subtitle
- * track. On a device: the compact dialog hosts a text field inside a Dialog window, which never
- * reaches idle under Robolectric.
+ * The Classic and compact sheets offer the same resolutions and open on the same subtitle track. On
+ * a device: the compact sheet hosts a text field inside a modal sheet's window, which never reaches
+ * idle under Robolectric.
  */
 class DownloadDialogsInstrumentedTest {
     @get:Rule
@@ -94,7 +94,7 @@ class DownloadDialogsInstrumentedTest {
         rule.setContent {
             MaterialTheme {
                 if (showCompact) {
-                    MediaDownloadDialogCompact(
+                    MediaDownloadSheetCompact(
                         streamSizes = emptyMap(),
                         innerTubeVideoFormats = videoFormats,
                         innerTubeAudioFormats = audioFormats,
@@ -131,7 +131,7 @@ class DownloadDialogsInstrumentedTest {
             }.toSet()
 
     @Test
-    fun compactDialogOffersTheSameResolutionsAsTheSheet() {
+    fun compactSheetOffersTheSameResolutionsAsTheClassicSheet() {
         setDialogs()
         val fullHeights = renderedHeights()
 

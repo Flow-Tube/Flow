@@ -3,22 +3,17 @@ package io.github.aedev.flow.ui.components.shared
 import android.content.Context
 import android.text.format.Formatter
 import android.widget.Toast
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,9 +47,7 @@ import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsDefaults
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsHeader
-import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsSheet
 
-private val SheetPadding = 16.dp
 private val SectionGap = 12.dp
 private const val VIDEO_COLUMNS = 3
 private const val AUDIO_COLUMNS = 2
@@ -64,6 +57,7 @@ private val VideoLocationSetting = SettingsTarget(SettingsDestination.DOWNLOADS,
  * The Classic download menu: every resolution as a tile, the codecs the chosen one comes in, the
  * audio-only tracks and the subtitles on one sheet, with one Download button. It opens on the
  * Download quality from settings. A video with no stream to offer gets the SABR fallback instead.
+ * With a [slot] it opens there, under the video, instead of over the screen.
  */
 @Composable
 fun MediaDownloadSheet(
@@ -72,6 +66,7 @@ fun MediaDownloadSheet(
     innerTubeAudioFormats: List<Format>,
     video: Video,
     subtitles: List<SubtitleOption> = emptyList(),
+    slot: MediaSheetSlot? = null,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -86,12 +81,16 @@ fun MediaDownloadSheet(
             DownloadSheetChoices.qualities(DownloadStreamPolicy.buildDownloadVideoFormats(innerTubeVideoFormats))
         }
     val audioStreams = remember(innerTubeAudioFormats) { DownloadStreamPolicy.buildDownloadAudioFormats(innerTubeAudioFormats) }
+    val audioTracks = remember(audioStreams) { DownloadStreamPolicy.audioTrackChoices(audioStreams) }
     val subtitleOptions = remember(subtitles) { downloadableSubtitles(subtitles) }
     val preferredCodec = defaultCodec.takeIf { it != VideoCodec.AUTO }?.codecKey
 
     var chosenHeight by remember(qualities) { mutableStateOf<Int?>(null) }
     var chosenOption by remember(qualities) { mutableStateOf<DownloadFormatOption?>(null) }
     var chosenAudio by remember(audioStreams) { mutableStateOf<Format?>(null) }
+    var videoAudio by remember(audioStreams, preferredLang) {
+        mutableStateOf(DownloadStreamPolicy.pickAacAudio(audioStreams, preferredLang))
+    }
     var allLanguages by remember(audioStreams) { mutableStateOf(false) }
     val primaryAudio =
         remember(audioStreams, preferredLang) {
@@ -106,12 +105,63 @@ fun MediaDownloadSheet(
             ?: defaultQuality?.let { DownloadSheetChoices.preselect(qualities, it.height) }
     val option = quality?.let { DownloadSheetChoices.option(it, chosenOption, preferredCodec) }
     val audioOnly = chosenAudio ?: audioStreams.firstOrNull().takeIf { qualities.isEmpty() }
+    val format = if (quality != null && option != null) quality.format(option) else null
     val hdrLabel = stringResource(R.string.download_quality_hdr)
-    val navigator = LocalMediaNavigator.current
+    val separator = stringResource(R.string.list_separator_dot)
+    val choiceLabel =
+        when {
+            audioOnly != null -> {
+                audioTileTitle(audioOnly)
+            }
 
-    QuickActionsSheet(onDismiss = onDismiss, expandFully = true) { sheet ->
+            quality == null || option == null -> {
+                ""
+            }
+
+            else -> {
+                listOfNotNull(
+                    VideoCodecUtils.qualityLabelWithFrameRate(quality.height, quality.fps),
+                    approxDownloadSizeLabel(streamSizes[VideoCodecUtils.streamSizeKey(quality.height, option.codecKey)]),
+                ).joinToString(separator)
+            }
+        }
+    val hasStreams = qualities.isNotEmpty() || audioStreams.isNotEmpty()
+    val navigator = LocalMediaNavigator.current
+    val toggleColors = downloadToggleColors(slot)
+
+    DownloadSheetFrame(
+        title = stringResource(R.string.download),
+        slot = slot,
+        onDismiss = onDismiss,
+        footer = { sheet ->
+            if (!hasStreams) return@DownloadSheetFrame
+            DownloadSheetButton(
+                label = stringResource(R.string.download_sheet_button, choiceLabel),
+                enabled = audioOnly != null || format != null,
+                onClick = {
+                    val started =
+                        if (audioOnly != null) {
+                            DownloadLauncher.startAudioOnlyDownload(context, video, audioOnly).also { queued ->
+                                if (queued) {
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            context.getString(R.string.ui_started_download, video.title),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                }
+                            }
+                        } else {
+                            startVideo(context, video, format, videoAudio, subtitleOptions, subtitleChoice, prefs)
+                        }
+                    if (started) sheet.close()
+                },
+            )
+        },
+    ) { sheet ->
         DownloadSheetHeader(
             video = video,
+            showVideo = slot == null,
             onChangeFolder = {
                 sheet.hideThen {
                     onDismiss()
@@ -120,12 +170,12 @@ fun MediaDownloadSheet(
             },
         )
 
-        if (qualities.isEmpty() && audioStreams.isEmpty()) {
+        if (!hasStreams) {
             NoDownloadStreams(onTrySabr = {
                 DownloadLauncher.startDefaultDownload(context, video)
                 sheet.close()
             })
-            return@QuickActionsSheet
+            return@DownloadSheetFrame
         }
 
         if (qualities.isNotEmpty()) {
@@ -147,6 +197,7 @@ fun MediaDownloadSheet(
                         chosenAudio = null
                     },
                     modifier = modifier,
+                    colors = toggleColors,
                 )
             }
             if (audioOnly == null && quality != null && quality.options.size > 1 && option != null) {
@@ -154,8 +205,22 @@ fun MediaDownloadSheet(
                     options = quality.options.map { FlowToggleOption(it, formatOptionLabel(it, hdrLabel)) },
                     selected = option,
                     onSelected = { chosenOption = it },
-                    modifier = Modifier.padding(start = SheetPadding, end = SheetPadding, top = SectionGap),
+                    colors = toggleColors,
+                    modifier = Modifier.padding(start = DownloadSheetPadding, end = DownloadSheetPadding, top = SectionGap),
                 )
+            }
+            if (audioOnly == null && (audioTracks.size > 1 || subtitleOptions.isNotEmpty())) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(start = DownloadSheetPadding, end = DownloadSheetPadding, top = SectionGap),
+                ) {
+                    if (audioTracks.size > 1) {
+                        DownloadAudioTrackRow(tracks = audioTracks, selected = videoAudio, onSelect = { videoAudio = it })
+                    }
+                    if (subtitleOptions.isNotEmpty()) {
+                        DownloadSubtitleRow(options = subtitleOptions, selected = subtitleChoice, onSelect = { subtitleChoice = it })
+                    }
+                }
             }
         }
 
@@ -170,6 +235,7 @@ fun MediaDownloadSheet(
                     checked = stream == audioOnly,
                     onClick = { chosenAudio = stream },
                     modifier = modifier,
+                    colors = toggleColors,
                 )
             }
             if (shownAudio.size < audioStreams.size) {
@@ -178,69 +244,20 @@ fun MediaDownloadSheet(
                 }
             }
         }
-
-        if (audioOnly == null && subtitleOptions.isNotEmpty()) {
-            Box(modifier = Modifier.padding(start = SheetPadding, end = SheetPadding, top = SectionGap)) {
-                DownloadSubtitleRow(options = subtitleOptions, selected = subtitleChoice, onSelect = { subtitleChoice = it })
-            }
-        }
-
-        val format = if (quality != null && option != null) quality.format(option) else null
-        val choiceLabel =
-            when {
-                audioOnly != null -> {
-                    audioTileTitle(audioOnly)
-                }
-
-                quality == null || option == null -> {
-                    ""
-                }
-
-                else -> {
-                    listOfNotNull(
-                        VideoCodecUtils.qualityLabelWithFrameRate(quality.height, quality.fps),
-                        approxDownloadSizeLabel(streamSizes[VideoCodecUtils.streamSizeKey(quality.height, option.codecKey)]),
-                    ).joinToString(stringResource(R.string.list_separator_dot))
-                }
-            }
-        DownloadButton(
-            label = stringResource(R.string.download_sheet_button, choiceLabel),
-            enabled = audioOnly != null || format != null,
-            onClick = {
-                val started =
-                    if (audioOnly != null) {
-                        DownloadLauncher.startAudioOnlyDownload(context, video, audioOnly).also { queued ->
-                            if (queued) {
-                                Toast
-                                    .makeText(
-                                        context,
-                                        context.getString(R.string.ui_started_download, video.title),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                            }
-                        }
-                    } else {
-                        startVideo(context, video, format, audioStreams, preferredLang, subtitleOptions, subtitleChoice, prefs)
-                    }
-                if (started) sheet.close()
-            },
-        )
     }
 }
 
-/** Starts the chosen video with the AAC track in the viewer's language; false when there is none. */
+/** Starts the chosen video with [audio], the track picked for it; false when there is none. */
 internal fun startVideo(
     context: Context,
     video: Video,
     format: Format?,
-    audioStreams: List<Format>,
-    preferredLang: String?,
+    audio: Format?,
     subtitleOptions: List<SubtitleOption>,
     subtitleChoice: SubtitleOption?,
     prefs: PlayerPreferences,
 ): Boolean {
     format ?: return false
-    val audio = DownloadStreamPolicy.pickAacAudio(audioStreams, preferredLang)
     if (audio == null) {
         Toast.makeText(context, context.getString(R.string.download_no_compatible_audio), Toast.LENGTH_LONG).show()
         return false
@@ -249,6 +266,32 @@ internal fun startVideo(
     DownloadLauncher.startVideoDownload(context, video, format, audio, subtitle = subtitle)
     if (subtitleOptions.isNotEmpty()) rememberDownloadSubtitleChoice(prefs, subtitleChoice)
     return true
+}
+
+/** The language the video downloads with: the original or one of its dubs. */
+@Composable
+internal fun DownloadAudioTrackRow(
+    tracks: List<Format>,
+    selected: Format?,
+    onSelect: (Format) -> Unit,
+) {
+    DownloadDropdownRow(
+        label = stringResource(R.string.audio_track),
+        value = selected?.let { audioTrackLabel(it) }.orEmpty(),
+        options = tracks.map { track -> audioTrackLabel(track) to { onSelect(track) } },
+    )
+}
+
+/** YouTube already names the original track "… original"; a track named only by its locale gets the word added. */
+@Composable
+private fun audioTrackLabel(track: Format): String {
+    val original = stringResource(R.string.audio_track_original)
+    val language = DownloadStreamPolicy.audioLanguageLabel(track) ?: return original
+    return if (track.isOriginal && !language.contains(original, ignoreCase = true)) {
+        listOf(language, original).joinToString(stringResource(R.string.list_separator_dot))
+    } else {
+        language
+    }
 }
 
 internal fun resolutionBadge(height: Int): Int? =
@@ -283,59 +326,40 @@ private fun audioTileDetail(stream: Format): String? {
     return parts.takeIf { it.isNotEmpty() }?.joinToString(stringResource(R.string.list_separator_dot))
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ColumnScope.DownloadButton(
-    label: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        shapes = ButtonDefaults.shapes(),
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(start = SheetPadding, end = SheetPadding, top = SheetPadding)
-                .height(ButtonDefaults.MediumContainerHeight),
-    ) {
-        Icon(imageVector = Icons.Outlined.Download, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
-        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-        Text(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
 /** The video, and the folder its file goes to with the space left there, as one card. */
 @Composable
 private fun DownloadSheetHeader(
     video: Video,
+    showVideo: Boolean,
     onChangeFolder: () -> Unit,
 ) {
     val context = LocalContext.current
     val folder by produceState<DownloadSaveFolder?>(null) { value = DownloadLauncher.videoSaveFolder(context) }
+    if (!showVideo && folder == null) return
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = SheetPadding),
+                .padding(horizontal = DownloadSheetPadding),
     ) {
         Column(modifier = Modifier.padding(top = SectionGap, bottom = 4.dp)) {
-            QuickActionsHeader(title = video.title, subtitle = video.channelName) {
-                MediaThumbnail(
-                    videoId = video.id,
-                    thumbnailUrl = video.thumbnailUrl,
-                    width = QuickActionsDefaults.VideoArtworkWidth,
-                    shape = MaterialTheme.shapes.medium,
-                    durationSeconds = video.duration.takeIf { it > 0 },
-                )
+            if (showVideo) {
+                QuickActionsHeader(title = video.title, subtitle = video.channelName) {
+                    MediaThumbnail(
+                        videoId = video.id,
+                        thumbnailUrl = video.thumbnailUrl,
+                        width = QuickActionsDefaults.VideoArtworkWidth,
+                        shape = MaterialTheme.shapes.medium,
+                        durationSeconds = video.duration.takeIf { it > 0 },
+                    )
+                }
             }
             folder?.let { saveFolder ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = SheetPadding, end = 4.dp),
+                    modifier = Modifier.padding(start = DownloadSheetPadding, end = 4.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Folder,
@@ -370,14 +394,14 @@ private fun NoDownloadStreams(onTrySabr: () -> Unit) {
         text = stringResource(R.string.no_download_streams),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(SheetPadding),
+        modifier = Modifier.padding(DownloadSheetPadding),
     )
     Button(
         onClick = onTrySabr,
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = SheetPadding),
+                .padding(horizontal = DownloadSheetPadding),
     ) {
         Text(stringResource(R.string.ui_try_sabr_download))
     }

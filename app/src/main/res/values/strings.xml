@@ -2466,7 +2466,7 @@
     <string name="download_size_estimate">~%1$s</string>
     <!-- Download dialog style (Content settings) -->
     <string name="download_menu_style_title">Download menu style</string>
-    <string name="download_menu_style_subtitle">Choose how the download dialog looks</string>
+    <string name="download_menu_style_subtitle">Choose how the download sheet looks</string>
     <string name="download_menu_style_classic">Classic</string>
     <string name="download_menu_style_classic_desc">Every quality on one screen</string>
     <string name="download_menu_style_compact">Compact</string>
