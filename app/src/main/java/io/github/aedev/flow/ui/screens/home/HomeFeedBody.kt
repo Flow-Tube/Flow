@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -257,7 +258,7 @@ private fun HomeNewVideosButton(
         exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
         modifier = modifier.padding(top = NewVideosTopPadding),
     ) {
-        SmallExtendedFloatingActionButton(onClick = onClick) {
+        SmallExtendedFloatingActionButton(onClick = onClick, shape = CircleShape) {
             Icon(imageVector = Icons.Rounded.ArrowUpward, contentDescription = null)
             Spacer(Modifier.width(NewVideosIconSpacing))
             Text(text = stringResource(R.string.home_new_videos))
