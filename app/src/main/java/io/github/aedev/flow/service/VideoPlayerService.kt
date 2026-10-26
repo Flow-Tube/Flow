@@ -22,6 +22,9 @@ import io.github.aedev.flow.utils.FlowCrashHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @UnstableApi
@@ -105,6 +108,16 @@ class VideoPlayerService : MediaSessionService() {
                 serviceLog("playerState collect update")
                 updateLocks(isPlaybackActiveForLocks())
             }
+        }
+        lifecycleScope.launch {
+            // A headphone Play after a video must not start the saved music queue (#1450).
+            EnhancedPlayerManager
+                .getInstance()
+                .playerState
+                .map { it.isPlaying }
+                .distinctUntilChanged()
+                .filter { it }
+                .collect { HeadphoneResume.set(this@VideoPlayerService, allowed = false) }
         }
     }
 

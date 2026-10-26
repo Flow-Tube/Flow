@@ -2,6 +2,7 @@ package io.github.aedev.flow.player
 
 import android.app.ActivityManager
 import android.content.Context
+import io.github.aedev.flow.service.HeadphoneResume
 
 /**
  * The sleep timer's Close app. It ends both players the way closing them yourself does, so their
@@ -11,6 +12,7 @@ import android.content.Context
  */
 internal object PlaybackShutdown {
     fun closeApp(context: Context) {
+        HeadphoneResume.set(context, allowed = false)
         EnhancedPlayerManager.getInstance().stopBackgroundService()
         GlobalPlayerState.release()
         EnhancedMusicPlayerManager.clearCurrentTrack()

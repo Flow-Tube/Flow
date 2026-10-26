@@ -648,6 +648,9 @@ class Media3MusicService : MediaLibraryService() {
                     updateLocks(isPlaybackActive())
                     widgetPublisher.publish(player)
                     if (isPlaying) {
+                        lifecycleScope.launch {
+                            HeadphoneResume.set(this@Media3MusicService, prefs.resumeFromHeadphones.first())
+                        }
                         val playingId = player.currentMediaItem?.mediaId
                         if (learnMediaId == null) learnMediaId = playingId?.let(videoSwitch::listenId)
                         if (learnTrack?.videoId != learnMediaId) learnTrack = listenTrack(playingId)
@@ -1262,6 +1265,7 @@ class Media3MusicService : MediaLibraryService() {
     }
 
     private fun stopPlaybackAndService() {
+        HeadphoneResume.set(this, allowed = false)
         retryJobCancel()
         waitingForNetwork = false
         if (::player.isInitialized) {
@@ -1341,7 +1345,7 @@ class Media3MusicService : MediaLibraryService() {
         mediaLibrarySession.takeUnless {
             controllerInfo.declinesMediaButtonStart(
                 hasMediaItem = ::player.isInitialized && player.currentMediaItem != null,
-                canResume = queuePersistence.hasSavedQueueFile(),
+                canResume = queuePersistence.hasSavedQueueFile() && HeadphoneResume.isAllowed(this),
             )
         }
 
@@ -1359,10 +1363,16 @@ class Media3MusicService : MediaLibraryService() {
      */
     @OptIn(UnstableApi::class)
     override fun onTaskRemoved(rootIntent: Intent?) {
-        if (::player.isInitialized && player.keepsPlayingOnTaskRemoved(isPlaybackOngoing())) {
-            return
-        }
+        val keepsPlaying = ::player.isInitialized && player.keepsPlayingOnTaskRemoved(isPlaybackOngoing())
+        PlayerDiagnostics.logInfo(TAG, "onTaskRemoved keepsPlaying=$keepsPlaying ${taskRemovalSnapshot()}")
+        if (keepsPlaying) return
         pauseAllPlayersAndStopSelf()
+    }
+
+    private fun taskRemovalSnapshot(): String {
+        if (!::player.isInitialized) return "player=none"
+        return "state=${player.playbackState} pwr=${player.playWhenReady} items=${player.mediaItemCount} " +
+            "ongoing=${runCatching { isPlaybackOngoing() }.getOrDefault(false)}"
     }
 
     override fun onDestroy() {

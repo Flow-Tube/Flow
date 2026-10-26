@@ -77,6 +77,7 @@ class PlayerPreferences(
         val QUEUE_AUTOPLAY_ENABLED = booleanPreferencesKey("queue_autoplay_enabled")
         val START_VIDEOS_PAUSED = booleanPreferencesKey("start_videos_paused")
         val OPEN_VIDEOS_FULLSCREEN = booleanPreferencesKey("open_videos_fullscreen")
+        val RESUME_FROM_HEADPHONES = booleanPreferencesKey("resume_from_headphones")
         val MUSIC_ENDLESS_RADIO_ENABLED = booleanPreferencesKey("music_endless_radio_enabled")
         val AUTOPLAY_COUNTDOWN_SECONDS = intPreferencesKey("autoplay_countdown_seconds")
         val SHOW_CONTROLS_WHILE_LOADING = booleanPreferencesKey("show_controls_while_loading")
@@ -1623,6 +1624,17 @@ class PlayerPreferences(
     suspend fun setOpenVideosFullscreen(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.OPEN_VIDEOS_FULLSCREEN] = enabled
+        }
+    }
+
+    /** A Play button on headphones may start the last songs after Flow was closed. */
+    val resumeFromHeadphones: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.RESUME_FROM_HEADPHONES] ?: true }
+
+    suspend fun setResumeFromHeadphones(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.RESUME_FROM_HEADPHONES] = enabled
         }
     }
 
