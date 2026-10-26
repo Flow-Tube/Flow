@@ -140,7 +140,7 @@ internal fun Modifier.playerDragGestures(
         var exitSettleJob: Job? = null
         val exitVelocity = VelocityTracker()
         var lastVolumeStep = -1
-        var lastBrightnessEdge = 0
+        val brightnessTicks = GestureTicker { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) }
 
         // Each vertical drag accumulates its own level rather than re-reading the one it just
         // published. screenState is snapshot state and a pointer handler can run several times
@@ -182,16 +182,7 @@ internal fun Modifier.playerDragGestures(
 
             currentOnBrightnessChange(newBrightness)
 
-            val edge =
-                when {
-                    newBrightness < 0f -> -1
-                    newBrightness >= 1f -> 1
-                    else -> 0
-                }
-            if (edge != lastBrightnessEdge) {
-                if (edge != 0) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-                lastBrightnessEdge = edge
-            }
+            brightnessTicks.onStep(gestureLevelStep(newBrightness))
 
             val now = SystemClock.uptimeMillis()
             val brightnessDelta = abs(newBrightness - lastBrightnessApplied[0])
@@ -383,7 +374,7 @@ internal fun Modifier.playerDragGestures(
                     lastVolumeStep = -1
                     volumeGestureLevel = Float.NaN
                     brightnessGestureLevel = Float.NaN
-                    lastBrightnessEdge = 0
+                    brightnessTicks.reset()
                     seekDragStarted = false
                     endSpeedDrag()
 
