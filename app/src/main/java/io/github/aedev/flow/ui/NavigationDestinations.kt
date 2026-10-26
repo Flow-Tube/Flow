@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
+import io.github.aedev.flow.ui.components.layout.navigation.DOWNLOADS_ROUTE
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import java.net.URI
 import java.net.URLEncoder
@@ -21,7 +22,24 @@ internal fun flowTabForDestination(
 internal fun NavBackStackEntry.flowTab(): FlowTab? = flowTabForDestination(destination.route, arguments?.getString(SHORTS_ROUTE_ARG))
 
 /** The tab a route handed in from outside the graph (a widget, a shortcut) names, if any. */
-internal fun flowTabForRoute(route: String): FlowTab? = FlowTab.entries.firstOrNull { it.route == route }
+internal fun flowTabForRoute(
+    route: String,
+    downloadsTab: Boolean,
+): FlowTab? =
+    FlowTab.entries.firstOrNull { it.route == route }
+        ?: FlowTab.Downloads.takeIf { route == DOWNLOADS_ROUTE && downloadsTab }
+
+/** Downloads as its tab when the bar has one, else as a page over the current screen. */
+internal fun NavController.openDownloads(
+    tabs: List<FlowTab>,
+    startRoute: String,
+) {
+    if (FlowTab.Downloads in tabs) {
+        navigateToTab(FlowTab.Downloads, startRoute)
+    } else {
+        navigate(DOWNLOADS_ROUTE) { launchSingleTop = true }
+    }
+}
 
 /** Set on the Subscriptions entry to open its management view on the Music tab once. */
 internal const val OPEN_MUSIC_SUBSCRIPTIONS = "open_music_subscriptions"

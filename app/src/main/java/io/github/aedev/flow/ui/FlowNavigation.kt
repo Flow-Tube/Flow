@@ -63,6 +63,7 @@ fun NavGraphBuilder.flowAppGraph(
     disableShortsPlayer: Boolean = false,
     defaultStartRoute: String = "home",
     onMusicStarted: () -> Unit = {},
+    openDownloads: () -> Unit = {},
 ) {
     // =============================================
     // ONBOARDING (First-time user experience)
@@ -204,9 +205,7 @@ fun NavGraphBuilder.flowAppGraph(
             onNavigateToSavedShorts = {
                 navController.navigate("savedShorts")
             },
-            onNavigateToDownloads = {
-                navController.navigate("downloads")
-            },
+            onNavigateToDownloads = openDownloads,
             onNavigateToLocalMedia = {
                 navController.navigate("localMedia")
             },
@@ -487,43 +486,6 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable("downloads") {
-        currentRoute.value = "downloads"
-
-        val musicPlayerViewModel = sharedMusicPlayerViewModel()
-        val downloadsTitle =
-            androidx.compose.ui.res.stringResource(
-                io.github.aedev.flow.R.string.library_downloads_label,
-            )
-
-        io.github.aedev.flow.ui.screens.library.DownloadsScreen(
-            onBackClick = { navController.popBackStack() },
-            onVideoClick = { videos, index ->
-                val videoList = videos.map { it.video }
-                playerViewModel.playPlaylist(videoList, index, downloadsTitle)
-                GlobalPlayerState.setCurrentVideo(videoList[index])
-            },
-            onMusicClick = { tracks, index ->
-                val musicTracks = tracks.map { it.track }
-                val selectedTrack = musicTracks[index]
-
-                musicPlayerViewModel.loadAndPlayTrack(selectedTrack, musicTracks, downloadsTitle)
-                onMusicStarted()
-            },
-            onOpenCollection = { summary ->
-                if (summary.collection.kind.isMusic) {
-                    mediaNavigator.openMusicPlaylist(summary.collection.id)
-                } else {
-                    navController.navigate("playlist/${summary.collection.id}")
-                }
-            },
-            onHomeClick = {
-                navController.navigate("home") {
-                    popUpTo("home") { inclusive = true }
-                }
-            },
-        )
-    }
     composable("notes") {
         currentRoute.value = "notes"
         io.github.aedev.flow.ui.screens.notes.NotesScreen(
@@ -553,6 +515,8 @@ fun NavGraphBuilder.flowAppGraph(
             },
         )
     }
+
+    downloadsRoutes(navController, mediaNavigator, currentRoute, playerViewModel, onMusicStarted)
 
     musicRoutes(navController, mediaNavigator, currentRoute, playerViewModel, defaultStartRoute, onMusicStarted)
 

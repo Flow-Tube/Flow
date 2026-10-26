@@ -49,7 +49,7 @@ const val MAX_CONCURRENT_DOWNLOADS = 5
 /** On until turned off, matching NewPipe's default and the Background button (#1298). */
 const val DEFAULT_BACKGROUND_PLAY_ENABLED = true
 
-val DEFAULT_NAV_TAB_ORDER = listOf(0, 1, 2, 3, 4, 5, 6)
+val DEFAULT_NAV_TAB_ORDER = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 
 private const val MAX_UNPLAYABLE_VIDEO_IDS = 1_000
 
@@ -133,6 +133,8 @@ class PlayerPreferences(
         // Download dialog style + remembered last-used download options (compact dialog)
         val DOWNLOAD_DIALOG_STYLE = stringPreferencesKey("download_dialog_style")
         val DOWNLOAD_ASK_EVERY_TIME = booleanPreferencesKey("download_ask_every_time")
+        val DOWNLOADS_STORAGE_CARD = booleanPreferencesKey("downloads_storage_card")
+        val DOWNLOADS_CONFIRM_DELETE = booleanPreferencesKey("downloads_confirm_delete")
         val LAST_DOWNLOAD_TYPE = stringPreferencesKey("last_download_type")
         val LAST_DOWNLOAD_HEIGHT = intPreferencesKey("last_download_height")
         val LAST_DOWNLOAD_CODEC = stringPreferencesKey("last_download_codec")
@@ -200,6 +202,7 @@ class PlayerPreferences(
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
         val SEARCH_NAV_TAB_ENABLED = booleanPreferencesKey("search_nav_tab_enabled")
         val CATEGORIES_NAV_TAB_ENABLED = booleanPreferencesKey("categories_nav_tab_enabled")
+        val DOWNLOADS_NAV_TAB_ENABLED = booleanPreferencesKey("downloads_nav_tab_enabled")
         val PREFERRED_LYRICS_PROVIDER = stringPreferencesKey("preferred_lyrics_provider")
         val LYRICS_PROVIDER_ORDER = stringPreferencesKey("lyrics_provider_order")
         val LYRICS_TEXT_ALIGN = stringPreferencesKey("lyrics_text_align")
@@ -1243,6 +1246,16 @@ class PlayerPreferences(
     suspend fun setCategoriesNavigationEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.CATEGORIES_NAV_TAB_ENABLED] = enabled
+        }
+    }
+
+    val downloadsNavigationEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.DOWNLOADS_NAV_TAB_ENABLED] ?: false }
+
+    suspend fun setDownloadsNavigationEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.DOWNLOADS_NAV_TAB_ENABLED] = enabled
         }
     }
 
@@ -3211,6 +3224,28 @@ class PlayerPreferences(
     suspend fun setDownloadAskEveryTime(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.DOWNLOAD_ASK_EVERY_TIME] = enabled
+        }
+    }
+
+    /** The space used and free, shown at the top of the Downloads page. */
+    val downloadsStorageCard: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.DOWNLOADS_STORAGE_CARD] ?: true }
+
+    suspend fun setDownloadsStorageCard(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.DOWNLOADS_STORAGE_CARD] = enabled
+        }
+    }
+
+    /** Delete in the Downloads menus asks first; a swipe never does, its snackbar can undo it. */
+    val downloadsConfirmDelete: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.DOWNLOADS_CONFIRM_DELETE] ?: true }
+
+    suspend fun setDownloadsConfirmDelete(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.DOWNLOADS_CONFIRM_DELETE] = enabled
         }
     }
 

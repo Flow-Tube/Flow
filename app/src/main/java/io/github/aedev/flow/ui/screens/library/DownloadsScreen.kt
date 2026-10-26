@@ -22,11 +22,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +54,7 @@ import io.github.aedev.flow.data.local.dao.DownloadCollectionSummary
 import io.github.aedev.flow.data.music.DownloadedTrack
 import io.github.aedev.flow.data.video.DownloadedVideo
 import io.github.aedev.flow.data.video.storage.StorageAccess
+import io.github.aedev.flow.ui.components.layout.LocalFlowSnackbarHostState
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
 import io.github.aedev.flow.ui.components.library.ActiveDownloadActions
 import io.github.aedev.flow.ui.components.library.DownloadCollectionsShelf
@@ -69,10 +73,11 @@ import io.github.aedev.flow.ui.components.shared.FlowSortChip
 import io.github.aedev.flow.ui.components.shared.MediaKind
 import io.github.aedev.flow.ui.components.shared.dismissKeyboardOnPress
 import io.github.aedev.flow.ui.components.shared.flowGridColumns
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun DownloadsScreen(
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)?,
     onVideoClick: (videos: List<DownloadedVideo>, startIndex: Int) -> Unit,
     onMusicClick: (List<DownloadedTrack>, Int) -> Unit,
     onOpenCollection: (DownloadCollectionSummary) -> Unit,
@@ -81,8 +86,11 @@ fun DownloadsScreen(
     viewModel: DownloadsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val showStorageCard by viewModel.showStorageCard.collectAsStateWithLifecycle()
+    val confirmDelete by viewModel.confirmDelete.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val shellSnackbar = LocalFlowSnackbarHostState.current
+    val snackbarHostState = shellSnackbar ?: remember { SnackbarHostState() }
     var access by remember { mutableStateOf(StorageAccess.read(context)) }
     var recoveryDismissed by rememberSaveable { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
@@ -106,6 +114,7 @@ fun DownloadsScreen(
         }
     }
     LaunchedEffect(viewModel) { viewModel.recovered.collect { snackbarHostState.showSnackbar(recoveredMessage(it)) } }
+    DownloadsUndoEffect(viewModel, snackbarHostState)
     val deletePrompt = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { }
     LaunchedEffect(viewModel) { viewModel.deleteConsent.collect { deletePrompt.launch(IntentSenderRequest.Builder(it).build()) } }
     var selectedKind by rememberSaveable { mutableStateOf(MediaKind.Videos) }
@@ -119,6 +128,18 @@ fun DownloadsScreen(
     val exitSelection = {
         selectionMode = false
         selectedIds = emptySet()
+    }
+    val delete = { deletion: PendingDeletion ->
+        if (confirmDelete) {
+            pendingDeletion = deletion
+        } else {
+            viewModel.deleteDownloads(deletion.ids)
+            exitSelection()
+        }
+    }
+    val swipeDelete = { id: String ->
+        haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+        viewModel.deleteDownloads(setOf(id))
     }
     val shownIds =
         if (selectedKind ==
@@ -141,7 +162,7 @@ fun DownloadsScreen(
             onPause = viewModel::pauseVideoDownload,
             onResume = viewModel::resumeVideoDownload,
             onRetry = viewModel::retryVideoDownload,
-            onCancel = { id, title -> pendingDeletion = PendingDeletion(setOf(id), title) },
+            onCancel = { id, title -> pendingDeletion = PendingDeletion(setOf(id), title, undoable = false) },
             onCancelAll = { removeIncompleteOf = selectedKind },
         )
     val sortChip: @Composable () -> Unit = {
@@ -157,7 +178,9 @@ fun DownloadsScreen(
     val sortInHeader = libraryHeaderIsOneRow()
     val listHeader: @Composable () -> Unit = {
         Column {
-            DownloadsStorageCard(uiState.storage.videoBytes, uiState.storage.musicBytes, uiState.storage.freeBytes)
+            if (showStorageCard) {
+                DownloadsStorageCard(uiState.storage.videoBytes, uiState.storage.musicBytes, uiState.storage.freeBytes)
+            }
             if (!sortInHeader) {
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Spacer(Modifier.weight(1f))
@@ -193,7 +216,7 @@ fun DownloadsScreen(
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { if (shellSnackbar == null) SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(Modifier.fillMaxSize()) {
@@ -245,7 +268,8 @@ fun DownloadsScreen(
                                 isRefreshing = uiState.isScanning,
                                 onRefresh = viewModel::rescan,
                                 onVideoClick = onVideoClick,
-                                onDelete = { id, title -> pendingDeletion = PendingDeletion(setOf(id), title) },
+                                onDelete = { id, title -> delete(PendingDeletion(setOf(id), title)) },
+                                onSwipeDelete = swipeDelete,
                                 onHomeClick = onHomeClick,
                             )
                         }
@@ -267,6 +291,7 @@ fun DownloadsScreen(
                                 isRefreshing = uiState.isScanning,
                                 onRefresh = viewModel::rescan,
                                 onMusicClick = onMusicClick,
+                                onSwipeDelete = swipeDelete,
                                 onHomeClick = onHomeClick,
                             )
                         }
@@ -279,7 +304,7 @@ fun DownloadsScreen(
                 actions =
                     listOf(
                         FlowSelectionAction(Icons.Outlined.Delete, stringResource(R.string.action_delete)) {
-                            pendingDeletion = PendingDeletion(selectedIds, title = null)
+                            delete(PendingDeletion(selectedIds, title = null))
                         },
                     ),
                 modifier = Modifier.align(Alignment.BottomCenter),
@@ -293,7 +318,7 @@ fun DownloadsScreen(
             onDismiss = { pendingDeletion = null },
             onConfirm = {
                 haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                viewModel.deleteDownloads(deletion.ids)
+                if (deletion.undoable) viewModel.deleteDownloads(deletion.ids) else viewModel.cancelDownloads(deletion.ids)
                 pendingDeletion = null
                 exitSelection()
             },
@@ -332,37 +357,4 @@ fun DownloadsScreen(
     }
 }
 
-@Composable
-private fun DeleteDownloadsDialog(
-    deletion: PendingDeletion,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    FlowAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.delete_download_dialog_title)) },
-        text = {
-            Text(
-                if (deletion.title != null) {
-                    stringResource(R.string.delete_download_dialog_text, deletion.title)
-                } else {
-                    pluralStringResource(R.plurals.delete_downloads_dialog_text, deletion.ids.size, deletion.ids.size)
-                },
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(text = stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
-}
-
 private val SelectionSaver = listSaver<Set<String>, String>(save = { it.toList() }, restore = { it.toSet() })
-
-/** What a confirmed delete removes: one download named by [title], or a selection. */
-private data class PendingDeletion(
-    val ids: Set<String>,
-    val title: String?,
-)

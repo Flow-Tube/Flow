@@ -402,6 +402,19 @@
                 android:resource="@xml/widget_downloads_info" />
         </receiver>
 
+        <!-- Download with Flow in the share menu: a shared link opens the download menu. -->
+        <activity-alias
+            android:name=".DownloadShareAlias"
+            android:exported="true"
+            android:label="@string/share_download_with_flow"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- App Icon Variants (via activity-alias)                          -->
         <!-- Default: Flow Red -->
         <activity-alias

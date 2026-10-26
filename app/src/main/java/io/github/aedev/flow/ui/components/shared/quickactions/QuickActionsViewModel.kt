@@ -236,6 +236,11 @@ class QuickActionsViewModel
             emit(R.string.added_to_queue_toast)
         }
 
+        /** A video shared to Download with Flow: its title and channel first, which name the file. */
+        fun requestLinkedDownload(video: Video) {
+            viewModelScope.launch { requestDownload(loadLinkedVideo(video) ?: video) }
+        }
+
         /** Loads [video]'s formats, then opens the download dialog; a second tap while loading is ignored. */
         fun requestDownload(video: Video) {
             if (downloadJob?.isActive == true) return

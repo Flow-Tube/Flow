@@ -96,3 +96,17 @@ internal fun SharedLinkSheet(
         viewModel = viewModel,
     )
 }
+
+/** Opens the download menu for a video shared to Download with Flow, as the menu's Download does. */
+@Composable
+internal fun HandleIncomingDownload(
+    videoId: String?,
+    onConsumed: () -> Unit,
+    viewModel: QuickActionsViewModel = sharedQuickActionsViewModel(),
+) {
+    LaunchedEffect(videoId) {
+        if (videoId == null) return@LaunchedEffect
+        onConsumed()
+        viewModel.requestLinkedDownload(linkedVideo(videoId))
+    }
+}

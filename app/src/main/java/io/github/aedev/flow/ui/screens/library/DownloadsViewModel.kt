@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.dao.DownloadCollectionSummary
 import io.github.aedev.flow.data.local.entity.DownloadFileType
 import io.github.aedev.flow.data.local.entity.DownloadItemStatus
@@ -19,12 +20,15 @@ import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.data.video.downloader.collection.DownloadedCollections
 import io.github.aedev.flow.data.video.downloader.work.DownloadController
 import io.github.aedev.flow.data.video.storage.deleteRequestFor
+import io.github.aedev.flow.di.ApplicationScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +36,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -49,12 +54,27 @@ class DownloadsViewModel
         private val musicDownloadManager: MusicDownloadManager,
         private val downloadController: DownloadController,
         private val collections: DownloadedCollections,
+        preferences: PlayerPreferences,
+        @param:ApplicationScope private val applicationScope: CoroutineScope,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DownloadsUiState())
         val uiState: StateFlow<DownloadsUiState> = _uiState.asStateFlow()
 
         // Hidden from the lists while their deletion runs; each id drops out once the row is gone.
         private val pendingDeleteIds = MutableStateFlow<Set<String>>(emptySet())
+
+        // Off the lists but still on disk while the Undo snackbar shows, each id marked true for a song.
+        private val awaitingUndo = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+        private val hiddenIds = combine(pendingDeleteIds, awaitingUndo) { pending, undoable -> pending + undoable.keys }
+        private val _deleted = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+
+        /** How many downloads a delete just took off the lists, for the screen to offer Undo. */
+        val deleted: SharedFlow<Int> = _deleted.asSharedFlow()
+
+        val showStorageCard: StateFlow<Boolean> =
+            preferences.downloadsStorageCard.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+        val confirmDelete: StateFlow<Boolean> =
+            preferences.downloadsConfirmDelete.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
         private val allVideos = MutableStateFlow<List<DownloadedVideo>>(emptyList())
         private val allTracks = MutableStateFlow<List<DownloadedTrack>>(emptyList())
         private val query = MutableStateFlow("")
@@ -83,12 +103,12 @@ class DownloadsViewModel
 
         private fun observeDownloads() {
             viewModelScope.launch {
-                combine(refreshTick.flatMapLatest { musicDownloadManager.downloadedTracks }, pendingDeleteIds) { tracks, pending ->
+                combine(refreshTick.flatMapLatest { musicDownloadManager.downloadedTracks }, hiddenIds) { tracks, pending ->
                     tracks.filter { it.track.videoId !in pending }
                 }.collect { allTracks.value = it }
             }
             viewModelScope.launch {
-                combine(refreshTick.flatMapLatest { videoDownloadManager.downloadedVideos }, pendingDeleteIds) { videos, pending ->
+                combine(refreshTick.flatMapLatest { videoDownloadManager.downloadedVideos }, hiddenIds) { videos, pending ->
                     videos.filter { it.video.id !in pending }
                 }.collect { allVideos.value = it }
             }
@@ -170,10 +190,44 @@ class DownloadsViewModel
                 }.getOrDefault(0L)
             }
 
+        /**
+         * Takes [ids] off the lists at once; their files go when [commitDeletes] runs, unless
+         * [undoDelete] comes first. A delete still waiting on Undo is committed before this one.
+         */
+        fun deleteDownloads(ids: Set<String>) {
+            if (ids.isEmpty()) return
+            commitDeletes()
+            val musicIds = allTracks.value.mapTo(HashSet()) { it.track.videoId }
+            awaitingUndo.value = ids.associateWith { it in musicIds }
+            _deleted.tryEmit(ids.size)
+        }
+
+        fun undoDelete() {
+            awaitingUndo.value = emptyMap()
+        }
+
+        /** Deletes what waits on Undo: when its snackbar goes, when the screen goes, or before the next delete. */
+        fun commitDeletes() {
+            val waiting = awaitingUndo.value
+            if (waiting.isEmpty()) return
+            pendingDeleteIds.update { it + waiting.keys }
+            awaitingUndo.value = emptyMap()
+            waiting.forEach { (id, isMusic) -> if (isMusic) deleteMusicDownload(id) else deleteVideoDownload(id) }
+        }
+
+        /** Cancels downloads still in the queue, with no Undo: the transfer stops at once. */
+        fun cancelDownloads(ids: Set<String>) {
+            pendingDeleteIds.update { it + ids }
+            ids.forEach(::deleteVideoDownload)
+        }
+
+        override fun onCleared() {
+            commitDeletes()
+        }
+
         /** A finished download is deleted here; one still in the queue is cancelled, which stops it first. */
-        fun deleteVideoDownload(videoId: String) {
-            pendingDeleteIds.update { it + videoId }
-            viewModelScope.launch {
+        private fun deleteVideoDownload(videoId: String) {
+            applicationScope.launch {
                 val download = videoDownloadManager.getDownloadWithItems(videoId)
                 if (download?.overallStatus == DownloadItemStatus.COMPLETED) {
                     videoDownloadManager.deleteDownload(videoId)
@@ -183,14 +237,8 @@ class DownloadsViewModel
             }
         }
 
-        fun deleteMusicDownload(videoId: String) {
-            pendingDeleteIds.update { it + videoId }
-            viewModelScope.launch { musicDownloadManager.deleteDownload(videoId) }
-        }
-
-        fun deleteDownloads(ids: Set<String>) {
-            val musicIds = allTracks.value.mapTo(HashSet()) { it.track.videoId }
-            ids.forEach { id -> if (id in musicIds) deleteMusicDownload(id) else deleteVideoDownload(id) }
+        private fun deleteMusicDownload(videoId: String) {
+            applicationScope.launch { musicDownloadManager.deleteDownload(videoId) }
         }
 
         fun pauseVideoDownload(videoId: String) {

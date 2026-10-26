@@ -22,6 +22,13 @@ class LauncherAliasManifestTest {
             .parse(File("src/main/AndroidManifest.xml"))
             .getElementsByTagName("activity-alias")
             .let { nodes -> (0 until nodes.length).map { nodes.item(it) as Element } }
+            .filter { it.isLauncherEntry() }
+
+    // Other aliases, such as the share menu's Download with Flow, are not app icons.
+    private fun Element.isLauncherEntry(): Boolean {
+        val categories = getElementsByTagName("category")
+        return (0 until categories.length).any { (categories.item(it) as Element).android("name") == LAUNCHER }
+    }
 
     private fun Element.android(name: String) = getAttributeNS(androidNs, name)
 
@@ -45,5 +52,9 @@ class LauncherAliasManifestTest {
         val missing = icons.map { it.removePrefix("@mipmap/") }.filterNot { File(nightlyMipmaps, "$it.xml").isFile }
 
         assertThat(missing).isEmpty()
+    }
+
+    private companion object {
+        const val LAUNCHER = "android.intent.category.LAUNCHER"
     }
 }

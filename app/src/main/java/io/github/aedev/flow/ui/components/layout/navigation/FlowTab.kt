@@ -2,12 +2,14 @@ package io.github.aedev.flow.ui.components.layout.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
@@ -19,6 +21,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.DEFAULT_NAV_TAB_ORDER
+
+/** The downloads page other screens open over themselves, with a back arrow. */
+const val DOWNLOADS_ROUTE = "downloads"
+
+/** The Downloads tab's own copy of that page, so the page opened from Library never shows the bar. */
+const val DOWNLOADS_TAB_ROUTE = "downloadsTab"
 
 /**
  * A root destination of the app's primary navigation.
@@ -37,6 +45,7 @@ enum class FlowTab(
     Library(4, "library", R.string.nav_library),
     Search(5, "search", R.string.nav_search),
     Explore(6, "categories", R.string.nav_explore),
+    Downloads(7, DOWNLOADS_TAB_ROUTE, R.string.nav_downloads),
     ;
 
     companion object {
@@ -54,6 +63,7 @@ fun FlowTab.icon(selected: Boolean): ImageVector =
         FlowTab.Library -> if (selected) Icons.Filled.VideoLibrary else Icons.Outlined.VideoLibrary
         FlowTab.Search -> if (selected) Icons.Filled.Search else Icons.Outlined.Search
         FlowTab.Explore -> if (selected) Icons.Filled.Explore else Icons.Outlined.Explore
+        FlowTab.Downloads -> if (selected) Icons.Filled.Download else Icons.Outlined.Download
     }
 
 data class NavigationVisibility(
@@ -62,6 +72,7 @@ data class NavigationVisibility(
     val music: Boolean = true,
     val search: Boolean = false,
     val categories: Boolean = false,
+    val downloads: Boolean = false,
 )
 
 /**
@@ -81,6 +92,7 @@ fun visibleFlowTabs(
             add(FlowTab.Library)
             if (visibility.search) add(FlowTab.Search)
             if (visibility.categories) add(FlowTab.Explore)
+            if (visibility.downloads) add(FlowTab.Downloads)
         }
     return (order + DEFAULT_NAV_TAB_ORDER)
         .distinct()

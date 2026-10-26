@@ -287,6 +287,7 @@ class MainActivity : ComponentActivity() {
                                 val isDeeplinkShared by links.isShared
                                 val openMusicPlayerRequest by links.musicPlayerRequest
                                 val pendingRoute by links.route
+                                val downloadVideoId by links.downloadVideoId
 
                                 ProvideChannelGroupLabels {
                                     if (appUiRoot == AppUiRoot.TV) {
@@ -309,6 +310,8 @@ class MainActivity : ComponentActivity() {
                                             onDeeplinkConsumed = links::consumeVideo,
                                             pendingRoute = pendingRoute,
                                             onPendingRouteConsumed = links::consumeRoute,
+                                            downloadVideoId = downloadVideoId,
+                                            onDownloadConsumed = links::consumeDownload,
                                             onStartDestinationKnown = { splashController.contentReady = true },
                                         )
                                     }
@@ -401,6 +404,12 @@ class MainActivity : ComponentActivity() {
         }
 
         val linkText = linkTextOf(intent)
+        if (linkText != null && intent.component?.className?.endsWith(DOWNLOAD_SHARE_ALIAS) == true) {
+            if (!isRestoringState && !links.openDownload(linkText)) {
+                Toast.makeText(this, R.string.share_download_not_a_video, Toast.LENGTH_LONG).show()
+            }
+            return
+        }
         if (linkText != null) {
             val understood = links.openLink(linkText, isShared = intent.action == Intent.ACTION_SEND, isRestoring = isRestoringState)
             if (!understood && !isRestoringState) Toast.makeText(this, R.string.link_not_supported, Toast.LENGTH_LONG).show()
@@ -729,5 +738,8 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_BENCHMARK_BYPASS_ONBOARDING = "io.github.aedev.flow.extra.BENCHMARK_BYPASS_ONBOARDING"
+
+        /** The share-menu entry Download with Flow: an activity-alias of this activity in the manifest. */
+        private const val DOWNLOAD_SHARE_ALIAS = ".DownloadShareAlias"
     }
 }

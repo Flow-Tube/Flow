@@ -145,6 +145,7 @@ internal object NavigationBarIndex {
     val music = tab("music", R.string.settings_music_nav_tab_title, R.string.settings_music_nav_tab_subtitle)
     val search = tab("search", R.string.settings_search_nav_tab_title, R.string.settings_search_nav_tab_subtitle)
     val explore = tab("explore", R.string.settings_categories_nav_tab_title, R.string.settings_categories_nav_tab_subtitle)
+    val downloads = tab("downloads", R.string.settings_downloads_nav_tab_title, R.string.settings_downloads_nav_tab_subtitle)
     val hideOnScroll =
         SettingEntry(
             key = "navigation_bar.hide_on_scroll",
@@ -163,7 +164,7 @@ internal object NavigationBarIndex {
             destination = page,
         )
 
-    val all = listOf(home, shorts, music, search, explore, hideOnScroll, order)
+    val all = listOf(home, shorts, music, search, explore, downloads, hideOnScroll, order)
 }
 
 internal object ThemeIndex {

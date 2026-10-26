@@ -15,6 +15,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
+import io.github.aedev.flow.ui.components.layout.navigation.DOWNLOADS_ROUTE
+import io.github.aedev.flow.ui.components.layout.navigation.DOWNLOADS_TAB_ROUTE
 import io.github.aedev.flow.utils.NetworkConnectivityObserver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -33,6 +35,7 @@ fun HandlePendingRoute(
     pendingRoute: String?,
     navController: NavController,
     startRoute: String,
+    downloadsTab: suspend () -> Boolean,
     onConsumed: () -> Unit,
     onBeforeNavigate: () -> Unit = {},
 ) {
@@ -40,7 +43,7 @@ fun HandlePendingRoute(
         pendingRoute?.let { route ->
             navController.awaitGraph()
             onBeforeNavigate()
-            val tab = flowTabForRoute(route)
+            val tab = flowTabForRoute(route, downloadsTab())
             when {
                 tab != null -> navController.navigateToTab(tab, startRoute)
                 else -> navController.openPage(route)
@@ -87,10 +90,11 @@ private const val OFFLINE_NOTICE_DELAY_MS = 3_000L
 @Composable
 fun OfflineMonitor(
     context: Context,
-    navController: NavController,
     snackbarHostState: SnackbarHostState,
     currentRoute: State<String>,
+    onOpenDownloads: () -> Unit,
 ) {
+    val openDownloads by rememberUpdatedState(onOpenDownloads)
     val connectivity = remember(context) { NetworkConnectivityObserver(context) }
     val isConnected by remember(connectivity) { connectivity.observeConnectivity() }
         .collectAsStateWithLifecycle(initialValue = true)
@@ -100,7 +104,8 @@ fun OfflineMonitor(
         if (isConnected) return@LaunchedEffect
 
         val isSafeRoute =
-            route == "downloads" ||
+            route == DOWNLOADS_ROUTE ||
+                route == DOWNLOADS_TAB_ROUTE ||
                 route.startsWith("player") ||
                 route.startsWith("musicPlayer") ||
                 route == "settings" ||
@@ -116,9 +121,7 @@ fun OfflineMonitor(
                 duration = SnackbarDuration.Short,
             )
         if (result == SnackbarResult.ActionPerformed) {
-            navController.navigate("downloads") {
-                launchSingleTop = true
-            }
+            openDownloads()
         }
     }
 }

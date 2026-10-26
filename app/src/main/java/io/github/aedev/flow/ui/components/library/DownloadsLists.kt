@@ -94,6 +94,7 @@ internal fun VideosDownloadsList(
     onRefresh: () -> Unit,
     onVideoClick: (List<DownloadedVideo>, Int) -> Unit,
     onDelete: (id: String, title: String) -> Unit,
+    onSwipeDelete: (id: String) -> Unit,
     onHomeClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -134,16 +135,21 @@ internal fun VideosDownloadsList(
                     span = { index, _ -> GridItemSpan(if (index in partialRows) maxLineSpan else 1) },
                 ) { index, video ->
                     val asCard = grid.isGrid && index !in partialRows
-                    VideoDownloadItem(
-                        video = video,
-                        asCard = asCard,
-                        selectionMode = selection.active,
-                        selected = video.video.id in selection.ids,
-                        onClick = { if (selection.active) selection.onToggle(video.video.id) else onVideoClick(videos, index) },
-                        onDeleteClick = { onDelete(video.video.id, video.video.title) },
-                        rowThumbnailWidth = grid.rowThumbnailWidth,
+                    DownloadSwipeToDelete(
+                        enabled = !selection.active,
+                        onDelete = { onSwipeDelete(video.video.id) },
                         modifier = animateMediaGridItem().padding(bottom = if (asCard) GridSpacing else 0.dp),
-                    )
+                    ) {
+                        VideoDownloadItem(
+                            video = video,
+                            asCard = asCard,
+                            selectionMode = selection.active,
+                            selected = video.video.id in selection.ids,
+                            onClick = { if (selection.active) selection.onToggle(video.video.id) else onVideoClick(videos, index) },
+                            onDeleteClick = { onDelete(video.video.id, video.video.title) },
+                            rowThumbnailWidth = grid.rowThumbnailWidth,
+                        )
+                    }
                 }
             }
         }
@@ -167,6 +173,7 @@ internal fun MusicDownloadsList(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onMusicClick: (List<DownloadedTrack>, Int) -> Unit,
+    onSwipeDelete: (id: String) -> Unit,
     onHomeClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -197,13 +204,18 @@ internal fun MusicDownloadsList(
                 fullWidth("no_results") { NoResults(query) }
             }
             itemsIndexed(tracks, key = { _, track -> track.track.videoId }, contentType = { _, _ -> "track" }) { index, track ->
-                MusicDownloadRow(
-                    downloadedTrack = track,
-                    selectionMode = selection.active,
-                    selected = track.track.videoId in selection.ids,
-                    onClick = { if (selection.active) selection.onToggle(track.track.videoId) else onMusicClick(tracks, index) },
+                DownloadSwipeToDelete(
+                    enabled = !selection.active,
+                    onDelete = { onSwipeDelete(track.track.videoId) },
                     modifier = animateMediaGridItem(),
-                )
+                ) {
+                    MusicDownloadRow(
+                        downloadedTrack = track,
+                        selectionMode = selection.active,
+                        selected = track.track.videoId in selection.ids,
+                        onClick = { if (selection.active) selection.onToggle(track.track.videoId) else onMusicClick(tracks, index) },
+                    )
+                }
             }
         }
     }

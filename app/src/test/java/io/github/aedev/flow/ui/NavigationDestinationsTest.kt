@@ -40,11 +40,18 @@ class NavigationDestinationsTest {
 
     @Test
     fun routesFromOutsideTheGraphResolveToTheirTab() {
-        assertEquals(FlowTab.Search, flowTabForRoute("search"))
-        assertEquals(FlowTab.Music, flowTabForRoute("music"))
+        assertEquals(FlowTab.Search, flowTabForRoute("search", downloadsTab = false))
+        assertEquals(FlowTab.Music, flowTabForRoute("music", downloadsTab = false))
         listOf("downloads", "history", "musicRecognize", "musicPlayer/abc", "settings").forEach { route ->
-            assertNull(flowTabForRoute(route))
+            assertNull(flowTabForRoute(route, downloadsTab = false))
         }
+    }
+
+    @Test
+    fun theDownloadsPageOpensAsTheTabOnlyWhenTheBarHasIt() {
+        assertEquals(FlowTab.Downloads, flowTabForRoute("downloads", downloadsTab = true))
+        assertNull(flowTabForRoute("downloads", downloadsTab = false))
+        assertNull(flowTabForDestination("downloads", shortsSourceArg = null))
     }
 
     @Test

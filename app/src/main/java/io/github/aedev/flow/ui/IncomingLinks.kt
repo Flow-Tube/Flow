@@ -26,6 +26,10 @@ internal class IncomingLinks {
     private val _route = mutableStateOf<String?>(null)
     val route: State<String?> = _route
 
+    /** A video shared to Download with Flow, which opens the download menu instead of the player. */
+    private val _downloadVideoId = mutableStateOf<String?>(null)
+    val downloadVideoId: State<String?> = _downloadVideoId
+
     fun openVideo(
         videoId: String,
         isShort: Boolean = false,
@@ -53,6 +57,21 @@ internal class IncomingLinks {
 
     fun consumeRoute() {
         _route.value = null
+    }
+
+    fun consumeDownload() {
+        _downloadVideoId.value = null
+    }
+
+    /** A link shared to Download with Flow; false when it names no video or short. */
+    fun openDownload(text: String): Boolean {
+        _downloadVideoId.value =
+            when (val destination = parseYouTubeLink(text)?.let(::linkDestination)) {
+                is LinkDestination.Video -> destination.videoId
+                is LinkDestination.Short -> destination.videoId
+                is LinkDestination.Page, null -> return false
+            }
+        return true
     }
 
     /**

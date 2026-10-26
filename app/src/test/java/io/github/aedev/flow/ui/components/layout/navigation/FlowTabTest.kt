@@ -124,4 +124,13 @@ class FlowTabTest {
             }
         }
     }
+
+    @Test
+    fun theDownloadsTabIsOffUntilTurnedOn() {
+        assertFalse(FlowTab.Downloads in visibleFlowTabs(DEFAULT_NAV_TAB_ORDER, NavigationVisibility()))
+        assertEquals(
+            FlowTab.Downloads,
+            visibleFlowTabs(listOf(3, 0), NavigationVisibility(downloads = true)).last(),
+        )
+    }
 }

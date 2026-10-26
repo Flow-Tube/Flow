@@ -200,6 +200,8 @@ internal fun DownloadSettingsScreen(
                 icon = Icons.Outlined.PermMedia,
                 onClick = { onNavigate(SettingsTarget(SettingsDestination.LOCAL_MEDIA)) },
             )
+            switch(DownloadsIndex.storageCard, viewModel.storageCard, viewModel::setStorageCard)
+            switch(DownloadsIndex.confirmDelete, viewModel.confirmDelete, viewModel::setConfirmDelete)
             info(DownloadsIndex.retag, value = retagValue)
             nav(
                 DownloadsIndex.findEarlier,

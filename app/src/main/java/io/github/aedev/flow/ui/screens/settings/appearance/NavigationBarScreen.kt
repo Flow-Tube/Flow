@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
@@ -60,6 +61,7 @@ internal fun NavigationBarScreen(
             switch(NavigationBarIndex.music, visibility.music, viewModel::setMusicTab, icon = Icons.Outlined.MusicNote)
             switch(NavigationBarIndex.search, visibility.search, viewModel::setSearchTab, icon = Icons.Outlined.Search)
             switch(NavigationBarIndex.explore, visibility.categories, viewModel::setExploreTab, icon = Icons.Outlined.Explore)
+            switch(NavigationBarIndex.downloads, visibility.downloads, viewModel::setDownloadsTab, icon = Icons.Outlined.Download)
             switch(NavigationBarIndex.hideOnScroll, hideOnScroll, viewModel::setHideNavOnScroll, icon = Icons.Outlined.UnfoldLess)
         }
         group(

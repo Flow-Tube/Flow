@@ -1224,6 +1224,9 @@
     <string name="settings_categories_nav_tab_title">Explore tab in navigation</string>
     <string name="settings_categories_nav_tab_subtitle">Add a Trending &amp; Categories tab to the navigation bar</string>
     <string name="nav_explore">Explore</string>
+    <string name="nav_downloads">Downloads</string>
+    <string name="settings_downloads_nav_tab_title">Downloads tab in navigation</string>
+    <string name="settings_downloads_nav_tab_subtitle">Add a Downloads tab to the navigation bar</string>
     <string name="nav_more">More</string>
     <string name="nav_rail_expand">Expand navigation</string>
     <string name="nav_rail_collapse">Collapse navigation</string>
@@ -2473,6 +2476,12 @@
     <string name="download_menu_style_compact_desc">Editable title, dropdowns and thread count</string>
     <string name="download_ask_every_time_title">Ask every time</string>
     <string name="download_ask_every_time_summary">When off, Download uses your download quality</string>
+    <string name="share_download_with_flow">Download with Flow</string>
+    <string name="share_download_not_a_video">Only videos can be downloaded from a shared link</string>
+    <string name="downloads_storage_card_title">Storage summary</string>
+    <string name="downloads_storage_card_summary">Show the space used and free at the top of Downloads</string>
+    <string name="downloads_confirm_delete_title">Ask before deleting</string>
+    <string name="downloads_confirm_delete_summary">Swipe to delete skips this and can be undone</string>
     <string name="download_sheet_button">Download %1$s</string>
     <string name="download_sheet_save_folder">%1$s · %2$s free</string>
     <string name="download_sheet_change_folder">Change</string>
@@ -3494,6 +3503,10 @@
     <plurals name="delete_downloads_dialog_text">
         <item quantity="one">Delete %1$d download from this device?</item>
         <item quantity="other">Delete %1$d downloads from this device?</item>
+    </plurals>
+    <plurals name="downloads_deleted">
+        <item quantity="one">%1$d download deleted</item>
+        <item quantity="other">%1$d downloads deleted</item>
     </plurals>
     <string name="downloads_sort_newest">Newest</string>
     <string name="downloads_sort_oldest">Oldest</string>
