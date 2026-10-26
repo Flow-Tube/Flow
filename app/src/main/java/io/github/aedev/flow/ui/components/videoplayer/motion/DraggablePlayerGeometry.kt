@@ -161,6 +161,18 @@ internal fun computeDraggablePlayerGeometry(
     )
 }
 
+/**
+ * The tallest an expanded video may be, so at least [minPageHeight] of the page under it stays on
+ * screen above the navigation bar (#1383). Never shorter than the 16:9 [baseVideoHeight].
+ */
+internal fun tallVideoMaxHeight(
+    screenHeight: Float,
+    statusBarHeight: Float,
+    navigationBarHeight: Float,
+    minPageHeight: Float,
+    baseVideoHeight: Float,
+): Float = (screenHeight - statusBarHeight - navigationBarHeight - minPageHeight).coerceAtLeast(baseVideoHeight)
+
 internal fun DraggablePlayerGestureMetrics.update(
     geometry: DraggablePlayerGeometry,
     isLargeWindow: Boolean,

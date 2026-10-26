@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -55,6 +56,7 @@ import io.github.aedev.flow.ui.components.videoplayer.motion.openGroundCornerRad
 import io.github.aedev.flow.ui.components.videoplayer.motion.openGroundRect
 import io.github.aedev.flow.ui.components.videoplayer.motion.resnapTargets
 import io.github.aedev.flow.ui.components.videoplayer.motion.resolveOpenOriginRect
+import io.github.aedev.flow.ui.components.videoplayer.motion.tallVideoMaxHeight
 import io.github.aedev.flow.ui.components.videoplayer.motion.update
 import io.github.aedev.flow.ui.theme.PlayerGround
 import kotlin.math.roundToInt
@@ -76,6 +78,9 @@ private val MiniPlayerLargeWindowWidth = 260.dp
 private const val DEFAULT_MINI_PLAYER_SCALE = 0.45f
 private val PortraitFullscreenActivation = 28.dp
 private val MiniPlayerShadowElevation = 8.dp
+
+/** Page a tall video always leaves on screen under it: the title, the stats and the action row. */
+private val TallVideoMinPageHeight = 120.dp
 
 /**
  * The video player as one box that is laid out once at its expanded size and morphed into the
@@ -195,13 +200,21 @@ fun DraggablePlayerLayout(
 
             val expandedVideoHeight =
                 rememberGlidingVideoHeight(state, expandedVideoWidth, geometry.expandedVideoHeight)
+            val tallVideoCeiling =
+                tallVideoMaxHeight(
+                    screenHeight = screenHeight,
+                    statusBarHeight = statusBarHeight,
+                    navigationBarHeight = WindowInsets.navigationBars.getBottom(density).toFloat(),
+                    minPageHeight = with(density) { TallVideoMinPageHeight.toPx() },
+                    baseVideoHeight = geometry.baseVideoHeight,
+                )
             val heightFractionOverrideState = rememberUpdatedState(expandedPlayerHeightFractionOverride)
             // Read in the layout phase only: the fraction changes on every nested-scroll delta and
             // every media-sheet drag frame, and a composition read here recomposed this whole tree.
-            val currentExpandedVideoHeightProvider =
+            val videoHeightUnder =
                 remember(geometry.baseVideoHeight, expandedVideoHeight) {
-                    {
-                        val fullHeight = expandedVideoHeight()
+                    { ceiling: Float ->
+                        val fullHeight = expandedVideoHeight().coerceAtMost(ceiling)
                         if (fullHeight > geometry.baseVideoHeight) {
                             val fraction =
                                 heightFractionOverrideState.value?.invoke()?.coerceIn(0f, 1f)
@@ -210,6 +223,15 @@ fun DraggablePlayerLayout(
                         } else {
                             fullHeight
                         }
+                    }
+                }
+            val restingVideoHeightProvider = remember(videoHeightUnder, tallVideoCeiling) { { videoHeightUnder(tallVideoCeiling) } }
+            // The ceiling lifts as the player collapses, so the mini player keeps the video's own shape.
+            val currentExpandedVideoHeightProvider =
+                remember(videoHeightUnder, expandedVideoHeight, tallVideoCeiling) {
+                    {
+                        val lifted = expandedVideoHeight().coerceAtLeast(tallVideoCeiling)
+                        videoHeightUnder(lerpClamped(tallVideoCeiling, lifted, state.expandFraction.value))
                     }
                 }
             val openRectProvider =
@@ -257,7 +279,7 @@ fun DraggablePlayerLayout(
 
             ReportExpandedPlayerBottom(
                 statusBarHeight = statusBarHeight,
-                videoHeightProvider = currentExpandedVideoHeightProvider,
+                videoHeightProvider = restingVideoHeightProvider,
                 onChanged = onExpandedPlayerBottomChanged,
             )
 
@@ -303,10 +325,11 @@ fun DraggablePlayerLayout(
             val portraitFsEnabledState = rememberUpdatedState(portraitFsEnabled)
             val portraitFsActivationState = rememberUpdatedState(portraitFsActivationPx)
             val onEnterPortraitFsState = rememberUpdatedState(onEnterPortraitFullscreen)
+            val pagedVideoHeight = geometry.expandedVideoHeight.coerceAtMost(tallVideoCeiling)
             val nestedScrollConnection =
-                remember(geometry.expandedVideoHeight, geometry.baseVideoHeight) {
+                remember(pagedVideoHeight, geometry.baseVideoHeight) {
                     PlayerBodyNestedScrollConnection(
-                        expandedVideoHeight = geometry.expandedVideoHeight,
+                        expandedVideoHeight = pagedVideoHeight,
                         baseVideoHeight = geometry.baseVideoHeight,
                         playerHeightFraction = { playerHeightFraction },
                         onPlayerHeightFractionChange = { playerHeightFraction = it },

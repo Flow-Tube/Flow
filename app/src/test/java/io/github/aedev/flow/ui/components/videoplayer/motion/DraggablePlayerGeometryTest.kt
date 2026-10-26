@@ -201,4 +201,26 @@ class DraggablePlayerGeometryTest {
     fun `a keyboard taller than the room left never pushes it under the top bar`() {
         assertThat(keyboardSafeMiniY(2000f, 270f, 2400f, imeBottom = 2000f, margin = 24f, minY = 272f)).isEqualTo(272f)
     }
+
+    @Test
+    fun `a 9 by 16 video leaves the page in reach on a 16 by 9 phone`() {
+        // Redmi 4A: 360 x 640 dp at 2x, 24 dp status bar, 48 dp navigation bar, 120 dp of page.
+        val ceiling = tallVideoMaxHeight(1280f, 48f, 96f, 240f, baseVideoHeight = 405f)
+        assertThat(ceiling).isEqualTo(896f)
+        assertThat(ceiling).isLessThan(720f * 16f / 9f)
+    }
+
+    @Test
+    fun `a 9 by 16 video keeps its full height on a 20 by 9 phone`() {
+        // 393 x 873 dp at 2.75x with gesture navigation: the box is 699 dp, the ceiling 705 dp.
+        val density = 2.75f
+        val width = 393f * density
+        val ceiling = tallVideoMaxHeight(873f * density, 24f * density, 24f * density, 120f * density, width * 9f / 16f)
+        assertThat(ceiling).isGreaterThan(width * 16f / 9f)
+    }
+
+    @Test
+    fun `the ceiling never cuts below 16 by 9`() {
+        assertThat(tallVideoMaxHeight(700f, 48f, 96f, 240f, baseVideoHeight = 405f)).isEqualTo(405f)
+    }
 }
