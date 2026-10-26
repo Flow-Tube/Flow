@@ -4,7 +4,7 @@ import android.content.ClipData
 import android.os.Build
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.WatchLater
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -168,7 +168,8 @@ private fun VideoPrimaryActions(
     onDismiss: () -> Unit,
 ) {
     val watchLaterIds by viewModel.watchLaterIds.collectAsStateWithLifecycle()
-    val share = rememberVideoShareAction()
+    val downloadedIds by viewModel.downloadedVideoIds.collectAsStateWithLifecycle()
+    val isDownloaded = video.id in downloadedIds
     QuickActionsPrimaryGroup(
         listOf(
             QuickPrimaryAction(icon = Icons.AutoMirrored.Outlined.PlaylistAdd, label = stringResource(R.string.save), onClick = onSave),
@@ -180,11 +181,15 @@ private fun VideoPrimaryActions(
                 onClick = { viewModel.toggleWatchLater(video) },
             ),
             QuickPrimaryAction(
-                icon = Icons.Outlined.Share,
-                label = stringResource(R.string.share),
+                icon = Icons.Outlined.Download,
+                checkedIcon = Icons.Filled.DownloadDone,
+                label = stringResource(if (isDownloaded) R.string.downloaded else R.string.download),
+                checked = isDownloaded,
                 onClick = {
-                    share(video.id, video.title, video.isShort)
-                    onDismiss()
+                    if (!isDownloaded) {
+                        viewModel.requestDownload(video)
+                        onDismiss()
+                    }
                 },
             ),
         ),
@@ -346,25 +351,13 @@ private fun moreRows(
     onDismiss: () -> Unit,
     onOpenDetails: () -> Unit,
 ): List<QuickActionRow> {
-    val downloadedIds by viewModel.downloadedVideoIds.collectAsStateWithLifecycle()
-    val isDownloaded = video.id in downloadedIds
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    val downloadedLabel = stringResource(R.string.downloaded)
+    val share = rememberVideoShareAction()
     return listOf(
-        QuickActionRow("download") { shape ->
-            FlowNavRow(
-                title = if (isDownloaded) downloadedLabel else stringResource(R.string.download),
-                leadingIcon = if (isDownloaded) Icons.Filled.CheckCircle else Icons.Outlined.Download,
-                onClick = {
-                    viewModel.requestDownload(video)
-                    onDismiss()
-                },
-                enabled = !isDownloaded,
-                showChevron = false,
-                stateDescription = if (isDownloaded) downloadedLabel else null,
-                shape = shape,
-            )
+        actionRow("share", Icons.Outlined.Share, stringResource(R.string.share)) {
+            share(video.id, video.title, video.isShort)
+            onDismiss()
         },
         actionRow("copy_link", Icons.Outlined.ContentCopy, stringResource(R.string.copy_video_link)) {
             scope.launch {
