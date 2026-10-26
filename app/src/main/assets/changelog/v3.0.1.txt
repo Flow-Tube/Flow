@@ -1,7 +1,7 @@
 FLOW CHANGE LOG
 VERSION: 3.0.1
-DATE: 2026-10-19
-STATUS: stable
+DATE: 2026-10-27
+STATUS: pre-release
 
 HIGHLIGHTS
 - Android TV is redesigned on Material 3 Expressive, using the same pages as the phone app
