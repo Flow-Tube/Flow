@@ -24,6 +24,26 @@ class GestureLevelStepsTest {
     }
 
     @Test
+    fun `volume below full follows the stream steps`() {
+        assertThat(volumeGestureStep(0f, 15)).isEqualTo(0)
+        assertThat(volumeGestureStep(0.5f, 15)).isEqualTo(7)
+        assertThat(volumeGestureStep(0.999f, 15)).isEqualTo(14)
+        assertThat(volumeGestureStep(1f, 15)).isEqualTo(15)
+    }
+
+    @Test
+    fun `volume boost ticks every five percent above the stream maximum`() {
+        assertThat(volumeGestureStep(1.01f, 15)).isEqualTo(15)
+        assertThat(volumeGestureStep(1.05f, 15)).isEqualTo(16)
+        assertThat(volumeGestureStep(2f, 15)).isEqualTo(35)
+
+        var ticks = 0
+        val ticker = GestureTicker { ticks++ }
+        for (i in 1000..2000) ticker.onStep(volumeGestureStep(i / 1000f, 15))
+        assertThat(ticks).isEqualTo(20)
+    }
+
+    @Test
     fun `the step a swipe starts in does not tick`() {
         var ticks = 0
         val ticker = GestureTicker { ticks++ }

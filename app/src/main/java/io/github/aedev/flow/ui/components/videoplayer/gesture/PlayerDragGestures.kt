@@ -141,6 +141,7 @@ internal fun Modifier.playerDragGestures(
         val exitVelocity = VelocityTracker()
         var lastVolumeStep = -1
         val brightnessTicks = GestureTicker { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) }
+        val volumeTicks = GestureTicker { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) }
 
         // Each vertical drag accumulates its own level rather than re-reading the one it just
         // published. screenState is snapshot state and a pointer handler can run several times
@@ -256,9 +257,9 @@ internal fun Modifier.playerDragGestures(
                 }
             if (newVolume != lastVolumeStep) {
                 currentAudioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
-                if (lastVolumeStep >= 0) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                 lastVolumeStep = newVolume
             }
+            volumeTicks.onStep(volumeGestureStep(newVolumeLevel, currentMaxVolume))
             currentOnShowVolumeChange(true)
         }
 
@@ -375,6 +376,7 @@ internal fun Modifier.playerDragGestures(
                     volumeGestureLevel = Float.NaN
                     brightnessGestureLevel = Float.NaN
                     brightnessTicks.reset()
+                    volumeTicks.reset()
                     seekDragStarted = false
                     endSpeedDrag()
 
