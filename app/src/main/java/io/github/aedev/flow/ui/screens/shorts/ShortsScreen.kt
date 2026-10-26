@@ -297,7 +297,7 @@ fun ShortsScreen(
                 bottomContentPadding = bottomNavOverlayPadding,
             )
         }
-        ShortsDownloadDialog(state = settingsSheet, style = reelSettings.downloadDialogStyle)
+        ShortsDownloadDialog(state = settingsSheet)
 
         ShortsTopBar(
             visible = uiState.shorts.isNotEmpty() && !isInPip,

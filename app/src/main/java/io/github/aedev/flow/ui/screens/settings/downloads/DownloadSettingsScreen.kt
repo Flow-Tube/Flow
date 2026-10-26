@@ -186,6 +186,7 @@ internal fun DownloadSettingsScreen(
                 stringResource(musicQualityLabel(musicQuality))
             }
             toggleGroup(DownloadsIndex.menuStyle, menuStyles, menuStyle, viewModel::setMenuStyle)
+            switch(DownloadsIndex.askEveryTime, viewModel.askEveryTime, viewModel::setAskEveryTime)
             switch(DownloadsIndex.autoDownloadLikes, viewModel.autoDownloadLikes, viewModel::setAutoDownloadLikes)
             choice(DownloadsIndex.autoDownloadOpened, onClick = { picker = DownloadPicker.AUTO_DOWNLOAD }) {
                 stringResource(autoDownloadLabel(autoDownloadOpened))

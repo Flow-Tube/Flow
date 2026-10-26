@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import io.github.aedev.flow.data.local.DownloadDialogStyle
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ShortsPlayerUiMode
 
@@ -38,7 +37,6 @@ internal data class ShortsReelSettings(
     val customSpeedsEnabled: Boolean,
     val customSpeedPresetsRaw: String,
     val speedSliderEnabled: Boolean,
-    val downloadDialogStyle: DownloadDialogStyle,
 )
 
 @Stable
@@ -83,7 +81,6 @@ internal fun rememberShortsReelSettings(playerPreferences: PlayerPreferences): S
     val customSpeedsEnabled by playerPreferences.customSpeedsEnabled.collectAsState(initial = false)
     val customSpeedPresetsRaw by playerPreferences.customSpeedPresets.collectAsState(initial = "")
     val speedSliderEnabled by playerPreferences.speedSliderEnabled.collectAsState(initial = false)
-    val downloadDialogStyle by playerPreferences.downloadDialogStyle.collectAsState(initial = DownloadDialogStyle.FULL)
 
     return ShortsReelSettings(
         playbackMode = playbackMode,
@@ -95,6 +92,5 @@ internal fun rememberShortsReelSettings(playerPreferences: PlayerPreferences): S
         customSpeedsEnabled = customSpeedsEnabled,
         customSpeedPresetsRaw = customSpeedPresetsRaw,
         speedSliderEnabled = speedSliderEnabled,
-        downloadDialogStyle = downloadDialogStyle,
     )
 }

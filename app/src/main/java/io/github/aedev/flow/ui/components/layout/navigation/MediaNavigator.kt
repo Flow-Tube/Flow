@@ -2,11 +2,13 @@ package io.github.aedev.flow.ui.components.layout.navigation
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.staticCompositionLocalOf
+import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.utils.YouTubeLink
 
 /**
  * The app-wide way to open the page behind a piece of media: its channel, artist, album or playlist,
- * the equalizer the players' audio settings link to, and whatever a pasted YouTube link points at.
+ * the equalizer the players' audio settings link to, a settings page a menu links to, and whatever a
+ * pasted YouTube link points at.
  *
  * Cards and quick action sheets call this directly instead of taking a callback from every screen
  * that shows them, so one implementation decides how the players get out of the way and how a page
@@ -23,6 +25,9 @@ interface MediaNavigator {
     fun openMusicPlaylist(playlistId: String)
 
     fun openEqualizer()
+
+    /** Opens a settings page, such as where downloads are saved; a host with no settings ignores it. */
+    fun openSettings(target: SettingsTarget) = Unit
 
     /** Opens what [link] points at. False when Flow has no page for it, so the caller can say so. */
     fun openLink(link: YouTubeLink): Boolean

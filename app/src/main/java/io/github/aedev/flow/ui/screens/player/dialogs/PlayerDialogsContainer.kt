@@ -10,8 +10,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.dlna.DlnaCastManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
-import io.github.aedev.flow.ui.components.shared.MediaDownloadDialog
-import io.github.aedev.flow.ui.components.shared.MediaDownloadDialogCompact
+import io.github.aedev.flow.ui.components.shared.MediaDownloadPrompt
 import io.github.aedev.flow.ui.components.videoplayer.DlnaDevicePickerDialog
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
@@ -36,34 +35,16 @@ internal fun PlayerDialogsContainer(
     val playerPreferences = prefs.preferences
     val coroutineScope = rememberCoroutineScope()
 
-    // Download Quality Dialog
     if (screenState.activeSheet == PlayerSheet.Download) {
-        when (prefs.downloadDialogStyle) {
-            io.github.aedev.flow.data.local.DownloadDialogStyle.COMPACT -> {
-                MediaDownloadDialogCompact(
-                    streamSizes = uiState.streamSizes,
-                    innerTubeVideoFormats = uiState.innerTubeVideoFormats,
-                    innerTubeAudioFormats = uiState.innerTubeAudioFormats,
-                    video = video,
-                    currentPlayingHeight = playerState.effectiveQuality,
-                    subtitles = playerState.availableSubtitles,
-                    onDismiss = { screenState.closeSheet() },
-                )
-            }
-
-            io.github.aedev.flow.data.local.DownloadDialogStyle.FULL -> {
-                MediaDownloadDialog(
-                    streamSizes = uiState.streamSizes,
-                    innerTubeVideoFormats = uiState.innerTubeVideoFormats,
-                    innerTubeAudioFormats = uiState.innerTubeAudioFormats,
-                    video = video,
-                    subtitles = playerState.availableSubtitles,
-                    onDismiss = { screenState.closeSheet() },
-                )
-            }
-
-            null -> { }
-        }
+        MediaDownloadPrompt(
+            streamSizes = uiState.streamSizes,
+            videoFormats = uiState.innerTubeVideoFormats,
+            audioFormats = uiState.innerTubeAudioFormats,
+            video = video,
+            subtitles = playerState.availableSubtitles,
+            currentPlayingHeight = playerState.effectiveQuality,
+            onDismiss = { screenState.closeSheet() },
+        )
     }
 
     if (screenState.isSettingsOpen && !hostedInSidePanel) {

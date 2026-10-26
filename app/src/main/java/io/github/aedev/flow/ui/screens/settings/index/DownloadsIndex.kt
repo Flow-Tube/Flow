@@ -55,6 +55,13 @@ internal object DownloadsIndex {
             R.string.settings_section_download_defaults,
             summary = R.string.download_menu_style_subtitle,
         )
+    val askEveryTime =
+        entry(
+            "ask_every_time",
+            R.string.download_ask_every_time_title,
+            R.string.settings_section_download_defaults,
+            summary = R.string.download_ask_every_time_summary,
+        )
     val autoDownloadLikes =
         entry(
             "auto_download_likes",
@@ -129,6 +136,7 @@ internal object DownloadsIndex {
             codec,
             musicQuality,
             menuStyle,
+            askEveryTime,
             autoDownloadLikes,
             autoDownloadOpened,
             wifiOnly,

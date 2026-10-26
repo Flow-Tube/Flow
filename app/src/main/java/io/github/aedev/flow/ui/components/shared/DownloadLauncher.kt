@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Environment
+import android.os.StatFs
 import android.provider.Settings
 import android.widget.Toast
 import androidx.core.content.edit
@@ -14,13 +15,25 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.local.entity.DownloadFileType
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.video.DownloadStreamPolicy
+import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.request.DownloadSubtitle
 import io.github.aedev.flow.data.video.downloader.request.toDownloadRequest
 import io.github.aedev.flow.data.video.downloader.work.DownloadController
+import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
+import io.github.aedev.flow.utils.PerformanceDispatcher
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+
+internal data class DownloadSaveFolder(
+    val path: String,
+    val freeBytes: Long,
+)
 
 /** Starts the downloads both download dialogs offer, asking for storage access once on the way. */
 internal object DownloadLauncher {
@@ -125,9 +138,30 @@ internal object DownloadLauncher {
             .submit(request, replaceExisting = true)
     }
 
+    /** Where a video download is saved and the space left there, or null when it can't be read. */
+    suspend fun videoSaveFolder(context: Context): DownloadSaveFolder? =
+        withContext(PerformanceDispatcher.diskIO) {
+            runCatching {
+                val location = PlayerPreferences(context).downloadLocation.first()
+                val destination =
+                    EntryPointAccessors
+                        .fromApplication(context.applicationContext, Dependencies::class.java)
+                        .videoDownloadManager()
+                        .resolveDestination(DownloadFileType.VIDEO, location)
+                val path =
+                    destination.exportTreeUri?.let { DownloadFiles.treePath(it) }
+                        ?: destination.directory.path
+                            .removePrefix(Environment.getExternalStorageDirectory().path)
+                            .trimStart('/')
+                DownloadSaveFolder(path = path, freeBytes = StatFs(destination.directory.path).availableBytes)
+            }.getOrNull()
+        }
+
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface Dependencies {
         fun downloadController(): DownloadController
+
+        fun videoDownloadManager(): VideoDownloadManager
     }
 }

@@ -92,7 +92,8 @@ class QuickActionsSheetController internal constructor(
 
 /**
  * A media item's menu: an M3 modal sheet that opens half way when its content is taller than half
- * the screen and expands as it is dragged or scrolled up. Every way out animates the sheet away.
+ * the screen and expands as it is dragged or scrolled up, or opens in full with [expandFully], for a
+ * sheet whose last row is what it is for. Every way out animates the sheet away.
  * [page] names the page on show, so switching pages keeps one sheet and resets its scroll; on a page
  * ([onBack] set) back returns to the menu instead of closing it. A [LocalFlowSheetPresenter] shows
  * the same content its own way instead.
@@ -103,6 +104,7 @@ fun QuickActionsSheet(
     onDismiss: () -> Unit,
     page: Any? = null,
     onBack: (() -> Unit)? = null,
+    expandFully: Boolean = false,
     content: @Composable ColumnScope.(QuickActionsSheetController) -> Unit,
 ) {
     val presenter = LocalFlowSheetPresenter.current
@@ -110,7 +112,7 @@ fun QuickActionsSheet(
         PresentedQuickActionsSheet(presenter, onDismiss, page, onBack, content)
         return
     }
-    val sheetState = rememberFlowSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberFlowSheetState(skipPartiallyExpanded = expandFully)
     val scope = rememberCoroutineScope()
     val latestOnDismiss by rememberUpdatedState(onDismiss)
     val controller =

@@ -132,6 +132,7 @@ class PlayerPreferences(
 
         // Download dialog style + remembered last-used download options (compact dialog)
         val DOWNLOAD_DIALOG_STYLE = stringPreferencesKey("download_dialog_style")
+        val DOWNLOAD_ASK_EVERY_TIME = booleanPreferencesKey("download_ask_every_time")
         val LAST_DOWNLOAD_TYPE = stringPreferencesKey("last_download_type")
         val LAST_DOWNLOAD_HEIGHT = intPreferencesKey("last_download_height")
         val LAST_DOWNLOAD_CODEC = stringPreferencesKey("last_download_codec")
@@ -3199,6 +3200,17 @@ class PlayerPreferences(
     suspend fun setDownloadDialogStyle(style: DownloadDialogStyle) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.DOWNLOAD_DIALOG_STYLE] = style.name
+        }
+    }
+
+    /** Download opens the download menu; off, it downloads the default choice at once. */
+    val downloadAskEveryTime: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.DOWNLOAD_ASK_EVERY_TIME] ?: true }
+
+    suspend fun setDownloadAskEveryTime(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.DOWNLOAD_ASK_EVERY_TIME] = enabled
         }
     }
 

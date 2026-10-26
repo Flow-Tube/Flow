@@ -5,6 +5,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
+import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.utils.YouTubeLink
 
 internal const val MUSIC_ARTIST_ROUTE_PATTERN = "artist/{channelId}"
@@ -78,6 +79,11 @@ internal class FlowMediaNavigator(
     override fun openAlbum(albumId: String) = openCollection(albumId)
 
     override fun openMusicPlaylist(playlistId: String) = openCollection(playlistId)
+
+    override fun openSettings(target: SettingsTarget) {
+        beforeNavigate()
+        navController.navigate("settings?target=${target.encode()}")
+    }
 
     override fun openEqualizer() {
         beforeNavigate()

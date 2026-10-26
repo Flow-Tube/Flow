@@ -100,14 +100,14 @@ class PlayerDialogsContainerTest {
     }
 
     @Test
-    fun downloadSheetMountsTheFullDialogWhenPreferred() {
+    fun downloadSheetMountsTheClassicSheetWhenPreferred() {
         setDownloadDialogStyle(DownloadDialogStyle.FULL)
         // No caption tracks: the Subtitles row is a text field, which never idles in a Dialog under
         // Robolectric. Device twin: DownloadDialogsInstrumentedTest.
         setContainer(PlayerScreenState().apply { open(PlayerSheet.Download) }, fakePlayerState(availableSubtitles = emptyList()))
 
-        waitForText(R.string.download_video)
-        rule.onNodeWithText(string(R.string.select_quality)).assertExists()
+        waitForText(R.string.no_download_streams)
+        rule.onNodeWithText(string(R.string.ui_try_sabr_download)).assertExists()
     }
 
     @Test

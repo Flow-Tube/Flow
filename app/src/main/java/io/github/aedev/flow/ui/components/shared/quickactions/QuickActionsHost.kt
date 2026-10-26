@@ -12,18 +12,14 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
-import io.github.aedev.flow.data.local.DownloadDialogStyle
-import io.github.aedev.flow.data.local.PlayerPreferences
-import io.github.aedev.flow.ui.components.shared.MediaDownloadDialog
-import io.github.aedev.flow.ui.components.shared.MediaDownloadDialogCompact
+import io.github.aedev.flow.ui.components.shared.MediaDownloadPrompt
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * What the video menus hand off to the shell: the download dialog, in the style chosen in settings,
+ * What the video menus hand off to the shell: the download menu, in the style chosen in settings,
  * and each action's confirmation on the app's snackbar with its undo. Call once, in the shell.
  */
 @Composable
@@ -32,34 +28,17 @@ fun QuickActionsHost(
     viewModel: QuickActionsViewModel = sharedQuickActionsViewModel(),
 ) {
     val context = LocalContext.current
-    val preferences = remember(context) { PlayerPreferences(context) }
-    val dialogStyle by preferences.downloadDialogStyle.collectAsStateWithLifecycle(DownloadDialogStyle.FULL)
     val pending by viewModel.pendingDownload.collectAsStateWithLifecycle()
 
     pending?.let { options ->
-        when (dialogStyle) {
-            DownloadDialogStyle.COMPACT -> {
-                MediaDownloadDialogCompact(
-                    streamSizes = options.streamSizes,
-                    innerTubeVideoFormats = options.videoFormats,
-                    innerTubeAudioFormats = options.audioFormats,
-                    video = options.video,
-                    subtitles = options.subtitles,
-                    onDismiss = viewModel::dismissDownload,
-                )
-            }
-
-            DownloadDialogStyle.FULL -> {
-                MediaDownloadDialog(
-                    streamSizes = options.streamSizes,
-                    innerTubeVideoFormats = options.videoFormats,
-                    innerTubeAudioFormats = options.audioFormats,
-                    video = options.video,
-                    subtitles = options.subtitles,
-                    onDismiss = viewModel::dismissDownload,
-                )
-            }
-        }
+        MediaDownloadPrompt(
+            streamSizes = options.streamSizes,
+            videoFormats = options.videoFormats,
+            audioFormats = options.audioFormats,
+            video = options.video,
+            subtitles = options.subtitles,
+            onDismiss = viewModel::dismissDownload,
+        )
     }
 
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { }

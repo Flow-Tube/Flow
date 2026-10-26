@@ -2467,9 +2467,15 @@
     <string name="download_menu_style_title">Download menu style</string>
     <string name="download_menu_style_subtitle">Choose how the download dialog looks</string>
     <string name="download_menu_style_classic">Classic</string>
-    <string name="download_menu_style_classic_desc">Full list of every quality and codec</string>
+    <string name="download_menu_style_classic_desc">Every quality on one screen</string>
     <string name="download_menu_style_compact">Compact</string>
     <string name="download_menu_style_compact_desc">Editable title, dropdowns and thread count</string>
+    <string name="download_ask_every_time_title">Ask every time</string>
+    <string name="download_ask_every_time_summary">When off, Download uses your download quality</string>
+    <string name="download_sheet_button">Download %1$s</string>
+    <string name="download_sheet_save_folder">%1$s · %2$s free</string>
+    <string name="download_sheet_change_folder">Change</string>
+    <string name="download_sheet_all_languages">All languages</string>
     <string name="downloading_template">Downloading %1$s...</string>
     <string name="download_quality_hdr">HDR</string>
     <string name="download_storage_access_prompt">Grant storage access to save downloads in public folders (optional)</string>
@@ -3789,8 +3795,8 @@
     <string name="settings_backup_one_copy">Each backup replaces the previous one in the folder.</string>
     <string name="settings_backup_needs_folder">Choose a folder first</string>
     <string name="settings_keywords_backup">export, import, restore, migrate, transfer, takeout, newpipe, libretube, freetube</string>
-    <string name="settings_quick_download_quality">Quick download quality</string>
-    <string name="settings_quick_download_quality_summary">Used when you download straight from a video card</string>
+    <string name="settings_quick_download_quality">Download quality</string>
+    <string name="settings_quick_download_quality_summary">Selected first when you download</string>
     <string name="settings_music_download_quality">Song download quality</string>
     <string name="settings_music_download_quality_summary">Used for songs, albums and music playlists</string>
     <string name="download_retag_title">Tags for older downloads</string>
