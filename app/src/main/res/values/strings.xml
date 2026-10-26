@@ -2156,6 +2156,7 @@
     <string name="settings_pause_music_muted_summary">Resume when the volume comes back</string>
     <string name="settings_music_resume_title">Resume podcasts and long tracks</string>
     <string name="settings_music_resume_summary">Start tracks over 10 minutes where you left off</string>
+    <string name="home_new_videos">New videos</string>
     <string name="settings_resume_from_headphones_title">Resume from headphones</string>
     <string name="settings_resume_from_headphones_summary">A Play button on headphones restarts your last songs</string>
     <string name="playback_background_restricted_title">Background activity is restricted</string>

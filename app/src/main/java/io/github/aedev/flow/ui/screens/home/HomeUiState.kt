@@ -18,4 +18,6 @@ data class HomeUiState(
     val lastRefreshTime: Long = 0L,
     /** Why each card is on Home; channel memory cards also say so under their title. */
     val origins: Map<String, HomeCardOrigin> = emptyMap(),
+    /** The new feed held back while the cached one is on screen at launch (#1447). */
+    val pendingFeed: HomePendingFeed? = null,
 )

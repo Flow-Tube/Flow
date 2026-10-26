@@ -1,16 +1,33 @@
 package io.github.aedev.flow.ui.screens.home
 
 import androidx.activity.compose.ReportDrawnWhen
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallExtendedFloatingActionButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -30,9 +47,12 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 private const val IMPRESSION_DEBOUNCE_MS = 500L
 private const val SKELETON_CARD_COUNT = 12
+private val NewVideosTopPadding = 8.dp
+private val NewVideosIconSpacing = 8.dp
 
 /** The main feed's scroll position and one per chip, each kept for the session. */
 @Stable
@@ -145,6 +165,7 @@ internal fun HomeFeedBody(
     showShorts: Boolean = true,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     when {
         !homeFeedEnabled -> {
             HomeFeedDisabledState(modifier = Modifier.fillMaxSize())
@@ -187,27 +208,59 @@ internal fun HomeFeedBody(
                     uiState.continueWatchingVideos.isNotEmpty()
             }
 
-            HomeFeedGrid(
-                uiState = uiState,
-                feedLayout = feedLayout,
-                isListView = isListView,
-                gridState = gridStates.feed,
-                onVideoClick = onVideoClick,
-                onEnrichChannelMetadata = viewModel::enrichChannelMetadataIfMissing,
-                onContinueWatchingClick = { entry -> onVideoClick(entry.toResumeVideo()) },
-                onContinueWatchingRemove = viewModel::removeContinueWatchingEntry,
-                onShortClick = { shelf, tapped ->
-                    onShortClick(viewModel.shortsShelfSource(shelf, tapped))
-                },
-                onSeeAllHistory = onNavigateToHistory,
-                onOpenShortsFeed = onOpenShortsFeed,
-                onShortsShown = viewModel::recordShelfImpressions,
-                onRefresh = { viewModel.refreshFeed() },
-                onRetryLoadMore = viewModel::retryLoadMore,
-                // Since v5 the feed can end at a few dozen cards; a list that just stops reads as broken (#1317).
-                footerMinVideos = 0,
-                showShorts = showShorts,
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                HomeFeedGrid(
+                    uiState = uiState,
+                    feedLayout = feedLayout,
+                    isListView = isListView,
+                    gridState = gridStates.feed,
+                    onVideoClick = onVideoClick,
+                    onEnrichChannelMetadata = viewModel::enrichChannelMetadataIfMissing,
+                    onContinueWatchingClick = { entry -> onVideoClick(entry.toResumeVideo()) },
+                    onContinueWatchingRemove = viewModel::removeContinueWatchingEntry,
+                    onShortClick = { shelf, tapped ->
+                        onShortClick(viewModel.shortsShelfSource(shelf, tapped))
+                    },
+                    onSeeAllHistory = onNavigateToHistory,
+                    onOpenShortsFeed = onOpenShortsFeed,
+                    onShortsShown = viewModel::recordShelfImpressions,
+                    onRefresh = { viewModel.refreshFeed() },
+                    onRetryLoadMore = viewModel::retryLoadMore,
+                    // Since v5 the feed can end at a few dozen cards; a list that just stops reads as broken (#1317).
+                    footerMinVideos = 0,
+                    showShorts = showShorts,
+                )
+                HomeNewVideosButton(
+                    visible = uiState.pendingFeed != null,
+                    onClick = {
+                        viewModel.showNewVideos()
+                        scope.launch { gridStates.feed.scrollToItem(0) }
+                    },
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
+        }
+    }
+}
+
+/** Shown while a newer feed waits behind the cached cards of a launch (#1447). */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun HomeNewVideosButton(
+    visible: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + scaleIn(MaterialTheme.motionScheme.defaultSpatialSpec()),
+        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
+        modifier = modifier.padding(top = NewVideosTopPadding),
+    ) {
+        SmallExtendedFloatingActionButton(onClick = onClick) {
+            Icon(imageVector = Icons.Rounded.ArrowUpward, contentDescription = null)
+            Spacer(Modifier.width(NewVideosIconSpacing))
+            Text(text = stringResource(R.string.home_new_videos))
         }
     }
 }

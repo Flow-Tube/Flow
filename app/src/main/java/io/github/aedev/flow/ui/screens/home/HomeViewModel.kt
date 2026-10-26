@@ -198,6 +198,10 @@ class HomeViewModel
 
         @Volatile
         private var lastVisibleVideoIndex = -1
+
+        // The cached cards painted at launch; while set, wave 1 holds its feed back instead of replacing them.
+        @Volatile
+        private var cachedOnScreenIds: Set<String>? = null
         private var savedInterestJob: Job? = null
 
         private val watchedVideoIds = MutableStateFlow<Set<String>>(emptySet())
@@ -360,6 +364,11 @@ class HomeViewModel
         fun onHomeViewportChanged(lastVisibleVideoIndex: Int) {
             this.lastVisibleVideoIndex = lastVisibleVideoIndex
             val state = _uiState.value
+            if (state.pendingFeed != null) {
+                // The held feed is the next page: it was already fetched, so nothing more is.
+                if (nearsEndOfFeed(lastVisibleVideoIndex, state.videos.size)) settlePendingFeed(append = true)
+                return
+            }
             if (!state.isReadyForPrefetch()) return
             startHomePrefetch(
                 homePrefetchQueue.onViewportChanged(
@@ -514,13 +523,18 @@ class HomeViewModel
                         persistentHomeFeedCache.loadLastFeed(cacheFilters())
                     }.getOrElse { emptyList() }
                 if (cached.isEmpty()) return@launch
+                // Cards the viewer already had on screen are old news; only the rest come back (#1447).
+                val feedHistory = runCatching { FlowNeuroEngine.getBrainSnapshot().feedHistory }.getOrDefault(emptyMap())
+                val unseen = unseenCachedCards(cached.filterWatched(watchedVideoIds.value)) { (feedHistory[it]?.showCount ?: 0) > 0 }
+                if (unseen.isEmpty()) return@launch
 
                 // Shown before any network call: the collaboration avatars fill in after (#1301).
                 var shownIds = emptyList<String>()
                 _uiState.update { state ->
                     if (state.videos.isNotEmpty()) return@update state
-                    val videos = cached.filterWatched(watchedVideoIds.value)
+                    val videos = unseen
                     shownIds = videos.map { it.id }
+                    cachedOnScreenIds = shownIds.toSet()
                     HomeFeedCache.update(videos, state.shorts)
                     state.copy(
                         videos = videos,
@@ -648,13 +662,16 @@ class HomeViewModel
                                 .filterWatched(watchedShortIds.value)
                                 .filterRecentHomeSuggestion(now)
                                 .filterNot(exclusions::hidesFromRecommendations)
+                        var rankedShorts: List<Video>? = null
                         if (feedShorts.isNotEmpty() && playerPreferences.effectiveHomeShortsShelfEnabled.first()) {
                             // A refresh replaces the shelf; appending kept the same reels at its front.
-                            val rankedShorts =
+                            val ranked =
                                 FlowNeuroEngine
                                     .rank(feedShorts, userSubs)
                                     .recentlyShownLast { NeuroScoring.isRecentlySeen(brain.feedHistory[it], now) }
-                            _uiState.update { state -> state.copy(shorts = rankedShorts) }
+                            rankedShorts = ranked
+                            // Held with the feed it belongs to, so a held feed moves the grid once.
+                            if (cachedOnScreenIds == null) _uiState.update { state -> state.copy(shorts = ranked) }
                         }
 
                         val watched = watchedVideoIds.value
@@ -776,20 +793,25 @@ class HomeViewModel
                             cacheRelatedCandidates(lanes.bestRelated, lanes.relatedMetadata, renderedIds) +
                                 cacheCandidates(FeedSource.DISCOVERY, lanes.bestDiscovery, renderedIds)
                         var visibleFeed = emptyList<Video>()
+                        val holdBack = cachedOnScreenIds != null
                         _uiState.update { state ->
                             visibleFeed = spacedMix.filterWatched(watchedVideoIds.value)
-                            state.copy(
-                                videos = visibleFeed,
-                                origins = origins,
-                                isLoading = false,
-                                isRefreshing = false,
-                                hasMorePages = true,
-                                loadMoreFailed = false,
-                                isFlowFeed = true,
-                                lastRefreshTime = now,
-                            )
+                            val settled =
+                                state.copy(
+                                    isLoading = false,
+                                    isRefreshing = false,
+                                    hasMorePages = true,
+                                    loadMoreFailed = false,
+                                    isFlowFeed = true,
+                                    lastRefreshTime = now,
+                                )
+                            if (holdBack) {
+                                settled.copy(pendingFeed = HomePendingFeed(visibleFeed, rankedShorts ?: state.shorts, origins))
+                            } else {
+                                settled.copy(videos = visibleFeed, origins = origins)
+                            }
                         }
-                        HomeFeedCache.update(visibleFeed, _uiState.value.shorts)
+                        HomeFeedCache.update(visibleFeed, rankedShorts ?: _uiState.value.shorts)
                         persistentHomeFeedCache.saveLastFeed(spacedMix)
                         persistentHomeFeedCache.saveReserve(reserveCandidates)
                         if (trace != null) {
@@ -1483,6 +1505,7 @@ class HomeViewModel
          * screen stays, still loading more, and the viewer is told the refresh failed (#1317).
          */
         private fun settleWithoutFeed(error: String?) {
+            cachedOnScreenIds = null
             var keptFeed = false
             _uiState.update {
                 keptFeed = it.isFlowFeed && it.videos.isNotEmpty()
@@ -1506,6 +1529,13 @@ class HomeViewModel
          * lands, and repeated pulls cannot stack pipelines (#1171).
          */
         fun refreshFeed() {
+            if (_uiState.value.pendingFeed != null) {
+                // A feed newer than the one on screen is already here: the refresh is showing it.
+                settlePendingFeed(append = false)
+                return
+            }
+            // A pull while the cached cards wait on wave 1 asks for them to be replaced after all.
+            cachedOnScreenIds = null
             if (feedJob?.isActive == true) {
                 _uiState.update { it.copy(isRefreshing = true) }
                 return
@@ -1513,8 +1543,37 @@ class HomeViewModel
             reloadFeed()
         }
 
+        /** The New videos button: the held feed replaces the cached cards. */
+        fun showNewVideos() = settlePendingFeed(append = false)
+
+        /**
+         * Puts the held feed on screen, replacing the cached cards or, with [append], after them, and
+         * ends the hold. Late merges already added to the cached cards are kept either way.
+         */
+        private fun settlePendingFeed(append: Boolean) {
+            val cachedIds = cachedOnScreenIds.orEmpty()
+            var settled: List<Video>? = null
+            _uiState.update { state ->
+                val pending = state.pendingFeed ?: return@update state
+                val videos =
+                    if (append) {
+                        feedWithPendingAppended(state.videos, pending.videos)
+                    } else {
+                        feedWithPendingApplied(state.videos, cachedIds, pending.videos)
+                    }.filterWatched(watchedVideoIds.value)
+                settled = videos
+                state.copy(videos = videos, shorts = pending.shorts, origins = state.origins + pending.origins, pendingFeed = null)
+            }
+            cachedOnScreenIds = null
+            val videos = settled ?: return
+            HomeFeedCache.update(videos, _uiState.value.shorts)
+            viewModelScope.launch(PerformanceDispatcher.diskIO) { persistentHomeFeedCache.saveLastFeed(videos) }
+        }
+
         /** Starts over, replacing a load already running: a changed setting must apply to the next feed. */
         private fun reloadFeed() {
+            cachedOnScreenIds = null
+            _uiState.update { it.copy(pendingFeed = null) }
             resetHomePrefetch()
             wave2Job?.cancel()
             HomeFeedCache.clear()
@@ -1689,6 +1748,8 @@ class HomeViewModel
                 .map { FeedItemOwner(id = it.channelId, name = it.channelName, avatarUrl = it.channelThumbnail) }
 
         fun retry() {
+            cachedOnScreenIds = null
+            _uiState.update { it.copy(pendingFeed = null) }
             resetHomePrefetch()
             wave2Job?.cancel()
             loadFlowFeed(forceRefresh = true)
