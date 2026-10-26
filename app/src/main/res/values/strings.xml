@@ -1293,6 +1293,8 @@
     </plurals>
     <string name="player_settings_start_paused">Start videos paused</string>
     <string name="player_settings_start_paused_subtitle">Open a video without playing it until you press play</string>
+    <string name="player_settings_open_fullscreen">Open videos in fullscreen</string>
+    <string name="player_settings_open_fullscreen_subtitle">A video you open starts in fullscreen</string>
     <string name="player_settings_autoplay">Autoplay related videos</string>
     <string name="player_settings_autoplay_subtitle">Play a suggested video when nothing is queued</string>
     <string name="player_settings_queue_autoplay">Autoplay queued videos</string>

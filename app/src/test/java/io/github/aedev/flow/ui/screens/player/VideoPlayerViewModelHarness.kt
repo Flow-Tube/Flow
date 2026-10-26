@@ -78,6 +78,7 @@ internal class VideoPlayerViewModelHarness(
     val homeFeedCacheRepository: HomeFeedCacheRepository = mockk(relaxed = true)
     val playerManager: EnhancedPlayerManager = mockk(relaxed = true)
     var startVideosPaused = false
+    var openVideosFullscreen = false
     val videoStats: io.github.aedev.flow.data.stats.VideoStatsRecorder = mockk(relaxed = true)
 
     /**
@@ -186,6 +187,9 @@ internal class VideoPlayerViewModelHarness(
         every { likedVideosRepository.getLikeState(any()) } returns likeState
     }
 
+    private fun lifecyclePlaybackSettings() =
+        LifecyclePlaybackSettings(startVideosPaused = startVideosPaused, openVideosFullscreen = openVideosFullscreen)
+
     fun createViewModel(): VideoPlayerViewModel =
         VideoPlayerViewModel(
             context = context,
@@ -218,7 +222,7 @@ internal class VideoPlayerViewModelHarness(
             notesRepository = mockk(relaxed = true),
             videoStats = videoStats,
             localMediaDetails = mockk { coEvery { enrich(any()) } returns null },
-            lifecyclePlayback = mockk { every { settings } answers { LifecyclePlaybackSettings(startVideosPaused = startVideosPaused) } },
+            lifecyclePlayback = mockk { every { settings } answers { lifecyclePlaybackSettings() } },
             autoDownload = autoDownload,
             resetYouTubeSession = mockk(relaxed = true),
             networkDispatcher = testDispatcher,

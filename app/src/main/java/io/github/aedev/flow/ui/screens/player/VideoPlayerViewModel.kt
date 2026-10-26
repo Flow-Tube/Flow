@@ -202,8 +202,9 @@ class VideoPlayerViewModel
 
         private val _expandPlayerRequest = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
         val expandPlayerRequest: SharedFlow<Unit> = _expandPlayerRequest.asSharedFlow()
+        val fullscreenOpen: StateFlow<String?> = presence.fullscreenOpen
 
-        private fun isLocalMediaId(id: String?): Boolean = LocalMediaIds.isLocal(id)
+        fun consumeFullscreenOpen(videoId: String) = presence.consumeFullscreenOpen(videoId)
 
         /** Arms the live chat for [videoId]; the drip loop itself waits for a visible panel. */
         fun maybeStartLiveChat(videoId: String) = liveChat.start(videoId)
@@ -227,10 +228,7 @@ class VideoPlayerViewModel
 
         fun isVideoSavedToAnyPlaylist(videoId: String): Flow<Boolean> = playlistRepository.isVideoSavedToAnyPlaylistFlow(videoId)
 
-        /**
-         * Detect whether the device is currently on Wi-Fi.
-         * Used to select the correct quality preference (Wi-Fi vs cellular).
-         */
+        /** Wi-Fi or cellular, which picks the quality preference. */
         private fun detectIsWifi(): Boolean = NetworkState.isOnWifi(context)
 
         init {
@@ -354,6 +352,7 @@ class VideoPlayerViewModel
             userOpened: Boolean,
         ) {
             playerManager.armStartPaused(videoId.takeIf { userOpened && lifecyclePlayback.settings.startVideosPaused })
+            presence.armFullscreenOpen(videoId.takeIf { userOpened && lifecyclePlayback.settings.openVideosFullscreen })
         }
 
         /** Drops the load, the queue and the music player so this screen owns playback outright. */
@@ -431,6 +430,7 @@ class VideoPlayerViewModel
             EnhancedMusicPlayerManager.clearCurrentTrack()
 
             playerManager.armStartPaused(null)
+            presence.armFullscreenOpen(startVideo.id.takeIf { lifecyclePlayback.settings.openVideosFullscreen })
             playerManager.setQueue(videos, startIndex, title, shuffle)
 
             _uiState.update { it.resetForVideo(startVideo).copy(queueTitle = title) }
@@ -447,8 +447,7 @@ class VideoPlayerViewModel
             if (!handledByPlayer) {
                 _uiState.value.relatedVideos.firstOrNull()?.let { nextVideo ->
                     playVideo(nextVideo, userOpened = false)
-                    io.github.aedev.flow.player.GlobalPlayerState
-                        .setCurrentVideo(nextVideo)
+                    GlobalPlayerState.setCurrentVideo(nextVideo)
                 }
             }
         }
@@ -495,7 +494,7 @@ class VideoPlayerViewModel
                 channelName = channelName,
                 channelId = channelId,
                 isShort = isShort,
-                isLocal = isLocalMediaId(videoId),
+                isLocal = LocalMediaIds.isLocal(videoId),
             )
             viewModelScope.launch { watchLaterCleanup.onProgress(videoId, position, duration) }
         }
@@ -562,7 +561,7 @@ class VideoPlayerViewModel
         fun loadTranscript(trackUrl: String?) = transcripts.load(trackUrl)
 
         fun loadDescription(videoId: String) {
-            if (isLocalMediaId(videoId)) {
+            if (LocalMediaIds.isLocal(videoId)) {
                 descriptions.clear()
                 return
             }
@@ -570,7 +569,7 @@ class VideoPlayerViewModel
         }
 
         fun loadComments(videoId: String) {
-            if (isLocalMediaId(videoId)) {
+            if (LocalMediaIds.isLocal(videoId)) {
                 comments.clear()
                 return
             }

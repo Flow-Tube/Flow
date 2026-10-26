@@ -33,6 +33,7 @@ class PlaybackSettingsViewModel
         val backgroundPlay = preferences.backgroundPlayEnabled.asState(DEFAULT_BACKGROUND_PLAY_ENABLED)
         val autoplay = preferences.autoplayEnabled.asState(true)
         val startPaused = preferences.startVideosPaused.asState(false)
+        val openFullscreen = preferences.openVideosFullscreen.asState(false)
         val queueAutoplay = preferences.queueAutoplayEnabled.asState(true)
         val autoplayCountdown = preferences.autoplayCountdownSeconds.asState(0)
         val loopAll = preferences.videoLoopEnabled.asState(false)
@@ -112,6 +113,8 @@ class PlaybackSettingsViewModel
         fun setBackgroundPlay(value: Boolean) = write { preferences.setBackgroundPlayEnabled(value) }
 
         fun setStartPaused(value: Boolean) = write { preferences.setStartVideosPaused(value) }
+
+        fun setOpenFullscreen(value: Boolean) = write { preferences.setOpenVideosFullscreen(value) }
 
         fun setAutoplay(value: Boolean) = write { preferences.setAutoplayEnabled(value && !loopAll.value) }
 

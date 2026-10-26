@@ -24,6 +24,14 @@ internal object PlaybackIndex {
             section = R.string.playback_header,
             destination = page,
         )
+    val openFullscreen =
+        SettingEntry(
+            key = "playback.open_fullscreen",
+            title = R.string.player_settings_open_fullscreen,
+            summary = R.string.player_settings_open_fullscreen_subtitle,
+            section = R.string.playback_header,
+            destination = page,
+        )
     val autoplay =
         SettingEntry(
             key = "playback.autoplay",
@@ -514,6 +522,7 @@ internal object PlaybackIndex {
         listOf(
             backgroundPlay,
             startPaused,
+            openFullscreen,
             autoplay,
             queueAutoplay,
             autoplayCountdown,

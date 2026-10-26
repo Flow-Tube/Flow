@@ -19,6 +19,7 @@ data class LifecyclePlaybackSettings(
     val shortsBackgroundPlay: Boolean = false,
     val shortsPipEnabled: Boolean = false,
     val startVideosPaused: Boolean = false,
+    val openVideosFullscreen: Boolean = false,
 )
 
 /**
@@ -52,17 +53,21 @@ class LifecyclePlaybackPreferences internal constructor(
 
 private fun PlayerPreferences.lifecyclePlaybackSettings(): Flow<LifecyclePlaybackSettings> =
     combine(
-        autoPipEnabled,
-        backgroundPlayEnabled,
-        shortsBackgroundPlay,
-        shortsPipEnabled,
+        combine(
+            autoPipEnabled,
+            backgroundPlayEnabled,
+            shortsBackgroundPlay,
+            shortsPipEnabled,
+        ) { autoPip, backgroundPlay, shortsBackgroundPlay, shortsPip ->
+            LifecyclePlaybackSettings(
+                autoPipEnabled = autoPip,
+                backgroundPlayEnabled = backgroundPlay,
+                shortsBackgroundPlay = shortsBackgroundPlay,
+                shortsPipEnabled = shortsPip,
+            )
+        },
         startVideosPaused,
-    ) { autoPip, backgroundPlay, shortsBackgroundPlay, shortsPip, startPaused ->
-        LifecyclePlaybackSettings(
-            autoPipEnabled = autoPip,
-            backgroundPlayEnabled = backgroundPlay,
-            shortsBackgroundPlay = shortsBackgroundPlay,
-            shortsPipEnabled = shortsPip,
-            startVideosPaused = startPaused,
-        )
+        openVideosFullscreen,
+    ) { settings, startPaused, openFullscreen ->
+        settings.copy(startVideosPaused = startPaused, openVideosFullscreen = openFullscreen)
     }

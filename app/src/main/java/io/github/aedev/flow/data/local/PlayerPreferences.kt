@@ -76,6 +76,7 @@ class PlayerPreferences(
         val AUTOPLAY_ENABLED = booleanPreferencesKey("autoplay_enabled")
         val QUEUE_AUTOPLAY_ENABLED = booleanPreferencesKey("queue_autoplay_enabled")
         val START_VIDEOS_PAUSED = booleanPreferencesKey("start_videos_paused")
+        val OPEN_VIDEOS_FULLSCREEN = booleanPreferencesKey("open_videos_fullscreen")
         val MUSIC_ENDLESS_RADIO_ENABLED = booleanPreferencesKey("music_endless_radio_enabled")
         val AUTOPLAY_COUNTDOWN_SECONDS = intPreferencesKey("autoplay_countdown_seconds")
         val SHOW_CONTROLS_WHILE_LOADING = booleanPreferencesKey("show_controls_while_loading")
@@ -1611,6 +1612,17 @@ class PlayerPreferences(
     suspend fun setStartVideosPaused(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.START_VIDEOS_PAUSED] = enabled
+        }
+    }
+
+    /** A video the viewer opens goes straight to fullscreen; what plays after it stays where the viewer is. */
+    val openVideosFullscreen: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.OPEN_VIDEOS_FULLSCREEN] ?: false }
+
+    suspend fun setOpenVideosFullscreen(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.OPEN_VIDEOS_FULLSCREEN] = enabled
         }
     }
 

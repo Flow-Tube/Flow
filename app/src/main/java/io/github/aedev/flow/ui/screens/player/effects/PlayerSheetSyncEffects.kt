@@ -8,6 +8,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.Lifecycle
@@ -24,6 +25,7 @@ import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 
 /** Collapsing the sheet, or leaving fullscreen, drops every surface the expanded player owns. */
 @Composable
@@ -120,6 +122,44 @@ internal fun PhoneLandscapeFullscreenEffect(
         if (isLandscape && !isLargeWindow && !isInPipMode && playerSheetState.currentValue == PlayerSheetValue.Expanded) {
             screenState.isFullscreen = true
         }
+    }
+}
+
+/**
+ * Takes a video the viewer opened to fullscreen through the same switch as the fullscreen button,
+ * once its sheet has finished opening and the player knows the video's shape: switching before the
+ * shape is known would turn the window to landscape for a vertical video and straight back. A sheet
+ * the viewer collapses first drops the request.
+ */
+@Composable
+internal fun OpenInFullscreenEffect(
+    videoId: String,
+    requestedVideoId: String?,
+    playerSheetState: PlayerDraggableState,
+    screenState: PlayerScreenState,
+    isInPipMode: Boolean,
+    isVideoShapeKnown: () -> Boolean,
+    onConsumed: (String) -> Unit,
+) {
+    val currentIsInPipMode by rememberUpdatedState(isInPipMode)
+    val currentIsVideoShapeKnown by rememberUpdatedState(isVideoShapeKnown)
+    LaunchedEffect(requestedVideoId, videoId) {
+        if (requestedVideoId == null || requestedVideoId != videoId) return@LaunchedEffect
+        var wasExpanded = false
+        val expanded =
+            snapshotFlow {
+                val isExpanded = playerSheetState.currentValue == PlayerSheetValue.Expanded
+                val opened = playerSheetState.isSettled && playerSheetState.openOrigin == null
+                isExpanded to (isExpanded && opened && currentIsVideoShapeKnown())
+            }.first { (isExpanded, ready) ->
+                wasExpanded = wasExpanded || isExpanded
+                ready || (wasExpanded && !isExpanded)
+            }.first
+        if (expanded && !currentIsInPipMode && !screenState.isFullscreen) {
+            screenState.isFullscreenPortrait = false
+            screenState.isFullscreen = true
+        }
+        onConsumed(requestedVideoId)
     }
 }
 

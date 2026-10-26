@@ -209,6 +209,19 @@ fun VideoPlayerHost(
         onMinimize = onMinimize,
     )
 
+    val fullscreenOpen by playerViewModel.fullscreenOpen.collectAsStateWithLifecycle()
+    OpenInFullscreenEffect(
+        videoId = video.id,
+        requestedVideoId = fullscreenOpen,
+        playerSheetState = playerSheetState,
+        screenState = screenState,
+        isInPipMode = localIsInPipMode,
+        isVideoShapeKnown = {
+            playerState.currentVideoId == video.id && (playerState.sourceVideoAspectRatio != null || playerState.isPrepared)
+        },
+        onConsumed = playerViewModel::consumeFullscreenOpen,
+    )
+
     PlayerBackEffects(
         playerSheetState = playerSheetState,
         screenState = screenState,

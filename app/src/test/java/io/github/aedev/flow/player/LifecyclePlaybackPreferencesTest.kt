@@ -25,6 +25,7 @@ class LifecyclePlaybackPreferencesTest {
         // or a user who never touched the switch would be paused by that relaunch alone (#1298).
         assertThat(LifecyclePlaybackSettings().backgroundPlayEnabled).isTrue()
         assertThat(LifecyclePlaybackSettings().shortsBackgroundPlay).isFalse()
+        assertThat(LifecyclePlaybackSettings().openVideosFullscreen).isFalse()
     }
 
     @Test
