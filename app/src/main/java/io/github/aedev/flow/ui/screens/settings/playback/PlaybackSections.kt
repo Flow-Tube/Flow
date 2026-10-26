@@ -1,5 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.playback
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BatteryAlert
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -16,6 +18,7 @@ import io.github.aedev.flow.ui.components.settings.choice
 import io.github.aedev.flow.ui.components.settings.nav
 import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.settings.toggleGroup
+import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
@@ -28,9 +31,22 @@ internal fun SettingsListScope.playbackSections(
     state: PlaybackStructure,
     openDialog: (PlaybackDialog) -> Unit,
     onNavigate: (SettingsTarget) -> Unit,
+    onAllowBackground: () -> Unit,
 ) {
     group(key = "playback.general", header = R.string.playback_header) {
         switch(PlaybackIndex.backgroundPlay, viewModel.backgroundPlay, viewModel::setBackgroundPlay)
+        if (state.backgroundRestricted) {
+            row("playback.background_restricted") { shape ->
+                FlowNavRow(
+                    title = stringResource(R.string.playback_background_restricted_title),
+                    supportingText = stringResource(R.string.playback_background_restricted_subtitle),
+                    leadingIcon = Icons.Outlined.BatteryAlert,
+                    showChevron = false,
+                    shape = shape,
+                    onClick = onAllowBackground,
+                )
+            }
+        }
         switch(PlaybackIndex.startPaused, viewModel.startPaused, viewModel::setStartPaused)
         switch(PlaybackIndex.openFullscreen, viewModel.openFullscreen, viewModel::setOpenFullscreen)
         switch(PlaybackIndex.autoplay, viewModel.autoplay, viewModel::setAutoplay, enabled = !state.loopAll)
@@ -142,6 +158,7 @@ internal fun SettingsListScope.playbackSections(
         switch(PlaybackIndex.endlessRadio, viewModel.endlessRadio, viewModel::setEndlessRadio)
         switch(PlaybackIndex.pauseMusicWhenMuted, viewModel.pauseMusicWhenMuted, viewModel::setPauseMusicWhenMuted)
         switch(PlaybackIndex.musicResume, viewModel.musicResume, viewModel::setMusicResume)
+        switch(PlaybackIndex.resumeFromHeadphones, viewModel.resumeFromHeadphones, viewModel::setResumeFromHeadphones)
         switch(PlaybackIndex.musicSideSwipes, viewModel.musicSideSwipes, viewModel::setMusicSideSwipes)
         switch(PlaybackIndex.musicVideoSwitch, viewModel.musicVideoSwitch, viewModel::setMusicVideoSwitch)
         choice(PlaybackIndex.lyricsProviders, onClick = { openDialog(PlaybackDialog.LYRICS) }) {

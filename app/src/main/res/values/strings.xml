@@ -2156,6 +2156,10 @@
     <string name="settings_pause_music_muted_summary">Resume when the volume comes back</string>
     <string name="settings_music_resume_title">Resume podcasts and long tracks</string>
     <string name="settings_music_resume_summary">Start tracks over 10 minutes where you left off</string>
+    <string name="settings_resume_from_headphones_title">Resume from headphones</string>
+    <string name="settings_resume_from_headphones_summary">A Play button on headphones restarts your last songs</string>
+    <string name="playback_background_restricted_title">Background activity is restricted</string>
+    <string name="playback_background_restricted_subtitle">Your phone may stop Flow when you swipe it away. Tap to allow it.</string>
     <string name="settings_music_side_swipes_title">Speed and volume swipes</string>
     <string name="settings_music_side_swipes_summary">Swipe the left side for speed, the right for volume</string>
     <string name="music_watch_video_desc">Open the music video in the video player</string>

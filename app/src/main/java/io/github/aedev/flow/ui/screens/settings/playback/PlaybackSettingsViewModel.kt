@@ -1,6 +1,8 @@
 package io.github.aedev.flow.ui.screens.settings.playback
 
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.DEFAULT_BACKGROUND_PLAY_ENABLED
 import io.github.aedev.flow.data.local.DEFAULT_SPEED_SWIPE_STEP
 import io.github.aedev.flow.data.local.DoubleTapSeekZone
@@ -10,6 +12,7 @@ import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.local.SpeedSwipeSide
 import io.github.aedev.flow.data.lyrics.LyricsProviderOrder
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
+import io.github.aedev.flow.service.HeadphoneResume
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -26,6 +29,7 @@ data class LyricsProviderState(
 class PlaybackSettingsViewModel
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val preferences: PlayerPreferences,
     ) : SettingsViewModel() {
         private val overlay = PlayerOverlayPreferences()
@@ -103,6 +107,7 @@ class PlaybackSettingsViewModel
         val musicVideoSwitch = preferences.musicVideoSwitch.asState(false)
         val pauseMusicWhenMuted = preferences.pauseMusicWhenMuted.asState(false)
         val musicResume = preferences.musicResumeLongTracks.asState(false)
+        val resumeFromHeadphones = preferences.resumeFromHeadphones.asState(true)
         val musicSideSwipes = preferences.musicSideSwipes.asState(false)
         val normalizeVolume = preferences.videoVolumeNormalizationEnabled.asState(true)
         val lyricsProviders =
@@ -111,6 +116,11 @@ class PlaybackSettingsViewModel
             }.asState(LyricsProviderOrder.DEFAULT.map { LyricsProviderState(it, true) })
 
         fun setBackgroundPlay(value: Boolean) = write { preferences.setBackgroundPlayEnabled(value) }
+
+        fun setResumeFromHeadphones(value: Boolean) {
+            if (!value) HeadphoneResume.set(context, allowed = false)
+            write { preferences.setResumeFromHeadphones(value) }
+        }
 
         fun setStartPaused(value: Boolean) = write { preferences.setStartVideosPaused(value) }
 

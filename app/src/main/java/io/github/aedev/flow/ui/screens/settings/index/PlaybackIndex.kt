@@ -493,6 +493,14 @@ internal object PlaybackIndex {
             section = R.string.settings_section_music,
             destination = page,
         )
+    val resumeFromHeadphones =
+        SettingEntry(
+            key = "playback.resume_from_headphones",
+            title = R.string.settings_resume_from_headphones_title,
+            summary = R.string.settings_resume_from_headphones_summary,
+            section = R.string.settings_section_music,
+            destination = page,
+        )
     val musicSideSwipes =
         SettingEntry(
             key = "playback.music_side_swipes",
@@ -580,6 +588,7 @@ internal object PlaybackIndex {
             endlessRadio,
             pauseMusicWhenMuted,
             musicResume,
+            resumeFromHeadphones,
             musicSideSwipes,
             musicVideoSwitch,
             lyricsProviders,
