@@ -67,7 +67,9 @@ internal fun SettingsListScope.homeContent(
             modifier = state.selectedFocusModifier(destination),
         )
 
-    group(key = "home.engine", header = R.string.settings_flow_engine_header) {
+    // TV Home has no logo to long-press.
+    val deepFlowHint = R.string.deep_flow_long_press_hint.takeUnless { onTv }
+    group(key = "home.engine", header = R.string.settings_flow_engine_header, footer = deepFlowHint) {
         row(HomeIndex.deepFlow.key) { shape ->
             FlowSwitchRow(
                 title = stringResource(HomeIndex.deepFlow.title),

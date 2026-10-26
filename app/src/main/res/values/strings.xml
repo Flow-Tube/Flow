@@ -698,6 +698,7 @@
     <string name="deep_flow_scrobble_subtitle">Keep sending listens to Last.fm, Libre.fm and ListenBrainz</string>
     <string name="deep_flow_on_search_title">Show on search</string>
     <string name="deep_flow_on_search_subtitle">A Deep Flow switch above recent searches</string>
+    <string name="deep_flow_long_press_hint">Long-press the Flow logo or name on Home to switch Deep Flow</string>
     <string name="deep_flow_dialog_title">Pause Duration</string>
     <string name="deep_flow_dialog_body">How long should learning stay paused?</string>
     <string name="deep_flow_enabled_message">Deep Flow enabled</string>

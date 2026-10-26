@@ -31,7 +31,7 @@ annotation class SettingsDsl
 class SettingsListScope internal constructor(
     private val lazy: LazyListScope,
     private val keys: SettingsKeyRecorder,
-    private val onTv: Boolean = false,
+    internal val onTv: Boolean = false,
 ) {
     /** A free-standing item, such as a preview card or a notice between groups. */
     fun item(
