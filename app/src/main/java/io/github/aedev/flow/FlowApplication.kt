@@ -8,6 +8,7 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import dagger.hilt.android.HiltAndroidApp
+import io.github.aedev.flow.data.local.DefaultChannels
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.repository.NewPipeDownloader
@@ -229,6 +230,10 @@ class FlowApplication :
             try {
                 val repository = SubscriptionRepository.getInstance(this@FlowApplication)
                 val youtubeRepository = YouTubeRepository.getInstance(playerPreferences)
+                val seeded = repository.seedOnce("default_channels_v1", DefaultChannels.subscriptions)
+                if (seeded > 0) {
+                    Log.i(TAG, "Subscribed to $seeded default channels")
+                }
                 val repaired =
                     repository.repairVideoThumbnailSubscriptions { channelId ->
                         // Startup's own fetches hold the InnerTube connections for a while; nothing waits on this.

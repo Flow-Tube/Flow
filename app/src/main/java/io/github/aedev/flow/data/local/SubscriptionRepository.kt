@@ -102,6 +102,45 @@ class SubscriptionRepository private constructor(
     }
 
     /**
+     * Subscribe to [channels] a single time per [seedKey]. Channels already subscribed, or that the
+     * user has unsubscribed from, are left alone, and once the flag is set the user's later
+     * unsubscribes are never undone. Returns how many were added.
+     */
+    suspend fun seedOnce(
+        seedKey: String,
+        channels: Collection<ChannelSubscription>,
+    ): Int {
+        var added = 0
+        context.subscriptionsDataStore.edit { preferences ->
+            val flag = stringPreferencesKey("seeded_$seedKey")
+            if (preferences[flag] != null) return@edit
+
+            val currentOrder =
+                preferences[stringPreferencesKey(SUBSCRIPTIONS_ORDER_KEY)]
+                    .orEmpty()
+                    .split(",")
+                    .filter { it.isNotEmpty() }
+            val knownIds = currentOrder.toMutableSet()
+            val newIds = mutableListOf<String>()
+
+            channels.forEach { channel ->
+                if (preferences.contains(channelKey(channel.channelId))) return@forEach
+                if (preferences.contains(unsubscribedKey(channel.channelId))) return@forEach
+                preferences[channelKey(channel.channelId)] = serializeChannel(channel)
+                if (knownIds.add(channel.channelId)) newIds += channel.channelId
+            }
+
+            if (newIds.isNotEmpty()) {
+                preferences[stringPreferencesKey(SUBSCRIPTIONS_ORDER_KEY)] =
+                    (newIds.asReversed() + currentOrder).joinToString(",")
+            }
+            preferences[flag] = System.currentTimeMillis().toString()
+            added = newIds.size
+        }
+        return added
+    }
+
+    /**
      * Unsubscribe from a channel
      */
     suspend fun unsubscribe(channelId: String) {
@@ -231,7 +270,10 @@ class SubscriptionRepository private constructor(
         val subscriptions = getAllSubscriptions().first()
         val repairs =
             subscriptions
-                .filter { ThumbnailUrlResolver.isUnusableChannelAvatar(it.channelThumbnail) }
+                .filter {
+                    it.channelThumbnail.isBlank() ||
+                        ThumbnailUrlResolver.isUnusableChannelAvatar(it.channelThumbnail)
+                }
                 .mapNotNull { subscription ->
                     val avatar = fetchChannelThumbnail(subscription.channelId).trim()
                     if (avatar.isNotEmpty() && !ThumbnailUrlResolver.isUnusableChannelAvatar(avatar)) {
