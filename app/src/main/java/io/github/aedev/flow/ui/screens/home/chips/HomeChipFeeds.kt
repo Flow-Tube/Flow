@@ -395,8 +395,7 @@ class HomeChipFeeds
                     features = setOf(YouTubeSearchParams.Feature.LIVE),
                 )
             val pool =
-                storedUploads().filter { it.isLive } +
-                    search(interests.take(2).mapNotNull { interestQueries(it, 1).firstOrNull() }, liveParams)
+                storedUploads().filter { it.isLive } + search(liveQueries(interests), liveParams)
             return ranked(pool.filter { it.isLive && !it.isUpcoming }).take(HomeChipParams.MAX_VIDEOS)
         }
 

@@ -20,6 +20,7 @@ internal object HomeChipParams {
     const val MIX_LENGTH = 25
     const val MIX_MIN_VIDEOS = 5
     const val SESSION_TOPICS = 5
+    const val LIVE_FALLBACK_QUERY = "live"
 }
 
 /** The order chips appear in, which never changes between loads. Empty chips are left out. */
@@ -71,6 +72,13 @@ internal fun interestQueries(
     if (queries.isEmpty()) queries += rep
     return queries.take(max)
 }
+
+/** Top-interest live queries; generic fallback when none. */
+internal fun liveQueries(interests: List<InterestChip>): List<String> =
+    interests
+        .take(2)
+        .mapNotNull { interestQueries(it, 1).firstOrNull() }
+        .ifEmpty { listOf(HomeChipParams.LIVE_FALLBACK_QUERY) }
 
 /** Only channels the viewer has never watched, followed or rejected, one video each. */
 internal fun fromUnknownChannels(
