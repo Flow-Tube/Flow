@@ -3,6 +3,7 @@ package io.github.aedev.flow.benchmark
 import android.content.Intent
 import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
+import androidx.benchmark.macro.ExperimentalMetricApi
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.TraceSectionMetric
@@ -25,6 +26,7 @@ import org.junit.runner.RunWith
  * Run with:
  *   ./gradlew :benchmark:connectedBenchmarkReleaseAndroidTest --no-configuration-cache
  */
+@OptIn(ExperimentalMetricApi::class)
 @RunWith(AndroidJUnit4::class)
 class StartupBenchmark {
     @get:Rule
