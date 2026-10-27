@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.index
 
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.settings.SettingAvailability
 import io.github.aedev.flow.ui.components.settings.SettingEntry
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 
@@ -31,6 +32,16 @@ internal object PlaybackIndex {
             summary = R.string.player_settings_open_fullscreen_subtitle,
             section = R.string.playback_header,
             destination = page,
+        )
+    val tiltFullscreen =
+        SettingEntry(
+            key = "playback.tilt_fullscreen",
+            title = R.string.player_settings_tilt_fullscreen,
+            summary = R.string.player_settings_tilt_fullscreen_subtitle,
+            keywords = R.string.settings_keywords_tilt_fullscreen,
+            section = R.string.playback_header,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val autoplay =
         SettingEntry(
@@ -441,6 +452,7 @@ internal object PlaybackIndex {
             backgroundPlay,
             startPaused,
             openFullscreen,
+            tiltFullscreen,
             autoplay,
             queueAutoplay,
             autoplayCountdown,

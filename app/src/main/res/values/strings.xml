@@ -1298,6 +1298,8 @@
     <string name="player_settings_start_paused_subtitle">Open a video without playing it until you press play</string>
     <string name="player_settings_open_fullscreen">Open videos in fullscreen</string>
     <string name="player_settings_open_fullscreen_subtitle">A video you open starts in fullscreen</string>
+    <string name="player_settings_tilt_fullscreen">Tilt for fullscreen</string>
+    <string name="player_settings_tilt_fullscreen_subtitle">Turn sideways for fullscreen, even with rotation locked</string>
     <string name="player_settings_autoplay">Autoplay related videos</string>
     <string name="player_settings_autoplay_subtitle">Play a suggested video when nothing is queued</string>
     <string name="player_settings_queue_autoplay">Autoplay queued videos</string>
@@ -3720,6 +3722,7 @@
     <string name="settings_keywords_captions">subtitles, cc, closed captions</string>
     <string name="settings_keywords_next_prev">skip, previous video, next video, double tap</string>
     <string name="settings_keywords_gestures">swipe, double tap, touch</string>
+    <string name="settings_keywords_tilt_fullscreen">rotate, rotation lock, auto-rotate, landscape, sideways</string>
     <string name="settings_speed_preset_hint">e.g. 1.35</string>
     <string name="settings_speed_preset_add">Add preset</string>
     <string name="settings_buffer_min">Minimum buffer</string>

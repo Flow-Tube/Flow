@@ -54,6 +54,7 @@ internal class VideoPlayerPreferencesState(
     val relatedCardStyle: PlayerRelatedCardStyle,
     val feedColumns: HomeFeedColumns,
     val deArrowEnabled: Boolean,
+    val tiltFullscreenRotationLocked: Boolean,
 )
 
 @Composable
@@ -91,6 +92,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val relatedCardStyle by playerPreferences.playerRelatedCardStyle.collectAsState(initial = PlayerRelatedCardStyle.FULL_WIDTH)
     val feedColumns by playerPreferences.homeFeedColumns.collectAsState(initial = HomeFeedColumns.AUTO)
     val deArrowEnabled by playerPreferences.deArrowEnabled.collectAsState(initial = false)
+    val tiltFullscreenRotationLocked by playerPreferences.tiltFullscreenRotationLocked.collectAsState(initial = false)
 
     return VideoPlayerPreferencesState(
         preferences = playerPreferences,
@@ -124,5 +126,6 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         relatedCardStyle = relatedCardStyle,
         feedColumns = feedColumns,
         deArrowEnabled = deArrowEnabled,
+        tiltFullscreenRotationLocked = tiltFullscreenRotationLocked,
     )
 }

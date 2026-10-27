@@ -367,6 +367,8 @@ fun VideoPlayerHost(
         isFullscreen = screenState.isFullscreen,
         videoAspectRatio = effectiveVideoAspectRatio,
         isPortraitFullscreen = screenState.isFullscreenPortrait,
+        ignoreRotationLock =
+            prefs.tiltFullscreenRotationLocked && !isLargeWindow && !context.orientationRequestIgnored(config),
         onEnterFullscreen = { screenState.isFullscreen = true },
         onExitFullscreen = {
             screenState.isFullscreen = false

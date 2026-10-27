@@ -50,6 +50,7 @@ internal fun SettingsListScope.playbackSections(
         }
         switch(PlaybackIndex.startPaused, viewModel.startPaused, viewModel::setStartPaused)
         switch(PlaybackIndex.openFullscreen, viewModel.openFullscreen, viewModel::setOpenFullscreen)
+        switch(PlaybackIndex.tiltFullscreen, viewModel.tiltFullscreen, viewModel::setTiltFullscreen)
         switch(PlaybackIndex.autoplay, viewModel.autoplay, viewModel::setAutoplay, enabled = !state.loopAll)
         switch(PlaybackIndex.queueAutoplay, viewModel.queueAutoplay, viewModel::setQueueAutoplay, enabled = !state.loopAll)
         choice(PlaybackIndex.autoplayCountdown, onClick = { openDialog(PlaybackDialog.AUTOPLAY_COUNTDOWN) }) {
