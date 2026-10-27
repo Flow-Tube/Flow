@@ -19,6 +19,10 @@ class SplashController(
 ) {
     @Volatile
     var contentReady: Boolean = false
+        set(value) {
+            if (value && !field) RestartSpike.contentShown(activity)
+            field = value
+        }
 
     private val startedAt = SystemClock.uptimeMillis()
 

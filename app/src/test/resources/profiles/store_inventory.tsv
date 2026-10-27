@@ -143,3 +143,4 @@ profile_file	flow_database	main:data/local/AppDatabase.kt	PROFILE	library	The ru
 profile_file	youtube_identity	main:utils/potoken/VisitorIdentityStore.kt	PROFILE	identity	Default keeps youtube_identity; another profile gets youtube_identity_<id>.
 profile_file	music_home_cache_prefs	main:data/recommendation/MusicRecommendationAlgorithm.kt	CACHE	-	Follows its rows in each profile's database, so another profile gets music_home_cache_prefs_<id>.
 no_backup_dir	profiles/<id>/	main:data/backup/FlowBackupAgent.kt	PROFILE	private	After a restore, private folders of profiles the restored registry does not list are deleted.
+no_backup_dir	restart_spike	main:ui/startup/RestartSpike.kt	DEVICE	-	Debug-only restart timing marker for the PR 2.0 spike.

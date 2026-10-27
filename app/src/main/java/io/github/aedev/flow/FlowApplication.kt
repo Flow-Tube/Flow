@@ -7,6 +7,7 @@ import android.util.Log
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import com.jakewharton.processphoenix.ProcessPhoenix
 import dagger.hilt.android.HiltAndroidApp
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
@@ -89,6 +90,7 @@ class FlowApplication :
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun onCreate() {
+        if (ProcessPhoenix.isPhoenixProcess(this)) return
         super.onCreate()
         appContext = applicationContext
         YouTube.cacheDirectory = cacheDir.resolve("innertube_http_cache")

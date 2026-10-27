@@ -63,6 +63,7 @@ import io.github.aedev.flow.ui.musicCollectionRoute
 import io.github.aedev.flow.ui.screens.crash.CrashReportScreen
 import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import io.github.aedev.flow.ui.startup.FlowTheme
+import io.github.aedev.flow.ui.startup.RestartSpike
 import io.github.aedev.flow.ui.startup.SplashController
 import io.github.aedev.flow.ui.startup.ThemeSettings
 import io.github.aedev.flow.ui.startup.splashTone
@@ -356,6 +357,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (RestartSpike.handle(this, intent)) return
         setIntent(intent)
         handleIntent(intent)
     }

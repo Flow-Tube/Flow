@@ -1,4 +1,5 @@
 [versions]
+processPhoenix = "3.0.0"
 agp = "9.3.1"
 kotlin = "2.4.10"
 coreKtx = "1.19.0"
@@ -51,6 +52,7 @@ robolectric = "4.16.1"
 androidxTestCore = "1.7.0"
 
 [libraries]
+process-phoenix = { group = "com.jakewharton", name = "process-phoenix", version.ref = "processPhoenix" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
