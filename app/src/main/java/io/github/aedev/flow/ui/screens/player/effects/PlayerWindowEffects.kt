@@ -236,18 +236,18 @@ internal fun OrientationListenerEffect(
 
     LaunchedEffect(physicalOrientation, isExpanded) {
         delay(150)
+        if (physicalOrientation != 1 || !isExpanded) return@LaunchedEffect
+        if (currentIsPortraitFullscreen || currentAspectRatio < 1f) return@LaunchedEffect
+        if (!currentIsFullscreen) currentEnter()
+    }
 
-        if (physicalOrientation == -1) return@LaunchedEffect
-
-        val isVerticalVideo = currentAspectRatio < 1f
-
-        if (currentIsPortraitFullscreen) return@LaunchedEffect
-
-        if (physicalOrientation == 1 && isExpanded && !currentIsFullscreen && !isVerticalVideo) {
-            currentEnter()
-        } else if (physicalOrientation == 0 && currentIsFullscreen && !isVerticalVideo) {
-            currentExit()
-        }
+    // Exit answers only the phone turning upright, not the sheet expanding: "Open videos in
+    // fullscreen" enters as the sheet settles, and a re-run on that flip left it again 150 ms later.
+    LaunchedEffect(physicalOrientation) {
+        delay(150)
+        if (physicalOrientation != 0) return@LaunchedEffect
+        if (currentIsPortraitFullscreen || currentAspectRatio < 1f) return@LaunchedEffect
+        if (currentIsFullscreen) currentExit()
     }
 }
 
