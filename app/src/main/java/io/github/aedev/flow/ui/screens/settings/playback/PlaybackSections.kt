@@ -22,6 +22,7 @@ import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
+import io.github.aedev.flow.ui.screens.settings.index.PlaybackGesturesIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackIndex
 
 private const val UNLIMITED_TITLE_LINES = 0
@@ -82,7 +83,7 @@ internal fun SettingsListScope.playbackSections(
         }
     }
     group(key = "playback.gestures", header = R.string.player_appearance_gestures_header) {
-        choice(PlaybackIndex.doubleTapSeek, onClick = { openDialog(PlaybackDialog.DOUBLE_TAP_SEEK) }) {
+        choice(PlaybackGesturesIndex.doubleTapSeek, onClick = { openDialog(PlaybackDialog.DOUBLE_TAP_SEEK) }) {
             val seconds by viewModel.doubleTapSeek.collectAsStateWithLifecycle()
             if (seconds <= 0) {
                 stringResource(R.string.player_settings_double_tap_seek_off)
@@ -91,37 +92,37 @@ internal fun SettingsListScope.playbackSections(
             }
         }
         if (state.doubleTapSeek) {
-            choice(PlaybackIndex.seekZoneWidth, onClick = { openDialog(PlaybackDialog.SEEK_ZONE_WIDTH) }) {
+            choice(PlaybackGesturesIndex.seekZoneWidth, onClick = { openDialog(PlaybackDialog.SEEK_ZONE_WIDTH) }) {
                 val zone by viewModel.seekZone.collectAsStateWithLifecycle()
                 stringResource(zone.labelRes())
             }
         }
         switch(
-            PlaybackIndex.brightnessGesture,
+            PlaybackGesturesIndex.brightnessGesture,
             viewModel.brightnessGesture,
             viewModel::setBrightnessGesture,
             enabled = state.speedSwipeSide != SpeedSwipeSide.LEFT,
         )
-        switch(PlaybackIndex.rememberBrightness, viewModel.rememberBrightness, viewModel::setRememberBrightness)
+        switch(PlaybackGesturesIndex.rememberBrightness, viewModel.rememberBrightness, viewModel::setRememberBrightness)
         switch(
-            PlaybackIndex.volumeGesture,
+            PlaybackGesturesIndex.volumeGesture,
             viewModel.volumeGesture,
             viewModel::setVolumeGesture,
             enabled = state.speedSwipeSide != SpeedSwipeSide.RIGHT,
         )
-        switch(PlaybackIndex.volumeBoost, viewModel.volumeBoost, viewModel::setVolumeBoost)
-        choice(PlaybackIndex.speedSwipe, onClick = { openDialog(PlaybackDialog.SPEED_SWIPE_SIDE) }) {
+        switch(PlaybackGesturesIndex.volumeBoost, viewModel.volumeBoost, viewModel::setVolumeBoost)
+        choice(PlaybackGesturesIndex.speedSwipe, onClick = { openDialog(PlaybackDialog.SPEED_SWIPE_SIDE) }) {
             speedSwipeSideLabel(state.speedSwipeSide)
         }
         if (state.speedSwipeSide != SpeedSwipeSide.OFF || state.musicSideSwipes) {
-            choice(PlaybackIndex.speedSwipeStep, onClick = { openDialog(PlaybackDialog.SPEED_SWIPE_STEP) }) {
+            choice(PlaybackGesturesIndex.speedSwipeStep, onClick = { openDialog(PlaybackDialog.SPEED_SWIPE_STEP) }) {
                 val step by viewModel.speedSwipeStep.collectAsStateWithLifecycle()
                 speedSwipeStepLabel(step)
             }
         }
-        switch(PlaybackIndex.seekGesture, viewModel.seekGesture, viewModel::setSeekGesture)
-        switch(PlaybackIndex.haptics, viewModel.haptics, viewModel::setHaptics)
-        switch(PlaybackIndex.controlsWhileLoading, viewModel.controlsWhileLoading, viewModel::setControlsWhileLoading)
+        switch(PlaybackGesturesIndex.seekGesture, viewModel.seekGesture, viewModel::setSeekGesture)
+        switch(PlaybackGesturesIndex.haptics, viewModel.haptics, viewModel::setHaptics)
+        switch(PlaybackGesturesIndex.controlsWhileLoading, viewModel.controlsWhileLoading, viewModel::setControlsWhileLoading)
     }
     group(key = "playback.buttons", header = R.string.settings_section_player_buttons) {
         switch(PlaybackIndex.castButton, viewModel.castButton, viewModel::setCastButton)
