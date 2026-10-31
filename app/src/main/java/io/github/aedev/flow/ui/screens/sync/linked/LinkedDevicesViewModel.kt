@@ -1,10 +1,14 @@
 package io.github.aedev.flow.ui.screens.sync.linked
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.sync2.device.WebDavLogin
 import io.github.aedev.flow.sync2.live.LiveConsent
+import io.github.aedev.flow.sync2.live.LiveDevices
+import io.github.aedev.flow.sync2.live.deviceKind
 import io.github.aedev.flow.sync2.service.LastSync
 import io.github.aedev.flow.sync2.service.LinkPhase
 import io.github.aedev.flow.sync2.service.LinkedActions
@@ -33,6 +37,8 @@ internal data class LinkedUiState(
     val requests: List<JoinRequest> = emptyList(),
     /** Devices met on this network while the app runs. */
     val nearby: Map<String, Long> = emptyMap(),
+    /** What each device told it is ("phone", "tv"…), this one included, for its icon. */
+    val kinds: Map<String, String> = emptyMap(),
     /** Recovery words to show once, until the user proves they wrote them down. */
     val words: String? = null,
     val busy: Boolean = false,
@@ -57,9 +63,13 @@ private data class Local(
 internal class LinkedDevicesViewModel
     @Inject
     constructor(
+        @ApplicationContext context: Context,
         private val actions: LinkedActions,
         private val liveConsent: LiveConsent,
+        live: LiveDevices,
     ) : ViewModel() {
+        private val ownKind = deviceKind(context)
+
         /** Which devices may play here and control playback (spec/live.md, Consent). */
         val consent: StateFlow<Map<String, Boolean>> =
             liveConsent.remembered.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
@@ -74,7 +84,15 @@ internal class LinkedDevicesViewModel
         private val local = MutableStateFlow(Local())
 
         val state: StateFlow<LinkedUiState> =
-            combine(actions.group, actions.lastSync, actions.nearby, actions.syncing, local) { group, lastSync, nearby, syncing, l ->
+            combine(
+                actions.group,
+                actions.lastSync,
+                actions.nearby,
+                actions.syncing,
+                combine(local, live.devices) { l, peers -> l to peers },
+            ) { group, lastSync, nearby, syncing, (l, peers) ->
+                val kinds = peers.mapNotNull { (did, peer) -> peer.kind?.let { did to it } }.toMap()
+                val own = l.devices?.firstOrNull { it.thisDevice }?.id
                 LinkedUiState(
                     group?.storeUrl,
                     group?.recoverySaved ?: true,
@@ -82,6 +100,7 @@ internal class LinkedDevicesViewModel
                     l.devices,
                     l.requests,
                     nearby,
+                    if (own != null) kinds + (own to ownKind) else kinds,
                     l.words,
                     l.busy,
                     syncing,

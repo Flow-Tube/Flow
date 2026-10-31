@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +31,7 @@ import io.github.aedev.flow.sync2.service.LinkedError
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
+import io.github.aedev.flow.ui.components.shared.deviceKindIcon
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncCard
 import io.github.aedev.flow.ui.screens.sync.SyncInfoRow
@@ -127,7 +126,7 @@ internal fun LinkedOverview(
             onDismiss = { onDecline(request.id) },
         )
     }
-    DeviceList(state.devices.orEmpty(), state.nearby, state.busy, consent, onRename, onRemove, onConsent)
+    DeviceList(state.devices.orEmpty(), state.nearby, state.kinds, state.busy, consent, onRename, onRemove, onConsent)
     onScanNewDevice?.let {
         SyncActionRow(confirmLabel = stringResource(R.string.linked_scan_new_device), onConfirm = it, confirmEnabled = !state.busy)
     }
@@ -158,6 +157,7 @@ internal fun LinkedOverview(
 private fun DeviceList(
     devices: List<LinkedDevice>,
     nearby: Map<String, Long>,
+    kinds: Map<String, String>,
     busy: Boolean,
     consent: Map<String, Boolean>,
     onRename: (id: String, name: String) -> Unit,
@@ -193,7 +193,7 @@ private fun DeviceList(
                         device.platform
                     }
                 },
-            leadingIcon = if (device.platform == "android") Icons.Outlined.PhoneAndroid else Icons.Outlined.Computer,
+            leadingIcon = deviceKindIcon(kinds[device.id], device.platform),
             enabled = !busy,
             shape = shape,
         )
