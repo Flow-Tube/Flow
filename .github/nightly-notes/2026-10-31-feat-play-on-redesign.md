@@ -7,3 +7,5 @@
 
 ## Fixed
 - Linked devices: TVs and tablets show their own icon instead of a phone (#1412)
+- Linked devices: Flow no longer runs out of memory and closes while syncing changes from another device with a large library
+- Backups: creating or restoring a full backup of a large library no longer runs out of memory
