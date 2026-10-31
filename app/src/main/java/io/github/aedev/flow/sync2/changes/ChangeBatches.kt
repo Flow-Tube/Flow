@@ -109,7 +109,7 @@ suspend fun outgoingBatches(
     val batches = ArrayList<Batch>()
     val sent = ArrayList<SentRecord>()
     for ((collection, wire) in exported) {
-        val previous = sentDao.forCollection(collection).associateBy { it.recordKey }
+        val previous = sentDao.forCollection(link, collection).associateBy { it.recordKey }
         val changed =
             wire.lines.filter { line ->
                 val record = Json.parseToJsonElement(line).jsonObject
@@ -117,7 +117,7 @@ suspend fun outgoingBatches(
                 val hash = recordHash(collection, record, line)
                 val last = previous[key]
                 val tooSoon = collection in BRAINS && !brainUploadDue(last?.sentAt, nowMs)
-                (last?.hash != hash && !tooSoon).also { if (it) sent += SentRecord(collection, key, hash, nowMs) }
+                (last?.hash != hash && !tooSoon).also { if (it) sent += SentRecord(link, collection, key, hash, nowMs) }
             }
         changed.chunked(RECORDS_PER_BATCH).mapTo(batches) { Batch(collection, batchContent(collection, head, link, it)) }
     }
@@ -137,7 +137,7 @@ fun parseBatch(content: ByteArray): IncomingBatch {
 }
 
 /**
- * Applies batches from one sender through the FLOW-SYNC/1 merges, which run in one transaction
+ * Applies batches of [link] from one sender through the FLOW-SYNC/1 merges, which run in one transaction
  * behind a pre-merge backup. What an applied record looks like in this device's own [export] counts
  * as known to the group, so it isn't sent back: another app's canonical form of the same record
  * differs, and sending that back would bounce between the two forever. A record of this device's
@@ -145,6 +145,7 @@ fun parseBatch(content: ByteArray): IncomingBatch {
  */
 suspend fun applyBatches(
     sentDao: SentDao,
+    link: String,
     batches: List<IncomingBatch>,
     nowMs: Long,
     export: suspend (collections: List<String>) -> Map<String, CollectionWire>,
@@ -165,11 +166,11 @@ suspend fun applyBatches(
     val after = ownHashes(export(collections), keys)
     val known = ArrayList<SentRecord>()
     for ((collection, hashes) in after) {
-        val previous = sentDao.forCollection(collection).associateBy { it.recordKey }
+        val previous = sentDao.forCollection(link, collection).associateBy { it.recordKey }
         for ((key, hash) in hashes) {
             val last = previous[key]?.hash
             val pending = before[collection]?.get(key).let { it != null && it != last }
-            if (!pending && hash != last) known += SentRecord(collection, key, hash, nowMs)
+            if (!pending && hash != last) known += SentRecord(link, collection, key, hash, nowMs)
         }
     }
     sentDao.upsert(known)

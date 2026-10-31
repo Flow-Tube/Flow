@@ -161,7 +161,7 @@ class LinkedSync
          * while another device played.
          */
         private suspend fun push(session: Session): Int {
-            val lastSent = db.sent().lastSent().associate { it.collection to it.sentAt }
+            val lastSent = db.sent().lastSent(session.record.link).associate { it.collection to it.sentAt }
             val collections = collectionsToPush(SyncCollection.ANDROID_SYNCABLE, tables.unchanged(), lastSent, System.currentTimeMillis())
             val tracked = collections.filter { it in COLLECTION_TABLES }
             tables.exporting(tracked)
@@ -224,7 +224,7 @@ class LinkedSync
             val counts = mutableMapOf<String, Int>()
             for ((sender, batches) in pulled.batches) {
                 val meta = names[sender]
-                applyBatches(db.sent(), batches, System.currentTimeMillis(), ::export) { received ->
+                applyBatches(db.sent(), link, batches, System.currentTimeMillis(), ::export) { received ->
                     applier.applyPayload(PeerInfo(sender, meta?.name.orEmpty(), meta?.platform.orEmpty()), received, hlc, onceEach = false)
                     counts.merge(sender, received.values.sumOf { it.lines.size }, Int::plus)
                 }

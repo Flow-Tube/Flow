@@ -101,7 +101,7 @@ class LinkedResetTest {
             val path = StorePaths.log(SyncBytes.toHex(g.a.did), 1)
             local.addEntries(g.store.roster)
             local.putObject(path, byteArrayOf(1))
-            db.sent().upsert(listOf(SentRecord(SyncCollection.WATCH_HISTORY, "aaaaaaaaaaa", "hash", 0)))
+            db.sent().upsert(listOf(SentRecord(LINK, SyncCollection.WATCH_HISTORY, "aaaaaaaaaaa", "hash", 0)))
             val ledger = SyncChangeLedgerStore(context)
             ledger.update(SyncCollection.WATCH_HISTORY) { CollectionLedger(true, mapOf("aaaaaaaaaaa" to LedgerEntry(hash = 1, atMs = 1))) }
 
@@ -120,7 +120,7 @@ class LinkedResetTest {
             reset.forget()
             assertNull(reset.leaveFailed.value)
             assertNull(db.groups().group())
-            assertTrue(db.sent().forCollection(SyncCollection.WATCH_HISTORY).isEmpty())
+            assertTrue(db.sent().forCollection(LINK, SyncCollection.WATCH_HISTORY).isEmpty())
             assertTrue(local.entries().isEmpty())
             assertNull(local.getObject(path))
             coVerify { keys.delete() }
