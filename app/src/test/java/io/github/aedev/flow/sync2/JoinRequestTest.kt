@@ -167,7 +167,7 @@ class JoinRequestTest {
                     assertEquals("Living room TV", asking.single().name)
                     val offer = newOffer(StoreLocation("server", "memory"), "Desktop A", null)
                     member.answerJoin(asking.single().id, offer.qr)
-                    assertEquals(SyncBytes.toHex(newcomer.did), addDevice(session, g.store, offer, g.a) { shown(it) })
+                    assertEquals(SyncBytes.toHex(newcomer.did), addDevice(session, g.store, offer, g.a, LINK) { shown(it) })
                     joined.await()
                 }
             }

@@ -49,4 +49,12 @@ class KeptBatches(
     }
 
     suspend fun count(link: String): Int = dao.keptCount(link)
+
+    /** Drops what was kept for a link this device stopped syncing. */
+    suspend fun drop(link: String) {
+        for (id in dao.keptIds(link)) {
+            dao.applied(id)
+            withContext(Dispatchers.IO) { file(id).delete() }
+        }
+    }
 }

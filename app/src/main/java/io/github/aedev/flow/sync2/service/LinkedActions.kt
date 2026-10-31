@@ -269,6 +269,7 @@ class LinkedActions
                     sync.remote(record, device),
                     offer,
                     device,
+                    profiles.welcomeLink(),
                     credentials.webDav(),
                     lanPort(context),
                     ::confirm,
@@ -299,7 +300,7 @@ class LinkedActions
 
                 is Code.New -> {
                     if (db.groups().group() == null) throw LinkedException.NeedsMember()
-                    addScanned(session(), code, keys.load(), credentials.webDav(), lanPort(context), ::confirm)
+                    addScanned(session(), code, keys.load(), profiles.welcomeLink(), credentials.webDav(), lanPort(context), ::confirm)
                 }
             }
         }
@@ -360,7 +361,15 @@ class LinkedActions
                 val server = sync.server(record, device) ?: throw LinkedException.Unexpected()
                 val offer = newOffer(StoreLocation("server", record.storeUrl), meta().name, null)
                 server.answerJoin(id, offer.qr)
-                addDevice(sync.open(record, device), server, offer, device, port = lanPort(context), confirm = ::confirm)
+                addDevice(
+                    sync.open(record, device),
+                    server,
+                    offer,
+                    device,
+                    profiles.welcomeLink(),
+                    port = lanPort(context),
+                    confirm = ::confirm,
+                )
             }
 
         suspend fun decline(id: String) {

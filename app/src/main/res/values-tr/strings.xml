@@ -3156,7 +3156,6 @@
     <string name="subtitle_edge_color">Kenar Rengi</string>
     <string name="subtitle_custom_color">Özel renk</string>
     <string name="sync_default_only_title">Eşitlemek için %1$s profiline geç</string>
-    <string name="sync_default_only_body">Diğer profiller yalnızca bu cihazda kalır</string>
     <string name="sync_collection_subscription_groups">Abonelik grupları</string>
     <string name="sync_collection_subscription_groups_body">Kanallarını düzenlediğin klasörler.</string>
     <string name="sync_collection_music_profile">Müzik zevki profili</string>

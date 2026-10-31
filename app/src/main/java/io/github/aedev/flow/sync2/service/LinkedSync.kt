@@ -206,7 +206,7 @@ class LinkedSync
             }
             exchange(session, links, announce)
             if (offline != null) throw offline
-            session.collectGarbage(links.mapTo(HashSet()) { it.link })
+            session.collectGarbage(links.mapTo(HashSet<String?>()) { it.link } + null)
             db.groups().setUploaded(store.upload(me, db.groups().group()?.uploaded ?: 0))
             // The sync is done; a failed look for devices asking to join only waits for the next one.
             try {
@@ -229,6 +229,7 @@ class LinkedSync
             val hlc = identity.newClock().now().encode()
             val counts = mutableMapOf<String, Int>()
             var merged = 0L
+            var named = 0L
 
             suspend fun apply(
                 sender: String,
@@ -243,7 +244,10 @@ class LinkedSync
             }
 
             suspend fun route(read: Map<String, List<IncomingBatch>>) {
-                for ((sender, batches) in read) {
+                for ((sender, all) in read) {
+                    val (names, batches) = all.partition { it.link == null }
+                    profiles.merge(names)
+                    named += names.sumOf { it.size.toLong() }
                     val (here, elsewhere) = batches.partition { it.link == active }
                     elsewhere.forEach { kept.keep(checkNotNull(it.link), sender, it) }
                     if (here.isNotEmpty()) apply(sender, here)
@@ -261,8 +265,8 @@ class LinkedSync
                     kept.applied(batch)
                 }
             }
-            val pushed = if (active != null) push(session, active) else 0
-            val pulled = session.pull(links.mapTo(HashSet()) { it.link })
+            val pushed = (if (active != null) push(session, active) else 0) + session.push(profiles.export(), null)
+            val pulled = session.pull(links.mapTo(HashSet<String?>()) { it.link } + null)
             if (pushed > 0 || merged > 0 || pulled.batches.isNotEmpty()) indicator.show()
             route(pulled.batches)
             session.finish(pulled)
@@ -271,8 +275,10 @@ class LinkedSync
                     arrivals.tryEmit(Received(names?.get(sender)?.name.orEmpty(), changes))
                 }
             }
-            if (active == null) return
             val now = System.currentTimeMillis()
+            db.snapshots().noteMerged("", named, now)
+            if (db.snapshots().isDue("", now)) session.writeSnapshot(profiles.export(), null)
+            if (active == null) return
             db.snapshots().noteMerged(active, merged, now)
             if (db.snapshots().isDue(active, now) && holdsAll(active)) session.writeSnapshot(export(), active)
         }

@@ -104,13 +104,14 @@ internal fun metaJson(meta: DeviceMeta): ByteArray = canonical(DeviceMeta.serial
 
 /**
  * The member's side, on a code it shows: waits for the scanner on the mailbox and, when the code
- * lists LAN addresses, on the LAN too. Returns the new device's id.
+ * lists LAN addresses, on the LAN too. The new device's Default joins [link]. Returns the new device's id.
  */
 suspend fun addDevice(
     session: Session,
     mailbox: Mailbox?,
     offer: Offer,
     device: MemberSecrets,
+    link: String,
     login: WebDavLogin? = null,
     port: Int? = null,
     confirm: suspend (String) -> Boolean,
@@ -132,7 +133,7 @@ suspend fun addDevice(
                 }
             }
         val (channel, sas) = Channel.shower(pipe, offer, key)
-        return memberSide(session, channel, sas, device, login, port, confirm)
+        return memberSide(session, channel, sas, device, link, login, port, confirm)
     } finally {
         offer.listening?.stop()
         // The slot expires on its own if this fails.
@@ -140,11 +141,12 @@ suspend fun addDevice(
     }
 }
 
-/** The member's side, on a new device's code: reaches it over the LAN. */
+/** The member's side, on a new device's code: reaches it over the LAN. The new device's Default joins [link]. */
 suspend fun addScanned(
     session: Session,
     code: Code.New,
     device: MemberSecrets,
+    link: String,
     login: WebDavLogin? = null,
     port: Int? = null,
     confirm: suspend (String) -> Boolean,
@@ -152,7 +154,7 @@ suspend fun addScanned(
     val pipe = dial(code.lan) ?: throw LinkedException.LanUnreachable()
     try {
         val (channel, sas) = Channel.scanner(pipe, code)
-        return memberSide(session, channel, sas, device, login, port, confirm)
+        return memberSide(session, channel, sas, device, link, login, port, confirm)
     } finally {
         pipe.close()
     }
@@ -167,6 +169,7 @@ private suspend fun memberSide(
     channel: Channel,
     sas: String,
     device: MemberSecrets,
+    link: String,
     login: WebDavLogin?,
     port: Int?,
     confirm: suspend (String) -> Boolean,
@@ -205,7 +208,7 @@ private suspend fun memberSide(
                     record.groupId,
                     after.head,
                     after.seq,
-                    record.link,
+                    link,
                     WelcomeStore("lan"),
                     session.store.rosterAfter(-1),
                     SyncBytes.b64urlEncode(wrap),
@@ -219,7 +222,7 @@ private suspend fun memberSide(
                     record.groupId,
                     after.head,
                     after.seq,
-                    record.link,
+                    link,
                     WelcomeStore("webdav", folder, n = user, w = password),
                     p = p,
                 )
@@ -230,7 +233,7 @@ private suspend fun memberSide(
                     record.groupId,
                     after.head,
                     after.seq,
-                    record.link,
+                    link,
                     WelcomeStore("server", record.storeUrl, record.instance.orEmpty()),
                     p = p,
                 )

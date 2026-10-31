@@ -174,10 +174,10 @@ class Session private constructor(
         db.groups().setOwn(record.ownSeq, record.ownPrev)
     }
 
-    /** Uploads what changed locally in [link] since the last upload; returns how many batches went out. */
+    /** Uploads what changed locally in [link] (null for `profiles`) since the last upload; returns how many batches went out. */
     suspend fun push(
         exported: Map<String, CollectionWire>,
-        link: String,
+        link: String?,
     ): Int {
         val outgoing = outgoingBatches(db.sent(), exported, state.head, link, System.currentTimeMillis())
         for (batch in outgoing.batches) write(ObjectType.CHANGES, batch.content)

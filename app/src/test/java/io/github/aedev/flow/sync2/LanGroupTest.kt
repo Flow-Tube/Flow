@@ -88,7 +88,7 @@ class LanGroupTest {
             assertEquals(null, code.storeUrl)
             withContext(Dispatchers.Default) {
                 coroutineScope {
-                    val added = async { addDevice(a.session(), null, offer, a.keys) { true } }
+                    val added = async { addDevice(a.session(), null, offer, a.keys, LINK) { true } }
                     join(n.db, n.local, { null }, null, code, n.keys, meta, JOINER) { true }
                     added.await()
                 }
@@ -113,7 +113,7 @@ class LanGroupTest {
             withContext(Dispatchers.Default) {
                 coroutineScope {
                     val shown = async { answerShown(offer, tv.keys, meta) { true }.finish(tv.db, tv.local, null, JOINER) }
-                    addScanned(a.session(), readCode(offer.qr) as Code.New, a.keys) { true }
+                    addScanned(a.session(), readCode(offer.qr) as Code.New, a.keys, LINK) { true }
                     shown.await()
                 }
             }
