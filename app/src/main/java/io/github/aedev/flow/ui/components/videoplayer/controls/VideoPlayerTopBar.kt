@@ -302,7 +302,7 @@ internal fun VideoPlayerTopBar(
                     )
                 }
 
-                PlayOnButton(tint = Color.White)
+                PlayOnButton(tint = PlayerScrimContent, buttonSize = actionButtonSize, iconSize = actionIconSize)
 
                 TopBarIconButton(
                     onClick = actions.onSettingsClick,

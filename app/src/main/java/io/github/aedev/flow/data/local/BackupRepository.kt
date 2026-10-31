@@ -8,8 +8,6 @@ import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
-import com.google.gson.Strictness
-import com.google.gson.stream.JsonReader
 import dagger.hilt.android.EntryPointAccessors
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.R
@@ -165,11 +163,9 @@ class BackupRepository(
             .disableHtmlEscaping()
             .create()
 
-    private fun parseBackupJson(json: String): BackupData? {
-        val reader = JsonReader(StringReader(json))
-        reader.setStrictness(Strictness.LENIENT)
-        return gson.fromJson(reader, BackupData::class.java)
-    }
+    private val backupJson = BackupJson(gson)
+
+    private fun parseBackupJson(json: String): BackupData? = backupJson.read(StringReader(json))
 
     private val viewHistory = ViewHistory.getInstance(context)
     private val searchHistoryRepo = SearchHistoryRepository(context)
@@ -317,7 +313,7 @@ class BackupRepository(
     /** The master backup: app data, the video engine and, when given, the music engine, in one ZIP. */
     private fun writeMasterZip(
         out: java.io.OutputStream,
-        appDataJson: String,
+        appData: BackupData,
         brainBytes: ByteArray?,
         musicBrain: ByteArray?,
         recap: ByteArray?,
@@ -325,7 +321,7 @@ class BackupRepository(
     ) {
         ZipOutputStream(out).use { zip ->
             zip.putNextEntry(ZipEntry(MASTER_APP_DATA_ENTRY))
-            zip.write(appDataJson.toByteArray(Charsets.UTF_8))
+            backupJson.write(appData, zip)
             zip.closeEntry()
             if (brainBytes != null) {
                 zip.putNextEntry(ZipEntry(MASTER_ENGINE_ENTRY))
@@ -1756,12 +1752,11 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             try {
                 val backupData = buildSliceData(seed)
-                val appDataJson = gson.toJson(backupData)
 
                 val brainBytes = if (seed == null || SlicePart.RECOMMENDATIONS in seed) exportBrainBytes() else null
 
                 context.contentResolver.openOutputStream(uri, "wt")?.use { out ->
-                    writeMasterZip(out, appDataJson, brainBytes, musicBrain, recap, favouriteArtists)
+                    writeMasterZip(out, backupData, brainBytes, musicBrain, recap, favouriteArtists)
                 } ?: return@withContext Result.failure(Exception("Could not open output stream"))
 
                 Result.success(Unit)
@@ -1778,7 +1773,8 @@ class BackupRepository(
     ): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                var appDataJson: String? = null
+                var appData: BackupData? = null
+                var appDataFound = false
                 var brainBytes: ByteArray? = null
                 var musicBrainBytes: ByteArray? = null
                 var recapBytes: ByteArray? = null
@@ -1790,11 +1786,27 @@ class BackupRepository(
                         var entry = zip.nextEntry
                         while (entry != null) {
                             when (entry.name) {
-                                MASTER_APP_DATA_ENTRY -> appDataJson = zip.readBytes().toString(Charsets.UTF_8)
-                                MASTER_ENGINE_ENTRY -> brainBytes = zip.readBytes()
-                                MASTER_MUSIC_BRAIN_ENTRY -> musicBrainBytes = zip.readBytes()
-                                MASTER_RECAP_ENTRY -> recapBytes = zip.readBytes()
-                                MASTER_FAVOURITE_ARTISTS_ENTRY -> favouriteArtistBytes = zip.readBytes()
+                                MASTER_APP_DATA_ENTRY -> {
+                                    appDataFound = true
+                                    // Read in place: the entry ends where the zip says, and the zip stays open.
+                                    appData = backupJson.read(InputStreamReader(zip, Charsets.UTF_8))
+                                }
+
+                                MASTER_ENGINE_ENTRY -> {
+                                    brainBytes = zip.readBytes()
+                                }
+
+                                MASTER_MUSIC_BRAIN_ENTRY -> {
+                                    musicBrainBytes = zip.readBytes()
+                                }
+
+                                MASTER_RECAP_ENTRY -> {
+                                    recapBytes = zip.readBytes()
+                                }
+
+                                MASTER_FAVOURITE_ARTISTS_ENTRY -> {
+                                    favouriteArtistBytes = zip.readBytes()
+                                }
                             }
                             zip.closeEntry()
                             entry = zip.nextEntry
@@ -1802,14 +1814,12 @@ class BackupRepository(
                     }
                 } ?: return@withContext Result.failure(Exception("Could not read file"))
 
-                if (appDataJson == null && brainBytes == null) {
+                if (!appDataFound && brainBytes == null) {
                     return@withContext Result.failure(Exception("Invalid master backup file"))
                 }
 
-                appDataJson?.let { json ->
-                    val backupData =
-                        parseBackupJson(json)
-                            ?: return@withContext Result.failure(Exception("Invalid app data in backup"))
+                if (appDataFound) {
+                    val backupData = appData ?: return@withContext Result.failure(Exception("Invalid app data in backup"))
                     contentPreferences = backupData.contentPreferences
                     importBackupData(backupData, restoreContentPreferences = false)
                 }
@@ -1981,11 +1991,10 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             try {
                 val backupData = buildBackupData()
-                val appDataJson = gson.toJson(backupData)
                 val brainBytes = exportBrainBytes()
 
                 writeToFolder(folderUri, "flow_master_backup.zip", "application/zip") { out ->
-                    writeMasterZip(out, appDataJson, brainBytes, musicBrain, recap, favouriteArtists)
+                    writeMasterZip(out, backupData, brainBytes, musicBrain, recap, favouriteArtists)
                 }
             } catch (e: Exception) {
                 Result.failure(e)

@@ -2629,10 +2629,9 @@
     <string name="play_on_button">Play on another device</string>
     <string name="play_on_playing_on">Playing on %1$s</string>
     <string name="play_on_nothing">Nothing is playing on your devices</string>
-    <string name="play_on_this_device">%1$s (this device)</string>
-    <string name="play_on_this_phone">On this phone</string>
-    <string name="play_on_this_tablet">On this tablet</string>
-    <string name="play_on_this_tv">On this TV</string>
+    <string name="play_on_this_phone">This phone</string>
+    <string name="play_on_this_tablet">This tablet</string>
+    <string name="play_on_this_tv">This TV</string>
     <string name="play_on_status_playing">Playing · %1$s</string>
     <string name="play_on_status_paused">Paused · %1$s</string>
     <string name="play_on_status_ready">Ready</string>
@@ -2645,6 +2644,13 @@
     <string name="play_on_consent_always">Allow always</string>
     <string name="play_on_consent_once">Allow once</string>
     <string name="play_on_consent_decline">Decline</string>
+    <string name="play_on_nothing_hint">Start a song or video, then pick where it plays.</string>
+    <string name="play_on_status_nearby">%1$s · same Wi-Fi</string>
+    <string name="play_on_moving">Moving playback…</string>
+    <string name="play_on_move_failed">Couldn\'t move playback</string>
+    <string name="play_on_not_available">Not available</string>
+    <string name="play_on_manage">Manage linked devices</string>
+    <string name="play_on_manage_summary">Rename devices and choose which can play here</string>
     <string name="linked_consent_title">Playback from this device</string>
     <string name="linked_consent_ask">Ask each time</string>
     <string name="linked_consent_allowed">Allowed</string>

@@ -49,6 +49,7 @@ internal fun RemoteMiniBar(
     val remote = elsewhere ?: return
     val playing = remote.playing
     val busy by playOn.busy.collectAsStateWithLifecycle()
+    val movingTo by playOn.movingTo.collectAsStateWithLifecycle()
     val transportTint = MaterialTheme.colorScheme.onSurfaceVariant
     val density = LocalDensity.current
     val heightPx = with(density) { MediaMiniBarDefaults.Height.toPx() }
@@ -63,7 +64,7 @@ internal fun RemoteMiniBar(
                 .clickable { playOn.open.value = true },
     ) {
         Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            SessionArtwork(remote.now, RoundedCornerShape(12.dp), Modifier.padding(vertical = 10.dp).fillMaxHeight(), byHeight = true)
+            SessionArtwork(remote.now, MaterialTheme.shapes.medium, Modifier.padding(vertical = 10.dp).fillMaxHeight(), byHeight = true)
             Column(Modifier.padding(horizontal = 12.dp).weight(1f), verticalArrangement = Arrangement.Center) {
                 Text(remote.now.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
@@ -79,7 +80,7 @@ internal fun RemoteMiniBar(
             }
             MediaPlayPauseButton(
                 isPlaying = playing,
-                isBuffering = busy,
+                isBuffering = busy && movingTo == null,
                 onClick = { playOn.controlElsewhere(if (playing) "pause" else "play") },
             )
             IconButton(onClick = { playOn.controlElsewhere("next") }) {

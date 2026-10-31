@@ -49,20 +49,24 @@ class NowPlaying
                 video.isPlaying || music.isPlaying
             }.distinctUntilChanged()
 
+        /** Each time what plays here changes: the video or song, playing or paused, the queue, or following another device. */
+        val changes: Flow<Unit> =
+            merge(
+                GlobalPlayerState.currentVideo.map { it?.id },
+                GlobalPlayerState.playerState.map { it.isPlaying },
+                video.currentQueueIndexState,
+                EnhancedMusicPlayerManager.currentTrack.map { it?.videoId },
+                EnhancedMusicPlayerManager.playerState.map { it.isPlaying },
+                EnhancedMusicPlayerManager.queue.map { it.size },
+                PlaybackTarget.followed.map { it != null },
+            ).map { }
+
         /** Sends `now` until cancelled. */
         suspend fun run() =
             coroutineScope {
                 launch {
                     merge(
-                        merge(
-                            GlobalPlayerState.currentVideo.map { it?.id },
-                            GlobalPlayerState.playerState.map { it.isPlaying },
-                            video.currentQueueIndexState,
-                            EnhancedMusicPlayerManager.currentTrack.map { it?.videoId },
-                            EnhancedMusicPlayerManager.playerState.map { it.isPlaying },
-                            EnhancedMusicPlayerManager.queue.map { it.size },
-                            PlaybackTarget.followed.map { it != null },
-                        ).map { false },
+                        changes.map { false },
                         // A seek always goes out, however short.
                         merge(video.seekEvent, EnhancedMusicPlayerManager.seekEvent).map { true },
                     ).collect { publish(force = it) }

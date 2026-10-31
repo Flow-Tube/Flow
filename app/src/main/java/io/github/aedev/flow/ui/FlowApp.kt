@@ -52,6 +52,8 @@ import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.rememberMusicMenus
 import io.github.aedev.flow.ui.components.musicplayer.common.canTurnLight
 import io.github.aedev.flow.ui.components.musicplayer.sheet.rememberMusicPlayerSheetState
+import io.github.aedev.flow.ui.components.settings.SettingsDestination
+import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.LocalMediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
@@ -524,7 +526,7 @@ fun FlowApp(
                                 ) {
                                     if (needsOnboarding == false) SubscriptionBellAlerts(snackbarHostState)
                                     LinkedSyncAlerts(snackbarHostState)
-                                    PlayOnHost()
+                                    PlayOnHost(onManageDevices = { mediaNavigator.openSettings(SettingsTarget(SettingsDestination.SYNC)) })
                                     NavHost(
                                         navController = navController,
                                         startDestination = if (needsOnboarding == true) "onboarding" else defaultStartRoute,
