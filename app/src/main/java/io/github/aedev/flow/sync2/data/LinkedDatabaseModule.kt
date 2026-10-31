@@ -12,7 +12,7 @@ import io.github.aedev.flow.data.profile.StoreScope
 import io.github.aedev.flow.sync2.store.LocalStore
 import javax.inject.Singleton
 
-/** One file, in Default's databases folder: only Default syncs, so no other profile opens it. */
+/** One copy per device, shared by every profile: the group belongs to the device, not to a profile. */
 @Module
 @InstallIn(SingletonComponent::class)
 object LinkedDatabaseModule {
@@ -27,5 +27,5 @@ object LinkedDatabaseModule {
     fun provideLocalStore(
         @ApplicationContext context: Context,
         db: LinkedDatabase,
-    ): LocalStore = LocalStore(ProfileFiles.file(context, StoreScope.DEFAULT_ONLY, "linked_store"), db.held())
+    ): LocalStore = LocalStore(ProfileFiles.file(context, StoreScope.DEVICE, "linked_store"), db.held())
 }

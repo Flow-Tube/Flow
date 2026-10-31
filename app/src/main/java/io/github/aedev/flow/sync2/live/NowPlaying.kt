@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioManager
 import androidx.annotation.MainThread
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.data.profile.ActiveProfile
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
@@ -98,7 +99,16 @@ class NowPlaying
 
         /** What plays here now, read on the main thread where the players live; the only way to read them. */
         suspend fun snapshot(): LiveMessage.Now =
-            withContext(Dispatchers.Main.immediate) { readOnMain() }.copy(link = db.groups().group()?.link)
+            withContext(Dispatchers.Main.immediate) {
+                readOnMain()
+            }.copy(
+                link =
+                    db
+                        .groups()
+                        .group()
+                        ?.link
+                        ?.takeIf { ActiveProfile.get(context).isDefault },
+            )
 
         /** Reads both players; ExoPlayer and the Media3 controller throw anywhere but the main thread. */
         @MainThread
