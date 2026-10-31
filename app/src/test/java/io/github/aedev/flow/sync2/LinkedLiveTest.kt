@@ -118,7 +118,7 @@ class LinkedLiveTest {
                     coEvery { receive(any()) } coAnswers { received.value += listOf(firstArg<ByteArray>().toList()) }
                 }
             val devices = LiveDevices()
-            val live = LinkedLive(context, db, keys, sync, channel, devices, scope)
+            val live = LinkedLive(db, keys, sync, channel, devices, scope)
             live.start()
             withTimeout(10_000) { bearers.first { it.isNotEmpty() } }
             assertEquals(listOf("flow-sync.v1, bearer.t"), bearers.value)

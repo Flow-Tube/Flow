@@ -19,6 +19,7 @@ import io.github.aedev.flow.player.MusicResumeTracker
 import io.github.aedev.flow.player.PlaybackShutdown
 import io.github.aedev.flow.service.MusicServiceState
 import io.github.aedev.flow.sync.SyncManager
+import io.github.aedev.flow.sync2.service.LinkedSync
 import io.github.aedev.flow.utils.potoken.PoTokenGenerator
 import io.github.aedev.flow.widget.core.state.clearNowPlayingSnapshot
 import kotlinx.coroutines.delay
@@ -38,6 +39,7 @@ class AppProfileSwitchSteps
         private val neuroEngine: FlowNeuroEngine,
         private val videoStats: VideoStatsRecorder,
         private val sync: dagger.Lazy<SyncManager>,
+        private val linked: dagger.Lazy<LinkedSync>,
         private val backups: dagger.Lazy<BackupCoordinator>,
         private val discord: DiscordPresenceController,
         private val slices: dagger.Lazy<ProfileSlices>,
@@ -52,7 +54,7 @@ class AppProfileSwitchSteps
                 MusicServiceState.isCarConnected -> SwitchRefusal.CAR_CONNECTED
 
                 // Both write this profile's data until they finish; the restart would cut them off halfway.
-                sync.get().isBusy -> SwitchRefusal.SYNC_RUNNING
+                sync.get().isBusy || linked.get().syncing.value -> SwitchRefusal.SYNC_RUNNING
 
                 backups.get().isRunning -> SwitchRefusal.BACKUP_RUNNING
 

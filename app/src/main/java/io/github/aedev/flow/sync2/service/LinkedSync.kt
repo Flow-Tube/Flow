@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.profile.ActiveProfile
-import io.github.aedev.flow.data.profile.SyncProfile
 import io.github.aedev.flow.notification.NotificationHelper
 import io.github.aedev.flow.sync.apply.PeerInfo
 import io.github.aedev.flow.sync.apply.SyncApplier
@@ -64,8 +63,8 @@ data class Received(
 )
 
 /**
- * One sync of this device's group, for the worker and for Sync now. Like FLOW-SYNC/1 it runs only
- * in the Default profile, and one at a time.
+ * One sync of this device's group, for the worker and for Sync now, one at a time. It runs in every
+ * profile; only the linked profile's data is sent and applied.
  */
 @Singleton
 class LinkedSync
@@ -175,7 +174,7 @@ class LinkedSync
         }
 
         private suspend fun run(announce: Boolean) {
-            if (!SyncProfile.syncsHere(context) || reset.leaveFailed.value != null) return
+            if (reset.leaveFailed.value != null) return
             val record = db.groups().group() ?: return
             val device = keys.load()
             val me = SyncBytes.toHex(device.did)
@@ -190,13 +189,31 @@ class LinkedSync
                 }
             val reading = if (offline == null) store else GroupStore(local, null)
             var session = Session.open(db, reading, device)
-            if (!session.adoptLink(ActiveProfile.get(context).id)) return
+            // Until profiles choose their links, Default is the only profile linked; another one keeps the group up to date.
+            val linked = ActiveProfile.get(context).isDefault
+            if (linked && !session.adoptLink(ActiveProfile.get(context).id)) return
             // A device left: start the epoch it never receives before writing anything, then read the roster back (spec/protocol.md, Leaving).
             if (session.state.rotate && offline == null) {
                 if (rotateEpoch(session, device)) db.snapshots().snapshotSoon()
                 store.download(me, record.serverCursor, objects = false)
                 session = Session.open(db, reading, device)
             }
+            if (linked) exchange(session, announce)
+            if (offline != null) throw offline
+            session.collectGarbage()
+            db.groups().setUploaded(store.upload(me, db.groups().group()?.uploaded ?: 0))
+            // The sync is done; a failed look for devices asking to join only waits for the next one.
+            try {
+                server(record, device)?.joinRequests()?.firstOrNull()?.let { NotificationHelper.showJoinRequest(context, it.name) }
+            } catch (_: StoreException) {
+            }
+        }
+
+        /** Sends this profile's changes, then reads and applies everyone else's. */
+        private suspend fun exchange(
+            session: Session,
+            announce: Boolean,
+        ) {
             val link = session.record.link
             val pushed = push(session)
 
@@ -222,14 +239,6 @@ class LinkedSync
             val now = System.currentTimeMillis()
             db.snapshots().noteMerged(link, pulled.batches.values.sumOf { batches -> batches.sumOf { it.size.toLong() } }, now)
             if (db.snapshots().isDue(link, now)) session.writeSnapshot(export())
-            if (offline != null) throw offline
-            session.collectGarbage()
-            db.groups().setUploaded(store.upload(me, db.groups().group()?.uploaded ?: 0))
-            // The sync is done; a failed look for devices asking to join only waits for the next one.
-            try {
-                server(record, device)?.joinRequests()?.firstOrNull()?.let { NotificationHelper.showJoinRequest(context, it.name) }
-            } catch (_: StoreException) {
-            }
         }
 
         private companion object {

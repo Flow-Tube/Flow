@@ -35,7 +35,7 @@ interface SentDao {
     suspend fun upsert(records: List<SentRecord>)
 }
 
-/** Linked-devices state, kept apart from the app's database. Only Default syncs. */
+/** Linked-devices state, kept apart from the app's database, one copy per device. */
 @Database(
     entities = [
         SentRecord::class,
