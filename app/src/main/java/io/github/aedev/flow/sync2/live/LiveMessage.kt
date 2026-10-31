@@ -75,12 +75,15 @@ sealed interface LiveMessage {
         /** At most this many videos travel in a queue. */
         const val QUEUE_LIMIT = 50
 
-        // Fields a newer app adds are ignored; absent optional ones read as null.
+        // Fields a newer app adds are ignored; absent optional ones read as null. Every field at its
+        // default still goes out, as spec/live.md lists them: Flow Desktop before 0.1.0-beta4 dropped a
+        // `now` without `state`, so a paused phone stayed "playing" there.
         private val json =
             Json {
                 classDiscriminator = "type"
                 ignoreUnknownKeys = true
                 explicitNulls = false
+                encodeDefaults = true
             }
 
         fun encode(message: LiveMessage): ByteArray =
