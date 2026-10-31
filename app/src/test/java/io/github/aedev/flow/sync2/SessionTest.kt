@@ -61,7 +61,7 @@ class SessionTest {
         val pulled = session.pull()
         var arrived = 0
         for (batches in pulled.batches.values) {
-            applyBatches(db.sent(), batches, 0, { app.exported() }) { received ->
+            applyBatches(db.sent(), LINK, batches, 0, { app.exported() }) { received ->
                 for (line in received[SyncCollection.WATCH_HISTORY]?.lines.orEmpty()) {
                     app.watched[
                         Json

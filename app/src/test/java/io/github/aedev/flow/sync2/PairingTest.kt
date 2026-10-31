@@ -74,7 +74,7 @@ class PairingTest {
             val pulled = joinedSession.pull()
             var arrived = 0
             pulled.batches.values.forEach { batches ->
-                applyBatches(dbN.sent(), batches, 0, { emptyMap() }) {
+                applyBatches(dbN.sent(), LINK, batches, 0, { emptyMap() }) {
                     arrived +=
                         it.getValue(SyncCollection.WATCH_HISTORY).lines.size
                 }
