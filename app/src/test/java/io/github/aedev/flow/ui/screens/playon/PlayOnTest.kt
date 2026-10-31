@@ -70,7 +70,7 @@ class PlayOnTest {
     @Test
     fun one_devices_list_says_what_each_device_does_and_a_tap_picks_it() {
         val picked = ArrayList<String>()
-        rule.setContent { Column { DeviceList(devices(), busy = false) { picked += it.did } } }
+        rule.setContent { Column { DeviceList(devices(), PlayOnRowState(active = null), onPick = { picked += it.did }) } }
         rule.onNodeWithText(context.getString(R.string.linked_devices)).assertExists()
         rule.onNodeWithText(context.getString(R.string.play_on_status_playing, "Song")).assertExists()
         rule.onNodeWithText(context.getString(R.string.play_on_status_paused, "Old song")).assertExists()
