@@ -107,15 +107,17 @@ class LanSyncTest {
             val b = member(g, g.b)
             a.session().push(
                 mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                LINK,
             )
             b.session().push(
                 mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"bbbbbbbbbbb"}"""), 1, "")),
+                LINK,
             )
 
             meet(client = a, server = b)
 
-            assertTrue(SyncBytes.toHex(g.a.did) in b.session().pull().batches)
-            assertTrue(SyncBytes.toHex(g.b.did) in a.session().pull().batches)
+            assertTrue(SyncBytes.toHex(g.a.did) in b.session().pull(setOf(LINK)).batches)
+            assertTrue(SyncBytes.toHex(g.b.did) in a.session().pull(setOf(LINK)).batches)
         }
 
     @Test

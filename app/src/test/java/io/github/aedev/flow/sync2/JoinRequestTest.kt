@@ -155,6 +155,7 @@ class JoinRequestTest {
                                 code,
                                 newcomer,
                                 DeviceMeta("app-tv", "Living room TV", "android"),
+                                JOINER,
                             ) { shown(it) }
                         }
                     val member = ServerStore.connect(server.url, g.a, null, null)

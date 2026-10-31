@@ -73,11 +73,16 @@ internal fun chunks(lines: List<String>): List<List<String>> {
     return chunks
 }
 
-/** Writes [exported], the whole state of this link, as blobs and then a manifest naming the last object of every log merged into it. */
-suspend fun Session.writeSnapshot(exported: Map<String, CollectionWire>) {
+/**
+ * Writes [exported], the whole state of [link], as blobs and then a manifest naming the last object of every log
+ * merged into it. Only the active profile's link qualifies, once nothing kept for it is left to apply.
+ */
+suspend fun Session.writeSnapshot(
+    exported: Map<String, CollectionWire>,
+    link: String,
+) {
     val epoch = state.epoch
     val key = purposeKey(currentKey(), group, epoch, ObjectType.SNAPSHOT.purpose)
-    val link = record.link
     val parts =
         exported.flatMap { (collection, wire) ->
             chunks(wire.lines).map { lines ->

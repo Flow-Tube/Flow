@@ -282,11 +282,13 @@ class Welcomed internal constructor(
     /**
      * Saves the group once the roster verifies up to the head the member named: the one on [server],
      * or, for a LAN group, the one the welcome carried, which [local] then holds with this device's wrap.
+     * [profile] joins the welcome's link.
      */
     suspend fun finish(
         db: LinkedDatabase,
         local: LocalStore,
         server: Store?,
+        profile: String,
     ) {
         val roster = if (server != null) server.rosterAfter(-1) else welcome.entries ?: throw LinkedException.Unexpected()
         val end = roster.indexOfFirst { it.seq == welcome.seq }
@@ -300,8 +302,9 @@ class Welcomed internal constructor(
             }
             db.groups().addEntries(roster)
             // A joined device never had recovery words to confirm; the device that created or restored the group did.
-            db.groups().saveGroup(
+            db.profiles().saveGroup(
                 GroupRecord(welcome.group, recordUrl(welcome.store), welcome.store.i, welcome.link, recoverySaved = true),
+                profile,
             )
             (channel.pipe as? LanPipe)?.remember(db, member, welcome.p)
             channel.send(Message.Done)
@@ -337,7 +340,7 @@ private suspend fun newSide(
 /**
  * The new device's side, on a member's code: tries the LAN addresses it lists, then the store's
  * mailbox, and saves the group once accepted. [server] opens the store the welcome names, to verify
- * the roster on.
+ * the roster on. [profile] joins the member's link.
  */
 suspend fun join(
     db: LinkedDatabase,
@@ -347,6 +350,7 @@ suspend fun join(
     code: Code.Member,
     device: MemberSecrets,
     meta: DeviceMeta,
+    profile: String,
     port: Int? = null,
     confirm: suspend (String) -> Boolean,
 ): Welcomed {
@@ -363,7 +367,7 @@ suspend fun join(
             close()
             throw e
         }
-    welcomed.finish(db, local, server(welcomed))
+    welcomed.finish(db, local, server(welcomed), profile)
     return welcomed
 }
 

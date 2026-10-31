@@ -102,8 +102,9 @@ class Facts(
 /**
  * Deletes this device's objects, and a removed device's, once every current device acknowledged
  * them and a snapshot covers them, and only those this device holds. The newest manifests stay; older ones go when a newer one covers them.
+ * [linked] are the links this device syncs; a deleted link no longer needs a snapshot.
  */
-suspend fun Session.collectGarbage() {
+suspend fun Session.collectGarbage(linked: Set<String>) {
     val dao = db.collection()
     val current = state.members.filterValues { it.role == Role.DEVICE }.keys
     val collectable =
@@ -114,7 +115,14 @@ suspend fun Session.collectGarbage() {
             .map { it.did }
             .toSet()
     val manifests = dao.manifests().map { Logged(it.did, it.seq, parseManifest(it.manifest.toByteArray())) }
-    val links = dao.links().map { Json.decodeFromString(linkSerializer, it.link) }.toSet() + record.link
+    val deleted =
+        db
+            .profiles()
+            .names()
+            .filter { it.deleted }
+            .map { it.link }
+            .toSet()
+    val links = dao.links().map { Json.decodeFromString(linkSerializer, it.link) }.toSet() + linked - deleted
     val plan =
         Facts(
             current = current,

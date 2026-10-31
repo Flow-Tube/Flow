@@ -3,7 +3,6 @@ package io.github.aedev.flow.sync2.service
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.github.aedev.flow.data.profile.ActiveProfile
 import io.github.aedev.flow.notification.NotificationHelper
 import io.github.aedev.flow.sync.apply.PeerInfo
 import io.github.aedev.flow.sync.apply.SyncApplier
@@ -12,12 +11,15 @@ import io.github.aedev.flow.sync.identity.DeviceIdentity
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.changes.COLLECTION_TABLES
+import io.github.aedev.flow.sync2.changes.IncomingBatch
 import io.github.aedev.flow.sync2.changes.TableChanges
 import io.github.aedev.flow.sync2.changes.applyBatches
 import io.github.aedev.flow.sync2.changes.collectionsToPush
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.data.GroupRecord
+import io.github.aedev.flow.sync2.data.KeptBatches
 import io.github.aedev.flow.sync2.data.LinkedDatabase
+import io.github.aedev.flow.sync2.data.ProfileLinkRow
 import io.github.aedev.flow.sync2.data.serverUrl
 import io.github.aedev.flow.sync2.data.webDavUrl
 import io.github.aedev.flow.sync2.device.DeviceKeys
@@ -27,6 +29,7 @@ import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.collectGarbage
 import io.github.aedev.flow.sync2.engine.isDue
 import io.github.aedev.flow.sync2.engine.writeSnapshot
+import io.github.aedev.flow.sync2.linking.DeviceMeta
 import io.github.aedev.flow.sync2.linking.deviceNames
 import io.github.aedev.flow.sync2.linking.rotateEpoch
 import io.github.aedev.flow.sync2.store.FileLayout
@@ -80,6 +83,8 @@ class LinkedSync
         private val reset: LinkedReset,
         private val credentials: StoreCredentials,
         private val tables: TableChanges,
+        private val profiles: LinkedProfiles,
+        private val kept: KeptBatches,
     ) {
         private val running = Mutex()
         private val last = MutableStateFlow<LastSync?>(null)
@@ -156,17 +161,20 @@ class LinkedSync
             applier.exportPayload(collections, identity.hlcNode(), identity.newClock().now().encode())
 
         /**
-         * Uploads what changed here, exporting only the collections that can have changed: exporting
+         * Uploads what changed in [link] here, exporting only the collections that can have changed: exporting
          * the whole library on every sync held tens of megabytes at once, several times a minute
          * while another device played.
          */
-        private suspend fun push(session: Session): Int {
-            val lastSent = db.sent().lastSent(session.record.link).associate { it.collection to it.sentAt }
+        private suspend fun push(
+            session: Session,
+            link: String,
+        ): Int {
+            val lastSent = db.sent().lastSent(link).associate { it.collection to it.sentAt }
             val collections = collectionsToPush(SyncCollection.ANDROID_SYNCABLE, tables.unchanged(), lastSent, System.currentTimeMillis())
             val tracked = collections.filter { it in COLLECTION_TABLES }
             tables.exporting(tracked)
             return try {
-                session.push(export(collections))
+                session.push(export(collections), link)
             } catch (e: Throwable) {
                 tables.failed(tracked)
                 throw e
@@ -189,18 +197,16 @@ class LinkedSync
                 }
             val reading = if (offline == null) store else GroupStore(local, null)
             var session = Session.open(db, reading, device)
-            // Until profiles choose their links, Default is the only profile linked; another one keeps the group up to date.
-            val linked = ActiveProfile.get(context).isDefault
-            if (linked && !session.adoptLink(ActiveProfile.get(context).id)) return
+            val links = profiles.links(session) ?: return
             // A device left: start the epoch it never receives before writing anything, then read the roster back (spec/protocol.md, Leaving).
             if (session.state.rotate && offline == null) {
                 if (rotateEpoch(session, device)) db.snapshots().snapshotSoon()
                 store.download(me, record.serverCursor, objects = false)
                 session = Session.open(db, reading, device)
             }
-            if (linked) exchange(session, announce)
+            exchange(session, links, announce)
             if (offline != null) throw offline
-            session.collectGarbage()
+            session.collectGarbage(links.mapTo(HashSet()) { it.link })
             db.groups().setUploaded(store.upload(me, db.groups().group()?.uploaded ?: 0))
             // The sync is done; a failed look for devices asking to join only waits for the next one.
             try {
@@ -209,37 +215,70 @@ class LinkedSync
             }
         }
 
-        /** Sends this profile's changes, then reads and applies everyone else's. */
+        /**
+         * Sends the running profile's changes when it syncs, then reads the linked profiles' batches: the running
+         * profile's are applied, after what was kept for it, and the others' kept until their profile runs.
+         */
         private suspend fun exchange(
             session: Session,
+            links: List<ProfileLinkRow>,
             announce: Boolean,
         ) {
-            val link = session.record.link
-            val pushed = push(session)
-
-            val pulled = session.pull()
-            if (pushed > 0 || pulled.batches.isNotEmpty()) indicator.show()
-            val names = if (pulled.batches.isEmpty()) emptyMap() else deviceNames(session)
+            val active = profiles.activeLink()
+            var names: Map<String, DeviceMeta>? = null
             val hlc = identity.newClock().now().encode()
             val counts = mutableMapOf<String, Int>()
-            for ((sender, batches) in pulled.batches) {
-                val meta = names[sender]
-                applyBatches(db.sent(), link, batches, System.currentTimeMillis(), ::export) { received ->
+            var merged = 0L
+
+            suspend fun apply(
+                sender: String,
+                batches: List<IncomingBatch>,
+            ) {
+                val meta = (names ?: deviceNames(session).also { names = it })[sender]
+                applyBatches(db.sent(), checkNotNull(active), batches, System.currentTimeMillis(), ::export) { received ->
                     applier.applyPayload(PeerInfo(sender, meta?.name.orEmpty(), meta?.platform.orEmpty()), received, hlc, onceEach = false)
                     counts.merge(sender, received.values.sumOf { it.lines.size }, Int::plus)
                 }
+                merged += batches.sumOf { it.size.toLong() }
             }
-            session.finish(pulled)
-            if (announce) {
-                counts.filterValues { it > 0 }.forEach { (sender, changes) ->
-                    arrivals.tryEmit(Received(names[sender]?.name.orEmpty(), changes))
+
+            suspend fun route(read: Map<String, List<IncomingBatch>>) {
+                for ((sender, batches) in read) {
+                    val (here, elsewhere) = batches.partition { it.link == active }
+                    elsewhere.forEach { kept.keep(checkNotNull(it.link), sender, it) }
+                    if (here.isNotEmpty()) apply(sender, here)
                 }
             }
 
+            for (row in links.filterNot { it.caughtUp }) {
+                route(session.startReading(row.link) ?: continue)
+                db.profiles().caughtUp(row.link)
+            }
+            if (active != null) {
+                while (true) {
+                    val batch = kept.first(active) ?: break
+                    apply(batch.sender, listOf(batch.batch))
+                    kept.applied(batch)
+                }
+            }
+            val pushed = if (active != null) push(session, active) else 0
+            val pulled = session.pull(links.mapTo(HashSet()) { it.link })
+            if (pushed > 0 || merged > 0 || pulled.batches.isNotEmpty()) indicator.show()
+            route(pulled.batches)
+            session.finish(pulled)
+            if (announce) {
+                counts.filterValues { it > 0 }.forEach { (sender, changes) ->
+                    arrivals.tryEmit(Received(names?.get(sender)?.name.orEmpty(), changes))
+                }
+            }
+            if (active == null) return
             val now = System.currentTimeMillis()
-            db.snapshots().noteMerged(link, pulled.batches.values.sumOf { batches -> batches.sumOf { it.size.toLong() } }, now)
-            if (db.snapshots().isDue(link, now)) session.writeSnapshot(export())
+            db.snapshots().noteMerged(active, merged, now)
+            if (db.snapshots().isDue(active, now) && holdsAll(active)) session.writeSnapshot(export(), active)
         }
+
+        /** Whether everything this device read of [link] is merged: nothing kept for it, nothing left to catch up. */
+        private suspend fun holdsAll(link: String): Boolean = kept.count(link) == 0 && db.profiles().reads().none { it.link == link }
 
         private companion object {
             const val TAG = "LinkedSync"

@@ -57,8 +57,8 @@ class SessionTest {
         app: App,
     ): Int {
         val session = Session.open(db, store, device)
-        session.push(app.exported())
-        val pulled = session.pull()
+        session.push(app.exported(), LINK)
+        val pulled = session.pull(setOf(LINK))
         var arrived = 0
         for (batches in pulled.batches.values) {
             applyBatches(db.sent(), LINK, batches, 0, { app.exported() }) { received ->

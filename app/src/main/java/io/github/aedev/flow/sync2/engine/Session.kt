@@ -19,6 +19,7 @@ import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.crypto.sha256
 import io.github.aedev.flow.sync2.crypto.unwrapEpochKey
 import io.github.aedev.flow.sync2.data.GroupRecord
+import io.github.aedev.flow.sync2.data.LinkReadRow
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.data.StreamRow
 import io.github.aedev.flow.sync2.data.addEntries
@@ -35,6 +36,7 @@ import io.github.aedev.flow.sync2.store.ObjectType
 import io.github.aedev.flow.sync2.store.ParsedObject
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
+import io.github.aedev.flow.sync2.store.ZERO_HASH
 import io.github.aedev.flow.sync2.store.nextInStream
 import io.github.aedev.flow.sync2.store.parseObject
 import io.github.aedev.flow.sync2.store.sealObject
@@ -74,6 +76,9 @@ class Pulled internal constructor(
     internal val acks: Map<String, Map<String, Long>>,
     internal val manifests: List<Logged>,
     internal val links: Set<String?>,
+    /** Where reading each link apart from the others stands, and the links that reached where reading of every link stood. */
+    internal val reads: List<LinkReadRow>,
+    internal val readsDone: List<LinkReadRow>,
 )
 
 /**
@@ -169,42 +174,68 @@ class Session private constructor(
         db.groups().setOwn(record.ownSeq, record.ownPrev)
     }
 
-    /** Uploads what changed locally since the last upload; returns how many batches went out. */
-    suspend fun push(exported: Map<String, CollectionWire>): Int {
-        val outgoing = outgoingBatches(db.sent(), exported, state.head, record.link, System.currentTimeMillis())
+    /** Uploads what changed locally in [link] since the last upload; returns how many batches went out. */
+    suspend fun push(
+        exported: Map<String, CollectionWire>,
+        link: String,
+    ): Int {
+        val outgoing = outgoingBatches(db.sent(), exported, state.head, link, System.currentTimeMillis())
         for (batch in outgoing.batches) write(ObjectType.CHANGES, batch.content)
         markSent(db.sent(), outgoing)
         return outgoing.batches.size
     }
 
     /**
-     * Reads other devices' new objects in stream order, checking each one. Nothing is applied: the
-     * caller applies [Pulled.batches] and then calls [finish].
+     * Reads other devices' new objects in stream order, checking each one, and keeps the batches of [links]
+     * (`null` is the `profiles` collection). Nothing is applied: the caller applies or keeps [Pulled.batches] and
+     * then calls [finish].
      */
-    suspend fun pull(): Pulled = read(record.link)
+    suspend fun pull(links: Set<String?>): Pulled = read(links)
 
     /**
-     * Links a restored device's profile (spec/protocol.md, Recovery): to the link other devices'
-     * batches name, or to [own] when they name none. False while the logs can't be read to the end
-     * yet; nothing may be pushed or pulled until this returns true.
+     * The links that change batches and snapshot manifests name for profile data, which a restored device chooses
+     * from (spec/protocol.md, Recovery), or null while the logs can't be read to the end yet.
      */
-    suspend fun adoptLink(own: String): Boolean {
-        if (record.link.isNotEmpty()) return true
-        val read = read(link = null)
-        if (read.stalled) return false
-        record =
-            record.copy(
-                link =
-                    read.batches.values
-                        .flatten()
-                        .firstNotNullOfOrNull { it.link } ?: own,
-            )
-        db.groups().setLink(record.link)
-        return true
+    suspend fun namedLinks(): Set<String>? {
+        val read = read(links = null)
+        return if (read.stalled) null else read.links.filterNotNull().toSet()
     }
 
-    /** Batches of [link] only, or every batch when [link] is null. */
-    private suspend fun read(link: String?): Pulled {
+    /**
+     * Starts reading [link], linked after this device read past the beginning of the logs (spec/protocol.md,
+     * Reading a link from its snapshot). Returns the records of the link's newest snapshot this device knows, by
+     * writer, and from then on each pull also reads the link's earlier batches; null when that snapshot can't be
+     * read yet.
+     */
+    suspend fun startReading(link: String): Map<String, List<IncomingBatch>>? {
+        val positions = db.groups().streams()
+        val newest =
+            db
+                .collection()
+                .manifests()
+                .map { Logged(it.did, it.seq, parseManifest(it.manifest.toByteArray())) }
+                .filter { it.manifest.link == link }
+                .maxByOrNull { it.manifest.merged() }
+        val tips = newest?.manifest?.vv.orEmpty()
+        val records =
+            newest?.let {
+                val parsed = verified(store.getObject(StorePaths.log(it.did, it.seq)) ?: return null, it.did, it.seq)
+                mapOf(it.did to snapshotBatches(it.did, parsed.header.epoch, it.manifest))
+            } ?: emptyMap()
+        db.profiles().saveReads(
+            positions
+                .filter { it.did != me }
+                .map {
+                    tips[it.did]?.let { tip -> LinkReadRow(link, it.did, tip.seq, tip.hash) }
+                        ?: LinkReadRow(link, it.did, 0, SyncBytes.toHex(ZERO_HASH))
+                }.filter { read -> read.seq < positions.first { it.did == read.did }.seq },
+        )
+        return records
+    }
+
+    /** Batches of [links] only, or every batch when [links] is null. */
+    private suspend fun read(links: Set<String?>?): Pulled {
+        fun wanted(link: String?) = links == null || link in links
         val positions = db.groups().streams().associateTo(HashMap()) { it.did to StreamPosition(it.seq, SyncBytes.fromHex(it.hash)) }
         val batches = LinkedHashMap<String, MutableList<IncomingBatch>>()
         var cursor = record.cursor
@@ -212,11 +243,15 @@ class Session private constructor(
         var stalled = false
         val acks = HashMap<String, Map<String, Long>>()
         val manifests = ArrayList<Logged>()
-        val links = HashSet<String?>()
+        val named = HashSet<String?>()
+        val (reads, readsDone) = catchUp(db.profiles().reads().filter { wanted(it.link) }, positions, batches)
+        var floors = emptyMap<Pair<String?, String>, Long>()
         if (positions.isEmpty() && cursor == 0L) {
-            bootstrap()?.let { start ->
-                if (link == null || start.manifest.link == link) batches[start.writer] = start.batches.toMutableList()
+            bootstrap(links)?.let { start ->
+                start.batches.forEach { (writer, records) -> batches.getOrPut(writer) { ArrayList() } += records }
                 positions += start.positions
+                floors = start.floors
+                named += start.floors.keys.map { it.first }
             }
         }
         while (true) {
@@ -242,12 +277,14 @@ class Session private constructor(
 
                             is Content.Snapshot -> {
                                 manifests += Logged(did, seq, content.manifest)
-                                links += content.manifest.link
+                                named += content.manifest.link
                             }
 
                             is Content.Batch -> {
-                                links += content.batch.link
-                                if (link == null || content.batch.link == link) batches.getOrPut(did) { ArrayList() } += content.batch
+                                val link = content.batch.link
+                                named += link
+                                // A snapshot this device started from may already include it.
+                                if (wanted(link) && seq > (floors[link to did] ?: 0)) batches.getOrPut(did) { ArrayList() } += content.batch
                             }
                         }
                         if (read.content !is Content.Ack) consumed++
@@ -263,7 +300,32 @@ class Session private constructor(
             }
             cursor = next
         }
-        return Pulled(batches, positions, cursor, consumed, stalled, acks, manifests, links)
+        return Pulled(batches, positions, cursor, consumed, stalled, acks, manifests, named, reads, readsDone)
+    }
+
+    /**
+     * Reads each of [rows]' links on its own, from where it stands up to [positions], where reading of every link
+     * stands; returns the rows still short of it, and the rows that reached it.
+     */
+    private suspend fun catchUp(
+        rows: List<LinkReadRow>,
+        positions: Map<String, StreamPosition>,
+        batches: MutableMap<String, MutableList<IncomingBatch>>,
+    ): Pair<List<LinkReadRow>, List<LinkReadRow>> {
+        val reached =
+            rows.map { row ->
+                var at = StreamPosition(row.seq, SyncBytes.fromHex(row.hash))
+                val end = positions[row.did]?.seq ?: 0
+                while (at.seq < end) {
+                    val seq = at.seq + 1
+                    val read = readObject(StorePaths.log(row.did, seq), row.did, seq, at) ?: break
+                    at = read.position
+                    val batch = (read.content as? Content.Batch)?.batch
+                    if (batch?.link == row.link) batches.getOrPut(row.did) { ArrayList() } += batch
+                }
+                row.copy(seq = at.seq, hash = SyncBytes.toHex(at.hash)) to (at.seq >= end)
+            }
+        return reached.filterNot { it.second }.map { it.first } to reached.filter { it.second }.map { it.first }
     }
 
     /** One log object, checked in the order of spec/store.md; `null` while an earlier one of this sender is missing. */
@@ -310,6 +372,7 @@ class Session private constructor(
     /** Saves how far reading got, after the caller applied the batches, and acknowledges it. */
     suspend fun finish(pulled: Pulled) {
         db.groups().saveStreams(pulled.positions.map { (did, p) -> StreamRow(did, p.seq, SyncBytes.toHex(p.hash)) }, pulled.cursor)
+        db.profiles().updateReads(pulled.reads, pulled.readsDone)
         record = record.copy(cursor = pulled.cursor)
         recordCollection(pulled)
         if (pulled.consumed > 0) {
