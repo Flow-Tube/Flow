@@ -41,10 +41,10 @@ data class PeerInfo(
 
 /**
  *  Sender side: [exportPayload]. Receiver side:
- * [applyPayload] — takes a mandatory pre-merge backup, merges each collection with its local
- * state (CRDT), applies Room collections in a single `withTransaction`, applies DataStore/brain
- * collections (individually atomic), records the `sync_log` idempotency ledger + known peer, and
- * restores the backup on any failure.
+ * [applyPayload] — merges each collection with its local state (CRDT), applies Room collections in
+ * a single `withTransaction`, applies DataStore/brain collections (individually atomic), and records
+ * the `sync_log` idempotency ledger + known peer. A payload reaching beyond the Room transaction
+ * takes a pre-merge backup first and restores it on any failure.
  */
 @Singleton
 class SyncApplier
@@ -150,7 +150,10 @@ class SyncApplier
                 return stats
             }
 
-            takeBackup()
+            // The Room transaction alone undoes a failed merge of Room collections; a full-profile backup
+            // there only cost seconds and tens of megabytes on every linked sync.
+            val crossStore = fresh.keys.any { it !in ROOM_COLLECTIONS }
+            if (crossStore) takeBackup()
             var failedCollection: String? = null
             // The ledgers learn what was written only once the whole merge has stuck.
             val settles = ArrayList<suspend () -> Unit>()
@@ -259,7 +262,7 @@ class SyncApplier
                 recordPeer(peer)
             } catch (e: Throwable) {
                 android.util.Log.e(TAG, "merge failed at collection=$failedCollection; rolling back", e)
-                runCatching { restoreBackup() }
+                if (crossStore) runCatching { restoreBackup() }
                 val where = failedCollection?.let { " applying '$it'" } ?: ""
                 val reason = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
                 throw SyncApplyException("Merge failed$where and was rolled back. Cause: $reason", e)
@@ -271,6 +274,10 @@ class SyncApplier
 
         private companion object {
             const val TAG = "SyncApplier"
+
+            /** Collections [applyPayload] writes inside its one Room transaction. */
+            val ROOM_COLLECTIONS =
+                setOf(SyncCollection.WATCH_HISTORY, SyncCollection.SUBSCRIPTIONS, SyncCollection.NOTES, SyncCollection.PLAYLISTS)
         }
 
         private suspend fun recordPeer(peer: PeerInfo) {

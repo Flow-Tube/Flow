@@ -12,7 +12,10 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.identity.DeviceIdentity
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
+import io.github.aedev.flow.sync2.changes.COLLECTION_TABLES
+import io.github.aedev.flow.sync2.changes.TableChanges
 import io.github.aedev.flow.sync2.changes.applyBatches
+import io.github.aedev.flow.sync2.changes.collectionsToPush
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.data.GroupRecord
 import io.github.aedev.flow.sync2.data.LinkedDatabase
@@ -77,6 +80,7 @@ class LinkedSync
         private val indicator: SyncIndicator,
         private val reset: LinkedReset,
         private val credentials: StoreCredentials,
+        private val tables: TableChanges,
     ) {
         private val running = Mutex()
         private val last = MutableStateFlow<LastSync?>(null)
@@ -152,6 +156,24 @@ class LinkedSync
         private suspend fun export(collections: List<String> = SyncCollection.ANDROID_SYNCABLE): Map<String, CollectionWire> =
             applier.exportPayload(collections, identity.hlcNode(), identity.newClock().now().encode())
 
+        /**
+         * Uploads what changed here, exporting only the collections that can have changed: exporting
+         * the whole library on every sync held tens of megabytes at once, several times a minute
+         * while another device played.
+         */
+        private suspend fun push(session: Session): Int {
+            val lastSent = db.sent().lastSent().associate { it.collection to it.sentAt }
+            val collections = collectionsToPush(SyncCollection.ANDROID_SYNCABLE, tables.unchanged(), lastSent, System.currentTimeMillis())
+            val tracked = collections.filter { it in COLLECTION_TABLES }
+            tables.exporting(tracked)
+            return try {
+                session.push(export(collections))
+            } catch (e: Throwable) {
+                tables.failed(tracked)
+                throw e
+            }
+        }
+
         private suspend fun run(announce: Boolean) {
             if (!SyncProfile.syncsHere(context) || reset.leaveFailed.value != null) return
             val record = db.groups().group() ?: return
@@ -176,7 +198,7 @@ class LinkedSync
                 session = Session.open(db, reading, device)
             }
             val link = session.record.link
-            val pushed = session.push(export())
+            val pushed = push(session)
 
             val pulled = session.pull()
             if (pushed > 0 || pulled.batches.isNotEmpty()) indicator.show()

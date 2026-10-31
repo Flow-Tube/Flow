@@ -44,14 +44,14 @@ class ApplyOnceTest {
             slices = slices,
         )
 
-    private val received = mapOf(SyncCollection.WATCH_HISTORY to ReceivedCollection(listOf("""{"videoId":"a"}"""), "hash"))
+    private val received = mapOf(SyncCollection.LIKES to ReceivedCollection(listOf("""{"kind":"video","id":"a"}"""), "hash"))
     private val peer = PeerInfo("did", "Phone", "android")
 
     @Test
     fun flow_sync_1_skips_a_payload_it_already_applied() =
         runTest {
             val stats = applier.applyPayload(peer, received, "0:0:node0000")
-            assertEquals(1, stats.getValue(SyncCollection.WATCH_HISTORY).skipped)
+            assertEquals(1, stats.getValue(SyncCollection.LIKES).skipped)
             coVerify(exactly = 0) { slices.export(any<File>()) }
         }
 
@@ -62,5 +62,16 @@ class ApplyOnceTest {
             assertTrue("$error", error is SyncApplyException)
             coVerify(exactly = 0) { syncLog.isAlreadyApplied(any(), any(), any()) }
             coVerify(exactly = 1) { slices.export(any<File>()) }
+        }
+
+    // The Room transaction undoes a failed merge of Room collections, so no full-profile backup is taken.
+    @Test
+    fun a_merge_inside_the_room_transaction_takes_no_backup() =
+        runTest {
+            val history = mapOf(SyncCollection.WATCH_HISTORY to ReceivedCollection(listOf("""{"videoId":"a"}"""), "hash"))
+            val error = runCatching { applier.applyPayload(peer, history, "0:0:node0000", onceEach = false) }.exceptionOrNull()
+            assertTrue("$error", error is SyncApplyException)
+            coVerify(exactly = 0) { slices.export(any<File>()) }
+            coVerify(exactly = 0) { slices.import(any()) }
         }
 }

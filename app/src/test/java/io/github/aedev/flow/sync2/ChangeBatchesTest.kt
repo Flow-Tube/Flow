@@ -8,6 +8,7 @@ import io.github.aedev.flow.sync2.changes.applyBatches
 import io.github.aedev.flow.sync2.changes.markSent
 import io.github.aedev.flow.sync2.changes.outgoingBatches
 import io.github.aedev.flow.sync2.changes.parseBatch
+import io.github.aedev.flow.sync2.data.LastSent
 import io.github.aedev.flow.sync2.data.SentDao
 import io.github.aedev.flow.sync2.data.SentRecord
 import kotlinx.coroutines.test.runTest
@@ -22,6 +23,9 @@ class ChangeBatchesTest {
         val records = HashMap<Pair<String, String>, SentRecord>()
 
         override suspend fun forCollection(collection: String) = records.values.filter { it.collection == collection }
+
+        override suspend fun lastSent() =
+            records.values.groupBy { it.collection }.map { (collection, sent) -> LastSent(collection, sent.maxOf { it.sentAt }) }
 
         override suspend fun upsert(records: List<SentRecord>) {
             records.forEach { this.records[it.collection to it.recordKey] = it }

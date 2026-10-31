@@ -17,10 +17,19 @@ data class SentRecord(
     val sentAt: Long,
 )
 
+/** A collection's latest upload in the ledger. */
+data class LastSent(
+    val collection: String,
+    val sentAt: Long,
+)
+
 @Dao
 interface SentDao {
     @Query("SELECT * FROM sent WHERE collection = :collection")
     suspend fun forCollection(collection: String): List<SentRecord>
+
+    @Query("SELECT collection, MAX(sentAt) AS sentAt FROM sent GROUP BY collection")
+    suspend fun lastSent(): List<LastSent>
 
     @Upsert
     suspend fun upsert(records: List<SentRecord>)
