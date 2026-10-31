@@ -53,7 +53,7 @@ class SyncChangeLedgerStore
                 DataStoreFactory.create(
                     serializer = LedgerSerializer,
                     corruptionHandler = ReplaceFileCorruptionHandler { CollectionLedger() },
-                    produceFile = { ProfileFiles.dataStore(context, StoreScope.DEFAULT_ONLY, "sync_ledger_$collection.json") },
+                    produceFile = { ProfileFiles.dataStore(context, StoreScope.PROFILE_PRIVATE, "sync_ledger_$collection.json") },
                 )
             }
 

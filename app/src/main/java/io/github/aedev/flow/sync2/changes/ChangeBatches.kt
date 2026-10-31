@@ -18,6 +18,9 @@ private const val RECORDS_PER_BATCH = 1000
 /** The brains change with every video watched; spec/protocol.md asks for at most one upload in 6 hours. */
 private const val BRAIN_INTERVAL_MS = 6 * 60 * 60 * 1000L
 
+/** The collection of profile names (spec/protocol.md, Profiles); its batches name no link. */
+const val PROFILES = "profiles"
+
 internal val BRAINS = setOf(SyncCollection.FLOW_NEURO_BRAIN, SyncCollection.MUSIC_BRAIN)
 
 /** Whether a brain last uploaded at [sentAt] may go out again at [nowMs]. */
@@ -67,6 +70,7 @@ private fun recordKey(
         SyncCollection.SUBSCRIPTIONS -> field("name")
         SyncCollection.SUBSCRIBED_CHANNELS -> field("channelId")
         SyncCollection.NOTES -> field("id")
+        PROFILES -> field("link")
         in BRAINS -> ""
         else -> null
     }
@@ -97,19 +101,19 @@ fun batchContent(
 
 /**
  * Keeps the exported records whose canonical form changed since the last upload. [head] is this
- * device's roster head, [link] the profile link id.
+ * device's roster head, [link] the profile link id, or null for [PROFILES].
  */
 suspend fun outgoingBatches(
     sentDao: SentDao,
     exported: Map<String, CollectionWire>,
     head: String,
-    link: String,
+    link: String?,
     nowMs: Long,
 ): Outgoing {
     val batches = ArrayList<Batch>()
     val sent = ArrayList<SentRecord>()
     for ((collection, wire) in exported) {
-        val previous = sentDao.forCollection(link, collection).associateBy { it.recordKey }
+        val previous = sentDao.forCollection(link.orEmpty(), collection).associateBy { it.recordKey }
         val changed =
             wire.lines.filter { line ->
                 val record = Json.parseToJsonElement(line).jsonObject
@@ -117,7 +121,7 @@ suspend fun outgoingBatches(
                 val hash = recordHash(collection, record, line)
                 val last = previous[key]
                 val tooSoon = collection in BRAINS && !brainUploadDue(last?.sentAt, nowMs)
-                (last?.hash != hash && !tooSoon).also { if (it) sent += SentRecord(link, collection, key, hash, nowMs) }
+                (last?.hash != hash && !tooSoon).also { if (it) sent += SentRecord(link.orEmpty(), collection, key, hash, nowMs) }
             }
         changed.chunked(RECORDS_PER_BATCH).mapTo(batches) { Batch(collection, batchContent(collection, head, link, it)) }
     }

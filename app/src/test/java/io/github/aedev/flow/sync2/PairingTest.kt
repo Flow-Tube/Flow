@@ -51,7 +51,7 @@ class PairingTest {
             }
             val did =
                 coroutineScope {
-                    val added = async { addDevice(session, g.store, offer, g.a) { shown(it) } }
+                    val added = async { addDevice(session, g.store, offer, g.a, LINK) { shown(it) } }
                     val joined =
                         async {
                             join(
@@ -96,7 +96,7 @@ class PairingTest {
             val offer = newOffer(StoreLocation("server", "memory"), "Desktop A", null)
             val results =
                 coroutineScope {
-                    val added = async { runCatching { addDevice(session, g.store, offer, g.a) { false } } }
+                    val added = async { runCatching { addDevice(session, g.store, offer, g.a, LINK) { false } } }
                     val joined =
                         async {
                             runCatching {

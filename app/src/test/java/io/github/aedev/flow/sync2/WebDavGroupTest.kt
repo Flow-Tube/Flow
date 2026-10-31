@@ -90,7 +90,7 @@ class WebDavGroupTest {
                                 JOINER,
                             ) { true }
                         }
-                    addDevice(session, storeA.server, offer, a, login) { true }
+                    addDevice(session, storeA.server, offer, a, LINK, login) { true }
                     joined.await()
                 }
             assertEquals(login, welcomed.login)

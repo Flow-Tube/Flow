@@ -139,7 +139,7 @@ class FileLayoutTest {
                                 JOINER,
                             ) { true }
                         }
-                    val added = addDevice(session, FileLayout(server.store(), SyncBytes.toHex(g.a.did)), offer, g.a) { true }
+                    val added = addDevice(session, FileLayout(server.store(), SyncBytes.toHex(g.a.did)), offer, g.a, LINK) { true }
                     joined.await()
                     added
                 }

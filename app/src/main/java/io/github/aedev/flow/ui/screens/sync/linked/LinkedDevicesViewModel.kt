@@ -14,6 +14,9 @@ import io.github.aedev.flow.sync2.service.LinkPhase
 import io.github.aedev.flow.sync2.service.LinkedActions
 import io.github.aedev.flow.sync2.service.LinkedDevice
 import io.github.aedev.flow.sync2.service.LinkedError
+import io.github.aedev.flow.sync2.service.LinkedProfiles
+import io.github.aedev.flow.sync2.service.LinkedSyncWorker
+import io.github.aedev.flow.sync2.service.ProfileChoices
 import io.github.aedev.flow.sync2.service.linkedError
 import io.github.aedev.flow.sync2.store.JoinRequest
 import io.github.aedev.flow.sync2.store.StoreException
@@ -63,8 +66,9 @@ private data class Local(
 internal class LinkedDevicesViewModel
     @Inject
     constructor(
-        @ApplicationContext context: Context,
+        @ApplicationContext private val context: Context,
         private val actions: LinkedActions,
+        private val linkedProfiles: LinkedProfiles,
         private val liveConsent: LiveConsent,
         live: LiveDevices,
     ) : ViewModel() {
@@ -109,6 +113,30 @@ internal class LinkedDevicesViewModel
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LinkedUiState())
 
         val link: StateFlow<LinkPhase> = actions.link
+
+        val profiles: StateFlow<ProfileChoices> =
+            linkedProfiles.choices.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileChoices())
+
+        /** A change to which profiles sync, followed by a sync so it takes effect. */
+        private fun changeProfiles(change: suspend () -> Unit) =
+            run {
+                change()
+                LinkedSyncWorker.syncSoon(context)
+            }
+
+        fun linkProfile(
+            profile: String,
+            link: String,
+        ) = changeProfiles { linkedProfiles.link(profile, link) }
+
+        fun createProfileFor(
+            link: String,
+            name: String,
+        ) = changeProfiles { linkedProfiles.createFor(link, name) }
+
+        fun stopProfileHere(profile: String) = changeProfiles { linkedProfiles.stopHere(profile) }
+
+        fun stopProfileEverywhere(profile: String) = changeProfiles { linkedProfiles.stopEverywhere(profile) }
 
         /** Runs one user action with the shared busy flag, showing its failure as the error. */
         private fun run(action: suspend () -> Unit) {

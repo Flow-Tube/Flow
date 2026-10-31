@@ -10,6 +10,7 @@ import androidx.room.Transaction
 import androidx.room.Upsert
 import androidx.room.migration.AutoMigrationSpec
 import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Which local profile syncs under which link (spec/protocol.md, Profiles); a link has one profile at most. A link
@@ -73,6 +74,25 @@ interface LinkedProfileDao {
     @Query("SELECT * FROM profile_links")
     suspend fun links(): List<ProfileLinkRow>
 
+    @Query("SELECT * FROM profile_links")
+    fun observeLinks(): Flow<List<ProfileLinkRow>>
+
+    @Query("SELECT * FROM profile_names")
+    fun observeNames(): Flow<List<ProfileNameRow>>
+
+    /** The links batches and manifests named, as JSON (`null` for `profiles`). */
+    @Query("SELECT link FROM links")
+    fun observeNamed(): Flow<List<String>>
+
+    @Query("DELETE FROM profile_links WHERE profile = :profile")
+    suspend fun unlink(profile: String)
+
+    @Query("SELECT id FROM kept_batches WHERE link = :link")
+    suspend fun keptIds(link: String): List<Long>
+
+    @Query("DELETE FROM link_reads WHERE link = :link")
+    suspend fun dropReads(link: String)
+
     @Query("SELECT link FROM profile_links WHERE profile = :profile")
     suspend fun linkOf(profile: String): String?
 
@@ -95,13 +115,14 @@ interface LinkedProfileDao {
         link(ProfileLinkRow(profile, record.link, caughtUp = true))
     }
 
-    /** A restored device's [profile] takes the link it found (spec/protocol.md, Recovery). */
+    /** [profile] syncs under [link]; the group record then names a link, so the device no longer waits to choose one. */
     @Transaction
-    suspend fun adopt(
+    suspend fun choose(
         profile: String,
         link: String,
+        caughtUp: Boolean,
     ) {
-        link(ProfileLinkRow(profile, link, caughtUp = true))
+        link(ProfileLinkRow(profile, link, caughtUp))
         setGroupLink(link)
     }
 

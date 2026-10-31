@@ -100,13 +100,14 @@ class LinkedReset
         }
 
         /**
-         * Default's data was replaced wholesale (a restore or an import). Diffing it against what was sent
-         * would read every missing record as a deletion and send it to every device, so both syncs start
-         * over: the ledgers are reset and the linked group is left; linking again brings the data back.
+         * The running profile's data was replaced wholesale (a restore or an import). When it syncs, diffing it
+         * against what was sent would read every missing record as a deletion and send it to every device, so both
+         * syncs start over: the ledgers are reset and the linked group is left; linking again brings the data back.
          * When the store can't be told, the user is asked as after a failed leave.
          */
         suspend fun dataReplaced() {
-            if (!ActiveProfile.get(context).isDefault) return
+            val running = ActiveProfile.get(context)
+            if (!running.isDefault && db.profiles().linkOf(running.id) == null) return
             ledger.reset()
             leave()
         }

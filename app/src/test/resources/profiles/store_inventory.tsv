@@ -21,8 +21,8 @@ prefs_datastore	scrobbling	main:data/scrobble/ScrobbleStore.kt	PROFILE	private	P
 prefs_datastore	discord_presence	github:discord/DiscordPreferences.kt	PROFILE	private	A personal Discord link.
 prefs_datastore	sync_identity	main:sync/identity/DeviceIdentity.kt	DEVICE	-	Device id and name.
 prefs_datastore	linked_device	main:sync2/device/DeviceKeys.kt	DEVICE	-	Linked-devices keys, sealed by the Keystore; one roster member per install.
-prefs_datastore	sync_brain_crdt	main:sync/merge/BrainCrdtStore.kt	DEFAULT_ONLY	-	Bound to Default's brain; only Default syncs.
-prefs_datastore	sync_music_brain_crdt	main:sync/merge/MusicBrainCrdtStore.kt	DEFAULT_ONLY	-	Bound to Default's music brain; only Default syncs.
+prefs_datastore	sync_brain_crdt	main:sync/merge/BrainCrdtStore.kt	PROFILE	private	Bound to the profile's brain, which syncs under its own link.
+prefs_datastore	sync_music_brain_crdt	main:sync/merge/MusicBrainCrdtStore.kt	PROFILE	private	Bound to the profile's music brain, which syncs under its own link.
 prefs_datastore	widget_content	main:widget/core/refresh/WidgetContentSync.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
 prefs_datastore	widget_theme	main:widget/core/theme/WidgetThemeSignatureStore.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
 prefs_datastore	now_playing_widget	main:widget/core/state/NowPlayingState.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
@@ -134,7 +134,7 @@ profile_file	discord_tokens.enc	github:discord/DiscordTokenStore.kt	PROFILE	priv
 profile_file	music_queue	main:data/local/QueuePersistence.kt	PROFILE	private	Checks for a saved queue before the store can be read.
 profile_file	user_neuro_brain.json	main:data/recommendation/NeuroStorage.kt	DEFAULT_ONLY	-	Pre-DataStore brain, migrated for Default only.
 profile_file	flow_neuro_brain_v7.json, v8, v9	main:data/recommendation/NeuroStorage.kt	DEFAULT_ONLY	-	Legacy brains, migrated for Default only.
-profile_file	sync_ledger_<collection>.json x8	main:sync/apply/SyncChangeLedgerStore.kt	DEFAULT_ONLY	-	Diffs Default's collections against what was last pushed.
+profile_file	sync_ledger_<collection>.json x8	main:sync/apply/SyncChangeLedgerStore.kt	PROFILE	private	Diffs the profile's collections against what was last pushed.
 profile_file	flow_video_stats_v1.json	main:data/stats/MonthlyLedgerStore.kt	PROFILE	library	Monthly stats for recap; names live in VideoStatsRecorder and MusicStatsStorage.
 profile_file	flow_video_stats_hot_v1.json	main:data/stats/MonthlyLedgerStore.kt	PROFILE	library	Monthly stats for recap; names live in VideoStatsRecorder and MusicStatsStorage.
 profile_file	flow_music_stats_v1.json	main:data/stats/MonthlyLedgerStore.kt	PROFILE	library	Monthly stats for recap; names live in VideoStatsRecorder and MusicStatsStorage.

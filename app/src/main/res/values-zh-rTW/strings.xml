@@ -4333,7 +4333,6 @@
     <string name="linked_error_stopped">另一部裝置已停止配對。請查看該裝置上的訊息，然後再試一次。</string>
     <string name="linked_error_busy">伺服器忙碌中。請等候一分鐘後再試。</string>
     <string name="sync_default_only_title">切換至「%1$s」以同步</string>
-    <string name="sync_default_only_body">其他個人檔案只會留在這部裝置上</string>
     <string name="diagnostics_profiles_section">個人檔案（偵錯）</string>
     <string name="diagnostics_profiles_footer">僅限偵錯版本。切換時會重新啟動應用程式。</string>
     <string name="diagnostics_profile_running">使用中</string>

@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.musicBrainCrdtDataStore by safePreferencesDataStore(name = "sync_music_brain_crdt", scope = StoreScope.DEFAULT_ONLY)
+private val Context.musicBrainCrdtDataStore by safePreferencesDataStore(name = "sync_music_brain_crdt", scope = StoreScope.PROFILE_PRIVATE)
 
 /**
  * The sync-owned CRDT state the music brain itself cannot hold (the music twin of

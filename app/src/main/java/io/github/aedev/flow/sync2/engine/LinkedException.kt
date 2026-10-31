@@ -29,4 +29,6 @@ sealed class LinkedException(
     class NeedsMember : LinkedException("A new device's code is scanned from a device already in the group")
 
     class LanUnreachable : LinkedException("The other device can't be reached on this network")
+
+    class NoProfileSynced : LinkedException("No profile on this device syncs, so a new device has none to join")
 }

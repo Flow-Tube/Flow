@@ -62,7 +62,7 @@ class LanPairingTest {
                 withContext(Dispatchers.Default) {
                     coroutineScope {
                         val shown = async { answerShown(offer, tv, meta) { true }.finish(db, heldStore(db), g.store, JOINER) }
-                        addScanned(session, code as Code.New, g.a) { true }.also { shown.await() }
+                        addScanned(session, code as Code.New, g.a, LINK) { true }.also { shown.await() }
                     }
                 }
             assertEquals(SyncBytes.toHex(tv.did), added)
@@ -85,7 +85,7 @@ class LanPairingTest {
             val added =
                 withContext(Dispatchers.Default) {
                     coroutineScope {
-                        val added = async { addDevice(session, g.store, offer, g.a, port = 4001) { true } }
+                        val added = async { addDevice(session, g.store, offer, g.a, LINK, port = 4001) { true } }
                         join(db, heldStore(db), { g.store }, g.store, code, phone, meta, JOINER, port = 4002) { true }
                         added.await()
                     }

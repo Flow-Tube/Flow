@@ -6,6 +6,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.changes.IncomingBatch
+import io.github.aedev.flow.sync2.changes.PROFILES
 import io.github.aedev.flow.sync2.changes.parseBatch
 import io.github.aedev.flow.sync2.data.KeptBatches
 import io.github.aedev.flow.sync2.data.LinkedDatabase
@@ -82,6 +83,18 @@ class ProfileLinksTest {
                     .single()
                     .seq,
             )
+        }
+
+    @Test
+    fun profile_names_travel_with_no_link_to_every_device() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val record = """{"deleted":false,"hlc":"1:0:aaaaaaaa","link":"$other","name":"Kids"}"""
+            Session.open(g.deviceDb(), g.store, g.a).push(mapOf(PROFILES to CollectionWire(listOf(record), 1, "")), null)
+            val dbB = g.deviceDb()
+            val names = readAll(dbB, Session.open(dbB, g.store, g.b), setOf(null)).batches.getValue(SyncBytes.toHex(g.a.did)).single()
+            assertEquals(PROFILES to null, names.collection to names.link)
+            assertEquals(listOf(record), names.lines)
         }
 
     @Test

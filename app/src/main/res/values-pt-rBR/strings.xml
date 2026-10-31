@@ -4452,7 +4452,6 @@
     <string name="master_restore_old_into">Este backup foi feito antes dos perfis, então ele possui apenas um perfil. Ele será restaurado para %1$s.</string>
     <string name="master_restore_too_many">Este backup criaria mais do que %1$d perfis. Exclua um perfil e tente novamente.</string>
     <string name="sync_default_only_title">Mude para %1$s para sincronizar</string>
-    <string name="sync_default_only_body">Outros perfis ficarão apenas neste dispositivo</string>
     <string name="diagnostics_profiles_section">Perfis (debug)</string>
     <string name="diagnostics_profile_running">Em uso</string>
     <string name="diagnostics_profile_switch">Mudar para este perfil</string>
