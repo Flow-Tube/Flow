@@ -22,6 +22,7 @@ import io.github.aedev.flow.ui.components.videoplayer.motion.playerOpenSpringSpe
 import io.github.aedev.flow.ui.components.videoplayer.motion.portraitFullscreenSettleSpec
 import io.github.aedev.flow.ui.components.videoplayer.motion.withSteadyFrames
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -316,6 +317,16 @@ class PlayerDraggableState(
 
     suspend fun scrubBack(progress: Float) {
         motion.snapFraction(progress.coerceIn(0f, 1f))
+    }
+
+    /** Cold-start restore: seeds never-placed offsets before first draw; the debounced resnap lands frames late. */
+    internal fun seedMiniOffsets(
+        x: Float,
+        y: Float,
+    ) {
+        if (isDragging || expandFraction.value < 1f || expandFraction.isRunning || offsetX.value != 0f || offsetY.value != 0f) return
+        if (x <= 0f || y <= 0f) return
+        scope.launch(start = CoroutineStart.UNDISPATCHED) { motion.snapOffsets(x, y) }
     }
 
     internal fun snapPortraitFullscreen(value: Float) {

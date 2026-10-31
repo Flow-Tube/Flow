@@ -417,6 +417,38 @@ class PlayerDraggableStateTest {
             state.scope.cancel()
         }
 
+    @Test
+    fun `seedMiniOffsets places a restored collapsed mini player without a frame`() =
+        runTest {
+            val state = newState(collapsed = true)
+            state.collapse()
+            runCurrent()
+
+            state.seedMiniOffsets(570f, 2200f)
+
+            assertThat(state.offsetX.value).isEqualTo(570f)
+            assertThat(state.offsetY.value).isEqualTo(2200f)
+            state.scope.cancel()
+        }
+
+    @Test
+    fun `seedMiniOffsets leaves an expanded or already placed player alone`() =
+        runTest {
+            val expanded = newState(collapsed = false)
+            expanded.seedMiniOffsets(570f, 2200f)
+            assertThat(expanded.offsetX.value).isEqualTo(0f)
+            assertThat(expanded.offsetY.value).isEqualTo(0f)
+
+            val placed = newState(collapsed = true)
+            placed.offsetX.snapTo(300f)
+            placed.offsetY.snapTo(1500f)
+            placed.seedMiniOffsets(570f, 2200f)
+            assertThat(placed.offsetX.value).isEqualTo(300f)
+            assertThat(placed.offsetY.value).isEqualTo(1500f)
+            expanded.scope.cancel()
+            placed.scope.cancel()
+        }
+
     private companion object {
         const val FRAME_NANOS = 16_000_000L
     }

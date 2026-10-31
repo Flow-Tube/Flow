@@ -288,6 +288,7 @@ fun DraggablePlayerLayout(
                 state.miniVisualScale = visualMiniScale
                 state.cachedTargetX = geometry.normalTargetX
                 state.cachedTargetY = geometry.normalTargetY
+                state.seedMiniOffsets(geometry.targetMiniX, geometry.targetMiniY)
             }
 
             val isCollapsedTarget by remember(state) {
