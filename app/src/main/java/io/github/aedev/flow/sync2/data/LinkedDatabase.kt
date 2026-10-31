@@ -85,4 +85,6 @@ abstract class LinkedDatabase : RoomDatabase() {
     abstract fun live(): LiveDao
 
     abstract fun lan(): LanDao
+
+    abstract fun profiles(): LinkedProfileDao
 }

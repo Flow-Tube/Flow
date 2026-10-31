@@ -87,6 +87,7 @@ class WebDavGroupTest {
                                 code,
                                 newcomer,
                                 DeviceMeta("app-n", "Phone", "android"),
+                                JOINER,
                             ) { true }
                         }
                     addDevice(session, storeA.server, offer, a, login) { true }

@@ -29,24 +29,12 @@ import org.robolectric.annotation.Config
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34], application = Application::class)
 class RecoveryTest {
-    private val meta = DeviceMeta("app-restored", "Restored", "android")
-
-    /** A device restored onto an empty database, as `restoreGroup` leaves it: no link chosen yet. */
-    private suspend fun TestScope.restoredDevice(g: LinkedGroup): Pair<MemberSecrets, LinkedDatabase> {
-        val device = newMember()
-        val restored = restore(g.store, g.store, g.recovery, device, meta)
-        val db = emptyDb()
-        db.groups().addEntries(restored.entries)
-        db.groups().saveGroup(GroupRecord(SyncBytes.toHex(g.group), "memory", null, link = ""))
-        return device to db
-    }
-
     @Test
     fun a_restored_device_joins_and_the_recovery_key_is_replaced() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val device = newMember()
-            val result = restore(g.store, g.store, g.recovery, device, meta)
+            val result = restore(g.store, g.store, g.recovery, device, RESTORED)
             val state = g.store.head()
             assertEquals(2, state.epoch)
             val next = recoveryKeys(checkNotNull(recoverySecret(result.words)))
@@ -61,31 +49,32 @@ class RecoveryTest {
     fun a_replaced_recovery_key_cannot_restore_again() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
-            restore(g.store, g.store, g.recovery, newMember(), meta)
-            val again = runCatching { restore(g.store, g.store, g.recovery, newMember(), meta) }.exceptionOrNull()
+            restore(g.store, g.store, g.recovery, newMember(), RESTORED)
+            val again = runCatching { restore(g.store, g.store, g.recovery, newMember(), RESTORED) }.exceptionOrNull()
             assertTrue("$again", again is LinkedException.RecoveryUsed)
         }
 
     @Test
-    fun a_restored_device_joins_the_link_other_devices_sync() =
+    fun a_restored_device_sees_the_link_other_devices_sync() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
             Session
                 .open(g.deviceDb(), g.store, g.a)
-                .push(mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")))
+                .push(
+                    mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                    LINK,
+                )
             val (device, db) = restoredDevice(g)
             val session = Session.open(db, g.store, device)
-            assertTrue(session.adoptLink("own-profile"))
-            assertEquals(LINK, db.groups().group()?.link)
-            assertTrue(SyncBytes.toHex(g.a.did) in session.pull().batches)
+            assertEquals(setOf(LINK), session.namedLinks())
+            assertTrue(SyncBytes.toHex(g.a.did) in session.pull(setOf(LINK)).batches)
         }
 
     @Test
-    fun a_restored_device_starts_its_own_link_when_nothing_was_synced() =
+    fun a_restored_device_sees_no_link_when_nothing_was_synced() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val (device, db) = restoredDevice(g)
-            assertTrue(Session.open(db, g.store, device).adoptLink("own-profile"))
-            assertEquals("own-profile", db.groups().group()?.link)
+            assertEquals(emptySet<String>(), Session.open(db, g.store, device).namedLinks())
         }
 }

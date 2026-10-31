@@ -107,6 +107,7 @@ class LinkedActions
         lan: LanSync,
         private val reset: LinkedReset,
         private val credentials: StoreCredentials,
+        private val profiles: LinkedProfiles,
         @ApplicationScope private val scope: CoroutineScope,
     ) {
         private val phase = MutableStateFlow<LinkPhase>(LinkPhase.Idle)
@@ -328,7 +329,7 @@ class LinkedActions
                         ServerStore.connect(url, device, null, null)
                     }
                 }
-            val welcomed = join(db, local, { it.remote(device) }, mailbox, code, device, meta(), lanPort(context), ::confirm)
+            val welcomed = join(db, local, { it.remote(device) }, mailbox, code, device, meta(), joining(), lanPort(context), ::confirm)
             welcomed.login?.let { credentials.save(it) }
             linkedNow()
         }
@@ -374,7 +375,7 @@ class LinkedActions
                 val offer = newOffer(null, meta().name, listen() ?: throw LinkedException.LanUnreachable())
                 phase.value = LinkPhase.Waiting(offer.qr)
                 val welcomed = answerShown(offer, device, meta(), lanPort(context), ::confirm)
-                welcomed.finish(db, local, welcomed.remote(device))
+                welcomed.finish(db, local, welcomed.remote(device), joining())
                 welcomed.login?.let { credentials.save(it) }
                 linkedNow()
             }
@@ -411,4 +412,7 @@ class LinkedActions
                         }
                 }
         }
+
+        /** A joining device's Default profile joins the member's link (spec/protocol.md, Messages). */
+        private suspend fun joining(): String = profiles.defaultId()
     }

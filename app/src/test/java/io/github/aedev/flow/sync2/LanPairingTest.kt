@@ -49,7 +49,10 @@ class LanPairingTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val session = Session.open(g.deviceDb(), g.store, g.a)
-            session.push(mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")))
+            session.push(
+                mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                LINK,
+            )
             val tv = newMember()
             val db = emptyDb()
             val offer = newOffer(null, "Living room TV", loopback())
@@ -58,14 +61,14 @@ class LanPairingTest {
             val added =
                 withContext(Dispatchers.Default) {
                     coroutineScope {
-                        val shown = async { answerShown(offer, tv, meta) { true }.finish(db, heldStore(db), g.store) }
+                        val shown = async { answerShown(offer, tv, meta) { true }.finish(db, heldStore(db), g.store, JOINER) }
                         addScanned(session, code as Code.New, g.a) { true }.also { shown.await() }
                     }
                 }
             assertEquals(SyncBytes.toHex(tv.did), added)
             assertEquals(LINK, db.groups().group()?.link)
             assertTrue(added in Session.open(db, g.store, tv).state.members)
-            assertTrue(SyncBytes.toHex(g.a.did) in Session.open(db, g.store, tv).pull().batches)
+            assertTrue(SyncBytes.toHex(g.a.did) in Session.open(db, g.store, tv).pull(setOf(LINK)).batches)
         }
 
     @Test
@@ -83,7 +86,7 @@ class LanPairingTest {
                 withContext(Dispatchers.Default) {
                     coroutineScope {
                         val added = async { addDevice(session, g.store, offer, g.a, port = 4001) { true } }
-                        join(db, heldStore(db), { g.store }, g.store, code, phone, meta, port = 4002) { true }
+                        join(db, heldStore(db), { g.store }, g.store, code, phone, meta, JOINER, port = 4002) { true }
                         added.await()
                     }
                 }

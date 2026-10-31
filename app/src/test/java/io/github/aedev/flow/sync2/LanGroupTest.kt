@@ -89,7 +89,7 @@ class LanGroupTest {
             withContext(Dispatchers.Default) {
                 coroutineScope {
                     val added = async { addDevice(a.session(), null, offer, a.keys) { true } }
-                    join(n.db, n.local, { null }, null, code, n.keys, meta) { true }
+                    join(n.db, n.local, { null }, null, code, n.keys, meta, JOINER) { true }
                     added.await()
                 }
             }
@@ -112,7 +112,7 @@ class LanGroupTest {
             val offer = newOffer(null, "TV", loopback())
             withContext(Dispatchers.Default) {
                 coroutineScope {
-                    val shown = async { answerShown(offer, tv.keys, meta) { true }.finish(tv.db, tv.local, null) }
+                    val shown = async { answerShown(offer, tv.keys, meta) { true }.finish(tv.db, tv.local, null, JOINER) }
                     addScanned(a.session(), readCode(offer.qr) as Code.New, a.keys) { true }
                     shown.await()
                 }

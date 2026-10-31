@@ -36,7 +36,10 @@ class PairingTest {
             val g = LinkedGroup(this).apply { create() }
             val dbA = g.deviceDb()
             val session = Session.open(dbA, g.store, g.a)
-            session.push(mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")))
+            session.push(
+                mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                LINK,
+            )
 
             val newcomer = newMember()
             val dbN = emptyDb()
@@ -59,6 +62,7 @@ class PairingTest {
                                 readCode(offer.qr) as Code.Member,
                                 newcomer,
                                 meta,
+                                JOINER,
                             ) { shown(it) }
                         }
                     joined.await()
@@ -71,7 +75,7 @@ class PairingTest {
             assertTrue("a joined device has no words to confirm", dbN.groups().group()!!.recoverySaved)
 
             val joinedSession = Session.open(dbN, g.store, newcomer)
-            val pulled = joinedSession.pull()
+            val pulled = joinedSession.pull(setOf(LINK))
             var arrived = 0
             pulled.batches.values.forEach { batches ->
                 applyBatches(dbN.sent(), LINK, batches, 0, { emptyMap() }) {
@@ -105,6 +109,7 @@ class PairingTest {
                                     readCode(offer.qr) as Code.Member,
                                     newMember(),
                                     meta,
+                                    JOINER,
                                 ) { false }
                             }
                         }

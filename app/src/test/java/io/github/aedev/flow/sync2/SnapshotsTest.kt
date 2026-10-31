@@ -47,9 +47,9 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val session = Session.open(g.deviceDb(), g.store, g.a)
-            session.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            session.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             val firstHash = SyncBytes.toHex(sha256(checkNotNull(g.store.objects[StorePaths.log(SyncBytes.toHex(g.a.did), 1)]).second))
-            session.writeSnapshot(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            session.writeSnapshot(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             assertEquals(2L, session.record.ownSeq)
 
             val bytes = checkNotNull(g.store.objects[StorePaths.log(SyncBytes.toHex(g.a.did), 2)]).second
@@ -93,10 +93,10 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val a = Session.open(g.deviceDb(), g.store, g.a)
-            a.push(watched("aaaaaaaaaaa"))
-            a.writeSnapshot(watched("aaaaaaaaaaa"))
-            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
-            val pulled = Session.open(g.deviceDb(), g.store, g.b).pull()
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
+            val pulled = Session.open(g.deviceDb(), g.store, g.b).pull(setOf(LINK))
             assertEquals(listOf("aaaaaaaaaaa", "bbbbbbbbbbb"), videos(pulled.batches.values))
         }
 
@@ -105,9 +105,9 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val a = Session.open(g.deviceDb(), g.store, g.a)
-            a.push(watched("aaaaaaaaaaa"))
-            a.writeSnapshot(watched("aaaaaaaaaaa"))
-            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             g.store.take(StorePaths.log(SyncBytes.toHex(g.a.did), 1))
 
             val c = newMember()
@@ -122,13 +122,13 @@ class SnapshotsTest {
             g.store.appendRoster(state.head, add, wraps(g.group, 0, g.epochKey, listOf(c)), null)
             val db = g.deviceDb()
             val reader = Session.open(db, g.store, c)
-            val pulled = reader.pull()
+            val pulled = reader.pull(setOf(LINK))
             assertEquals(listOf("aaaaaaaaaaa", "bbbbbbbbbbb"), videos(pulled.batches.values))
             reader.finish(pulled)
             assertTrue(
                 Session
                     .open(db, g.store, c)
-                    .pull()
+                    .pull(setOf(LINK))
                     .batches
                     .isEmpty(),
             )
@@ -139,13 +139,13 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val a = Session.open(g.deviceDb(), g.store, g.a)
-            a.push(watched("aaaaaaaaaaa"))
-            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             g.store.take(StorePaths.log(SyncBytes.toHex(g.a.did), 1))
             assertTrue(
                 Session
                     .open(g.deviceDb(), g.store, g.b)
-                    .pull()
+                    .pull(setOf(LINK))
                     .batches
                     .isEmpty(),
             )

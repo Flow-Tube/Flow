@@ -99,16 +99,7 @@ class NowPlaying
 
         /** What plays here now, read on the main thread where the players live; the only way to read them. */
         suspend fun snapshot(): LiveMessage.Now =
-            withContext(Dispatchers.Main.immediate) {
-                readOnMain()
-            }.copy(
-                link =
-                    db
-                        .groups()
-                        .group()
-                        ?.link
-                        ?.takeIf { ActiveProfile.get(context).isDefault },
-            )
+            withContext(Dispatchers.Main.immediate) { readOnMain() }.copy(link = db.profiles().linkOf(ActiveProfile.get(context).id))
 
         /** Reads both players; ExoPlayer and the Media3 controller throw anywhere but the main thread. */
         @MainThread

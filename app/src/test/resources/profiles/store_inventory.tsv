@@ -39,7 +39,7 @@ shared_prefs	music_home_cache_prefs	main:data/recommendation/MusicRecommendation
 shared_prefs	flow_file_tombstones	main:data/video/VideoDownloadManager.kt	DEVICE	-	Deleted download paths.
 room_database	flow_database	main:data/local/AppDatabase.kt	PROFILE	library	Default's database; also the device database for the download tables. Other profiles open their own file of the same class.
 room_database	linked_devices	main:sync2/data/LinkedDatabaseModule.kt	DEVICE	-	Linked-devices group, roster and read positions; the group belongs to the device. Never backed up.
-profile_file	linked_store	main:sync2/data/LinkedDatabaseModule.kt	DEVICE	-	The linked group as this device holds it: roster entries, wraps and sealed log objects, served to LAN peers. Never backed up.
+profile_file	linked_store	main:sync2/data/LinkedDatabaseModule.kt	DEVICE	-	The linked group as this device holds it: roster entries, wraps and sealed log objects, served to LAN peers, and batches kept for linked profiles that aren't active. Never backed up.
 room_table	videos	main:data/local/entity/VideoEntity.kt	PROFILE	library	Personal data, read through @ProfileDb.
 room_table	playlists	main:data/local/entity/PlaylistEntity.kt	PROFILE	library	Personal data, read through @ProfileDb.
 room_table	playlist_video_cross_ref	main:data/local/entity/PlaylistVideoCrossRef.kt	PROFILE	library	Personal data, read through @ProfileDb.

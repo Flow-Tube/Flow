@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.data.profile.ProfileFiles
 import io.github.aedev.flow.data.profile.StoreScope
 import io.github.aedev.flow.sync2.store.LocalStore
+import java.io.File
 import javax.inject.Singleton
 
 /** One copy per device, shared by every profile: the group belongs to the device, not to a profile. */
@@ -27,5 +28,14 @@ object LinkedDatabaseModule {
     fun provideLocalStore(
         @ApplicationContext context: Context,
         db: LinkedDatabase,
-    ): LocalStore = LocalStore(ProfileFiles.file(context, StoreScope.DEVICE, "linked_store"), db.held())
+    ): LocalStore = LocalStore(store(context), db.held())
+
+    @Provides
+    @Singleton
+    fun provideKeptBatches(
+        @ApplicationContext context: Context,
+        db: LinkedDatabase,
+    ): KeptBatches = KeptBatches(File(store(context), "kept"), db.profiles())
+
+    private fun store(context: Context) = ProfileFiles.file(context, StoreScope.DEVICE, "linked_store")
 }

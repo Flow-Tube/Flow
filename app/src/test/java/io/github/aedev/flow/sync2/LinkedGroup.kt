@@ -9,6 +9,8 @@ import io.github.aedev.flow.sync2.crypto.wrapEpochKey
 import io.github.aedev.flow.sync2.data.GroupRecord
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.data.addEntries
+import io.github.aedev.flow.sync2.linking.DeviceMeta
+import io.github.aedev.flow.sync2.linking.restore
 import io.github.aedev.flow.sync2.roster.Draft
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.Op
@@ -28,6 +30,9 @@ import kotlinx.coroutines.test.TestScope
 import kotlin.io.path.createTempDirectory
 
 const val LINK = "default-link"
+
+/** The profile a joining device links. */
+const val JOINER = "joining-profile"
 
 fun newMember() = MemberSecrets(SyncCrypto.randomBytes(32), SyncCrypto.randomBytes(32))
 
@@ -172,6 +177,18 @@ class LinkedGroup(
             db.groups().saveGroup(GroupRecord(SyncBytes.toHex(group), "memory", null, LINK))
             db.groups().addEntries(store.roster)
         }
+}
+
+val RESTORED = DeviceMeta("app-restored", "Restored", "android")
+
+/** A device restored onto an empty database, as `restoreGroup` leaves it: no link chosen yet. */
+suspend fun TestScope.restoredDevice(g: LinkedGroup): Pair<MemberSecrets, LinkedDatabase> {
+    val device = newMember()
+    val restored = restore(g.store, g.store, g.recovery, device, RESTORED)
+    val db = emptyDb()
+    db.groups().addEntries(restored.entries)
+    db.groups().saveGroup(GroupRecord(SyncBytes.toHex(g.group), "memory", null, link = ""))
+    return device to db
 }
 
 fun heldStore(db: LinkedDatabase): LocalStore = LocalStore(createTempDirectory("held").toFile(), db.held())

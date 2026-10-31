@@ -73,11 +73,11 @@ class FileLayoutTest {
             val g = LinkedGroup(this).apply { create() }
             publish(g, server.store())
             val (dbA, storeA) = device(g, server.store(), g.a)
-            Session.open(dbA, storeA, g.a).push(watched)
+            Session.open(dbA, storeA, g.a).push(watched, LINK)
             storeA.upload(SyncBytes.toHex(g.a.did), 0)
 
             val (dbB, storeB) = device(g, server.store(), g.b)
-            val pulled = Session.open(dbB, storeB, g.b).pull()
+            val pulled = Session.open(dbB, storeB, g.b).pull(setOf(LINK))
             assertEquals(listOf(SyncBytes.toHex(g.a.did)), pulled.batches.keys.toList())
 
             server.requests.clear()
@@ -136,6 +136,7 @@ class FileLayoutTest {
                                 readCode(offer.qr) as Code.Member,
                                 newcomer,
                                 DeviceMeta("app-n", "Phone", "android"),
+                                JOINER,
                             ) { true }
                         }
                     val added = addDevice(session, FileLayout(server.store(), SyncBytes.toHex(g.a.did)), offer, g.a) { true }
