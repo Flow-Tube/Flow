@@ -18,7 +18,13 @@ private const val RECORDS_PER_BATCH = 1000
 /** The brains change with every video watched; spec/protocol.md asks for at most one upload in 6 hours. */
 private const val BRAIN_INTERVAL_MS = 6 * 60 * 60 * 1000L
 
-private val BRAINS = setOf(SyncCollection.FLOW_NEURO_BRAIN, SyncCollection.MUSIC_BRAIN)
+internal val BRAINS = setOf(SyncCollection.FLOW_NEURO_BRAIN, SyncCollection.MUSIC_BRAIN)
+
+/** Whether a brain last uploaded at [sentAt] may go out again at [nowMs]. */
+internal fun brainUploadDue(
+    sentAt: Long?,
+    nowMs: Long,
+): Boolean = sentAt == null || nowMs - sentAt >= BRAIN_INTERVAL_MS
 
 @Serializable
 private class BatchHeader(
@@ -110,7 +116,7 @@ suspend fun outgoingBatches(
                 val key = recordKey(collection, record) ?: return@filter false
                 val hash = recordHash(collection, record, line)
                 val last = previous[key]
-                val tooSoon = collection in BRAINS && last != null && nowMs - last.sentAt < BRAIN_INTERVAL_MS
+                val tooSoon = collection in BRAINS && !brainUploadDue(last?.sentAt, nowMs)
                 (last?.hash != hash && !tooSoon).also { if (it) sent += SentRecord(collection, key, hash, nowMs) }
             }
         changed.chunked(RECORDS_PER_BATCH).mapTo(batches) { Batch(collection, batchContent(collection, head, link, it)) }

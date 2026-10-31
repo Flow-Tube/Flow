@@ -49,6 +49,7 @@ class LinkedSyncTest {
                         } returns MutableStateFlow(null)
                     },
                     mockk(),
+                    mockk(),
                 )
             val running = launch { sync.syncNow() }
             sync.syncing.first { it }
