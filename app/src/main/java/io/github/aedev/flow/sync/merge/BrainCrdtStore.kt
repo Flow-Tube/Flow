@@ -18,7 +18,7 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.brainCrdtDataStore by safePreferencesDataStore(name = "sync_brain_crdt", scope = StoreScope.DEFAULT_ONLY)
+private val Context.brainCrdtDataStore by safePreferencesDataStore(name = "sync_brain_crdt", scope = StoreScope.PROFILE_PRIVATE)
 
 /**
  * The sync-owned CRDT state that the FlowNeuro brain itself cannot hold, persisted alongside it:

@@ -88,7 +88,7 @@ suspend fun createGroup(
     val roster = store.rosterAfter(-1)
     if (roster.map(::entryHash) != listOf(entryHash(genesis.entry))) throw LinkedException.Unexpected()
     db.groups().addEntries(roster)
-    db.groups().saveGroup(GroupRecord(SyncBytes.toHex(genesis.group), storeUrl, store.identity().first, link))
+    db.profiles().saveGroup(GroupRecord(SyncBytes.toHex(genesis.group), storeUrl, store.identity().first, link), profile = link)
     return genesis.words
 }
 
@@ -121,7 +121,7 @@ suspend fun createWebDavGroup(
     val layout = FileLayout(files, SyncBytes.toHex(device.did))
     if (layout.appendRoster("", genesis.entry, genesis.wraps, null) != Appended.Done) throw LinkedException.ServerHasGroup()
     db.groups().addEntries(listOf(genesis.entry))
-    db.groups().saveGroup(GroupRecord(group, WEBDAV_STORE + files.location, null, link))
+    db.profiles().saveGroup(GroupRecord(group, WEBDAV_STORE + files.location, null, link), profile = link)
     return genesis.words to conditional
 }
 
@@ -136,6 +136,6 @@ suspend fun createLanGroup(
     val genesis = Genesis(device, meta)
     local.hold(genesis.entry, 0, genesis.wraps.mapValues { (_, wrap) -> SyncBytes.b64urlDecode(wrap) }, null)
     db.groups().addEntries(listOf(genesis.entry))
-    db.groups().saveGroup(GroupRecord(SyncBytes.toHex(genesis.group), LAN_STORE, null, link))
+    db.profiles().saveGroup(GroupRecord(SyncBytes.toHex(genesis.group), LAN_STORE, null, link), profile = link)
     return genesis.words
 }

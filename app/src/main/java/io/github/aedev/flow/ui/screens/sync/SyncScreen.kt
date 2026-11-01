@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.SyncDisabled
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -112,12 +114,10 @@ fun SyncScreen(
     hostOnly: Boolean = false,
     viewModel: SyncViewModel = hiltViewModel(),
 ) {
-    if (!viewModel.syncsHere) {
-        val name by viewModel.syncProfileName.collectAsStateWithLifecycle()
-        SyncDefaultOnly(syncProfileName = name, onBack = onBack)
-        return
-    }
     val onNavigateBack = onBack ?: {}
+    val syncProfileName by viewModel.syncProfileName.collectAsStateWithLifecycle()
+    // One-time sync stays in Default; linked devices sync from any profile.
+    val oneTimeElsewhere = syncProfileName.takeUnless { viewModel.syncsHere }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var step by remember { mutableStateOf(Step.CHOOSER) }
     var selected by remember { mutableStateOf(COLLECTION_KEYS.toSet()) }
@@ -208,6 +208,7 @@ fun SyncScreen(
                         step = step,
                         selected = selected,
                         hostOnly = hostOnly,
+                        oneTimeElsewhere = oneTimeElsewhere,
                         onStepChange = { step = it },
                         onSelectedChange = { selected = it },
                         onHost = { role -> viewModel.host(role, selected.toList()) },
@@ -237,6 +238,7 @@ private fun SyncStepContent(
     step: Step,
     selected: Set<String>,
     hostOnly: Boolean,
+    oneTimeElsewhere: String?,
     onStepChange: (Step) -> Unit,
     onSelectedChange: (Set<String>) -> Unit,
     onHost: (SyncRole) -> Unit,
@@ -254,6 +256,7 @@ private fun SyncStepContent(
                 step = step,
                 selected = selected,
                 hostOnly = hostOnly,
+                oneTimeElsewhere = oneTimeElsewhere,
                 onStepChange = onStepChange,
                 onSelectedChange = onSelectedChange,
                 onHost = onHost,
@@ -307,6 +310,8 @@ private fun SyncSetupStep(
     step: Step,
     selected: Set<String>,
     hostOnly: Boolean,
+    /** The profile one-time sync runs in, when it isn't this one. */
+    oneTimeElsewhere: String?,
     onStepChange: (Step) -> Unit,
     onSelectedChange: (Set<String>) -> Unit,
     onHost: (SyncRole) -> Unit,
@@ -314,10 +319,14 @@ private fun SyncSetupStep(
 ) {
     when (step) {
         Step.CHOOSER -> {
-            SyncChooserContent(
-                onSend = { onStepChange(Step.SEND_SELECT) },
-                onReceive = { if (hostOnly) onHost(SyncRole.RECEIVER) else onStepChange(Step.RECEIVE_TRANSPORT) },
-            )
+            if (oneTimeElsewhere != null) {
+                SyncInfoRow(icon = Icons.Outlined.SyncDisabled, text = stringResource(R.string.sync_default_only_title, oneTimeElsewhere))
+            } else {
+                SyncChooserContent(
+                    onSend = { onStepChange(Step.SEND_SELECT) },
+                    onReceive = { if (hostOnly) onHost(SyncRole.RECEIVER) else onStepChange(Step.RECEIVE_TRANSPORT) },
+                )
+            }
             LinkedDevicesSection(hostOnly)
         }
 

@@ -105,26 +105,26 @@ class GarbageCollectionTest {
             val readAll =
                 suspend { db: LinkedDatabase, device: MemberSecrets ->
                     val session = Session.open(db, g.store, device)
-                    session.finish(session.pull())
+                    session.finish(session.pull(setOf(LINK)))
                 }
 
             Session.open(dbA, g.store, g.a).apply {
-                push(watched)
-                collectGarbage()
+                push(watched, LINK)
+                collectGarbage(setOf(LINK))
             }
             assertTrue("nobody acknowledged it yet", first in g.store.objects)
 
             readAll(dbB, g.b)
             readAll(dbA, g.a)
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertTrue("no snapshot covers it yet", first in g.store.objects)
 
             val a = Session.open(dbA, g.store, g.a)
-            a.writeSnapshot(watched)
+            a.writeSnapshot(watched, LINK)
             val manifest = StorePaths.log(SyncBytes.toHex(g.a.did), a.record.ownSeq)
             readAll(dbB, g.b)
             readAll(dbA, g.a)
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertFalse(first in g.store.objects)
             assertTrue("the newest snapshot stays", manifest in g.store.objects)
             assertTrue(
@@ -153,10 +153,10 @@ class GarbageCollectionTest {
         val (dbA, dbB) = g.deviceDb() to g.deviceDb()
         val watched = mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, ""))
         Session.open(dbA, g.store, g.a).apply {
-            push(watched)
-            writeSnapshot(watched)
+            push(watched, LINK)
+            writeSnapshot(watched, LINK)
         }
-        for ((db, device) in listOf(dbB to g.b, dbA to g.a)) Session.open(db, g.store, device).run { finish(pull()) }
+        for ((db, device) in listOf(dbB to g.b, dbA to g.a)) Session.open(db, g.store, device).run { finish(pull(setOf(LINK))) }
         return Triple(g, dbA, StorePaths.log(SyncBytes.toHex(g.a.did), 1))
     }
 
@@ -164,13 +164,13 @@ class GarbageCollectionTest {
     fun a_collection_that_starts_over_deletes_only_what_this_device_still_holds() =
         runTest {
             val (g, dbA, first) = collectable()
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertFalse(first in g.store.objects)
 
             // The marker is gone, as after leaving and joining again: nothing already deleted is asked for again.
             dbA.collection().setCollected(CollectedRow(SyncBytes.toHex(g.a.did), 0))
             val store = Watched(g.store)
-            Session.open(dbA, store, g.a).collectGarbage()
+            Session.open(dbA, store, g.a).collectGarbage(setOf(LINK))
             assertEquals(emptyList<String>(), store.deleted)
         }
 
@@ -178,10 +178,10 @@ class GarbageCollectionTest {
     fun a_rate_limited_collection_stops_and_finishes_on_a_later_sync() =
         runTest {
             val (g, dbA, first) = collectable()
-            Session.open(dbA, Watched(g.store, refuse = true), g.a).collectGarbage()
+            Session.open(dbA, Watched(g.store, refuse = true), g.a).collectGarbage(setOf(LINK))
             assertTrue(first in g.store.objects)
 
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertFalse(first in g.store.objects)
         }
 }

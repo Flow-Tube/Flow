@@ -18,7 +18,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.data.profile.ProfileWork
-import io.github.aedev.flow.data.profile.SyncProfile
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.lan.LanSync
 import java.util.concurrent.TimeUnit
@@ -106,9 +105,8 @@ class LinkedSyncWorker(
             }
         }
 
-        /** On app open, in the profile that syncs; the worker does nothing when this device isn't linked. */
+        /** On app open; the worker does nothing when this device isn't linked. */
         fun syncOnOpen(context: Context) {
-            if (!SyncProfile.syncsHere(context)) return
             val work =
                 OneTimeWorkRequestBuilder<LinkedSyncWorker>()
                     .setConstraints(constraints)
@@ -127,7 +125,6 @@ class LinkedSyncWorker(
             context: Context,
             announce: Boolean = false,
         ) {
-            if (!SyncProfile.syncsHere(context)) return
             val work =
                 OneTimeWorkRequestBuilder<LinkedSyncWorker>()
                     .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

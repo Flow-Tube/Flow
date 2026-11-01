@@ -75,9 +75,6 @@ interface GroupDao {
         prev: String,
     )
 
-    @Query("UPDATE group_record SET link = :link WHERE id = 1")
-    suspend fun setLink(link: String)
-
     @Query("UPDATE group_record SET serverCursor = :cursor WHERE id = 1")
     suspend fun setServerCursor(cursor: Long)
 

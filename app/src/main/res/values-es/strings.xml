@@ -3552,7 +3552,6 @@
     <string name="download_sheet_change_folder">Cambiar</string>
     <string name="download_sheet_all_languages">Todos los idiomas</string>
     <string name="sync_default_only_title">Cambia a %1$s para sincronizar</string>
-    <string name="sync_default_only_body">Los demás perfiles se quedan solo en este dispositivo</string>
     <string name="diagnostics_profiles_section">Perfiles (depuración)</string>
     <string name="diagnostics_profiles_footer">Solo en compilaciones de depuración. El cambio reinicia la aplicación.</string>
     <string name="diagnostics_profile_running">En uso</string>

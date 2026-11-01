@@ -107,6 +107,7 @@ class LinkedActions
         lan: LanSync,
         private val reset: LinkedReset,
         private val credentials: StoreCredentials,
+        private val profiles: LinkedProfiles,
         @ApplicationScope private val scope: CoroutineScope,
     ) {
         private val phase = MutableStateFlow<LinkPhase>(LinkPhase.Idle)
@@ -268,6 +269,7 @@ class LinkedActions
                     sync.remote(record, device),
                     offer,
                     device,
+                    profiles.welcomeLink(),
                     credentials.webDav(),
                     lanPort(context),
                     ::confirm,
@@ -298,7 +300,7 @@ class LinkedActions
 
                 is Code.New -> {
                     if (db.groups().group() == null) throw LinkedException.NeedsMember()
-                    addScanned(session(), code, keys.load(), credentials.webDav(), lanPort(context), ::confirm)
+                    addScanned(session(), code, keys.load(), profiles.welcomeLink(), credentials.webDav(), lanPort(context), ::confirm)
                 }
             }
         }
@@ -328,7 +330,7 @@ class LinkedActions
                         ServerStore.connect(url, device, null, null)
                     }
                 }
-            val welcomed = join(db, local, { it.remote(device) }, mailbox, code, device, meta(), lanPort(context), ::confirm)
+            val welcomed = join(db, local, { it.remote(device) }, mailbox, code, device, meta(), joining(), lanPort(context), ::confirm)
             welcomed.login?.let { credentials.save(it) }
             linkedNow()
         }
@@ -359,7 +361,15 @@ class LinkedActions
                 val server = sync.server(record, device) ?: throw LinkedException.Unexpected()
                 val offer = newOffer(StoreLocation("server", record.storeUrl), meta().name, null)
                 server.answerJoin(id, offer.qr)
-                addDevice(sync.open(record, device), server, offer, device, port = lanPort(context), confirm = ::confirm)
+                addDevice(
+                    sync.open(record, device),
+                    server,
+                    offer,
+                    device,
+                    profiles.welcomeLink(),
+                    port = lanPort(context),
+                    confirm = ::confirm,
+                )
             }
 
         suspend fun decline(id: String) {
@@ -374,7 +384,7 @@ class LinkedActions
                 val offer = newOffer(null, meta().name, listen() ?: throw LinkedException.LanUnreachable())
                 phase.value = LinkPhase.Waiting(offer.qr)
                 val welcomed = answerShown(offer, device, meta(), lanPort(context), ::confirm)
-                welcomed.finish(db, local, welcomed.remote(device))
+                welcomed.finish(db, local, welcomed.remote(device), joining())
                 welcomed.login?.let { credentials.save(it) }
                 linkedNow()
             }
@@ -411,4 +421,7 @@ class LinkedActions
                         }
                 }
         }
+
+        /** A joining device's Default profile joins the member's link (spec/protocol.md, Messages). */
+        private suspend fun joining(): String = profiles.defaultId()
     }

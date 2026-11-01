@@ -31,6 +31,7 @@ internal fun LinkedError.message(): String =
             LinkedError.LAN_UNREACHABLE -> R.string.linked_error_lan_unreachable
             LinkedError.SERVER_HAS_GROUP -> R.string.linked_error_server_has_group
             LinkedError.NEEDS_MEMBER -> R.string.linked_error_needs_member
+            LinkedError.NO_PROFILE_SYNCED -> R.string.linked_error_no_profile_synced
             LinkedError.UNEXPECTED -> R.string.linked_error_unexpected
             LinkedError.STOPPED -> R.string.linked_error_stopped
         },

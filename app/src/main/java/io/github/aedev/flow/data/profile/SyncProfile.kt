@@ -4,8 +4,8 @@ import android.content.Context
 import io.github.aedev.flow.R
 
 /**
- * Sync belongs to Default: its ledgers, CRDTs and device id describe that one profile's data, so another profile
- * syncing under the same device id would corrupt both.
+ * One-time sync (FLOW-SYNC/1) belongs to Default: it carries no profile link, so another profile syncing under the
+ * same device id would merge into the other device's Default. Linked devices sync each profile under its own link.
  */
 object SyncProfile {
     fun syncsHere(context: Context): Boolean = ActiveProfile.get(context).isDefault

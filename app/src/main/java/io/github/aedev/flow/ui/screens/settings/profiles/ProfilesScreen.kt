@@ -60,6 +60,7 @@ internal fun ProfilesScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
+    val synced by viewModel.synced.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var action by remember { mutableStateOf<ProfileAction?>(null) }
@@ -81,6 +82,7 @@ internal fun ProfilesScreen(
                         profile = profile,
                         running = profile.id == viewModel.runningId,
                         isDefault = profile.id == state?.defaultId,
+                        syncs = profile.id in synced,
                         enabled = !busy,
                         shape = shape,
                         onEdit = { onNavigate(SettingsTarget(SettingsDestination.PROFILE_EDIT, tab = profile.id)) },
@@ -151,6 +153,7 @@ private fun ProfileRow(
     profile: Profile,
     running: Boolean,
     isDefault: Boolean,
+    syncs: Boolean,
     enabled: Boolean,
     shape: Shape,
     onEdit: () -> Unit,
@@ -163,7 +166,7 @@ private fun ProfileRow(
     val status =
         listOfNotNull(
             stringResource(R.string.profiles_in_use).takeIf { running },
-            stringResource(R.string.profiles_default_syncs).takeIf { isDefault },
+            stringResource(R.string.profiles_default_syncs).takeIf { syncs },
         ).joinToString(" · ")
 
     SegmentedListItem(

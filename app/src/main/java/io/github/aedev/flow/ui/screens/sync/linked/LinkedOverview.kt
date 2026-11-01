@@ -58,6 +58,8 @@ internal fun LinkedOverview(
     onConsent: (id: String, allowed: Boolean?) -> Unit,
     onAccept: (id: String) -> Unit,
     onDecline: (id: String) -> Unit,
+    /** Which profiles sync here. */
+    profiles: @Composable () -> Unit,
 ) {
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     if (state.error == LinkedError.REMOVED) {
@@ -126,6 +128,7 @@ internal fun LinkedOverview(
             onDismiss = { onDecline(request.id) },
         )
     }
+    profiles()
     DeviceList(state.devices.orEmpty(), state.nearby, state.kinds, state.busy, consent, onRename, onRemove, onConsent)
     onScanNewDevice?.let {
         SyncActionRow(confirmLabel = stringResource(R.string.linked_scan_new_device), onConfirm = it, confirmEnabled = !state.busy)

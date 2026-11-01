@@ -50,6 +50,8 @@ class LinkedSyncTest {
                     },
                     mockk(),
                     mockk(),
+                    mockk(),
+                    mockk(),
                 )
             val running = launch { sync.syncNow() }
             sync.syncing.first { it }

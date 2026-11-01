@@ -28,7 +28,10 @@ import io.github.aedev.flow.notification.BackgroundCheckScheduler
 import io.github.aedev.flow.notification.NotificationHelper
 import io.github.aedev.flow.player.PlaybackShutdown
 import io.github.aedev.flow.player.SleepTimerManager
+import io.github.aedev.flow.sync2.service.LinkedCatchUp
 import io.github.aedev.flow.sync2.service.LinkedForeground
+import io.github.aedev.flow.sync2.service.LinkedProfiles
+import io.github.aedev.flow.sync2.service.LinkedSync
 import io.github.aedev.flow.ui.screens.home.HomeFeedLanguageReset
 import io.github.aedev.flow.utils.AppLanguageManager
 import io.github.aedev.flow.utils.FlowCrashHandler
@@ -93,6 +96,12 @@ class FlowApplication :
 
     @Inject
     lateinit var linkedForeground: LinkedForeground
+
+    @Inject
+    lateinit var linkedProfiles: dagger.Lazy<LinkedProfiles>
+
+    @Inject
+    lateinit var linkedSync: dagger.Lazy<LinkedSync>
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
 
@@ -169,6 +178,10 @@ class FlowApplication :
 
         PendingSlice.start(ProfileFiles.noBackupRoot(this), CoroutineScope(SupervisorJob() + Dispatchers.IO)) { file ->
             profileSlices.get().applyPending(file)
+        }
+        LinkedCatchUp.start(CoroutineScope(SupervisorJob() + Dispatchers.IO)) {
+            PendingSlice.await()
+            if (linkedProfiles.get().catchingUp()) linkedSync.get().syncNow()
         }
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             launch { profileWorkReconciler.reconcile() }

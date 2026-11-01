@@ -101,7 +101,7 @@ suspend fun restore(
 
 /**
  * Restores onto this device from the recovery words. Its profile link stays open until the first
- * sync reads every log ([io.github.aedev.flow.sync2.engine.Session.adoptLink]).
+ * sync reads every log ([io.github.aedev.flow.sync2.service.LinkedProfiles.links]).
  */
 suspend fun restoreGroup(
     db: LinkedDatabase,

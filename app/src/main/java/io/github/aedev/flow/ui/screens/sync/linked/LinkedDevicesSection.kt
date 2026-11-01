@@ -14,6 +14,8 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.WEBDAV_STORE
 import io.github.aedev.flow.sync2.service.LinkPhase
+import io.github.aedev.flow.ui.components.profiles.ProfileSwitchViewModel
+import io.github.aedev.flow.ui.components.profiles.SwitchRefusals
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncScanContent
 import kotlinx.coroutines.delay
@@ -30,6 +32,7 @@ internal fun LinkedDevicesSection(
     val link by viewModel.link.collectAsStateWithLifecycle()
     val leaveFailed by viewModel.leaveFailed.collectAsStateWithLifecycle()
     val consent by viewModel.consent.collectAsStateWithLifecycle()
+    val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     // Each finished sync may have changed the devices and when the server last heard from them.
     LaunchedEffect(state.linked, state.lastSync?.atMs) { if (state.linked) viewModel.refreshDevices() }
     // Devices asking to join with the admin token show up while this screen is open.
@@ -80,7 +83,19 @@ internal fun LinkedDevicesSection(
                 onConsent = viewModel::setConsent,
                 onAccept = viewModel::accept,
                 onDecline = viewModel::decline,
-            )
+            ) {
+                val switcher: ProfileSwitchViewModel = hiltViewModel()
+                SwitchRefusals(switcher)
+                LinkedProfilesCard(
+                    choices = profiles,
+                    busy = state.busy,
+                    onLink = viewModel::linkProfile,
+                    onSwitch = switcher::switchTo,
+                    onCreateFor = viewModel::createProfileFor,
+                    onStopHere = viewModel::stopProfileHere,
+                    onStopEverywhere = viewModel::stopProfileEverywhere,
+                )
+            }
         }
 
         else -> {

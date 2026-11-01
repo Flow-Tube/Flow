@@ -303,7 +303,7 @@ class SyncApplier
             return ApplyStats(added = added, updated = updated, tombstoned = tombstoned)
         }
 
-        // --- pre-merge backup (cross-store rollback net: a slice of Default, the only profile that syncs) ---
+        // --- pre-merge backup (cross-store rollback net: a slice of the running profile) ---
 
         private fun snapshotFile() = File(context.cacheDir, "sync_premerge_backup.zip")
 

@@ -15,12 +15,14 @@ import io.github.aedev.flow.data.profile.ProfileRepository
 import io.github.aedev.flow.data.profile.ProfileSwitcher
 import io.github.aedev.flow.data.profile.SwitchRefusal
 import io.github.aedev.flow.data.profile.SwitchResult
+import io.github.aedev.flow.sync2.service.LinkedProfiles
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -47,8 +49,15 @@ internal class ProfilesViewModel
         @ApplicationContext context: Context,
         private val profiles: ProfileRepository,
         private val switcher: ProfileSwitcher,
+        linked: LinkedProfiles,
     ) : ViewModel() {
         val state: StateFlow<ProfileRegistryState?> = profiles.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** The profiles that sync with the other linked devices. */
+        val synced: StateFlow<Set<String>> =
+            linked.choices
+                .map { choices -> choices.local.filter { it.link != null }.mapTo(HashSet()) { it.id } }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
         val runningId: String = ActiveProfile.get(context).id
 
         private val _message = MutableStateFlow<ProfilesMessage?>(null)

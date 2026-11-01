@@ -31,6 +31,7 @@ enum class LinkedError(
     LAN_UNREACHABLE,
     SERVER_HAS_GROUP,
     NEEDS_MEMBER,
+    NO_PROFILE_SYNCED,
     UNEXPECTED,
     STOPPED,
 }
@@ -119,6 +120,10 @@ fun Throwable.linkedError(): LinkedError =
 
         is LinkedException.NeedsMember -> {
             LinkedError.NEEDS_MEMBER
+        }
+
+        is LinkedException.NoProfileSynced -> {
+            LinkedError.NO_PROFILE_SYNCED
         }
 
         is LinkedException.Unexpected -> {

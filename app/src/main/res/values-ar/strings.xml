@@ -4758,7 +4758,6 @@
     <string name="download_sheet_change_folder">تغيير</string>
     <string name="download_sheet_all_languages">كل اللغات</string>
     <string name="sync_default_only_title">بدّل إلى %1$s للمزامنة</string>
-    <string name="sync_default_only_body">تبقى ملفات التعريف الأخرى على هذا الجهاز فقط</string>
     <string name="diagnostics_profiles_section">ملفات التعريف (تصحيح الأخطاء)</string>
     <string name="diagnostics_profiles_footer">إصدارات تصحيح الأخطاء فقط. التبديل يعيد تشغيل التطبيق.</string>
     <string name="diagnostics_profile_running">قيد الاستخدام</string>

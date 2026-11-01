@@ -91,12 +91,13 @@ class HeldStoreTest {
             storeA.download(a, 0, objects = true)
             Session.open(dbA, storeA, g.a).push(
                 mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                LINK,
             )
             assertTrue("nothing reaches the server before the upload", g.store.objects.isEmpty())
             storeA.upload(a, 0)
             assertTrue(StorePaths.log(a, 1) in g.store.objects)
 
             storeB.download(b, 0, objects = true)
-            assertTrue(a in Session.open(dbB, storeB, g.b).pull().batches)
+            assertTrue(a in Session.open(dbB, storeB, g.b).pull(setOf(LINK)).batches)
         }
 }

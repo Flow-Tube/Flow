@@ -87,9 +87,10 @@ class WebDavGroupTest {
                                 code,
                                 newcomer,
                                 DeviceMeta("app-n", "Phone", "android"),
+                                JOINER,
                             ) { true }
                         }
-                    addDevice(session, storeA.server, offer, a, login) { true }
+                    addDevice(session, storeA.server, offer, a, LINK, login) { true }
                     joined.await()
                 }
             assertEquals(login, welcomed.login)

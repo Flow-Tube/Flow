@@ -1,9 +1,6 @@
 package io.github.aedev.flow.sync2.service
 
-import android.content.Context
 import android.util.Log
-import dagger.hilt.android.qualifiers.ApplicationContext
-import io.github.aedev.flow.data.profile.SyncProfile
 import io.github.aedev.flow.di.ApplicationScope
 import io.github.aedev.flow.sync2.data.GroupRecord
 import io.github.aedev.flow.sync2.data.LinkedDatabase
@@ -51,7 +48,6 @@ private const val LAST_RETRY_MS = 5 * 60_000L
 class LinkedLive
     @Inject
     constructor(
-        @ApplicationContext private val context: Context,
         private val db: LinkedDatabase,
         private val keys: DeviceKeys,
         private val sync: LinkedSync,
@@ -62,7 +58,7 @@ class LinkedLive
         private var running: Job? = null
 
         fun start() {
-            if (running?.isActive == true || !SyncProfile.syncsHere(context)) return
+            if (running?.isActive == true) return
             running =
                 scope.launch {
                     db

@@ -73,11 +73,17 @@ internal fun chunks(lines: List<String>): List<List<String>> {
     return chunks
 }
 
-/** Writes [exported], the whole state of this link, as blobs and then a manifest naming the last object of every log merged into it. */
-suspend fun Session.writeSnapshot(exported: Map<String, CollectionWire>) {
+/**
+ * Writes [exported], the whole state of [link] (null for `profiles`), as blobs and then a manifest naming the last
+ * object of every log merged into it. Of the profiles' links only the active one qualifies, once nothing kept for it
+ * is left to apply.
+ */
+suspend fun Session.writeSnapshot(
+    exported: Map<String, CollectionWire>,
+    link: String?,
+) {
     val epoch = state.epoch
     val key = purposeKey(currentKey(), group, epoch, ObjectType.SNAPSHOT.purpose)
-    val link = record.link
     val parts =
         exported.flatMap { (collection, wire) ->
             chunks(wire.lines).map { lines ->
@@ -91,5 +97,5 @@ suspend fun Session.writeSnapshot(exported: Map<String, CollectionWire>) {
     val manifest = Manifest(state.head, link, parts, vv.toSortedMap())
     write(ObjectType.SNAPSHOT, SyncSerialization.canonicalJson(Json.encodeToJsonElement(Manifest.serializer(), manifest)).toByteArray())
     recordManifests(listOf(Logged(me, record.ownSeq, manifest)))
-    db.snapshots().written(link, System.currentTimeMillis())
+    db.snapshots().written(link.orEmpty(), System.currentTimeMillis())
 }
