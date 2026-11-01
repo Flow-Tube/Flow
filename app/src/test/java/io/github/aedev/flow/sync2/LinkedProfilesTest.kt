@@ -16,7 +16,9 @@ import io.github.aedev.flow.sync2.changes.PROFILES
 import io.github.aedev.flow.sync2.changes.batchContent
 import io.github.aedev.flow.sync2.changes.parseBatch
 import io.github.aedev.flow.sync2.data.DEFAULT_PROFILE
+import io.github.aedev.flow.sync2.data.KeptBatchRow
 import io.github.aedev.flow.sync2.data.KeptBatches
+import io.github.aedev.flow.sync2.data.LinkReadRow
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.data.ProfileLinkRow
 import io.github.aedev.flow.sync2.engine.LinkedException
@@ -267,6 +269,25 @@ class LinkedProfilesTest {
             linked.linkRunning(kids, other)
             registry.value = registry.value.copy(profiles = listOf(Profile(default)))
             assertEquals(listOf(default), linked.links(Session.open(db, g.store, g.a))?.map { it.profile })
+        }
+
+    @Test
+    fun the_running_profile_catches_up_while_its_link_is_unread_or_has_batches_or_reads_waiting() =
+        runTest {
+            val db = emptyDb()
+            val linked = profiles(db)
+            linked.merge(names("""{"deleted":false,"hlc":"5:0:aaaaaaaa","link":"$other","name":"Kids"}"""))
+            linked.linkRunning(kids, other)
+            assertFalse("a profile that doesn't run waits for its switch", linked.catchingUp())
+            registry.value = registry.value.copy(activeId = kids)
+            assertTrue("its link isn't read yet", linked.catchingUp())
+            db.profiles().caughtUp(other)
+            assertFalse(linked.catchingUp())
+            val kept = db.profiles().keep(KeptBatchRow(link = other, sender = "sender", collection = "watch_history"))
+            assertTrue("batches were kept for it", linked.catchingUp())
+            db.profiles().applied(kept)
+            db.profiles().saveReads(listOf(LinkReadRow(other, "sender", 1, "hash")))
+            assertTrue("a read of its link is under way", linked.catchingUp())
         }
 
     @Test

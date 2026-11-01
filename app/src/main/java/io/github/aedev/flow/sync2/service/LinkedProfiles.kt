@@ -79,6 +79,12 @@ class LinkedProfiles
         /** The link the running profile syncs under, or null when it doesn't sync. */
         suspend fun activeLink(): String? = dao.linkOf(profiles.running().id)
 
+        /** Whether the running profile syncs and has a link still to read or batches kept for it: its data isn't all here. */
+        suspend fun catchingUp(): Boolean {
+            val row = dao.links().firstOrNull { it.profile == profiles.running().id } ?: return false
+            return !row.caughtUp || kept.count(row.link) > 0 || dao.reads().any { it.link == row.link }
+        }
+
         val choices: Flow<ProfileChoices> =
             combine(profiles.state, dao.observeLinks(), dao.observeNames(), dao.observeNamed()) { state, links, names, named ->
                 val linked = links.associate { it.profile to it.link }
