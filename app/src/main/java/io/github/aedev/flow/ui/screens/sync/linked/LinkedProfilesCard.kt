@@ -33,11 +33,13 @@ internal fun LinkedProfilesCard(
     choices: ProfileChoices,
     busy: Boolean,
     onLink: (profile: String, link: String) -> Unit,
+    onSwitch: (profile: String) -> Unit,
     onCreateFor: (link: String, name: String) -> Unit,
     onStopHere: (profile: String) -> Unit,
     onStopEverywhere: (profile: String) -> Unit,
 ) {
     var starting by rememberSaveable { mutableStateOf<String?>(null) }
+    var switching by rememberSaveable { mutableStateOf<String?>(null) }
     var stopping by rememberSaveable { mutableStateOf<String?>(null) }
     var adding by rememberSaveable { mutableStateOf<String?>(null) }
     val unnamed = stringResource(R.string.linked_profile_unnamed)
@@ -54,7 +56,13 @@ internal fun LinkedProfilesCard(
             FlowSwitchRow(
                 title = profile.name,
                 checked = profile.link != null,
-                onCheckedChange = { on -> if (on) starting = profile.id else stopping = profile.id },
+                onCheckedChange = { on ->
+                    when {
+                        !on -> stopping = profile.id
+                        profile.running -> starting = profile.id
+                        else -> switching = profile.id
+                    }
+                },
                 supportingText =
                     stringResource(if (profile.link != null) R.string.profiles_default_syncs else R.string.linked_profile_local),
                 // A device in a group keeps one profile syncing.
@@ -78,6 +86,20 @@ internal fun LinkedProfilesCard(
             starting = null
             onLink(profile.id, link)
         }
+    }
+    choices.local.firstOrNull { it.id == switching }?.let { profile ->
+        AlertDialog(
+            onDismissRequest = { switching = null },
+            title = { Text(stringResource(R.string.linked_profile_start_title, profile.name)) },
+            text = { Text(stringResource(R.string.linked_profile_switch_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    switching = null
+                    onSwitch(profile.id)
+                }) { Text(stringResource(R.string.linked_profile_switch)) }
+            },
+            dismissButton = { TextButton(onClick = { switching = null }) { Text(stringResource(R.string.linked_cancel)) } },
+        )
     }
     choices.local.firstOrNull { it.id == stopping }?.let { profile ->
         StopDialog(

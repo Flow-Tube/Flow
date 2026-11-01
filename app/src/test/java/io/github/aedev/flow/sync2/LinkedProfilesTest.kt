@@ -57,6 +57,17 @@ class LinkedProfilesTest {
     private fun profiles(db: LinkedDatabase) =
         LinkedProfiles(context, db, repository, DeviceIdentity(context), KeptBatches(createTempDirectory("kept").toFile(), db.profiles()))
 
+    /** Links [profile] the way the app does: with it running. */
+    private suspend fun LinkedProfiles.linkRunning(
+        profile: String,
+        link: String,
+    ) {
+        val running = registry.value.activeId
+        registry.value = registry.value.copy(activeId = profile)
+        link(profile, link)
+        registry.value = registry.value.copy(activeId = running)
+    }
+
     private fun watched(id: String) =
         mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"$id"}"""), 1, ""))
 
@@ -120,7 +131,7 @@ class LinkedProfilesTest {
             val db = emptyDb()
             val linked = profiles(db)
             linked.merge(names("""{"deleted":false,"hlc":"5:0:aaaaaaaa","link":"$other","name":"Kids"}"""))
-            linked.link(kids, other)
+            linked.linkRunning(kids, other)
             linked.link(default, default)
             assertEquals(
                 setOf(ProfileLinkRow(kids, other, caughtUp = false), ProfileLinkRow(default, default, caughtUp = true)),
@@ -133,7 +144,7 @@ class LinkedProfilesTest {
         runTest {
             val db = emptyDb()
             val linked = profiles(db)
-            linked.link(kids, kids)
+            linked.linkRunning(kids, kids)
             val first =
                 linked
                     .export()
@@ -158,7 +169,7 @@ class LinkedProfilesTest {
             val db = emptyDb()
             val linked = profiles(db)
             linked.link(default, LINK)
-            linked.link(kids, other)
+            linked.linkRunning(kids, other)
             linked.merge(names("""{"deleted":false,"hlc":"9:0:aaaaaaaa","link":"$other","name":"Children"}"""))
             linked.merge(names("""{"deleted":false,"hlc":"3:0:bbbbbbbb","link":"$other","name":"Older"}"""))
             coVerify(exactly = 1) { repository.rename(kids, "Children") }
@@ -212,7 +223,7 @@ class LinkedProfilesTest {
             val linked = profiles(db)
             linked.link(default, LINK)
             assertTrue(runCatching { linked.stopHere(default) }.isFailure)
-            linked.link(kids, kids)
+            linked.linkRunning(kids, kids)
             linked.stopEverywhere(kids)
             assertEquals(listOf(default), db.profiles().links().map { it.profile })
             assertTrue(
@@ -225,15 +236,25 @@ class LinkedProfilesTest {
         }
 
     @Test
-    fun a_new_device_joins_the_running_profile_s_link_or_the_first_one_synced() =
+    fun a_new_device_joins_default_s_link_whichever_profile_runs_or_the_first_one_synced() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val linked = profiles(g.deviceDb())
-            linked.link(kids, other)
+            linked.linkRunning(kids, other)
             linked.link(default, LINK)
-            assertEquals(LINK, linked.welcomeLink())
             registry.value = registry.value.copy(activeId = kids)
+            assertEquals(LINK, linked.welcomeLink())
+            linked.stopHere(default)
             assertEquals(other, linked.welcomeLink())
+        }
+
+    @Test
+    fun only_the_running_profile_links() =
+        runTest {
+            val db = emptyDb()
+            val linked = profiles(db)
+            assertTrue(runCatching { linked.link(kids, kids) }.isFailure)
+            assertEquals(emptyList<ProfileLinkRow>(), db.profiles().links())
         }
 
     @Test
@@ -243,7 +264,7 @@ class LinkedProfilesTest {
             val db = g.deviceDb()
             val linked = profiles(db)
             linked.link(default, LINK)
-            linked.link(kids, other)
+            linked.linkRunning(kids, other)
             registry.value = registry.value.copy(profiles = listOf(Profile(default)))
             assertEquals(listOf(default), linked.links(Session.open(db, g.store, g.a))?.map { it.profile })
         }

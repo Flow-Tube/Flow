@@ -2801,6 +2801,8 @@
     <string name="linked_profile_add_body">A new profile on this device syncs with it.</string>
     <string name="linked_profile_add">Add</string>
     <string name="linked_profile_limit">This device already has %1$d profiles.</string>
+    <string name="linked_profile_switch_body">Only the profile in use can start syncing, so Flow restarts in it first. Then turn on syncing there.</string>
+    <string name="linked_profile_switch">Switch to sync</string>
     <string name="sync_default_only_title">Switch to %1$s to sync</string>
     <string name="sync_devices_subtitle">Sync library, history &amp; profile over local Wi-Fi</string>
     <string name="sync_notification_title">Syncing devices</string>

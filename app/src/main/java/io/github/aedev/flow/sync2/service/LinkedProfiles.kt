@@ -29,11 +29,12 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** A profile on this device, and the link it syncs under when it does. */
+/** A profile on this device, the link it syncs under when it does, and whether it is the one running. */
 data class LocalProfile(
     val id: String,
     val name: String,
     val link: String?,
+    val running: Boolean = false,
 )
 
 /** A synced profile no profile here syncs; [name] is null when no device named it, and blank for a default profile never renamed. */
@@ -83,8 +84,9 @@ class LinkedProfiles
                 val linked = links.associate { it.profile to it.link }
                 val deleted = names.filter { it.deleted }.map { it.link }.toSet()
                 val known = names.map { it.link } + named.mapNotNull { Json.decodeFromString(String.serializer().nullable, it) }
+                val running = profiles.running().id
                 ProfileChoices(
-                    local = state.profiles.map { LocalProfile(it.id, it.displayName(context), linked[it.id]) },
+                    local = state.profiles.map { LocalProfile(it.id, it.displayName(context), linked[it.id], it.id == running) },
                     others =
                         known
                             .distinct()
@@ -118,8 +120,19 @@ class LinkedProfiles
             return dao.links()
         }
 
-        /** [profile] syncs under [link], its own id for a link of its own; its data merges with the link's. */
+        /**
+         * The running [profile] syncs under [link], its own id for a link of its own; its data merges with the link's. Only
+         * the running profile's data is sent, so another profile is switched to before it links.
+         */
         suspend fun link(
+            profile: String,
+            link: String,
+        ) {
+            check(profile == profiles.running().id)
+            choose(profile, link)
+        }
+
+        private suspend fun choose(
             profile: String,
             link: String,
         ) {
@@ -134,7 +147,7 @@ class LinkedProfiles
             name: String,
         ): Boolean {
             val created = profiles.create(name) as? CreateResult.Created ?: return false
-            link(created.profile.id, link)
+            choose(created.profile.id, link)
             return true
         }
 
@@ -163,16 +176,15 @@ class LinkedProfiles
         }
 
         /**
-         * The link a new device's Default joins: the running profile's when it syncs, else the first profile's here
-         * that does. A device whose every link was deleted adds no device until the user links a profile again.
+         * The link a new device's Default joins: Default's when it syncs, else the first profile's here that does, whichever
+         * profile runs. A device whose every link was deleted adds no device until the user links a profile again.
          */
         suspend fun welcomeLink(): String {
-            activeLink()?.let { return it }
             val linked = dao.links().associate { it.profile to it.link }
-            return profiles.state
-                .first()
-                .profiles
-                .firstNotNullOfOrNull { linked[it.id] } ?: throw LinkedException.NoProfileSynced()
+            val state = profiles.state.first()
+            return linked[state.defaultId]
+                ?: state.profiles.firstNotNullOfOrNull { linked[it.id] }
+                ?: throw LinkedException.NoProfileSynced()
         }
 
         /** This device's `profiles` records, after naming each link it syncs that has no record, or whose profile was renamed here. */

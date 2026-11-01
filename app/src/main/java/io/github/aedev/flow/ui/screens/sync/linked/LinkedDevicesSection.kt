@@ -14,6 +14,8 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.WEBDAV_STORE
 import io.github.aedev.flow.sync2.service.LinkPhase
+import io.github.aedev.flow.ui.components.profiles.ProfileSwitchViewModel
+import io.github.aedev.flow.ui.components.profiles.SwitchRefusals
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncScanContent
 import kotlinx.coroutines.delay
@@ -82,10 +84,13 @@ internal fun LinkedDevicesSection(
                 onAccept = viewModel::accept,
                 onDecline = viewModel::decline,
             ) {
+                val switcher: ProfileSwitchViewModel = hiltViewModel()
+                SwitchRefusals(switcher)
                 LinkedProfilesCard(
                     choices = profiles,
                     busy = state.busy,
                     onLink = viewModel::linkProfile,
+                    onSwitch = switcher::switchTo,
                     onCreateFor = viewModel::createProfileFor,
                     onStopHere = viewModel::stopProfileHere,
                     onStopEverywhere = viewModel::stopProfileEverywhere,
