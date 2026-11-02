@@ -176,4 +176,31 @@ class SnapshotsTest {
                     .isEmpty(),
             )
         }
+
+    @Test
+    fun a_new_device_falls_back_to_an_older_snapshot_when_a_blob_is_bad() =
+        runTest {
+            val breaks =
+                listOf<(MemoryStore, String) -> Unit>(
+                    { store, path -> store.take(path) },
+                    { store, path -> store.put(path, store.take(path).also { it[it.size - 1] = (it[it.size - 1] + 1).toByte() }) },
+                )
+            for (bad in breaks) {
+                val g = LinkedGroup(this).apply { create() }
+                val did = SyncBytes.toHex(g.a.did)
+                val a = Session.open(g.deviceDb(), g.store, g.a)
+                a.push(watched("aaaaaaaaaaa"), LINK)
+                a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+                a.push(watched("bbbbbbbbbbb"), LINK)
+                a.writeSnapshot(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
+                a.push(watched("ccccccccccc"), LINK)
+                g.store.take(StorePaths.log(did, 1))
+                val newest = parseObject(checkNotNull(g.store.objects[StorePaths.log(did, 4)]).second, g.group)
+                val manifest = parseManifest(decodePayload(newest.open(purposeKey(g.epochKey, g.group, 0, Purpose.SNAPSHOT))))
+                bad(g.store, StorePaths.blob(did, manifest.parts.single().blob))
+
+                val pulled = Session.open(g.deviceDb(), g.store, g.b).pull(setOf(LINK))
+                assertEquals(listOf("aaaaaaaaaaa", "bbbbbbbbbbb", "ccccccccccc"), videos(pulled.batches.values).distinct())
+            }
+        }
 }
