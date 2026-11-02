@@ -8,6 +8,7 @@ import io.github.aedev.flow.sync2.roster.entryJson
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.StorePaths
+import io.github.aedev.flow.sync2.store.checkSeq
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -146,7 +147,7 @@ class LanPeer(
                     }
 
                     "list" -> {
-                        val vv = header["vv"]?.jsonObject?.mapValues { (_, seq) -> seq.jsonPrimitive.long }.orEmpty()
+                        val vv = header["vv"]?.jsonObject?.mapValues { (_, seq) -> checkSeq(seq.jsonPrimitive.long) }.orEmpty()
                         val (paths, blobs) = local.list(vv)
                         ok(mapOf("blobs" to JsonArray(blobs.map(::JsonPrimitive)), "paths" to JsonArray(paths.map(::JsonPrimitive))))
                     }

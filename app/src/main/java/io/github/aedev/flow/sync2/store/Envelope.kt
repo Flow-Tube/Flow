@@ -25,6 +25,10 @@ const val MAX_OBJECT_SIZE = 4 * 1024 * 1024
 
 /** The largest integer every implementation reads exactly. */
 const val MAX_SEQ = (1L shl 53) - 1
+
+/** [seq], or a rejection when it is above [MAX_SEQ], in a header, a manifest, an ack or a version vector alike. */
+fun checkSeq(seq: Long): Long = if (seq in 0..MAX_SEQ) seq else reject(ProtocolError.RANGE)
+
 val ZERO_HASH = ByteArray(32)
 
 enum class ObjectType(
@@ -110,7 +114,7 @@ fun parseObject(
             prev = bytes.copyOfRange(50, 82),
         )
     if (!header.group.contentEquals(group)) reject(ProtocolError.GROUP)
-    if (header.seq !in 0..MAX_SEQ) reject(ProtocolError.RANGE)
+    checkSeq(header.seq)
     return ParsedObject(header, bytes)
 }
 

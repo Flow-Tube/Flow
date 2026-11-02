@@ -6,6 +6,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
+import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.data.CollectedRow
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.Facts
@@ -16,8 +17,10 @@ import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.Tip
 import io.github.aedev.flow.sync2.engine.VersionVector
 import io.github.aedev.flow.sync2.engine.collectGarbage
+import io.github.aedev.flow.sync2.engine.parseAck
 import io.github.aedev.flow.sync2.engine.writeSnapshot
 import io.github.aedev.flow.sync2.store.ChangeList
+import io.github.aedev.flow.sync2.store.MAX_SEQ
 import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StorePaths
 import kotlinx.coroutines.test.TestScope
@@ -93,6 +96,15 @@ class GarbageCollectionTest {
         assertEquals(Plan(), plan(setOf("a", "b"), setOf("a"), acks, listOf(snapshot("a", 6, "a" to 5)), links))
         val both = listOf(snapshot("a", 6, "a" to 5), snapshot("a", 8, "a" to 7, of = null))
         assertEquals(mapOf("a" to 1L..5L), plan(setOf("a", "b"), setOf("a"), acks, both, links).logs)
+    }
+
+    @Test
+    fun an_ack_naming_a_seq_above_2_53_is_refused() {
+        val ack = { seq: Long -> """{"vv":{"a":$seq}}""".toByteArray() }
+        assertEquals(mapOf("a" to MAX_SEQ), parseAck(ack(MAX_SEQ)))
+        for (seq in listOf(MAX_SEQ + 1, Long.MAX_VALUE, -1)) {
+            assertEquals("range", (runCatching { parseAck(ack(seq)) }.exceptionOrNull() as ProtocolException).error.code)
+        }
     }
 
     @Test

@@ -10,6 +10,7 @@ import io.github.aedev.flow.sync2.data.ManifestRow
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StorePaths
+import io.github.aedev.flow.sync2.store.checkSeq
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.MapSerializer
@@ -39,7 +40,7 @@ internal fun parseAck(content: ByteArray): VersionVector =
         Json.decodeFromString(Ack.serializer(), content.toString(Charsets.UTF_8)).vv
     } catch (_: SerializationException) {
         reject(ProtocolError.PAYLOAD)
-    }
+    }.onEach { checkSeq(it.value) }
 
 private val vvSerializer = MapSerializer(String.serializer(), Long.serializer())
 private val linkSerializer = String.serializer().nullable

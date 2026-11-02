@@ -6,6 +6,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.changes.IncomingBatch
+import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.Purpose
 import io.github.aedev.flow.sync2.crypto.decodePayload
 import io.github.aedev.flow.sync2.crypto.purposeKey
@@ -19,6 +20,7 @@ import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.buildEntry
 import io.github.aedev.flow.sync2.roster.memberSubject
+import io.github.aedev.flow.sync2.store.MAX_SEQ
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.parseObject
 import kotlinx.coroutines.test.runTest
@@ -79,6 +81,15 @@ class SnapshotsTest {
             snapshots.snapshotSoon()
             assertTrue(snapshots.isDue(LINK, 7 * day))
         }
+
+    @Test
+    fun a_manifest_naming_a_seq_above_2_53_is_refused() {
+        val manifest = { seq: Long -> """{"head":"h","link":null,"parts":[],"vv":{"a":{"hash":"x","seq":$seq}}}""".toByteArray() }
+        assertEquals(MAX_SEQ, parseManifest(manifest(MAX_SEQ)).vv.getValue("a").seq)
+        for (seq in listOf(MAX_SEQ + 1, Long.MAX_VALUE, -1)) {
+            assertEquals("range", (runCatching { parseManifest(manifest(seq)) }.exceptionOrNull() as ProtocolException).error.code)
+        }
+    }
 
     @Test
     fun records_are_split_below_the_blob_limit() {
