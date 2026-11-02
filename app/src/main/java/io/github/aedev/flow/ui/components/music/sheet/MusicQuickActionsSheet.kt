@@ -70,7 +70,7 @@ fun MusicQuickActionsSheet(
 ) {
     var page by rememberSaveable(track.videoId) { mutableStateOf(SongMenuPage.Actions) }
     val toActions = { page = SongMenuPage.Actions }
-    val artists = remember(track) { track.menuArtists() }
+    val artists by produceState(track.menuArtists(), track) { value = viewModel.resolveArtists(track) }
     val avatars by produceState(emptyMap<String, String>(), artists) {
         value = quickActions.channelAvatars(artists.mapNotNull { it.id })
     }

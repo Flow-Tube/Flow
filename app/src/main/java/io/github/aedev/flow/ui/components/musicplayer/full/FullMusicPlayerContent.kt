@@ -18,6 +18,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,7 +36,6 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.SleepTimerManager
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
-import io.github.aedev.flow.ui.components.music.sheet.menuArtists
 import io.github.aedev.flow.ui.components.musicplayer.common.PlayerBackdropColors
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerProgressSlider
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.DEFAULT_LYRICS_TEXT_SIZE
@@ -61,6 +61,7 @@ import io.github.aedev.flow.ui.screens.music.MusicVideoSwitchViewModel
 import io.github.aedev.flow.ui.screens.music.sharedMusicPlayerViewModel
 import io.github.aedev.flow.ui.utils.LocalWindowIsLandscape
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +79,7 @@ internal fun FullMusicPlayerContent(
     videoSwitch: MusicVideoSwitchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val artistScope = rememberCoroutineScope()
     val positionState = viewModel.currentPositionMs.collectAsState()
     val density = LocalDensity.current
     val colorScheme = MaterialTheme.colorScheme
@@ -279,10 +281,15 @@ internal fun FullMusicPlayerContent(
                             title = displayTitle,
                             artist = displayArtist,
                             onArtistClick = {
-                                val artists = (previewTrack ?: uiState.currentTrack)?.menuArtists().orEmpty()
-                                when {
-                                    artists.size > 1 -> sheets.artists = artists
-                                    artists.size == 1 -> navigator.openArtist(artists.first().id.orEmpty())
+                                val track = previewTrack ?: uiState.currentTrack
+                                if (track != null) {
+                                    artistScope.launch {
+                                        val artists = viewModel.resolveArtists(track)
+                                        when {
+                                            artists.size > 1 -> sheets.artists = artists
+                                            artists.size == 1 -> navigator.openArtist(artists.first().id.orEmpty())
+                                        }
+                                    }
                                 }
                             },
                             animateTitle = isPlayerSheetExpanded,
