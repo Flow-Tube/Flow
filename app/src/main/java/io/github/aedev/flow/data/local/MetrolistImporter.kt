@@ -1,6 +1,8 @@
 package io.github.aedev.flow.data.local
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.net.Uri
 import androidx.room.withTransaction
 import io.github.aedev.flow.data.local.entity.PlaylistEntity
@@ -21,6 +23,7 @@ import kotlinx.coroutines.withContext
  *   playlist          (id TEXT, name TEXT, thumbnailUrl TEXT, isLocal INTEGER)
  *   song              (id TEXT, title TEXT, thumbnailUrl TEXT, duration INTEGER, isLocal INTEGER)
  *   playlist_song_map (playlistId TEXT, songId TEXT, position INTEGER)
+ *   song_artist_map   (songId TEXT, artistId TEXT, position INTEGER), joined to artist (id, name, channelId)
  *
  * All imported content is tagged isMusic = true so it appears in the Music section.
  */
@@ -56,10 +59,10 @@ internal class MetrolistImporter(
 
                 // 2. Open the extracted database read-only
                 val db =
-                    android.database.sqlite.SQLiteDatabase.openDatabase(
+                    SQLiteDatabase.openDatabase(
                         tempDb.absolutePath,
                         null,
-                        android.database.sqlite.SQLiteDatabase.OPEN_READONLY,
+                        SQLiteDatabase.OPEN_READONLY,
                     )
 
                 var importedCount = 0
@@ -88,6 +91,8 @@ internal class MetrolistImporter(
                                 songs[c.getString(0)] = SongRow(c.getString(0), c.getString(1), c.getString(2), c.getInt(3))
                             }
                         }
+
+                    val credits = metrolistCredits(readArtistRows(db))
 
                     // 5. Load playlist-song mappings ordered by position
                     val playlistSongs = mutableMapOf<String, MutableList<Pair<String, Int>>>()
@@ -134,19 +139,23 @@ internal class MetrolistImporter(
                                         ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(songId)
                                     } ?: ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(songId)
 
-                                database.videoDao().insertVideoOrIgnore(
-                                    VideoEntity(
-                                        id = songId,
-                                        title = row?.title ?: "",
-                                        channelName = "",
-                                        channelId = "",
-                                        thumbnailUrl = thumb,
-                                        duration = row?.duration ?: 0,
-                                        viewCount = 0L,
-                                        uploadDate = "",
-                                        description = "",
-                                        channelThumbnailUrl = "",
-                                        isMusic = true,
+                                val credit = credits[songId]
+                                // Fills what an earlier import left blank, so importing again repairs it.
+                                database.videoDao().mergeMetadata(
+                                    listOf(
+                                        VideoEntity(
+                                            id = songId,
+                                            title = row?.title ?: "",
+                                            channelName = credit?.names.orEmpty(),
+                                            channelId = credit?.channelId.orEmpty(),
+                                            thumbnailUrl = thumb,
+                                            duration = row?.duration ?: 0,
+                                            viewCount = 0L,
+                                            uploadDate = "",
+                                            description = "",
+                                            channelThumbnailUrl = "",
+                                            isMusic = true,
+                                        ),
                                     ),
                                 )
                                 database.playlistDao().insertPlaylistVideoCrossRef(
@@ -173,4 +182,55 @@ internal class MetrolistImporter(
                 tempDb.delete()
             }
         }
+
+    // Older backups predate the artist tables; their songs import without artists, as before.
+    private fun readArtistRows(db: SQLiteDatabase): List<MetrolistArtistRow> =
+        try {
+            db
+                .rawQuery(
+                    "SELECT m.songId, a.name, a.channelId, a.id, m.position FROM song_artist_map m JOIN artist a ON a.id = m.artistId",
+                    null,
+                ).use { c ->
+                    buildList {
+                        while (c.moveToNext()) {
+                            add(
+                                MetrolistArtistRow(
+                                    songId = c.getString(0),
+                                    name = c.getString(1),
+                                    channelId = c.getString(2)?.takeIf { it.isNotBlank() } ?: c.getString(3),
+                                    position = c.getInt(4),
+                                ),
+                            )
+                        }
+                    }
+                }
+        } catch (e: SQLiteException) {
+            emptyList()
+        }
 }
+
+internal data class MetrolistArtistRow(
+    val songId: String,
+    val name: String?,
+    val channelId: String?,
+    val position: Int,
+)
+
+internal data class MetrolistCredit(
+    val names: String,
+    val channelId: String,
+)
+
+/** Every song's artists in credit order, joined the way the app shows them, with the first artist's channel. */
+internal fun metrolistCredits(rows: List<MetrolistArtistRow>): Map<String, MetrolistCredit> =
+    rows
+        .groupBy { it.songId }
+        .mapNotNull { (songId, artists) ->
+            val named = artists.sortedBy { it.position }.filter { !it.name.isNullOrBlank() }
+            val first = named.firstOrNull() ?: return@mapNotNull null
+            songId to
+                MetrolistCredit(
+                    names = named.joinToString(", ") { it.name.orEmpty().trim() },
+                    channelId = first.channelId?.takeIf { it.startsWith("UC") }.orEmpty(),
+                )
+        }.toMap()
