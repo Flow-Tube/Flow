@@ -78,4 +78,20 @@ class MembershipTest {
             assertEquals("Laptop", names.getValue(a).name)
             assertEquals("Studio", names.getValue(b).name)
         }
+
+    @Test
+    fun a_signed_name_that_can_not_be_read_is_left_out() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val db = g.deviceDb()
+            val a = SyncBytes.toHex(g.a.did)
+            renameDevice(Session.open(db, g.store, g.a), g.a, a, meta("Laptop"))
+            for (sealed in listOf("not base64url!", SyncBytes.b64urlEncode(ByteArray(100)))) {
+                val state = g.store.head()
+                val rename = buildEntry(g.group, state, draft(Op.RENAME, g.a).copy(meta = mapOf(a to sealed)), listOf(g.a))
+                g.store.appendRoster(state.head, rename, emptyMap(), null)
+            }
+
+            assertEquals("Laptop", deviceNames(Session.open(db, g.store, g.a)).getValue(a).name)
+        }
 }
