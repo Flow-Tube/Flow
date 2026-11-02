@@ -46,6 +46,13 @@ internal object PlayerAppearanceIndex {
             section = R.string.settings_section_seek_bar,
             revealVia = "player_appearance.fullscreen_width",
         )
+    val idleProgressBar =
+        entry(
+            "idle_progress_bar",
+            R.string.player_appearance_idle_progress_title,
+            R.string.player_appearance_idle_progress_subtitle,
+            R.string.settings_section_seek_bar,
+        )
     val scrubPreview =
         entry(
             "scrub_preview",
@@ -180,6 +187,7 @@ internal object PlayerAppearanceIndex {
             portraitCustom,
             fullscreenWidth,
             fullscreenCustom,
+            idleProgressBar,
             scrubPreview,
             frameStep,
             musicBackground,

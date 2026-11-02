@@ -979,6 +979,11 @@
     <string name="player_fullscreen_seekbar_width_default">Default</string>
     <string name="player_fullscreen_seekbar_width_custom">Custom</string>
     <string name="player_fullscreen_seekbar_width_value">%1$d dp</string>
+    <string name="player_appearance_idle_progress_title">Progress Bar With Hidden Controls</string>
+    <string name="player_appearance_idle_progress_subtitle">Where the thin bar sits in portrait</string>
+    <string name="player_appearance_idle_progress_on_video">On video</string>
+    <string name="player_appearance_idle_progress_below">Below</string>
+    <string name="player_appearance_idle_progress_off">Off</string>
     <string name="player_appearance_scrub_preview_title">Scrub Preview</string>
     <string name="player_appearance_scrub_preview_subtitle">What the seekbar shows while you drag it</string>
     <string name="player_appearance_scrub_preview_strip">Filmstrip</string>

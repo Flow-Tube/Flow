@@ -449,6 +449,7 @@ class PlayerPreferences(
         // Fullscreen Player
         val PORTRAIT_SEEKBAR_PADDING_MODE = device(stringPreferencesKey("portrait_seekbar_padding_mode"))
         val PORTRAIT_SEEKBAR_CUSTOM_PADDING_DP = device(intPreferencesKey("portrait_seekbar_custom_padding_dp"))
+        val PORTRAIT_IDLE_PROGRESS_BAR = device(stringPreferencesKey("portrait_idle_progress_bar"))
         val FULLSCREEN_SEEKBAR_PADDING_MODE = device(stringPreferencesKey("fullscreen_seekbar_padding_mode"))
         val FULLSCREEN_SEEKBAR_CUSTOM_PADDING_DP = device(intPreferencesKey("fullscreen_seekbar_custom_padding_dp"))
         val FRAME_STEP_BUTTONS_ENABLED = device(booleanPreferencesKey("frame_step_buttons_enabled"))
@@ -782,6 +783,7 @@ class PlayerPreferences(
                     defaultPaddingDp = DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP,
                     maxPaddingDp = MAX_PORTRAIT_SEEKBAR_PADDING_DP,
                 ),
+            idleProgressBar = resolveIdleProgressBar(device[DeviceKeys.PORTRAIT_IDLE_PROGRESS_BAR]),
             scrubPreviewStyle = resolveScrubPreviewStyle(profile[Keys.SCRUB_PREVIEW_STYLE]),
             frameStepButtonsEnabled =
                 device[DeviceKeys.FRAME_STEP_BUTTONS_ENABLED] ?: overlayDefaults.frameStepButtonsEnabled,
@@ -2072,6 +2074,16 @@ class PlayerPreferences(
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PORTRAIT_SEEKBAR_CUSTOM_PADDING_DP] =
                 paddingDp.coerceIn(0, MAX_PORTRAIT_SEEKBAR_PADDING_DP)
+        }
+    }
+
+    val idleProgressBar: Flow<IdleProgressBar> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> resolveIdleProgressBar(preferences[DeviceKeys.PORTRAIT_IDLE_PROGRESS_BAR]) }
+
+    suspend fun setIdleProgressBar(position: IdleProgressBar) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.PORTRAIT_IDLE_PROGRESS_BAR] = position.name
         }
     }
 
@@ -4295,6 +4307,16 @@ enum class SeekbarPaddingMode {
     DEFAULT,
     CUSTOM,
 }
+
+/** Where the portrait player draws its thin progress bar while the controls are hidden (#1550). */
+enum class IdleProgressBar {
+    ON_VIDEO,
+    BELOW_VIDEO,
+    OFF,
+}
+
+internal fun resolveIdleProgressBar(stored: String?): IdleProgressBar =
+    stored?.let { value -> IdleProgressBar.entries.firstOrNull { it.name == value } } ?: IdleProgressBar.ON_VIDEO
 
 /** What a scrub shows above the bar: a filmstrip around the target, or the single frame under it. */
 enum class ScrubPreviewStyle {
