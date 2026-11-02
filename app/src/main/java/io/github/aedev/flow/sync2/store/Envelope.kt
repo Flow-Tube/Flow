@@ -20,6 +20,8 @@ private val MAGIC = byteArrayOf('F'.code.toByte(), 'S'.code.toByte(), '2'.code.t
 const val SUITE: Byte = 0x01
 const val HEADER_SIZE = 82
 private const val SIGNATURE_SIZE = 64
+private const val SENDER_AT = 26
+private const val SEQ_AT = 42
 const val MIN_OBJECT_SIZE = HEADER_SIZE + BOX_OVERHEAD + 256 + SIGNATURE_SIZE
 const val MAX_OBJECT_SIZE = 4 * 1024 * 1024
 
@@ -105,14 +107,24 @@ fun parseObject(
             type = type,
             group = bytes.copyOfRange(6, 22),
             epoch = buffer.getInt(22),
-            sender = bytes.copyOfRange(26, 42),
-            seq = buffer.getLong(42),
+            sender = bytes.copyOfRange(SENDER_AT, SEQ_AT),
+            seq = buffer.getLong(SEQ_AT),
             prev = bytes.copyOfRange(50, 82),
         )
     if (!header.group.contentEquals(group)) reject(ProtocolError.GROUP)
     if (header.seq !in 0..MAX_SEQ) reject(ProtocolError.RANGE)
     return ParsedObject(header, bytes)
 }
+
+/** Whether [bytes] start as [sender]'s log object [seq]; anything else, such as an error page, is no object at all. */
+fun namesLogObject(
+    bytes: ByteArray,
+    sender: ByteArray,
+    seq: Long,
+): Boolean =
+    bytes.size >= HEADER_SIZE &&
+        bytes.copyOfRange(SENDER_AT, SEQ_AT).contentEquals(sender) &&
+        ByteBuffer.wrap(bytes).getLong(SEQ_AT) == seq
 
 class StreamPosition(
     val seq: Long,

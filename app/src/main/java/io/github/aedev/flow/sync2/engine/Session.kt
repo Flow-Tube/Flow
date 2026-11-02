@@ -260,6 +260,7 @@ class Session private constructor(
         while (true) {
             val (changes, next) = store.changes(cursor)
             if (changes.isEmpty()) break
+            val before = positions.mapValues { it.value.seq }
             // Objects of one sender may be listed out of order: retry while a pass makes progress.
             var waiting =
                 changes
@@ -301,6 +302,8 @@ class Session private constructor(
                 held = held ?: cursor
                 waiting.forEach { (did, seq) -> stopped.merge(did, seq, ::minOf) }
             }
+            // A page that moves neither the cursor nor any log would be handed out forever.
+            if (next <= cursor && positions.all { (did, at) -> before[did] == at.seq }) break
             cursor = next
         }
         return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone)
