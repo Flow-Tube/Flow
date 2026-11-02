@@ -5,6 +5,7 @@ enum class ProtocolError(
     val code: String,
 ) {
     LENGTH("length"),
+    RANGE("range"),
     MAGIC("magic"),
     SUITE("suite"),
     GROUP("group"),
