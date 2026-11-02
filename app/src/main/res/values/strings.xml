@@ -2745,6 +2745,11 @@
     <string name="linked_removed_title">This device was removed</string>
     <string name="linked_removed_body">This device is no longer in the group, so it stopped syncing. Forget the group here to link it again.</string>
     <string name="linked_recovery_unsaved">Your recovery words aren\'t confirmed yet.</string>
+    <string name="linked_replace_words">Replace recovery words</string>
+    <string name="linked_replace_words_hint">Get new words if the old ones were lost or someone else saw them</string>
+    <string name="linked_replace_words_title">Replace your recovery words?</string>
+    <string name="linked_replace_words_body">Flow makes new recovery words and new encryption keys for your devices. The old words stop working: they can\'t restore this group or read anything synced from now on. Write the new words down when they appear.</string>
+    <string name="linked_replace">Replace</string>
     <string name="linked_words_title">Write down your recovery words</string>
     <string name="linked_words_body">They are the only way back in if you lose every device. They are shown once; keep them somewhere safe and offline.</string>
     <string name="linked_words_saved">I wrote them down</string>

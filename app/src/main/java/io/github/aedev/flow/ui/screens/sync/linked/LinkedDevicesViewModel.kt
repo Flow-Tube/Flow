@@ -198,6 +198,8 @@ internal class LinkedDevicesViewModel
                 local.update { it.copy(words = null) }
             }
 
+        fun replaceWords() = run { local.update { it.copy(words = actions.replaceRecoveryWords()) } }
+
         fun rename(
             id: String,
             name: String,

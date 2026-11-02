@@ -50,6 +50,7 @@ internal fun LinkedOverview(
     onScanNewDevice: (() -> Unit)?,
     onRename: (id: String, name: String) -> Unit,
     onRemove: (id: String) -> Unit,
+    onReplaceWords: () -> Unit,
     onLeave: () -> Unit,
     onForget: () -> Unit,
     onUpdateLogin: (user: String, password: String) -> Unit,
@@ -130,6 +131,7 @@ internal fun LinkedOverview(
     }
     profiles()
     DeviceList(state.devices.orEmpty(), state.nearby, state.kinds, state.busy, consent, onRename, onRemove, onConsent)
+    ReplaceRecoveryWords(state.busy, onReplaceWords)
     onScanNewDevice?.let {
         SyncActionRow(confirmLabel = stringResource(R.string.linked_scan_new_device), onConfirm = it, confirmEnabled = !state.busy)
     }
