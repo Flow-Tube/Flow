@@ -39,6 +39,11 @@ object GlobalPlayerState {
     private val _isInPipMode = MutableStateFlow(false)
     val isInPipMode: StateFlow<Boolean> = _isInPipMode.asStateFlow()
 
+    private val _isEnteringPip = MutableStateFlow(false)
+
+    /** Android 15+: the PiP entry animation has started but the window is not in PiP yet. */
+    val isEnteringPip: StateFlow<Boolean> = _isEnteringPip.asStateFlow()
+
     private val _isExplicitBackgroundPlaybackActive = MutableStateFlow(false)
     val isExplicitBackgroundPlaybackActive: StateFlow<Boolean> =
         _isExplicitBackgroundPlaybackActive.asStateFlow()
@@ -80,6 +85,11 @@ object GlobalPlayerState {
      */
     fun setPipMode(inPipMode: Boolean) {
         _isInPipMode.value = inPipMode
+        _isEnteringPip.value = false
+    }
+
+    fun setEnteringPip(entering: Boolean) {
+        _isEnteringPip.value = entering
     }
 
     fun setExplicitBackgroundPlaybackActive(active: Boolean) {

@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.videoplayer
 
+import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.PowerManager
@@ -38,6 +39,7 @@ import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PictureInPictureHelper
+import io.github.aedev.flow.player.PipBounds
 import io.github.aedev.flow.player.toDisplayAspectRatioOrNull
 import io.github.aedev.flow.ui.components.shared.clipToCornerRadius
 import io.github.aedev.flow.ui.components.shared.flowPlayerViewLayout
@@ -163,7 +165,10 @@ fun VideoPlayerSurface(
         val rect = android.graphics.Rect()
         val updateHint = {
             if (playerView.getGlobalVisibleRect(rect) && !rect.isEmpty) {
-                PictureInPictureHelper.sourceRectHint = android.graphics.Rect(rect)
+                PictureInPictureHelper.setVideoViewBounds(
+                    context as? Activity,
+                    PipBounds(rect.left, rect.top, rect.right, rect.bottom),
+                )
             }
         }
         val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateHint() }
@@ -171,7 +176,7 @@ fun VideoPlayerSurface(
         updateHint()
         onDispose {
             playerView.removeOnLayoutChangeListener(listener)
-            PictureInPictureHelper.sourceRectHint = null
+            PictureInPictureHelper.setVideoViewBounds(context as? Activity, null)
         }
     }
 

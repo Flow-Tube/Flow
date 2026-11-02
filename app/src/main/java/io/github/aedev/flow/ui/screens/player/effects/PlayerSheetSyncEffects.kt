@@ -268,9 +268,15 @@ internal fun PlayerEndAndPipEffects(
     playerSheetState: PlayerDraggableState,
     screenState: PlayerScreenState,
     isInPipMode: Boolean,
+    isEnteringPip: Boolean,
     isLandscape: Boolean,
     pipForcedFullscreen: MutableState<Boolean>,
 ) {
+    // Controls drawn as the window shrinks end up in the PiP animation's first frames.
+    LaunchedEffect(isEnteringPip) {
+        if (isEnteringPip) screenState.showControls = false
+    }
+
     LaunchedEffect(playerState.hasEnded, playerSheetState.currentValue, isInPipMode) {
         if (
             playerState.hasEnded &&

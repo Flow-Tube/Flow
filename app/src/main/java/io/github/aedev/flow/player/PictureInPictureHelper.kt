@@ -38,8 +38,42 @@ object PictureInPictureHelper {
     private const val REQUEST_CODE_CLOSE = 5
     private const val ACTION_PICTURE_IN_PICTURE_SETTINGS = "android.settings.PICTURE_IN_PICTURE_SETTINGS"
 
+    /** The video player view's bounds in the window; the PiP source hint is the video's part of it. */
     @Volatile
-    var sourceRectHint: android.graphics.Rect? = null
+    internal var videoViewBounds: PipBounds? = null
+        private set
+
+    private class ArmedParams(
+        val isPlaying: Boolean,
+        val navigation: PipQueueNavigation?,
+        val offerBackground: Boolean,
+    )
+
+    @Volatile
+    private var armedParams: ArmedParams? = null
+
+    /**
+     * Records where the player view sits. Auto-enter uses the params already handed to the window, so
+     * when they are armed they are handed over again with the new source hint, or the system finds an
+     * empty hint and scales the whole page into the window.
+     */
+    internal fun setVideoViewBounds(
+        activity: Activity?,
+        bounds: PipBounds?,
+    ) {
+        if (bounds == videoViewBounds) return
+        videoViewBounds = bounds
+        val armed = armedParams?.takeIf { isAutoEnterArmed } ?: return
+        if (activity == null || bounds == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        if (activity.isInPictureInPictureMode || GlobalPlayerState.isEnteringPip.value) return
+        updatePipParams(
+            activity = activity,
+            isPlaying = armed.isPlaying,
+            autoEnterEnabled = true,
+            navigation = armed.navigation,
+            offerBackground = armed.offerBackground,
+        )
+    }
 
     /** Published by the Shorts pager so the window it enters PiP with already carries skip buttons. */
     @Volatile
@@ -231,6 +265,7 @@ object PictureInPictureHelper {
         navigation: PipQueueNavigation? = null,
     ) {
         if (!isPipSupported(activity)) return
+        armedParams = ArmedParams(isPlaying, navigation, offerBackground).takeIf { autoEnterEnabled }
 
         try {
             val params =
@@ -268,7 +303,9 @@ object PictureInPictureHelper {
                 .setAspectRatio(aspectRatio)
                 .setActions(actions)
 
-        sourceRectHint?.takeIf { !it.isEmpty }?.let { builder.setSourceRectHint(it) }
+        videoViewBounds
+            ?.let { pipSourceBounds(it, safeAspectRatio) }
+            ?.let { builder.setSourceRectHint(android.graphics.Rect(it.left, it.top, it.right, it.bottom)) }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             builder.setAutoEnterEnabled(autoEnterEnabled)
