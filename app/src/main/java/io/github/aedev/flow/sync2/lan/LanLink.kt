@@ -25,6 +25,7 @@ import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.b64
+import io.github.aedev.flow.sync2.store.MAX_OBJECT_SIZE
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -38,11 +39,11 @@ import java.nio.ByteBuffer
 private const val NONCE_SIZE = 32
 private const val SIGNATURE_SIZE = 64
 
-/** The most a LAN frame's payload may hold (spec/live.md, Session). */
-const val MAX_LAN_PAYLOAD = 4 * 1024 * 1024
+/** The most a LAN frame's content may hold: a full object and its header line (spec/live.md, Requests). */
+const val MAX_LAN_CONTENT = MAX_OBJECT_SIZE + 64 * 1024
 
-/** Room for a payload's gzip, padding (at most 1/32 at this size), box and `seq`. */
-const val MAX_LAN_FRAME = MAX_LAN_PAYLOAD + MAX_LAN_PAYLOAD / 16L
+/** The largest frame a device accepts: that content after gzip, padding, box and `seq`. */
+const val MAX_LAN_FRAME = MAX_OBJECT_SIZE + 256 * 1024L
 
 /**
  * A LAN session between two members (spec/live.md, Session), once the hello has checked both: each
@@ -63,6 +64,7 @@ class LanLink internal constructor(
 
     suspend fun send(content: ByteArray) =
         sending.withLock {
+            if (content.size > MAX_LAN_CONTENT) reject(ProtocolError.LENGTH)
             connection.send(u64(sent) + seal(sendKey, lanFrameAad(sent), encodePayload(content)))
             sent++
         }
@@ -72,7 +74,7 @@ class LanLink internal constructor(
         val frame = connection.receive() ?: return null
         if (frame.size < 8 || ByteBuffer.wrap(frame, 0, 8).long != received) reject(ProtocolError.REPLAY)
         val content = decodePayload(open(receiveKey, lanFrameAad(received), frame.copyOfRange(8, frame.size)))
-        if (content.size > MAX_LAN_PAYLOAD) reject(ProtocolError.LENGTH)
+        if (content.size > MAX_LAN_CONTENT) reject(ProtocolError.LENGTH)
         received++
         return content
     }
