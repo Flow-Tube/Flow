@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -208,14 +209,14 @@ class LinkedProfilesTest {
         }
 
     @Test
-    fun a_deleted_only_link_leaves_this_device_with_none_and_no_device_to_add() =
+    fun a_deleted_only_link_leaves_this_device_with_none_and_a_new_link_to_offer() =
         runTest {
             val db = emptyDb()
             val linked = profiles(db)
             linked.link(default, LINK)
             linked.merge(names("""{"deleted":true,"hlc":"20:0:aaaaaaaa","link":"$LINK","name":""}"""))
             assertEquals(emptyList<ProfileLinkRow>(), db.profiles().links())
-            assertTrue(runCatching { linked.welcomeLink() }.exceptionOrNull() is LinkedException.NoProfileSynced)
+            assertNotEquals(LINK, linked.welcomeLink())
         }
 
     @Test
@@ -238,7 +239,7 @@ class LinkedProfilesTest {
         }
 
     @Test
-    fun a_new_device_joins_default_s_link_whichever_profile_runs_or_the_first_one_synced() =
+    fun a_new_device_joins_default_s_link_whichever_profile_runs_and_never_another_one() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val linked = profiles(g.deviceDb())
@@ -247,7 +248,9 @@ class LinkedProfilesTest {
             registry.value = registry.value.copy(activeId = kids)
             assertEquals(LINK, linked.welcomeLink())
             linked.stopHere(default)
-            assertEquals(other, linked.welcomeLink())
+            val fresh = linked.welcomeLink()
+            assertNotEquals(other, fresh)
+            assertNotEquals(LINK, fresh)
         }
 
     @Test

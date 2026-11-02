@@ -2778,7 +2778,6 @@
     <string name="linked_reset_server_warning">This permanently deletes the group and all its synced data on the server, for every device. Devices still in that group stop syncing. Data on each device stays. This can\'t be undone.</string>
     <string name="linked_reset_server_confirm">Reset and create</string>
     <string name="linked_error_server_has_group">This server already has a group. Join it from a device that\'s already linked.</string>
-    <string name="linked_error_no_profile_synced">Choose a profile to sync before adding a device.</string>
     <string name="linked_error_needs_member">This is a new device\'s code. Scan it from a device that\'s already in the group.</string>
     <string name="linked_error_already_linked">This device is already in a group.</string>
     <string name="linked_error_unexpected">The other device sent something unexpected. Try again.</string>
