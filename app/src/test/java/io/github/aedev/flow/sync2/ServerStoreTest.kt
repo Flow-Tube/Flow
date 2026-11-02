@@ -37,6 +37,7 @@ class ServerStoreTest {
     /** Answers the sign-in, issuing `t1`, `t2`, … only for a valid signature, and [routes] for the rest. */
     private fun serve(
         instance: String = instanceId,
+        expires: Long = Long.MAX_VALUE / 2,
         routes: suspend ApplicationCall.() -> Unit,
     ) {
         val nonce = ByteArray(32) { 5 }
@@ -55,7 +56,7 @@ class ServerStoreTest {
                         val message = tag("auth") + SyncBytes.fromHex(instance) + SyncBytes.fromHex(groupId) + nonce
                         val signature = SyncBytes.b64urlDecode(body.getValue("sig").jsonPrimitive.content)
                         if (verify(member.sigPublic, message, signature)) {
-                            respondJson(200, """{"token":"t${++issued}","expires":${Long.MAX_VALUE / 2}}""")
+                            respondJson(200, """{"token":"t${++issued}","expires":$expires}""")
                         } else {
                             respondJson(401, """{"error":"unauthorized"}""")
                         }
@@ -106,6 +107,20 @@ class ServerStoreTest {
             val store = store()
             assertTrue(store.rosterAfter(-1).isEmpty())
             assertEquals(instanceId to groupId, store.identity())
+        }
+
+    @Test
+    fun the_next_store_reuses_the_token_until_it_nearly_expires() =
+        runTest {
+            serve { respondJson(200, """{"entries":[]}""") }
+            store().rosterAfter(-1)
+            store().rosterAfter(-1)
+            assertEquals(1, issued)
+            stop()
+            serve(expires = System.currentTimeMillis() + 30_000) { respondJson(200, """{"entries":[]}""") }
+            store().rosterAfter(-1)
+            store().rosterAfter(-1)
+            assertEquals(3, issued)
         }
 
     @Test

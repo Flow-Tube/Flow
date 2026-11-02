@@ -41,6 +41,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.io.IOException
 import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /** Refresh a token this long before it expires. */
@@ -65,9 +66,20 @@ class ServerStore private constructor(
 ) : ChangeList,
     Remote {
     private val session = Mutex()
-    private var token: Pair<String, Long>? = null
+    private val tokenKey = "$base ${SyncBytes.toHex(member.did)}"
+
+    /** A token and the instance and group it was issued for. */
+    private class Issued(
+        val value: String,
+        val expires: Long,
+        val instance: String,
+        val group: String,
+    )
 
     companion object {
+        // Shared by every store of the process, so each sync run doesn't sign in again.
+        private val tokens = ConcurrentHashMap<String, Issued>()
+
         /**
          * Prepares a connection to [url] for [member]. HTTPS anywhere; plain HTTP only to a private
          * address or a `.local` name. [instance] and [group] are the ids pinned at pairing; a device
@@ -153,13 +165,23 @@ class ServerStore private constructor(
         val expires = issued["expires"]?.jsonPrimitive?.longOrNull ?: throw StoreException.Malformed()
         instance = instanceId
         group = groupId
-        token = value to expires
+        tokens[tokenKey] = Issued(value, expires, instanceId, groupId)
         return value
     }
 
     private suspend fun token(renew: Boolean): String =
         session.withLock {
-            token?.takeIf { (_, expires) -> !renew && expires > System.currentTimeMillis() + TOKEN_MARGIN_MS }?.first ?: signIn()
+            val held =
+                tokens[tokenKey]?.takeIf {
+                    !renew &&
+                        it.expires > System.currentTimeMillis() + TOKEN_MARGIN_MS &&
+                        instance.let { pinned -> pinned == null || pinned == it.instance } &&
+                        group.let { pinned -> pinned == null || pinned == it.group }
+                }
+            if (held == null) return@withLock signIn()
+            instance = held.instance
+            group = held.group
+            held.value
         }
 
     /** Sends an authenticated request, signing in again once if the token was refused. */
