@@ -22,6 +22,9 @@ const val HEADER_SIZE = 82
 private const val SIGNATURE_SIZE = 64
 const val MIN_OBJECT_SIZE = HEADER_SIZE + BOX_OVERHEAD + 256 + SIGNATURE_SIZE
 const val MAX_OBJECT_SIZE = 4 * 1024 * 1024
+
+/** The largest integer every implementation reads exactly. */
+const val MAX_SEQ = (1L shl 53) - 1
 val ZERO_HASH = ByteArray(32)
 
 enum class ObjectType(
@@ -107,6 +110,7 @@ fun parseObject(
             prev = bytes.copyOfRange(50, 82),
         )
     if (!header.group.contentEquals(group)) reject(ProtocolError.GROUP)
+    if (header.seq !in 0..MAX_SEQ) reject(ProtocolError.RANGE)
     return ParsedObject(header, bytes)
 }
 
