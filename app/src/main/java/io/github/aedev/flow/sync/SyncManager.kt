@@ -35,6 +35,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,6 +83,7 @@ class SyncManager
         private var sasDeferred: CompletableDeferred<Boolean>? = null
         private var consentDeferred: CompletableDeferred<Boolean>? = null
         private var hostPairing: HostPairing? = null
+        private var foregroundToken: Long? = null
 
         /** When the shown code lapses; the listener closes then, since scanners no longer check `exp`. */
         @Volatile private var hostExpiresAtEpochSeconds = 0L
@@ -104,7 +106,12 @@ class SyncManager
             collections: List<String>,
         ) {
             if (job?.isActive == true) return
-            job = scope.launch { if (!refusedOutsideSyncProfile()) runHost(role, collections) }
+            val previous = job
+            job =
+                scope.launch {
+                    previous?.cancelAndJoin()
+                    if (!refusedOutsideSyncProfile()) runHost(role, collections)
+                }
         }
 
         /** Become the client (scan a QR) in the given [role]. [collections] is only used when SENDER. */
@@ -114,7 +121,12 @@ class SyncManager
             collections: List<String>,
         ) {
             if (job?.isActive == true) return
-            job = scope.launch { if (!refusedOutsideSyncProfile()) runClient(role, qrText, collections) }
+            val previous = job
+            job =
+                scope.launch {
+                    previous?.cancelAndJoin()
+                    if (!refusedOutsideSyncProfile()) runClient(role, qrText, collections)
+                }
         }
 
         /** A session is pairing, transferring or merging. */
@@ -197,7 +209,7 @@ class SyncManager
                 LanAddress.logCandidates(ip)
                 if (ip == null) throw IllegalStateException(context.getString(R.string.sync_error_no_network))
 
-                SyncForegroundService.start(context)
+                foregroundToken = SyncForegroundService.start(context)
                 val srv = WsServer()
                 server = srv
                 val port = srv.start()
@@ -269,7 +281,7 @@ class SyncManager
                 directionalKeys = keys
                 val sas = SyncCrypto.sas(master, parsed.sessionId)
 
-                SyncForegroundService.start(context)
+                foregroundToken = SyncForegroundService.start(context)
                 _state.value = SyncState.Connecting
                 val conn = connectAny(parsed.wsUrls)
                 connection = conn
@@ -399,7 +411,8 @@ class SyncManager
             sasDeferred = null
             consentDeferred = null
             hostPairing = null
-            runCatching { SyncForegroundService.stop(context) }
+            foregroundToken?.let { token -> runCatching { SyncForegroundService.stop(context, token) } }
+            foregroundToken = null
         }
 
         private fun qrErrorMessage(error: QrCodec.QrError): String =

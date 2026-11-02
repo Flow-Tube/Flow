@@ -216,11 +216,11 @@ fun QuickActionsHeader(
     }
 }
 
-/** The title row of a page inside the sheet, with the way back to the menu. */
+/** The title row of a page inside the sheet, with the way back to the menu when there is one. */
 @Composable
 fun QuickActionsPageHeader(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onClose: () -> Unit,
 ) {
     FlowSheetHeader(

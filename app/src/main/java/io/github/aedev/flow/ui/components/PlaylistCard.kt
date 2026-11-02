@@ -89,7 +89,7 @@ fun PlaylistCard(
         title = playlist.name,
         description = playlist.description,
         thumbnailUrl = playlist.thumbnailUrl,
-        videoCount = playlist.videoCount,
+        videoCount = playlist.knownVideoCount(),
         isCourse = playlist.isCourse,
         onClick = onClick,
         onDeleteClick = null,
@@ -104,7 +104,7 @@ private fun PlaylistCardContent(
     title: String,
     description: String,
     thumbnailUrl: String,
-    videoCount: Int,
+    videoCount: Int?,
     onClick: () -> Unit,
     onDeleteClick: (() -> Unit)?,
     layout: PlaylistCardLayout,
@@ -113,11 +113,13 @@ private fun PlaylistCardContent(
     isCourse: Boolean = false,
 ) {
     val metadata =
-        pluralStringResource(
-            if (isCourse) R.plurals.course_lessons_count else R.plurals.videos_count_template,
-            videoCount,
-            videoCount,
-        )
+        videoCount?.let {
+            pluralStringResource(
+                if (isCourse) R.plurals.course_lessons_count else R.plurals.videos_count_template,
+                it,
+                it,
+            )
+        }
 
     if (layout == PlaylistCardLayout.SHELF) {
         Column(
@@ -259,7 +261,7 @@ private fun PlaylistArtworkImage(
 @Composable
 private fun LayeredPlaylistArtwork(
     thumbnailUrl: String,
-    videoCount: Int,
+    videoCount: Int?,
     modifier: Modifier = Modifier,
 ) {
     val artworkUrl = thumbnailUrlOrNull(thumbnailUrl).orEmpty()
@@ -310,14 +312,16 @@ private fun LayeredPlaylistArtwork(
                 )
             }
 
-            MediaTextBadge(
-                text = videoCount.toString(),
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp),
-                leadingIcon = Icons.AutoMirrored.Filled.PlaylistPlay,
-            )
+            if (videoCount != null) {
+                MediaTextBadge(
+                    text = videoCount.toString(),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp),
+                    leadingIcon = Icons.AutoMirrored.Filled.PlaylistPlay,
+                )
+            }
         }
     }
 }
@@ -325,7 +329,7 @@ private fun LayeredPlaylistArtwork(
 @Composable
 private fun PlaylistCardText(
     title: String,
-    metadata: String,
+    metadata: String?,
     description: String,
     compact: Boolean,
     modifier: Modifier = Modifier,
@@ -347,18 +351,20 @@ private fun PlaylistCardText(
             maxLines = if (compact) 1 else 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            text = metadata,
-            style =
-                if (compact) {
-                    MaterialTheme.typography.bodySmall
-                } else {
-                    MaterialTheme.typography.bodyMedium
-                },
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (metadata != null) {
+            Text(
+                text = metadata,
+                style =
+                    if (compact) {
+                        MaterialTheme.typography.bodySmall
+                    } else {
+                        MaterialTheme.typography.bodyMedium
+                    },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         if (description.isNotBlank()) {
             Text(
                 text = description,
@@ -370,3 +376,6 @@ private fun PlaylistCardText(
         }
     }
 }
+
+/** A YouTube playlist that gave no count, such as a Mix, has none to show; a local one really can be empty. */
+internal fun Playlist.knownVideoCount(): Int? = videoCount.takeUnless { it <= 0 && !isLocal }
