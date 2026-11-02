@@ -19,7 +19,11 @@ private const val TAG = "PipModeHandler"
  * Effect to register PiP broadcast receiver for play/pause controls
  */
 @Composable
-private fun PipBroadcastReceiverEffect(context: Context) {
+private fun PipBroadcastReceiverEffect(
+    context: Context,
+    onBackground: () -> Unit,
+) {
+    val currentOnBackground by rememberUpdatedState(onBackground)
     DisposableEffect(Unit) {
         val receiver =
             PictureInPictureHelper.createPipActionReceiver(
@@ -30,6 +34,7 @@ private fun PipBroadcastReceiverEffect(context: Context) {
                     EnhancedPlayerManager.getInstance().stop()
                     EnhancedPlayerManager.getInstance().stopBackgroundService()
                 },
+                onBackground = { currentOnBackground() },
             )
 
         ContextCompat.registerReceiver(
@@ -73,6 +78,7 @@ private fun PipParamsUpdateEffect(
                 aspectRatio = videoAspectRatio,
                 isPlaying = isPlaying,
                 autoEnterEnabled = autoEnterEnabled,
+                offerBackground = true,
             )
         }
     }
@@ -125,9 +131,10 @@ internal fun SetupPipEffects(
     isBackgroundPlaybackMode: Boolean,
     videoAspectRatio: Float,
     pipPreferences: PipPreferences,
+    onListenInBackground: () -> Unit,
 ) {
     // Register broadcast receiver
-    PipBroadcastReceiverEffect(context)
+    PipBroadcastReceiverEffect(context, onListenInBackground)
 
     // Update PiP params
     PipParamsUpdateEffect(

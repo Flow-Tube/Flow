@@ -268,7 +268,8 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     delay(350L)
                     val stillBackgrounded = !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-                    if (stillBackgrounded && !isInPictureInPictureMode) {
+                    val listeningInBackground = GlobalPlayerState.isExplicitBackgroundPlaybackActive.value
+                    if (stillBackgrounded && !isInPictureInPictureMode && !listeningInBackground) {
                         // onStop ran while the window was still in PiP, so it skipped its pause (#1152).
                         // Closing the window pauses like leaving the app does, and keeps the video (#1349).
                         if (cachedAppUiRoot == AppUiRoot.MOBILE) {
@@ -489,6 +490,7 @@ class MainActivity : ComponentActivity() {
                 isPlaying = isPlaying,
                 autoEnterEnabled = PictureInPictureHelper.isAutoEnterArmed,
                 navigation = navigation,
+                offerBackground = navigation == null,
             )
         if (!entered) {
             pendingAutoPip = false

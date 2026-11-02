@@ -1277,6 +1277,7 @@
     <string name="proxy_settings_invalid_port">Enter a valid proxy port between 1 and 65535.</string>
     <string name="proxy_settings_saved">Proxy settings saved</string>
     <string name="player_settings_background_play">Background Play</string>
+    <string name="pip_listen_in_background">Listen in background</string>
     <string name="player_settings_background_play_subtitle">Continue playing when app is in background</string>
     <string name="player_settings_keep_playing_after_swipe">Keep playing after closing Flow</string>
     <string name="player_settings_keep_playing_after_swipe_subtitle">Playback continues when you swipe Flow away from recent apps</string>

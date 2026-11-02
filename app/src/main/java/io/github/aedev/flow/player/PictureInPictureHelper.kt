@@ -30,12 +30,14 @@ object PictureInPictureHelper {
     const val ACTION_PREVIOUS = "io.github.aedev.flow.action.PIP_PREVIOUS"
     const val ACTION_NEXT = "io.github.aedev.flow.action.PIP_NEXT"
     const val ACTION_CLOSE = "io.github.aedev.flow.action.PIP_CLOSE"
+    const val ACTION_BACKGROUND = "io.github.aedev.flow.action.PIP_BACKGROUND"
 
     private const val REQUEST_CODE_PLAY = 1
     private const val REQUEST_CODE_PAUSE = 2
     private const val REQUEST_CODE_PREVIOUS = 3
     private const val REQUEST_CODE_NEXT = 4
     private const val REQUEST_CODE_CLOSE = 5
+    private const val REQUEST_CODE_BACKGROUND = 6
     private const val ACTION_PICTURE_IN_PICTURE_SETTINGS = "android.settings.PICTURE_IN_PICTURE_SETTINGS"
 
     /** The video player view's bounds in the window; the PiP source hint is the video's part of it. */
@@ -167,6 +169,7 @@ object PictureInPictureHelper {
         isPlaying: Boolean = true,
         autoEnterEnabled: Boolean = false,
         navigation: PipQueueNavigation? = null,
+        offerBackground: Boolean = false,
     ): Boolean {
         if (!isPipSupported(activity)) return false
 
@@ -178,6 +181,7 @@ object PictureInPictureHelper {
                     isPlaying,
                     autoEnterEnabled,
                     navigation,
+                    offerBackground,
                 )
             activity.enterPictureInPictureMode(params)
         } catch (e: Exception) {
@@ -263,6 +267,7 @@ object PictureInPictureHelper {
         isPlaying: Boolean = true,
         autoEnterEnabled: Boolean = false,
         navigation: PipQueueNavigation? = null,
+        offerBackground: Boolean = false,
     ) {
         if (!isPipSupported(activity)) return
         armedParams = ArmedParams(isPlaying, navigation, offerBackground).takeIf { autoEnterEnabled }
@@ -275,6 +280,7 @@ object PictureInPictureHelper {
                     isPlaying,
                     autoEnterEnabled,
                     navigation,
+                    offerBackground,
                 )
             activity.setPictureInPictureParams(params)
         } catch (e: Exception) {
@@ -289,13 +295,14 @@ object PictureInPictureHelper {
         isPlaying: Boolean,
         autoEnterEnabled: Boolean,
         navigation: PipQueueNavigation?,
+        offerBackground: Boolean,
     ): PictureInPictureParams {
         val safeAspectRatio = sanitizePipAspectRatio(requestedAspectRatio)
         currentVideoAspectRatio = safeAspectRatio
         val aspectRatio = Rational((safeAspectRatio * 1_000).roundToInt(), 1_000)
 
         val maxActions = (context as? Activity)?.maxNumPictureInPictureActions ?: Int.MAX_VALUE
-        val actions = pipActionSpecs(isPlaying, navigation, maxActions).map { createRemoteAction(context, it) }
+        val actions = pipActionSpecs(isPlaying, navigation, maxActions, offerBackground).map { createRemoteAction(context, it) }
 
         val builder =
             PictureInPictureParams
@@ -323,6 +330,15 @@ object PictureInPictureHelper {
     ): RemoteAction {
         val (iconResId, titleResId, action, requestCode) =
             when (spec.control) {
+                PipControl.BACKGROUND -> {
+                    PipButton(
+                        R.drawable.ic_pip_listen_background,
+                        R.string.pip_listen_in_background,
+                        ACTION_BACKGROUND,
+                        REQUEST_CODE_BACKGROUND,
+                    )
+                }
+
                 PipControl.PREVIOUS -> {
                     PipButton(
                         android.R.drawable.ic_media_previous,
@@ -387,6 +403,7 @@ object PictureInPictureHelper {
         onPrevious: () -> Unit = {},
         onNext: () -> Unit = {},
         onClose: () -> Unit = {},
+        onBackground: () -> Unit = {},
     ): BroadcastReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(
@@ -399,6 +416,7 @@ object PictureInPictureHelper {
                     ACTION_PREVIOUS -> onPrevious()
                     ACTION_NEXT -> onNext()
                     ACTION_CLOSE -> onClose()
+                    ACTION_BACKGROUND -> onBackground()
                 }
             }
         }
@@ -413,5 +431,6 @@ object PictureInPictureHelper {
             addAction(ACTION_PREVIOUS)
             addAction(ACTION_NEXT)
             addAction(ACTION_CLOSE)
+            addAction(ACTION_BACKGROUND)
         }
 }

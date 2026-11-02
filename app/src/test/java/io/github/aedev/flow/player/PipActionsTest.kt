@@ -34,4 +34,31 @@ class PipActionsTest {
 
         assertEquals(listOf(PipActionSpec(PipControl.PAUSE)), specs)
     }
+
+    @Test
+    fun `a video offers listening in the background before play or pause`() {
+        val specs = pipActionSpecs(isPlaying = true, navigation = null, maxActions = 3, offerBackground = true)
+
+        assertEquals(listOf(PipControl.BACKGROUND, PipControl.PAUSE), specs.map { it.control })
+    }
+
+    @Test
+    fun `a window with room for one button keeps only play or pause`() {
+        val specs = pipActionSpecs(isPlaying = false, navigation = null, maxActions = 1, offerBackground = true)
+
+        assertEquals(listOf(PipActionSpec(PipControl.PLAY)), specs)
+    }
+
+    @Test
+    fun `a queue never shows the background button`() {
+        val specs =
+            pipActionSpecs(
+                isPlaying = true,
+                navigation = PipQueueNavigation(hasPrevious = true, hasNext = true),
+                maxActions = 3,
+                offerBackground = true,
+            )
+
+        assertEquals(listOf(PipControl.PREVIOUS, PipControl.PAUSE, PipControl.NEXT), specs.map { it.control })
+    }
 }

@@ -277,6 +277,11 @@ fun VideoPlayerHost(
         isBackgroundPlaybackMode = playerUiState.isBackgroundPlaybackMode,
         videoAspectRatio = videoAspectRatio,
         pipPreferences = pipPreferences,
+        // A PiP window can't be sent back; finishing closes it and onDestroy keeps the background audio.
+        onListenInBackground = {
+            playerViewModel.startBackgroundPlayback()
+            activity.finish()
+        },
     )
 
     val fullscreenShown =
