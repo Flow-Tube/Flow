@@ -4,9 +4,12 @@ import io.github.aedev.flow.sync.apply.ReceivedCollection
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync.protocol.SyncSerialization
+import io.github.aedev.flow.sync2.crypto.ProtocolError
+import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.data.SentDao
 import io.github.aedev.flow.sync2.data.SentRecord
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -136,7 +139,12 @@ suspend fun markSent(
 
 fun parseBatch(content: ByteArray): IncomingBatch {
     val lines = content.toString(Charsets.UTF_8).split('\n')
-    val header = Json.decodeFromString(BatchHeader.serializer(), lines.first())
+    val header =
+        try {
+            Json.decodeFromString(BatchHeader.serializer(), lines.first())
+        } catch (_: SerializationException) {
+            reject(ProtocolError.PAYLOAD)
+        }
     return IncomingBatch(header.collection, header.link, header.head, content.size, lines.drop(1).filter { it.isNotEmpty() })
 }
 
