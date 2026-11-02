@@ -8,6 +8,7 @@ import io.github.aedev.flow.sync.transport.WsServer
 import io.github.aedev.flow.sync2.data.LanAddressRow
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.LinkedException
+import io.github.aedev.flow.sync2.lan.MAX_LAN_FRAME
 import io.github.aedev.flow.sync2.store.Mailbox
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
@@ -160,14 +161,14 @@ suspend fun listen(): Listening? {
             .filter(LocalNetworkAddress::isLocal)
             .take(LAN_ADDRESSES)
     if (addresses.isEmpty()) return null
-    val server = WsServer(PAIR_PATH)
+    val server = WsServer(PAIR_PATH, MAX_LAN_FRAME)
     val port = server.start()
     return Listening(server, addresses.map { LanEndpoint(it, port) })
 }
 
 /** Dials the addresses a code lists, in order, each for a few seconds. */
 internal suspend fun dial(addresses: List<LanEndpoint>): LanPipe? {
-    val client = WsClient(OkHttpClient())
+    val client = WsClient(OkHttpClient(), MAX_LAN_FRAME)
     for (address in addresses.filter { LocalNetworkAddress.isLocal(it.a) }) {
         val host = LocalNetworkAddress.urlHost(address.a)
         withTimeoutOrNull(CONNECT_TIMEOUT_MS) { runCatching { client.connect("ws://$host:${address.p}$PAIR_PATH") }.getOrNull() }

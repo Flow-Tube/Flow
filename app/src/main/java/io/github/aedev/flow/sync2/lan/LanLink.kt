@@ -37,6 +37,12 @@ import java.nio.ByteBuffer
 
 private const val NONCE_SIZE = 32
 
+/** The most a LAN frame's payload may hold (spec/live.md, Session). */
+const val MAX_LAN_PAYLOAD = 4 * 1024 * 1024
+
+/** Room for a payload's gzip, padding (at most 1/32 at this size), box and `seq`. */
+const val MAX_LAN_FRAME = MAX_LAN_PAYLOAD + MAX_LAN_PAYLOAD / 16L
+
 /**
  * A LAN session between two members (spec/live.md, Session), once the hello has checked both: each
  * frame is `u64(seq) ‖ Box(K, "FLOW-SYNC/2 lan" ‖ u64(seq), payload)`, counted strictly in each direction.
@@ -65,6 +71,7 @@ class LanLink internal constructor(
         val frame = connection.receive() ?: return null
         if (frame.size < 8 || ByteBuffer.wrap(frame, 0, 8).long != received) reject(ProtocolError.REPLAY)
         val content = decodePayload(open(receiveKey, lanFrameAad(received), frame.copyOfRange(8, frame.size)))
+        if (content.size > MAX_LAN_PAYLOAD) reject(ProtocolError.LENGTH)
         received++
         return content
     }

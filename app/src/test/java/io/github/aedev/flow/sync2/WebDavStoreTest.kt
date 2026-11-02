@@ -4,6 +4,11 @@ import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.WebDavStore
+import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.httpMethod
+import io.ktor.server.response.respondBytes
+import io.ktor.server.response.respondText
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -91,6 +96,22 @@ class WebDavStoreTest {
             val plain = serve(WebDavStandIn()).store()
             plain.put("dev/aa/blob/x.b", byteArrayOf(1))
             assertNull(plain.tag("dev"))
+        }
+
+    @Test
+    fun answers_past_their_limit_are_refused() =
+        runTest {
+            StandInServer {
+                if (request.httpMethod == HttpMethod.Get) {
+                    respondBytes(ByteArray(4 * 1024 * 1024 + 1))
+                } else {
+                    respondText(" ".repeat(16 * 1024 * 1024 + 1), status = HttpStatusCode.MultiStatus)
+                }
+            }.use { standIn ->
+                val dav = WebDavStore.connect(standIn.url, "u", "p")
+                assertTrue(runCatching { dav.get("dev/x.o") }.exceptionOrNull() is StoreException.Malformed)
+                assertTrue(runCatching { dav.list("dev/") }.exceptionOrNull() is StoreException.Malformed)
+            }
         }
 
     @Test
