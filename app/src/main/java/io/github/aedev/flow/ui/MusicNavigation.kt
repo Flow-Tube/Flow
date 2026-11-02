@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import io.github.aedev.flow.data.localmedia.toMusicTrack
 import io.github.aedev.flow.data.localmedia.toVideo
+import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.music.model.toMusicTrack
 import io.github.aedev.flow.data.music.model.toVideo
@@ -221,6 +222,7 @@ internal fun NavGraphBuilder.musicRoutes(
                         duration = song.duration ?: 0,
                         album = song.album?.name ?: "",
                         channelId = song.artists.firstOrNull()?.id ?: "",
+                        artists = song.artists.map { MusicArtist(it.name, it.id) },
                     )
                 musicPlayerViewModel.loadAndPlayTrack(track, emptyList())
                 onMusicStarted()

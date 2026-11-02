@@ -2,6 +2,7 @@ package io.github.aedev.flow.data.music
 
 import android.util.Log
 import io.github.aedev.flow.data.music.model.ArtistDetails
+import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicPlaylist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.music.model.PlaylistDetails
@@ -191,6 +192,7 @@ object YouTubeMusicService {
             channelId = item.artists.firstOrNull()?.id ?: "",
             isExplicit = item.explicit,
             isVideoSong = item.isVideoSong,
+            artists = item.artists.map { MusicArtist(it.name, it.id) },
         )
 
     /**
