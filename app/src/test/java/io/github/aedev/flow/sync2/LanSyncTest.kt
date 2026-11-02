@@ -25,6 +25,7 @@ import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.forkWinner
 import io.github.aedev.flow.sync2.store.GroupStore
 import io.github.aedev.flow.sync2.store.LocalStore
+import io.github.aedev.flow.sync2.store.MAX_SEQ
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -32,6 +33,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -84,6 +89,42 @@ class LanSyncTest {
         }
     }
 
+    /** [client]'s link to [server], whose peer answers until [block] returns. */
+    private suspend fun linked(
+        client: Member,
+        server: Member,
+        block: suspend (LanLink) -> Unit,
+    ) = withContext(Dispatchers.Default) {
+        coroutineScope {
+            val accepted = CompletableDeferred<SyncConnection>()
+            val listener = WsServer(SESSION_PATH) { accepted.complete(it) }
+            val port = listener.start()
+            try {
+                val connection = WsClient(OkHttpClient()).connect("ws://127.0.0.1:$port$SESSION_PATH")
+                val serverSide = async { acceptLink(accepted.await(), server.session()) }
+                val link = connectLink(connection, client.session())
+                val answering = LanPeer(serverSide.await(), server.session(), server.local).start(this)
+                try {
+                    block(link)
+                } finally {
+                    link.close()
+                }
+                answering.join()
+            } finally {
+                listener.stop()
+            }
+        }
+    }
+
+    /** Sends [header] as a request on [link] and returns the answer's header. */
+    private suspend fun ask(
+        link: LanLink,
+        header: String,
+    ): JsonObject {
+        link.send(header.toByteArray())
+        return Json.parseToJsonElement(checkNotNull(link.receive()).decodeToString()).jsonObject
+    }
+
     private suspend fun pullBoth(
         link: LanLink,
         member: Member,
@@ -118,6 +159,19 @@ class LanSyncTest {
 
             assertTrue(SyncBytes.toHex(g.a.did) in b.session().pull(setOf(LINK)).batches)
             assertTrue(SyncBytes.toHex(g.b.did) in a.session().pull(setOf(LINK)).batches)
+        }
+
+    @Test
+    fun a_listing_request_naming_a_seq_above_2_53_is_refused() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val a = member(g, g.a)
+            val b = member(g, g.b)
+            linked(a, b) { link ->
+                val list = { id: Int, seq: Long -> """{"id":$id,"op":"list","vv":{"${SyncBytes.toHex(g.a.did)}":$seq}}""" }
+                assertEquals(JsonPrimitive(true), ask(link, list(0, MAX_SEQ))["ok"])
+                assertEquals(JsonPrimitive(false), ask(link, list(1, MAX_SEQ + 1))["ok"])
+            }
         }
 
     @Test
