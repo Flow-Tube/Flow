@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.pm.PackageInfoCompat
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
@@ -129,7 +130,7 @@ private fun AboutHeader() {
         remember {
             runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }
                 .getOrNull()
-                ?.let { it.versionName to it.longVersionCode.toString() }
+                ?.let { it.versionName to PackageInfoCompat.getLongVersionCode(it).toString() }
         }
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = HeaderPadding),
