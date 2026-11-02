@@ -47,8 +47,9 @@ internal suspend fun Session.bootstrap(links: Set<String?>?): Start? {
     var cursor = 0L
     while (true) {
         val (changes, next) = store.changes(cursor)
-        if (changes.isEmpty()) break
         changes.mapNotNull { StorePaths.parseLog(it.path) }.forEach { (did, seq) -> logs.getOrPut(did) { ArrayList() } += seq }
+        // A cursor that doesn't move would hand out the same page forever.
+        if (changes.isEmpty() || next <= cursor) break
         cursor = next
     }
     logs.remove(me)

@@ -96,6 +96,17 @@ class GarbageCollectionTest {
     }
 
     @Test
+    fun a_store_whose_cursor_never_moves_still_lets_collection_finish() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val db = g.deviceDb()
+            val watched = mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, ""))
+            Session.open(db, g.store, g.a).push(watched, LINK)
+            Session.open(db, StuckPages(g.store), g.a).collectGarbage(setOf(LINK))
+            assertTrue(StorePaths.log(SyncBytes.toHex(g.a.did), 1) in g.store.objects)
+        }
+
+    @Test
     fun old_objects_go_once_acknowledged_and_covered_by_a_snapshot() =
         runTest {
             val g = LinkedGroup(this).apply { create() }

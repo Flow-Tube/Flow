@@ -1,5 +1,6 @@
 package io.github.aedev.flow.sync2.store
 
+import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.roster.entryHash
@@ -70,7 +71,7 @@ class FileLayout(
 
     /**
      * Copies every other sender's log objects after the last one [local] holds, reading the next `seq`
-     * until there is none (spec/store.md, WebDAV). A sender never read starts at its oldest object.
+     * until there is none, or a file that isn't that object (spec/store.md, WebDAV). A sender never read starts at its oldest object.
      * When the store tags folders, nothing is read while the tag stays the same.
      */
     suspend fun pullLogs(local: LocalStore) {
@@ -81,7 +82,10 @@ class FileLayout(
             var seq = tips[did]?.plus(1) ?: oldest(did) ?: continue
             while (true) {
                 val path = StorePaths.log(did, seq)
-                local.putObject(path, files.get(path) ?: break)
+                val bytes = files.get(path) ?: break
+                // A store that answers every path, with an error page say, would otherwise never end the log.
+                if (!namesLogObject(bytes, SyncBytes.fromHex(did), seq)) break
+                local.putObject(path, bytes)
                 seq++
             }
         }

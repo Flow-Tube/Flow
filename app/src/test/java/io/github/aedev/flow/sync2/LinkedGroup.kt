@@ -24,6 +24,7 @@ import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.ChangeList
 import io.github.aedev.flow.sync2.store.ChangedObject
 import io.github.aedev.flow.sync2.store.LocalStore
+import io.github.aedev.flow.sync2.store.Mailbox
 import io.github.aedev.flow.sync2.store.Remote
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -121,6 +122,20 @@ class MemoryStore :
                     .toLong(),
             )
         } to (fresh.lastOrNull()?.value?.first ?: cursor)
+    }
+}
+
+/** A store whose cursor never moves: every page lists every object again. */
+class StuckPages(
+    private val store: MemoryStore,
+) : Remote,
+    ChangeList by store,
+    Mailbox by store {
+    private var pages = 0
+
+    override suspend fun changes(cursor: Long): Pair<List<ChangedObject>, Long> {
+        check(++pages < 100) { "the same page was read forever" }
+        return store.changes(0).first to cursor
     }
 }
 

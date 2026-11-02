@@ -170,8 +170,9 @@ private suspend fun Session.heldPaths(): Set<String> {
     var cursor = 0L
     while (true) {
         val (changed, next) = store.changes(cursor)
-        if (changed.isEmpty()) return paths
         changed.mapTo(paths) { it.path }
+        // A cursor that doesn't move would hand out the same page forever.
+        if (changed.isEmpty() || next <= cursor) return paths
         cursor = next
     }
 }

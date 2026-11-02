@@ -111,6 +111,16 @@ class SessionTest {
         }
 
     @Test
+    fun a_store_whose_cursor_never_moves_is_read_once() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            sync(g.deviceDb(), g.store, g.a, App().apply { watch("aaaaaaaaaaa") })
+            val appB = App()
+            sync(g.deviceDb(), StuckPages(g.store), g.b, appB)
+            assertEquals(listOf("aaaaaaaaaaa"), appB.watched.keys.toList())
+        }
+
+    @Test
     fun a_missing_object_stalls_reading_until_it_arrives() =
         runTest {
             val g = LinkedGroup(this).apply { create() }

@@ -86,6 +86,41 @@ class FileLayoutTest {
         }
 
     @Test
+    fun a_store_that_answers_every_path_ends_a_log_at_the_first_file_that_isn_t_its_object() =
+        runTest {
+            val did = SyncBytes.toHex(newMember().did)
+            val answersEverything =
+                object : FileStore {
+                    private var gets = 0
+                    override val location = "memory"
+
+                    override suspend fun get(path: String): ByteArray {
+                        check(++gets < 100) { "the same file was read forever" }
+                        return "<html>Sign in</html>".toByteArray()
+                    }
+
+                    override suspend fun put(
+                        path: String,
+                        bytes: ByteArray,
+                    ) = Unit
+
+                    override suspend fun delete(path: String) = Unit
+
+                    override suspend fun list(folder: String) =
+                        when (folder) {
+                            "dev" -> listOf(did)
+                            "dev/$did/log" -> listOf("0000000000000000")
+                            else -> listOf("0000000000000001.o")
+                        }
+
+                    override suspend fun tag(folder: String): String? = null
+                }
+            val local = heldStore(LinkedGroup(this).deviceDb())
+            FileLayout(answersEverything, SyncBytes.toHex(newMember().did)).pullLogs(local)
+            assertTrue(local.logTips().isEmpty())
+        }
+
+    @Test
     fun competing_roster_entries_both_stay_and_every_device_picks_the_same_winner() =
         runTest {
             val server = WebDavStandIn().also { dav = it }

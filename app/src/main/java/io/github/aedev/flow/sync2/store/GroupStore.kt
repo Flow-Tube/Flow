@@ -82,10 +82,11 @@ class GroupStore(
         var next = cursor
         while (true) {
             val (changed, after) = server.changes(next)
-            if (changed.isEmpty()) return next
             for (change in changed.filter { StorePaths.isObject(it.path) }) {
                 if (local.getObject(change.path) == null) server.getObject(change.path)?.let { local.putObject(change.path, it) }
             }
+            // A cursor that doesn't move would hand out the same page forever.
+            if (changed.isEmpty() || after <= next) return next
             next = after
         }
     }
