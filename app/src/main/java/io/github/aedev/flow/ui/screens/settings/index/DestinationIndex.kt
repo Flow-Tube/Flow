@@ -80,7 +80,7 @@ internal object DestinationIndex {
             SettingsDestination.INTEGRATIONS -> R.string.settings_integrations_summary
             SettingsDestination.SCROBBLING -> R.string.scrobbling_summary
             SettingsDestination.BACKUP -> R.string.settings_backup_summary
-            SettingsDestination.SYNC -> R.string.sync_devices_subtitle
+            SettingsDestination.SYNC -> R.string.sync_devices_summary
             SettingsDestination.PROFILES -> R.string.profiles_summary
             SettingsDestination.PROFILE_EDIT -> null
             SettingsDestination.HISTORY -> R.string.settings_history_summary

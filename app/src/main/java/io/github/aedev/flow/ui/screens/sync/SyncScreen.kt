@@ -17,7 +17,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SyncDisabled
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -319,6 +321,13 @@ private fun SyncSetupStep(
 ) {
     when (step) {
         Step.CHOOSER -> {
+            LinkedDevicesSection(hostOnly)
+            HorizontalDivider()
+            SyncStepHeader(
+                icon = Icons.Outlined.Wifi,
+                title = stringResource(R.string.sync_one_time_title),
+                body = stringResource(R.string.sync_one_time_body),
+            )
             if (oneTimeElsewhere != null) {
                 SyncInfoRow(icon = Icons.Outlined.SyncDisabled, text = stringResource(R.string.sync_default_only_title, oneTimeElsewhere))
             } else {
@@ -327,7 +336,6 @@ private fun SyncSetupStep(
                     onReceive = { if (hostOnly) onHost(SyncRole.RECEIVER) else onStepChange(Step.RECEIVE_TRANSPORT) },
                 )
             }
-            LinkedDevicesSection(hostOnly)
         }
 
         Step.SEND_SELECT -> {
