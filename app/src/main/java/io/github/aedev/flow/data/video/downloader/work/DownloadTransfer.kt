@@ -104,6 +104,7 @@ class DownloadTransfer
                             staging.audioPart,
                             streams.audio.itag,
                             streams.audio.contentLength ?: 0L,
+                            streams.audio.audioTrack?.id,
                         ),
                     )
                 if (TransferState.read(staging.state)?.restoreInto(parts) == true) Log.d(TAG, "${request.videoId}: resuming saved blocks")
