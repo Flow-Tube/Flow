@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import androidx.core.content.pm.PackageInfoCompat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -125,7 +126,7 @@ object FlowDiagnostics {
             androidRelease = Build.VERSION.RELEASE,
             sdk = Build.VERSION.SDK_INT,
             versionName = packageInfo?.versionName,
-            versionCode = packageInfo?.longVersionCode,
+            versionCode = packageInfo?.let(PackageInfoCompat::getLongVersionCode),
         )
     }
 

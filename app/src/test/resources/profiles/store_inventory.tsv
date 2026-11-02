@@ -98,12 +98,14 @@ cache_dir	cipher/player.js	main:utils/cipher/CipherWebView.kt	CACHE	-	Player JS 
 cache_dir	sync_premerge_backup.zip	main:sync/apply/SyncApplier.kt	CACHE	-	Default's backup taken before a sync merge; deleted at switch.
 cache_dir	playlists/	main:data/playlist/PlaylistTransfer.kt	CACHE	-	Playlist share exports from the active profile; deleted at switch.
 cache_dir	staged sidecar files	main:data/video/storage/DownloadPlacement.kt	CACHE	-	Download sidecars on their way to the download folder.
-cache_dir	newpipe_history_*.db, metrolist_import_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Temporary copies of imported databases; deleted at switch.
+cache_dir	newpipe_history_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Temporary copies of imported databases; deleted at switch.
+cache_dir	metrolist_import_*.db	main:data/local/MetrolistImporter.kt	CACHE	-	Temporary copy of an imported Metrolist database; deleted at switch.
 cache_dir	subtitles/	main:data/localmedia/LocalSubtitles.kt	CACHE	-	Subtitles extracted from local files; shared.
 cache_dir	local_covers/	main:data/localmedia/LocalCovers.kt	CACHE	-	Covers extracted from local files; shared.
 cache_dir	exoplayer/, exoplayer_music/	main:player/cache/SharedPlayerCacheProvider.kt	CACHE	-	Media caches; shared (video keyed by expiring URLs, music by video id).
 cache_dir	updates/	github:updater/UpdateDownloadWorker.kt	DEVICE	-	Downloaded APKs.
-sqlite_file	newpipe_history_*.db, metrolist_import_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Opens the temporary import copies.
+sqlite_file	newpipe_history_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Opens the temporary import copies.
+sqlite_file	metrolist_import_*.db	main:data/local/MetrolistImporter.kt	CACHE	-	Opens the temporary import copy.
 external_files_dir	downloads/ (Media3 download cache)	main:di/DownloadModule.kt	DEVICE	-	Legacy song downloads.
 external_files_dir	Music/Flow, Movies/Flow	main:data/video/DownloadRecoveryScanner.kt	DEVICE	-	Recovery scan of download folders.
 external_files_dir	staging/, Music/Flow, Movies/Flow	main:data/video/VideoDownloadManager.kt	DEVICE	-	Download staging and finished downloads.

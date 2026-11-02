@@ -8,7 +8,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Info
@@ -17,7 +16,6 @@ import androidx.compose.material.icons.outlined.Radio
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SmartDisplay
 import androidx.compose.material.icons.outlined.ThumbDown
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -106,8 +104,7 @@ fun MusicQuickActionsSheet(
             }
 
             SongMenuPage.Artists -> {
-                QuickActionsPageHeader(title = stringResource(R.string.quick_action_artists), onBack = toActions, onClose = close)
-                QuickActionsGroup(title = null, rows = artists.map { artistRow(it, listOfNotNull(avatars[it.id]), close) })
+                MusicArtistsPage(artists = artists, avatars = avatars, onBack = toActions, onClose = close)
             }
 
             else -> {
@@ -161,12 +158,6 @@ fun MusicQuickActionsSheet(
         }
     }
 }
-
-/** The song's artists with ids, or its channel when the source named no artist. */
-private fun MusicTrack.menuArtists(): List<MusicArtist> =
-    artists.filter { !it.id.isNullOrBlank() }.ifEmpty {
-        if (channelId.isNotBlank()) listOf(MusicArtist(name = artist, id = channelId)) else emptyList()
-    }
 
 @Composable
 private fun SongPrimaryActions(
@@ -333,35 +324,6 @@ private fun goToRows(
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun artistRow(
-    artist: MusicArtist,
-    avatar: List<String>,
-    onDismiss: () -> Unit,
-): QuickActionRow {
-    val navigator = LocalMediaNavigator.current
-    val ringColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    return QuickActionRow(artist.id.orEmpty()) { shape ->
-        FlowNavRow(
-            title = artist.name,
-            onClick = {
-                navigator.openArtist(artist.id.orEmpty())
-                onDismiss()
-            },
-            shape = shape,
-            leadingContent = {
-                ChannelAvatarStack(
-                    urls = avatar,
-                    contentDescription = null,
-                    avatarSize = QuickActionsDefaults.AvatarSize,
-                    ringColor = ringColor,
-                )
-            },
-            trailingContent = { Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = null) },
-        )
     }
 }
 

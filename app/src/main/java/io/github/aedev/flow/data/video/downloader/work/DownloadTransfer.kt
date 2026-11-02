@@ -104,6 +104,7 @@ class DownloadTransfer
                             staging.audioPart,
                             streams.audio.itag,
                             streams.audio.contentLength ?: 0L,
+                            streams.audio.audioTrack?.id,
                         ),
                     )
                 if (TransferState.read(staging.state)?.restoreInto(parts) == true) Log.d(TAG, "${request.videoId}: resuming saved blocks")
@@ -175,6 +176,7 @@ class DownloadTransfer
                         videoId = request.videoId,
                         targetHeight = if (request.wantsAudioOnly) 0 else request.targetHeight ?: 0,
                         preferredCodec = request.videoCodec,
+                        audioTrackId = request.audioTrackId,
                     )
                 } catch (e: CancellationException) {
                     throw e

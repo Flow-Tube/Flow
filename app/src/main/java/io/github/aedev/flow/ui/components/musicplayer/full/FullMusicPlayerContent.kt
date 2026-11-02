@@ -35,8 +35,7 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.SleepTimerManager
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
-import io.github.aedev.flow.ui.components.music.sheet.MusicQuickActionsSheet
-import io.github.aedev.flow.ui.components.music.sheet.SaveSongSheet
+import io.github.aedev.flow.ui.components.music.sheet.menuArtists
 import io.github.aedev.flow.ui.components.musicplayer.common.PlayerBackdropColors
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerProgressSlider
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.DEFAULT_LYRICS_TEXT_SIZE
@@ -51,7 +50,6 @@ import io.github.aedev.flow.ui.components.musicplayer.queue.QueuePullUpSheet
 import io.github.aedev.flow.ui.components.musicplayer.queue.QueueSheet
 import io.github.aedev.flow.ui.components.musicplayer.queue.queuePullUpGesture
 import io.github.aedev.flow.ui.components.musicplayer.queue.rememberQueuePullUpState
-import io.github.aedev.flow.ui.components.musicplayer.sheet.AudioSettingsSheet
 import io.github.aedev.flow.ui.components.shared.MediaPalette
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackControls
 import io.github.aedev.flow.ui.components.shared.MediaSleepTimerSheet
@@ -86,10 +84,7 @@ internal fun FullMusicPlayerContent(
     val navigator = LocalMediaNavigator.current
 
     val thumbnailUrl = uiState.currentTrack?.highResThumbnailUrl ?: track.highResThumbnailUrl
-    var showMoreOptions by remember { mutableStateOf(false) }
-    var showSaveSheet by remember { mutableStateOf(false) }
-    var showAudioSettings by remember { mutableStateOf(false) }
-    var showSleepTimer by remember { mutableStateOf(false) }
+    val sheets = remember { FullPlayerSheetState() }
     var previewDirection by remember { mutableStateOf<SkipDirection?>(null) }
     val musicPlayer by EnhancedMusicPlayerManager.playerInstance.collectAsState()
     val videoSwitchEnabled by videoSwitch.isEnabled.collectAsState()
@@ -130,28 +125,7 @@ internal fun FullMusicPlayerContent(
 
     var showLyricsSheet by remember { mutableStateOf(false) }
 
-    val saveTrack = uiState.currentTrack
-    if (showSaveSheet && saveTrack != null) {
-        SaveSongSheet(
-            track = saveTrack,
-            onDismiss = { showSaveSheet = false },
-        )
-    }
-
-    if (showMoreOptions && uiState.currentTrack != null) {
-        MusicQuickActionsSheet(
-            track = uiState.currentTrack!!,
-            onDismiss = { showMoreOptions = false },
-            onAudioEffectsClick = { showAudioSettings = true },
-            onSleepTimerClick = { showSleepTimer = true },
-        )
-    }
-
-    if (showAudioSettings) {
-        AudioSettingsSheet(
-            onDismiss = { showAudioSettings = false },
-        )
-    }
+    FullPlayerSheets(sheets, uiState.currentTrack, isPlayerSheetExpanded)
 
     LaunchedEffect(track.videoId) {
         // A song swapped for its video keeps the song's related list rather than fetching another.
@@ -217,7 +191,7 @@ internal fun FullMusicPlayerContent(
     }
 
     BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().musicPlayerKeyboardShortcuts(isPlayerSheetExpanded && !showSleepTimer, viewModel),
+        modifier = Modifier.fillMaxSize().musicPlayerKeyboardShortcuts(isPlayerSheetExpanded && !sheets.sleepTimer, viewModel),
     ) {
         val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -305,10 +279,11 @@ internal fun FullMusicPlayerContent(
                             title = displayTitle,
                             artist = displayArtist,
                             onArtistClick = {
-                                uiState.currentTrack
-                                    ?.channelId
-                                    ?.takeIf { it.isNotEmpty() }
-                                    ?.let(navigator::openArtist)
+                                val artists = (previewTrack ?: uiState.currentTrack)?.menuArtists().orEmpty()
+                                when {
+                                    artists.size > 1 -> sheets.artists = artists
+                                    artists.size == 1 -> navigator.openArtist(artists.first().id.orEmpty())
+                                }
                             },
                             animateTitle = isPlayerSheetExpanded,
                             showLibraryActions = !LocalMediaIds.isLocal(uiState.currentTrack?.videoId),
@@ -316,7 +291,7 @@ internal fun FullMusicPlayerContent(
                             isDownloaded = uiState.downloadedTrackIds.contains(uiState.currentTrack?.videoId),
                             onLikeClick = { viewModel.toggleLike() },
                             onDownloadClick = { viewModel.downloadTrack() },
-                            onAddToPlaylist = { showSaveSheet = true },
+                            onAddToPlaylist = { sheets.save = true },
                             modifier = modifier,
                         )
                     }
@@ -359,11 +334,11 @@ internal fun FullMusicPlayerContent(
                             onShuffleClick = { viewModel.toggleShuffle() },
                             onRepeatClick = { viewModel.toggleRepeat() },
                             onQueueClick = { if (isWide) selectSidePaneTab(PlayerSidePaneTab.UP_NEXT) else queueState.open() },
-                            onMoreClick = { showMoreOptions = true },
+                            onMoreClick = { sheets.moreOptions = true },
                             modifier = modifier,
                             queueActive = isWide && sidePaneTab == PlayerSidePaneTab.UP_NEXT,
                             sleepTimerActive = SleepTimerManager.isActive,
-                            onSleepTimerClick = if (sleepTimerButton) ({ showSleepTimer = true }) else null,
+                            onSleepTimerClick = if (sleepTimerButton) ({ sheets.sleepTimer = true }) else null,
                         )
                     }
                 },
@@ -485,8 +460,8 @@ internal fun FullMusicPlayerContent(
         )
 
         // Hosted here rather than at app level so it picks up the palette-derived scheme.
-        if (showSleepTimer) {
-            MediaSleepTimerSheet(onDismiss = { showSleepTimer = false })
+        if (sheets.sleepTimer) {
+            MediaSleepTimerSheet(onDismiss = { sheets.sleepTimer = false })
         }
     }
 }

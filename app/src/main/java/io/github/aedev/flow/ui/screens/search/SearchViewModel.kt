@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -172,6 +173,6 @@ class SearchViewModel
             runCatching { suggestionsRepository.suggestions(query) }.getOrDefault(emptyList())
 
         private fun onHeader(header: SearchHeader) {
-            _uiState.value = _uiState.value.copy(header = header)
+            _uiState.update { it.copy(header = header) }
         }
     }

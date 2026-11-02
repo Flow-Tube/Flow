@@ -18,7 +18,7 @@ generate_key.sh
 generate_key.bat
 flow-website
 svglogo
-metro*
+/metro*
 release.ps1
 release.sh
 release.bat

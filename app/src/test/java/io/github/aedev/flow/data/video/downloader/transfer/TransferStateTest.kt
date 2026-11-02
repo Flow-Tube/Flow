@@ -46,6 +46,19 @@ class TransferStateTest {
     }
 
     @Test
+    fun `one dub's blocks never land on another dub of the same size`() {
+        val saved =
+            TransferState(listOf(TransferState.StreamState(StreamRole.AUDIO, 140, 100, listOf(0), emptyMap(), trackId = "ar.10")))
+        val file = folder.newFile().apply { writeBytes(ByteArray(100)) }
+        val otherDub = TransferStream(StreamRole.AUDIO, "u", file, 140, 100, trackId = "ja.10")
+        val sameDub = TransferStream(StreamRole.AUDIO, "u", file, 140, 100, trackId = "ar.10")
+
+        assertThat(saved.restoreInto(listOf(otherDub))).isFalse()
+        assertThat(otherDub.completedBlocks).isEmpty()
+        assertThat(saved.restoreInto(listOf(sameDub))).isTrue()
+    }
+
+    @Test
     fun `an unreadable state file restores nothing`() {
         val file = folder.newFile().apply { writeText("{broken") }
 

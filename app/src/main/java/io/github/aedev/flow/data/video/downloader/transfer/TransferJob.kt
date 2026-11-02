@@ -19,6 +19,8 @@ class TransferStream(
     val file: File,
     val itag: Int,
     totalBytes: Long,
+    // Every dub of a video shares the audio itag and often the size, so the track tells them apart.
+    val trackId: String? = null,
 ) {
     @Volatile
     var totalBytes: Long = totalBytes
