@@ -11,6 +11,7 @@ import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.checkSeq
+import io.github.aedev.flow.sync2.store.keyNames
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -213,15 +214,12 @@ class LanPeer(
                     .mapNotNull { runCatching { parseEntry(it) }.getOrNull() },
             )
         }
-        val epochs = local.rosterAfter(-1).mapNotNull { it.epoch?.n }
-        for (epoch in epochs) {
-            for (name in listOf(session.me, "chain")) {
-                if (local.key(epoch, name) != null) continue
-                request(
-                    "key",
-                    mapOf("epoch" to JsonPrimitive(epoch), "name" to JsonPrimitive(name)),
-                )?.bytes?.let { local.putKey(epoch, name, it) }
-            }
+        for ((epoch, name) in keyNames(local.rosterAfter(-1), session.me)) {
+            if (local.key(epoch, name) != null) continue
+            request(
+                "key",
+                mapOf("epoch" to JsonPrimitive(epoch), "name" to JsonPrimitive(name)),
+            )?.bytes?.let { local.putKey(epoch, name, it) }
         }
         val vv = JsonObject(heldVersions().mapValues { (_, seq) -> JsonPrimitive(seq) })
         val listed = request("list", mapOf("vv" to vv)) ?: return
