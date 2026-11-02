@@ -310,6 +310,7 @@ internal fun MusicLyricsSheet(
                 remember(lyrics, syncedLyrics) {
                     isJapaneseLyrics(syncedLyrics.map { it.text }.ifEmpty { lyrics?.lines().orEmpty() })
                 },
+            hasTranslation = remember(syncedLyrics) { syncedLyrics.any { !it.translation.isNullOrBlank() } },
             onRefresh = onRefresh,
             onChooseSource =
                 onBrowseSources?.let { browse ->

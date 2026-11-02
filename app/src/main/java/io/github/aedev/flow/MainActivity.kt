@@ -1,5 +1,6 @@
 package io.github.aedev.flow
 
+import android.app.PictureInPictureUiState
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -13,6 +14,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
@@ -240,6 +242,14 @@ class MainActivity : ComponentActivity() {
         incomingIntents.handle(intent, isRestoringState = false)
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
+    override fun onPictureInPictureUiStateChanged(pipState: PictureInPictureUiState) {
+        super.onPictureInPictureUiStateChanged(pipState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            GlobalPlayerState.setEnteringPip(pipState.isTransitioningToPip)
+        }
+    }
+
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean,
         newConfig: android.content.res.Configuration,
@@ -258,7 +268,8 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     delay(350L)
                     val stillBackgrounded = !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-                    if (stillBackgrounded && !isInPictureInPictureMode) {
+                    val listeningInBackground = GlobalPlayerState.isExplicitBackgroundPlaybackActive.value
+                    if (stillBackgrounded && !isInPictureInPictureMode && !listeningInBackground) {
                         // onStop ran while the window was still in PiP, so it skipped its pause (#1152).
                         // Closing the window pauses like leaving the app does, and keeps the video (#1349).
                         if (cachedAppUiRoot == AppUiRoot.MOBILE) {
@@ -424,6 +435,10 @@ class MainActivity : ComponentActivity() {
                 explicitBackgroundPlaybackActive = explicitBackgroundPlaybackActive,
             )
         if (shouldEnterAutoPip && !isMusicPlaying) {
+            if (PictureInPictureHelper.systemEntersPipOnLeave()) {
+                pendingAutoPip = true
+                return
+            }
             enterPlayerPictureInPictureMode(
                 aspectRatio = PictureInPictureHelper.currentVideoAspectRatio,
                 isPlaying = true,
@@ -473,8 +488,9 @@ class MainActivity : ComponentActivity() {
                 activity = this,
                 aspectRatio = aspectRatio,
                 isPlaying = isPlaying,
-                autoEnterEnabled = false,
+                autoEnterEnabled = PictureInPictureHelper.isAutoEnterArmed,
                 navigation = navigation,
+                offerBackground = navigation == null,
             )
         if (!entered) {
             pendingAutoPip = false

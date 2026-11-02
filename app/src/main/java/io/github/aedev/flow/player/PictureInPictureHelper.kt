@@ -30,16 +30,52 @@ object PictureInPictureHelper {
     const val ACTION_PREVIOUS = "io.github.aedev.flow.action.PIP_PREVIOUS"
     const val ACTION_NEXT = "io.github.aedev.flow.action.PIP_NEXT"
     const val ACTION_CLOSE = "io.github.aedev.flow.action.PIP_CLOSE"
+    const val ACTION_BACKGROUND = "io.github.aedev.flow.action.PIP_BACKGROUND"
 
     private const val REQUEST_CODE_PLAY = 1
     private const val REQUEST_CODE_PAUSE = 2
     private const val REQUEST_CODE_PREVIOUS = 3
     private const val REQUEST_CODE_NEXT = 4
     private const val REQUEST_CODE_CLOSE = 5
+    private const val REQUEST_CODE_BACKGROUND = 6
     private const val ACTION_PICTURE_IN_PICTURE_SETTINGS = "android.settings.PICTURE_IN_PICTURE_SETTINGS"
 
+    /** The video player view's bounds in the window; the PiP source hint is the video's part of it. */
     @Volatile
-    var sourceRectHint: android.graphics.Rect? = null
+    internal var videoViewBounds: PipBounds? = null
+        private set
+
+    private class ArmedParams(
+        val isPlaying: Boolean,
+        val navigation: PipQueueNavigation?,
+        val offerBackground: Boolean,
+    )
+
+    @Volatile
+    private var armedParams: ArmedParams? = null
+
+    /**
+     * Records where the player view sits. Auto-enter uses the params already handed to the window, so
+     * when they are armed they are handed over again with the new source hint, or the system finds an
+     * empty hint and scales the whole page into the window.
+     */
+    internal fun setVideoViewBounds(
+        activity: Activity?,
+        bounds: PipBounds?,
+    ) {
+        if (bounds == videoViewBounds) return
+        videoViewBounds = bounds
+        val armed = armedParams?.takeIf { isAutoEnterArmed } ?: return
+        if (activity == null || bounds == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        if (activity.isInPictureInPictureMode || GlobalPlayerState.isEnteringPip.value) return
+        updatePipParams(
+            activity = activity,
+            isPlaying = armed.isPlaying,
+            autoEnterEnabled = true,
+            navigation = armed.navigation,
+            offerBackground = armed.offerBackground,
+        )
+    }
 
     /** Published by the Shorts pager so the window it enters PiP with already carries skip buttons. */
     @Volatile
@@ -57,6 +93,17 @@ object PictureInPictureHelper {
     @Volatile
     var isPopupActive: Boolean = false
         private set
+
+    /** Whether the params last given to the window let Android 12+ enter PiP on its own when the user leaves. */
+    @Volatile
+    var isAutoEnterArmed: Boolean = false
+        private set
+
+    /**
+     * True when leaving the app hands PiP to the system's own entry animation; entering by hand on top of
+     * it scales the whole page into the window instead of morphing the video.
+     */
+    fun systemEntersPipOnLeave(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isAutoEnterArmed
 
     internal fun setPopupActive(active: Boolean) {
         isPopupActive = active
@@ -122,6 +169,7 @@ object PictureInPictureHelper {
         isPlaying: Boolean = true,
         autoEnterEnabled: Boolean = false,
         navigation: PipQueueNavigation? = null,
+        offerBackground: Boolean = false,
     ): Boolean {
         if (!isPipSupported(activity)) return false
 
@@ -133,6 +181,7 @@ object PictureInPictureHelper {
                     isPlaying,
                     autoEnterEnabled,
                     navigation,
+                    offerBackground,
                 )
             activity.enterPictureInPictureMode(params)
         } catch (e: Exception) {
@@ -218,8 +267,10 @@ object PictureInPictureHelper {
         isPlaying: Boolean = true,
         autoEnterEnabled: Boolean = false,
         navigation: PipQueueNavigation? = null,
+        offerBackground: Boolean = false,
     ) {
         if (!isPipSupported(activity)) return
+        armedParams = ArmedParams(isPlaying, navigation, offerBackground).takeIf { autoEnterEnabled }
 
         try {
             val params =
@@ -229,6 +280,7 @@ object PictureInPictureHelper {
                     isPlaying,
                     autoEnterEnabled,
                     navigation,
+                    offerBackground,
                 )
             activity.setPictureInPictureParams(params)
         } catch (e: Exception) {
@@ -243,13 +295,14 @@ object PictureInPictureHelper {
         isPlaying: Boolean,
         autoEnterEnabled: Boolean,
         navigation: PipQueueNavigation?,
+        offerBackground: Boolean,
     ): PictureInPictureParams {
         val safeAspectRatio = sanitizePipAspectRatio(requestedAspectRatio)
         currentVideoAspectRatio = safeAspectRatio
         val aspectRatio = Rational((safeAspectRatio * 1_000).roundToInt(), 1_000)
 
         val maxActions = (context as? Activity)?.maxNumPictureInPictureActions ?: Int.MAX_VALUE
-        val actions = pipActionSpecs(isPlaying, navigation, maxActions).map { createRemoteAction(context, it) }
+        val actions = pipActionSpecs(isPlaying, navigation, maxActions, offerBackground).map { createRemoteAction(context, it) }
 
         val builder =
             PictureInPictureParams
@@ -257,12 +310,15 @@ object PictureInPictureHelper {
                 .setAspectRatio(aspectRatio)
                 .setActions(actions)
 
-        sourceRectHint?.takeIf { !it.isEmpty }?.let { builder.setSourceRectHint(it) }
+        videoViewBounds
+            ?.let { pipSourceBounds(it, safeAspectRatio) }
+            ?.let { builder.setSourceRectHint(android.graphics.Rect(it.left, it.top, it.right, it.bottom)) }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             builder.setAutoEnterEnabled(autoEnterEnabled)
             builder.setSeamlessResizeEnabled(false)
         }
+        isAutoEnterArmed = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && autoEnterEnabled
 
         return builder.build()
     }
@@ -274,6 +330,15 @@ object PictureInPictureHelper {
     ): RemoteAction {
         val (iconResId, titleResId, action, requestCode) =
             when (spec.control) {
+                PipControl.BACKGROUND -> {
+                    PipButton(
+                        R.drawable.ic_pip_listen_background,
+                        R.string.pip_listen_in_background,
+                        ACTION_BACKGROUND,
+                        REQUEST_CODE_BACKGROUND,
+                    )
+                }
+
                 PipControl.PREVIOUS -> {
                     PipButton(
                         android.R.drawable.ic_media_previous,
@@ -338,6 +403,7 @@ object PictureInPictureHelper {
         onPrevious: () -> Unit = {},
         onNext: () -> Unit = {},
         onClose: () -> Unit = {},
+        onBackground: () -> Unit = {},
     ): BroadcastReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(
@@ -350,6 +416,7 @@ object PictureInPictureHelper {
                     ACTION_PREVIOUS -> onPrevious()
                     ACTION_NEXT -> onNext()
                     ACTION_CLOSE -> onClose()
+                    ACTION_BACKGROUND -> onBackground()
                 }
             }
         }
@@ -364,5 +431,6 @@ object PictureInPictureHelper {
             addAction(ACTION_PREVIOUS)
             addAction(ACTION_NEXT)
             addAction(ACTION_CLOSE)
+            addAction(ACTION_BACKGROUND)
         }
 }

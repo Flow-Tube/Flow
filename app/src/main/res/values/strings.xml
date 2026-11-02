@@ -133,7 +133,8 @@
     <string name="music_player_lyrics_full_screen">Full screen lyrics</string>
     <string name="lyrics_play_from_line">Play from this line</string>
     <string name="lyrics_show_translation">Translation</string>
-    <string name="lyrics_show_translation_summary">Show the translated line under each lyric</string>
+    <string name="lyrics_show_translation_summary">Show a translation when the lyrics include one</string>
+    <string name="lyrics_no_translation">These lyrics have no translation</string>
     <string name="lyrics_show_romanization">Romanization</string>
     <string name="lyrics_show_romanization_summary">Show lyrics in other scripts in Latin letters too</string>
     <string name="lyrics_auto_romanize">Romanize on this device</string>
@@ -354,7 +355,6 @@
     <string name="select_text">Select Text</string>
     <string name="pinned_comment">Pinned comment</string>
     <string name="pinned_by_creator">Pinned by creator</string>
-    <string name="tap_to_close">Tap to close</string>
     <!-- Update Dialog -->
     <string name="new_update_available">New Update Available</string>
     <string name="update_available_template">%1$s is now available</string>
@@ -1277,6 +1277,7 @@
     <string name="proxy_settings_invalid_port">Enter a valid proxy port between 1 and 65535.</string>
     <string name="proxy_settings_saved">Proxy settings saved</string>
     <string name="player_settings_background_play">Background Play</string>
+    <string name="pip_listen_in_background">Listen in background</string>
     <string name="player_settings_background_play_subtitle">Continue playing when app is in background</string>
     <string name="player_settings_keep_playing_after_swipe">Keep playing after closing Flow</string>
     <string name="player_settings_keep_playing_after_swipe_subtitle">Playback continues when you swipe Flow away from recent apps</string>

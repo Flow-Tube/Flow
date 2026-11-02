@@ -19,13 +19,16 @@ import io.github.aedev.flow.data.music.DownloadManager
 import io.github.aedev.flow.data.music.PlaylistRepository
 import io.github.aedev.flow.data.music.YouTubeMusicService
 import io.github.aedev.flow.data.music.model.MUSIC_GENRE_SOURCE_PREFIX
+import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.newmusic.InnertubeMusicService
+import io.github.aedev.flow.data.newmusic.MusicArtistLookup
 import io.github.aedev.flow.data.recommendation.music.MusicBrainEngine
 import io.github.aedev.flow.data.recommendation.music.onRepeatShelf
 import io.github.aedev.flow.data.scrobble.Scrobbler
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.PlaybackTarget
+import io.github.aedev.flow.ui.components.music.sheet.resolveTrackArtists
 import io.github.aedev.flow.ui.components.musicplayer.queue.QueueSwipes
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.Job
@@ -54,6 +57,7 @@ class MusicPlayerViewModel
         private val musicBrain: MusicBrainEngine,
         private val scrobbler: Scrobbler,
         private val lyricsHelper: LyricsHelper,
+        private val artistLookup: MusicArtistLookup,
         localLyrics: LocalLyricsReader,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(MusicPlayerUiState())
@@ -375,6 +379,9 @@ class MusicPlayerViewModel
                     }
                 }
         }
+
+        /** The song's credited artists, looked up once when the track kept only the first one. */
+        suspend fun resolveArtists(track: MusicTrack): List<MusicArtist> = resolveTrackArtists(track, artistLookup)
 
         /** A YouTube Music link names only the song, so its details are fetched before it plays. */
         suspend fun playFromLink(videoId: String) {

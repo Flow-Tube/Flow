@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.home
 
+import android.os.SystemClock
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -33,7 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
@@ -43,14 +47,12 @@ import io.github.aedev.flow.ui.components.shared.FeedGridSkeleton
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipContent
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipsState
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
-private const val IMPRESSION_DEBOUNCE_MS = 500L
 private const val SKELETON_CARD_COUNT = 12
 private val NewVideosTopPadding = 8.dp
 private val NewVideosIconSpacing = 8.dp
@@ -77,7 +79,6 @@ internal fun rememberHomeGridStates(): HomeGridStates {
  * What keeps the feed fed while Home shows: visibility, the viewport-driven prefetch, dwelt-in-view
  * impressions, and the tab reselect that scrolls up and then refreshes. Shared by the phone and TV Home.
  */
-@OptIn(FlowPreview::class)
 @Composable
 internal fun HomeFeedEffects(
     viewModel: HomeViewModel,
@@ -122,11 +123,22 @@ internal fun HomeFeedEffects(
             }
     }
 
-    // Viewport impressions: only items dwelt in view are recorded as "shown".
-    LaunchedEffect(gridState) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.mapNotNull { it.key as? String } }
-            .debounce(IMPRESSION_DEBOUNCE_MS)
-            .collect { viewModel.recordImpressions(it) }
+    // Viewport impressions, counted per card while Home is resumed (#1565).
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(gridState, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            val dwell = ImpressionDwell()
+            snapshotFlow { gridState.layoutInfo.halfVisibleKeys() }
+                .distinctUntilChanged()
+                .collectLatest { visible ->
+                    while (true) {
+                        val now = SystemClock.uptimeMillis()
+                        val due = dwell.update(visible, now)
+                        if (due.isNotEmpty()) viewModel.recordImpressions(due)
+                        delay(dwell.millisUntilNextDue(now) ?: break)
+                    }
+                }
+        }
     }
 
     LaunchedEffect(refreshHomeOnReselect) {

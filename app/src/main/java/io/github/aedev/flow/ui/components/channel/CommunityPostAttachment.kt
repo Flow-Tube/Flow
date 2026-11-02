@@ -67,18 +67,19 @@ private fun PostImages(
     compact: Boolean = false,
 ) {
     val resolved = remember(urls) { urls.map { ThumbnailUrlResolver.resolveCommunityPostImage(it) } }
+    val whole = remember(urls) { urls.map { ThumbnailUrlResolver.resolveCommunityPostImage(it, uncropped = true) } }
     if (resolved.isEmpty()) return
 
     var fullSizeIndex by rememberSaveable { mutableIntStateOf(-1) }
-    if (fullSizeIndex in resolved.indices) {
-        FullSizeImageDialog(imageUrl = resolved[fullSizeIndex], onDismiss = { fullSizeIndex = -1 })
+    if (fullSizeIndex in whole.indices) {
+        FullSizeImageDialog(imageUrls = whole, initialIndex = fullSizeIndex, onDismiss = { fullSizeIndex = -1 })
     }
 
     // A lone image runs edge to edge; a gallery insets so the next page peeks, which is the only cue
     // that there is one.
     if (resolved.size == 1) {
         AsyncImage(
-            model = resolved.first(),
+            model = if (compact) resolved.first() else whole.first(),
             contentDescription = stringResource(R.string.community_post_image_content_description),
             modifier =
                 modifier

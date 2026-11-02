@@ -33,8 +33,10 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +84,7 @@ fun FlowSearchField(
     if (releaseFocusWithKeyboard) ReleaseFocusWhenKeyboardCloses()
     val dpad = LocalDpadNavigation.current
     val view = LocalView.current
+    var keyboardRequested by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val shape = MaterialTheme.shapes.extraLarge
     Surface(
@@ -121,17 +124,21 @@ fun FlowSearchField(
                         Modifier
                             .fillMaxWidth()
                             .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
-                            .onFocusChanged { if (it.isFocused) onFieldFocused() }
-                            // A tap raises the keyboard on its own; a remote's OK has to ask the platform for it, as
-                            // the keyboard controller only drives the legacy text input session this field doesn't use.
+                            .onFocusChanged {
+                                if (it.isFocused) onFieldFocused() else keyboardRequested = false
+                            }
+                            // A remote's OK opens the field's input session by turning keyboard-on-focus on while it
+                            // holds focus; without a session there is no connection for the keyboard to type into.
                             .then(
                                 if (dpad) {
                                     Modifier.onPreviewKeyEvent { event ->
                                         if (event.key != Key.DirectionCenter) return@onPreviewKeyEvent false
-                                        if (event.type ==
-                                            KeyEventType.KeyUp
-                                        ) {
-                                            view.context.getSystemService<InputMethodManager>()?.showSoftInput(view, 0)
+                                        if (event.type == KeyEventType.KeyUp) {
+                                            if (keyboardRequested) {
+                                                view.context.getSystemService<InputMethodManager>()?.showSoftInput(view, 0)
+                                            } else {
+                                                keyboardRequested = true
+                                            }
                                         }
                                         true
                                     }
@@ -150,7 +157,7 @@ fun FlowSearchField(
                     keyboardOptions =
                         KeyboardOptions(
                             imeAction = ImeAction.Search,
-                            showKeyboardOnFocus = if (dpad) false else null,
+                            showKeyboardOnFocus = if (dpad) keyboardRequested else null,
                         ),
                     onKeyboardAction = { onSearch(state.text.toString()) },
                 )

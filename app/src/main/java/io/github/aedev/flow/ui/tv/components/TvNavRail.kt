@@ -42,9 +42,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
@@ -56,8 +58,8 @@ import io.github.aedev.flow.ui.tv.navigation.TV_SETTINGS_ROUTE
  * with labels while it holds focus and lies over the content, which is laid out against the collapsed
  * width, so expanding never moves the page.
  *
- * Focus enters on the selected destination when it comes from the Left (a D-pad press, or the shell's
- * Back). Any other entry is Compose handing out initial focus after the focused item went away, which
+ * Focus enters on the selected destination when it comes from the screen edge the rail sits on (a
+ * D-pad press, or the shell's Back); that edge is the right one in a right-to-left language. Any other entry is Compose handing out initial focus after the focused item went away, which
  * would otherwise land here as the first item on screen, so it goes to [onOtherEntry] when that takes it.
  */
 @Composable
@@ -80,6 +82,7 @@ fun TvNavRail(
     }
     val expanded = state.targetValue == WideNavigationRailValue.Expanded
     val selectedRequester = remember { FocusRequester() }
+    val towardRail = railFocusDirection(LocalLayoutDirection.current)
     val colors = MaterialTheme.colorScheme
 
     WideNavigationRail(
@@ -92,10 +95,10 @@ fun TvNavRail(
                 }.focusRequester(focusRequester)
                 .focusProperties {
                     onEnter = {
-                        val redirected = requestedFocusDirection != FocusDirection.Left && onOtherEntry()
+                        val redirected = requestedFocusDirection != towardRail && onOtherEntry()
                         if (!redirected) selectedRequester.requestFocus()
                     }
-                    onExit = { if (requestedFocusDirection == FocusDirection.Left) cancelFocusChange() }
+                    onExit = { if (requestedFocusDirection == towardRail) cancelFocusChange() }
                 }.focusGroup(),
         state = state,
         colors = WideNavigationRailDefaults.colors(containerColor = if (expanded) colors.surfaceContainer else colors.background),
@@ -206,3 +209,7 @@ private object LastItemAtBottom : Arrangement.Vertical {
         }
     }
 }
+
+/** The D-pad direction that points from the content toward the rail, which sits at the start edge. */
+fun railFocusDirection(layoutDirection: LayoutDirection): FocusDirection =
+    if (layoutDirection == LayoutDirection.Rtl) FocusDirection.Right else FocusDirection.Left

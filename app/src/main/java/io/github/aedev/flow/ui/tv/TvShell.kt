@@ -35,6 +35,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -54,6 +55,7 @@ import io.github.aedev.flow.ui.screens.search.SearchViewModel
 import io.github.aedev.flow.ui.screens.subscriptions.SubscriptionsViewModel
 import io.github.aedev.flow.ui.tv.components.TvNavRail
 import io.github.aedev.flow.ui.tv.components.TvRailProfile
+import io.github.aedev.flow.ui.tv.components.railFocusDirection
 import io.github.aedev.flow.ui.tv.music.TvMiniPlayer
 import io.github.aedev.flow.ui.tv.navigation.TvNavHost
 import io.github.aedev.flow.ui.tv.navigation.TvNavigation
@@ -118,13 +120,14 @@ fun TvShell(
     val pageFocusRequester = remember { FocusRequester() }
     val miniPlayerFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val layoutDirection = LocalLayoutDirection.current
     val contentFocusRequester = remember { FocusRequester() }
 
     // Registered before the NavHost, so a page's own Back (a settings sub-page, a list mode) and the
     // NavHost's pop come first: a detail route pops, another root returns to the start tab. Only on the
     // start tab itself does Back reach this, moving focus to the rail, and from the rail the app exits.
     BackHandler(enabled = !isOnDetailRoute && currentRoot == navigation.startTab.route && !railHasFocus) {
-        railFocusRequester.requestFocus(FocusDirection.Left)
+        railFocusRequester.requestFocus(railFocusDirection(layoutDirection))
     }
 
     fun navigateToRoot(route: String) {

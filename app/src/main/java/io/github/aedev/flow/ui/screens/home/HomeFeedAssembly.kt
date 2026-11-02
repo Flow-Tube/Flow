@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.home
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 
+internal const val FRESH_UPLOAD_MAX_SIGHTINGS = 3
 internal const val HOME_TARGET_SIZE = 40
 
 // No channel twice within this many cards, across pages and late arrivals.
@@ -86,6 +87,7 @@ internal suspend fun buildHomeFeedLanes(
     watched: Set<String>,
     exclusions: FeedExclusions,
     isRecentlyShown: (videoId: String) -> Boolean,
+    timesShown: (videoId: String) -> Int = { 0 },
     taste: FeedTasteProfile,
     now: Long,
     freshSlotTarget: Int,
@@ -139,6 +141,8 @@ internal suspend fun buildHomeFeedLanes(
     val freshSubsLane =
         (rssFresh + subsByRecency.filter { isFreshSubscribedCandidate(it, now) })
             .filterWatched(watched)
+            // Passed this often without a tap, a fresh upload has had its chance on Home (#1565).
+            .filterNot { timesShown(it.id) >= FRESH_UPLOAD_MAX_SIGHTINGS }
             .distinctBy { it.id }
             .sortedByDescending { it.timestamp }
             // One fresh slot per channel — a channel that uploaded three times today must not

@@ -757,9 +757,10 @@ internal object NeuroScoring {
      * Hard seen-gate: industry practice (Twitter home-mixer's "previously seen
      * removal") treats recent repeats as a FILTER, not a score penalty — a
      * penalty lets high-scoring items punch back into the feed. Items shown
-     * [SEEN_GATE_SHOW_COUNT]+ times within [SEEN_GATE_WINDOW_HOURS] are dropped
-     * entirely, with two scarcity guards: small pools skip the gate, and if the
-     * gate would leave fewer than [SEEN_GATE_MIN_RESULTS] items it backs off.
+     * [SEEN_GATE_SHOW_COUNT]+ times within [SEEN_GATE_WINDOW_HOURS] are always
+     * dropped (#1565). The single-sighting hide keeps two scarcity guards: small
+     * pools skip it, and if it would leave fewer than [SEEN_GATE_MIN_RESULTS]
+     * items it backs off.
      */
     fun <T> applySeenGate(
         items: List<T>,
@@ -767,10 +768,21 @@ internal object NeuroScoring {
         now: Long,
         idOf: (T) -> String,
     ): List<T> {
-        if (items.size < SEEN_GATE_MIN_POOL || feedHistory.isEmpty()) return items
-        val kept = items.filterNot { item -> isRecentlySeen(feedHistory[idOf(item)], now) }
-        if (kept.size == items.size) return items
-        return if (kept.size >= SEEN_GATE_MIN_RESULTS) kept else items
+        if (feedHistory.isEmpty()) return items
+        val unrepeated = items.filterNot { item -> isRepeatedlySeen(feedHistory[idOf(item)], now) }
+        if (unrepeated.size < SEEN_GATE_MIN_POOL) return unrepeated
+        val kept = unrepeated.filterNot { item -> isRecentlySeen(feedHistory[idOf(item)], now) }
+        return if (kept.size >= SEEN_GATE_MIN_RESULTS) kept else unrepeated
+    }
+
+    /** Shown [SEEN_GATE_SHOW_COUNT]+ times and still inside the long hide. */
+    fun isRepeatedlySeen(
+        entry: FeedEntry?,
+        now: Long,
+    ): Boolean {
+        entry ?: return false
+        if (entry.showCount < SEEN_GATE_SHOW_COUNT) return false
+        return (now - entry.lastShown) / 3_600_000.0 < SEEN_GATE_WINDOW_HOURS
     }
 
     /** The seen-gate's rule for one item, without its scarcity guards. */

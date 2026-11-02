@@ -127,6 +127,9 @@ class ThumbnailUrlResolverTest {
     private companion object {
         const val VIDEO_ID = "dQw4w9WgXcQ"
         const val OTHER_ID = "aBcDeFgHiJk"
+        const val POST_IMAGE_BASE =
+            "https://yt3.ggpht.com/ONbcNR93C-Al2A8iKSYb4dkPTUHgd9cR4evpGn5ShzF2JNZasMRpNXyWQr0YaU2-SAsgxfrMj_5RkA"
+        const val POST_IMAGE = "$POST_IMAGE_BASE=s1080-c-fcrop64=1,00001ba6ffffe872-rw-nd-v1"
     }
 
     @Test
@@ -136,5 +139,23 @@ class ThumbnailUrlResolverTest {
         assertThat(ThumbnailUrlResolver.isUnusableChannelAvatar("https://i.ytimg.com/vi/93iYf9wp7Qw/hqdefault.jpg")).isTrue()
         assertThat(ThumbnailUrlResolver.isUnusableChannelAvatar("https://yt3.ggpht.com/abc=s176-c-k-c0x00ffffff-no-rj")).isFalse()
         assertThat(ThumbnailUrlResolver.isUnusableChannelAvatar("")).isFalse()
+    }
+
+    @Test
+    fun `post image keeps the feed crop by default`() {
+        assertThat(ThumbnailUrlResolver.resolveCommunityPostImage(POST_IMAGE))
+            .isEqualTo("$POST_IMAGE_BASE=w2048-c-fcrop64=1,00001ba6ffffe872-rw-nd-v1")
+    }
+
+    @Test
+    fun `uncropped post image drops the crop and every other option`() {
+        assertThat(ThumbnailUrlResolver.resolveCommunityPostImage(POST_IMAGE, uncropped = true))
+            .isEqualTo("$POST_IMAGE_BASE=w2048")
+    }
+
+    @Test
+    fun `uncropped post image without options gains only a width`() {
+        assertThat(ThumbnailUrlResolver.resolveCommunityPostImage("//yt3.ggpht.com/abc", uncropped = true))
+            .isEqualTo("https://yt3.ggpht.com/abc=w2048")
     }
 }

@@ -109,6 +109,7 @@ fun VideoPlayerHost(
             .takeIf { playerState.currentVideoId == video.id }
             ?: decodedVideoAspectRatio
     val localIsInPipMode by GlobalPlayerState.isInPipMode.collectAsStateWithLifecycle()
+    val isEnteringPip by GlobalPlayerState.isEnteringPip.collectAsStateWithLifecycle()
     val config = LocalConfiguration.current
     val isLandscape = config.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val windowSizeClass = LocalWindowSizeClass.current
@@ -276,6 +277,11 @@ fun VideoPlayerHost(
         isBackgroundPlaybackMode = playerUiState.isBackgroundPlaybackMode,
         videoAspectRatio = videoAspectRatio,
         pipPreferences = pipPreferences,
+        // A PiP window can't be sent back; finishing closes it and onDestroy keeps the background audio.
+        onListenInBackground = {
+            playerViewModel.startBackgroundPlayback()
+            activity.finish()
+        },
     )
 
     val fullscreenShown =
@@ -394,6 +400,7 @@ fun VideoPlayerHost(
         playerSheetState = playerSheetState,
         screenState = screenState,
         isInPipMode = localIsInPipMode,
+        isEnteringPip = isEnteringPip,
         isLandscape = isLandscape,
         pipForcedFullscreen = pipForcedFullscreen,
     )

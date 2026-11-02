@@ -64,6 +64,7 @@ internal fun LyricsActionsSheet(
     syncOffsetMs: Long,
     display: LyricsDisplayOptions,
     japaneseLyrics: Boolean,
+    hasTranslation: Boolean,
     onRefresh: () -> Unit,
     onChooseSource: (() -> Unit)?,
     onEdit: () -> Unit,
@@ -170,8 +171,12 @@ internal fun LyricsActionsSheet(
                         key = "translation",
                         icon = Icons.Outlined.Translate,
                         title = stringResource(R.string.lyrics_show_translation),
-                        supporting = stringResource(R.string.lyrics_show_translation_summary),
-                        checked = display.showTranslation,
+                        supporting =
+                            stringResource(
+                                if (hasTranslation) R.string.lyrics_show_translation_summary else R.string.lyrics_no_translation,
+                            ),
+                        checked = hasTranslation && display.showTranslation,
+                        enabled = hasTranslation,
                         onCheckedChange = { onDisplayChange(display.copy(showTranslation = it)) },
                     ),
                     lyricsSwitchRow(
