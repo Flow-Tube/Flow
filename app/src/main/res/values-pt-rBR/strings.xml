@@ -4534,4 +4534,31 @@
     <string name="player_settings_keep_playing_after_swipe">Continuar reproduzindo após fechar o Flow</string>
     <string name="onboarding_import_subtitle_profile">Traga as inscrições e o histórico de outros aplicativos para %1$s. Tudo é opcional.</string>
     <string name="profiles_copy_settings_summary">Tema, reprodução e preferências do aplicativo</string>
+    <string name="player_settings_keep_playing_after_swipe_subtitle">A reprodução continua quando você desliza o Flow para fora dos aplicativos recentes</string>
+    <plurals name="master_restore_waiting">
+        <item quantity="one">Backup mestre restaurado. %1$s será restaurado na próxima vez que você o abrir.</item>
+        <item quantity="many">Backup mestre restaurado. %1$s são restaurados na próxima vez que você abri-los.</item>
+        <item quantity="other">Backup mestre restaurado. %1$s são restaurados na próxima vez que você abri-los.</item>
+    </plurals>
+    <string name="linked_title">Dispositivos conectados</string>
+    <string name="play_on_title">Tocar com</string>
+    <string name="play_on_subtitle">Escolha onde tocar</string>
+    <string name="play_on_button">Tocar em outro dispositivo</string>
+    <string name="play_on_playing_on">Tocando em %1$s</string>
+    <string name="play_on_nothing">Nada está tocando nos seus dispositivos</string>
+    <string name="play_on_this_phone">Este celular</string>
+    <string name="play_on_this_tablet">Este tablet</string>
+    <string name="play_on_this_tv">Esta televisão</string>
+    <string name="play_on_status_playing">Tocando · %1$s</string>
+    <string name="play_on_status_paused">Pausado · %1$s</string>
+    <string name="play_on_status_ready">Pronto</string>
+    <string name="play_on_last_seen">Último visto %1$s</string>
+    <string name="play_on_never_seen">Não visto ainda</string>
+    <string name="play_on_controlled_by">Tocando de %1$s</string>
+    <string name="play_on_volume">Volume</string>
+    <string name="play_on_consent_title">Deixar %1$s tocar aqui?</string>
+    <string name="play_on_consent_body">%1$s quer tocar neste dispositivo e controlar o que toca aqui. Você pode alterar isso mais tarde em Dispositivos conectados.</string>
+    <string name="play_on_consent_always">Permitir sempre</string>
+    <string name="play_on_consent_once">Apenas uma vez</string>
+    <string name="play_on_consent_decline">Negar</string>
 </resources>
