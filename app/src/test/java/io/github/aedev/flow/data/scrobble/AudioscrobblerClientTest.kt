@@ -14,25 +14,27 @@ class AudioscrobblerClientTest {
     private val keys = AudioscrobblerKeys("key", "secret")
     private val sent = mutableListOf<Map<String, String>>()
 
-    private fun client(reply: String) =
-        AudioscrobblerClient("https://example.invalid/2.0/") {
-            OkHttpClient
-                .Builder()
-                .addInterceptor { chain ->
-                    val form = chain.request().body as? FormBody
-                    sent +=
-                        form?.let { (0 until it.size).associate { i -> it.name(i) to it.value(i) } }
-                            ?: chain.request().url.let { url -> url.queryParameterNames.associateWith { url.queryParameter(it).orEmpty() } }
-                    Response
-                        .Builder()
-                        .request(chain.request())
-                        .protocol(Protocol.HTTP_1_1)
-                        .code(200)
-                        .message("OK")
-                        .body(reply.toResponseBody("application/json".toMediaType()))
-                        .build()
-                }.build()
-        }
+    private fun client(
+        reply: String,
+        sessionAuth: MobileSessionAuth = MobileSessionAuth.PASSWORD,
+    ) = AudioscrobblerClient("https://example.invalid/2.0/", sessionAuth = sessionAuth, http = {
+        OkHttpClient
+            .Builder()
+            .addInterceptor { chain ->
+                val form = chain.request().body as? FormBody
+                sent +=
+                    form?.let { (0 until it.size).associate { i -> it.name(i) to it.value(i) } }
+                        ?: chain.request().url.let { url -> url.queryParameterNames.associateWith { url.queryParameter(it).orEmpty() } }
+                Response
+                    .Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(reply.toResponseBody("application/json".toMediaType()))
+                    .build()
+            }.build()
+    })
 
     @Test
     fun `the signature follows the documented recipe`() {
@@ -54,6 +56,37 @@ class AudioscrobblerClientTest {
             val form = sent.single()
             assertThat(form["method"]).isEqualTo("auth.getMobileSession")
             assertThat(form["api_sig"]).isEqualTo(audioscrobblerSignature(form - "api_sig" - "format", "secret"))
+        }
+
+    @Test
+    fun `the auth token is the md5 of the lower-cased name and the password's md5`() {
+        assertThat(audioscrobblerAuthToken("listener", "pw")).isEqualTo("1d12e5ee336fb5afd24c404f2f7a6c1a")
+        assertThat(audioscrobblerAuthToken("Listener", "pw")).isEqualTo(audioscrobblerAuthToken("listener", "pw"))
+    }
+
+    @Test
+    fun `a token sign in sends the auth token and never the password`() =
+        runBlocking {
+            client(
+                """{"session":{"name":"Listener","key":"SK","subscriber":0}}""",
+                sessionAuth = MobileSessionAuth.AUTH_TOKEN,
+            ).signIn("Listener", "pw", keys).getOrThrow()
+
+            val form = sent.single()
+            assertThat(form).doesNotContainKey("password")
+            assertThat(form["authToken"]).isEqualTo("1d12e5ee336fb5afd24c404f2f7a6c1a")
+            assertThat(form["username"]).isEqualTo("Listener")
+            assertThat(form["api_sig"]).isEqualTo(audioscrobblerSignature(form - "api_sig" - "format", "secret"))
+        }
+
+    @Test
+    fun `a password sign in sends the password and no token`() =
+        runBlocking {
+            client("""{"session":{"name":"Listener","key":"SK","subscriber":0}}""").signIn("listener", "pw", keys).getOrThrow()
+
+            val form = sent.single()
+            assertThat(form["password"]).isEqualTo("pw")
+            assertThat(form).doesNotContainKey("authToken")
         }
 
     @Test
