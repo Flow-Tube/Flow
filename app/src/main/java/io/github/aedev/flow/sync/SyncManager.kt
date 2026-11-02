@@ -82,6 +82,7 @@ class SyncManager
         private var sasDeferred: CompletableDeferred<Boolean>? = null
         private var consentDeferred: CompletableDeferred<Boolean>? = null
         private var hostPairing: HostPairing? = null
+        private var foregroundToken: Long? = null
 
         /** When the shown code lapses; the listener closes then, since scanners no longer check `exp`. */
         @Volatile private var hostExpiresAtEpochSeconds = 0L
@@ -197,7 +198,7 @@ class SyncManager
                 LanAddress.logCandidates(ip)
                 if (ip == null) throw IllegalStateException(context.getString(R.string.sync_error_no_network))
 
-                SyncForegroundService.start(context)
+                foregroundToken = SyncForegroundService.start(context)
                 val srv = WsServer()
                 server = srv
                 val port = srv.start()
@@ -269,7 +270,7 @@ class SyncManager
                 directionalKeys = keys
                 val sas = SyncCrypto.sas(master, parsed.sessionId)
 
-                SyncForegroundService.start(context)
+                foregroundToken = SyncForegroundService.start(context)
                 _state.value = SyncState.Connecting
                 val conn = connectAny(parsed.wsUrls)
                 connection = conn
@@ -399,7 +400,8 @@ class SyncManager
             sasDeferred = null
             consentDeferred = null
             hostPairing = null
-            runCatching { SyncForegroundService.stop(context) }
+            foregroundToken?.let { token -> runCatching { SyncForegroundService.stop(context, token) } }
+            foregroundToken = null
         }
 
         private fun qrErrorMessage(error: QrCodec.QrError): String =

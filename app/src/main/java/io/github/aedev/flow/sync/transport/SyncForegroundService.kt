@@ -10,6 +10,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import io.github.aedev.flow.R
 
 /**
@@ -35,7 +36,11 @@ class SyncForegroundService : Service() {
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build()
-        startForegroundCompat(notification)
+        val promoted = runCatching { startForegroundCompat(notification) }.isSuccess
+        if (gate.promoted() || !promoted) {
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
         return START_NOT_STICKY
     }
 
@@ -52,13 +57,23 @@ class SyncForegroundService : Service() {
         const val CHANNEL_ID = "flow_device_sync"
         private const val NOTIF_ID = 4096
 
-        fun start(context: Context) {
+        private val gate = SyncForegroundGate()
+
+        /** Returns the token [stop] needs, so a stop from an earlier session can't end this one. */
+        fun start(context: Context): Long {
+            val token = gate.requestStart()
             val intent = Intent(context, SyncForegroundService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: RuntimeException) {
+                gate.startFailed()
+                throw e
             }
+            return token
         }
 
         fun ensureChannel(context: Context) {
@@ -76,8 +91,13 @@ class SyncForegroundService : Service() {
             }
         }
 
-        fun stop(context: Context) {
-            context.stopService(Intent(context, SyncForegroundService::class.java))
+        fun stop(
+            context: Context,
+            token: Long,
+        ) {
+            if (gate.requestStop(token) == SyncForegroundGate.Stop.NOW) {
+                context.stopService(Intent(context, SyncForegroundService::class.java))
+            }
         }
     }
 }
