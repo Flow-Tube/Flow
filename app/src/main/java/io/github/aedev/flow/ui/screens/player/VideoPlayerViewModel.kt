@@ -403,10 +403,10 @@ class VideoPlayerViewModel
         fun resetSessionAndRetry() =
             viewModelScope.launch {
                 resetYouTubeSession()
-                retryLoadVideo()
+                retryLoadVideo(reuseLoadedStreams = false)
             }
 
-        fun retryLoadVideo() {
+        fun retryLoadVideo(reuseLoadedStreams: Boolean = true) {
             val videoId = _uiState.value.cachedVideo?.id ?: return
             Log.d("VideoPlayerViewModel", "Retrying video load for $videoId")
             if (upcomingPremiere.applyCountdown(_uiState.value.cachedVideo ?: return)) {
@@ -418,6 +418,7 @@ class VideoPlayerViewModel
                 return
             }
             recovery.onPlaybackRequested()
+            if (reuseLoadedStreams && recovery.retryInPlace()) return
             playerManager.clearCurrentVideo()
             _uiState.update { it.copy(error = null, errorHint = null, errorOffersSessionReset = false, isLoading = true) }
             loadVideoInfo(videoId, isWifi = detectIsWifi(), forceRefresh = true)
