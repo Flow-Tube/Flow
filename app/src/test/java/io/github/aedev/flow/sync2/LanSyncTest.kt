@@ -89,11 +89,11 @@ class LanSyncTest {
         }
     }
 
-    /** [client]'s link to [server], whose peer answers until [block] returns. */
+    /** [client]'s link to [server], whose peer answers until [block] returns; [block] may also have that peer ask. */
     private suspend fun linked(
         client: Member,
         server: Member,
-        block: suspend (LanLink) -> Unit,
+        block: suspend (LanLink, LanPeer) -> Unit,
     ) = withContext(Dispatchers.Default) {
         coroutineScope {
             val accepted = CompletableDeferred<SyncConnection>()
@@ -103,9 +103,10 @@ class LanSyncTest {
                 val connection = WsClient(OkHttpClient()).connect("ws://127.0.0.1:$port$SESSION_PATH")
                 val serverSide = async { acceptLink(accepted.await(), server.session()) }
                 val link = connectLink(connection, client.session())
-                val answering = LanPeer(serverSide.await(), server.session(), server.local).start(this)
+                val peer = LanPeer(serverSide.await(), server.session(), server.local)
+                val answering = peer.start(this)
                 try {
-                    block(link)
+                    block(link, peer)
                 } finally {
                     link.close()
                 }
@@ -167,11 +168,35 @@ class LanSyncTest {
             val g = LinkedGroup(this).apply { create() }
             val a = member(g, g.a)
             val b = member(g, g.b)
-            linked(a, b) { link ->
+            linked(a, b) { link, _ ->
                 val list = { id: Int, seq: Long -> """{"id":$id,"op":"list","vv":{"${SyncBytes.toHex(g.a.did)}":$seq}}""" }
                 assertEquals(JsonPrimitive(true), ask(link, list(0, MAX_SEQ))["ok"])
                 assertEquals(JsonPrimitive(false), ask(link, list(1, MAX_SEQ + 1))["ok"])
             }
+        }
+
+    @Test
+    fun a_request_or_an_answer_with_a_field_of_the_wrong_type_is_a_protocol_error() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val a = member(g, g.a)
+            val b = member(g, g.b)
+
+            suspend fun error(block: suspend (LanLink, LanPeer) -> Unit) = runCatching { linked(a, b, block) }.exceptionOrNull()
+            for (frame in listOf("""{"id":0,"op":{}}""", """{"re":[0]}""")) {
+                val refused = error { link, _ -> link.send(frame.toByteArray()) }
+                assertEquals("$frame: $refused", "payload", (refused as? ProtocolException)?.error?.code)
+            }
+            val answered =
+                error { link, peer ->
+                    coroutineScope {
+                        val pulling = async { peer.pull() }
+                        val asked = Json.parseToJsonElement(checkNotNull(link.receive()).decodeToString()).jsonObject
+                        link.send("""{"entries":{},"ok":true,"re":${asked["id"]}}""".toByteArray())
+                        pulling.await()
+                    }
+                }
+            assertEquals("$answered", "payload", (answered as? ProtocolException)?.error?.code)
         }
 
     @Test
