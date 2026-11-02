@@ -10,10 +10,12 @@ import io.github.aedev.flow.sync2.roster.forkWinner
 import io.github.aedev.flow.sync2.roster.openDeviceMeta
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.roster.replayRoster
+import io.github.aedev.flow.sync2.roster.resolveForks
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -117,5 +119,15 @@ class RosterTest {
     fun a_null_field_is_not_an_absent_one() {
         val withNull = JsonObject(v["entries"].jsonArray[1].jsonObject + ("remove" to JsonNull))
         assertEquals("roster-format", errorCode { parseEntry(withNull) })
+    }
+
+    @Test
+    fun a_negative_seq_or_epoch_is_malformed_so_it_never_hides_the_chain() {
+        val raw = v["entries"].jsonArray
+        val seq = JsonObject(raw[1].jsonObject + ("seq" to JsonPrimitive(-1)))
+        val epoch = JsonObject(raw[0].jsonObject + ("epoch" to JsonObject(raw[0]["epoch"].jsonObject + ("n" to JsonPrimitive(-1)))))
+        assertEquals("roster-format", errorCode { parseEntry(seq) })
+        assertEquals("roster-format", errorCode { parseEntry(epoch) })
+        assertEquals(entries, resolveForks((raw + seq).mapNotNull { runCatching { parseEntry(it) }.getOrNull() }))
     }
 }
