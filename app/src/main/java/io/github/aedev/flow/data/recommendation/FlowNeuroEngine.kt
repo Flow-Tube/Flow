@@ -432,9 +432,6 @@ class FlowNeuroEngine internal constructor(
     private val sessionTopicHistory = mutableListOf<String>()
     private val recentInteractions = mutableListOf<MomentumEntry>()
 
-    // Counts a visible item at most once per session (viewport impressions).
-    private val sessionImpressed = HashSet<String>()
-
     // IDF tracking — persisted in brain state
     private var idfWordFrequency = mutableMapOf<String, Int>()
     private var idfTotalDocuments = 0
@@ -864,7 +861,6 @@ class FlowNeuroEngine internal constructor(
         sessionTopicHistory.clear()
         impressionCache.clear()
         recentInteractions.clear()
-        sessionImpressed.clear()
         discoveryRound = 0
         passiveProfiledChannels.clear()
     }
@@ -2332,9 +2328,7 @@ class FlowNeuroEngine internal constructor(
 
         withBrainLock {
             syncBookkeeping(deepFlow)
-            // Only count items not already impressed this session (avoids re-penalizing
-            // content the user keeps scrolling past within one sitting).
-            val fresh = ids.filter { sessionImpressed.add(it) }
+            val fresh = FeedImpressionLedger.countable(ids, currentUserBrain.feedHistory, now)
             if (fresh.isEmpty()) return@withBrainLock
 
             fresh.forEach { id ->
