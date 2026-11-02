@@ -146,15 +146,21 @@ suspend fun Session.collectGarbage(linked: Set<String?>) {
         }
         for ((did, range) in plan.logs) {
             val kept = manifests.filter { it.did == did }.map { it.seq }.toSet()
-            var done = range.first - 1
-            for (seq in range) {
-                val path = StorePaths.log(did, seq)
-                if (seq !in kept && path in held) {
-                    if (budget == 0) break
-                    store.deleteObject(path)
-                    budget--
+            // The range comes from other devices' acks and manifests: visit only what this device holds in it.
+            val doomed =
+                held
+                    .mapNotNull(StorePaths::parseLog)
+                    .filter { (of, seq) ->
+                        of == did && seq in range && seq !in kept
+                    }.map { it.second }
+            var done = range.last
+            for (seq in doomed.sorted()) {
+                if (budget == 0) {
+                    done = seq - 1
+                    break
                 }
-                done = seq
+                store.deleteObject(StorePaths.log(did, seq))
+                budget--
             }
             dao.setCollected(CollectedRow(did, done))
         }
