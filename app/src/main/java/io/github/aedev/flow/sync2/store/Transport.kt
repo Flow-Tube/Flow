@@ -4,8 +4,19 @@ import io.github.aedev.flow.sync.qr.LocalNetworkAddress
 import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
+
+/** The most a response other than an object or a blob may hold (spec/store.md, Untrusted input). */
+internal const val MAX_RESPONSE = 16L * 1024 * 1024
+
+/** Reads a body of at most [limit] bytes, failing as soon as more arrive. */
+internal fun ResponseBody.bytesUpTo(limit: Long): ByteArray {
+    val source = source()
+    if (source.request(limit + 1)) throw StoreException.Malformed()
+    return source.readByteArray()
+}
 
 /** A `.local` name may resolve only to local addresses, checked on every connection. */
 private val LOCAL_ONLY_DNS =

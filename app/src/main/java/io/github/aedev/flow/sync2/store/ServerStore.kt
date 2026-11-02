@@ -2,6 +2,7 @@ package io.github.aedev.flow.sync2.store
 
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.qr.LocalNetworkAddress
+import io.github.aedev.flow.sync.transport.BoundedListener
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.sign
 import io.github.aedev.flow.sync2.crypto.tag
@@ -45,6 +46,9 @@ import java.util.concurrent.TimeUnit
 /** Refresh a token this long before it expires. */
 private const val TOKEN_MARGIN_MS = 60_000L
 private const val LIVE_PING_S = 15L
+
+/** The most a live message or a server notice may hold (spec/store.md, Untrusted input). */
+private const val MAX_LIVE_MESSAGE = 64L * 1024
 private val JSON = "application/json".toMediaType()
 private val BYTES = "application/octet-stream".toMediaType()
 
@@ -85,12 +89,18 @@ class ServerStore private constructor(
 
     private fun url(path: String): HttpUrl = base.resolve(path) ?: throw StoreException.Malformed()
 
-    /** The whole body is read here, on the IO dispatcher, so callers never read the network from their own thread. */
-    private suspend fun send(request: Request): Response =
+    /**
+     * The whole body, up to [limit] bytes, is read here, on the IO dispatcher, so callers never read the network from
+     * their own thread.
+     */
+    private suspend fun send(
+        request: Request,
+        limit: Long = MAX_RESPONSE,
+    ): Response =
         withContext(Dispatchers.IO) {
             try {
                 client.newCall(request).execute().use { response ->
-                    response.newBuilder().body(response.body.bytes().toResponseBody(response.body.contentType())).build()
+                    response.newBuilder().body(response.body.bytesUpTo(limit).toResponseBody(response.body.contentType())).build()
                 }
             } catch (e: IOException) {
                 throw StoreException.Network(e)
@@ -158,6 +168,7 @@ class ServerStore private constructor(
         path: String,
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
+        limit: Long = MAX_RESPONSE,
     ): Response {
         for (renew in listOf(false, true)) {
             val request =
@@ -168,7 +179,7 @@ class ServerStore private constructor(
                     .header("Authorization", "Bearer ${token(renew)}")
                     .apply { headers.forEach { (name, value) -> header(name, value) } }
                     .build()
-            val response = send(request)
+            val response = send(request, limit)
             if (response.code != 401 || renew) return response
             response.close()
         }
@@ -176,7 +187,7 @@ class ServerStore private constructor(
     }
 
     private suspend fun getBytes(path: String): ByteArray? =
-        authorized("GET", path).use { response ->
+        authorized("GET", path, limit = MAX_OBJECT_SIZE.toLong()).use { response ->
             if (response.code == 404) null else check(response).body.bytes()
         }
 
@@ -270,7 +281,7 @@ class ServerStore private constructor(
             .readTimeout(0, TimeUnit.SECONDS)
             .callTimeout(0, TimeUnit.SECONDS)
             .build()
-            .newWebSocket(request, listener)
+            .newWebSocket(request, BoundedListener(MAX_LIVE_MESSAGE, listener))
     }
 
     /** Join requests no member has answered yet. */

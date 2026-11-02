@@ -21,6 +21,10 @@ import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.lan.acceptLink
 import io.github.aedev.flow.sync2.lan.connectLink
+import io.github.aedev.flow.sync2.crypto.lanFrameAad
+import io.github.aedev.flow.sync2.crypto.u64
+import io.github.aedev.flow.sync2.lan.LanLink
+import io.github.aedev.flow.sync2.lan.MAX_LAN_PAYLOAD
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -130,5 +134,23 @@ class LanLinkTest {
                     override fun close() = Unit
                 }
             assertNull(acceptLink(connection, Session.open(g.deviceDb(), g.store, g.a)).peerPort)
+        }
+
+    @Test
+    fun `a frame whose payload inflates past the limit is refused`() =
+        runTest {
+            val key = ByteArray(32) { 1 }
+            val receiving = { size: Int ->
+                LanLink(
+                    Frames(u64(0) + seal(key, lanFrameAad(0), encodePayload(ByteArray(size)))),
+                    peer = "peer",
+                    peerPort = null,
+                    sendKey = key,
+                    receiveKey = key,
+                )
+            }
+            assertEquals(MAX_LAN_PAYLOAD, receiving(MAX_LAN_PAYLOAD).receive()?.size)
+            val error = runCatching { receiving(MAX_LAN_PAYLOAD + 1).receive() }.exceptionOrNull()
+            assertEquals("length", (error as ProtocolException).error.code)
         }
 }
