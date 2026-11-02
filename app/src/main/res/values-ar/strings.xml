@@ -5019,4 +5019,24 @@
     <string name="linked_consent_ask">اسأل في كل مرة</string>
     <string name="linked_consent_allowed">مسموح</string>
     <string name="linked_consent_declined">غير مسموح</string>
+    <string name="linked_error_no_profile_synced">اختر ملف تعريف للمزامنة قبل إضافة جهاز.</string>
+    <string name="linked_profiles">ملفات التعريف</string>
+    <string name="linked_profiles_none">‍اختر ملف تعريف للمزامنة على هذا الجهاز</string>
+    <string name="linked_profile_local">يبقى على هذا الجهاز</string>
+    <string name="linked_profile_other">على أجهزتك الأخرى</string>
+    <string name="linked_profile_unnamed">ملف تعريف بدون اسم</string>
+    <string name="linked_profile_start_title">مزامنة %1$s</string>
+    <string name="linked_profile_merge_note">الانضمام إلى ملف تعريف متزامن يدمج سجل المشاهدة والإعجابات وقوائم التشغيل الخاصة به مع هذا الملف.</string>
+    <string name="linked_profile_new_link">كملف تعريف متزامن جديد</string>
+    <string name="linked_profile_join">مع %1$s</string>
+    <string name="linked_profile_stop_title">هل تريد إيقاف مزامنة %1$s؟</string>
+    <string name="linked_profile_stop_body">ستظل بياناته محفوظة على كل جهاز.</string>
+    <string name="linked_profile_stop_here">على هذا الجهاز</string>
+    <string name="linked_profile_stop_everywhere">على كل الأجهزة</string>
+    <string name="linked_profile_add_title">‍هل تريد إضافة %1$s هنا؟</string>
+    <string name="linked_profile_add_body">تتم مزامنة ملف تعريف جديد على هذا الجهاز معه.</string>
+    <string name="linked_profile_add">إضافة</string>
+    <string name="linked_profile_limit">يحتوي هذا الجهاز بالفعل على %1$d من ملفات التعريف.</string>
+    <string name="linked_profile_switch_body">يمكن لملف التعريف المستخدم حاليًا فقط بدء المزامنة، لذا سيُعاد تشغيل Flow باستخدامه أولًا. بعد ذلك، فعّل المزامنة من داخله.</string>
+    <string name="linked_profile_switch">التبديل للمزامنة</string>
 </resources>
