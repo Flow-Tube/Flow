@@ -135,6 +135,21 @@ class SnapshotsTest {
         }
 
     @Test
+    fun a_new_device_starts_from_the_snapshot_behind_a_tampered_object() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val a = Session.open(g.deviceDb(), g.store, g.a)
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
+            g.store.take(StorePaths.log(SyncBytes.toHex(g.a.did), 1))
+            val last = StorePaths.log(SyncBytes.toHex(g.a.did), 3)
+            g.store.put(last, g.store.take(last).also { it[it.size - 70] = (it[it.size - 70] + 1).toByte() })
+            val pulled = Session.open(g.deviceDb(), g.store, g.b).pull(setOf(LINK))
+            assertEquals(listOf("aaaaaaaaaaa"), videos(pulled.batches.values))
+        }
+
+    @Test
     fun without_a_snapshot_a_log_missing_its_start_is_not_read() =
         runTest {
             val g = LinkedGroup(this).apply { create() }

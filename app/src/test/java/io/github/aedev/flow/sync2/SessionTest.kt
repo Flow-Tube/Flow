@@ -8,7 +8,6 @@ import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.changes.applyBatches
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
-import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.sealChain
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.LinkedException
@@ -20,6 +19,8 @@ import io.github.aedev.flow.sync2.roster.epochDraft
 import io.github.aedev.flow.sync2.roster.memberSubject
 import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.ChangeList
+import io.github.aedev.flow.sync2.store.ChangedObject
+import io.github.aedev.flow.sync2.store.ObjectType
 import io.github.aedev.flow.sync2.store.StorePaths
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -96,18 +97,40 @@ class SessionTest {
         }
 
     @Test
-    fun a_tampered_object_is_refused() =
+    fun a_tampered_object_stops_only_its_sender_s_log() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
-            val (dbA, dbB) = g.deviceDb() to g.deviceDb()
+            val c = g.addDevice(0, g.epochKey)
+            val (dbA, dbB, dbC) = Triple(g.deviceDb(), g.deviceDb(), g.deviceDb())
             sync(dbA, g.store, g.a, App().apply { watch("aaaaaaaaaaa") })
+            sync(dbC, g.store, c, App().apply { watch("ccccccccccc") })
             val path = StorePaths.log(SyncBytes.toHex(g.a.did), 1)
-            val tampered = g.take(path).also { it[it.size - 70] = (it[it.size - 70] + 1).toByte() }
-            g.store.put(path, tampered)
+            val genuine = g.take(path)
+            g.store.put(path, genuine.copyOf().also { it[it.size - 70] = (it[it.size - 70] + 1).toByte() })
             val appB = App()
-            val error = runCatching { sync(dbB, g.store, g.b, appB) }.exceptionOrNull()
-            assertEquals("signature", (error as ProtocolException).error.code)
-            assertTrue(appB.watched.isEmpty())
+            sync(dbB, g.store, g.b, appB)
+            assertEquals(listOf("ccccccccccc"), appB.watched.keys.toList())
+
+            g.store.put(path, genuine)
+            sync(dbB, g.store, g.b, appB)
+            assertEquals(listOf("aaaaaaaaaaa", "ccccccccccc"), appB.watched.keys.toList())
+        }
+
+    @Test
+    fun a_batch_the_merges_cant_read_stops_only_its_sender_s_log_on_every_page() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val c = g.addDevice(0, g.epochKey)
+            val (dbA, dbB, dbC) = Triple(g.deviceDb(), g.deviceDb(), g.deviceDb())
+            val malformed = """{"collection":"watch_history","head":"h","link":"$LINK"}""" + "\n{\"videoId\":"
+            Session.open(dbA, g.store, g.a).write(ObjectType.CHANGES, malformed.toByteArray())
+            sync(dbA, g.store, g.a, App().apply { watch("aaaaaaaaaaa") })
+            sync(dbC, g.store, c, App().apply { watch("ccccccccccc") })
+            val appB = App()
+            sync(dbB, OnePerPage(g.store), g.b, appB)
+            assertEquals(listOf("ccccccccccc"), appB.watched.keys.toList())
+            assertEquals(listOf(SyncBytes.toHex(c.did)), dbB.groups().streams().map { it.did })
+            assertEquals("the page of the discarded object is read again", 0L, dbB.groups().group()!!.cursor)
         }
 
     @Test
@@ -156,20 +179,39 @@ class SessionTest {
             )
             assertTrue(runCatching { Session.open(dbB, g.store, g.b) }.exceptionOrNull() is LinkedException.Removed)
 
-            val c = newMember()
-            state = g.store.head()
-            val add =
-                buildEntry(
-                    g.group,
-                    state,
-                    draft(Op.ADD, g.a).copy(add = listOf(memberSubject(c.sigPublic, c.kemPublic, Role.DEVICE))),
-                    listOf(g.a, c),
-                )
-            assertEquals(Appended.Done, g.store.appendRoster(state.head, add, wraps(g.group, 1, nextKey, listOf(c)), null))
+            val c = g.addDevice(1, nextKey)
             val appC = App()
             sync(g.deviceDb(), g.store, c, appC)
             assertEquals(listOf("aaaaaaaaaaa"), appC.watched.keys.toList())
         }
 
     private fun LinkedGroup.take(path: String) = store.take(path)
+
+    /** Adds a device C, wrapping it the key of [epoch]. */
+    private suspend fun LinkedGroup.addDevice(
+        epoch: Int,
+        key: ByteArray,
+    ): MemberSecrets {
+        val c = newMember()
+        val state = store.head()
+        val add =
+            buildEntry(
+                group,
+                state,
+                draft(Op.ADD, a).copy(add = listOf(memberSubject(c.sigPublic, c.kemPublic, Role.DEVICE))),
+                listOf(a, c),
+            )
+        assertEquals(Appended.Done, store.appendRoster(state.head, add, wraps(group, epoch, key, listOf(c)), null))
+        return c
+    }
+
+    /** The store listing one object per page. */
+    private class OnePerPage(
+        private val store: MemoryStore,
+    ) : ChangeList by store {
+        override suspend fun changes(cursor: Long): Pair<List<ChangedObject>, Long> {
+            val first = store.changes(cursor).first.take(1)
+            return first to (first.firstOrNull()?.let { store.objects.getValue(it.path).first } ?: cursor)
+        }
+    }
 }

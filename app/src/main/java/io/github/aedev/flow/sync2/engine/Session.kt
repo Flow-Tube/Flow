@@ -71,7 +71,7 @@ class Pulled internal constructor(
     internal val cursor: Long,
     /** Batches and snapshot manifests read; acks alone don't call for an ack. */
     internal val consumed: Int,
-    /** An object is missing, so reading stopped before the end of the logs. */
+    /** An object is missing or was discarded, so some log was read short of the end. */
     internal val stalled: Boolean,
     internal val acks: Map<String, Map<String, Long>>,
     internal val manifests: List<Logged>,
@@ -240,7 +240,10 @@ class Session private constructor(
         val batches = LinkedHashMap<String, MutableList<IncomingBatch>>()
         var cursor = record.cursor
         var consumed = 0
-        var stalled = false
+        // Where the first page that left an object unread starts; reading goes on for the other senders.
+        var held: Long? = null
+        // The lowest seq of each sender left unread; nothing after it is read this time.
+        val stopped = HashMap<String, Long>()
         val acks = HashMap<String, Map<String, Long>>()
         val manifests = ArrayList<Logged>()
         val named = HashSet<String?>()
@@ -263,7 +266,7 @@ class Session private constructor(
                     .mapNotNull { change ->
                         StorePaths.parseLog(change.path)?.let { (did, seq) -> Triple(did, seq, change.path) }
                     }.filter { (did, seq) ->
-                        did != me && (positions[did]?.seq ?: 0) < seq
+                        did != me && (positions[did]?.seq ?: 0) < seq && seq < (stopped[did] ?: Long.MAX_VALUE)
                     }
             while (waiting.isNotEmpty()) {
                 val still =
@@ -293,14 +296,14 @@ class Session private constructor(
                 if (still.size == waiting.size) break
                 waiting = still
             }
-            // A missing object means the store hasn't caught up: read this page again next time.
+            // A missing or discarded object stops only its sender's log: read this page again next time.
             if (waiting.isNotEmpty()) {
-                stalled = true
-                break
+                held = held ?: cursor
+                waiting.forEach { (did, seq) -> stopped.merge(did, seq, ::minOf) }
             }
             cursor = next
         }
-        return Pulled(batches, positions, cursor, consumed, stalled, acks, manifests, named, reads, readsDone)
+        return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone)
     }
 
     /**
@@ -328,22 +331,23 @@ class Session private constructor(
         return reached.filterNot { it.second }.map { it.first } to reached.filter { it.second }.map { it.first }
     }
 
-    /** One log object, checked in the order of spec/store.md; `null` while an earlier one of this sender is missing. */
+    /**
+     * One log object, checked in the order of spec/store.md; `null` while an earlier one of this sender is missing,
+     * or when this one is discarded: either stops reading this sender's log here (spec/store.md, Untrusted input).
+     */
     private suspend fun readObject(
         path: String,
         did: String,
         seq: Long,
         last: StreamPosition?,
     ): ReadObject? {
-        val parsed = verified(store.getObject(path) ?: return null, did, seq)
-        val position =
-            try {
-                nextInStream(last, parsed)
-            } catch (e: ProtocolException) {
-                if (e.error == ProtocolError.GAP) return null
-                throw e
-            }
-        return ReadObject(position, openContent(parsed))
+        val bytes = store.getObject(path) ?: return null
+        return try {
+            val parsed = verified(bytes, did, seq)
+            ReadObject(nextInStream(last, parsed), openContent(parsed))
+        } catch (_: ProtocolException) {
+            null
+        }
     }
 
     /** Steps 1 to 3 of reading an envelope: structure, sender, signature. The caller checks its place in the stream. */
