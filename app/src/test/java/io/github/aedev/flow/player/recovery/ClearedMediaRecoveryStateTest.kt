@@ -12,7 +12,7 @@ class ClearedMediaRecoveryStateTest {
             videoId = "video-id",
             positionMs = 12_345L,
             playWhenReady = false,
-            localFilePath = "/media/video.mp4"
+            localFilePath = "/media/video.mp4",
         )
 
         assertThat(state.pendingFor("video-id")).isEqualTo(
@@ -20,8 +20,8 @@ class ClearedMediaRecoveryStateTest {
                 videoId = "video-id",
                 positionMs = 12_345L,
                 playWhenReady = false,
-                localFilePath = "/media/video.mp4"
-            )
+                localFilePath = "/media/video.mp4",
+            ),
         )
     }
 
@@ -63,5 +63,35 @@ class ClearedMediaRecoveryStateTest {
         state.clear()
 
         assertThat(state.pendingFor("video-id")).isNull()
+    }
+
+    @Test
+    fun `a reload of an emptied player takes the saved position once`() {
+        val state = ClearedMediaRecoveryState()
+        state.capture(videoId = "v", positionMs = 90_000L, playWhenReady = false, localFilePath = null)
+
+        assertThat(state.takeReloadPosition("v", playerEmpty = true, currentPositionMs = 0L)).isEqualTo(90_000L)
+        assertThat(state.pendingFor("v")).isNull()
+        assertThat(state.takeReloadPosition("v", playerEmpty = true, currentPositionMs = 0L)).isEqualTo(0L)
+    }
+
+    @Test
+    fun `a player that still holds media reloads at its own position`() {
+        val state = ClearedMediaRecoveryState()
+        state.capture(videoId = "v", positionMs = 90_000L, playWhenReady = false, localFilePath = null)
+
+        assertThat(state.takeReloadPosition("v", playerEmpty = false, currentPositionMs = 42_000L)).isEqualTo(42_000L)
+        assertThat(state.takeReloadPosition("other", playerEmpty = true, currentPositionMs = 0L)).isEqualTo(0L)
+        assertThat(state.pendingFor("v")).isNotNull()
+    }
+
+    @Test
+    fun `a snapshot restores on foreground unless asked not to`() {
+        val state = ClearedMediaRecoveryState()
+        state.capture(videoId = "v", positionMs = 1L, playWhenReady = false, localFilePath = null)
+        assertThat(state.pendingFor("v")?.restoresOnForeground).isTrue()
+
+        state.capture(videoId = "v", positionMs = 1L, playWhenReady = false, localFilePath = null, restoresOnForeground = false)
+        assertThat(state.pendingFor("v")?.restoresOnForeground).isFalse()
     }
 }
