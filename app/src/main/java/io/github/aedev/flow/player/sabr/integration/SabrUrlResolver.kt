@@ -61,6 +61,7 @@ object SabrUrlResolver {
         preferredCodec: String? = null,
         injectedPoToken: String? = null,
         injectedVisitorData: String? = null,
+        audioTrackId: String? = null,
     ): SabrStreamInfo? {
         val streamingData = playerResponse.streamingData ?: return null
         val sabrUrl = streamingData.serverAbrStreamingUrl
@@ -89,7 +90,7 @@ object SabrUrlResolver {
         val videoFormats = adaptiveFormats.filter { !it.isAudio }
 
         val selectedVideo = selectBestVideo(videoFormats, preferredCodec)
-        val selectedAudio = selectedVideo?.let { selectBestAudio(audioFormats, it) }
+        val selectedAudio = selectedVideo?.let { selectBestAudio(audioFormats, it, audioTrackId) }
 
         if (selectedAudio == null || selectedVideo == null) {
             Log.w(TAG, "Could not select audio/video format: audio=${selectedAudio != null}, video=${selectedVideo != null}")
@@ -149,6 +150,7 @@ object SabrUrlResolver {
         preferredCodec: String? = null,
         injectedPoToken: String? = null,
         injectedVisitorData: String? = null,
+        audioTrackId: String? = null,
     ): SabrStreamInfo? {
         val streamingData = playerResponse.streamingData ?: return null
         val sabrUrl = streamingData.serverAbrStreamingUrl ?: return null
@@ -168,7 +170,7 @@ object SabrUrlResolver {
         val videoFormats = adaptiveFormats.filter { !it.isAudio }
 
         val selectedVideo = selectVideoForHeight(videoFormats, targetHeight, preferredCodec) ?: return null
-        val selectedAudio = selectBestAudio(audioFormats, selectedVideo) ?: return null
+        val selectedAudio = selectBestAudio(audioFormats, selectedVideo, audioTrackId) ?: return null
 
         val durationMs =
             selectedVideo.approxDurationMs?.toLongOrNull()
@@ -246,11 +248,14 @@ object SabrUrlResolver {
         return id.substringAfterLast('.', missingDelimiterValue = "4") == "4"
     }
 
-    private fun selectBestAudio(
+    /** The chosen [audioTrackId] when the response still offers it, otherwise the original track. */
+    internal fun selectBestAudio(
         audioFormats: List<PlayerResponse.StreamingData.Format>,
         selectedVideo: PlayerResponse.StreamingData.Format,
+        audioTrackId: String? = null,
     ): PlayerResponse.StreamingData.Format? {
-        val candidates = audioFormats.filter(::isOriginalAudioTrack).ifEmpty { audioFormats }
+        val chosen = audioTrackId?.let { id -> audioFormats.filter { it.audioTrack?.id == id } }.orEmpty()
+        val candidates = chosen.ifEmpty { audioFormats.filter(::isOriginalAudioTrack).ifEmpty { audioFormats } }
         val videoMime = selectedVideo.mimeType.lowercase()
         val videoCodec = VideoCodecUtils.codecKeyFromMimeType(selectedVideo.mimeType)
         val wantsMp4Audio = videoMime.contains("mp4") && videoCodec == "h264"

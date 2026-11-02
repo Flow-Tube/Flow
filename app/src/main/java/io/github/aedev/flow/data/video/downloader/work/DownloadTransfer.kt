@@ -175,6 +175,7 @@ class DownloadTransfer
                         videoId = request.videoId,
                         targetHeight = if (request.wantsAudioOnly) 0 else request.targetHeight ?: 0,
                         preferredCodec = request.videoCodec,
+                        audioTrackId = request.audioTrackId,
                     )
                 } catch (e: CancellationException) {
                     throw e
