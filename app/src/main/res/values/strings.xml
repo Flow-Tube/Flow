@@ -133,7 +133,8 @@
     <string name="music_player_lyrics_full_screen">Full screen lyrics</string>
     <string name="lyrics_play_from_line">Play from this line</string>
     <string name="lyrics_show_translation">Translation</string>
-    <string name="lyrics_show_translation_summary">Show the translated line under each lyric</string>
+    <string name="lyrics_show_translation_summary">Show a translation when the lyrics include one</string>
+    <string name="lyrics_no_translation">These lyrics have no translation</string>
     <string name="lyrics_show_romanization">Romanization</string>
     <string name="lyrics_show_romanization_summary">Show lyrics in other scripts in Latin letters too</string>
     <string name="lyrics_auto_romanize">Romanize on this device</string>
