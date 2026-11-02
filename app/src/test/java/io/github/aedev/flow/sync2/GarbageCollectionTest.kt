@@ -6,8 +6,10 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
+import io.github.aedev.flow.sync2.data.AckRow
 import io.github.aedev.flow.sync2.data.CollectedRow
 import io.github.aedev.flow.sync2.data.LinkedDatabase
+import io.github.aedev.flow.sync2.data.ManifestRow
 import io.github.aedev.flow.sync2.engine.Facts
 import io.github.aedev.flow.sync2.engine.Logged
 import io.github.aedev.flow.sync2.engine.Manifest
@@ -22,6 +24,7 @@ import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StorePaths
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -183,5 +186,30 @@ class GarbageCollectionTest {
 
             Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertFalse(first in g.store.objects)
+        }
+
+    /** Acks and manifests come from other devices: a collection visits only the objects this device holds. */
+    @Test
+    fun a_collection_up_to_a_huge_seq_ends() =
+        runTest {
+            val (g, dbA, first) = collectable()
+            val (a, b) = SyncBytes.toHex(g.a.did) to SyncBytes.toHex(g.b.did)
+            val huge = (1L shl 53) - 1
+            val manifest = Manifest("", LINK, emptyList(), mapOf(a to Tip("", huge)))
+            dbA.collection().saveAcks(
+                listOf(AckRow(a, Json.encodeToString(mapOf(b to 1L))), AckRow(b, Json.encodeToString(mapOf(a to huge)))),
+            )
+            dbA.collection().addManifests(listOf(ManifestRow(b, 1, Json.encodeToString(Manifest.serializer(), manifest))))
+
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
+            assertFalse(first in g.store.objects)
+            assertEquals(
+                huge,
+                dbA
+                    .collection()
+                    .collected()
+                    .single { it.did == a }
+                    .through,
+            )
         }
 }
