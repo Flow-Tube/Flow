@@ -424,6 +424,10 @@ class MainActivity : ComponentActivity() {
                 explicitBackgroundPlaybackActive = explicitBackgroundPlaybackActive,
             )
         if (shouldEnterAutoPip && !isMusicPlaying) {
+            if (PictureInPictureHelper.systemEntersPipOnLeave()) {
+                pendingAutoPip = true
+                return
+            }
             enterPlayerPictureInPictureMode(
                 aspectRatio = PictureInPictureHelper.currentVideoAspectRatio,
                 isPlaying = true,
@@ -473,7 +477,7 @@ class MainActivity : ComponentActivity() {
                 activity = this,
                 aspectRatio = aspectRatio,
                 isPlaying = isPlaying,
-                autoEnterEnabled = false,
+                autoEnterEnabled = PictureInPictureHelper.isAutoEnterArmed,
                 navigation = navigation,
             )
         if (!entered) {

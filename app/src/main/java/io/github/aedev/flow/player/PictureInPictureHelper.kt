@@ -58,6 +58,17 @@ object PictureInPictureHelper {
     var isPopupActive: Boolean = false
         private set
 
+    /** Whether the params last given to the window let Android 12+ enter PiP on its own when the user leaves. */
+    @Volatile
+    var isAutoEnterArmed: Boolean = false
+        private set
+
+    /**
+     * True when leaving the app hands PiP to the system's own entry animation; entering by hand on top of
+     * it scales the whole page into the window instead of morphing the video.
+     */
+    fun systemEntersPipOnLeave(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isAutoEnterArmed
+
     internal fun setPopupActive(active: Boolean) {
         isPopupActive = active
     }
@@ -263,6 +274,7 @@ object PictureInPictureHelper {
             builder.setAutoEnterEnabled(autoEnterEnabled)
             builder.setSeamlessResizeEnabled(false)
         }
+        isAutoEnterArmed = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && autoEnterEnabled
 
         return builder.build()
     }
