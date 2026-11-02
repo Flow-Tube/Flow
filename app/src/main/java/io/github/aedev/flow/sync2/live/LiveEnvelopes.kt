@@ -31,7 +31,7 @@ internal fun Session.sealLive(
     return sealObject(header, key, encodePayload(LiveMessage.encode(message)), device.sigSeed)
 }
 
-/** Opens a live envelope signed by another current device of this group, or null for anything else. */
+/** Opens a valid live message signed by another current device of this group, or null for anything else. */
 internal suspend fun Session.openLive(bytes: ByteArray): LiveReceived? =
     try {
         val parsed = parseObject(bytes, group)
@@ -43,7 +43,7 @@ internal suspend fun Session.openLive(bytes: ByteArray): LiveReceived? =
         } else {
             parsed.verify(member.sig)
             val content = decodePayload(parsed.open(purposeKey(epochKey(header.epoch), group, header.epoch, Purpose.LIVE)))
-            LiveReceived(sender, header.seq, LiveMessage.decode(content))
+            LiveMessage.decode(content).takeIf { it.isValid() }?.let { LiveReceived(sender, header.seq, it) }
         }
     } catch (e: CancellationException) {
         throw e
