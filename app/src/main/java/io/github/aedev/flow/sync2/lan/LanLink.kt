@@ -24,6 +24,7 @@ import io.github.aedev.flow.sync2.crypto.verify
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.roster.Role
+import io.github.aedev.flow.sync2.roster.b64
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -32,10 +33,16 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.nio.ByteBuffer
 
 private const val NONCE_SIZE = 32
+private const val SIGNATURE_SIZE = 64
+
+/** The most a LAN frame's payload may hold (spec/live.md, Session). */
+const val MAX_LAN_PAYLOAD = 4 * 1024 * 1024
+
+/** Room for a payload's gzip, padding (at most 1/32 at this size), box and `seq`. */
+const val MAX_LAN_FRAME = MAX_LAN_PAYLOAD + MAX_LAN_PAYLOAD / 16L
 
 /**
  * A LAN session between two members (spec/live.md, Session), once the hello has checked both: each
@@ -65,6 +72,7 @@ class LanLink internal constructor(
         val frame = connection.receive() ?: return null
         if (frame.size < 8 || ByteBuffer.wrap(frame, 0, 8).long != received) reject(ProtocolError.REPLAY)
         val content = decodePayload(open(receiveKey, lanFrameAad(received), frame.copyOfRange(8, frame.size)))
+        if (content.size > MAX_LAN_PAYLOAD) reject(ProtocolError.LENGTH)
         received++
         return content
     }
@@ -90,7 +98,12 @@ private fun opened(
         ?: throw LinkedException.Unexpected()
 }
 
-private fun JsonObject.field(name: String): String = this[name]?.jsonPrimitive?.contentOrNull ?: throw LinkedException.Unexpected()
+private fun JsonObject.field(name: String): String = (this[name] as? JsonPrimitive)?.contentOrNull ?: throw LinkedException.Unexpected()
+
+/** The 32 random bytes each side's hello carries. */
+private fun JsonObject.nonce(): ByteArray = b64(field("n"), NONCE_SIZE) ?: throw LinkedException.Unexpected()
+
+private fun JsonObject.signature(): ByteArray = b64(field("sig"), SIGNATURE_SIZE) ?: reject(ProtocolError.SIGNATURE)
 
 /** The signing key of a current device other than this one, or a rejection. */
 private fun Session.memberKey(did: String): ByteArray =
@@ -123,10 +136,11 @@ suspend fun connectLink(
 
     val second = opened(connection.receive(), lanKey, 2)
     val serverDid = second.field("did")
+    val serverKey = session.memberKey(serverDid)
     val server = SyncBytes.fromHex(serverDid)
-    val serverNonce = SyncBytes.b64urlDecode(second.field("n"))
+    val serverNonce = second.nonce()
     val transcript = lanTranscript(LanRole.SERVER, clientNonce, serverNonce, client, server)
-    if (!verify(session.memberKey(serverDid), transcript, SyncBytes.b64urlDecode(second.field("sig")))) reject(ProtocolError.SIGNATURE)
+    if (!verify(serverKey, transcript, second.signature())) reject(ProtocolError.SIGNATURE)
 
     val proof = sign(session.device.sigSeed, lanTranscript(LanRole.CLIENT, clientNonce, serverNonce, client, server))
     connection.send(hello(epoch, lanKey, 3, JsonObject(mapOf("sig" to JsonPrimitive(SyncBytes.b64urlEncode(proof))))))
@@ -147,7 +161,7 @@ suspend fun acceptLink(
     val clientDid = hello.field("did")
     val clientKey = session.memberKey(clientDid)
     val client = SyncBytes.fromHex(clientDid)
-    val clientNonce = SyncBytes.b64urlDecode(hello.field("n"))
+    val clientNonce = hello.nonce()
     val serverNonce = SyncCrypto.randomBytes(NONCE_SIZE)
     val server = session.device.did
     val proof = sign(session.device.sigSeed, lanTranscript(LanRole.SERVER, clientNonce, serverNonce, client, server))
@@ -163,7 +177,7 @@ suspend fun acceptLink(
 
     val third = opened(connection.receive(), lanKey, 3)
     val transcript = lanTranscript(LanRole.CLIENT, clientNonce, serverNonce, client, server)
-    if (!verify(clientKey, transcript, SyncBytes.b64urlDecode(third.field("sig")))) reject(ProtocolError.SIGNATURE)
+    if (!verify(clientKey, transcript, third.signature())) reject(ProtocolError.SIGNATURE)
     val keys = lanSessionKeys(lanKey, clientNonce, serverNonce, client, server)
-    return LanLink(connection, clientDid, hello["p"]?.jsonPrimitive?.intOrNull, keys.serverToClient, keys.clientToServer)
+    return LanLink(connection, clientDid, (hello["p"] as? JsonPrimitive)?.intOrNull, keys.serverToClient, keys.clientToServer)
 }

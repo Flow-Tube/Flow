@@ -8,10 +8,13 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.device.DeviceKeys
+import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.live.LiveChannel
 import io.github.aedev.flow.sync2.live.LiveMessage
 import io.github.aedev.flow.sync2.live.LiveReceived
 import io.github.aedev.flow.sync2.live.LiveTransport
+import io.github.aedev.flow.sync2.live.openLive
+import io.github.aedev.flow.sync2.live.sealLive
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineStart
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -103,5 +107,22 @@ class LiveChannelTest {
             b.attach(relay(a, ArrayList()))
 
             assertEquals("only B's presence arrives", SyncBytes.toHex(g.b.did), heard.await().single().sender)
+        }
+
+    @Test
+    fun a_message_beyond_the_limits_of_the_spec_is_dropped() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = Session.open(g.deviceDb(), g.store, g.a) to Session.open(g.deviceDb(), g.store, g.b)
+
+            fun play(
+                size: Int,
+                index: Int,
+            ) = LiveMessage.Play(SyncBytes.toHex(g.a.did), "v0", 0, false, null, List(size) { "v$it" }, index, LiveMessage.PLAYING)
+
+            assertEquals(play(50, 49), a.openLive(b.sealLive(play(50, 49), 1))?.message)
+            assertNull("51 videos", a.openLive(b.sealLive(play(51, 0), 2)))
+            assertNull("an index outside the queue", a.openLive(b.sealLive(play(3, 3), 3)))
+            assertNull("a volume above 100", a.openLive(b.sealLive(now.copy(vol = 101), 4)))
         }
 }

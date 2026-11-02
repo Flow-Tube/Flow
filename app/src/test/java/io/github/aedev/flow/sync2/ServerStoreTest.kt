@@ -16,6 +16,7 @@ import io.ktor.server.request.path
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -139,6 +140,22 @@ class ServerStoreTest {
             val genesis = Entry(2, groupId, 0, "00".repeat(32), Op.GENESIS, "00".repeat(16), sigs = emptyMap())
             val error = runCatching { store().claim("admin", genesis, emptyMap()) }.exceptionOrNull()
             assertTrue("$error", error is LinkedException.ServerHasGroup)
+        }
+
+    @Test
+    fun answers_past_their_limit_are_refused() =
+        runTest {
+            val object4MiB = 4 * 1024 * 1024
+            serve {
+                when (request.path()) {
+                    "/v1/objects/fits" -> respondBytes(ByteArray(object4MiB))
+                    "/v1/objects/big" -> respondBytes(ByteArray(object4MiB + 1))
+                    else -> respondJson(200, """{"objects":[],"cursor":"1","pad":"${"x".repeat(16 * 1024 * 1024)}"}""")
+                }
+            }
+            assertEquals(object4MiB, store().getObject("fits")?.size)
+            assertTrue(runCatching { store().getObject("big") }.exceptionOrNull() is StoreException.Malformed)
+            assertTrue(runCatching { store().changes(0) }.exceptionOrNull() is StoreException.Malformed)
         }
 
     @Test

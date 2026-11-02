@@ -8,6 +8,8 @@ import io.github.aedev.flow.sync2.changes.applyBatches
 import io.github.aedev.flow.sync2.changes.markSent
 import io.github.aedev.flow.sync2.changes.outgoingBatches
 import io.github.aedev.flow.sync2.changes.parseBatch
+import io.github.aedev.flow.sync2.crypto.ProtocolError
+import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.data.LastSent
 import io.github.aedev.flow.sync2.data.SentDao
 import io.github.aedev.flow.sync2.data.SentRecord
@@ -74,6 +76,20 @@ class ChangeBatchesTest {
             assertEquals("link-a", parsed.link)
             assertEquals(batch.content.size, parsed.size)
         }
+
+    @Test
+    fun a_batch_without_a_header_is_refused_as_a_payload() {
+        for (content in listOf(
+            "",
+            "not json",
+            """{"collection":"likes","head":""}""",
+            """{"collection":"likes","head":"","link":null,"v":3}""",
+            "[]",
+        )) {
+            val error = runCatching { parseBatch(content.toByteArray()) }.exceptionOrNull()
+            assertEquals(content, ProtocolError.PAYLOAD, (error as? ProtocolException)?.error)
+        }
+    }
 
     @Test
     fun large_collections_are_split_into_batches_of_a_thousand() =

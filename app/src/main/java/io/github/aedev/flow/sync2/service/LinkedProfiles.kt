@@ -17,7 +17,6 @@ import io.github.aedev.flow.sync2.data.KeptBatches
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.data.ProfileLinkRow
 import io.github.aedev.flow.sync2.data.ProfileNameRow
-import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +25,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -182,16 +182,14 @@ class LinkedProfiles
         }
 
         /**
-         * The link a new device's Default joins: Default's when it syncs, else the first profile's here that does, whichever
-         * profile runs. A device whose every link was deleted adds no device until the user links a profile again.
+         * The link a new device's Default joins: Default's when it syncs here, whichever profile runs. Otherwise a new
+         * link, so the new device's Default starts its own and never joins another profile.
          */
-        suspend fun welcomeLink(): String {
-            val linked = dao.links().associate { it.profile to it.link }
-            val state = profiles.state.first()
-            return linked[state.defaultId]
-                ?: state.profiles.firstNotNullOfOrNull { linked[it.id] }
-                ?: throw LinkedException.NoProfileSynced()
-        }
+        suspend fun welcomeLink(): String =
+            profiles.state
+                .first()
+                .defaultId
+                ?.let { dao.linkOf(it) } ?: UUID.randomUUID().toString()
 
         /** This device's `profiles` records, after naming each link it syncs that has no record, or whose profile was renamed here. */
         suspend fun export(): Map<String, CollectionWire> {

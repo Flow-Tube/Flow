@@ -4,6 +4,8 @@ import io.github.aedev.flow.sync.apply.ReceivedCollection
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync.protocol.SyncSerialization
+import io.github.aedev.flow.sync2.crypto.ProtocolError
+import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.data.SentDao
 import io.github.aedev.flow.sync2.data.SentRecord
 import kotlinx.serialization.Serializable
@@ -134,11 +136,18 @@ suspend fun markSent(
     outgoing: Outgoing,
 ) = sentDao.upsert(outgoing.sent)
 
-fun parseBatch(content: ByteArray): IncomingBatch {
-    val lines = content.toString(Charsets.UTF_8).split('\n')
-    val header = Json.decodeFromString(BatchHeader.serializer(), lines.first())
-    return IncomingBatch(header.collection, header.link, header.head, content.size, lines.drop(1).filter { it.isNotEmpty() })
-}
+/** A batch whose header or a record the merges can't read is a payload error, which discards its object. */
+fun parseBatch(content: ByteArray): IncomingBatch =
+    try {
+        val lines = content.toString(Charsets.UTF_8).split('\n')
+        val header = Json.decodeFromString(BatchHeader.serializer(), lines.first())
+        val records = lines.drop(1).filter { it.isNotEmpty() }
+        records.forEach { recordKey(header.collection, Json.parseToJsonElement(it).jsonObject) }
+        SyncSerialization.checkRecords(header.collection, records)
+        IncomingBatch(header.collection, header.link, header.head, content.size, records)
+    } catch (_: IllegalArgumentException) {
+        reject(ProtocolError.PAYLOAD)
+    }
 
 /**
  * Applies batches of [link] from one sender through the FLOW-SYNC/1 merges, which run in one transaction

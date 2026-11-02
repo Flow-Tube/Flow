@@ -71,6 +71,7 @@ class WebDavStore private constructor(
         path: String,
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
+        limit: Long = MAX_RESPONSE,
     ): Pair<Int, ByteArray> {
         if (account in refused) throw StoreException.LoginRefused()
         val request =
@@ -84,7 +85,7 @@ class WebDavStore private constructor(
         val (code, bytes) =
             withContext(Dispatchers.IO) {
                 try {
-                    client.newCall(request).execute().use { it.code to it.body.bytes() }
+                    client.newCall(request).execute().use { it.code to it.body.bytesUpTo(limit) }
                 } catch (e: IOException) {
                     throw StoreException.Network(e)
                 }
@@ -99,7 +100,7 @@ class WebDavStore private constructor(
     private fun refusal(code: Int): Nothing = throw StoreException.Refused(code, "webdav")
 
     override suspend fun get(path: String): ByteArray? {
-        val (code, bytes) = send("GET", path)
+        val (code, bytes) = send("GET", path, limit = MAX_OBJECT_SIZE.toLong())
         return when (code) {
             in 200..299 -> bytes
             404 -> null

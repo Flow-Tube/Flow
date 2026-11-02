@@ -137,6 +137,28 @@ object SyncSerialization {
     fun decodeNotes(lines: List<String>): List<CanonicalNote> =
         lines.filter { it.isNotBlank() }.map { json.decodeFromString(CanonicalNote.serializer(), it) }
 
+    private val recordSerializers: Map<String, KSerializer<*>> =
+        mapOf(
+            SyncCollection.WATCH_HISTORY to CanonicalWatchHistory.serializer(),
+            SyncCollection.PLAYLISTS to CanonicalPlaylist.serializer(),
+            SyncCollection.LIKES to CanonicalLike.serializer(),
+            SyncCollection.SETTINGS to CanonicalSetting.serializer(),
+            SyncCollection.SUBSCRIBED_CHANNELS to CanonicalSubscribedChannel.serializer(),
+            SyncCollection.SUBSCRIPTIONS to CanonicalSubscriptionGroup.serializer(),
+            SyncCollection.NOTES to CanonicalNote.serializer(),
+            SyncCollection.FLOW_NEURO_BRAIN to CanonicalBrain.serializer(),
+            SyncCollection.MUSIC_BRAIN to CanonicalMusicBrain.serializer(),
+        )
+
+    /** Decodes each record of a known [collection] as the merges will, throwing on one they can't read. */
+    fun checkRecords(
+        collection: String,
+        lines: List<String>,
+    ) {
+        val serializer = recordSerializers[collection] ?: return
+        lines.filter { it.isNotBlank() }.forEach { json.decodeFromString(serializer, it) }
+    }
+
     // --- brain ---
 
     /** One line per device snapshot, the sender's own carrying the shared CRDT state. */

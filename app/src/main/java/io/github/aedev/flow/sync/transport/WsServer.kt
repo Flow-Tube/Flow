@@ -20,9 +20,11 @@ import kotlinx.coroutines.launch
  * (OS-assigned ephemeral port, read back for the QR). CIO is pure-Kotlin/coroutine so it runs on
  * Android. v1 handles a single 1↔1 session per server instance. [path] is FLOW-SYNC/1's unless
  * FLOW-SYNC/2 serves on its own; with [onConnection], every connection goes to it instead of [awaitConnection].
+ * A frame over [maxFrame] bytes closes the connection.
  */
 class WsServer(
     private val path: String = QrPath.PATH,
+    private val maxFrame: Long = Long.MAX_VALUE,
     private val onConnection: (suspend (SyncConnection) -> Unit)? = null,
 ) {
     private var server: EmbeddedServer<*, *>? = null
@@ -37,6 +39,7 @@ class WsServer(
                     // vanished without closing is only noticed when our pings go unanswered.
                     pingPeriodMillis = PING_PERIOD_MS
                     timeoutMillis = PING_TIMEOUT_MS
+                    maxFrameSize = maxFrame
                 }
                 routing {
                     webSocket(path) {

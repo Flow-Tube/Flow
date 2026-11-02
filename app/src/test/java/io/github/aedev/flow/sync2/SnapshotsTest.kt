@@ -6,6 +6,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.changes.IncomingBatch
+import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.Purpose
 import io.github.aedev.flow.sync2.crypto.decodePayload
 import io.github.aedev.flow.sync2.crypto.purposeKey
@@ -19,6 +20,7 @@ import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.buildEntry
 import io.github.aedev.flow.sync2.roster.memberSubject
+import io.github.aedev.flow.sync2.store.MAX_SEQ
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.parseObject
 import kotlinx.coroutines.test.runTest
@@ -81,6 +83,15 @@ class SnapshotsTest {
         }
 
     @Test
+    fun a_manifest_naming_a_seq_above_2_53_is_refused() {
+        val manifest = { seq: Long -> """{"head":"h","link":null,"parts":[],"vv":{"a":{"hash":"x","seq":$seq}}}""".toByteArray() }
+        assertEquals(MAX_SEQ, parseManifest(manifest(MAX_SEQ)).vv.getValue("a").seq)
+        for (seq in listOf(MAX_SEQ + 1, Long.MAX_VALUE, -1)) {
+            assertEquals("range", (runCatching { parseManifest(manifest(seq)) }.exceptionOrNull() as ProtocolException).error.code)
+        }
+    }
+
+    @Test
     fun records_are_split_below_the_blob_limit() {
         val record = "x".repeat(2 * 1024 * 1024 / 3)
         val split = chunks(List(7) { record })
@@ -132,6 +143,21 @@ class SnapshotsTest {
                     .batches
                     .isEmpty(),
             )
+        }
+
+    @Test
+    fun a_new_device_starts_from_the_snapshot_behind_a_tampered_object() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val a = Session.open(g.deviceDb(), g.store, g.a)
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
+            g.store.take(StorePaths.log(SyncBytes.toHex(g.a.did), 1))
+            val last = StorePaths.log(SyncBytes.toHex(g.a.did), 3)
+            g.store.put(last, g.store.take(last).also { it[it.size - 70] = (it[it.size - 70] + 1).toByte() })
+            val pulled = Session.open(g.deviceDb(), g.store, g.b).pull(setOf(LINK))
+            assertEquals(listOf("aaaaaaaaaaa"), videos(pulled.batches.values))
         }
 
     @Test

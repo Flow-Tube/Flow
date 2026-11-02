@@ -4,6 +4,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.changes.IncomingBatch
 import io.github.aedev.flow.sync2.changes.parseBatch
 import io.github.aedev.flow.sync2.crypto.ProtocolError
+import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.decodePayload
 import io.github.aedev.flow.sync2.crypto.openBlob
 import io.github.aedev.flow.sync2.crypto.purposeKey
@@ -47,8 +48,9 @@ internal suspend fun Session.bootstrap(links: Set<String?>?): Start? {
     var cursor = 0L
     while (true) {
         val (changes, next) = store.changes(cursor)
-        if (changes.isEmpty()) break
         changes.mapNotNull { StorePaths.parseLog(it.path) }.forEach { (did, seq) -> logs.getOrPut(did) { ArrayList() } += seq }
+        // A cursor that doesn't move would hand out the same page forever.
+        if (changes.isEmpty() || next <= cursor) break
         cursor = next
     }
     logs.remove(me)
@@ -92,13 +94,19 @@ private suspend fun Session.newestManifests(
     val found = HashMap<String?, Found>()
     for (seq in seqs.asReversed()) {
         if (links != null && found.keys.containsAll(links)) break
-        val parsed = verified(store.getObject(StorePaths.log(did, seq)) ?: continue, did, seq)
-        if (parsed.header.type != ObjectType.SNAPSHOT) continue
-        val manifest = (openContent(parsed) as Content.Snapshot).manifest
+        val bytes = store.getObject(StorePaths.log(did, seq)) ?: continue
+        val (epoch, manifest) =
+            try {
+                val parsed = verified(bytes, did, seq)
+                if (parsed.header.type != ObjectType.SNAPSHOT) continue
+                parsed.header.epoch to (openContent(parsed) as Content.Snapshot).manifest
+            } catch (_: ProtocolException) {
+                continue
+            }
         if ((links == null || manifest.link in links) &&
             manifest.link !in found
         ) {
-            found[manifest.link] = Found(did, parsed.header.epoch, manifest)
+            found[manifest.link] = Found(did, epoch, manifest)
         }
     }
     return found.values.toList()

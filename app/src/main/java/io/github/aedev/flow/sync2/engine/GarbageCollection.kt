@@ -10,6 +10,7 @@ import io.github.aedev.flow.sync2.data.ManifestRow
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StorePaths
+import io.github.aedev.flow.sync2.store.checkSeq
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.MapSerializer
@@ -39,7 +40,7 @@ internal fun parseAck(content: ByteArray): VersionVector =
         Json.decodeFromString(Ack.serializer(), content.toString(Charsets.UTF_8)).vv
     } catch (_: SerializationException) {
         reject(ProtocolError.PAYLOAD)
-    }
+    }.onEach { checkSeq(it.value) }
 
 private val vvSerializer = MapSerializer(String.serializer(), Long.serializer())
 private val linkSerializer = String.serializer().nullable
@@ -146,15 +147,21 @@ suspend fun Session.collectGarbage(linked: Set<String?>) {
         }
         for ((did, range) in plan.logs) {
             val kept = manifests.filter { it.did == did }.map { it.seq }.toSet()
-            var done = range.first - 1
-            for (seq in range) {
-                val path = StorePaths.log(did, seq)
-                if (seq !in kept && path in held) {
-                    if (budget == 0) break
-                    store.deleteObject(path)
-                    budget--
+            // The range comes from other devices' acks and manifests: visit only what this device holds in it.
+            val doomed =
+                held
+                    .mapNotNull(StorePaths::parseLog)
+                    .filter { (of, seq) ->
+                        of == did && seq in range && seq !in kept
+                    }.map { it.second }
+            var done = range.last
+            for (seq in doomed.sorted()) {
+                if (budget == 0) {
+                    done = seq - 1
+                    break
                 }
-                done = seq
+                store.deleteObject(StorePaths.log(did, seq))
+                budget--
             }
             dao.setCollected(CollectedRow(did, done))
         }
@@ -170,8 +177,9 @@ private suspend fun Session.heldPaths(): Set<String> {
     var cursor = 0L
     while (true) {
         val (changed, next) = store.changes(cursor)
-        if (changed.isEmpty()) return paths
         changed.mapTo(paths) { it.path }
+        // A cursor that doesn't move would hand out the same page forever.
+        if (changed.isEmpty() || next <= cursor) return paths
         cursor = next
     }
 }

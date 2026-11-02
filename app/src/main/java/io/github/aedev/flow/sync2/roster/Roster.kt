@@ -127,6 +127,7 @@ fun b64(
 private fun wellFormed(entry: Entry): Boolean {
     val dids = { list: List<String> -> list.isNotEmpty() && list.all { isHex(it, 16) } }
     return entry.v == 2 &&
+        entry.seq >= 0 &&
         isHex(entry.group, 16) &&
         isHex(entry.prev, 32) &&
         isHex(entry.signer, 16) &&
@@ -143,7 +144,7 @@ private fun wellFormed(entry: Entry): Boolean {
                 ?: true
         ) &&
         (entry.remove?.let(dids) ?: true) &&
-        (entry.epoch?.let { b64(it.kc, 32) != null && dids(it.to) } ?: true) &&
+        (entry.epoch?.let { it.n >= 0 && b64(it.kc, 32) != null && dids(it.to) } ?: true) &&
         (entry.meta?.all { (did, sealed) -> isHex(did, 16) && sealed.isNotEmpty() } ?: true) &&
         entry.sigs.all { (did, signature) -> isHex(did, 16) && b64(signature, 64) != null }
 }

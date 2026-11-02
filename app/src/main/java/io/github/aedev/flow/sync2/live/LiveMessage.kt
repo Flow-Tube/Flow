@@ -92,3 +92,16 @@ sealed interface LiveMessage {
         fun decode(content: ByteArray): LiveMessage = json.decodeFromString(serializer(), content.decodeToString())
     }
 }
+
+private fun fits(
+    queue: List<String>,
+    index: Int,
+) = queue.size <= LiveMessage.QUEUE_LIMIT && (queue.isEmpty() || index in queue.indices)
+
+/** Whether the fields are within the limits spec/live.md sets. */
+internal fun LiveMessage.isValid(): Boolean =
+    when (this) {
+        is LiveMessage.Now -> vol in 0..100 && fits(queue, index)
+        is LiveMessage.Play -> fits(queue, index)
+        else -> true
+    }

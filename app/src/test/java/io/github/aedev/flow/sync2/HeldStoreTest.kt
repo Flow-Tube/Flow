@@ -81,6 +81,21 @@ class HeldStoreTest {
         }
 
     @Test
+    fun a_server_whose_cursor_never_moves_is_downloaded_once() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val a = SyncBytes.toHex(g.a.did)
+            Session.open(g.deviceDb(), g.store, g.a).push(
+                mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                LINK,
+            )
+            val db = g.deviceDb()
+            val store = GroupStore(heldStore(db), StuckPages(g.store))
+            assertEquals(0L, store.download(SyncBytes.toHex(g.b.did), 0, objects = true))
+            assertTrue(store.local.getObject(StorePaths.log(a, 1)) != null)
+        }
+
+    @Test
     fun a_server_group_syncs_through_what_each_device_holds() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
