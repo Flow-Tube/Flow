@@ -11,6 +11,8 @@ import io.github.aedev.flow.sync2.engine.parseAck
 import io.github.aedev.flow.sync2.engine.parseManifest
 import io.github.aedev.flow.sync2.live.LiveMessage
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import kotlin.random.Random
@@ -19,8 +21,6 @@ import kotlin.random.Random
 class ContentFuzzTest {
     /** [text] as it reads back from UTF-8, where a lone surrogate turns into `?`. */
     private fun Random.utf8(max: Int = 16) = text(max).toByteArray().decodeToString()
-
-    private fun Random.seq() = listOf(Long.MAX_VALUE, Long.MIN_VALUE, nextLong(10), nextLong()).random(this)
 
     private fun Random.manifest() =
         Manifest(
@@ -35,7 +35,10 @@ class ContentFuzzTest {
 
     @Test
     fun batches_round_trip() =
-        forAll(generate = { Triple(utf8(), utf8(), utf8().takeIf { nextBoolean() }) to List(nextInt(8)) { utf8(64).replace('\n', ' ') } }) {
+        forAll(generate = {
+            Triple(utf8(), utf8(), utf8().takeIf { nextBoolean() }) to
+                List(nextInt(8)) { JsonObject(mapOf(utf8(6) to JsonPrimitive(utf8()))).toString() }
+        }) {
             val (header, records) = it
             val batch = parseBatch(batchContent(header.first, header.second, header.third, records))
             assertEquals(header, Triple(batch.collection, batch.head, batch.link))

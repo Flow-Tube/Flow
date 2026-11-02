@@ -42,7 +42,7 @@ class EnvelopeFuzzTest {
         return parsed.header to decodePayload(parsed.open(key))
     }
 
-    private fun Random.seqNear(base: Long): Long = if (nextBoolean()) base + nextLong(-2, 3) else nextLong()
+    private fun Random.seqNear(base: Long): Long = if (nextBoolean()) (base + nextLong(-2, 3)).coerceIn(0, MAX_PROTOCOL_SEQ) else seq()
 
     /** Past the length, magic, suite and group checks, so the signature is what refuses them. */
     private fun Random.plausible(): ByteArray =
@@ -52,7 +52,7 @@ class EnvelopeFuzzTest {
     @Test
     fun objects_round_trip() =
         forAll(
-            generate = { Header(ObjectType.entries.random(this), group, nextInt(), sender.did, nextLong(), nextBytes(32)) to bytes(512) },
+            generate = { Header(ObjectType.entries.random(this), group, nextInt(), sender.did, seq(), nextBytes(32)) to bytes(512) },
         ) { (written, content) ->
             val (header, opened) = read(seal(written.type, written.epoch, written.seq, written.prev, content))
             assertArrayEquals(written.encode(), header.encode())
@@ -74,7 +74,7 @@ class EnvelopeFuzzTest {
     @Test
     fun a_log_object_must_follow_the_last_one_read() =
         forAll(generate = {
-            val last = if (nextBoolean()) null else StreamPosition(listOf(-1L, -2L, 0L, nextLong()).random(this), nextBytes(32))
+            val last = if (nextBoolean()) null else StreamPosition(seq(), nextBytes(32))
             Triple(last, seqNear(last?.seq ?: 0), nextBoolean())
         }) { (last, seq, chained) ->
             val lastSeq = (last?.seq ?: 0).toULong()
@@ -100,7 +100,7 @@ class EnvelopeFuzzTest {
     @Test
     fun a_live_counter_only_goes_up() =
         forAll(generate = {
-            val last = if (nextBoolean()) null else nextLong()
+            val last = if (nextBoolean()) null else seq()
             Triple(last, seqNear(last ?: 0), if (nextBoolean()) ZERO_HASH else nextBytes(32))
         }) { (last, seq, prev) ->
             val parsed = parseObject(seal(ObjectType.LIVE, 0, seq, prev, ByteArray(0)), group)

@@ -61,6 +61,12 @@ inline fun <reified E : Throwable> refused(block: () -> Unit) {
     fail("accepted; expected ${E::class.simpleName}")
 }
 
+/** The largest `seq` the protocol allows (spec/store.md). */
+const val MAX_PROTOCOL_SEQ = (1L shl 53) - 1
+
+/** A `seq` the protocol allows, edges included. */
+fun Random.seq(): Long = listOf(0L, 1L, MAX_PROTOCOL_SEQ, nextLong(10), nextLong(0, MAX_PROTOCOL_SEQ + 1)).random(this)
+
 fun Random.bytes(
     max: Int,
     min: Int = 0,
