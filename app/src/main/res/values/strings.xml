@@ -354,7 +354,6 @@
     <string name="select_text">Select Text</string>
     <string name="pinned_comment">Pinned comment</string>
     <string name="pinned_by_creator">Pinned by creator</string>
-    <string name="tap_to_close">Tap to close</string>
     <!-- Update Dialog -->
     <string name="new_update_available">New Update Available</string>
     <string name="update_available_template">%1$s is now available</string>

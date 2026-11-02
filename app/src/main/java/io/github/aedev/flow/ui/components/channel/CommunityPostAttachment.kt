@@ -72,7 +72,7 @@ private fun PostImages(
 
     var fullSizeIndex by rememberSaveable { mutableIntStateOf(-1) }
     if (fullSizeIndex in whole.indices) {
-        FullSizeImageDialog(imageUrl = whole[fullSizeIndex], onDismiss = { fullSizeIndex = -1 })
+        FullSizeImageDialog(imageUrls = whole, initialIndex = fullSizeIndex, onDismiss = { fullSizeIndex = -1 })
     }
 
     // A lone image runs edge to edge; a gallery insets so the next page peeks, which is the only cue
