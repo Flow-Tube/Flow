@@ -3,6 +3,7 @@ package io.github.aedev.flow.sync2
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.aedev.flow.sync.crypto.SyncBytes
+import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
@@ -77,5 +78,18 @@ class MembershipTest {
             val names = deviceNames(Session.open(db, g.store, g.a))
             assertEquals("Laptop", names.getValue(a).name)
             assertEquals("Studio", names.getValue(b).name)
+        }
+
+    @Test
+    fun a_signed_name_that_is_not_base64url_is_refused_as_a_malformed_entry() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val state = g.store.head()
+            val a = SyncBytes.toHex(g.a.did)
+            val rename = buildEntry(g.group, state, draft(Op.RENAME, g.a).copy(meta = mapOf(a to "not base64url!")), listOf(g.a))
+            g.store.appendRoster(state.head, rename, emptyMap(), null)
+
+            val error = runCatching { deviceNames(Session.open(g.deviceDb(), g.store, g.a)) }.exceptionOrNull()
+            assertEquals(ProtocolError.ROSTER_FORMAT, (error as ProtocolException).error)
         }
 }

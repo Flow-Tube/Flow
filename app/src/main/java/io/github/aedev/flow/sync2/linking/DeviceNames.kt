@@ -1,6 +1,8 @@
 package io.github.aedev.flow.sync2.linking
 
 import io.github.aedev.flow.sync.crypto.SyncBytes
+import io.github.aedev.flow.sync2.crypto.ProtocolError
+import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.roster.RosterState
@@ -22,7 +24,7 @@ suspend fun deviceNames(session: Session): Map<String, DeviceMeta> {
                     after.epoch,
                     entry.seq,
                     SyncBytes.fromHex(did),
-                    SyncBytes.b64urlDecode(sealed),
+                    runCatching { SyncBytes.b64urlDecode(sealed) }.getOrNull() ?: reject(ProtocolError.ROSTER_FORMAT),
                 )
             names[did] =
                 try {
