@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.settings.playback
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -9,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.local.SpeedSwipeSide
+import io.github.aedev.flow.player.crossfade.CrossfadePolicy
 import io.github.aedev.flow.ui.components.equalizer.equalizerSummary
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
@@ -16,6 +18,7 @@ import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.settings.SettingsToggleGroupRow
 import io.github.aedev.flow.ui.components.settings.choice
 import io.github.aedev.flow.ui.components.settings.nav
+import io.github.aedev.flow.ui.components.settings.slider
 import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.settings.toggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
@@ -24,6 +27,7 @@ import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackGesturesIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackIndex
+import kotlin.math.roundToInt
 
 private const val UNLIMITED_TITLE_LINES = 0
 
@@ -160,6 +164,17 @@ internal fun SettingsListScope.playbackSections(
     group(key = "playback.music", header = R.string.settings_section_music) {
         switch(PlaybackIndex.endlessRadio, viewModel.endlessRadio, viewModel::setEndlessRadio)
         switch(PlaybackIndex.pauseMusicWhenMuted, viewModel.pauseMusicWhenMuted, viewModel::setPauseMusicWhenMuted)
+        slider(
+            entry = PlaybackIndex.crossfade,
+            value = state.crossfadeSeconds.toFloat(),
+            onValueCommitted = { viewModel.setCrossfadeSeconds(it.roundToInt()) },
+            valueRange = 0f..CrossfadePolicy.MAX_SECONDS.toFloat(),
+            steps = CrossfadePolicy.MAX_SECONDS - 1,
+            valueLabel = { crossfadeLabel(it.roundToInt()) },
+        )
+        if (state.crossfadeSeconds > 0) {
+            switch(PlaybackIndex.crossfadeKeepAlbums, viewModel.crossfadeKeepAlbums, viewModel::setCrossfadeKeepAlbums)
+        }
         switch(PlaybackIndex.musicResume, viewModel.musicResume, viewModel::setMusicResume)
         switch(PlaybackIndex.resumeFromHeadphones, viewModel.resumeFromHeadphones, viewModel::setResumeFromHeadphones)
         switch(PlaybackIndex.musicSideSwipes, viewModel.musicSideSwipes, viewModel::setMusicSideSwipes)
@@ -251,3 +266,7 @@ private fun SettingsListScope.shortsPlayerSection(
     switch(PlaybackIndex.shortsPip, viewModel.shortsPip, viewModel::setShortsPip)
     switch(PlaybackIndex.shortsContinueIntoFeed, viewModel.shortsContinueIntoFeed, viewModel::setShortsContinueIntoFeed)
 }
+
+@Composable
+private fun crossfadeLabel(seconds: Int): String =
+    if (seconds <= 0) stringResource(R.string.off) else stringResource(R.string.settings_seconds_value, seconds.toString())
