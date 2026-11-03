@@ -2656,7 +2656,7 @@
     <string name="linked_consent_ask">Ask each time</string>
     <string name="linked_consent_allowed">Allowed</string>
     <string name="linked_consent_declined">Not allowed</string>
-    <string name="linked_intro">Keep this device in sync with your other devices through your own Flow sync server, a WebDAV folder, or your Wi-Fi network. Everything is encrypted on your devices; no server can read it.</string>
+    <string name="linked_always_intro">Your devices stay in sync all the time through your own Flow sync server, a WebDAV folder, or your Wi-Fi network. Everything is end-to-end encrypted; no server can read it.</string>
     <string name="linked_create_title">Create a group</string>
     <string name="linked_create_body">Start linking on a Flow sync server, in a WebDAV folder, or on this network</string>
     <string name="linked_where_title">Where should your devices sync?</string>
@@ -2809,7 +2809,7 @@
     <string name="linked_profile_switch_body">Only the profile in use can start syncing, so Flow restarts in it first. Then turn on syncing there.</string>
     <string name="linked_profile_switch">Switch to sync</string>
     <string name="sync_default_only_title">Switch to %1$s to sync</string>
-    <string name="sync_devices_subtitle">Sync library, history &amp; profile over local Wi-Fi</string>
+    <string name="sync_devices_summary">Keep library, history &amp; profile in sync across your devices, end-to-end encrypted</string>
     <string name="sync_notification_title">Syncing devices</string>
     <string name="sync_notification_text">Transferring your library over local Wi-Fi…</string>
     <string name="sync_notification_channel">Device sync</string>
@@ -2824,7 +2824,8 @@
     <string name="sync_collection_music_profile">Music taste profile</string>
     <string name="sync_preparing">Preparing…</string>
     <string name="sync_connecting">Connecting…</string>
-    <string name="sync_intro">Sync your library, history, likes and settings with another device over Wi-Fi. Nothing leaves your network.</string>
+    <string name="sync_one_time_title">One-time transfer</string>
+    <string name="sync_one_time_body">Copy your library, history, likes and settings to another device once, over Wi-Fi. Nothing leaves your network.</string>
     <string name="sync_send_to_device">Send to a device</string>
     <string name="sync_receive_from_device">Receive from a device</string>
     <string name="sync_pairing_title">How should the devices pair?</string>

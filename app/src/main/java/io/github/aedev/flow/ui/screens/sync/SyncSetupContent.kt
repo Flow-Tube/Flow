@@ -20,7 +20,6 @@ import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Upload
-import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,10 +65,6 @@ internal fun SyncChooserContent(
     onSend: () -> Unit,
     onReceive: () -> Unit,
 ) {
-    SyncStepHeader(
-        icon = Icons.Outlined.Wifi,
-        body = stringResource(R.string.sync_intro),
-    )
     SyncOptions(
         listOf(
             SyncOption(
