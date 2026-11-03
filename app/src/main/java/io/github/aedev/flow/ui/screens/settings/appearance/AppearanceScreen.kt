@@ -7,6 +7,7 @@ import androidx.compose.material.icons.outlined.FiberNew
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -151,7 +152,7 @@ internal fun AppearanceScreen(
                 icon = Icons.Outlined.FiberNew,
             )
             if (highlightNewSettings) {
-                choice(AppearanceIndex.highlightNewSettingsDays, onClick = { showNewSettingsDialog = true }) {
+                choice(AppearanceIndex.highlightNewSettingsDays, onClick = { showNewSettingsDialog = true }, icon = Icons.Outlined.Timer) {
                     val days by viewModel.newSettingsDays.collectAsStateWithLifecycle()
                     newSettingsDaysLabel(days)
                 }
