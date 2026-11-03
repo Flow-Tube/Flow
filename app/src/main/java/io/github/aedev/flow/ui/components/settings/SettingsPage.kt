@@ -43,6 +43,9 @@ private const val HIGHLIGHT_VISIBLE_OFFSET_PX = -160
 /** The key of the option a search result asked this page to scroll to and flash. */
 internal val LocalSettingsHighlight = staticCompositionLocalOf<String?> { null }
 
+/** The keys of the options and page rows marked as new on this device (#1676). */
+internal val LocalNewSettings = staticCompositionLocalOf<Set<String>> { emptySet() }
+
 /**
  * The frame every settings page is built in: the unified top bar, one lazy column capped at
  * [SettingsMaxContentWidth], and scroll-to-highlight for search results.
