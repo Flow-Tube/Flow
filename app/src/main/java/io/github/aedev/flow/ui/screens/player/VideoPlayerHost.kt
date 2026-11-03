@@ -513,7 +513,7 @@ fun VideoPlayerHost(
                         .fillMaxHeight(),
                 videoContent = { modifier ->
                     VideoStage(
-                        modifier = modifier,
+                        modifier = modifier.then(rememberPipSourceHintModifier(playerSheetState)),
                         session = stageSession,
                         isMinimized = isMinimized,
                         localIsInPipMode = localIsInPipMode,
