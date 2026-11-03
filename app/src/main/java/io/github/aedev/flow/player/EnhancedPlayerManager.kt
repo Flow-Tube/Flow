@@ -2609,6 +2609,8 @@ class EnhancedPlayerManager private constructor() {
     }
 
     fun replay() {
+        // The countdown keeps running behind a replay otherwise and switches video mid-way through it.
+        if (autoplayCountdownController.stop()) releaseAdvanceWakeLock()
         player?.let { exoPlayer ->
             if (exoPlayer.currentMediaItem != null) {
                 exoPlayer.seekToDefaultPosition(exoPlayer.currentMediaItemIndex)
