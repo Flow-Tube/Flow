@@ -63,9 +63,32 @@ class CrossfadePolicyTest {
 
     @Test
     fun `a tail ahead slows down, one behind speeds up, and an aligned one keeps the base speed`() {
-        assertThat(CrossfadePolicy.nudgedSpeed(1f, deltaMs = 80L, remainingMs = 2_000L)).isLessThan(1f)
-        assertThat(CrossfadePolicy.nudgedSpeed(1f, deltaMs = -80L, remainingMs = 2_000L)).isGreaterThan(1f)
-        assertThat(CrossfadePolicy.nudgedSpeed(1.25f, deltaMs = 5L, remainingMs = 2_000L)).isEqualTo(1.25f)
-        assertThat(CrossfadePolicy.nudgedSpeed(1f, deltaMs = 5_000L, remainingMs = 100L)).isWithin(1e-6f).of(0.92f)
+        assertThat(CrossfadePolicy.nudgedSpeed(1f, deltaMs = 80L)).isLessThan(1f)
+        assertThat(CrossfadePolicy.nudgedSpeed(1f, deltaMs = -80L)).isGreaterThan(1f)
+        assertThat(CrossfadePolicy.nudgedSpeed(1.25f, deltaMs = 5L)).isEqualTo(1.25f)
+        assertThat(CrossfadePolicy.nudgedSpeed(1f, deltaMs = 5_000L)).isWithin(1e-6f).of(0.85f)
+        assertThat(CrossfadePolicy.nudgedSpeed(1f, deltaMs = 35L)).isWithin(1e-6f).of(0.95f)
+    }
+
+    @Test
+    fun `the next tail moves half way to what this one needed, within limits`() {
+        assertThat(CrossfadePolicy.learnedHeadStartMs(headStartMs = 100L, deltaMs = -200L)).isEqualTo(200L)
+        assertThat(CrossfadePolicy.learnedHeadStartMs(headStartMs = 300L, deltaMs = 40L)).isEqualTo(280L)
+        assertThat(CrossfadePolicy.learnedHeadStartMs(headStartMs = 300L, deltaMs = -2_000L)).isEqualTo(800L)
+        assertThat(CrossfadePolicy.learnedHeadStartMs(headStartMs = 50L, deltaMs = 500L)).isEqualTo(0L)
+    }
+
+    @Test
+    fun `a position is extended from the moment it last moved, and only trusted once it has moved`() {
+        val anchor = PositionAnchor()
+
+        assertThat(anchor.estimate(positionMs = 1_000L, nowMs = 0L, speed = 1f)).isEqualTo(1_000L)
+        assertThat(anchor.anchored).isFalse()
+
+        assertThat(anchor.estimate(positionMs = 1_000L, nowMs = 100L, speed = 1f)).isEqualTo(1_100L)
+        assertThat(anchor.estimate(positionMs = 1_250L, nowMs = 240L, speed = 1f)).isEqualTo(1_250L)
+        assertThat(anchor.anchored).isTrue()
+
+        assertThat(anchor.estimate(positionMs = 1_250L, nowMs = 340L, speed = 0.5f)).isEqualTo(1_300L)
     }
 }
