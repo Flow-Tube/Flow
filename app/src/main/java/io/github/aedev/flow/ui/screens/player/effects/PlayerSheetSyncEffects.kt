@@ -24,6 +24,7 @@ import io.github.aedev.flow.ui.screens.player.state.PlayerLayoutMode
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.expandsOnLoad
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
@@ -166,17 +167,16 @@ internal fun OpenInFullscreenEffect(
 /**
  * Reconciles the sheet anchor with the session the view model reports: a dismissed player
  * minimises, a fresh load expands, and a restored session resumes once the user expands it. A
- * queue advance that happened while the user was in the mini player must not expand it.
+ * video that started by itself while the user was in the mini player must not expand it.
  */
 @Composable
 internal fun PlayerSheetSessionEffects(
     playerSheetState: PlayerDraggableState,
     uiState: VideoPlayerUiState,
-    queueTitle: () -> String?,
     viewModel: VideoPlayerViewModel,
     onMinimize: () -> Unit,
 ) {
-    var keepMiniOnQueueAutoAdvance by remember { mutableStateOf(false) }
+    var autoAdvancedInMiniPlayer by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.shouldDismissPlayer) {
         if (uiState.shouldDismissPlayer) {
@@ -186,22 +186,20 @@ internal fun PlayerSheetSessionEffects(
     }
 
     LaunchedEffect(Unit) {
-        EnhancedPlayerManager.getInstance().queueAutoAdvanceEvent.collect {
-            keepMiniOnQueueAutoAdvance = playerSheetState.currentValue == PlayerSheetValue.Collapsed
+        EnhancedPlayerManager.getInstance().autoAdvanceEvent.collect {
+            autoAdvancedInMiniPlayer = playerSheetState.currentValue == PlayerSheetValue.Collapsed
         }
     }
 
     LaunchedEffect(uiState.isLoading) {
-        val isQueueAutoAdvanceInMiniPlayer =
-            keepMiniOnQueueAutoAdvance &&
-                queueTitle() != null &&
-                playerSheetState.currentValue == PlayerSheetValue.Collapsed
-
         if (
-            uiState.isLoading &&
-            !uiState.isRestoredSession &&
-            !uiState.resumedInMiniPlayer &&
-            !isQueueAutoAdvanceInMiniPlayer
+            expandsOnLoad(
+                isLoading = uiState.isLoading,
+                isRestoredSession = uiState.isRestoredSession,
+                resumedInMiniPlayer = uiState.resumedInMiniPlayer,
+                autoAdvancedInMiniPlayer = autoAdvancedInMiniPlayer,
+                isCollapsed = playerSheetState.currentValue == PlayerSheetValue.Collapsed,
+            )
         ) {
             playerSheetState.expand()
         }
@@ -209,7 +207,7 @@ internal fun PlayerSheetSessionEffects(
             if (uiState.resumedInMiniPlayer) {
                 viewModel.clearResumedInMiniPlayer()
             }
-            keepMiniOnQueueAutoAdvance = false
+            autoAdvancedInMiniPlayer = false
         }
     }
 

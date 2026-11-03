@@ -1328,6 +1328,7 @@
     <string name="autoplay_countdown_cancel">Cancel</string>
     <string name="autoplay_countdown_restart">Restart</string>
     <string name="autoplay_countdown_play_now">Play now</string>
+    <string name="autoplay_countdown_mini_label">Next in %1$d</string>
     <string name="player_settings_skip_silence">Skip Silence</string>
     <string name="player_settings_skip_silence_subtitle">Skip parts with no audio</string>
     <string name="player_settings_remember_speed">Remember Playback Speed</string>
