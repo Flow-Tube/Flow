@@ -3219,7 +3219,7 @@
     <string name="music_player_lyrics_full_screen">كلمات الأغنية بملء الشاشة</string>
     <string name="lyrics_play_from_line">التشغيل من هذا السطر</string>
     <string name="lyrics_show_translation">الترجمة</string>
-    <string name="lyrics_show_translation_summary">إظهار السطر المترجم أسفل كل سطر من كلمات الأغنية</string>
+    <string name="lyrics_show_translation_summary">إظهار ترجمة عندما تتضمن كلمات الأغنية واحدة</string>
     <string name="lyrics_show_romanization">الكتابة بالحروف اللاتينية</string>
     <string name="lyrics_show_romanization_summary">إظهار كلمات الأغاني المكتوبة بخطوط أخرى بالحروف اللاتينية أيضًا</string>
     <string name="lyrics_auto_romanize">تحويل النص إلى الحروف اللاتينية على هذا الجهاز</string>
@@ -5039,4 +5039,12 @@
     <string name="linked_profile_limit">يحتوي هذا الجهاز بالفعل على %1$d من ملفات التعريف.</string>
     <string name="linked_profile_switch_body">يمكن لملف التعريف المستخدم حاليًا فقط بدء المزامنة، لذا سيُعاد تشغيل Flow باستخدامه أولًا. بعد ذلك، فعّل المزامنة من داخله.</string>
     <string name="linked_profile_switch">التبديل للمزامنة</string>
+    <string name="lyrics_no_translation">لا تتوفر ترجمة لهذه الكلمات</string>
+    <string name="player_appearance_idle_progress_title">شريط التقدم مع عناصر تحكم مخفية</string>
+    <string name="player_appearance_idle_progress_subtitle">موضع الشريط الرفيع في الوضع الرأسي</string>
+    <string name="player_appearance_idle_progress_on_video">على الفيديو</string>
+    <string name="player_appearance_idle_progress_below">اسفل</string>
+    <string name="player_appearance_idle_progress_off">معطل</string>
+    <string name="pip_listen_in_background">الاستماع في الخلفية</string>
+    <string name="autoplay_countdown_mini_label">التالي خلال %1$d</string>
 </resources>

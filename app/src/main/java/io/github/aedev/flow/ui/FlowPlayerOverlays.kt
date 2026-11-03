@@ -55,7 +55,9 @@ import io.github.aedev.flow.ui.components.videoplayer.VideoBarSwipeActions
 import io.github.aedev.flow.ui.screens.player.VideoPlayerHost
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerQueueSheetHost
+import io.github.aedev.flow.ui.screens.player.state.SheetOnNewVideo
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.sheetOnNewVideo
 import io.github.aedev.flow.ui.screens.playon.RemoteMiniBar
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -76,10 +78,7 @@ internal fun FlowPlayerSessionEffects(
     var playerVisible by playerVisibleState
     val currentIsInPipMode by rememberUpdatedState(isInPipMode)
     val enhancedPlayerManager = remember { EnhancedPlayerManager.getInstance() }
-    val hasVideoQueue by enhancedPlayerManager.hasQueue.collectAsStateWithLifecycle(
-        initialValue = enhancedPlayerManager.playerState.value.queueTitle != null,
-    )
-    var keepMiniOnQueueAutoAdvance by remember { mutableStateOf(false) }
+    var autoAdvancedInMiniPlayer by remember { mutableStateOf(false) }
 
     LaunchedEffect(playerSheetState.currentValue, playerSheetState.isDragging) {
         if (!playerSheetState.isDragging) {
@@ -100,8 +99,8 @@ internal fun FlowPlayerSessionEffects(
     }
 
     LaunchedEffect(Unit) {
-        enhancedPlayerManager.queueAutoAdvanceEvent.collect {
-            keepMiniOnQueueAutoAdvance = playerSheetState.currentValue == PlayerSheetValue.Collapsed
+        enhancedPlayerManager.autoAdvanceEvent.collect {
+            autoAdvancedInMiniPlayer = playerSheetState.currentValue == PlayerSheetValue.Collapsed
         }
     }
 
@@ -128,24 +127,21 @@ internal fun FlowPlayerSessionEffects(
             GlobalPlayerState.setExplicitBackgroundPlaybackActive(false)
             val wasExpanded = playerVisible && playerSheetState.currentValue == PlayerSheetValue.Expanded
             playerVisible = true
-            val isQueueAutoAdvanceInMiniPlayer =
-                keepMiniOnQueueAutoAdvance &&
-                    hasVideoQueue &&
-                    playerSheetState.currentValue == PlayerSheetValue.Collapsed
-
-            if (
-                playerUiState.isRestoredSession ||
-                playerUiState.resumedInMiniPlayer ||
-                isQueueAutoAdvanceInMiniPlayer
-            ) {
-                playerSheetState.collapse()
-            } else if (wasExpanded) {
-                playerSheetState.expand()
-            } else {
-                playerSheetState.open(openOrigins.sheetOriginFor(playerUiState.cachedVideo?.id))
+            val target =
+                sheetOnNewVideo(
+                    isRestoredSession = playerUiState.isRestoredSession,
+                    resumedInMiniPlayer = playerUiState.resumedInMiniPlayer,
+                    autoAdvancedInMiniPlayer = autoAdvancedInMiniPlayer,
+                    isCollapsed = playerSheetState.currentValue == PlayerSheetValue.Collapsed,
+                    wasExpanded = wasExpanded,
+                )
+            when (target) {
+                SheetOnNewVideo.COLLAPSE -> playerSheetState.collapse()
+                SheetOnNewVideo.EXPAND -> playerSheetState.expand()
+                SheetOnNewVideo.OPEN -> playerSheetState.open(openOrigins.sheetOriginFor(playerUiState.cachedVideo?.id))
             }
 
-            keepMiniOnQueueAutoAdvance = false
+            autoAdvancedInMiniPlayer = false
         }
     }
 

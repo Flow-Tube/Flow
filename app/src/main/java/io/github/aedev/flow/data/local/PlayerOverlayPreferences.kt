@@ -26,6 +26,7 @@ data class PlayerOverlayPreferences(
             defaultPaddingDp = DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP,
             maxPaddingDp = MAX_PORTRAIT_SEEKBAR_PADDING_DP,
         ),
+    val idleProgressBar: IdleProgressBar = IdleProgressBar.ON_VIDEO,
     val scrubPreviewStyle: ScrubPreviewStyle = ScrubPreviewStyle.STRIP,
     /** Off by default: two more buttons in the transport row is a cost every video pays. */
     val frameStepButtonsEnabled: Boolean = false,

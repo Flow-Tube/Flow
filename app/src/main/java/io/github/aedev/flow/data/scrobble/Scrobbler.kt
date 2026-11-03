@@ -37,7 +37,7 @@ class Scrobbler
         suspend fun awaitWrites() = work.children.toList().joinAll()
 
         private val lastFm = AudioscrobblerClient(AudioscrobblerClient.LASTFM_URL, http::get)
-        private val libreFm = AudioscrobblerClient(AudioscrobblerClient.LIBREFM_URL, http::get)
+        private val libreFm = AudioscrobblerClient(AudioscrobblerClient.LIBREFM_URL, http::get, MobileSessionAuth.AUTH_TOKEN)
         private val listenBrainz = ListenBrainzClient(http::get)
 
         /** The key Last.fm calls are signed with: the viewer's own when they turned it on, else the build's. */

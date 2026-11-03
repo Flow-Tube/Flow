@@ -17,6 +17,8 @@ import javax.inject.Singleton
 /**
  * Saves where podcasts and other long tracks stop, on the player's own events: a pause, leaving the
  * track, and the service going away. No timer runs, and nothing is written while the setting is off.
+ * A video played from a video list in the car (#1657) is saved to the watch history whatever its length,
+ * as the video player would save it.
  */
 @Singleton
 class MusicResumeTracker
@@ -65,8 +67,21 @@ class MusicResumeTracker
             positionMs: Long,
             durationMs: Long,
         ) {
-            if (!MusicResumePolicy.isLongTrack(durationMs)) return
             val metadata = item.mediaMetadata
+            if (item.isVideoListItem) {
+                scope.launch {
+                    viewHistory.savePlaybackPosition(
+                        videoId = item.mediaId,
+                        position = positionMs.coerceIn(0L, durationMs),
+                        duration = durationMs,
+                        title = metadata.title?.toString().orEmpty(),
+                        thumbnailUrl = metadata.webArtworkUrl.orEmpty(),
+                        channelName = metadata.artist?.toString().orEmpty(),
+                    )
+                }
+                return
+            }
+            if (!MusicResumePolicy.isLongTrack(durationMs)) return
             scope.launch {
                 if (!preferences.musicResumeLongTracks.first()) return@launch
                 viewHistory.saveMusicPosition(
@@ -74,7 +89,7 @@ class MusicResumeTracker
                     position = positionMs.coerceIn(0L, durationMs),
                     duration = durationMs,
                     title = metadata.title?.toString().orEmpty(),
-                    thumbnailUrl = metadata.artworkUri?.toString().orEmpty(),
+                    thumbnailUrl = metadata.webArtworkUrl.orEmpty(),
                     channelName = metadata.artist?.toString().orEmpty(),
                 )
             }

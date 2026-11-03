@@ -46,6 +46,7 @@ class PlayerErrorHandler(
     private val onStreamExpired: () -> Unit,
     private val onPlaybackAbandoned: () -> Unit,
     private val onDecoderGaveUp: () -> Unit,
+    private val rememberPlaybackForRecovery: () -> Unit,
     private val onGatedCodecFallback: (Long) -> Boolean,
     private val getFailedStreamUrls: () -> Set<String>,
     private val markStreamFailed: (String) -> Unit,
@@ -421,6 +422,8 @@ class PlayerErrorHandler(
         }
 
         Log.e(TAG, "Decoder error — no alternatives available, stopping playback")
+        // A device fault, not a broken stream: keep the place so Play, Retry and a quality change resume it.
+        rememberPlaybackForRecovery()
         onPlaybackShutdown()
         stateFlow.value =
             stateFlow.value.copy(
