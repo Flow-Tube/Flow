@@ -60,6 +60,8 @@
     <string name="library_section_header">Your Content</string>
     <string name="library_history_label">History</string>
     <string name="library_playlists_label">Playlists</string>
+    <string name="auto_group_music_playlists">Music playlists</string>
+    <string name="auto_group_video_playlists">Video playlists</string>
     <string name="library_music_playlists_label">Music Playlists</string>
     <string name="library_music_playlists_subtitle">Your music collections</string>
     <string name="library_liked_videos_label">Likes</string>
@@ -1352,7 +1354,7 @@
     <string name="playback_speed_multiplier">%1$s×</string>
     <string name="playback_speed_multiplier_precise">%1$.2f×</string>
     <string name="player_settings_normalize_volume">Normalize volume</string>
-    <string name="player_settings_normalize_volume_summary">Turn loud videos down to YouTube\'s level</string>
+    <string name="player_settings_normalize_volume_summary">Turn loud videos down to the same level, like youtube.com</string>
     <string name="player_settings_display">Display</string>
     <string name="player_settings_ambient_mode">Ambient mode</string>
     <string name="player_settings_ambient_mode_subtitle">A soft glow of the video\'s colors around it</string>
@@ -1393,10 +1395,15 @@
     <string name="sb_category_filler">Filler / Tangent</string>
     <string name="sb_category_preview">Preview / Recap</string>
     <string name="sb_category_exclusive_access">Exclusive Access</string>
-    <string name="sb_action_skip">Skip</string>
+    <string name="sb_action_skip_automatically">Skip automatically</string>
+    <string name="sb_action_skip_once">Skip automatically once</string>
+    <string name="sb_action_skip_once_detail">Shows a skip button if you go back into it</string>
+    <string name="sb_action_skip_button">Show a skip button</string>
+    <string name="sb_action_notify">Notify</string>
     <string name="sb_action_mute">Mute</string>
-    <string name="sb_action_show_toast">Notify only</string>
-    <string name="sb_action_ignore">Ignore</string>
+    <string name="sb_action_with_button_detail">Also shows a skip button</string>
+    <string name="sb_action_seek_bar_only">Show in seek bar</string>
+    <string name="sb_action_disable">Disable</string>
     <!-- SponsorBlock submit dialog -->
     <string name="sb_submit_dialog_title">Submit Segment</string>
     <string name="sb_submit_start_time">Start time</string>
@@ -1538,6 +1545,15 @@
     <string name="cache_songs_size_title">Song cache size</string>
     <string name="cache_artwork_size_title">Artwork cache size</string>
     <string name="cache_size_applies_on_restart">Applies the next time Flow starts.</string>
+    <string name="cache_size_custom">Custom…</string>
+    <string name="cache_size_custom_field">Size</string>
+    <string name="cache_size_custom_range">From 50 MB to 50 GB</string>
+    <string name="cache_size_unit_mb">MB</string>
+    <string name="cache_size_unit_gb">GB</string>
+    <string name="cache_size_mb_value">%1$s MB</string>
+    <string name="cache_size_gb_value">%1$s GB</string>
+    <string name="buffer_cache_size_link">Cache size</string>
+    <string name="buffer_cache_size_link_summary">How much video and music Flow keeps on disk</string>
     <string name="btn_back">Back</string>
     <string name="back">Back</string>
     <string name="btn_close">Close</string>
@@ -4037,6 +4053,11 @@
     <string name="settings_buffer_profiles">Profile</string>
     <string name="settings_buffer_range">%1$s s to %2$s s</string>
     <string name="settings_seconds_value">%1$s s</string>
+    <string name="settings_crossfade_title">Crossfade</string>
+    <string name="settings_crossfade_summary">Blend the end of a song into the next</string>
+    <string name="settings_crossfade_albums_title">Keep albums gapless</string>
+    <string name="settings_crossfade_albums_summary">No crossfade between tracks of the same album</string>
+    <string name="settings_keywords_crossfade">fade, transition, blend, gapless, mix</string>
     <string name="settings_quality_tab_video">Video</string>
     <string name="settings_quality_tab_shorts">Shorts</string>
     <string name="settings_quality_tab_music">Music</string>
@@ -4132,6 +4153,7 @@
     <string name="settings_location_default">Default</string>
     <string name="settings_music_folder_label">Music / Flow</string>
     <string name="settings_keywords_downloads">save offline, folder, storage, sd card</string>
+    <string name="settings_keywords_cache">cache size, cache limit, media cache, storage, disk space</string>
     <string name="settings_section_notification_types">Notify me about</string>
     <string name="settings_keywords_notifications">alerts, push, new uploads, background checks, shorts</string>
     <string name="settings_section_proxy_server">Server</string>

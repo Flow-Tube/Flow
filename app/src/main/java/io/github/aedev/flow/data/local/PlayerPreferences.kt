@@ -254,6 +254,8 @@ class PlayerPreferences(
         val ANIMATED_ARTWORK = booleanPreferencesKey("animated_artwork")
         val MUSIC_REPEAT_MODE = intPreferencesKey("music_repeat_mode")
         val MUSIC_RESUME_LONG_TRACKS = booleanPreferencesKey("music_resume_long_tracks")
+        val MUSIC_CROSSFADE_SECONDS = intPreferencesKey("music_crossfade_seconds")
+        val MUSIC_CROSSFADE_KEEP_ALBUMS = booleanPreferencesKey("music_crossfade_keep_albums")
         val RECAP_SOURCE = stringPreferencesKey("recap_source")
         val HIDDEN_MUSIC_HOME_SHELVES = stringSetPreferencesKey("hidden_music_home_shelves")
         val HIDDEN_LIBRARY_SECTIONS = stringSetPreferencesKey("hidden_library_sections")
@@ -1866,10 +1868,10 @@ class PlayerPreferences(
         }
     }
 
-    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com. */
+    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com, once chosen (#1641). */
     val videoVolumeNormalizationEnabled: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: true }
+            .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: DEFAULT_VIDEO_VOLUME_NORMALIZATION }
             .distinctUntilChanged()
 
     suspend fun setVideoVolumeNormalizationEnabled(enabled: Boolean) {
@@ -2392,6 +2394,30 @@ class PlayerPreferences(
     suspend fun setPauseMusicWhenMuted(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PAUSE_MUSIC_WHEN_MUTED] = enabled
+        }
+    }
+
+    /** How many seconds a song blends into the next (#1675); 0 is off. */
+    val musicCrossfadeSeconds: Flow<Int> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_SECONDS] ?: 0 }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeSeconds(seconds: Int) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_SECONDS] = seconds
+        }
+    }
+
+    /** Tracks of one album play gapless even with crossfade on. */
+    val musicCrossfadeKeepAlbums: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_KEEP_ALBUMS] ?: true }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeKeepAlbums(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_KEEP_ALBUMS] = enabled
         }
     }
 
@@ -4146,18 +4172,25 @@ const val DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS = 7
 
 private val FirstSeenSerializer = MapSerializer(String.serializer(), Long.serializer())
 
-/** Action to take when a SponsorBlock segment is encountered. */
-enum class SponsorBlockAction(
-    val displayName: String,
-) {
-    SKIP("Skip"),
-    MUTE("Mute"),
-    SHOW_TOAST("Notify only"),
-    IGNORE("Ignore"),
+/** Loud videos play at their own level unless the user turns levelling on. */
+const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = false
+
+/**
+ * What the player does with a SponsorBlock segment, in the order settings list them. The names are
+ * stored and synced, so they never change: [IGNORE] is "show in seek bar" and [SHOW_TOAST] is "notify".
+ */
+enum class SponsorBlockAction {
+    SKIP,
+    SKIP_ONCE,
+    SKIP_BUTTON,
+    SHOW_TOAST,
+    MUTE,
+    IGNORE,
+    DISABLED,
     ;
 
     companion object {
-        fun fromString(name: String): SponsorBlockAction = values().find { it.name == name } ?: SKIP
+        fun fromString(name: String): SponsorBlockAction = entries.find { it.name == name } ?: SKIP
     }
 }
 

@@ -2,6 +2,7 @@ package io.github.aedev.flow.service.auto
 
 import io.github.aedev.flow.data.local.LikedVideosRepository
 import io.github.aedev.flow.data.local.PlaylistRepository
+import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.model.PlaylistInfo
 import io.github.aedev.flow.data.model.toMusicTrack
 import io.github.aedev.flow.data.music.DownloadManager
@@ -12,6 +13,7 @@ import io.github.aedev.flow.data.newmusic.InnertubeMusicService
 import io.github.aedev.flow.data.recommendation.music.MusicBrainEngine
 import io.github.aedev.flow.data.recommendation.music.onRepeatShelf
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
+import io.github.aedev.flow.player.PlaybackResumePolicy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -32,6 +34,7 @@ class AutoLibrary
         private val downloads: DownloadManager,
         private val musicHistory: MusicHistoryRepository,
         private val playlists: PlaylistRepository,
+        private val viewHistory: ViewHistory,
     ) {
         private data class CachedSearch(
             val at: Long,
@@ -43,9 +46,20 @@ class AutoLibrary
 
         suspend fun playlists(): List<PlaylistInfo> = playlists.getMusicPlaylistsFlow().first()
 
+        /** The user's own and saved video playlists that hold something to play. */
+        suspend fun videoPlaylists(): List<PlaylistInfo> = playlists.getAllPlaylistsFlow().first().filter { it.videoCount > 0 }
+
+        /** Where a video from a video list was left, so the car carries on from there; 0 to start over. */
+        suspend fun resumePositionMs(videoId: String): Long =
+            PlaybackResumePolicy.resolveStartPosition(
+                savedPosition = viewHistory.getSavedPosition(videoId),
+                durationMs = viewHistory.getSavedDuration(videoId),
+                resumeAllowed = true,
+            )
+
         /** The songs under [parentId], or null when it is not a list of songs. */
         suspend fun tracks(parentId: String): List<MusicTrack>? {
-            AutoBrowseTree.playlistIdOf(parentId)?.let { id ->
+            (AutoBrowseTree.playlistIdOf(parentId) ?: AutoBrowseTree.videoPlaylistIdOf(parentId))?.let { id ->
                 return playlists.getPlaylistVideosFlow(id).first().map { it.toMusicTrack() }
             }
             AutoBrowseTree.searchQueryOf(parentId)?.let { return search(it) }
@@ -56,6 +70,7 @@ class AutoLibrary
                 AutoBrowseTree.LIKED -> liked.getLikedMusicFlow().first().map { it.toMusicTrack() }
                 AutoBrowseTree.DOWNLOADS -> downloads.downloadedTracks.first().map { it.track }
                 AutoBrowseTree.RECENT -> musicHistory.history.first()
+                AutoBrowseTree.WATCH_LATER -> playlists.getVideoOnlyWatchLaterFlow().first().map { it.toMusicTrack() }
                 AutoBrowseTree.QUEUE -> EnhancedMusicPlayerManager.queue.value
                 else -> null
             }

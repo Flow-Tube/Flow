@@ -1,5 +1,7 @@
 package io.github.aedev.flow.player.state
 
+import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
+
 data class EnhancedPlayerState(
     val currentVideoId: String? = null,
     val isPlaying: Boolean = false,
@@ -23,7 +25,7 @@ data class EnhancedPlayerState(
     val recoveryAttempted: Boolean = false,
     val playbackSpeed: Float = 1.0f,
     val isSkipSilenceEnabled: Boolean = false,
-    val isVolumeNormalizationEnabled: Boolean = true,
+    val isVolumeNormalizationEnabled: Boolean = DEFAULT_VIDEO_VOLUME_NORMALIZATION,
     val bufferedPercentage: Float = 0f,
     val hasNext: Boolean = false,
     val hasPrevious: Boolean = false,

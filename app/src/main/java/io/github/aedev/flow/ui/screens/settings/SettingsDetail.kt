@@ -132,7 +132,7 @@ internal fun SettingsDetail(
         }
 
         SettingsDestination.BUFFER -> {
-            BufferSettingsScreen(onBack = onBack, highlight = target.highlight)
+            BufferSettingsScreen(onBack = onBack, highlight = target.highlight, onNavigate = onNavigate)
         }
 
         SettingsDestination.EQUALIZER -> {
