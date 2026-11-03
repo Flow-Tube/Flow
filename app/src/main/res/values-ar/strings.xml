@@ -5064,4 +5064,22 @@
     <string name="auto_group_video_playlists">قوائم تشغيل الفيديو</string>
     <string name="sb_action_skip_automatically">تخطي تلقائي</string>
     <string name="sb_action_skip_once">التخطي تلقائيًا مرة واحدة</string>
+    <string name="sb_action_skip_once_detail">يُظهر زر تخطي عند الرجوع إليه مرة أخرى</string>
+    <string name="sb_action_skip_button">إظهار زر تخطي</string>
+    <string name="sb_action_notify">إشعار</string>
+    <string name="sb_action_with_button_detail">يُظهر أيضًا زر تخطي</string>
+    <string name="sb_action_seek_bar_only">إظهار في شريط التقدم</string>
+    <string name="sb_action_disable">تعطيل</string>
+    <string name="settings_highlight_new_title">تمييز الإعدادات الجديدة</string>
+    <string name="settings_highlight_new_summary">‎تمييز الإعدادات المضافة في التحديث بنقطة</string>
+    <string name="settings_highlight_new_days_title">الإبقاء على النقطة لمدة</string>
+    <plurals name="settings_highlight_new_days">
+        <item quantity="zero">%d يوم</item>
+        <item quantity="one">يوم واحد</item>
+        <item quantity="two">يومان</item>
+        <item quantity="few">%d أيام</item>
+        <item quantity="many">%d يوم</item>
+        <item quantity="other">%d يوم</item>
+    </plurals>
+    <string name="new_badge_label">جديد</string>
 </resources>
