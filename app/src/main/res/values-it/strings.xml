@@ -248,7 +248,7 @@
     <string name="subscribe">Iscriviti</string>
     <string name="unlike">Rimuovi mi piace</string>
     <string name="tab_shorts">Shorts</string>
-    <string name="tab_live">Live</string>
+    <string name="tab_live">In diretta</string>
     <string name="tab_playlists">Playlist</string>
     <string name="tab_about">Informazioni</string>
     <string name="end_of_queue">Fine della coda</string>
@@ -514,7 +514,7 @@
     <string name="categories_region_picker_desc">Cambia regione delle tendenze (attuale: %1$s)</string>
     <string name="content_settings_header_nav_tabs">Schede di navigazione</string>
     <string name="settings_subs_shorts_shelf_title">Sezione Shorts nelle iscrizioni</string>
-    <string name="settings_subs_shorts_shelf_subtitle">Mostra una raccolta Shorts nel feed delle iscrizioni.</string>
+    <string name="settings_subs_shorts_shelf_subtitle">Mostra una raccolta Shorts nel feed delle iscrizioni</string>
     <string name="settings_home_shorts_shelf_title">Sezione Shorts nella schermata home</string>
     <string name="settings_home_shorts_shelf_subtitle">Mostra la sezione Shorts orizzontale nella schermata home.</string>
     <string name="settings_shorts_nav_tab_title">Scheda Shorts nella navigazione</string>
@@ -522,10 +522,10 @@
     <string name="settings_music_nav_tab_title">Scheda Musica nella navigazione</string>
     <string name="settings_music_nav_tab_subtitle">Mostra la scheda Musica nella barra di navigazione inferiore.</string>
     <string name="settings_search_nav_tab_title">Scheda Cerca nella navigazione</string>
-    <string name="settings_search_nav_tab_subtitle">Mostra una scheda Cerca nella barra di navigazione.</string>
+    <string name="settings_search_nav_tab_subtitle">Mostra una scheda Cerca nella barra di navigazione</string>
     <string name="nav_search">Cerca</string>
     <string name="settings_categories_nav_tab_title">Scheda Esplora nella navigazione</string>
-    <string name="settings_categories_nav_tab_subtitle">Aggiungi una scheda Tendenze e categorie nella barra di navigazione.</string>
+    <string name="settings_categories_nav_tab_subtitle">Aggiungi una scheda Tendenze e categorie nella barra di navigazione</string>
     <string name="nav_explore">Esplora</string>
     <string name="nav_more">Altro</string>
     <string name="categories_title">Categorie</string>
@@ -534,7 +534,7 @@
     <string name="category_all">Tutte</string>
     <string name="category_trending">Tendenza</string>
     <string name="category_movies">Film</string>
-    <string name="category_live">Live</string>
+    <string name="category_live">In diretta</string>
     <string name="settings_continue_watching_title">Sezione Continua a guardare</string>
     <string name="settings_continue_watching_subtitle">Mostra una sezione di video da completare nella schermata home.</string>
     <string name="continue_watching_title">Continua a guardare</string>
@@ -851,9 +851,9 @@
     <string name="location_preset_header">Posizioni predefinite</string>
     <string name="location_custom_header">Posizione personalizzata</string>
     <string name="location_downloads_label">Downloads / Flow</string>
-    <string name="location_movies_label">Movies / Flow</string>
+    <string name="location_movies_label">Film / Flow</string>
     <string name="location_internal_app_label">Archiviazione app interna</string>
-    <string name="location_internal_app_desc">Privata dell\'app — i file potrebbero essere eliminati se disinstalli l\'app</string>
+    <string name="location_internal_app_desc">Privata per Flow. Rimossa se lo disinstalli.</string>
     <string name="location_custom_saf_label">Sfoglia…</string>
     <string name="location_custom_saf_desc">Scegli qualsiasi cartella tramite il selettore file di sistema</string>
     <string name="location_custom_manual_label">Inserisci il percorso manualmente</string>
@@ -873,10 +873,10 @@
     <string name="about_creator">Creatore</string>
     <string name="about_website">Sito web</string>
     <string name="github_subtitle">Codice sorgente e segnalazioni</string>
-    <string name="newpipe_extractor_title">NewPipe Extractor</string>
+    <string name="newpipe_extractor_title">Estrattore di NewPipe</string>
     <string name="newpipe_extractor_subtitle">Libreria di estrazione principale</string>
     <string name="about_license">Licenza</string>
-    <string name="about_changelog">Changelog</string>
+    <string name="about_changelog">Registro delle versioni</string>
     <string name="whats_new_in_flow">Novità in Flow</string>
     <string name="about_device_info">Informazioni sul dispositivo</string>
     <string name="gnu_license_full_title">Licenza Pubblica Generica GNU</string>
@@ -925,13 +925,13 @@
     <string name="onboarding_btn_continue">Continua</string>
     <string name="cd_collapse_category">Comprimi</string>
     <string name="cd_expand_category">Espandi</string>
-    <string name="category_gaming">Gaming</string>
+    <string name="category_gaming">Videogiochi</string>
     <string name="category_music">Musica</string>
     <string name="category_technology">Tecnologia</string>
     <string name="category_entertainment">Intrattenimento</string>
     <string name="category_education">Educazione</string>
     <string name="category_health_fitness">Salute e fitness</string>
-    <string name="category_lifestyle">Lifestyle</string>
+    <string name="category_lifestyle">Stile di vita</string>
     <string name="category_creative">Creatività</string>
     <string name="category_science_nature">Scienza e natura</string>
     <string name="category_news_current_events">Notizie e attualità</string>
@@ -1024,7 +1024,7 @@
     <string name="playlist_description_community">Playlist di musica %1$s curata dalla nostra community</string>
     <string name="radio">Radio</string>
     <string name="audio_settings_title">Impostazioni dell\'audio</string>
-    <string name="label_preset">Preset</string>
+    <string name="label_preset">Preimpostato</string>
     <string name="template_bass_boost">Potenziamento bassi: %1$ddB</string>
     <string name="label_tempo_pitch">Tempo e tonalità</string>
     <string name="action_reset">Reimposta</string>
@@ -1218,7 +1218,7 @@
     <string name="player_settings_overlay_pip">Pulsante del Picture-in-Picture</string>
     <string name="player_settings_overlay_pip_subtitle">Mostra il pulsante PiP sul player video</string>
     <string name="player_settings_auto_pip_title">Picture-in-Picture automatico</string>
-    <string name="player_settings_auto_pip_subtitle">Entra automaticamente in modalità PiP quando esci dall\'app. Disattiva per usare il PiP solo tramite il pulsante manuale.</string>
+    <string name="player_settings_auto_pip_subtitle">Passa alla modalità picture-in-picture quando esci dall\'app</string>
     <string name="player_settings_overlay_autoplay">Interruttore della riproduzione automatica</string>
     <string name="player_settings_overlay_autoplay_subtitle">Mostra l\'interruttore di riproduzione automatica sul player video</string>
     <string name="player_settings_overlay_sleep_timer">Pulsante del timer di sospensione</string>
@@ -1241,7 +1241,7 @@
     <string name="diagnostics_clear_crashes">Pulisci report arresti</string>
     <string name="diagnostics_clear_confirm_title">Vuoi pulire il report degli arresti?</string>
     <string name="diagnostics_clear_confirm_body">Tutti i report degli arresti anomali salvati verranno definitivamente eliminati. Questa operazione non può essere annullata.</string>
-    <string name="diagnostics_no_crashes">Nessun report di arresto anomalo — ottimo!</string>
+    <string name="diagnostics_no_crashes">Nessuna segnalazione di arresto anomalo</string>
     <string name="diagnostics_no_session_logs">Nessuna avvertenza o errore in questa sessione.</string>
     <string name="diagnostics_loading">Lettura log in corso…</string>
     <string name="diagnostics_copied">Report copiato negli appunti</string>
@@ -1543,7 +1543,7 @@
     <string name="music_quality_medium">Media</string>
     <string name="music_quality_low">Bassa</string>
     <string name="music_playback_warning_final">Impossibile caricare questo brano dopo diversi tentativi. Se il problema persiste, prova a cambiare rete o a usare una VPN.</string>
-    <string name="music_playback_warning_generic">Riproduzione musicale non riuscita. Riprova o cambia rete se il problema persiste</string>
+    <string name="music_playback_warning_generic">Riproduzione musicale fallita. Riprova o cambia rete se il problema persiste.</string>
     <string name="add_to_library">Aggiungi alla libreria</string>
     <string name="saved_to_library">Salvato nella libreria</string>
     <string name="failed_to_save_to_library">Impossibile salvare nella libreria</string>
@@ -1561,7 +1561,7 @@
     <string name="datetime_context_description">Descrizione</string>
     <string name="datetime_override_default">Predefinito</string>
     <string name="player_appearance_volume_boost_title">Consenti l\'amplificazione extra del volume</string>
-    <string name="player_appearance_volume_boost_subtitle">Quando è disattivato, il gesto di scorrimento del volume si ferma al volume massimo di sistema. Attivalo per rendere l\'audio ancora più forte.</string>
+    <string name="player_appearance_volume_boost_subtitle">Lascia che lo swipe del volume superi il massimo del sistema</string>
     <string name="shorts_playback_speed">Velocità di riproduzione</string>
     <string name="speed_normal">Normale</string>
     <string name="export_watch_history_title">Cronologia di visualizzazione</string>
@@ -1649,7 +1649,7 @@
     <string name="content_settings_watched_threshold_99">99% della riproduzione</string>
     <string name="content_settings_watched_threshold_almost">Quasi finito (ultimo minuto)</string>
     <string name="content_settings_navbar_hide_on_scroll_title">Nascondi la barra di navigazione allo scorrimento</string>
-    <string name="content_settings_navbar_hide_on_scroll_subtitle">Nascondi la barra di navigazione inferiore quando scorri verso il basso.</string>
+    <string name="content_settings_navbar_hide_on_scroll_subtitle">Nascondi la barra di navigazione quando scorri in basso</string>
     <string name="player_settings_queue_autoplay">Riproduci automaticamente i video in coda</string>
     <string name="player_settings_queue_autoplay_subtitle">Riproduci il video successivo in una playlist o in Guarda più tardi</string>
     <string name="recognize_music">Identifica musica</string>
@@ -1673,7 +1673,7 @@
     <string name="player_appearance_shorts_ui_subtitle">Scegli quanto dell\'overlay degli Shorts rimane visibile</string>
     <string name="shorts_player_ui_default">Predefinito</string>
     <string name="shorts_player_ui_simple">Semplice</string>
-    <string name="shorts_player_ui_impressive">Impressive</string>
+    <string name="shorts_player_ui_impressive">Completo</string>
     <string name="shorts_saved">Short salvato</string>
     <string name="sync_devices_title">Sincronizzazione dispositivi</string>
     <string name="sync_devices_subtitle">Sincronizza libreria, cronologia e profilo tramite Wi-Fi locale</string>
@@ -1691,9 +1691,9 @@
     <string name="sync_show_qr_here">Mostra un QR code qui</string>
     <string name="sync_scan_other_qr">Scansiona il QR dell\'altro dispositivo</string>
     <string name="sync_send_show_qr_hint">L\'altro dispositivo esegue la scansione. Usa questa opzione se l\'altro dispositivo ha una fotocamera.</string>
-    <string name="sync_send_scan_hint">Usa questa opzione per inviare a un dispositivo senza fotocamera (es. un PC) che mostra un codice QR di ricezione.</string>
-    <string name="sync_receive_scan_hint">Usa questa opzione se questo dispositivo ha una fotocamera e l\'altro sta mostrando un codice QR di invio.</string>
-    <string name="sync_receive_show_qr_hint">Il mittente esegue la scansione. Usa questa opzione se questo dispositivo non ha una fotocamera o preferisci mostrare un codice QR.</string>
+    <string name="sync_send_scan_hint">Invia a un dispositivo senza una fotocamera che mostra un codice di ricezione.</string>
+    <string name="sync_receive_scan_hint">Usalo se l\'altro dispositivo mostra un codice di invio.</string>
+    <string name="sync_receive_show_qr_hint">Il mittente scansiona questo codice. Usalo se questo dispositivo non ha una fotocamera.</string>
     <string name="sync_scan_prompt_receive_code">Punta la fotocamera verso il codice QR di ricezione dell\'altro dispositivo</string>
     <string name="sync_scan_prompt_send_code">Punta la fotocamera verso il codice QR di invio dell\'altro dispositivo</string>
     <string name="sync_camera_permission_rationale">È necessaria l\'autorizzazione alla fotocamera per scansionare il codice QR.</string>
@@ -1706,7 +1706,7 @@
     <string name="default_download_codec_label">Codec di download predefinito</string>
     <string name="default_download_codec_auto_subtitle">Usa la tua ultima scelta o il codec del video corrente</string>
     <string name="sync_connecting">Connessione…</string>
-    <string name="sync_intro">Sincronizza libreria, cronologia, mi piace, impostazioni e profilo dei suggerimenti con un altro dispositivo tramite Wi-FI locale. Niente lascia la tua rete.</string>
+    <string name="sync_intro">Sincronizza libreria, cronologia, Mi piace e impostazioni con un altro dispositivo tramite Wi-Fi. Niente lascia la tua rete.</string>
     <string name="sync_send_to_device">Invia ad un dispositivo</string>
     <string name="sync_receive_from_device">Ricevi da un dispositivo</string>
     <string name="sync_qr_scan_on_target_sending">Scansionalo sul dispositivo da cui stai inviando</string>
@@ -1929,9 +1929,9 @@
     <string name="discord_presence_privacy_section">Privacy e rischi per l\'account</string>
     <string name="discord_presence_privacy_title">Privacy</string>
     <string name="discord_presence_privacy_body">Quando è attiva, Flow condivide con Discord il titolo del video, dello Shorts, della diretta o del brano in riproduzione, l\'autore o l\'artista, la copertina e il tempo di riproduzione. L\'impostazione è disattivata per impostazione predefinita. Il token di sessione di Discord viene crittografato tramite Android Keystore e non viene mai inserito nei log dell\'app.</string>
-    <string name="discord_presence_gateway_warning">Flow utilizza una connessione self-bot non ufficiale tramite il token del tuo account Discord, anziché OAuth. Questo viola i Termini di servizio di Discord e può comportare la sospensione o la chiusura dell\'account. I client non supportati possono inoltre attivare avvisi di fuga di token, reimpostazioni della password, CAPTCHA o blocchi per la verifica del numero di telefono.</string>
+    <string name="discord_presence_gateway_warning">Accede con il tuo token Discord invece del login ufficiale. Ciò viola i Termini di Servizio di Discord e può limitare o bandire il tuo account.</string>
     <string name="discord_presence_risk_dialog_title">Accetti i rischi per l\'account Discord?</string>
-    <string name="discord_presence_risk_dialog_body">La connessione effettua l\'accesso tramite Discord e fornisce a Flow il token del tuo account Discord. Flow lo memorizza crittografandolo con Android Keystore e lo invia esclusivamente a Discord, ma questo metodo self-bot non ufficiale viola i Termini di servizio di Discord. Discord potrebbe sospendere o chiudere il tuo account, richiedere la reimpostazione della password, mostrare CAPTCHA o bloccare l\'account richiedendo la verifica del numero di telefono.</string>
+    <string name="discord_presence_risk_dialog_body">La connessione dà a Flow il tuo token di Discord. Resta crittografato in questo dispositivo e viene inviato solo a Discord. Questo metodo viola i Termini di Servizio di Discord, quindi il tuo account potrebbe venire limitato o bandito.</string>
     <string name="discord_presence_risk_accept">Ho capito, connetti</string>
     <string name="discord_error_not_initialized">Discord Rich Presence non è stata avviata.</string>
     <string name="discord_error_enable_before_connect">Abilita Discord Rich Presence prima di connettere un account.</string>
@@ -1972,7 +1972,7 @@
     <string name="interface_mode_mobile">Mobile</string>
     <string name="interface_mode_mobile_summary">Utilizza sempre l\'interfaccia telefono e tablet</string>
     <string name="interface_mode_tv">TV</string>
-    <string name="interface_mode_tv_summary">Utilizza sempre l\'interfaccia TV ottimizzata per telecomando</string>
+    <string name="interface_mode_tv_summary">Usa sempre l\'interfaccia televisiva ottimizzata per telecomando</string>
     <string name="tv_home_title">Home</string>
     <string name="tv_continue_watching">Continua a guardare</string>
     <string name="tv_home_recommended">Consigliati</string>
@@ -2409,14 +2409,14 @@
     <string name="tv_guide_player_toggle">Riproduci o metti in pausa e mostra i controlli di riproduzione.</string>
     <string name="tv_guide_player_seek">Scorri indietro o avanti; la barra di avanzamento mostra la posizione in sospeso.</string>
     <string name="tv_guide_player_hold">Tieni premuto Sinistra o Destra per accelerare lo scorrimento, quindi rilascia per confermare.</string>
-    <string name="tv_guide_player_up">Rivela i controlli e seleziona la riga A seguire</string>
+    <string name="tv_guide_player_up">Rivela i controlli e seleziona la riga A seguire.</string>
     <string name="tv_guide_player_down">Rivela i controlli di riproduzione e seleziona Riproduci/Pausa.</string>
     <string name="tv_guide_player_media">Riproduci, Pausa, Precedente, Successivo, Riavvolgi, Avanzamento rapido e Sottotitoli funzionano direttamente.</string>
     <string name="tv_guide_player_back">Chiudi prima un pannello o i controlli; premi di nuovo per lasciare il player.</string>
     <string name="tv_settings_wifi_quality">Qualità predefinita (Wi-Fi)</string>
     <string name="section_on_repeat">In ripetizione</string>
     <string name="section_daily_mix_title">Mix %1$s</string>
-    <string name="section_daily_mix_label">Daily Mix</string>
+    <string name="section_daily_mix_label">Mix quotidiano</string>
     <string name="daily_mix_page_description">Creata dagli artisti che ascolti. Salvala per conservare il mix di oggi.</string>
     <string name="section_rediscover">Scopri di nuovo</string>
     <string name="section_from_artists_you_love">Dagli artisti che ami</string>
@@ -2472,7 +2472,7 @@
     <string name="music_blocked_artists_empty">Nessun artista bloccato</string>
     <string name="music_unblock">Sblocca</string>
     <string name="export_music_brain_title">Esporta dati del motore musicale</string>
-    <string name="export_music_brain_desc">Salva il profilo del tuo gusto musicale come un file JSON</string>
+    <string name="export_music_brain_desc">Salva il profilo dei tuoi gusti musicali come file JSON</string>
     <string name="import_music_brain_title">Importa dati del motore musicale</string>
     <string name="import_music_brain_desc">Ripristina un profilo del gusto musicale da un file JSON</string>
     <string name="music_brain_export_success">Dati del motore musicali esportati</string>
@@ -2483,7 +2483,7 @@
     <string name="music_brain_import_failed">Importazione del motore musicale non riuscita</string>
     <string name="music_persona_overview_title">Gusto musicale</string>
     <string name="music_persona_overview_subtitle">Cos\'ha appreso il motore musicale dai tuoi ascolti</string>
-    <string name="music_persona_maturity_cold">Cold start</string>
+    <string name="music_persona_maturity_cold">Avvio a freddo</string>
     <string name="chart_position_template">#%1$d</string>
     <string name="music_persona_maturity_mature">Maturo</string>
     <string name="music_metric_total_plays">Numero di riproduzioni</string>
@@ -2538,7 +2538,7 @@
     <string name="music_listening_patterns_title">Ritmo di ascolto</string>
     <string name="music_bucket_weekday_morning">Mattine lavorative</string>
     <string name="scheduled_for_prefix">Programmato per %1$s</string>
-    <string name="live_in_prefix">Live %1$s</string>
+    <string name="live_in_prefix">In diretta %1$s</string>
     <string name="filter_timed">A tempo</string>
     <string name="no_timed_comments">Nessun commento con timestamp presente</string>
     <string name="channel_about_joined">Unito</string>
@@ -2707,9 +2707,9 @@
     <string name="player_appearance_frame_step_title">Pulsanti per l\'avanzamento fotogramma</string>
     <string name="player_appearance_frame_step_subtitle">Mostra le frecce per andare indietro e avanti di un passo durante la pausa</string>
     <string name="theme_name_green_apple">Verde Mela</string>
-    <string name="theme_name_yin_yang">Yin &amp; Yang</string>
+    <string name="theme_name_yin_yang">Yin e Yang</string>
     <string name="theme_name_strawberry_daiquiri">Daiquiri Fragola</string>
-    <string name="theme_name_tide">Tide</string>
+    <string name="theme_name_tide">Marea</string>
     <string name="theme_name_sage">Salvia</string>
     <string name="theme_name_caffeine">Caffeina</string>
     <string name="theme_desc_catppuccin">Colori pastello rilassanti ispirati a Latte e Mocha.</string>
@@ -3118,7 +3118,7 @@
     <string name="eq_preset_classical">Classico</string>
     <string name="eq_preset_electronic">Elettronico</string>
     <string name="eq_preset_heavy_metal">Metallo pesante</string>
-    <string name="eq_preset_hip_hop">Hip-hop</string>
+    <string name="eq_preset_hip_hop">Hip hop</string>
     <string name="eq_preset_jazz">Jazz</string>
     <string name="eq_preset_metal">Metallo</string>
     <string name="eq_preset_pop">Pop</string>
@@ -3630,9 +3630,9 @@
     <string name="ui_instrumental">I N S T R U M E N T A L</string>
     <string name="ui_playlist_empty">La playlist è vuota</string>
     <plurals name="ui_downloading_videos">
-        <item quantity="one">Download di %1$d video…</item>
-        <item quantity="many">Download di %1$d video…</item>
-        <item quantity="other">Download di %1$d video…</item>
+        <item quantity="one">Scaricamento di %1$d video…</item>
+        <item quantity="many">Scaricamento di %1$d video…</item>
+        <item quantity="other">Scaricamento di %1$d video…</item>
     </plurals>
     <string name="ui_playlist_saved_to_library">Playlist salvata nella libreria</string>
     <string name="ui_playlist_removed_from_library">Playlist rimossa dalla libreria</string>
@@ -3706,9 +3706,9 @@
         <item quantity="other">Download di %1$d elementi</item>
     </plurals>
     <plurals name="notification_downloads_paused">
-        <item quantity="one">%1$d download in pausa</item>
-        <item quantity="many">%1$d download in pausa</item>
-        <item quantity="other">%1$d download in pausa</item>
+        <item quantity="one">%1$d scaricamento in pausa</item>
+        <item quantity="many">%1$d scaricamenti in pausa</item>
+        <item quantity="other">%1$d scaricamenti in pausa</item>
     </plurals>
     <string name="notification_more">+%1$d altro</string>
     <plurals name="notification_new_videos_from_subscriptions">
@@ -3989,8 +3989,8 @@
     <string name="settings_downloads_title">Download e archiviazione</string>
     <string name="settings_network_title">Rete</string>
     <string name="settings_wellbeing_title">Benessere</string>
-    <string name="settings_group_look">Guarda e senti</string>
-    <string name="settings_group_watching">Guardando</string>
+    <string name="settings_group_look">Aspetto</string>
+    <string name="settings_group_watching">Visualizzazione</string>
     <string name="settings_group_data">I tuoi dati</string>
     <string name="settings_group_system">Sistema</string>
     <string name="settings_appearance_summary">Tema, icona dell\'app, layout e barra di navigazione</string>
@@ -4074,7 +4074,7 @@
     <string name="settings_section_shorts_player">Lettore Shorts</string>
     <string name="settings_section_music">Musica</string>
     <string name="settings_section_advanced">Avanzato</string>
-    <string name="settings_keywords_autoplay">video successivo, successivo, riproduzione continua</string>
+    <string name="settings_keywords_autoplay">video successivo, a seguire, riproduzione continua</string>
     <string name="settings_keywords_captions">sottotitoli, cc, sottotitoli</string>
     <string name="settings_keywords_next_prev">salta, video precedente, video successivo, doppio tocco</string>
     <string name="settings_keywords_gestures">scorrere, toccare due volte, toccare</string>
@@ -4173,7 +4173,7 @@
     <string name="settings_keywords_notifications">avvisi, push, nuovi caricamenti, controlli dei precedenti, cortometraggi</string>
     <string name="settings_section_proxy_server">Server</string>
     <string name="settings_section_proxy_sign_in">Registrazione</string>
-    <string name="settings_keywords_network">proxy, calzini, http, VPN, connessione</string>
+    <string name="settings_keywords_network">proxy, socks, http, VPN, connessione</string>
     <string name="settings_show_password">Mostra password</string>
     <string name="settings_hide_password">Nascondi la password</string>
     <string name="settings_proxy_unsaved">Sono presenti modifiche non salvate</string>
@@ -4210,7 +4210,7 @@
     <string name="settings_creator_role">Creatore e sviluppatore di Flow</string>
     <string name="device_info_section_device">Dispositivo</string>
     <string name="device_info_section_system">Sistema</string>
-    <string name="device_info_section_display">Display</string>
+    <string name="device_info_section_display">Schermo</string>
     <string name="device_info_section_media">Decodifica video</string>
     <string name="device_info_section_app">App</string>
     <string name="device_info_model">Modello</string>
@@ -4282,7 +4282,7 @@
     <string name="settings_theme_role_outline">Contorno</string>
     <string name="settings_theme_role_error">Errore</string>
     <string name="settings_theme_color_with_opacity">Opacità %1$s · %2$d%%</string>
-    <string name="settings_keywords_custom_themes">tema personalizzato, tavolozza, colori, colori, importazione, esportazione, condivisione, desktop</string>
+    <string name="settings_keywords_custom_themes">tema personalizzato, tavolozza, colori, importazione, esportazione, condivisione, desktop</string>
     <plurals name="settings_custom_theme_imported">
         <item quantity="one">%1$d tema importato</item>
         <item quantity="many">%1$d temi importati</item>
@@ -4290,12 +4290,12 @@
     </plurals>
     <string name="settings_custom_theme_in_use">In uso</string>
     <string name="settings_custom_theme_export_failed">Impossibile salvare il tema</string>
-    <string name="taste_title">Il tuo gusto</string>
+    <string name="taste_title">I tuoi gusti</string>
     <string name="taste_summary">Come ti vede Flow e cosa modella il tuo feed</string>
     <string name="taste_keywords">persona, profilo, algoritmo, raccomandazioni, interessi, cervello, motore, centro di controllo</string>
     <string name="taste_card_hint">Guarda come ti vede Flow</string>
-    <string name="taste_card_loading">Leggendo il tuo profilo</string>
-    <string name="taste_shape_header">Forma del gusto</string>
+    <string name="taste_card_loading">Lettura del tuo profilo</string>
+    <string name="taste_shape_header">Forma dei gusti</string>
     <string name="taste_shape_description">Il tuo profilo rispetto a ciò che guardi a quest\'ora del giorno</string>
     <string name="taste_interests_header">Interessi</string>
     <string name="taste_interests_footer">Metti in evidenza un argomento per vederne di più o bloccalo per non vederne nessuno.</string>
@@ -4349,7 +4349,7 @@
     <string name="taste_starter_searches_detail">%1$s. Utilizzato finché Flow non apprende cosa guardi.</string>
     <string name="recap_title">Flow Riepilogo</string>
     <string name="recap_summary">Quello che guardavi e ascoltavi, mese per mese</string>
-    <string name="recap_keywords">concluso, statistiche, statistiche, riepilogo, anno in rassegna, tempo di visualizzazione, tempo di ascolto, più visti, migliori artisti</string>
+    <string name="recap_keywords">riassunto, statistiche, riepilogo, anno in rassegna, tempo di visualizzazione, tempo di ascolto, più visti, migliori artisti</string>
     <string name="recap_period_month">Mese</string>
     <string name="recap_period_year">Anno</string>
     <string name="recap_period_all">Tutto il tempo</string>
@@ -4741,4 +4741,5 @@
     <string name="keyboard_shortcut_exit_fullscreen">Esci dallo schermo intero</string>
     <string name="keyboard_shortcut_faster">Più veloce</string>
     <string name="keyboard_shortcut_slower">Più lentamente</string>
+    <string name="autoplay_countdown_mini_label">Il prossimo in %1$d</string>
 </resources>
