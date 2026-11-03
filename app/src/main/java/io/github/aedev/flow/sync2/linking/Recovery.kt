@@ -15,6 +15,7 @@ import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.data.WEBDAV_STORE
 import io.github.aedev.flow.sync2.data.addEntries
 import io.github.aedev.flow.sync2.engine.LinkedException
+import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.roster.Draft
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.Op
@@ -82,21 +83,57 @@ suspend fun restore(
         )
     state = append(asRecovery, state, buildEntry(group, state, restore, listOf(recovery, device)), restored.wraps, restored.chain)
 
+    val replacement = replacement(group, state, device, restored.key)
+    append(asDevice, state, replacement.entry, replacement.epoch.wraps, replacement.epoch.chain)
+    return Restored(asDevice.rosterAfter(-1), replacement.words)
+}
+
+/** A `recovery` entry that swaps in a new recovery key, the epoch it starts, and the new words. */
+private class Replacement(
+    val entry: Entry,
+    val epoch: NewEpoch,
+    val words: String,
+)
+
+private fun replacement(
+    group: ByteArray,
+    state: RosterState,
+    device: MemberSecrets,
+    currentKey: ByteArray,
+): Replacement {
     val secret = SyncCrypto.randomBytes(32)
     val next = recoveryKeys(secret)
-    val remaining = state.members.filterKeys { it != recoveryId }.mapValues { (_, member) -> member.kem }
-    val replaced = newEpoch(group, state.epoch + 1, remaining + (SyncBytes.toHex(next.did) to next.kemPublic), restored.key)
+    val old =
+        state.members
+            .filterValues { it.role == Role.RECOVERY }
+            .keys
+            .sorted()
+    val remaining = state.members.filterKeys { it !in old }.mapValues { (_, member) -> member.kem }
+    val epoch = newEpoch(group, state.epoch + 1, remaining + (SyncBytes.toHex(next.did) to next.kemPublic), currentKey)
     val change =
         Draft(
             op = Op.RECOVERY,
             signer = SyncBytes.toHex(device.did),
             add = listOf(memberSubject(next.sigPublic, next.kemPublic, Role.RECOVERY)),
-            remove = listOf(recoveryId),
-            epoch = replaced.field,
+            remove = old,
+            epoch = epoch.field,
         )
-    append(asDevice, state, buildEntry(group, state, change, listOf(device, next)), replaced.wraps, replaced.chain)
+    val entry = buildEntry(group, state, change, listOf(device, next))
     next.wipe()
-    return Restored(asDevice.rosterAfter(-1), recoveryWords(secret).also { secret.fill(0) })
+    return Replacement(entry, epoch, recoveryWords(secret).also { secret.fill(0) })
+}
+
+/**
+ * Replaces the recovery key from a member device (spec/protocol.md, Recovery), so the old words stop
+ * working: the old recovery member gets no key of the epoch this starts. Returns the new words.
+ */
+suspend fun replaceRecovery(
+    session: Session,
+    device: MemberSecrets,
+): String {
+    val replacement = replacement(session.group, session.state, device, session.currentKey())
+    appendChecked(session, replacement.entry, replacement.epoch.wraps, replacement.epoch.chain)
+    return replacement.words
 }
 
 /**

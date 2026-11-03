@@ -1,6 +1,5 @@
 package io.github.aedev.flow.ui.screens.sync.linked
 
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,7 +43,6 @@ internal fun LinkedDevicesSection(
         }
     }
 
-    HorizontalDivider()
     val words = state.words
     var scanning by rememberSaveable { mutableStateOf(false) }
     when {
@@ -76,6 +74,7 @@ internal fun LinkedDevicesSection(
                 onScanNewDevice = if (hostOnly) null else ({ scanning = true }),
                 onRename = viewModel::rename,
                 onRemove = viewModel::remove,
+                onReplaceWords = viewModel::replaceWords,
                 onLeave = viewModel::leave,
                 onForget = viewModel::forget,
                 onUpdateLogin = viewModel::updateLogin,

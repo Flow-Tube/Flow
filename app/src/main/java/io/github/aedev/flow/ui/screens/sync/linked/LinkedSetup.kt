@@ -90,7 +90,7 @@ internal fun LinkedSetup(
             SyncStepHeader(
                 icon = Icons.Outlined.Devices,
                 title = stringResource(R.string.linked_title),
-                body = stringResource(R.string.linked_intro),
+                body = stringResource(R.string.linked_always_intro),
             )
             SyncOptions(
                 listOf(

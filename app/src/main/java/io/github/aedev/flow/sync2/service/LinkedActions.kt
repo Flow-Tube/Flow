@@ -35,6 +35,7 @@ import io.github.aedev.flow.sync2.linking.newOffer
 import io.github.aedev.flow.sync2.linking.readCode
 import io.github.aedev.flow.sync2.linking.removeDevice
 import io.github.aedev.flow.sync2.linking.renameDevice
+import io.github.aedev.flow.sync2.linking.replaceRecovery
 import io.github.aedev.flow.sync2.linking.restoreGroup
 import io.github.aedev.flow.sync2.linking.restoreWebDavGroup
 import io.github.aedev.flow.sync2.roster.Role
@@ -235,6 +236,13 @@ class LinkedActions
             val session = session()
             val current = deviceNames(session)[id] ?: DeviceMeta("", "", "")
             renameDevice(session, keys.load(), id, current.copy(name = name.trim().take(NAME_LIMIT)))
+        }
+
+        /** Replaces the recovery words, so the old ones stop working, and returns the new words to show once. */
+        suspend fun replaceRecoveryWords(): String {
+            val words = replaceRecovery(session(), keys.load())
+            db.groups().setRecoverySaved(false)
+            return words
         }
 
         suspend fun remove(id: String) {
