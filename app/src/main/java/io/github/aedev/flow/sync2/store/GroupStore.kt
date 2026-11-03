@@ -67,11 +67,8 @@ class GroupStore(
                 server.rosterAfter(local.rosterAfter(-1).lastOrNull()?.seq ?: -1),
             )
         }
-        val epochs = local.rosterAfter(-1).mapNotNull { it.epoch?.n }
-        for (epoch in epochs) {
-            for (name in listOf(me, "chain")) {
-                if (local.key(epoch, name) == null) server.key(epoch, name)?.let { local.putKey(epoch, name, it) }
-            }
+        for ((epoch, name) in keyNames(local.rosterAfter(-1), me)) {
+            if (local.key(epoch, name) == null) server.key(epoch, name)?.let { local.putKey(epoch, name, it) }
         }
         if (!objects) return cursor
         if (server is FileLayout) {
