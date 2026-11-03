@@ -82,6 +82,7 @@ import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.error.StreamDenialClassifier
 import io.github.aedev.flow.player.error.StreamDenialKind
 import io.github.aedev.flow.player.factory.LoadControlFactory
+import io.github.aedev.flow.player.isVideoListItem
 import io.github.aedev.flow.player.musicvideo.MusicMediaSourceFactory
 import io.github.aedev.flow.player.musicvideo.MusicVideoFormats
 import io.github.aedev.flow.player.musicvideo.MusicVideoSwitch
@@ -700,6 +701,7 @@ class Media3MusicService : MediaLibraryService() {
     private var learnMediaId: String? = null
     private var learnTrack: MusicTrack? = null
     private var learnGenre: String? = null
+    private var learnFromVideoList = false
     private var learnDurationMs = 0L
     private var learnPlayedMs = 0L
     private var learnPlayingSinceMs = -1L
@@ -711,7 +713,7 @@ class Media3MusicService : MediaLibraryService() {
     /** Queues the scrobble the moment the listen counts, so a process killed later in the song cannot lose it. */
     private fun scheduleScrobbleCheck() {
         scrobbleCheck?.cancel()
-        if (learnScrobbled || learnPlayingSinceMs < 0) return
+        if (learnScrobbled || learnPlayingSinceMs < 0 || learnFromVideoList) return
         val track = learnTrack?.takeIf { it.videoId == learnMediaId } ?: return
         val durationMs = if (track.duration > 0) track.duration.toLong() * 1000 else learnDurationMs
         val thresholdMs = ScrobbleRules.thresholdMs(durationMs) ?: return
@@ -728,7 +730,7 @@ class Media3MusicService : MediaLibraryService() {
     /** Once per listen, when it really starts playing rather than when the item merely loads. */
     private fun announceNowPlaying() {
         val track = learnTrack?.takeIf { it.videoId == learnMediaId } ?: return
-        if (learnAnnounced) return
+        if (learnAnnounced || learnFromVideoList) return
         learnAnnounced = true
         val durationMs = if (track.duration > 0) track.duration.toLong() * 1000 else learnDurationMs
         scrobbler.onNowPlaying(track, durationMs)
@@ -782,6 +784,8 @@ class Media3MusicService : MediaLibraryService() {
         learnGenre =
             io.github.aedev.flow.player.EnhancedMusicPlayerManager
                 .playContextGenre
+        learnFromVideoList =
+            ::player.isInitialized && player.currentMediaItem?.takeIf { it.mediaId == mediaId }?.isVideoListItem == true
         learnDurationMs = 0L
         learnPlayedMs = 0L
         learnStartedAtMs = System.currentTimeMillis()
@@ -803,14 +807,20 @@ class Media3MusicService : MediaLibraryService() {
         val pinnedDurationMs = learnDurationMs
         val playedMs = learnPlayedMs
         val pinnedGenre = learnGenre
+        val fromVideoList = learnFromVideoList
         val startedAtMs = learnStartedAtMs
         val alreadyScrobbled = learnScrobbled
         learnScrobbled = false
         learnMediaId = null
         learnTrack = null
         learnGenre = null
+        learnFromVideoList = false
         learnDurationMs = 0L
         learnPlayedMs = 0L
+        if (fromVideoList) {
+            Log.d(TAG, "listen finalize skipped: $mediaId is a video from a video list (#1657)")
+            return
+        }
         if (mediaId.isNullOrBlank() || playedMs <= 0) {
             Log.d(TAG, "listen finalize skipped: id=$mediaId playedMs=$playedMs")
             return

@@ -48,4 +48,29 @@ class AutoBrowseTreeTest {
         assertThat(AutoArtworkProvider.isAllowedArtworkUrl("https://ytimg.com.evil.example/x.jpg")).isFalse()
         assertThat(AutoArtworkProvider.isAllowedArtworkUrl("not a url")).isFalse()
     }
+
+    @Test
+    fun `a video playlist and Watch later are video lists, music lists are not`() {
+        val videos = AutoBrowseTree.videoPlaylist("PL:videos")
+
+        assertThat(AutoBrowseTree.videoPlaylistIdOf(videos)).isEqualTo("PL:videos")
+        assertThat(AutoBrowseTree.playlistIdOf(videos)).isNull()
+        assertThat(AutoBrowseTree.isVideoList(videos)).isTrue()
+        assertThat(AutoBrowseTree.isVideoList(AutoBrowseTree.WATCH_LATER)).isTrue()
+        assertThat(AutoBrowseTree.isVideoList(AutoBrowseTree.playlist("PL:music"))).isFalse()
+        assertThat(AutoBrowseTree.isVideoList(AutoBrowseTree.LIKED)).isFalse()
+    }
+
+    @Test
+    fun `a video picked from a video playlist keeps its list in the song id`() {
+        val id = AutoBrowseTree.song(AutoBrowseTree.videoPlaylist("PL:videos"), "abc123")
+
+        assertThat(AutoBrowseTree.songOf(id)?.first?.let(AutoBrowseTree::isVideoList)).isTrue()
+        assertThat(AutoBrowseTree.songOf(id)?.second).isEqualTo("abc123")
+    }
+
+    @Test
+    fun `Watch later is listed in Library`() {
+        assertThat(AutoBrowseTree.libraryLists).contains(AutoBrowseTree.WATCH_LATER)
+    }
 }
