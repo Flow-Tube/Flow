@@ -4683,7 +4683,7 @@
     <string name="notifications_already_in_watch_later">موجود بالفعل في قائمة المشاهدة لاحقًا</string>
     <string name="notifications_save_to_watch_later">حفظ في قائمة المشاهدة لاحقًا</string>
     <string name="player_settings_normalize_volume">توحيد مستوى الصوت</string>
-    <string name="player_settings_normalize_volume_summary">خفض صوت الفيديوهات المرتفعة إلى مستوى صوت YouTube</string>
+    <string name="player_settings_normalize_volume_summary">خفّض صوت الفيديوهات العالية إلى مستوى موحّد، مثل youtube.com</string>
     <string name="settings_music_resume_title">استئناف تشغيل البودكاست والمقاطع الصوتية الطويلة</string>
     <string name="settings_music_side_swipes_title">التحكم في السرعة و مستوى الصوت بالسحب</string>
     <string name="settings_music_side_swipes_summary">اسحب على الجانب الأيسر للتحكم في السرعة، وعلى الجانب الأيمن للتحكم في مستوى الصوت</string>
@@ -5047,4 +5047,12 @@
     <string name="player_appearance_idle_progress_off">معطل</string>
     <string name="pip_listen_in_background">الاستماع في الخلفية</string>
     <string name="autoplay_countdown_mini_label">التالي خلال %1$d</string>
+    <string name="cache_size_custom">مخصص…</string>
+    <string name="cache_size_custom_field">الحجم</string>
+    <string name="cache_size_custom_range">من 50 ميجابايت إلى 50 جيجابايت</string>
+    <string name="cache_size_mb_value">%1$s ميجابايت</string>
+    <string name="cache_size_gb_value">%1$s جيجابايت</string>
+    <string name="buffer_cache_size_link">حجم التخزين المؤقت</string>
+    <string name="buffer_cache_size_link_summary">حجم مساحة التخزين التي يشغلها الفيديو والموسيقى المحفوظان في Flow</string>
+    <string name="settings_crossfade_title">التلاشي المتداخل</string>
 </resources>
