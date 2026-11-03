@@ -1817,10 +1817,10 @@ class PlayerPreferences(
         }
     }
 
-    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com. */
+    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com, once chosen (#1641). */
     val videoVolumeNormalizationEnabled: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: true }
+            .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: DEFAULT_VIDEO_VOLUME_NORMALIZATION }
             .distinctUntilChanged()
 
     suspend fun setVideoVolumeNormalizationEnabled(enabled: Boolean) {
@@ -4091,6 +4091,9 @@ private fun MutablePreferences.restore(backup: SettingsBackup) {
     backup.longs.forEach { (k, v) -> this[longPreferencesKey(k)] = v }
     backup.stringSets.forEach { (k, v) -> this[stringSetPreferencesKey(k)] = v }
 }
+
+/** Loud videos play at their own level unless the user turns levelling on. */
+const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = false
 
 /**
  * What the player does with a SponsorBlock segment, in the order settings list them. The names are

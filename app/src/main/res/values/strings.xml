@@ -1352,7 +1352,7 @@
     <string name="playback_speed_multiplier">%1$s×</string>
     <string name="playback_speed_multiplier_precise">%1$.2f×</string>
     <string name="player_settings_normalize_volume">Normalize volume</string>
-    <string name="player_settings_normalize_volume_summary">Turn loud videos down to YouTube\'s level</string>
+    <string name="player_settings_normalize_volume_summary">Turn loud videos down to the same level, like youtube.com</string>
     <string name="player_settings_display">Display</string>
     <string name="player_settings_ambient_mode">Ambient mode</string>
     <string name="player_settings_ambient_mode_subtitle">A soft glow of the video\'s colors around it</string>
@@ -1543,6 +1543,15 @@
     <string name="cache_songs_size_title">Song cache size</string>
     <string name="cache_artwork_size_title">Artwork cache size</string>
     <string name="cache_size_applies_on_restart">Applies the next time Flow starts.</string>
+    <string name="cache_size_custom">Custom…</string>
+    <string name="cache_size_custom_field">Size</string>
+    <string name="cache_size_custom_range">From 50 MB to 50 GB</string>
+    <string name="cache_size_unit_mb">MB</string>
+    <string name="cache_size_unit_gb">GB</string>
+    <string name="cache_size_mb_value">%1$s MB</string>
+    <string name="cache_size_gb_value">%1$s GB</string>
+    <string name="buffer_cache_size_link">Cache size</string>
+    <string name="buffer_cache_size_link_summary">How much video and music Flow keeps on disk</string>
     <string name="btn_back">Back</string>
     <string name="back">Back</string>
     <string name="btn_close">Close</string>
@@ -4129,6 +4138,7 @@
     <string name="settings_location_default">Default</string>
     <string name="settings_music_folder_label">Music / Flow</string>
     <string name="settings_keywords_downloads">save offline, folder, storage, sd card</string>
+    <string name="settings_keywords_cache">cache size, cache limit, media cache, storage, disk space</string>
     <string name="settings_section_notification_types">Notify me about</string>
     <string name="settings_keywords_notifications">alerts, push, new uploads, background checks, shorts</string>
     <string name="settings_section_proxy_server">Server</string>
