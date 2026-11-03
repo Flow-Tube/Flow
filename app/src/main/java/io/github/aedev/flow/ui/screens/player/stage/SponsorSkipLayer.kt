@@ -34,6 +34,7 @@ internal fun BoxScope.SponsorSkipLayer(
 ) {
     val offForVideo by EnhancedPlayerManager.getInstance().sponsorBlockOffForVideo.collectAsState()
     if (offForVideo) return
+    val skippedOnce by EnhancedPlayerManager.getInstance().sbSkippedOnce.collectAsState()
     val screenState = session.screenState
     val playerState = session.playerState
 
@@ -59,6 +60,7 @@ internal fun BoxScope.SponsorSkipLayer(
             sponsorSegments = sponsorSegments,
             currentPositionMs = sponsorButtonPositionMs,
             categoryActions = EnhancedPlayerManager.getInstance().sbCategoryActions,
+            skippedOnceUuids = skippedOnce,
             controlsVisible = screenState.showControls,
             playbackEnded = playerState.hasEnded,
             onSkipClick = { endPositionMs ->

@@ -2964,8 +2964,13 @@ class EnhancedPlayerManager private constructor() {
         }
     }
 
+    /** The segments the seek bar and the skip button show; disabled categories are left out. */
     val sponsorSegments: StateFlow<List<SponsorBlockSegment>>
-        get() = sponsorBlockHandler?.sponsorSegments ?: MutableStateFlow(emptyList())
+        get() = sponsorBlockHandler?.visibleSegments ?: MutableStateFlow(emptyList())
+
+    /** Segments a "skip once" category already skipped in this video; they show the skip button now. */
+    val sbSkippedOnce: StateFlow<Set<String>>
+        get() = sponsorBlockHandler?.skippedOnce ?: MutableStateFlow(emptySet())
 
     val sponsorBlockOffForVideo: StateFlow<Boolean>
         get() = sponsorBlockHandler?.disabledForCurrentVideo ?: MutableStateFlow(false)

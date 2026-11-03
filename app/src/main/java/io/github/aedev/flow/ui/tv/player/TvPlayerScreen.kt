@@ -98,6 +98,7 @@ fun TvPlayerScreen(
 
     val autoplayCountdown by manager.autoplayCountdown.collectAsStateWithLifecycle()
     val sponsorSegments by manager.sponsorSegments.collectAsStateWithLifecycle()
+    val sponsorSkippedOnce by manager.sbSkippedOnce.collectAsStateWithLifecycle()
     val queueVideos by manager.queueVideos.collectAsStateWithLifecycle()
     val currentQueueIndex by manager.currentQueueIndexState.collectAsStateWithLifecycle()
 
@@ -355,6 +356,7 @@ fun TvPlayerScreen(
             sponsorSegments = sponsorSegments,
             currentPositionMs = (screenState.currentPosition / 1_000L) * 1_000L,
             categoryActions = manager.sbCategoryActions,
+            skippedOnceUuids = sponsorSkippedOnce,
             controlsVisible = overlayState.mode != TvOverlayMode.HIDDEN,
             playbackEnded = playerState.hasEnded,
             onSkipClick = manager::skipToSegmentEnd,
