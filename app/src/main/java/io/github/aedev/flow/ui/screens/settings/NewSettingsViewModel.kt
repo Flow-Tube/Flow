@@ -8,12 +8,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aedev.flow.BuildConfig
-import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
 import io.github.aedev.flow.ui.screens.settings.index.NewSettingsPolicy
 import io.github.aedev.flow.ui.screens.settings.index.SettingsIndex
+import kotlinx.coroutines.flow.combine
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -25,7 +25,11 @@ class NewSettingsViewModel
         private val preferences: PlayerPreferences,
     ) : SettingsViewModel() {
         val firstSeen = preferences.settingsFirstSeen.asState(null)
-        val days = preferences.newSettingsHighlightDays.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS)
+
+        /** The days a new setting keeps its dot; 0 while highlighting is off, which marks nothing. */
+        val days =
+            combine(preferences.newSettingsHighlight, preferences.newSettingsHighlightDays) { on, days -> if (on) days else 0 }
+                .asState(0)
 
         init {
             write {

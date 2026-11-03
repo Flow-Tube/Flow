@@ -502,6 +502,7 @@ class PlayerPreferences(
 
         // New settings (#1676): when each settings key was first seen, and how long it stays marked
         val SETTINGS_FIRST_SEEN = device(stringPreferencesKey("settings_first_seen"))
+        val NEW_SETTINGS_HIGHLIGHT = device(booleanPreferencesKey("new_settings_highlight"))
         val NEW_SETTINGS_HIGHLIGHT_DAYS = device(intPreferencesKey("new_settings_highlight_days"))
 
         val NAMES: Set<String> = names
@@ -553,7 +554,19 @@ class PlayerPreferences(
         }
     }
 
-    /** How many days a new setting keeps its dot; 0 turns the dots off. */
+    /** Whether settings added in an update get a dot; off unless the user turns it on. */
+    val newSettingsHighlight: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.NEW_SETTINGS_HIGHLIGHT] ?: DEFAULT_NEW_SETTINGS_HIGHLIGHT }
+            .distinctUntilChanged()
+
+    suspend fun setNewSettingsHighlight(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.NEW_SETTINGS_HIGHLIGHT] = enabled
+        }
+    }
+
+    /** How many days a new setting keeps its dot while [newSettingsHighlight] is on. */
     val newSettingsHighlightDays: Flow<Int> =
         context.devicePreferencesDataStore.data
             .map { preferences -> preferences[DeviceKeys.NEW_SETTINGS_HIGHLIGHT_DAYS] ?: DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS }
@@ -4128,6 +4141,7 @@ private fun MutablePreferences.restore(backup: SettingsBackup) {
     backup.stringSets.forEach { (k, v) -> this[stringSetPreferencesKey(k)] = v }
 }
 
+const val DEFAULT_NEW_SETTINGS_HIGHLIGHT = false
 const val DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS = 7
 
 private val FirstSeenSerializer = MapSerializer(String.serializer(), Long.serializer())

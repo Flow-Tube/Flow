@@ -5,6 +5,7 @@ import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.AppFontSelection
 import io.github.aedev.flow.data.local.AppUiModePreferences
 import io.github.aedev.flow.data.local.DEFAULT_NAV_TAB_ORDER
+import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT
 import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.HomeViewMode
@@ -87,7 +88,10 @@ class AppearanceViewModel
                 _appIcon.value = suffix
             }
 
+        val newSettingsHighlight = preferences.newSettingsHighlight.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT)
         val newSettingsDays = preferences.newSettingsHighlightDays.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS)
+
+        fun setNewSettingsHighlight(enabled: Boolean) = write { preferences.setNewSettingsHighlight(enabled) }
 
         fun setNewSettingsDays(days: Int) = write { preferences.setNewSettingsHighlightDays(days) }
 

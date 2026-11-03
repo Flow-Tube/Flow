@@ -74,6 +74,7 @@ internal fun AppearanceScreen(
     var showIconDialog by rememberSaveable { mutableStateOf(false) }
     var showInterfaceDialog by rememberSaveable { mutableStateOf(false) }
     var showNewSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    val highlightNewSettings by viewModel.newSettingsHighlight.collectAsStateWithLifecycle()
 
     val themeSummary =
         if (themeMode == ThemeMode.SYSTEM) {
@@ -143,9 +144,17 @@ internal fun AppearanceScreen(
                 showChevron = false,
                 onClick = { showInterfaceDialog = true },
             )
-            choice(AppearanceIndex.highlightNewSettings, onClick = { showNewSettingsDialog = true }, icon = Icons.Outlined.FiberNew) {
-                val days by viewModel.newSettingsDays.collectAsStateWithLifecycle()
-                newSettingsDaysLabel(days)
+            switch(
+                AppearanceIndex.highlightNewSettings,
+                viewModel.newSettingsHighlight,
+                viewModel::setNewSettingsHighlight,
+                icon = Icons.Outlined.FiberNew,
+            )
+            if (highlightNewSettings) {
+                choice(AppearanceIndex.highlightNewSettingsDays, onClick = { showNewSettingsDialog = true }) {
+                    val days by viewModel.newSettingsDays.collectAsStateWithLifecycle()
+                    newSettingsDaysLabel(days)
+                }
             }
         }
         group(key = "appearance.layout", header = R.string.settings_section_layout) {
@@ -189,8 +198,7 @@ internal fun AppearanceScreen(
     if (showNewSettingsDialog) {
         val days by viewModel.newSettingsDays.collectAsStateWithLifecycle()
         FlowChoiceDialog(
-            title = stringResource(R.string.settings_highlight_new_title),
-            description = stringResource(R.string.settings_highlight_new_summary),
+            title = stringResource(R.string.settings_highlight_new_days_title),
             options = NewSettingsPolicy.DAY_OPTIONS.map { FlowChoice(it, newSettingsDaysLabel(it)) },
             selected = days,
             onSelect = viewModel::setNewSettingsDays,
@@ -213,12 +221,7 @@ internal fun AppearanceScreen(
 }
 
 @Composable
-private fun newSettingsDaysLabel(days: Int): String =
-    if (days <= 0) {
-        stringResource(R.string.settings_highlight_new_off)
-    } else {
-        pluralStringResource(R.plurals.settings_highlight_new_days, days, days)
-    }
+private fun newSettingsDaysLabel(days: Int): String = pluralStringResource(R.plurals.settings_highlight_new_days, days, days)
 
 private fun interfaceModeLabel(mode: AppUiMode): Int =
     when (mode) {

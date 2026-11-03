@@ -12,7 +12,7 @@ internal object NewSettingsPolicy {
     /** The day keys that existed before this feature are recorded with; far enough back to never be new. */
     const val ALWAYS_KNOWN = 0L
 
-    val DAY_OPTIONS = listOf(0, 3, 7, 14, 30)
+    val DAY_OPTIONS = listOf(3, 7, 14, 30)
 
     /** [known] with every key of [keys] it lacks added as seen [today], and keys that left the index dropped. */
     fun record(
