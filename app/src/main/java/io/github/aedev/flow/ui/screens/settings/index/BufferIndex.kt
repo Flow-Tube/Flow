@@ -18,5 +18,14 @@ internal object BufferIndex {
     val rebuffer =
         SettingEntry(key = "buffer.rebuffer", title = R.string.settings_buffer_rebuffer, destination = page, revealVia = CUSTOM_PROFILE_ROW)
 
-    val all = listOf(profile, minBuffer, maxBuffer, startBuffer, rebuffer)
+    val cacheSize =
+        SettingEntry(
+            key = "buffer.cache_size",
+            title = R.string.buffer_cache_size_link,
+            summary = R.string.buffer_cache_size_link_summary,
+            keywords = R.string.settings_keywords_cache,
+            destination = page,
+        )
+
+    val all = listOf(profile, minBuffer, maxBuffer, startBuffer, rebuffer, cacheSize)
 }
