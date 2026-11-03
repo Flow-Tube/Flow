@@ -5056,4 +5056,12 @@
     <string name="buffer_cache_size_link_summary">حجم مساحة التخزين التي يشغلها الفيديو والموسيقى المحفوظان في Flow</string>
     <string name="settings_crossfade_title">التلاشي المتداخل</string>
     <string name="settings_crossfade_summary">امزج نهاية الأغنية ببداية الأغنية التالية</string>
+    <string name="settings_crossfade_albums_title">إبقاء الألبومات بدون فجوات</string>
+    <string name="settings_crossfade_albums_summary">عدم تطبيق التلاشي المتداخل بين مقطوعات الألبوم نفسه</string>
+    <string name="settings_keywords_crossfade">تلاشي، انتقال، مزج، دون فواصل، خلط</string>
+    <string name="settings_keywords_cache">حجم و حدود التخزين المؤقت، التخزين المؤقت للوسائط، التخزين، مساحة القرص</string>
+    <string name="auto_group_music_playlists">قوائم تشغيل الموسيقى</string>
+    <string name="auto_group_video_playlists">قوائم تشغيل الفيديو</string>
+    <string name="sb_action_skip_automatically">تخطي تلقائي</string>
+    <string name="sb_action_skip_once">التخطي تلقائيًا مرة واحدة</string>
 </resources>
