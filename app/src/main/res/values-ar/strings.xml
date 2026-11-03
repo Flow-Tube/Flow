@@ -3219,7 +3219,7 @@
     <string name="music_player_lyrics_full_screen">كلمات الأغنية بملء الشاشة</string>
     <string name="lyrics_play_from_line">التشغيل من هذا السطر</string>
     <string name="lyrics_show_translation">الترجمة</string>
-    <string name="lyrics_show_translation_summary">إظهار السطر المترجم أسفل كل سطر من كلمات الأغنية</string>
+    <string name="lyrics_show_translation_summary">إظهار ترجمة عندما تتضمن كلمات الأغنية واحدة</string>
     <string name="lyrics_show_romanization">الكتابة بالحروف اللاتينية</string>
     <string name="lyrics_show_romanization_summary">إظهار كلمات الأغاني المكتوبة بخطوط أخرى بالحروف اللاتينية أيضًا</string>
     <string name="lyrics_auto_romanize">تحويل النص إلى الحروف اللاتينية على هذا الجهاز</string>
