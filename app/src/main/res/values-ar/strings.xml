@@ -5055,4 +5055,5 @@
     <string name="buffer_cache_size_link">حجم التخزين المؤقت</string>
     <string name="buffer_cache_size_link_summary">حجم مساحة التخزين التي يشغلها الفيديو والموسيقى المحفوظان في Flow</string>
     <string name="settings_crossfade_title">التلاشي المتداخل</string>
+    <string name="settings_crossfade_summary">امزج نهاية الأغنية ببداية الأغنية التالية</string>
 </resources>
