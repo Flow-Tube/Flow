@@ -14,6 +14,7 @@ import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +28,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import io.github.aedev.flow.ui.components.layout.rememberFlowPaneScaffoldDirective
+import io.github.aedev.flow.ui.components.settings.LocalNewSettings
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
@@ -110,52 +112,54 @@ fun SettingsHost(
         if (!selectedRowFocus.requestFocus()) listFocus.requestFocus()
     }
 
-    NavigableListDetailPaneScaffold(
-        navigator = navigator,
-        listPane = {
-            AnimatedPane(modifier = Modifier.focusRequester(listFocus).dpadFocusGroup()) {
-                SettingsHomeScreen(
-                    selected = if (twoPane) current.destination.root else null,
-                    onOpen = ::open,
-                    onOpenDonations = onOpenDonations,
-                    onOpenUpdate = onOpenUpdate,
-                    onBack = onExit,
-                    selectedRowFocus = selectedRowFocus,
-                )
-            }
-        },
-        detailPane = {
-            AnimatedPane(
-                modifier =
-                    if (dpad) {
-                        Modifier
-                            .onFocusChanged { pageHasFocus = it.hasFocus }
-                            .focusRequester(pageFocus)
-                            .dpadFocusGroup()
-                    } else {
-                        Modifier
-                    },
-            ) {
-                val spec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
-                AnimatedContent(
-                    targetState = current,
-                    transitionSpec = { fadeIn(spec) togetherWith fadeOut(spec) },
-                    contentKey = { it.destination },
-                    label = "settingsDetail",
-                ) { target ->
-                    Box(modifier = dpadFocusOnEnter()) {
-                        SettingsDetail(
-                            target = target,
-                            onBack = if (twoPane && stack.size <= 1) null else ::back,
-                            onNavigate = ::push,
-                            onOpenRecap = onOpenRecap,
-                            options = options,
-                        )
+    CompositionLocalProvider(LocalNewSettings provides rememberNewSettings()) {
+        NavigableListDetailPaneScaffold(
+            navigator = navigator,
+            listPane = {
+                AnimatedPane(modifier = Modifier.focusRequester(listFocus).dpadFocusGroup()) {
+                    SettingsHomeScreen(
+                        selected = if (twoPane) current.destination.root else null,
+                        onOpen = ::open,
+                        onOpenDonations = onOpenDonations,
+                        onOpenUpdate = onOpenUpdate,
+                        onBack = onExit,
+                        selectedRowFocus = selectedRowFocus,
+                    )
+                }
+            },
+            detailPane = {
+                AnimatedPane(
+                    modifier =
+                        if (dpad) {
+                            Modifier
+                                .onFocusChanged { pageHasFocus = it.hasFocus }
+                                .focusRequester(pageFocus)
+                                .dpadFocusGroup()
+                        } else {
+                            Modifier
+                        },
+                ) {
+                    val spec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+                    AnimatedContent(
+                        targetState = current,
+                        transitionSpec = { fadeIn(spec) togetherWith fadeOut(spec) },
+                        contentKey = { it.destination },
+                        label = "settingsDetail",
+                    ) { target ->
+                        Box(modifier = dpadFocusOnEnter()) {
+                            SettingsDetail(
+                                target = target,
+                                onBack = if (twoPane && stack.size <= 1) null else ::back,
+                                onNavigate = ::push,
+                                onOpenRecap = onOpenRecap,
+                                options = options,
+                            )
+                        }
                     }
                 }
-            }
-        },
-    )
+            },
+        )
+    }
 
     BackHandler(enabled = stack.size > 1) { stack = stack.dropLast(1) }
 }

@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.settings.LocalNewSettings
 import io.github.aedev.flow.ui.components.settings.SettingEntry
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
@@ -82,6 +83,7 @@ internal fun SettingsListScope.searchResults(
                     supportingText = result.breadcrumb,
                     onClick = { onResultClick(result.entry) },
                     shape = shape,
+                    titleBadge = result.entry.key in LocalNewSettings.current,
                 )
             }
         }
