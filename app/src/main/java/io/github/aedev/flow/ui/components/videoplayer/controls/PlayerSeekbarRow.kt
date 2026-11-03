@@ -75,6 +75,7 @@ internal fun PlayerSeekbarRow(
     modifier: Modifier = Modifier,
     seekbarZIndex: Float = 0f,
     isScrubbing: Boolean = false,
+    interactive: Boolean = true,
 ) {
     if (isLive && duration <= 0L) {
         Box(
@@ -127,6 +128,7 @@ internal fun PlayerSeekbarRow(
             onScrubProgress = onScrubProgress,
             onScrubFinished = onScrubFinished,
             onTrackWidth = { trackWidthPx = it },
+            interactive = interactive,
         )
     }
 }
@@ -234,6 +236,7 @@ private fun SeekBar(
     onScrubProgress: (progress: Float, duration: Long) -> Unit,
     onScrubFinished: () -> Unit,
     onTrackWidth: (Int) -> Unit,
+    interactive: Boolean,
 ) {
     MediaSeekBar(
         value = {
@@ -245,6 +248,7 @@ private fun SeekBar(
         },
         onValueChange = { progress -> onScrubProgress(progress, seekDuration) },
         onValueChangeFinished = onScrubFinished,
+        enabled = interactive,
         chapters = content.chapters,
         sponsorSegments = content.sponsorSegments,
         sponsorColors = content.sponsorColors,

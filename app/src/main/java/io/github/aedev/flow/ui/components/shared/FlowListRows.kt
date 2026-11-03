@@ -117,6 +117,7 @@ fun FlowNavRow(
     destructive: Boolean = false,
     stateDescription: String? = null,
     supportingContent: (@Composable () -> Unit)? = null,
+    titleBadge: Boolean = false,
 ) {
     val trailing: (@Composable () -> Unit)? =
         if (trailingContent != null) {
@@ -160,7 +161,7 @@ fun FlowNavRow(
         colors = rowColors(shape = shape, showSelectedContainer = true, destructive = destructive),
         contentPadding = rowPadding(shape, NavRowVerticalPadding),
     ) {
-        Text(text = title)
+        FlowBadgedTitle(title = title, badge = titleBadge)
     }
 }
 
@@ -181,6 +182,7 @@ fun FlowSwitchRow(
     leadingPainter: Painter? = null,
     enabled: Boolean = true,
     shape: Shape = RectangleShape,
+    titleBadge: Boolean = false,
 ) {
     SegmentedListItem(
         verticalAlignment = Alignment.CenterVertically,
@@ -206,7 +208,7 @@ fun FlowSwitchRow(
         colors = rowColors(shape = shape, showSelectedContainer = false),
         contentPadding = rowPadding(shape, SwitchRowVerticalPadding),
     ) {
-        Text(text = title)
+        FlowBadgedTitle(title = title, badge = titleBadge)
     }
 }
 

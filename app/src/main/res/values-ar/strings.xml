@@ -3219,7 +3219,7 @@
     <string name="music_player_lyrics_full_screen">كلمات الأغنية بملء الشاشة</string>
     <string name="lyrics_play_from_line">التشغيل من هذا السطر</string>
     <string name="lyrics_show_translation">الترجمة</string>
-    <string name="lyrics_show_translation_summary">إظهار السطر المترجم أسفل كل سطر من كلمات الأغنية</string>
+    <string name="lyrics_show_translation_summary">إظهار ترجمة عندما تتضمن كلمات الأغنية واحدة</string>
     <string name="lyrics_show_romanization">الكتابة بالحروف اللاتينية</string>
     <string name="lyrics_show_romanization_summary">إظهار كلمات الأغاني المكتوبة بخطوط أخرى بالحروف اللاتينية أيضًا</string>
     <string name="lyrics_auto_romanize">تحويل النص إلى الحروف اللاتينية على هذا الجهاز</string>
@@ -4683,7 +4683,7 @@
     <string name="notifications_already_in_watch_later">موجود بالفعل في قائمة المشاهدة لاحقًا</string>
     <string name="notifications_save_to_watch_later">حفظ في قائمة المشاهدة لاحقًا</string>
     <string name="player_settings_normalize_volume">توحيد مستوى الصوت</string>
-    <string name="player_settings_normalize_volume_summary">خفض صوت الفيديوهات المرتفعة إلى مستوى صوت YouTube</string>
+    <string name="player_settings_normalize_volume_summary">خفّض صوت الفيديوهات العالية إلى مستوى موحّد، مثل youtube.com</string>
     <string name="settings_music_resume_title">استئناف تشغيل البودكاست والمقاطع الصوتية الطويلة</string>
     <string name="settings_music_side_swipes_title">التحكم في السرعة و مستوى الصوت بالسحب</string>
     <string name="settings_music_side_swipes_summary">اسحب على الجانب الأيسر للتحكم في السرعة، وعلى الجانب الأيمن للتحكم في مستوى الصوت</string>
@@ -5039,4 +5039,29 @@
     <string name="linked_profile_limit">يحتوي هذا الجهاز بالفعل على %1$d من ملفات التعريف.</string>
     <string name="linked_profile_switch_body">يمكن لملف التعريف المستخدم حاليًا فقط بدء المزامنة، لذا سيُعاد تشغيل Flow باستخدامه أولًا. بعد ذلك، فعّل المزامنة من داخله.</string>
     <string name="linked_profile_switch">التبديل للمزامنة</string>
+    <string name="lyrics_no_translation">لا تتوفر ترجمة لهذه الكلمات</string>
+    <string name="player_appearance_idle_progress_title">شريط التقدم مع عناصر تحكم مخفية</string>
+    <string name="player_appearance_idle_progress_subtitle">موضع الشريط الرفيع في الوضع الرأسي</string>
+    <string name="player_appearance_idle_progress_on_video">على الفيديو</string>
+    <string name="player_appearance_idle_progress_below">اسفل</string>
+    <string name="player_appearance_idle_progress_off">معطل</string>
+    <string name="pip_listen_in_background">الاستماع في الخلفية</string>
+    <string name="autoplay_countdown_mini_label">التالي خلال %1$d</string>
+    <string name="cache_size_custom">مخصص…</string>
+    <string name="cache_size_custom_field">الحجم</string>
+    <string name="cache_size_custom_range">من 50 ميجابايت إلى 50 جيجابايت</string>
+    <string name="cache_size_mb_value">%1$s ميجابايت</string>
+    <string name="cache_size_gb_value">%1$s جيجابايت</string>
+    <string name="buffer_cache_size_link">حجم التخزين المؤقت</string>
+    <string name="buffer_cache_size_link_summary">حجم مساحة التخزين التي يشغلها الفيديو والموسيقى المحفوظان في Flow</string>
+    <string name="settings_crossfade_title">التلاشي المتداخل</string>
+    <string name="settings_crossfade_summary">امزج نهاية الأغنية ببداية الأغنية التالية</string>
+    <string name="settings_crossfade_albums_title">إبقاء الألبومات بدون فجوات</string>
+    <string name="settings_crossfade_albums_summary">عدم تطبيق التلاشي المتداخل بين مقطوعات الألبوم نفسه</string>
+    <string name="settings_keywords_crossfade">تلاشي، انتقال، مزج، دون فواصل، خلط</string>
+    <string name="settings_keywords_cache">حجم و حدود التخزين المؤقت، التخزين المؤقت للوسائط، التخزين، مساحة القرص</string>
+    <string name="auto_group_music_playlists">قوائم تشغيل الموسيقى</string>
+    <string name="auto_group_video_playlists">قوائم تشغيل الفيديو</string>
+    <string name="sb_action_skip_automatically">تخطي تلقائي</string>
+    <string name="sb_action_skip_once">التخطي تلقائيًا مرة واحدة</string>
 </resources>

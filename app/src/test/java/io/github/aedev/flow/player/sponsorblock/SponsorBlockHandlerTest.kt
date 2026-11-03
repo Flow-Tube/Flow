@@ -174,4 +174,57 @@ class SponsorBlockHandlerTest {
             handler.loadSegmentsFromList("next", emptyList())
             assertThat(events).containsExactly(true, false, true, false, true, false).inOrder()
         }
+
+    @Test
+    fun `skip once skips the first time only, also after the same video is prepared again`() {
+        val sponsor = segment("sponsor", 10f, 20f)
+        val handler = handlerWith(sponsor, mapOf("sponsor" to SponsorBlockAction.SKIP_ONCE))
+
+        assertThat(handler.checkForSkip(15_000L)).isEqualTo(20_000L)
+        assertThat(handler.skippedOnce.value).containsExactly(sponsor.uuid)
+
+        handler.checkForSkip(2_000L)
+        assertThat(handler.checkForSkip(15_000L)).isNull()
+
+        handler.reset()
+        handler.loadSegmentsFromList("video", listOf(sponsor))
+        assertThat(handler.checkForSkip(15_000L)).isNull()
+
+        handler.reset()
+        handler.loadSegmentsFromList("next", listOf(sponsor))
+        assertThat(handler.skippedOnce.value).isEmpty()
+        assertThat(handler.checkForSkip(15_000L)).isEqualTo(20_000L)
+    }
+
+    @Test
+    fun `skip button, seek bar only and disabled never skip`() {
+        val sponsor = segment("sponsor", 10f, 20f)
+        listOf(SponsorBlockAction.SKIP_BUTTON, SponsorBlockAction.IGNORE, SponsorBlockAction.DISABLED).forEach { action ->
+            assertThat(handlerWith(sponsor, mapOf("sponsor" to action)).checkForSkip(15_000L)).isNull()
+        }
+    }
+
+    @Test
+    fun `a segment submitted as a mute is muted where its category would skip`() =
+        runTest {
+            val events = mutableListOf<Boolean>()
+            val handler = handlerWith(segment("sponsor", 10f, 20f, actionType = "mute"))
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { handler.muteEvent.toList(events) }
+
+            assertThat(handler.checkForSkip(12_000L)).isNull()
+            assertThat(events).containsExactly(true)
+        }
+
+    @Test
+    fun `disabled categories are left off the seek bar`() =
+        runTest {
+            val handler = handlerWith(segment("filler", 10f, 20f), mapOf("filler" to SponsorBlockAction.DISABLED))
+            val visible = mutableListOf<List<SponsorBlockSegment>>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { handler.visibleSegments.toList(visible) }
+
+            assertThat(visible.last()).isEmpty()
+
+            handler.categoryActions = mapOf("filler" to SponsorBlockAction.IGNORE)
+            assertThat(visible.last()).hasSize(1)
+        }
 }

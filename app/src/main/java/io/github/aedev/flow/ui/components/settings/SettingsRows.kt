@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.aedev.flow.ui.components.shared.FlowBadgedTitle
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSelectionRow
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
@@ -50,6 +51,7 @@ fun SettingsGroupScope.switch(
         leadingIcon = icon,
         leadingPainter = iconRes?.let { painterResource(it) },
         shape = shape,
+        titleBadge = entry.isNew(),
     )
 }
 
@@ -75,6 +77,7 @@ fun SettingsGroupScope.switch(
         leadingIcon = icon,
         leadingPainter = iconRes?.let { painterResource(it) },
         shape = shape,
+        titleBadge = entry.isNew(),
     )
 }
 
@@ -97,6 +100,7 @@ fun SettingsGroupScope.choice(
         showChevron = false,
         leadingIcon = icon,
         shape = shape,
+        titleBadge = entry.isNew(),
     )
 }
 
@@ -128,6 +132,7 @@ fun SettingsGroupScope.nav(
         leadingIcon = icon,
         leadingPainter = iconRes?.let { painterResource(it) },
         shape = shape,
+        titleBadge = entry.isNew(),
     )
 }
 
@@ -136,7 +141,7 @@ fun SettingsGroupScope.info(
     entry: SettingEntry,
     value: String?,
     icon: ImageVector? = null,
-) = entryRow(entry) { shape -> InfoRow(stringResource(entry.title), value ?: entry.summaryText(), icon, shape) }
+) = entryRow(entry) { shape -> InfoRow(stringResource(entry.title), value ?: entry.summaryText(), icon, shape, badge = entry.isNew()) }
 
 /** [info] for a status that is not a setting, so it stays out of settings search. */
 fun SettingsGroupScope.info(
@@ -153,6 +158,7 @@ private fun InfoRow(
     value: String?,
     icon: ImageVector?,
     shape: Shape,
+    badge: Boolean = false,
 ) {
     // A remote scrolls a page only by moving focus, so on one these rows take focus despite doing nothing.
     val focusModifier =
@@ -172,7 +178,7 @@ private fun InfoRow(
         leadingContent = icon?.let { { Icon(imageVector = it, contentDescription = null) } },
         supportingContent = value?.let { { Text(it) } },
     ) {
-        Text(title)
+        FlowBadgedTitle(title = title, badge = badge)
     }
 }
 
@@ -214,6 +220,7 @@ fun <T> SettingsGroupScope.toggleGroup(
         enabled = enabled,
         shape = shape,
         preview = preview,
+        titleBadge = entry.isNew(),
     )
 }
 
@@ -234,6 +241,7 @@ fun <T> SettingsGroupScope.toggleGroup(
         onSelected = onSelected,
         enabled = enabled,
         shape = shape,
+        titleBadge = entry.isNew(),
     )
 }
 
@@ -261,6 +269,7 @@ fun SettingsGroupScope.slider(
         valueLabel = valueLabel,
         enabled = enabled,
         shape = shape,
+        titleBadge = entry.isNew(),
     )
 }
 
@@ -277,3 +286,7 @@ fun SettingsListScope.notice(
 
 @Composable
 private fun SettingEntry.summaryText(): String? = summary?.let { stringResource(it) }
+
+/** Whether this option, or a page under it, is marked as new; see [LocalNewSettings]. */
+@Composable
+internal fun SettingEntry.isNew(): Boolean = key in LocalNewSettings.current

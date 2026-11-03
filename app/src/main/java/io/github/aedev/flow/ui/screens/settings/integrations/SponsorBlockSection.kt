@@ -5,15 +5,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +28,8 @@ import io.github.aedev.flow.data.local.SponsorBlockAction
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
 import io.github.aedev.flow.ui.components.settings.switch
+import io.github.aedev.flow.ui.components.shared.FlowChoice
+import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.screens.settings.index.IntegrationsIndex
 import io.github.aedev.flow.ui.theme.defaultSponsorBlockColor
@@ -85,7 +84,7 @@ internal fun SettingsListScope.sponsorBlockSection(
 
 /**
  * One segment category: its colour on the seek bar (tap to change) and what the player does when it
- * reaches one (tap the row or the action to choose).
+ * reaches one (tap the row to choose).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -118,32 +117,37 @@ private fun SegmentRow(
                 )
             }
         },
-        trailingContent = {
-            Box {
-                TextButton(onClick = { menuOpen = true }) { Text(sponsorActionLabel(action)) }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    SponsorBlockAction.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(sponsorActionLabel(option)) },
-                            onClick = {
-                                onActionSelected(option)
-                                menuOpen = false
-                            },
-                        )
-                    }
-                }
-            }
-        },
+        supportingContent = { Text(sponsorActionLabel(action)) },
     ) {
         Text(label)
+    }
+    if (menuOpen) {
+        FlowChoiceDialog(
+            title = label,
+            options = SponsorBlockAction.entries.map { FlowChoice(it, sponsorActionLabel(it), sponsorActionDetail(it)) },
+            selected = action,
+            onSelect = onActionSelected,
+            onDismiss = { menuOpen = false },
+        )
     }
 }
 
 @Composable
 internal fun sponsorActionLabel(action: SponsorBlockAction): String =
     when (action) {
-        SponsorBlockAction.SKIP -> stringResource(R.string.sb_action_skip)
+        SponsorBlockAction.SKIP -> stringResource(R.string.sb_action_skip_automatically)
+        SponsorBlockAction.SKIP_ONCE -> stringResource(R.string.sb_action_skip_once)
+        SponsorBlockAction.SKIP_BUTTON -> stringResource(R.string.sb_action_skip_button)
+        SponsorBlockAction.SHOW_TOAST -> stringResource(R.string.sb_action_notify)
         SponsorBlockAction.MUTE -> stringResource(R.string.sb_action_mute)
-        SponsorBlockAction.SHOW_TOAST -> stringResource(R.string.sb_action_show_toast)
-        SponsorBlockAction.IGNORE -> stringResource(R.string.sb_action_ignore)
+        SponsorBlockAction.IGNORE -> stringResource(R.string.sb_action_seek_bar_only)
+        SponsorBlockAction.DISABLED -> stringResource(R.string.sb_action_disable)
+    }
+
+@Composable
+private fun sponsorActionDetail(action: SponsorBlockAction): String? =
+    when (action) {
+        SponsorBlockAction.SKIP_ONCE -> stringResource(R.string.sb_action_skip_once_detail)
+        SponsorBlockAction.SHOW_TOAST, SponsorBlockAction.MUTE -> stringResource(R.string.sb_action_with_button_detail)
+        else -> null
     }

@@ -57,60 +57,64 @@ internal suspend fun Session.bootstrap(links: Set<String?>?): Start? {
     val first = logs.mapValues { (_, seqs) -> seqs.min() }
     if (first.values.all { it == 1L }) return null
 
-    val best = HashMap<String?, Found>()
+    val candidates = HashMap<String?, MutableList<Found>>()
     for ((did, seqs) in logs) {
-        for (found in newestManifests(did, seqs.sorted(), links)) {
-            val link = found.manifest.link
-            if (found.manifest.covers(first) && best[link].let { it == null || it.manifest.merged() < found.manifest.merged() }) {
-                best[link] = found
-            }
+        for (found in manifests(did, seqs.sorted(), links)) {
+            if (found.manifest.covers(first)) candidates.getOrPut(found.manifest.link) { ArrayList() } += found
+        }
+    }
+    val best = HashMap<String?, Found>()
+    val starts = ArrayList<Map<String, StreamPosition>>()
+    val batches = HashMap<String, MutableList<IncomingBatch>>()
+    for ((link, found) in candidates) {
+        // The newest snapshot of the link this device can open (spec/protocol.md, Reading a link from its snapshot).
+        for (candidate in found.sortedByDescending { it.manifest.merged() }) {
+            val (at, read) =
+                try {
+                    positions(candidate.manifest) to snapshotBatches(candidate.did, candidate.epoch, candidate.manifest)
+                } catch (_: ProtocolException) {
+                    continue
+                }
+            best[link] = candidate
+            starts += at
+            batches.getOrPut(candidate.did) { ArrayList() } += read
+            break
         }
     }
     if (best.isEmpty()) return null
     val positions =
-        best.values
-            .map { found ->
-                found.manifest.vv.filterKeys { it != me }.mapValues { (_, tip) ->
-                    val hash =
-                        runCatching { SyncBytes.fromHex(tip.hash) }.getOrNull()?.takeIf { it.size == 32 } ?: reject(ProtocolError.PREV)
-                    StreamPosition(tip.seq, hash)
-                }
-            }.reduce { lowest, next ->
-                // A log one snapshot leaves out is read from its first object.
-                lowest.filterKeys { it in next }.mapValues { (did, at) -> minOf(at, next.getValue(did), compareBy { it.seq }) }
-            }
+        starts.reduce { lowest, next ->
+            // A log one snapshot leaves out is read from its first object.
+            lowest.filterKeys { it in next }.mapValues { (did, at) -> minOf(at, next.getValue(did), compareBy { it.seq }) }
+        }
     val floors = best.flatMap { (link, found) -> found.manifest.vv.map { (did, tip) -> (link to did) to tip.seq } }.toMap()
-    val batches = HashMap<String, MutableList<IncomingBatch>>()
-    for (found in best.values) batches.getOrPut(found.did) { ArrayList() } += snapshotBatches(found.did, found.epoch, found.manifest)
     return Start(batches, positions, floors)
 }
 
-/** The newest snapshot manifest of each of [links] (every link when null) in [did]'s log, searched from its last object back. */
-private suspend fun Session.newestManifests(
+/** Where each other log goes on after [manifest]'s snapshot, chained to the hash it names. */
+private fun Session.positions(manifest: Manifest): Map<String, StreamPosition> =
+    manifest.vv.filterKeys { it != me }.mapValues { (_, tip) ->
+        val hash = runCatching { SyncBytes.fromHex(tip.hash) }.getOrNull()?.takeIf { it.size == 32 } ?: reject(ProtocolError.PREV)
+        StreamPosition(tip.seq, hash)
+    }
+
+/** Every snapshot manifest of [links] (every link when null) in [did]'s log. */
+private suspend fun Session.manifests(
     did: String,
     seqs: List<Long>,
     links: Set<String?>?,
-): List<Found> {
-    val found = HashMap<String?, Found>()
-    for (seq in seqs.asReversed()) {
-        if (links != null && found.keys.containsAll(links)) break
-        val bytes = store.getObject(StorePaths.log(did, seq)) ?: continue
-        val (epoch, manifest) =
-            try {
-                val parsed = verified(bytes, did, seq)
-                if (parsed.header.type != ObjectType.SNAPSHOT) continue
-                parsed.header.epoch to (openContent(parsed) as Content.Snapshot).manifest
-            } catch (_: ProtocolException) {
-                continue
-            }
-        if ((links == null || manifest.link in links) &&
-            manifest.link !in found
-        ) {
-            found[manifest.link] = Found(did, epoch, manifest)
+): List<Found> =
+    seqs.mapNotNull { seq ->
+        val bytes = store.getObject(StorePaths.log(did, seq)) ?: return@mapNotNull null
+        try {
+            val parsed = verified(bytes, did, seq)
+            if (parsed.header.type != ObjectType.SNAPSHOT) return@mapNotNull null
+            val manifest = (openContent(parsed) as Content.Snapshot).manifest
+            Found(did, parsed.header.epoch, manifest).takeIf { links == null || manifest.link in links }
+        } catch (_: ProtocolException) {
+            null
         }
     }
-    return found.values.toList()
-}
 
 internal suspend fun Session.snapshotBatches(
     writer: String,

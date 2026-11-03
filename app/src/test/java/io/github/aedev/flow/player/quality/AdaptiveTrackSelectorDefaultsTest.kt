@@ -17,7 +17,7 @@ class AdaptiveTrackSelectorDefaultsTest {
             .setForceHighestSupportedBitrate(true)
 
     @Test
-    fun `defaults keep the heap cap`() {
+    fun `defaults keep the low-RAM cap`() {
         val params = adaptiveTrackSelectorDefaults(manualLivePick(), VideoSizeCap(1920, 1080)).build()
 
         assertThat(params.maxVideoWidth).isEqualTo(1920)
@@ -25,7 +25,7 @@ class AdaptiveTrackSelectorDefaultsTest {
     }
 
     @Test
-    fun `defaults keep the 4K cap on a large heap`() {
+    fun `defaults keep the 4K cap on other devices`() {
         val params = adaptiveTrackSelectorDefaults(manualLivePick(), VideoSizeCap.UHD).build()
 
         assertThat(params.maxVideoWidth).isEqualTo(3840)
@@ -50,10 +50,8 @@ class AdaptiveTrackSelectorDefaultsTest {
     }
 
     @Test
-    fun `the heap cap tightens on smaller heaps`() {
-        assertThat(VideoSizeCap.forHeap(memoryClassMb = 192, isLowRamDevice = false)).isEqualTo(VideoSizeCap(1920, 1080))
-        assertThat(VideoSizeCap.forHeap(memoryClassMb = 512, isLowRamDevice = true)).isEqualTo(VideoSizeCap(1920, 1080))
-        assertThat(VideoSizeCap.forHeap(memoryClassMb = 384, isLowRamDevice = false)).isEqualTo(VideoSizeCap(2560, 1440))
-        assertThat(VideoSizeCap.forHeap(memoryClassMb = 512, isLowRamDevice = false)).isEqualTo(VideoSizeCap.UHD)
+    fun `only a low-RAM device is held at 1080p`() {
+        assertThat(VideoSizeCap.forRam(isLowRamDevice = true)).isEqualTo(VideoSizeCap(1920, 1080))
+        assertThat(VideoSizeCap.forRam(isLowRamDevice = false)).isEqualTo(VideoSizeCap.UHD)
     }
 }

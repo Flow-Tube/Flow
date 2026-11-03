@@ -269,7 +269,7 @@ private fun ActionToggle(
     }
 }
 
-/** An action that happens once and holds no state. */
+/** An action that happens once and holds no state, resting on the same colour as an unchecked toggle. */
 @Composable
 private fun ActionButton(
     icon: ImageVector,
@@ -284,6 +284,11 @@ private fun ActionButton(
             onClick()
         },
         shapes = ButtonDefaults.shapes(),
+        colors =
+            ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
         contentPadding = ActionContentPadding,
     ) {
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(ActionIconSize))
@@ -292,17 +297,10 @@ private fun ActionButton(
     }
 }
 
-/** Unchanged wrapper so the Shorts action column keeps its current chip look. */
-@Composable
-internal fun ActionChip(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) = ActionButton(icon = icon, label = label, onClick = onClick)
-
 /**
  * The tonal palette an action button carries, and the corner morph it runs on press and while
  * checked, taken from the theme rather than the expressive colour helpers so both flavours build.
+ * Only a checked toggle is tinted; every action at rest, toggle or one-tap, shares one container.
  */
 @Composable
 private fun actionToggleColors() =

@@ -107,10 +107,29 @@ internal object AppearanceIndex {
             destination = page,
         )
 
+    val highlightNewSettings =
+        SettingEntry(
+            key = "appearance.highlight_new_settings",
+            title = R.string.settings_highlight_new_title,
+            summary = R.string.settings_highlight_new_summary,
+            section = R.string.settings_section_style,
+            destination = page,
+        )
+    val highlightNewSettingsDays =
+        SettingEntry(
+            key = "appearance.highlight_new_settings_days",
+            title = R.string.settings_highlight_new_days_title,
+            section = R.string.settings_section_style,
+            destination = page,
+            revealVia = "appearance.highlight_new_settings",
+        )
+
     val all =
         listOf(
             appIcon,
             interfaceMode,
+            highlightNewSettings,
+            highlightNewSettingsDays,
             homeViewMode,
             homeColumns,
             musicArtworkSize,

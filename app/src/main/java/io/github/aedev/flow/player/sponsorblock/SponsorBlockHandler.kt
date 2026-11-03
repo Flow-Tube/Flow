@@ -11,16 +11,19 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
  * Handles SponsorBlock segment loading and skip logic.
  *
- * Per-category actions are controlled by [categoryActions] map.
- * Supported actions: SKIP (seek to end), MUTE (emit mute/unmute events), SHOW_TOAST (notify only), IGNORE.
+ * Per-category actions are controlled by [categoryActions] map; [SponsorBlockActionPolicy] says what
+ * each one does.
  */
 class SponsorBlockHandler(
     private val scope: CoroutineScope,
@@ -31,6 +34,7 @@ class SponsorBlockHandler(
         /** A skip only re-arms for a rewind this far before the segment, so a seek that lands slightly
          * short of the requested end (SABR rebuilds at a segment boundary) cannot loop the skip. */
         private const val SEEK_BACK_REARM_MARGIN_SEC = 1f
+        private const val VISIBLE_SEGMENTS_STOP_MS = 5_000L
     }
 
     private val sponsorBlockRepository = SponsorBlockRepository()
@@ -68,8 +72,27 @@ class SponsorBlockHandler(
     var isEnabled: Boolean = false
         private set
 
+    private val _categoryActions = MutableStateFlow<Map<String, SponsorBlockAction>>(emptyMap())
+
     /** Category id to action; a category missing here takes [SponsorBlockCategories.defaultAction]. */
-    var categoryActions: Map<String, SponsorBlockAction> = emptyMap()
+    var categoryActions: Map<String, SponsorBlockAction>
+        get() = _categoryActions.value
+        set(value) {
+            _categoryActions.value = value
+        }
+
+    /** The segments the seek bar and the skip button show: every category but the disabled ones. */
+    val visibleSegments: StateFlow<List<SponsorBlockSegment>> =
+        combine(_sponsorSegments, _categoryActions, SponsorBlockActionPolicy::visibleSegments)
+            .stateIn(scope, SharingStarted.WhileSubscribed(VISIBLE_SEGMENTS_STOP_MS), emptyList())
+
+    private val _skippedOnce = MutableStateFlow<Set<String>>(emptySet())
+
+    /** Kept by id like [disabledVideoId], so preparing the same video again does not skip a second time. */
+    private var skippedOnceVideoId: String? = null
+
+    /** Segments of the current video a "skip once" category has already skipped. */
+    val skippedOnce: StateFlow<Set<String>> = _skippedOnce.asStateFlow()
 
     /**
      * Set whether SponsorBlock is enabled.
@@ -198,6 +221,10 @@ class SponsorBlockHandler(
 
     private fun startVideo(videoId: String) {
         releaseMute()
+        if (videoId != skippedOnceVideoId) {
+            skippedOnceVideoId = videoId
+            _skippedOnce.value = emptySet()
+        }
         currentVideoId = videoId
         if (videoId != disabledVideoId) disabledVideoId = null
         _disabledForCurrentVideo.value = videoId == disabledVideoId
@@ -245,32 +272,30 @@ class SponsorBlockHandler(
         }
 
         if (segment != null && segment.uuid != lastSkippedSegmentUuid) {
-            val action = categoryActions[segment.category] ?: SponsorBlockCategories.defaultAction(segment.category)
+            val action = SponsorBlockActionPolicy.actionFor(segment, categoryActions)
             Log.d(TAG, "Segment hit: ${segment.category} action=$action")
 
-            return when (action) {
-                SponsorBlockAction.SKIP -> {
-                    lastSkippedSegmentUuid = segment.uuid
-                    _skipEvent.tryEmit(segment)
-                    (segment.endTime * 1000).toLong()
-                }
-
+            if (SponsorBlockActionPolicy.skipsAutomatically(action, segment.uuid in _skippedOnce.value)) {
+                lastSkippedSegmentUuid = segment.uuid
+                if (action == SponsorBlockAction.SKIP_ONCE) _skippedOnce.value += segment.uuid
+                _skipEvent.tryEmit(segment)
+                return (segment.endTime * 1000).toLong()
+            }
+            when (action) {
                 SponsorBlockAction.MUTE -> {
                     if (currentMutedSegmentUuid != segment.uuid) {
                         currentMutedSegmentUuid = segment.uuid
                         _muteEvent.tryEmit(true)
                     }
-                    null
                 }
 
                 SponsorBlockAction.SHOW_TOAST -> {
                     lastSkippedSegmentUuid = segment.uuid
                     _toastEvent.tryEmit(segment)
-                    null
                 }
 
-                SponsorBlockAction.IGNORE -> {
-                    null
+                else -> {
+                    Unit
                 }
             }
         }

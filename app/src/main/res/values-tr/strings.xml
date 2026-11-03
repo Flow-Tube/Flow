@@ -4542,4 +4542,11 @@
     <string name="linked_profile_limit">Bu cihazda zaten %1$d profil var.</string>
     <string name="linked_profile_switch_body">Yalnızca kullanımda olan profil eşitlemeyi başlatabilir, bu nedenle Flow önce bu profilde yeniden başlar. Ardından eşitlemeyi oradan açın.</string>
     <string name="linked_profile_switch">Eşitlemek için geçiş yap</string>
+    <string name="lyrics_no_translation">Şarkı sözlerinin çevirisi mevcut değil</string>
+    <string name="player_appearance_idle_progress_title">Gizli Kontrollü İlerleme Çubuğu</string>
+    <string name="player_appearance_idle_progress_subtitle">İnce çubuğun dikey moddaki konumu</string>
+    <string name="player_appearance_idle_progress_on_video">Video üzerinde</string>
+    <string name="player_appearance_idle_progress_below">Altta</string>
+    <string name="player_appearance_idle_progress_off">Kapalı</string>
+    <string name="pip_listen_in_background">Arka planda dinle</string>
 </resources>

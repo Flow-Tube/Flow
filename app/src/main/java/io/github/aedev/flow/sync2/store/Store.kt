@@ -53,6 +53,29 @@ internal fun epochOf(
     chain: List<Entry>,
 ): Int = entry.epoch?.n ?: chain.fold(null as RosterState?) { state, e -> applyEntry(state, e) }?.epoch ?: 0
 
+/**
+ * The wraps and chain boxes a store holds for [me] along [chain]: a chain box for every epoch after
+ * genesis, and [me]'s wrap only for the epochs since it joined.
+ */
+internal fun keyNames(
+    chain: List<Entry>,
+    me: String,
+): List<Pair<Int, String>> {
+    var epoch = 0
+    val names = ArrayList<Pair<Int, String>>()
+    for (entry in chain) {
+        val started = entry.epoch
+        if (started != null) {
+            epoch = started.n
+            if (epoch > 0) names += epoch to "chain"
+            if (me in started.to) names += epoch to me
+        } else if (entry.add.orEmpty().any { it.did == me }) {
+            names += epoch to me
+        }
+    }
+    return names
+}
+
 /** A wrap or chain box as an append carries it, in base64url. */
 internal fun wrapBytes(b64: String): ByteArray =
     runCatching { SyncBytes.b64urlDecode(b64) }.getOrNull() ?: reject(ProtocolError.ROSTER_FORMAT)

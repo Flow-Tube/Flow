@@ -12,9 +12,12 @@ import io.github.aedev.flow.ui.components.settings.SettingEntry
 import io.github.aedev.flow.ui.components.settings.SettingsFootnote
 import io.github.aedev.flow.ui.components.settings.SettingsGroupScope
 import io.github.aedev.flow.ui.components.settings.SettingsPage
+import io.github.aedev.flow.ui.components.settings.SettingsTarget
+import io.github.aedev.flow.ui.components.settings.nav
 import io.github.aedev.flow.ui.components.settings.option
 import io.github.aedev.flow.ui.components.settings.slider
 import io.github.aedev.flow.ui.screens.settings.index.BufferIndex
+import io.github.aedev.flow.ui.screens.settings.index.DownloadsIndex
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -30,6 +33,7 @@ private val MaxBufferRange = 30_000..PlayerConfig.MAX_SAFE_MAIN_BUFFER_MS
 internal fun BufferSettingsScreen(
     onBack: (() -> Unit)?,
     highlight: String?,
+    onNavigate: (SettingsTarget) -> Unit,
     viewModel: BufferSettingsViewModel = hiltViewModel(),
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
@@ -72,6 +76,9 @@ internal fun BufferSettingsScreen(
         }
         if (profile == BufferProfile.CUSTOM) {
             item("buffer.custom.memory") { SettingsFootnote(stringResource(R.string.buffer_long_memory_note)) }
+        }
+        group(key = "buffer.cache") {
+            nav(BufferIndex.cacheSize, onClick = { onNavigate(DownloadsIndex.videoCache.target) })
         }
         item("buffer.restart") { SettingsFootnote(stringResource(R.string.cache_size_applies_on_restart)) }
     }

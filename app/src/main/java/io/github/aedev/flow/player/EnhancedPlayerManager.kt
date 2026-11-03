@@ -532,8 +532,9 @@ class EnhancedPlayerManager private constructor() {
     private val _seekEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val seekEvent: SharedFlow<Unit> = _seekEvent.asSharedFlow()
 
-    private val _queueAutoAdvanceEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val queueAutoAdvanceEvent: SharedFlow<Unit> = _queueAutoAdvanceEvent.asSharedFlow()
+    /** Emitted when the next video starts by itself, from a queue or from related autoplay, never on a tap. */
+    private val _autoAdvanceEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val autoAdvanceEvent: SharedFlow<Unit> = _autoAdvanceEvent.asSharedFlow()
 
     /** Emitted when a video plays to its end, before looping or autoplay replaces it. */
     private val _playbackCompletedEvent = MutableSharedFlow<PlaybackCompletion>(extraBufferCapacity = 4)
@@ -665,6 +666,7 @@ class EnhancedPlayerManager private constructor() {
                 onStreamExpired = { onStreamsDenied() },
                 onPlaybackAbandoned = { if (!skipAbandonedVideo()) scope.launch { _playbackAbandonedEvent.emit(Unit) } },
                 onDecoderGaveUp = { scope.launch { _decoderFailureEvent.emit(Unit) } },
+                rememberPlaybackForRecovery = { player?.let { captureClearedMediaRecovery(it, restoresOnForeground = false) } },
                 onGatedCodecFallback = { position -> qualityManager?.fallbackToAlternateCodec(position) ?: false },
                 getFailedStreamUrls = {
                     qualityManager?.let { qm ->
@@ -1916,11 +1918,11 @@ class EnhancedPlayerManager private constructor() {
                 return
             }
             autoNextLog("auto-advance queue playNext")
-            _queueAutoAdvanceEvent.tryEmit(Unit)
+            _autoAdvanceEvent.tryEmit(Unit)
             playNext(loadStreamsInPlayer = true)
         } else {
             autoNextLog("auto-advance related-autoplay")
-            playNextAutoplayCandidate()
+            if (playNextAutoplayCandidate()) _autoAdvanceEvent.tryEmit(Unit)
         }
     }
 
@@ -2390,7 +2392,7 @@ class EnhancedPlayerManager private constructor() {
                 liveDurationMs = 0L,
             )
         updateQueueState()
-        _queueAutoAdvanceEvent.tryEmit(Unit)
+        _autoAdvanceEvent.tryEmit(Unit)
 
         player?.let { p ->
             val idx = p.currentMediaItemIndex
@@ -2410,8 +2412,8 @@ class EnhancedPlayerManager private constructor() {
             restoreVideoOutput()
         }
         val p = player ?: return
+        if (reloadClearedMediaIfNeeded(playWhenReadyOverride = true)) return
         if (p.playbackState == Player.STATE_IDLE) {
-            if (reloadClearedMediaIfNeeded(playWhenReadyOverride = true)) return
             if (p.mediaItemCount > 0) {
                 Log.d(TAG, "play(): player IDLE with media — calling prepare()")
                 p.prepare()
@@ -2420,12 +2422,20 @@ class EnhancedPlayerManager private constructor() {
         p.play()
     }
 
-    fun recoverClearedMediaAfterForeground(): Boolean = reloadClearedMediaIfNeeded()
+    fun recoverClearedMediaAfterForeground(): Boolean = reloadClearedMediaIfNeeded(automatic = true)
 
-    private fun reloadClearedMediaIfNeeded(playWhenReadyOverride: Boolean? = null): Boolean {
+    /** Reloads an emptied player at its saved place, without extracting the video again. */
+    fun retryClearedMedia(): Boolean = reloadClearedMediaIfNeeded(playWhenReadyOverride = true)
+
+    private fun reloadClearedMediaIfNeeded(
+        playWhenReadyOverride: Boolean? = null,
+        automatic: Boolean = false,
+    ): Boolean {
         val p = player ?: return false
-        if (p.playbackState != Player.STATE_IDLE || p.mediaItemCount > 0) return false
+        // Empty is the signal, not IDLE: a prepare() on an emptied player moves it to ENDED.
+        if (p.mediaItemCount > 0) return false
         val recovery = clearedMediaRecoveryState.pendingFor(currentVideoId) ?: return false
+        if (automatic && !recovery.restoresOnForeground) return false
         val resumePosition = recovery.positionMs.takeIf { it > 0L }
         val shouldPlay = playWhenReadyOverride ?: recovery.playWhenReady
         Log.w(
@@ -2599,6 +2609,8 @@ class EnhancedPlayerManager private constructor() {
     }
 
     fun replay() {
+        // The countdown keeps running behind a replay otherwise and switches video mid-way through it.
+        if (autoplayCountdownController.stop()) releaseAdvanceWakeLock()
         player?.let { exoPlayer ->
             if (exoPlayer.currentMediaItem != null) {
                 exoPlayer.seekToDefaultPosition(exoPlayer.currentMediaItemIndex)
@@ -2787,7 +2799,7 @@ class EnhancedPlayerManager private constructor() {
         if (currentIsLiveStream) {
             switchLiveQuality(height)
         } else {
-            qualityManager?.switchQualityByHeight(height, player?.currentPosition ?: 0L)
+            qualityManager?.switchQualityByHeight(height, qualitySwitchPositionMs())
         }
 
     fun switchQuality(height: Int) = switchQualityByHeight(height)
@@ -2797,7 +2809,7 @@ class EnhancedPlayerManager private constructor() {
             return switchSabrQuality(option)
         }
         if (currentIsLiveStream) return switchLiveQuality(option.height)
-        return qualityManager?.switchQuality(option, player?.currentPosition ?: 0L)
+        return qualityManager?.switchQuality(option, qualitySwitchPositionMs())
     }
 
     private fun updateLiveQualityOptions(tracks: Tracks) {
@@ -2952,8 +2964,13 @@ class EnhancedPlayerManager private constructor() {
         }
     }
 
+    /** The segments the seek bar and the skip button show; disabled categories are left out. */
     val sponsorSegments: StateFlow<List<SponsorBlockSegment>>
-        get() = sponsorBlockHandler?.sponsorSegments ?: MutableStateFlow(emptyList())
+        get() = sponsorBlockHandler?.visibleSegments ?: MutableStateFlow(emptyList())
+
+    /** Segments a "skip once" category already skipped in this video; they show the skip button now. */
+    val sbSkippedOnce: StateFlow<Set<String>>
+        get() = sponsorBlockHandler?.skippedOnce ?: MutableStateFlow(emptySet())
 
     val sponsorBlockOffForVideo: StateFlow<Boolean>
         get() = sponsorBlockHandler?.disabledForCurrentVideo ?: MutableStateFlow(false)
@@ -3151,17 +3168,33 @@ class EnhancedPlayerManager private constructor() {
         if (shouldKeepPlaying) {
             switchToAudioOnly()
         } else {
-            if (p.mediaItemCount > 0) {
-                clearedMediaRecoveryState.capture(
-                    videoId = currentVideoId,
-                    positionMs = p.currentPosition,
-                    playWhenReady = p.playWhenReady,
-                    localFilePath = currentLocalFilePath,
-                )
-            }
+            captureClearedMediaRecovery(p)
             p.stop()
             p.clearMediaItems()
         }
+    }
+
+    private fun captureClearedMediaRecovery(
+        p: ExoPlayer,
+        restoresOnForeground: Boolean = true,
+    ) {
+        if (p.mediaItemCount == 0) return
+        clearedMediaRecoveryState.capture(
+            videoId = currentVideoId,
+            positionMs = p.currentPosition,
+            playWhenReady = p.playWhenReady,
+            localFilePath = currentLocalFilePath,
+            restoresOnForeground = restoresOnForeground,
+        )
+    }
+
+    private fun qualitySwitchPositionMs(): Long {
+        val p = player ?: return 0L
+        return clearedMediaRecoveryState.takeReloadPosition(
+            videoId = currentVideoId,
+            playerEmpty = p.mediaItemCount == 0,
+            currentPositionMs = p.currentPosition,
+        )
     }
 
     fun switchToAudioOnly() {
@@ -3488,9 +3521,11 @@ class EnhancedPlayerManager private constructor() {
     fun handleRefocusStuck(videoId: String?) {
         val p = player ?: return
         if (isRecoveringStreams(videoId) || hasAbandonedPlayback()) return
-        if (reloadClearedMediaIfNeeded()) {
+        if (reloadClearedMediaIfNeeded(automatic = true)) {
             return
         }
+        // Emptied by a decoder failure: the error screen's Retry owns the reload, not a resume.
+        if (p.mediaItemCount == 0 && clearedMediaRecoveryState.pendingFor(videoId) != null) return
         errorHandler?.handleRefocusStuck(p, videoId)
     }
 }

@@ -29,6 +29,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -252,6 +254,8 @@ class PlayerPreferences(
         val ANIMATED_ARTWORK = booleanPreferencesKey("animated_artwork")
         val MUSIC_REPEAT_MODE = intPreferencesKey("music_repeat_mode")
         val MUSIC_RESUME_LONG_TRACKS = booleanPreferencesKey("music_resume_long_tracks")
+        val MUSIC_CROSSFADE_SECONDS = intPreferencesKey("music_crossfade_seconds")
+        val MUSIC_CROSSFADE_KEEP_ALBUMS = booleanPreferencesKey("music_crossfade_keep_albums")
         val RECAP_SOURCE = stringPreferencesKey("recap_source")
         val HIDDEN_MUSIC_HOME_SHELVES = stringSetPreferencesKey("hidden_music_home_shelves")
         val HIDDEN_LIBRARY_SECTIONS = stringSetPreferencesKey("hidden_library_sections")
@@ -449,6 +453,7 @@ class PlayerPreferences(
         // Fullscreen Player
         val PORTRAIT_SEEKBAR_PADDING_MODE = device(stringPreferencesKey("portrait_seekbar_padding_mode"))
         val PORTRAIT_SEEKBAR_CUSTOM_PADDING_DP = device(intPreferencesKey("portrait_seekbar_custom_padding_dp"))
+        val PORTRAIT_IDLE_PROGRESS_BAR = device(stringPreferencesKey("portrait_idle_progress_bar"))
         val FULLSCREEN_SEEKBAR_PADDING_MODE = device(stringPreferencesKey("fullscreen_seekbar_padding_mode"))
         val FULLSCREEN_SEEKBAR_CUSTOM_PADDING_DP = device(intPreferencesKey("fullscreen_seekbar_custom_padding_dp"))
         val FRAME_STEP_BUTTONS_ENABLED = device(booleanPreferencesKey("frame_step_buttons_enabled"))
@@ -497,6 +502,11 @@ class PlayerPreferences(
         // Volume boost: opt-in, default off
         val ALLOW_VOLUME_BOOST = device(booleanPreferencesKey("allow_volume_boost"))
 
+        // New settings (#1676): when each settings key was first seen, and how long it stays marked
+        val SETTINGS_FIRST_SEEN = device(stringPreferencesKey("settings_first_seen"))
+        val NEW_SETTINGS_HIGHLIGHT = device(booleanPreferencesKey("new_settings_highlight"))
+        val NEW_SETTINGS_HIGHLIGHT_DAYS = device(intPreferencesKey("new_settings_highlight_days"))
+
         val NAMES: Set<String> = names
     }
 
@@ -530,6 +540,48 @@ class PlayerPreferences(
             preferences[DeviceKeys.ALLOW_VOLUME_BOOST] = enabled
         }
     }
+
+    /** Settings key to the epoch day it was first seen on this device; null before Settings first opened. */
+    val settingsFirstSeen: Flow<Map<String, Long>?> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.SETTINGS_FIRST_SEEN]?.let(::decodeFirstSeen) }
+            .distinctUntilChanged()
+
+    /** Rewrites the first-seen map with [update], which gets null the first time. */
+    suspend fun updateSettingsFirstSeen(update: (Map<String, Long>?) -> Map<String, Long>) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            val current = preferences[DeviceKeys.SETTINGS_FIRST_SEEN]?.let(::decodeFirstSeen)
+            val next = update(current)
+            if (next != current) preferences[DeviceKeys.SETTINGS_FIRST_SEEN] = Json.encodeToString(FirstSeenSerializer, next)
+        }
+    }
+
+    /** Whether settings added in an update get a dot; off unless the user turns it on. */
+    val newSettingsHighlight: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.NEW_SETTINGS_HIGHLIGHT] ?: DEFAULT_NEW_SETTINGS_HIGHLIGHT }
+            .distinctUntilChanged()
+
+    suspend fun setNewSettingsHighlight(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.NEW_SETTINGS_HIGHLIGHT] = enabled
+        }
+    }
+
+    /** How many days a new setting keeps its dot while [newSettingsHighlight] is on. */
+    val newSettingsHighlightDays: Flow<Int> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.NEW_SETTINGS_HIGHLIGHT_DAYS] ?: DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS }
+            .distinctUntilChanged()
+
+    suspend fun setNewSettingsHighlightDays(days: Int) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.NEW_SETTINGS_HIGHLIGHT_DAYS] = days
+        }
+    }
+
+    private fun decodeFirstSeen(raw: String): Map<String, Long>? =
+        runCatching { Json.decodeFromString(FirstSeenSerializer, raw) }.getOrNull()
 
     // ── Shorts playback speed (#496): remembered across sessions ──
     val shortsPlaybackSpeed: Flow<Float> =
@@ -782,6 +834,7 @@ class PlayerPreferences(
                     defaultPaddingDp = DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP,
                     maxPaddingDp = MAX_PORTRAIT_SEEKBAR_PADDING_DP,
                 ),
+            idleProgressBar = resolveIdleProgressBar(device[DeviceKeys.PORTRAIT_IDLE_PROGRESS_BAR]),
             scrubPreviewStyle = resolveScrubPreviewStyle(profile[Keys.SCRUB_PREVIEW_STYLE]),
             frameStepButtonsEnabled =
                 device[DeviceKeys.FRAME_STEP_BUTTONS_ENABLED] ?: overlayDefaults.frameStepButtonsEnabled,
@@ -1815,10 +1868,10 @@ class PlayerPreferences(
         }
     }
 
-    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com. */
+    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com, once chosen (#1641). */
     val videoVolumeNormalizationEnabled: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: true }
+            .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: DEFAULT_VIDEO_VOLUME_NORMALIZATION }
             .distinctUntilChanged()
 
     suspend fun setVideoVolumeNormalizationEnabled(enabled: Boolean) {
@@ -2072,6 +2125,16 @@ class PlayerPreferences(
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PORTRAIT_SEEKBAR_CUSTOM_PADDING_DP] =
                 paddingDp.coerceIn(0, MAX_PORTRAIT_SEEKBAR_PADDING_DP)
+        }
+    }
+
+    val idleProgressBar: Flow<IdleProgressBar> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> resolveIdleProgressBar(preferences[DeviceKeys.PORTRAIT_IDLE_PROGRESS_BAR]) }
+
+    suspend fun setIdleProgressBar(position: IdleProgressBar) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.PORTRAIT_IDLE_PROGRESS_BAR] = position.name
         }
     }
 
@@ -2331,6 +2394,30 @@ class PlayerPreferences(
     suspend fun setPauseMusicWhenMuted(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PAUSE_MUSIC_WHEN_MUTED] = enabled
+        }
+    }
+
+    /** How many seconds a song blends into the next (#1675); 0 is off. */
+    val musicCrossfadeSeconds: Flow<Int> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_SECONDS] ?: 0 }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeSeconds(seconds: Int) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_SECONDS] = seconds
+        }
+    }
+
+    /** Tracks of one album play gapless even with crossfade on. */
+    val musicCrossfadeKeepAlbums: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_KEEP_ALBUMS] ?: true }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeKeepAlbums(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_KEEP_ALBUMS] = enabled
         }
     }
 
@@ -4080,18 +4167,30 @@ private fun MutablePreferences.restore(backup: SettingsBackup) {
     backup.stringSets.forEach { (k, v) -> this[stringSetPreferencesKey(k)] = v }
 }
 
-/** Action to take when a SponsorBlock segment is encountered. */
-enum class SponsorBlockAction(
-    val displayName: String,
-) {
-    SKIP("Skip"),
-    MUTE("Mute"),
-    SHOW_TOAST("Notify only"),
-    IGNORE("Ignore"),
+const val DEFAULT_NEW_SETTINGS_HIGHLIGHT = false
+const val DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS = 7
+
+private val FirstSeenSerializer = MapSerializer(String.serializer(), Long.serializer())
+
+/** Loud videos play at their own level unless the user turns levelling on. */
+const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = false
+
+/**
+ * What the player does with a SponsorBlock segment, in the order settings list them. The names are
+ * stored and synced, so they never change: [IGNORE] is "show in seek bar" and [SHOW_TOAST] is "notify".
+ */
+enum class SponsorBlockAction {
+    SKIP,
+    SKIP_ONCE,
+    SKIP_BUTTON,
+    SHOW_TOAST,
+    MUTE,
+    IGNORE,
+    DISABLED,
     ;
 
     companion object {
-        fun fromString(name: String): SponsorBlockAction = values().find { it.name == name } ?: SKIP
+        fun fromString(name: String): SponsorBlockAction = entries.find { it.name == name } ?: SKIP
     }
 }
 
@@ -4295,6 +4394,16 @@ enum class SeekbarPaddingMode {
     DEFAULT,
     CUSTOM,
 }
+
+/** Where the portrait player draws its thin progress bar while the controls are hidden (#1550). */
+enum class IdleProgressBar {
+    ON_VIDEO,
+    BELOW_VIDEO,
+    OFF,
+}
+
+internal fun resolveIdleProgressBar(stored: String?): IdleProgressBar =
+    stored?.let { value -> IdleProgressBar.entries.firstOrNull { it.name == value } } ?: IdleProgressBar.ON_VIDEO
 
 /** What a scrub shows above the bar: a filmstrip around the target, or the single frame under it. */
 enum class ScrubPreviewStyle {

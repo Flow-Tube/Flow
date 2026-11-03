@@ -379,26 +379,19 @@ internal fun PlayerControlsOverlay(
             }
         }
 
-        AnimatedVisibility(
+        PlayerIdleProgressStrip(
+            position = overlayPreferences.idleProgressBar,
             visible = !isVisible && !isFullscreen && !isInitialLoading && !state.isTouchLocked,
-            enter = fadeIn(fadeSpec),
-            exit = fadeOut(fadeSpec),
-            modifier = Modifier.align(Alignment.BottomCenter),
-        ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                PlayerSeekbarRow(
-                    positionProvider = displayedPosition,
-                    duration = state.duration,
-                    isLive = state.isLive,
-                    content = seekbarContent,
-                    edgeAligned = true,
-                    horizontalPadding = seekbarHorizontalPadding,
-                    onScrubProgress = onScrubProgress,
-                    onScrubFinished = onScrubFinished,
-                    isScrubbing = scrubController.isScrubbing,
-                )
-            }
-        }
+            fadeSpec = fadeSpec,
+            positionProvider = displayedPosition,
+            duration = state.duration,
+            isLive = state.isLive,
+            content = seekbarContent,
+            horizontalPadding = seekbarHorizontalPadding,
+            onScrubProgress = onScrubProgress,
+            onScrubFinished = onScrubFinished,
+            isScrubbing = scrubController.isScrubbing,
+        )
     }
 }
 

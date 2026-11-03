@@ -70,7 +70,7 @@ internal class AutoLibraryBrowser(
                 AutoBrowseTree.ROOT -> AutoBrowseTree.rootTabs(rootLimit).map(::folder)
                 AutoBrowseTree.FOR_YOU -> AutoBrowseTree.mixes.map(::folder)
                 AutoBrowseTree.LIBRARY -> AutoBrowseTree.libraryLists.map(::folder)
-                AutoBrowseTree.PLAYLISTS -> library.playlists().map { playlistFolder(it.id, it.name, it.thumbnailUrl) }
+                AutoBrowseTree.PLAYLISTS -> playlistFolders()
                 else -> library.tracks(parentId)?.map { songItem(parentId, it) }
             }
         }
@@ -128,16 +128,20 @@ internal class AutoLibraryBrowser(
         scope.launch {
             try {
                 val single = mediaItems.singleOrNull()
-                val (tracks, index) =
-                    if (single != null) expand(single) else resolveEach(mediaItems) to startIndex.coerceAtLeast(0)
-                if (tracks.isEmpty()) {
+                val picked =
+                    if (single != null) {
+                        expand(single)
+                    } else {
+                        Picked(resolveEach(mediaItems), startIndex.coerceAtLeast(0), fromVideoList = false, startPositionMs)
+                    }
+                if (picked.tracks.isEmpty()) {
                     future.setException(IllegalArgumentException("Nothing to play for ${mediaItems.map { it.mediaId }}"))
                 } else {
                     future.set(
                         MediaSession.MediaItemsWithStartPosition(
-                            tracks.map(::playable),
-                            index.coerceIn(0, tracks.lastIndex),
-                            if (single != null) 0L else startPositionMs,
+                            picked.tracks.map { playable(it, picked.fromVideoList) },
+                            picked.index.coerceIn(0, picked.tracks.lastIndex),
+                            picked.startPositionMs,
                         ),
                     )
                 }
@@ -157,14 +161,26 @@ internal class AutoLibraryBrowser(
         if (mediaItems.all { it.localConfiguration != null }) return null
         val future = SettableFuture.create<List<MediaItem>>()
         scope.launch {
-            runCatching { resolveEach(mediaItems).map(::playable) }
-                .onSuccess { future.set(it) }
+            runCatching {
+                mediaItems.mapNotNull { item ->
+                    val fromVideoList = AutoBrowseTree.songOf(item.mediaId)?.first?.let(AutoBrowseTree::isVideoList) == true
+                    resolveEach(listOf(item)).firstOrNull()?.let { playable(it, fromVideoList) }
+                }
+            }.onSuccess { future.set(it) }
                 .onFailure { future.setException(it) }
         }
         return future
     }
 
-    private suspend fun expand(item: MediaItem): Pair<List<MusicTrack>, Int> {
+    /** What a pick plays: the list, where in it to start, and whether it is a list of videos. */
+    private class Picked(
+        val tracks: List<MusicTrack>,
+        val index: Int,
+        val fromVideoList: Boolean,
+        val startPositionMs: Long = 0L,
+    )
+
+    private suspend fun expand(item: MediaItem): Picked {
         val query = item.requestMetadata.searchQuery
         if (query != null && item.mediaId.isBlank()) {
             // "Play music on Flow" arrives with no words, and plays what the user has on repeat.
@@ -176,12 +192,16 @@ internal class AutoLibraryBrowser(
                 } else {
                     withContext(PerformanceDispatcher.networkIO) { library.search(query) }
                 }
-            return tracks to 0
+            return Picked(tracks, 0, fromVideoList = false)
         }
-        val (parentId, videoId) = AutoBrowseTree.songOf(item.mediaId) ?: return resolveEach(listOf(item)) to 0
+        val (parentId, videoId) =
+            AutoBrowseTree.songOf(item.mediaId) ?: return Picked(resolveEach(listOf(item)), 0, fromVideoList = false)
         val tracks = withContext(PerformanceDispatcher.diskIO) { library.tracks(parentId) }.orEmpty()
         val index = tracks.indexOfFirst { it.videoId == videoId }
-        return if (index >= 0) tracks to index else resolveEach(listOf(item)) to 0
+        if (index < 0) return Picked(resolveEach(listOf(item)), 0, fromVideoList = false)
+        if (!AutoBrowseTree.isVideoList(parentId)) return Picked(tracks, index, fromVideoList = false)
+        val resumeMs = withContext(PerformanceDispatcher.diskIO) { library.resumePositionMs(videoId) }
+        return Picked(tracks, index, fromVideoList = true, startPositionMs = resumeMs)
     }
 
     private suspend fun resolveEach(items: List<MediaItem>): List<MusicTrack> =
@@ -205,7 +225,21 @@ internal class AutoLibraryBrowser(
         )
     }
 
-    private fun playable(track: MusicTrack): MediaItem = musicMediaItem(track, musicAudioUri(track.videoId))
+    private fun playable(
+        track: MusicTrack,
+        fromVideoList: Boolean,
+    ): MediaItem = musicMediaItem(track, musicAudioUri(track.videoId), fromVideoList = fromVideoList)
+
+    /** Music playlists, then video playlists (#1657), each under its own heading when both are there. */
+    private suspend fun playlistFolders(): List<MediaItem> {
+        val music = library.playlists()
+        val videos = library.videoPlaylists()
+        val grouped = music.isNotEmpty() && videos.isNotEmpty()
+        val musicGroup = context.getString(R.string.auto_group_music_playlists).takeIf { grouped }
+        val videoGroup = context.getString(R.string.auto_group_video_playlists).takeIf { grouped }
+        return music.map { playlistFolder(AutoBrowseTree.playlist(it.id), it.name, it.thumbnailUrl, musicGroup) } +
+            videos.map { playlistFolder(AutoBrowseTree.videoPlaylist(it.id), it.name, it.thumbnailUrl, videoGroup) }
+    }
 
     private fun load(
         params: LibraryParams?,
@@ -242,15 +276,17 @@ internal class AutoLibraryBrowser(
     }
 
     private fun playlistFolder(
-        playlistId: String,
+        mediaId: String,
         name: String,
         thumbnailUrl: String,
+        groupTitle: String?,
     ): MediaItem =
         browsable(
-            mediaId = AutoBrowseTree.playlist(playlistId),
+            mediaId = mediaId,
             title = name,
             artwork = thumbnailUrl,
             childStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM,
+            groupTitle = groupTitle,
         )
 
     private fun browsable(
@@ -258,6 +294,7 @@ internal class AutoLibraryBrowser(
         title: String,
         artwork: String?,
         childStyle: Int,
+        groupTitle: String? = null,
     ): MediaItem =
         MediaItem
             .Builder()
@@ -266,7 +303,7 @@ internal class AutoLibraryBrowser(
                 MediaMetadata
                     .Builder()
                     .setTitle(title)
-                    .setArtworkUri(artwork?.let { AutoArtworkProvider.uriFor(context, it) })
+                    .setArtworkUri(artwork?.let { AutoArtworkProvider.uriFor(it) })
                     .setIsBrowsable(true)
                     .setIsPlayable(false)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
@@ -274,6 +311,7 @@ internal class AutoLibraryBrowser(
                         Bundle().apply {
                             putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, childStyle)
                             putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM)
+                            groupTitle?.let { putString(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_GROUP_TITLE, it) }
                         },
                     ).build(),
             ).build()
@@ -291,7 +329,7 @@ internal class AutoLibraryBrowser(
                     .Builder()
                     .setTitle(track.title)
                     .setArtist(track.artist)
-                    .setArtworkUri(AutoArtworkProvider.uriFor(context, track.listThumbnailUrl))
+                    .setArtworkUri(AutoArtworkProvider.uriFor(track.listThumbnailUrl))
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
@@ -315,6 +353,7 @@ internal class AutoLibraryBrowser(
             AutoBrowseTree.LIKED -> context.getString(R.string.liked_music_playlist)
             AutoBrowseTree.DOWNLOADS -> context.getString(R.string.downloads_title)
             AutoBrowseTree.RECENT -> context.getString(R.string.section_recently_played)
+            AutoBrowseTree.WATCH_LATER -> context.getString(R.string.watch_later)
             else -> null
         }
 
