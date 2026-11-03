@@ -75,7 +75,7 @@ class MusicResumeTracker
                         position = positionMs.coerceIn(0L, durationMs),
                         duration = durationMs,
                         title = metadata.title?.toString().orEmpty(),
-                        thumbnailUrl = metadata.artworkUri?.toString().orEmpty(),
+                        thumbnailUrl = metadata.webArtworkUrl.orEmpty(),
                         channelName = metadata.artist?.toString().orEmpty(),
                     )
                 }
@@ -89,7 +89,7 @@ class MusicResumeTracker
                     position = positionMs.coerceIn(0L, durationMs),
                     duration = durationMs,
                     title = metadata.title?.toString().orEmpty(),
-                    thumbnailUrl = metadata.artworkUri?.toString().orEmpty(),
+                    thumbnailUrl = metadata.webArtworkUrl.orEmpty(),
                     channelName = metadata.artist?.toString().orEmpty(),
                 )
             }

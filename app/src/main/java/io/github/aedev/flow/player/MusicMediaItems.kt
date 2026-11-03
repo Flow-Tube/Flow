@@ -7,6 +7,7 @@ import androidx.media3.common.MediaMetadata
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.musicvideo.MusicVideoItems
+import io.github.aedev.flow.service.auto.AutoArtworkProvider
 
 /**
  * The media item every music queue is built from, by the app and by playback resumption alike. A
@@ -28,7 +29,7 @@ internal fun musicMediaItem(
                     .Builder()
                     .setTitle(track.title)
                     .setArtist(track.artist)
-                    .setArtworkUri(Uri.parse(track.highResThumbnailUrl))
+                    .setArtworkUri(AutoArtworkProvider.sessionArtworkUri(track.highResThumbnailUrl))
                     .setDurationMs(track.duration.takeIf { it > 0 }?.let { it * MILLIS_PER_SECOND })
                     .apply { if (fromVideoList) setExtras(Bundle().apply { putBoolean(EXTRA_VIDEO_LIST_ITEM, true) }) }
                     .build(),
@@ -49,3 +50,7 @@ internal val MediaItem.isVideoListItem: Boolean
 
 /** A song as the audio it streams, or its MediaStore file when it is on the device. */
 internal fun musicAudioUri(videoId: String): Uri = LocalMediaIds.audioUri(videoId) ?: MusicVideoItems.streamUri(videoId, showsVideo = false)
+
+/** The web artwork address of a session item, unwrapped from the car's `content://` form. */
+internal val MediaMetadata.webArtworkUrl: String?
+    get() = artworkUri?.toString()?.let(AutoArtworkProvider::webUrlOf)

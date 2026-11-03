@@ -16,6 +16,7 @@ import coil3.toBitmap
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.google.common.util.concurrent.SettableFuture
+import io.github.aedev.flow.service.auto.AutoArtworkProvider
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -46,8 +47,10 @@ internal class CoilArtworkBitmapLoader(
 
     override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> {
         val future = SettableFuture.create<Bitmap>()
-        val url = uri.toString()
-        val delays = if (uri.scheme == "http" || uri.scheme == "https") SESSION_ARTWORK_RETRY_DELAYS_MS else emptyList()
+        // Session items carry web artwork in the car's content:// form; Coil loads the web address directly.
+        val url = AutoArtworkProvider.webUrlOf(uri.toString())
+        val web = url.startsWith("http://") || url.startsWith("https://")
+        val delays = if (web) SESSION_ARTWORK_RETRY_DELAYS_MS else emptyList()
         val job =
             scope.launch {
                 try {

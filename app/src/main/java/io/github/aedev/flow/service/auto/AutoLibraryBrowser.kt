@@ -303,7 +303,7 @@ internal class AutoLibraryBrowser(
                 MediaMetadata
                     .Builder()
                     .setTitle(title)
-                    .setArtworkUri(artwork?.let { AutoArtworkProvider.uriFor(context, it) })
+                    .setArtworkUri(artwork?.let { AutoArtworkProvider.uriFor(it) })
                     .setIsBrowsable(true)
                     .setIsPlayable(false)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
@@ -329,7 +329,7 @@ internal class AutoLibraryBrowser(
                     .Builder()
                     .setTitle(track.title)
                     .setArtist(track.artist)
-                    .setArtworkUri(AutoArtworkProvider.uriFor(context, track.listThumbnailUrl))
+                    .setArtworkUri(AutoArtworkProvider.uriFor(track.listThumbnailUrl))
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
