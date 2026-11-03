@@ -41,4 +41,30 @@ class SponsorBlockSkipPolicyTest {
 
         assertThat(active).isNull()
     }
+
+    @Test
+    fun `seek bar only shows no button, skip once shows it after its skip`() {
+        val ignored =
+            findActiveManualSponsorSegment(
+                sponsorSegments = listOf(outro),
+                currentPositionMs = 120_000L,
+                skippedUuids = emptySet(),
+                categoryActions = mapOf("outro" to SponsorBlockAction.IGNORE),
+                playbackEnded = false,
+            )
+        val once = { skippedOnce: Set<String> ->
+            findActiveManualSponsorSegment(
+                sponsorSegments = listOf(outro),
+                currentPositionMs = 120_000L,
+                skippedUuids = emptySet(),
+                categoryActions = mapOf("outro" to SponsorBlockAction.SKIP_ONCE),
+                playbackEnded = false,
+                skippedOnceUuids = skippedOnce,
+            )
+        }
+
+        assertThat(ignored).isNull()
+        assertThat(once(emptySet())).isNull()
+        assertThat(once(setOf(outro.uuid))).isEqualTo(outro)
+    }
 }

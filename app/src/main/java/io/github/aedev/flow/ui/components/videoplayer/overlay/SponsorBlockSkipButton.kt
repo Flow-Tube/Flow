@@ -41,6 +41,7 @@ fun SponsorBlockSkipButton(
     playbackEnded: Boolean,
     onSkipClick: (endPositionMs: Long) -> Unit,
     modifier: Modifier = Modifier,
+    skippedOnceUuids: Set<String> = emptySet(),
 ) {
     var skippedUuids by remember(sponsorSegments) { mutableStateOf(emptySet<String>()) }
 
@@ -51,6 +52,7 @@ fun SponsorBlockSkipButton(
             skippedUuids,
             categoryActions,
             playbackEnded,
+            skippedOnceUuids,
         ) {
             findActiveManualSponsorSegment(
                 sponsorSegments = sponsorSegments,
@@ -58,6 +60,7 @@ fun SponsorBlockSkipButton(
                 skippedUuids = skippedUuids,
                 categoryActions = categoryActions,
                 playbackEnded = playbackEnded,
+                skippedOnceUuids = skippedOnceUuids,
             )
         }
 

@@ -1,8 +1,8 @@
 package io.github.aedev.flow.ui.components.videoplayer.overlay
 
 import io.github.aedev.flow.data.local.SponsorBlockAction
-import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.model.SponsorBlockSegment
+import io.github.aedev.flow.player.sponsorblock.SponsorBlockActionPolicy
 
 internal fun findActiveManualSponsorSegment(
     sponsorSegments: List<SponsorBlockSegment>,
@@ -10,6 +10,7 @@ internal fun findActiveManualSponsorSegment(
     skippedUuids: Set<String>,
     categoryActions: Map<String, SponsorBlockAction>,
     playbackEnded: Boolean,
+    skippedOnceUuids: Set<String> = emptySet(),
 ): SponsorBlockSegment? {
     if (playbackEnded) return null
 
@@ -18,7 +19,9 @@ internal fun findActiveManualSponsorSegment(
         positionSeconds >= segment.startTime &&
             positionSeconds < segment.endTime &&
             segment.uuid !in skippedUuids &&
-            (categoryActions[segment.category] ?: SponsorBlockCategories.defaultAction(segment.category)) !=
-            SponsorBlockAction.SKIP
+            SponsorBlockActionPolicy.showsSkipButton(
+                SponsorBlockActionPolicy.actionFor(segment, categoryActions),
+                alreadySkippedOnce = segment.uuid in skippedOnceUuids,
+            )
     }
 }

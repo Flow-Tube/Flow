@@ -1393,10 +1393,15 @@
     <string name="sb_category_filler">Filler / Tangent</string>
     <string name="sb_category_preview">Preview / Recap</string>
     <string name="sb_category_exclusive_access">Exclusive Access</string>
-    <string name="sb_action_skip">Skip</string>
+    <string name="sb_action_skip_automatically">Skip automatically</string>
+    <string name="sb_action_skip_once">Skip automatically once</string>
+    <string name="sb_action_skip_once_detail">Shows a skip button if you go back into it</string>
+    <string name="sb_action_skip_button">Show a skip button</string>
+    <string name="sb_action_notify">Notify</string>
     <string name="sb_action_mute">Mute</string>
-    <string name="sb_action_show_toast">Notify only</string>
-    <string name="sb_action_ignore">Ignore</string>
+    <string name="sb_action_with_button_detail">Also shows a skip button</string>
+    <string name="sb_action_seek_bar_only">Show in seek bar</string>
+    <string name="sb_action_disable">Disable</string>
     <!-- SponsorBlock submit dialog -->
     <string name="sb_submit_dialog_title">Submit Segment</string>
     <string name="sb_submit_start_time">Start time</string>
