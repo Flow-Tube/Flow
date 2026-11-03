@@ -1538,6 +1538,13 @@
     <string name="cache_songs_size_title">Song cache size</string>
     <string name="cache_artwork_size_title">Artwork cache size</string>
     <string name="cache_size_applies_on_restart">Applies the next time Flow starts.</string>
+    <string name="cache_size_custom">Custom…</string>
+    <string name="cache_size_custom_field">Size</string>
+    <string name="cache_size_custom_range">From 50 MB to 50 GB</string>
+    <string name="cache_size_unit_mb">MB</string>
+    <string name="cache_size_unit_gb">GB</string>
+    <string name="cache_size_mb_value">%1$s MB</string>
+    <string name="cache_size_gb_value">%1$s GB</string>
     <string name="btn_back">Back</string>
     <string name="back">Back</string>
     <string name="btn_close">Close</string>

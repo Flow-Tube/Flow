@@ -26,6 +26,10 @@ object MediaCacheSizes {
     const val DEFAULT_MEDIA_MB = 500
 
     val MEDIA_OPTIONS_MB = listOf(100, 200, 500, 1024, 2048, 5120, UNLIMITED_MB)
+
+    /** The range a typed-in size may take (#1660). */
+    const val CUSTOM_MIN_MB = 50
+    const val CUSTOM_MAX_MB = 50 * 1024
     val ARTWORK_OPTIONS_MB = listOf(ARTWORK_AUTOMATIC_MB, 100, 200, 500, 1024)
 
     private const val BYTES_PER_MB = 1024L * 1024L
