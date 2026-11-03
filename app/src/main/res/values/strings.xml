@@ -4029,6 +4029,11 @@
     <string name="settings_buffer_profiles">Profile</string>
     <string name="settings_buffer_range">%1$s s to %2$s s</string>
     <string name="settings_seconds_value">%1$s s</string>
+    <string name="settings_crossfade_title">Crossfade</string>
+    <string name="settings_crossfade_summary">Blend the end of a song into the next</string>
+    <string name="settings_crossfade_albums_title">Keep albums gapless</string>
+    <string name="settings_crossfade_albums_summary">No crossfade between tracks of the same album</string>
+    <string name="settings_keywords_crossfade">fade, transition, blend, gapless, mix</string>
     <string name="settings_quality_tab_video">Video</string>
     <string name="settings_quality_tab_shorts">Shorts</string>
     <string name="settings_quality_tab_music">Music</string>

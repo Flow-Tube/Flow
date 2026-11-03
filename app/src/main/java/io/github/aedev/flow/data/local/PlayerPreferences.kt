@@ -252,6 +252,8 @@ class PlayerPreferences(
         val ANIMATED_ARTWORK = booleanPreferencesKey("animated_artwork")
         val MUSIC_REPEAT_MODE = intPreferencesKey("music_repeat_mode")
         val MUSIC_RESUME_LONG_TRACKS = booleanPreferencesKey("music_resume_long_tracks")
+        val MUSIC_CROSSFADE_SECONDS = intPreferencesKey("music_crossfade_seconds")
+        val MUSIC_CROSSFADE_KEEP_ALBUMS = booleanPreferencesKey("music_crossfade_keep_albums")
         val RECAP_SOURCE = stringPreferencesKey("recap_source")
         val HIDDEN_MUSIC_HOME_SHELVES = stringSetPreferencesKey("hidden_music_home_shelves")
         val HIDDEN_LIBRARY_SECTIONS = stringSetPreferencesKey("hidden_library_sections")
@@ -2343,6 +2345,30 @@ class PlayerPreferences(
     suspend fun setPauseMusicWhenMuted(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PAUSE_MUSIC_WHEN_MUTED] = enabled
+        }
+    }
+
+    /** How many seconds a song blends into the next (#1675); 0 is off. */
+    val musicCrossfadeSeconds: Flow<Int> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_SECONDS] ?: 0 }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeSeconds(seconds: Int) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_SECONDS] = seconds
+        }
+    }
+
+    /** Tracks of one album play gapless even with crossfade on. */
+    val musicCrossfadeKeepAlbums: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_KEEP_ALBUMS] ?: true }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeKeepAlbums(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_KEEP_ALBUMS] = enabled
         }
     }
 

@@ -77,6 +77,8 @@ import io.github.aedev.flow.player.audio.AudioSessionRegistry
 import io.github.aedev.flow.player.audio.LoudnessGain
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
 import io.github.aedev.flow.player.audio.shouldHandleAudioFocus
+import io.github.aedev.flow.player.crossfade.CrossfadePolicy
+import io.github.aedev.flow.player.crossfade.MusicCrossfader
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
 import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.error.StreamDenialClassifier
@@ -100,6 +102,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -157,6 +160,8 @@ class Media3MusicService : MediaLibraryService() {
 
     private lateinit var mediaLibrarySession: MediaLibrarySession
     private lateinit var player: ExoPlayer
+    private lateinit var musicSourceFactory: MusicMediaSourceFactory
+    private var crossfader: MusicCrossfader? = null
     private val equalizer = EqualizerAudioProcessor()
     private val carTreeRefreshed = AtomicBoolean(false)
     private val musicAudioAttributes =
@@ -357,7 +362,56 @@ class Media3MusicService : MediaLibraryService() {
             mediaId
                 ?.takeIf { loudnessNormalizationEnabled && !LocalMediaIds.isLocal(it) }
                 ?.let(MusicPlayerUtils::cachedLoudnessGainDb)
-        player.volume = LoudnessGain.volume(gainDb)
+        player.volume = LoudnessGain.volume(gainDb) * (crossfader?.sessionScale ?: 1f)
+    }
+
+    /** The player that plays the outgoing song's last seconds during a crossfade; see [MusicCrossfader]. */
+    private fun buildCrossfadeTail(): ExoPlayer {
+        val tailEqualizer = EqualizerAudioProcessor().apply { setSpec(equalizerRepository.processingSpec.value) }
+        return ExoPlayer
+            .Builder(this)
+            .setMediaSourceFactory(musicSourceFactory)
+            .setRenderersFactory(musicRenderers(tailEqualizer))
+            .setAudioAttributes(musicAudioAttributes, false)
+            .setLoadControl(LoadControlFactory.forMusic())
+            .build()
+            .also { tail ->
+                tail.trackSelectionParameters =
+                    tail.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true)
+                        .build()
+                if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) tail.setAudioSessionId(player.audioSessionId)
+            }
+    }
+
+    private fun crossfadeMoment(
+        fadeSeconds: Int,
+        keepAlbumsGapless: Boolean,
+    ): CrossfadePolicy.Moment {
+        val next = player.nextMediaItemIndex.takeIf { it != C.INDEX_UNSET }?.let(player::getMediaItemAt)
+        return CrossfadePolicy.Moment(
+            fadeSeconds = fadeSeconds,
+            playing = player.playWhenReady,
+            hasNext = next != null,
+            repeatsOne = player.repeatMode == Player.REPEAT_MODE_ONE,
+            durationMs = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L,
+            speed = player.playbackParameters.speed,
+            showsVideo = C.TRACK_TYPE_VIDEO !in player.trackSelectionParameters.disabledTrackTypes,
+            pausesAtEndOfSong = io.github.aedev.flow.player.SleepTimerManager.pauseAtEndOfMedia,
+            nextIsSameAlbum = next != null && sameAlbum(player.currentMediaItem?.mediaId, next.mediaId),
+            keepAlbumsGapless = keepAlbumsGapless,
+        )
+    }
+
+    private fun sameAlbum(
+        currentId: String?,
+        nextId: String,
+    ): Boolean {
+        val queue = io.github.aedev.flow.player.EnhancedMusicPlayerManager.queue.value
+        val current = queue.firstOrNull { it.videoId == currentId } ?: return false
+        val next = queue.firstOrNull { it.videoId == nextId } ?: return false
+        return (current.albumId != null && current.albumId == next.albumId) || (current.album.isNotBlank() && current.album == next.album)
     }
 
     private fun applyPlayDuringCallsPreference(playDuringCalls: Boolean) {
@@ -432,8 +486,21 @@ class Media3MusicService : MediaLibraryService() {
         )
     }
 
+    private fun musicRenderers(processor: EqualizerAudioProcessor) =
+        object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: android.content.Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean,
+            ): androidx.media3.exoplayer.audio.AudioSink? =
+                androidx.media3.exoplayer.audio.DefaultAudioSink
+                    .Builder(context)
+                    .setAudioProcessors(arrayOf(processor))
+                    .build()
+        }.setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+
     private fun initializePlayer() {
-        val mediaSourceFactory =
+        musicSourceFactory =
             MusicMediaSourceFactory(
                 audio =
                     DefaultMediaSourceFactory(downloadUtil.getPlayerDataSourceFactory())
@@ -442,25 +509,14 @@ class Media3MusicService : MediaLibraryService() {
                 maxVideoHeight = { MusicVideoFormats.maxHeight(NetworkState.isOnWifi(this)) },
             )
 
-        val renderersFactory =
-            object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
-                override fun buildAudioSink(
-                    context: android.content.Context,
-                    enableFloatOutput: Boolean,
-                    enableAudioTrackPlaybackParams: Boolean,
-                ): androidx.media3.exoplayer.audio.AudioSink? =
-                    androidx.media3.exoplayer.audio.DefaultAudioSink
-                        .Builder(context)
-                        .setAudioProcessors(arrayOf(equalizer))
-                        .build()
-            }.setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        val renderersFactory = musicRenderers(equalizer)
 
         val loadControl = LoadControlFactory.forMusic()
 
         player =
             ExoPlayer
                 .Builder(this)
-                .setMediaSourceFactory(mediaSourceFactory)
+                .setMediaSourceFactory(musicSourceFactory)
                 .setRenderersFactory(renderersFactory)
                 .setAudioAttributes(musicAudioAttributes, handlesAudioFocus)
                 .setHandleAudioBecomingNoisy(true)
@@ -486,6 +542,13 @@ class Media3MusicService : MediaLibraryService() {
         // order, the player's shuffle flag reorders nothing on its own, whichever controller sets it.
         player.setShuffleOrder(ShuffleOrder.UnshuffledShuffleOrder(0))
         musicResume.attach(player)
+        crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
+        lifecycleScope.launch {
+            combine(prefs.musicCrossfadeSeconds, prefs.musicCrossfadeKeepAlbums, ::Pair).collect { (seconds, keepAlbums) ->
+                crossfader?.setSettings(seconds, keepAlbums)
+                updateOffload { it.copy(crossfade = seconds > 0) }
+            }
+        }
 
         player.addListener(
             object : Player.Listener {
@@ -1404,6 +1467,8 @@ class Media3MusicService : MediaLibraryService() {
         if (::mediaLibrarySession.isInitialized) {
             mediaLibrarySession.release()
         }
+        crossfader?.release()
+        crossfader = null
         if (::player.isInitialized) {
             musicResume.saveCurrent(player)
             player.release()
