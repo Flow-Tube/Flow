@@ -532,8 +532,9 @@ class EnhancedPlayerManager private constructor() {
     private val _seekEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val seekEvent: SharedFlow<Unit> = _seekEvent.asSharedFlow()
 
-    private val _queueAutoAdvanceEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val queueAutoAdvanceEvent: SharedFlow<Unit> = _queueAutoAdvanceEvent.asSharedFlow()
+    /** Emitted when the next video starts by itself, from a queue or from related autoplay, never on a tap. */
+    private val _autoAdvanceEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val autoAdvanceEvent: SharedFlow<Unit> = _autoAdvanceEvent.asSharedFlow()
 
     /** Emitted when a video plays to its end, before looping or autoplay replaces it. */
     private val _playbackCompletedEvent = MutableSharedFlow<PlaybackCompletion>(extraBufferCapacity = 4)
@@ -1917,11 +1918,11 @@ class EnhancedPlayerManager private constructor() {
                 return
             }
             autoNextLog("auto-advance queue playNext")
-            _queueAutoAdvanceEvent.tryEmit(Unit)
+            _autoAdvanceEvent.tryEmit(Unit)
             playNext(loadStreamsInPlayer = true)
         } else {
             autoNextLog("auto-advance related-autoplay")
-            playNextAutoplayCandidate()
+            if (playNextAutoplayCandidate()) _autoAdvanceEvent.tryEmit(Unit)
         }
     }
 
@@ -2391,7 +2392,7 @@ class EnhancedPlayerManager private constructor() {
                 liveDurationMs = 0L,
             )
         updateQueueState()
-        _queueAutoAdvanceEvent.tryEmit(Unit)
+        _autoAdvanceEvent.tryEmit(Unit)
 
         player?.let { p ->
             val idx = p.currentMediaItemIndex

@@ -205,7 +205,6 @@ fun VideoPlayerHost(
     PlayerSheetSessionEffects(
         playerSheetState = playerSheetState,
         uiState = playerUiState,
-        queueTitle = { playerState.queueTitle },
         viewModel = playerViewModel,
         onMinimize = onMinimize,
     )
