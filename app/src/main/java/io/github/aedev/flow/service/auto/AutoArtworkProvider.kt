@@ -10,8 +10,11 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
+import io.github.aedev.flow.BuildConfig
 import kotlinx.coroutines.runBlocking
 import java.io.FileNotFoundException
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 /**
  * Serves song artwork to the car. Android Auto only loads browse artwork from `content://` URIs,
@@ -98,31 +101,35 @@ class AutoArtworkProvider : ContentProvider() {
         }
 
         /** [url] as the car can load it: web artwork through this provider, local artwork as it is. */
-        fun uriFor(
-            context: Context,
-            url: String,
-        ): Uri? {
-            if (url.isBlank()) return null
-            val parsed = Uri.parse(url)
-            return when {
-                parsed.scheme == "content" || parsed.scheme == "android.resource" -> {
-                    parsed
-                }
+        fun uriFor(url: String): Uri? = artworkUriString(url)?.let(Uri::parse)
 
-                isAllowedArtworkUrl(url) -> {
-                    Uri
-                        .Builder()
-                        .scheme("content")
-                        .authority(context.packageName + AUTHORITY_SUFFIX)
-                        .appendPath(ART_PATH)
-                        .appendQueryParameter(URL_PARAM, url)
-                        .build()
-                }
-
-                else -> {
-                    null
-                }
+        /** The string form of [uriFor], built without android.net.Uri so it can be checked on the JVM. */
+        internal fun artworkUriString(url: String): String? =
+            when {
+                url.isBlank() -> null
+                url.startsWith("content:") || url.startsWith("android.resource:") -> url
+                isAllowedArtworkUrl(url) -> artworkPrefix() + URLEncoder.encode(url, Charsets.UTF_8.name())
+                else -> null
             }
+
+        private fun artworkPrefix(): String =
+            "content://" + BuildConfig.APPLICATION_ID + AUTHORITY_SUFFIX + "/" + ART_PATH + "?" + URL_PARAM + "="
+
+        /**
+         * The artwork a session item carries: the car only loads `content://` artwork, also on its
+         * Now Playing screen, so web artwork goes through this provider. Anything else stays as it is.
+         */
+        fun sessionArtworkUri(url: String): Uri? = uriFor(url) ?: Uri.parse(url)
+
+        /**
+         * The web address behind one of this provider's URIs, for code that reads artwork back from
+         * the session (queue, history, widget); any other address comes back as it is.
+         */
+        fun webUrlOf(uri: String): String {
+            val prefix = artworkPrefix()
+            if (!uri.startsWith(prefix)) return uri
+            val encoded = uri.removePrefix(prefix).substringBefore('&')
+            return runCatching { URLDecoder.decode(encoded, Charsets.UTF_8.name()) }.getOrDefault(uri)
         }
 
         internal fun isAllowedArtworkUrl(url: String): Boolean {
