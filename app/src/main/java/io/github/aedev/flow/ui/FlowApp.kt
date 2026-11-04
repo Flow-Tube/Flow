@@ -42,6 +42,7 @@ import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.LocalFlowSnackbarHostState
 import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationChrome
 import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationDefaults
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.NavigationVisibility
 import io.github.aedev.flow.ui.components.layout.navigation.flowUsesNavigationRail
 import io.github.aedev.flow.ui.components.layout.navigation.rememberFlowNavigationScrollState
@@ -125,6 +126,7 @@ fun FlowApp(
     val defaultNavTabIndex by preferences.defaultNavTabIndex.collectAsState(initial = 0)
     val subscriptionRefreshOnStartup by preferences.subscriptionRefreshOnStartup.collectAsState(initial = false)
     val bottomNavHideOnScroll by preferences.bottomNavHideOnScroll.collectAsState(initial = true)
+    val searchShowsNavBar by preferences.searchShowsNavBar.collectAsState(initial = false)
     val sleepTimerCloseAppOnExpiry by preferences.sleepTimerCloseAppOnExpiry.collectAsState(
         initial = SleepTimerManager.preferredCloseAppOnExpiry,
     )
@@ -191,7 +193,7 @@ fun FlowApp(
     val currentEntry by navController.currentBackStackEntryAsState()
     val statusBarHero = remember { StatusBarHeroState() }
     val currentTab = currentEntry?.flowTab()
-    val selectedTab by rememberSelectedFlowTab(navController, defaultTab)
+    val selectedTab by rememberSelectedFlowTab(navController, defaultTab) { currentNavigationTabs }
     val usesNavigationRail = flowUsesNavigationRail()
     var navigationRailWidth by remember { mutableStateOf(0.dp) }
     var navigationBarHeight by remember { mutableStateOf(FlowNavigationDefaults.BarHeight) }
@@ -242,7 +244,7 @@ fun FlowApp(
                     if (musicPlayerSheetState.isExpanded) musicPlayerSheetState.collapse()
                 }
             }
-        val currentShortsExitRoute by rememberUpdatedState(shortsExitRoute(navigationTabs))
+        val currentShortsExitRoute by rememberUpdatedState(exitTab(navigationTabs, FlowTab.Shorts).route)
         val mediaNavigator =
             remember(navController, collapseExpandedPlayers) {
                 FlowMediaNavigator(navController, collapseExpandedPlayers) { currentShortsExitRoute }
@@ -390,7 +392,7 @@ fun FlowApp(
         val isPlayerCoveringContent =
             (playerVisible && playerSheetState.currentValue == PlayerSheetValue.Expanded) ||
                 (isMusicSheetShown && musicPlayerSheetState.isExpanded)
-        val showBottomNav = !isInPipMode && currentTab.showsNavigationBar() && !isPlayerCoveringContent
+        val showBottomNav = !isInPipMode && currentTab.showsNavigationBar(searchShowsNavBar) && !isPlayerCoveringContent
         val isBottomNavShown = !usesNavigationRail && showBottomNav && navScrollState.isBarVisible
         // The rail is hidden only where content goes truly full screen; the expanded players cover
         // it instead, so opening them never re-lays out the page beneath.
@@ -554,6 +556,7 @@ fun FlowApp(
                                             defaultStartRoute = defaultStartRoute,
                                             onMusicStarted = onMusicStarted,
                                             openDownloads = openDownloads,
+                                            searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
                                         )
                                     }
                                 }

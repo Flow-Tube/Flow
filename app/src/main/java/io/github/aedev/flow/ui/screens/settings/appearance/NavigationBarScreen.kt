@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CallToAction
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
@@ -35,6 +36,7 @@ internal fun NavigationBarScreen(
     val visibility by viewModel.navigationVisibility.collectAsStateWithLifecycle()
     val shortsContent by viewModel.shortsContent.collectAsStateWithLifecycle()
     val hideOnScroll by viewModel.hideNavOnScroll.collectAsStateWithLifecycle()
+    val searchShowsBar by viewModel.searchShowsNavBar.collectAsStateWithLifecycle()
     val order by viewModel.navTabOrder.collectAsStateWithLifecycle()
     val defaultIndex by viewModel.defaultNavTabIndex.collectAsStateWithLifecycle()
 
@@ -63,6 +65,7 @@ internal fun NavigationBarScreen(
             switch(NavigationBarIndex.explore, visibility.categories, viewModel::setExploreTab, icon = Icons.Outlined.Explore)
             switch(NavigationBarIndex.downloads, visibility.downloads, viewModel::setDownloadsTab, icon = Icons.Outlined.Download)
             switch(NavigationBarIndex.hideOnScroll, hideOnScroll, viewModel::setHideNavOnScroll, icon = Icons.Outlined.UnfoldLess)
+            switch(NavigationBarIndex.showOnSearch, searchShowsBar, viewModel::setSearchShowsNavBar, icon = Icons.Outlined.CallToAction)
         }
         group(
             key = NavigationBarIndex.order.key,

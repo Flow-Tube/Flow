@@ -68,10 +68,14 @@ internal fun FlowAppSideEffects(
 internal fun rememberSelectedFlowTab(
     navController: NavHostController,
     defaultTab: FlowTab,
+    visibleTabs: () -> List<FlowTab>,
 ): State<FlowTab> {
     val selectedTab = remember { mutableStateOf(defaultTab) }
     LaunchedEffect(navController) {
-        navController.currentBackStackEntryFlow.collect { entry -> entry.flowTab()?.let { selectedTab.value = it } }
+        navController.currentBackStackEntryFlow.collect { entry ->
+            val tab = entry.flowTab()
+            if (tab != null && tab in visibleTabs()) selectedTab.value = tab
+        }
     }
     return selectedTab
 }

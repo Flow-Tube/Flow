@@ -1,7 +1,9 @@
 package io.github.aedev.flow.ui.startup
 
+import android.os.Build
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -13,10 +15,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.github.aedev.flow.data.local.AppUiModePreferences
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
@@ -118,6 +122,7 @@ internal fun FlowRoot(
                                 .fillMaxSize()
                                 .semantics { testTagsAsResourceId = true },
                     ) {
+                        if (appUiRoot == AppUiRoot.MOBILE) PreAndroid9FocusHolder()
                         // 1. MAIN APP (Home/NavHost)
                         // This loads *behind* the splash screen immediately.
                         // By the time splash fades, this is ready.
@@ -177,4 +182,14 @@ internal fun FlowRoot(
             }
         }
     }
+}
+
+/**
+ * Before Android 9, clearing focus makes the platform hand it straight to the first focusable node from the top, so a
+ * search field took it back and reopened typing (#1695). This node takes it instead. It needs a size because the
+ * platform's search goes by bounds; a zero-size target is passed over.
+ */
+@Composable
+private fun PreAndroid9FocusHolder() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) Box(Modifier.size(1.dp).focusTarget())
 }

@@ -174,6 +174,15 @@ internal object NavigationBarIndex {
             section = R.string.settings_section_tabs,
             destination = page,
         )
+    val showOnSearch =
+        SettingEntry(
+            key = "navigation_bar.show_on_search",
+            title = R.string.content_settings_navbar_show_on_search_title,
+            summary = R.string.content_settings_navbar_show_on_search_subtitle,
+            keywords = R.string.settings_keywords_nav_bar,
+            section = R.string.settings_section_tabs,
+            destination = page,
+        )
     val order =
         SettingEntry(
             key = "navigation_bar.order",
@@ -183,7 +192,7 @@ internal object NavigationBarIndex {
             destination = page,
         )
 
-    val all = listOf(home, shorts, music, search, explore, downloads, hideOnScroll, order)
+    val all = listOf(home, shorts, music, search, explore, downloads, hideOnScroll, showOnSearch, order)
 }
 
 internal object ThemeIndex {

@@ -1,6 +1,8 @@
 package io.github.aedev.flow.ui
 
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
+import io.github.aedev.flow.ui.components.layout.navigation.NavigationVisibility
+import io.github.aedev.flow.ui.components.layout.navigation.visibleFlowTabs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -25,10 +27,18 @@ class NavigationDestinationsTest {
 
     @Test
     fun aVideoOpenedFromShortsPlaysOverTheFirstOtherTab() {
-        assertEquals("music", shortsExitRoute(listOf(FlowTab.Shorts, FlowTab.Music, FlowTab.Library)))
-        assertEquals("home", shortsExitRoute(listOf(FlowTab.Home, FlowTab.Shorts)))
-        assertEquals("home", shortsExitRoute(listOf(FlowTab.Shorts)))
-        assertEquals("home", shortsExitRoute(emptyList()))
+        assertEquals(FlowTab.Music, exitTab(listOf(FlowTab.Shorts, FlowTab.Music, FlowTab.Library), FlowTab.Shorts))
+        assertEquals(FlowTab.Home, exitTab(listOf(FlowTab.Home, FlowTab.Shorts), FlowTab.Shorts))
+        assertEquals(FlowTab.Home, exitTab(listOf(FlowTab.Shorts), FlowTab.Shorts))
+        assertEquals(FlowTab.Home, exitTab(emptyList(), FlowTab.Shorts))
+    }
+
+    @Test
+    fun backFromSearchAsTheOpeningTabLandsOnAVisibleTab() {
+        val homeHidden =
+            visibleFlowTabs(listOf(5, 0, 3, 4), NavigationVisibility(home = false, shorts = false, music = false, search = true))
+        assertEquals(FlowTab.Search, homeHidden.first())
+        assertEquals(FlowTab.Subscriptions, exitTab(homeHidden, FlowTab.Search))
     }
 
     @Test
@@ -59,6 +69,12 @@ class NavigationDestinationsTest {
         FlowTab.entries.forEach { tab -> assertEquals(tab != FlowTab.Search, tab.showsNavigationBar()) }
         assertFalse((null as FlowTab?).showsNavigationBar())
         assertTrue(FlowTab.Home.showsNavigationBar())
+    }
+
+    @Test
+    fun theSwitchPutsTheBarOnSearchOnly() {
+        FlowTab.entries.forEach { tab -> assertTrue(tab.showsNavigationBar(onSearch = true)) }
+        assertFalse((null as FlowTab?).showsNavigationBar(onSearch = true))
     }
 
     @Test
