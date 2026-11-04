@@ -17,6 +17,8 @@ val SponsorBlockIntroOutro = Color(0xFF00FFFF)
 val SponsorBlockMusicOffTopic = Color(0xFFFF8000)
 val SponsorBlockFiller = Color(0xFF7300FF)
 val SponsorBlockPreview = Color(0xFF008FD6)
+val SponsorBlockHook = Color(0xFF395699)
+val SponsorBlockHighlight = Color(0xFFFF1684)
 
 /** Opacity segments are drawn at so the progress track stays readable underneath them. */
 const val SPONSOR_BLOCK_SEGMENT_ALPHA = 0.78f
@@ -34,6 +36,8 @@ fun defaultSponsorBlockColor(category: String): Color =
         "music_offtopic" -> SponsorBlockMusicOffTopic
         "filler" -> SponsorBlockFiller
         "preview" -> SponsorBlockPreview
+        "hook" -> SponsorBlockHook
+        "poi_highlight" -> SponsorBlockHighlight
         else -> SponsorBlockSponsor
     }
 
