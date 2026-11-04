@@ -72,6 +72,12 @@ class NavigationDestinationsTest {
     }
 
     @Test
+    fun theSwitchPutsTheBarOnSearchOnly() {
+        FlowTab.entries.forEach { tab -> assertTrue(tab.showsNavigationBar(onSearch = true)) }
+        assertFalse((null as FlowTab?).showsNavigationBar(onSearch = true))
+    }
+
+    @Test
     fun onlyChannelIdsAreBrowsedDirectly() {
         assertEquals("UCXuqSBlHAE6Xw-yeJA0Tunw", youtubeChannelBrowseId("UCXuqSBlHAE6Xw-yeJA0Tunw"))
         assertEquals("UCXuqSBlHAE6Xw-yeJA0Tunw", youtubeChannelBrowseId("https://m.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw?si=abc"))

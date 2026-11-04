@@ -62,8 +62,8 @@ internal fun exitTab(
     leaving: FlowTab,
 ): FlowTab = tabs.firstOrNull { it != leaving } ?: FlowTab.Home
 
-/** Search is a tab, but it keeps the back-button layout of the other search screens, so no bar. */
-internal fun FlowTab?.showsNavigationBar(): Boolean = this != null && this != FlowTab.Search
+/** Search is a tab, but it keeps the back-button layout of the other search screens, so no bar unless [onSearch] asks for it. */
+internal fun FlowTab?.showsNavigationBar(onSearch: Boolean = false): Boolean = this != null && (this != FlowTab.Search || onSearch)
 
 internal fun youtubeChannelUrl(channelIdOrHandle: String): String? {
     val value = channelIdOrHandle.trim()
