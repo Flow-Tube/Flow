@@ -11,7 +11,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.PlayerMessage
-import io.github.aedev.flow.data.local.CrossfadeCurve
 import kotlin.math.abs
 
 /**
@@ -29,6 +28,10 @@ import kotlin.math.abs
  * the fade shortens to what is left of the song. A tail that cannot line up before
  * [CrossfadePolicy.latestHandOffMs] is dropped and the song ends as it does without crossfade.
  *
+ * A song the user skips away from has no tail waiting, so one is built from where the song stopped. It
+ * is heard a moment after the next song is chosen, then the two fade as usual; only while the settings
+ * ask for it.
+ *
  * Every step is driven by the players: [PlayerMessage]s at a position, their listeners for readiness,
  * seeks, skips and pauses. The only timed loops run while a song is changing hands: [ALIGN_STEP_MS]
  * checks for a few seconds, then [FADE_STEP_MS] volume steps for the fade. Positions are compared
@@ -37,16 +40,14 @@ import kotlin.math.abs
 internal class MusicCrossfader(
     private val session: ExoPlayer,
     private val buildTail: () -> ExoPlayer,
-    private val moment: (fadeSeconds: Int, keepAlbumsGapless: Boolean) -> CrossfadePolicy.Moment,
+    private val moment: (settings: CrossfadePolicy.Settings) -> CrossfadePolicy.Moment,
     private val onSessionScaleChanged: () -> Unit,
 ) {
-    private enum class Stage { IDLE, PREPARED, WAITING_FOR_TAIL, ALIGNING, FADING }
+    private enum class Stage { IDLE, PREPARED, WAITING_FOR_TAIL, ALIGNING, SKIP_STARTING, FADING }
 
     private val handler = Handler(Looper.getMainLooper())
     private var stage = Stage.IDLE
-    private var fadeSeconds = 0
-    private var keepAlbumsGapless = true
-    private var curve = CrossfadeCurve.EQUAL_POWER
+    private var settings = CrossfadePolicy.Settings()
 
     private var tail: ExoPlayer? = null
     private var prepareMessage: PlayerMessage? = null
@@ -56,6 +57,9 @@ internal class MusicCrossfader(
     private var fadeBeganAtMs = 0L
     private var fadeClockMs = 1L
     private var tailRetries = 0
+    private var skipPressedAtMs = 0L
+    private var skipFade = false
+    private var skipLeadMs = DEFAULT_SKIP_LEAD_MS
     private var tailGain = 1f
     private var handingOff = false
     private var sessionAnchor = PositionAnchor()
@@ -78,6 +82,7 @@ internal class MusicCrossfader(
                 reason: Int,
             ) {
                 if (handingOff) return
+                if (skipFade) return
                 if (stage == Stage.FADING) abort("the song changed during the fade")
                 schedule()
             }
@@ -87,7 +92,12 @@ internal class MusicCrossfader(
                 newPosition: Player.PositionInfo,
                 reason: Int,
             ) {
-                if (handingOff || reason != Player.DISCONTINUITY_REASON_SEEK) return
+                if (handingOff) return
+                val left = oldPosition.mediaItem
+                val changedSong = left != null && left.mediaId != newPosition.mediaItem?.mediaId
+                val byHand = reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_REMOVE
+                if (changedSong && byHand && beginSkipFade(left, oldPosition.positionMs)) return
+                if (reason != Player.DISCONTINUITY_REASON_SEEK) return
                 if (stage != Stage.IDLE) abort("a seek")
                 schedule()
             }
@@ -102,22 +112,24 @@ internal class MusicCrossfader(
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY && stage == Stage.IDLE) schedule()
+                // Closing the player stops it without a pause, and the old song must stop with it.
+                if (skipFade && (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED)) abort("the player stopped")
             }
 
             override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
-                if (stage == Stage.FADING) return
+                if (stage == Stage.FADING || skipFade) return
                 schedule()
             }
 
             override fun onRepeatModeChanged(repeatMode: Int) {
-                if (stage != Stage.FADING) schedule()
+                if (stage != Stage.FADING && !skipFade) schedule()
             }
 
             override fun onTimelineChanged(
                 timeline: Timeline,
                 reason: Int,
             ) {
-                if (stage != Stage.FADING && reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) schedule()
+                if (stage != Stage.FADING && !skipFade && reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) schedule()
             }
         }
 
@@ -125,6 +137,17 @@ internal class MusicCrossfader(
         object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY && stage == Stage.WAITING_FOR_TAIL) startWhenLinedUp()
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (!isPlaying || stage != Stage.SKIP_STARTING) return
+                val waited = SystemClock.elapsedRealtime() - skipPressedAtMs
+                skipLeadMs = CrossfadePolicy.learnedHeadStartMs(skipLeadMs, skipLeadMs - waited)
+                Log.d(TAG, "skipped $mediaId, its tail played after ${waited}ms, fading over ${fadeClockMs}ms")
+                handler.removeCallbacks(skipTimeoutStep)
+                stage = Stage.FADING
+                fadeBeganAtMs = SystemClock.elapsedRealtime()
+                handler.post(fadeStep)
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -135,20 +158,14 @@ internal class MusicCrossfader(
     private val alignStep = Runnable { align() }
     private val fadeStep = Runnable { fade() }
     private val startTailStep = Runnable { startTail() }
+    private val skipTimeoutStep = Runnable { if (stage == Stage.SKIP_STARTING) abort("the tail took too long after a skip") }
 
     fun attach() = session.addListener(listener)
 
-    /** The chosen fade length (0 is off), whether an album's tracks stay gapless, and the fade's curve. */
-    fun setSettings(
-        seconds: Int,
-        keepAlbums: Boolean,
-        fadeCurve: CrossfadeCurve,
-    ) {
-        curve = fadeCurve
-        if (seconds == fadeSeconds && keepAlbums == keepAlbumsGapless) return
-        fadeSeconds = seconds
-        keepAlbumsGapless = keepAlbums
-        if (stage != Stage.FADING) schedule()
+    fun setSettings(chosen: CrossfadePolicy.Settings) {
+        val rescheduleNeeded = chosen.copy(curve = settings.curve) != settings
+        settings = chosen
+        if (rescheduleNeeded && stage != Stage.FADING) schedule()
     }
 
     fun release() {
@@ -156,11 +173,44 @@ internal class MusicCrossfader(
         abort(null)
     }
 
+    /** The song was changed by hand: the old one returns on a tail from where it was and fades under the new one. */
+    private fun beginSkipFade(
+        left: MediaItem,
+        positionMs: Long,
+    ): Boolean {
+        if (settings.seconds <= 0 || !settings.onManualSkip || !session.playWhenReady || moment(settings).showsVideo) return false
+        val durationMs = left.mediaMetadata.durationMs
+        val failed = session.playerError != null
+        val resumeAt = CrossfadePolicy.skipResumeMs(positionMs, skipLeadMs, durationMs, failed) ?: return false
+        val gain = session.volume
+        abort(null)
+        skipFade = true
+        skipPressedAtMs = SystemClock.elapsedRealtime()
+        mediaId = left.mediaId
+        tailGain = gain
+        fadeClockMs = CrossfadePolicy.fadeClockMs(settings.seconds, resumeAt, durationMs ?: 0L, session.playbackParameters.speed)
+        sessionScale = 0f
+        onSessionScaleChanged()
+        tail =
+            buildTail().apply {
+                volume = gain
+                playbackParameters = session.playbackParameters
+                addListener(tailListener)
+                setMediaItem(left, resumeAt)
+                playWhenReady = true
+                prepare()
+            }
+        stage = Stage.SKIP_STARTING
+        handler.postDelayed(skipTimeoutStep, SKIP_START_TIMEOUT_MS)
+        return true
+    }
+
     private fun schedule() {
-        if (stage == Stage.FADING) return
+        if (stage == Stage.FADING || skipFade) return
         if (stage != Stage.IDLE) abort(null)
         cancelMessages()
-        val now = moment(fadeSeconds, keepAlbumsGapless)
+        if (!settings.onAutoAdvance) return
+        val now = moment(settings)
         val start = CrossfadePolicy.fadeStartMs(now) ?: return
         val item = session.currentMediaItem ?: return
         val position = session.currentPosition
@@ -291,7 +341,7 @@ internal class MusicCrossfader(
     private fun handOff(deltaMs: Long) {
         val player = tail ?: return
         fadeClockMs =
-            CrossfadePolicy.fadeClockMs(fadeSeconds, session.currentPosition, session.duration, session.playbackParameters.speed)
+            CrossfadePolicy.fadeClockMs(settings.seconds, session.currentPosition, session.duration, session.playbackParameters.speed)
         tailGain = session.volume
         player.volume = tailGain
         player.setPlaybackSpeed(session.playbackParameters.speed)
@@ -313,8 +363,8 @@ internal class MusicCrossfader(
         val player = tail ?: return
         if (stage != Stage.FADING) return
         val progress = (SystemClock.elapsedRealtime() - fadeBeganAtMs).toFloat() / fadeClockMs
-        player.volume = tailGain * CrossfadePolicy.fadeOutGain(progress, curve)
-        sessionScale = CrossfadePolicy.fadeInGain(progress, curve)
+        player.volume = tailGain * CrossfadePolicy.fadeOutGain(progress, settings.curve)
+        sessionScale = CrossfadePolicy.fadeInGain(progress, settings.curve)
         onSessionScaleChanged()
         if (progress >= 1f || player.playbackState == Player.STATE_ENDED) {
             finish()
@@ -324,6 +374,7 @@ internal class MusicCrossfader(
     }
 
     private fun finish() {
+        skipFade = false
         releaseTail()
         stage = Stage.IDLE
         restoreScale()
@@ -332,6 +383,7 @@ internal class MusicCrossfader(
 
     private fun abort(reason: String?) {
         if (reason != null) Log.d(TAG, "crossfade dropped: $reason")
+        skipFade = false
         cancelMessages()
         releaseTail()
         stage = Stage.IDLE
@@ -342,6 +394,7 @@ internal class MusicCrossfader(
         handler.removeCallbacks(alignStep)
         handler.removeCallbacks(fadeStep)
         handler.removeCallbacks(startTailStep)
+        handler.removeCallbacks(skipTimeoutStep)
         tail?.release()
         tail = null
     }
@@ -378,5 +431,7 @@ internal class MusicCrossfader(
         const val SPEED_STEP = 0.005f
         const val FADE_STEP_MS = 20L
         const val MAX_TAIL_RETRIES = 2
+        const val DEFAULT_SKIP_LEAD_MS = 400L
+        const val SKIP_START_TIMEOUT_MS = 1_500L
     }
 }

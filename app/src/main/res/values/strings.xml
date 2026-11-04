@@ -4063,6 +4063,10 @@
     <string name="settings_crossfade_summary">Blend the end of a song into the next</string>
     <string name="settings_crossfade_albums_title">Keep albums gapless</string>
     <string name="settings_crossfade_albums_summary">No crossfade between tracks of the same album</string>
+    <string name="settings_crossfade_auto_title">Fade when a song ends</string>
+    <string name="settings_crossfade_auto_summary">Blend into the next song by itself</string>
+    <string name="settings_crossfade_skip_title">Fade when you skip</string>
+    <string name="settings_crossfade_skip_summary">Blend into the song you skip to</string>
     <string name="settings_crossfade_curve_title">Fade curve</string>
     <string name="crossfade_curve_equal_power">Equal power</string>
     <string name="crossfade_curve_equal_power_detail">Steady volume through the whole fade</string>

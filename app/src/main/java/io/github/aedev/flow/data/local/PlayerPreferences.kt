@@ -257,6 +257,8 @@ class PlayerPreferences(
         val MUSIC_CROSSFADE_SECONDS = intPreferencesKey("music_crossfade_seconds")
         val MUSIC_CROSSFADE_KEEP_ALBUMS = booleanPreferencesKey("music_crossfade_keep_albums")
         val MUSIC_CROSSFADE_CURVE = stringPreferencesKey("music_crossfade_curve")
+        val MUSIC_CROSSFADE_AUTO_ADVANCE = booleanPreferencesKey("music_crossfade_auto_advance")
+        val MUSIC_CROSSFADE_MANUAL_SKIP = booleanPreferencesKey("music_crossfade_manual_skip")
         val RECAP_SOURCE = stringPreferencesKey("recap_source")
         val HIDDEN_MUSIC_HOME_SHELVES = stringSetPreferencesKey("hidden_music_home_shelves")
         val HIDDEN_LIBRARY_SECTIONS = stringSetPreferencesKey("hidden_library_sections")
@@ -2419,6 +2421,30 @@ class PlayerPreferences(
     suspend fun setMusicCrossfadeKeepAlbums(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MUSIC_CROSSFADE_KEEP_ALBUMS] = enabled
+        }
+    }
+
+    /** Whether a song blends into the next when it ends by itself. */
+    val musicCrossfadeOnAutoAdvance: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_AUTO_ADVANCE] ?: true }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeOnAutoAdvance(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_AUTO_ADVANCE] = enabled
+        }
+    }
+
+    /** Whether a song blends into the one the user skips to; off keeps Next immediate. */
+    val musicCrossfadeOnManualSkip: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_MANUAL_SKIP] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeOnManualSkip(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_MANUAL_SKIP] = enabled
         }
     }
 

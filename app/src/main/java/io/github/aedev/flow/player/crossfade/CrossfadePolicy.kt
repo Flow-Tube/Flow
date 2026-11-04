@@ -23,6 +23,9 @@ internal object CrossfadePolicy {
     /** A fade shorter than this is not worth it; closer to the end, the song just ends. */
     private const val MIN_FADE_MS = 2_000L
 
+    /** A song skipped sooner than this was barely heard, so there is nothing to fade out. */
+    private const val MIN_SKIP_PLAYED_MS = 1_000L
+
     /** The least time a tail needs to line up; a tail starting with less would only be dropped. */
     private const val MIN_LINE_UP_MS = 1_000L
 
@@ -43,6 +46,15 @@ internal object CrossfadePolicy {
 
     /** Whatever a song needs left to play besides the fade, so a fade never starts before it can line up. */
     private const val MIN_REST_MS = PREPARE_LEAD_MS + ALIGN_WINDOW_MS
+
+    /** What the user chose in settings; [seconds] of 0 is off. */
+    data class Settings(
+        val seconds: Int = 0,
+        val keepAlbumsGapless: Boolean = true,
+        val curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
+        val onAutoAdvance: Boolean = true,
+        val onManualSkip: Boolean = false,
+    )
 
     /** The facts one decision needs; the service reads them from the player and the queue. */
     data class Moment(
@@ -73,6 +85,21 @@ internal object CrossfadePolicy {
         val fadeMs = fadeMediaMs(moment.fadeSeconds, moment.speed)
         if (moment.durationMs < fadeMs + MIN_REST_MS) return null
         return moment.durationMs - fadeMs
+    }
+
+    /**
+     * Where a song the user skipped away from comes back to fade under the next one, or null when it
+     * should simply stop: skipped in its first moments, too near its end, or it stopped by failing.
+     */
+    fun skipResumeMs(
+        positionMs: Long,
+        leadMs: Long,
+        durationMs: Long?,
+        failed: Boolean,
+    ): Long? {
+        if (durationMs == null || failed || positionMs < MIN_SKIP_PLAYED_MS) return null
+        val resumeAt = positionMs + leadMs
+        return resumeAt.takeIf { it + MIN_FADE_MS <= durationMs }
     }
 
     /** The last position a song can change hands at and still have a fade worth hearing. */

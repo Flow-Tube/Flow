@@ -386,13 +386,10 @@ class Media3MusicService : MediaLibraryService() {
             }
     }
 
-    private fun crossfadeMoment(
-        fadeSeconds: Int,
-        keepAlbumsGapless: Boolean,
-    ): CrossfadePolicy.Moment {
+    private fun crossfadeMoment(settings: CrossfadePolicy.Settings): CrossfadePolicy.Moment {
         val next = player.nextMediaItemIndex.takeIf { it != C.INDEX_UNSET }?.let(player::getMediaItemAt)
         return CrossfadePolicy.Moment(
-            fadeSeconds = fadeSeconds,
+            fadeSeconds = settings.seconds,
             playing = player.playWhenReady,
             hasNext = next != null,
             repeatsOne = player.repeatMode == Player.REPEAT_MODE_ONE,
@@ -401,7 +398,7 @@ class Media3MusicService : MediaLibraryService() {
             showsVideo = C.TRACK_TYPE_VIDEO !in player.trackSelectionParameters.disabledTrackTypes,
             pausesAtEndOfSong = io.github.aedev.flow.player.SleepTimerManager.pauseAtEndOfMedia,
             nextIsSameAlbum = next != null && sameAlbum(player.currentMediaItem?.mediaId, next.mediaId),
-            keepAlbumsGapless = keepAlbumsGapless,
+            keepAlbumsGapless = settings.keepAlbumsGapless,
         )
     }
 
@@ -545,11 +542,17 @@ class Media3MusicService : MediaLibraryService() {
         musicResume.attach(player)
         crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
         lifecycleScope.launch {
-            combine(prefs.musicCrossfadeSeconds, prefs.musicCrossfadeKeepAlbums, prefs.musicCrossfadeCurve, ::Triple)
-                .collect { (seconds, keepAlbums, curve) ->
-                    crossfader?.setSettings(seconds, keepAlbums, curve)
-                    updateOffload { it.copy(crossfade = seconds > 0) }
-                }
+            combine(
+                prefs.musicCrossfadeSeconds,
+                prefs.musicCrossfadeKeepAlbums,
+                prefs.musicCrossfadeCurve,
+                prefs.musicCrossfadeOnAutoAdvance,
+                prefs.musicCrossfadeOnManualSkip,
+                CrossfadePolicy::Settings,
+            ).collect { settings ->
+                crossfader?.setSettings(settings)
+                updateOffload { it.copy(crossfade = settings.seconds > 0) }
+            }
         }
 
         player.addListener(

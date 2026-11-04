@@ -423,6 +423,24 @@ internal object PlaybackIndex {
             section = R.string.settings_section_music,
             destination = page,
         )
+    val crossfadeOnAutoAdvance =
+        SettingEntry(
+            key = "playback.crossfade_auto_advance",
+            title = R.string.settings_crossfade_auto_title,
+            summary = R.string.settings_crossfade_auto_summary,
+            section = R.string.settings_section_music,
+            destination = page,
+            revealVia = "playback.crossfade",
+        )
+    val crossfadeOnManualSkip =
+        SettingEntry(
+            key = "playback.crossfade_manual_skip",
+            title = R.string.settings_crossfade_skip_title,
+            summary = R.string.settings_crossfade_skip_summary,
+            section = R.string.settings_section_music,
+            destination = page,
+            revealVia = "playback.crossfade",
+        )
     val crossfadeKeepAlbums =
         SettingEntry(
             key = "playback.crossfade_keep_albums",
@@ -537,6 +555,8 @@ internal object PlaybackIndex {
                 endlessRadio,
                 pauseMusicWhenMuted,
                 crossfade,
+                crossfadeOnAutoAdvance,
+                crossfadeOnManualSkip,
                 crossfadeKeepAlbums,
                 crossfadeCurve,
                 musicResume,

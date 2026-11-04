@@ -116,7 +116,14 @@ class PlaybackSettingsViewModel
         val crossfadeKeepAlbums = preferences.musicCrossfadeKeepAlbums.asState(true)
         val crossfadeCurve = preferences.musicCrossfadeCurve.asState(CrossfadeCurve.EQUAL_POWER)
 
+        val crossfadeOnAutoAdvance = preferences.musicCrossfadeOnAutoAdvance.asState(true)
+        val crossfadeOnManualSkip = preferences.musicCrossfadeOnManualSkip.asState(false)
+
         fun setCrossfadeCurve(curve: CrossfadeCurve) = write { preferences.setMusicCrossfadeCurve(curve) }
+
+        fun setCrossfadeOnAutoAdvance(enabled: Boolean) = write { preferences.setMusicCrossfadeOnAutoAdvance(enabled) }
+
+        fun setCrossfadeOnManualSkip(enabled: Boolean) = write { preferences.setMusicCrossfadeOnManualSkip(enabled) }
 
         fun setCrossfadeSeconds(seconds: Int) = write { preferences.setMusicCrossfadeSeconds(seconds) }
 

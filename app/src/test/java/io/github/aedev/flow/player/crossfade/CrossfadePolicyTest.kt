@@ -158,4 +158,28 @@ class CrossfadePolicyTest {
         assertThat(CrossfadeCurve.fromString(null)).isEqualTo(CrossfadeCurve.EQUAL_POWER)
         assertThat(CrossfadeCurve.fromString("SOMETHING_NEW")).isEqualTo(CrossfadeCurve.EQUAL_POWER)
     }
+
+    @Test
+    fun `a skipped song comes back ahead of where it stopped`() {
+        assertThat(CrossfadePolicy.skipResumeMs(positionMs = 30_000L, leadMs = 400L, durationMs = 200_000L, failed = false))
+            .isEqualTo(30_400L)
+    }
+
+    @Test
+    fun `a song barely heard, near its end, failed or of unknown length just stops on a skip`() {
+        val skip = { position: Long, duration: Long?, failed: Boolean -> CrossfadePolicy.skipResumeMs(position, 400L, duration, failed) }
+
+        assertThat(skip(900L, 200_000L, false)).isNull()
+        assertThat(skip(198_000L, 200_000L, false)).isNull()
+        assertThat(skip(30_000L, 200_000L, true)).isNull()
+        assertThat(skip(30_000L, null, false)).isNull()
+    }
+
+    @Test
+    fun `by default a song fades when it ends and Next stays immediate`() {
+        val defaults = CrossfadePolicy.Settings()
+
+        assertThat(defaults.onAutoAdvance).isTrue()
+        assertThat(defaults.onManualSkip).isFalse()
+    }
 }
