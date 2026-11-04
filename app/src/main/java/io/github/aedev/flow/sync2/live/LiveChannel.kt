@@ -7,6 +7,7 @@ import io.github.aedev.flow.platform.DeviceFormFactorDetector
 import io.github.aedev.flow.sync2.data.GroupRecord
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.data.LiveCounterRow
+import io.github.aedev.flow.sync2.data.RosterRow
 import io.github.aedev.flow.sync2.device.DeviceKeys
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.linking.deviceNames
@@ -47,7 +48,7 @@ class LiveChannel
         private val transports = MutableStateFlow<Set<LiveTransport>>(emptySet())
         private val arrivals = MutableSharedFlow<LiveReceived>(extraBufferCapacity = 64)
         private val sealed = MutableSharedFlow<ByteArray>(extraBufferCapacity = 16)
-        private var cached: Pair<GroupRecord, Session>? = null
+        private var cached: Pair<Pair<GroupRecord, List<RosterRow>>, Session>? = null
 
         /** Whether any device can be reached now, through the server or the LAN. */
         val connected: StateFlow<Set<LiveTransport>> = transports.asStateFlow()
@@ -97,12 +98,12 @@ class LiveChannel
 
         private fun presence(): LiveMessage.Presence = LiveMessage.Presence(listOf("play", "remote"), deviceKind(context))
 
-        /** A session on what this device holds, kept until the group's record changes. */
+        /** A session on what this device holds, kept until the group's record or roster changes. */
         private suspend fun session(): Session? {
-            val record = db.groups().group() ?: return null
-            cached?.takeIf { it.first == record }?.let { return it.second }
+            val current = (db.groups().group() ?: return null) to db.groups().roster()
+            cached?.takeIf { it.first == current }?.let { return it.second }
             return try {
-                Session.open(db, GroupStore(local, null), keys.load()).also { cached = record to it }
+                Session.open(db, GroupStore(local, null), keys.load()).also { cached = current to it }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
