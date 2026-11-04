@@ -10,23 +10,23 @@ import kotlin.math.roundToInt
 @UnstableApi
 class PlaybackAnalyticsLogger(
     private val tag: String,
-    private val videoIdProvider: () -> String? = { null }
+    private val videoIdProvider: () -> String? = { null },
 ) : AnalyticsListener {
-
-    private var activeDecoderName: String? = null
+    var activeDecoderName: String? = null
+        private set
     private var activeFormatSummary: String = "unknown"
     private var droppedFramesSinceFormatChange: Int = 0
 
     override fun onVideoInputFormatChanged(
         eventTime: AnalyticsListener.EventTime,
         format: Format,
-        decoderReuseEvaluation: DecoderReuseEvaluation?
+        decoderReuseEvaluation: DecoderReuseEvaluation?,
     ) {
         droppedFramesSinceFormatChange = 0
         activeFormatSummary = format.summary()
         PlayerDiagnostics.logInfo(
             tag,
-            "Video format: videoId=${videoIdProvider() ?: "unknown"} $activeFormatSummary"
+            "Video format: videoId=${videoIdProvider() ?: "unknown"} $activeFormatSummary",
         )
     }
 
@@ -34,13 +34,15 @@ class PlaybackAnalyticsLogger(
         eventTime: AnalyticsListener.EventTime,
         decoderName: String,
         initializedTimestampMs: Long,
-        initializationDurationMs: Long
+        initializationDurationMs: Long,
     ) {
         activeDecoderName = decoderName
-        val isSoftware = decoderName.startsWith("c2.android.") ||
-            decoderName.startsWith("OMX.google.")
-        val message = "Video decoder: $decoderName (${if (isSoftware) "SOFTWARE" else "hardware"}) " +
-            "init=${initializationDurationMs}ms format=$activeFormatSummary"
+        val isSoftware =
+            decoderName.startsWith("c2.android.") ||
+                decoderName.startsWith("OMX.google.")
+        val message =
+            "Video decoder: $decoderName (${if (isSoftware) "SOFTWARE" else "hardware"}) " +
+                "init=${initializationDurationMs}ms format=$activeFormatSummary"
         if (isSoftware) {
             PlayerDiagnostics.logWarning(tag, "⚠ SOFTWARE video decode — high battery cost. $message")
         } else {
@@ -51,19 +53,20 @@ class PlaybackAnalyticsLogger(
     override fun onDroppedVideoFrames(
         eventTime: AnalyticsListener.EventTime,
         droppedFrames: Int,
-        elapsedMs: Long
+        elapsedMs: Long,
     ) {
         droppedFramesSinceFormatChange += droppedFrames
-        val severity = if (droppedFrames >= 5 || droppedFramesSinceFormatChange >= 20) {
-            "Dropped video frames"
-        } else {
-            "Minor video frame drops"
-        }
+        val severity =
+            if (droppedFrames >= 5 || droppedFramesSinceFormatChange >= 20) {
+                "Dropped video frames"
+            } else {
+                "Minor video frame drops"
+            }
         PlayerDiagnostics.logWarning(
             tag,
             "$severity: +$droppedFrames in ${elapsedMs}ms, total=$droppedFramesSinceFormatChange, " +
                 "decoder=${activeDecoderName ?: "unknown"}, format=$activeFormatSummary, " +
-                "videoId=${videoIdProvider() ?: "unknown"}"
+                "videoId=${videoIdProvider() ?: "unknown"}",
         )
     }
 

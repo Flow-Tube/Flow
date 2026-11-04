@@ -30,6 +30,7 @@ data class VideoPlayerUiState(
     val isNotificationsEnabled: Boolean = false,
     val likeState: String? = null,
     val channelSubscriberCount: Long? = null,
+    val streamClient: String? = null,
     val channelAvatarUrl: String? = null,
     val chapters: List<StreamSegment> = emptyList(),
     val storyboard: List<StoryboardLevel> = emptyList(),

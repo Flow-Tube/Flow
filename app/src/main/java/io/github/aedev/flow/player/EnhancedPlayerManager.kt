@@ -70,6 +70,7 @@ import io.github.aedev.flow.player.state.PlaybackCompletion
 import io.github.aedev.flow.player.state.QualityOption
 import io.github.aedev.flow.player.state.SubtitleLoadFailure
 import io.github.aedev.flow.player.state.queuePresence
+import io.github.aedev.flow.player.stats.PlayerStatsReadings
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InnerTubeVideoMapper
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
@@ -141,6 +142,7 @@ class EnhancedPlayerManager private constructor() {
     private var player: ExoPlayer? = null
     private var trackSelector: DefaultTrackSelector? = null
     private var bandwidthMeter: DefaultBandwidthMeter? = null
+    private var analyticsLogger: PlaybackAnalyticsLogger? = null
     private var videoEqualizer: EqualizerAudioProcessor? = null
     private var eqObserver: Job? = null
     private var audioEffects: AudioEffectsEntryPoint? = null
@@ -758,7 +760,7 @@ class EnhancedPlayerManager private constructor() {
                 bandwidthMeter = bandwidthMeter!!,
                 dataSourceFactory = cacheManager?.getDataSourceFactory(),
             )
-        player?.addAnalyticsListener(PlaybackAnalyticsLogger(TAG) { currentVideoId })
+        analyticsLogger = PlaybackAnalyticsLogger(TAG) { currentVideoId }.also { player?.addAnalyticsListener(it) }
         player?.addAnalyticsListener(
             RenderedFirstFrameListener(currentVideoId = { currentVideoId }) { videoId -> _firstFrameVideoId.value = videoId },
         )
@@ -2659,6 +2661,13 @@ class EnhancedPlayerManager private constructor() {
     }
 
     fun getPlayer(): ExoPlayer? = player
+
+    internal fun statsReadings(): PlayerStatsReadings =
+        PlayerStatsReadings(
+            bandwidthBitsPerSecond = bandwidthMeter?.bitrateEstimate ?: 0L,
+            decoderName = analyticsLogger?.activeDecoderName,
+            gainDb = audioFeaturesManager?.appliedLoudnessDb,
+        )
 
     fun getCastVideoStreams(): List<VideoStream> = availableVideoStreams
 

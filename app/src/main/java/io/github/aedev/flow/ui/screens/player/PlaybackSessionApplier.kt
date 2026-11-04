@@ -372,32 +372,33 @@ internal class PlaybackSessionApplier(
         )
 
         uiState.update {
-            it.applyVodStreams(
-                cachedVideo = identity.enrichedVideo,
-                // A stream that was live but is not now. The extractor reported this as a
-                // POST_LIVE_STREAM type; the player response splits it across two flags.
-                isArchivedLivestream =
-                    result.playerResponse.videoDetails?.isLiveContent == true &&
-                        result.playerResponse.videoDetails?.isLive != true,
-                relatedVideos = relatedVideos,
-                videoStream = streams.videoStream,
-                audioStream = streams.audioStream,
-                availableQualities = streams.availableQualities,
-                savedPositionMs = savedPositionMs,
-                isAdaptiveMode = streams.isAdaptiveMode,
-                autoplayEnabled = autoplay,
-                innerTubeVideoFormats = result.videoFormats,
-                innerTubeAudioFormats = result.audioFormats,
-                streamSizes = streams.streamSizes,
-                storyboard =
-                    StoryboardSpec.parse(
-                        spec =
-                            result.playerResponse.storyboards
-                                ?.playerStoryboardSpecRenderer
-                                ?.spec,
-                        durationMs = streams.durationSeconds * 1000L,
-                    ),
-            )
+            it
+                .applyVodStreams(
+                    cachedVideo = identity.enrichedVideo,
+                    // A stream that was live but is not now. The extractor reported this as a
+                    // POST_LIVE_STREAM type; the player response splits it across two flags.
+                    isArchivedLivestream =
+                        result.playerResponse.videoDetails?.isLiveContent == true &&
+                            result.playerResponse.videoDetails?.isLive != true,
+                    relatedVideos = relatedVideos,
+                    videoStream = streams.videoStream,
+                    audioStream = streams.audioStream,
+                    availableQualities = streams.availableQualities,
+                    savedPositionMs = savedPositionMs,
+                    isAdaptiveMode = streams.isAdaptiveMode,
+                    autoplayEnabled = autoplay,
+                    innerTubeVideoFormats = result.videoFormats,
+                    innerTubeAudioFormats = result.audioFormats,
+                    streamSizes = streams.streamSizes,
+                    storyboard =
+                        StoryboardSpec.parse(
+                            spec =
+                                result.playerResponse.storyboards
+                                    ?.playerStoryboardSpecRenderer
+                                    ?.spec,
+                            durationMs = streams.durationSeconds * 1000L,
+                        ),
+                ).copy(streamClient = result.usedClient.clientName)
         }
 
         // Queue and preloaded playback may already own this media item. Arm secondary metadata

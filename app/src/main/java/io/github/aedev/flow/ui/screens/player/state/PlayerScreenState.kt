@@ -10,6 +10,7 @@ import io.github.aedev.flow.ui.components.videoplayer.subtitle.SubtitleStyle
 class PlayerScreenState {
     // UI Visibility States
     var showControls by mutableStateOf(true)
+    var showStatsForNerds by mutableStateOf(false)
     var isTouchLocked by mutableStateOf(false)
     var lockOverlayRevealSignal by mutableIntStateOf(0)
     var isFullscreen by mutableStateOf(false)

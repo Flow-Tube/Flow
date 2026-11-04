@@ -135,6 +135,7 @@ internal fun PlayerSettingsSheetHost(
         onLoopToggle = { viewModel.toggleLoop(it) },
         ambientModeEnabled = ambientModeEnabled,
         onAmbientModeToggle = { scope.launch { playerPreferences.setVideoAmbientModeEnabled(it) } },
+        onStatsForNerds = { screenState.showStatsForNerds = true },
         onCastClick = {
             DlnaCastManager.startDiscovery(context)
             screenState.open(PlayerSheet.Dlna)
