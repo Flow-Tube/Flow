@@ -228,9 +228,15 @@ class MainActivity : ComponentActivity() {
                 hasActiveVideo = hasActiveVideo,
             )
 
+        val shouldKeepPausedVideo =
+            BackgroundPlaybackPolicy.shouldKeepPausedVideo(
+                explicitBackgroundPlaybackActive = GlobalPlayerState.isExplicitBackgroundPlaybackActive.value,
+                hasLoadedVideo = playerState.currentVideoId != null,
+            )
+
         if (shouldKeepBackgroundPlayback) {
             handOffVideoPlaybackToBackground()
-        } else if (!isChangingConfigurations) {
+        } else if (!shouldKeepPausedVideo && !isChangingConfigurations) {
             GlobalPlayerState.release()
         }
         super.onDestroy()
