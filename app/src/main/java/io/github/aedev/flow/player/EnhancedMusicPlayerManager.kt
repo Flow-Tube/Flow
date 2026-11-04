@@ -400,10 +400,6 @@ object EnhancedMusicPlayerManager {
 
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                     Log.e("EnhancedMusicPlayer", "Player error: ${error.errorCodeName} (${error.errorCode})", error)
-                    showPlaybackWarning(
-                        appContext?.getString(io.github.aedev.flow.R.string.music_playback_warning_generic)
-                            ?: "Music playback failed. Try again or switch networks.",
-                    )
                     retryCount = 0
                 }
             },

@@ -931,6 +931,7 @@ class Media3MusicService : MediaLibraryService() {
             )
         if (failed == null) {
             Log.e(TAG, "Player error with no resolvable media item", error)
+            notifyMusicWarning(getString(R.string.music_playback_warning_generic))
             return
         }
         val mediaId = failed.mediaId
@@ -955,6 +956,7 @@ class Media3MusicService : MediaLibraryService() {
 
         if (recentlyFailedSongs.contains(mediaId)) {
             Log.w(TAG, "$mediaId is in recently failed list, skipping to next")
+            notifyMusicWarning(getString(R.string.music_playback_warning_generic))
             skipOrStop(failed, gone = false)
             return
         }
