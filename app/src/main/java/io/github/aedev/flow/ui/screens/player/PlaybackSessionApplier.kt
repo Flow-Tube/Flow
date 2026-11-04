@@ -122,6 +122,7 @@ internal class PlaybackSessionApplier(
     fun applySecondary(result: SecondaryMetadata) {
         when (result) {
             is SecondaryMetadata.Channel -> applyChannelMetadata(result)
+            is SecondaryMetadata.PaidPromotion -> applyPaidPromotion(result)
             is SecondaryMetadata.Related -> publishRelatedVideos(result.videoId, result.videos, result.loadToken)
             is SecondaryMetadata.LiveWatch -> applyLiveWatchMetadata(result)
             is SecondaryMetadata.Category -> applyCategory(result)
@@ -412,6 +413,7 @@ internal class PlaybackSessionApplier(
         secondaryMetadata.loadCategory(videoId, load.token)
         secondaryMetadata.loadHeatmap(videoId, load.token)
         secondaryMetadata.loadChapters(videoId, load.token)
+        secondaryMetadata.loadPaidPromotion(videoId, load.token)
         secondaryMetadata.loadWatchInfo(videoId, identity.enrichedVideo, load.token)
         secondaryMetadata.loadChannelMetadata(
             videoId = videoId,
@@ -459,6 +461,11 @@ internal class PlaybackSessionApplier(
             awaitPlayback = false,
         )
         secondaryMetadata.loadRelatedVideos(load.videoId, relatedVideos, load.token, awaitPlayback = false)
+    }
+
+    private fun applyPaidPromotion(result: SecondaryMetadata.PaidPromotion) {
+        if (!isLoadCurrent(result.loadToken)) return
+        uiState.update { it.copy(paidPromotion = result.label) }
     }
 
     private fun applyHeatmap(result: SecondaryMetadata.Heatmap) {

@@ -472,6 +472,22 @@ class InnerTube {
         )
     }
 
+    /** A player request for the paid promotion label alone: a few hundred bytes, not the whole response. */
+    suspend fun paidPromotion(videoId: String) =
+        withRetry {
+            httpClient.post("${YouTubeClient.API_URL_YOUTUBE}player") {
+                ytClient(YouTubeClient.IOS, apiUrl = YouTubeClient.API_URL_YOUTUBE)
+                header("X-Goog-FieldMask", "miniPlayerByline,playabilityStatus.status")
+                setBody(
+                    PlayerBody(
+                        context = YouTubeClient.IOS.toContext(locale, visitorData, dataSyncId),
+                        videoId = videoId,
+                        playlistId = null,
+                    ),
+                )
+            }
+        }
+
     suspend fun player(
         client: YouTubeClient,
         videoId: String,

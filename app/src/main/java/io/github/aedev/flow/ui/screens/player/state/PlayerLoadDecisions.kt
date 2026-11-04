@@ -63,6 +63,7 @@ internal fun VideoPlayerUiState.beginLoadFor(videoId: String): VideoPlayerUiStat
                 ?.takeIf { it.isNotBlank() },
         channelSubscriberCount = null,
         streamClient = null,
+        paidPromotion = null,
         dislikeCount = null,
         isSubscribed = isSubscribed && cachedVideo?.id == videoId,
         likeState = likeState.takeIf { cachedVideo?.id == videoId },
@@ -100,6 +101,7 @@ internal fun VideoPlayerUiState.startPlaybackOf(video: Video): VideoPlayerUiStat
         channelAvatarUrl = video.channelThumbnailUrl.takeIf { it.isNotBlank() },
         channelSubscriberCount = null,
         streamClient = null,
+        paidPromotion = null,
     )
 
 /** The same, for a file on the device: nothing is loading because there is nothing to fetch. */

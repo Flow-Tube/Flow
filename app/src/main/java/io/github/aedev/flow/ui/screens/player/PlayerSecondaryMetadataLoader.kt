@@ -5,6 +5,7 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 import io.github.aedev.flow.data.repository.YouTubeRepository
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.player.EnhancedPlayerManager
@@ -46,6 +47,12 @@ internal sealed interface SecondaryMetadata {
         override val videoId: String,
         override val loadToken: Long,
         val category: String,
+    ) : SecondaryMetadata
+
+    class PaidPromotion(
+        override val videoId: String,
+        override val loadToken: Long,
+        val label: PaidPromotionLabel,
     ) : SecondaryMetadata
 
     class Heatmap(
@@ -145,6 +152,7 @@ internal class PlayerSecondaryMetadataLoader(
     private val categoryLoad = ConcurrentLoad()
     private val heatmapLoad = ConcurrentLoad()
     private val chaptersLoad = ConcurrentLoad()
+    private val paidPromotionLoad = ConcurrentLoad()
     private val watchInfoLoad = ConcurrentLoad()
 
     /** Drops every fetch in flight; the next load re-arms the ones it needs. */
@@ -154,7 +162,31 @@ internal class PlayerSecondaryMetadataLoader(
         categoryLoad.cancel()
         heatmapLoad.cancel()
         chaptersLoad.cancel()
+        paidPromotionLoad.cancel()
         watchInfoLoad.cancel()
+    }
+
+    /**
+     * Whether the creator declared paid promotion. Only asked for while the switch is on, because no
+     * response the player already fetches says so.
+     */
+    fun loadPaidPromotion(
+        videoId: String,
+        loadToken: Long,
+    ) {
+        if (!paidPromotionLoad.claim(videoId, loadToken)) return
+
+        paidPromotionLoad.job =
+            scope.launch(networkDispatcher) {
+                if (!playerPreferences.paidPromotionLabel.first()) return@launch
+                awaitPlaybackStarted(videoId)
+                if (!isPlaybackCurrent(loadToken)) return@launch
+                val label =
+                    withTimeoutOrNull(PAID_PROMOTION_TIMEOUT_MS) { repository.paidPromotion(videoId) }
+                        ?: return@launch
+                if (!isPlaybackCurrent(loadToken) || !paidPromotionLoad.holds(videoId, loadToken)) return@launch
+                onResult(SecondaryMetadata.PaidPromotion(videoId, loadToken, label))
+            }
     }
 
     /** The rewatch curve, off the watch response the description and comments already fetch. */
@@ -490,6 +522,7 @@ internal class PlayerSecondaryMetadataLoader(
         const val CATEGORY_TIMEOUT_MS = 8_000L
         const val HEATMAP_TIMEOUT_MS = 8_000L
         const val CHAPTERS_TIMEOUT_MS = 8_000L
+        const val PAID_PROMOTION_TIMEOUT_MS = 8_000L
         const val WATCH_INFO_TIMEOUT_MS = 8_000L
     }
 }

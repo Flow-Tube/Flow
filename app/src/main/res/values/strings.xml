@@ -922,6 +922,9 @@
     <string name="shorts_player_ui_impressive">Impressive</string>
     <string name="player_appearance_grouped_quality_selector_title">Grouped quality selector</string>
     <string name="player_appearance_grouped_quality_selector_subtitle">One row per resolution, with codecs inside</string>
+    <string name="player_appearance_paid_promotion_title">Show paid promotion label</string>
+    <string name="player_appearance_paid_promotion_subtitle">Say when a creator declared paid promotion</string>
+    <string name="paid_promotion_label">Includes paid promotion</string>
     <string name="stats_for_nerds">Stats for nerds</string>
     <string name="stats_copy">Copy</string>
     <string name="stats_line">%1$s: %2$s</string>

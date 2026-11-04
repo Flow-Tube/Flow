@@ -38,6 +38,8 @@ import io.github.aedev.flow.innertube.models.response.GetSearchSuggestionsRespon
 import io.github.aedev.flow.innertube.models.response.GetTranscriptResponse
 import io.github.aedev.flow.innertube.models.response.ImageUploadResponse
 import io.github.aedev.flow.innertube.models.response.NextResponse
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
+import io.github.aedev.flow.innertube.models.response.PaidPromotionResponse
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.models.response.ResolveUrlResponse
 import io.github.aedev.flow.innertube.models.response.SearchResponse
@@ -2419,6 +2421,9 @@ object YouTube {
                 ?.category
                 ?.takeIf { it.isNotBlank() }
         }
+
+    suspend fun paidPromotion(videoId: String): Result<PaidPromotionLabel?> =
+        runCatching { innerTube.paidPromotion(videoId).body<PaidPromotionResponse>().label() }
 
     /**
      * The raw web watch response for [videoId].
