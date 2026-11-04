@@ -9,6 +9,12 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+/** Tags that repeat dozens of times per video surface and push real errors out of a report. */
+private val SILENCED_LOG_TAGS = listOf("BufferQueueProducer", "Codec2Client")
+
+/** Mali driver lines log under the process name, so they cannot be silenced by tag. */
+internal fun withoutDriverNoise(logs: String): String = logs.lineSequence().filterNot { "MALI DEBUG" in it }.joinToString("\n")
+
 /**
  * On-demand diagnostics helper.
  *
@@ -36,17 +42,14 @@ object FlowDiagnostics {
             // --pid restricts output to this process only; *:W = WARN level and above.
             val process =
                 ProcessBuilder(
-                    "logcat",
-                    "--pid=$pid",
-                    "-d",
-                    "-t",
-                    maxLines.toString(),
-                    "*:W",
+                    listOf("logcat", "--pid=$pid", "-d", "-t", maxLines.toString()) +
+                        SILENCED_LOG_TAGS.map { "$it:S" } +
+                        "*:W",
                 ).redirectErrorStream(true)
                     .start()
             val output = process.inputStream.bufferedReader(Charsets.UTF_8).readText()
             process.waitFor()
-            output.ifBlank { "No warnings or errors found in this session." }
+            withoutDriverNoise(output).ifBlank { "No warnings or errors found in this session." }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to read session logcat", e)
             "Unable to read session logs: ${e.message}\n\n" +
@@ -69,6 +72,7 @@ object FlowDiagnostics {
     fun buildFullReport(
         context: Context,
         sessionLogs: String,
+        playbackErrors: String? = null,
     ): String =
         buildString {
             val ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US))
@@ -83,6 +87,13 @@ object FlowDiagnostics {
             appendLine("SESSION LOGS  (W/E level, current session)")
             appendLine("=".repeat(60))
             appendLine(sessionLogs)
+            playbackErrors?.takeIf(String::isNotBlank)?.let { errors ->
+                appendLine()
+                appendLine("=".repeat(60))
+                appendLine("RECENT PLAYBACK ERRORS  (persisted across sessions)")
+                appendLine("=".repeat(60))
+                appendLine(errors)
+            }
             recentExitsOrNull(context)?.let { exits ->
                 appendLine()
                 appendLine("=".repeat(60))
