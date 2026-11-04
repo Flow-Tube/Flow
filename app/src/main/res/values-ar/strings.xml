@@ -4986,7 +4986,7 @@
     <string name="linked_reset_server_title">هل تريد إعادة تعيين الخادم؟</string>
     <string name="linked_reset_server_warning">سيؤدي هذا إلى حذف المجموعة وجميع بياناتها المتزامنة على الخادم نهائيًا من جميع الأجهزة. ستتوقف الأجهزة التي لا تزال ضمن المجموعة عن المزامنة، لكن البيانات الموجودة على كل جهاز ستبقى محفوظة. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="linked_reset_server_confirm">إعادة تعيين وإنشاء</string>
-    <string name="linked_error_stopped">أوقف الجهاز الآخر عملية الاقتران. تحقّق من وجود رسالة عليه، ثم حاول مرة أخرى.</string>
+    <string name="linked_error_stopped">توقف الجهاز الآخر عن الاقتران. تحقق منه بحثًا عن رسالة، ثم حاول مرة أخرى.</string>
     <string name="linked_error_busy">الخادم مشغول حاليًا. انتظر دقيقة، ثم حاول مرة أخرى.</string>
     <string name="play_on_title">تشغيل على</string>
     <string name="play_on_subtitle">اختر أين يتم التشغيل</string>
@@ -5082,4 +5082,28 @@
         <item quantity="other">%d يوم</item>
     </plurals>
     <string name="new_badge_label">جديد</string>
+    <string name="linked_always_intro">تبقى أجهزتك متزامنة طوال الوقت عبر خادم مزامنة Flow الخاص بك، أو مجلد WebDAV، أو شبكة Wi-Fi الخاصة بك. كل شيء مشفّر من طرف إلى طرف؛ لا يمكن لأي خادم قراءته.</string>
+    <string name="linked_replace_words">استبدال كلمات الاسترداد</string>
+    <string name="linked_replace_words_hint">احصل على كلمات جديدة إذا فُقدت الكلمات القديمة أو رآها شخص آخر</string>
+    <string name="linked_replace_words_title">هل تريد استبدال كلمات الاسترداد الخاصة بك؟</string>
+    <string name="linked_replace_words_body">ينشئ Flow كلمات استرداد جديدة ومفاتيح تشفير جديدة لأجهزتك. تتوقف الكلمات القديمة عن العمل: فلا يمكنها استعادة هذه المجموعة أو قراءة أي شيء تتم مزامنته من الآن فصاعدًا. اكتب الكلمات الجديدة عندما تظهر.</string>
+    <string name="linked_replace">استبدال</string>
+    <string name="sync_devices_summary">أبقِ المكتبة والسجل والملف الشخصي متزامنة عبر أجهزتك، بتشفير من طرف إلى طرف</string>
+    <string name="sync_one_time_title">نقل لمرة واحدة</string>
+    <string name="sync_one_time_body">انسخ مكتبتك وسجلك وإعجاباتك وإعداداتك إلى جهاز آخر مرة واحدة، عبر Wi-Fi. لا شيء يغادر شبكتك.</string>
+    <string name="settings_crossfade_auto_title">التلاشي عند انتهاء الأغنية</string>
+    <string name="settings_crossfade_auto_summary">الانتقال بسلاسة إلى الأغنية التالية تلقائيًا</string>
+    <string name="settings_crossfade_skip_title">التلاشي عند التخطي</string>
+    <string name="settings_crossfade_skip_summary">الانتقال بسلاسة إلى الأغنية التي تتخطى إليها</string>
+    <string name="settings_crossfade_curve_title">منحنى التلاشي</string>
+    <string name="crossfade_curve_equal_power_detail">مستوى صوت ثابت طوال التلاشي بأكمله</string>
+    <string name="crossfade_curve_equal_power">صوت متساوي</string>
+    <string name="crossfade_curve_s_curve">سلس</string>
+    <string name="crossfade_curve_s_curve_detail">يبدأ وينتهي تدريجيًا، ويتغير في المنتصف</string>
+    <string name="crossfade_curve_hold">ثابت</string>
+    <string name="crossfade_curve_hold_detail">يُبقي على الأغنية الحالية، ثم ينتقل متأخرًا</string>
+    <string name="crossfade_curve_gentle">هادئ</string>
+    <string name="crossfade_curve_gentle_detail">أكثر نعومة في منتصف التلاشي</string>
+    <string name="cache_size_unit_mb">م.ب</string>
+    <string name="cache_size_unit_gb">غ.ب</string>
 </resources>
