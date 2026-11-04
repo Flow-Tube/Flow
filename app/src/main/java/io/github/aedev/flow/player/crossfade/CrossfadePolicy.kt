@@ -15,6 +15,15 @@ internal object CrossfadePolicy {
     /** The tail starts muted this long before the fade, to line its position up with the session player's. */
     const val ALIGN_WINDOW_MS = 3_000L
 
+    /** After a seek close to the end, the tail gets this long to buffer before it has to start. */
+    const val LATE_READY_LEAD_MS = 1_500L
+
+    /** A fade shorter than this is not worth it; closer to the end, the song just ends. */
+    private const val MIN_FADE_MS = 2_000L
+
+    /** The least time a tail needs to line up; a tail starting with less would only be dropped. */
+    private const val MIN_LINE_UP_MS = 1_000L
+
     /** Positions within this of each other are the same moment of the song, so the hand-off is inaudible. */
     const val ALIGNED_WITHIN_MS = 15L
 
@@ -61,7 +70,38 @@ internal object CrossfadePolicy {
         return moment.durationMs - fadeMs
     }
 
-    /** The outgoing song's gain [progress] of the way through the fade; equal power, so the blend keeps its loudness. */
+    /** The last position a song can change hands at and still have a fade worth hearing. */
+    fun latestHandOffMs(
+        durationMs: Long,
+        speed: Float,
+    ): Long = durationMs - (MIN_FADE_MS * speed).toLong()
+
+    /**
+     * The position the tail starts lining up at: the usual one before [fadeStartMs], or later when a
+     * seek left too little time to buffer. Null when even that leaves no room for a fade.
+     */
+    fun alignStartMs(
+        fadeStartMs: Long,
+        positionMs: Long,
+        durationMs: Long,
+        speed: Float,
+    ): Long? {
+        val start = maxOf(fadeStartMs - ALIGN_WINDOW_MS, positionMs + LATE_READY_LEAD_MS)
+        return start.takeIf { it + MIN_LINE_UP_MS <= latestHandOffMs(durationMs, speed) }
+    }
+
+    /** How long a fade lasts on the clock: the chosen seconds, or what is left of the song after a late seek. */
+    fun fadeClockMs(
+        fadeSeconds: Int,
+        positionMs: Long,
+        durationMs: Long,
+        speed: Float,
+    ): Long {
+        val leftOnClock = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong()
+        return minOf(fadeSeconds.coerceIn(0, MAX_SECONDS) * 1_000L, leftOnClock).coerceAtLeast(1L)
+    }
+
+    /** The outgoing song's gain [progress] of the way through the fade. */
     fun fadeOutGain(progress: Float): Float = cos(progress.coerceIn(0f, 1f) * PI / 2).toFloat()
 
     /** The incoming song's gain [progress] of the way through the fade. */

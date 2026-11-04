@@ -91,4 +91,32 @@ class CrossfadePolicyTest {
 
         assertThat(anchor.estimate(positionMs = 1_250L, nowMs = 340L, speed = 0.5f)).isEqualTo(1_300L)
     }
+
+    @Test
+    fun `with time to spare the tail lines up at the usual point`() {
+        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 100_000L, durationMs = 185_000L, speed = 1f))
+            .isEqualTo(176_000L)
+    }
+
+    @Test
+    fun `after a seek close to the end the tail gets a moment to buffer first`() {
+        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 175_000L, durationMs = 185_000L, speed = 1f))
+            .isEqualTo(176_500L)
+        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 167_000L, positionMs = 166_000L, durationMs = 173_000L, speed = 1f))
+            .isEqualTo(167_500L)
+    }
+
+    @Test
+    fun `a seek too close to the end leaves the song to end by itself`() {
+        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 181_400L, durationMs = 185_000L, speed = 1f))
+            .isNull()
+    }
+
+    @Test
+    fun `the fade lasts the chosen seconds, or what is left of the song on the clock`() {
+        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 170_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(6_000L)
+        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 181_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(4_000L)
+        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 181_000L, durationMs = 185_000L, speed = 2f)).isEqualTo(2_000L)
+        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 185_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(1L)
+    }
 }
