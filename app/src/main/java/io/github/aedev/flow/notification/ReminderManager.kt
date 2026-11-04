@@ -9,35 +9,40 @@ import android.provider.Settings
 import java.util.Calendar
 
 object ReminderManager {
-
     private const val ALARM_ID_BEDTIME = 101
-    private const val ALARM_ID_BREAK = 102
 
-    fun scheduleBedtimeReminder(context: Context, hour: Int, minute: Int) {
+    fun scheduleBedtimeReminder(
+        context: Context,
+        hour: Int,
+        minute: Int,
+    ) {
         if (!canScheduleExactAlarms(context)) {
             // If we can't schedule exact alarms, we can try to schedule inexact ones or just return.
             // For now, we'll try to schedule, and if it fails, we catch the exception.
         }
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-            putExtra("type", "bedtime")
-        }
-        
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_ID_BEDTIME,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val intent =
+            Intent(context, ReminderReceiver::class.java).apply {
+                putExtra("type", "bedtime")
+            }
+
+        val pendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                ALARM_ID_BEDTIME,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
         // Set calendar to next occurrence of hour:minute
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-        }
-        
+        val calendar =
+            Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+            }
+
         // If time has passed today, schedule for tomorrow
         if (calendar.timeInMillis <= System.currentTimeMillis()) {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
@@ -48,77 +53,46 @@ object ReminderManager {
 
     fun cancelBedtimeReminder(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-             putExtra("type", "bedtime") // Extras identify the pending intent filter equality in some cases, good practice to match
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_ID_BEDTIME,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val intent =
+            Intent(context, ReminderReceiver::class.java).apply {
+                putExtra("type", "bedtime") // Extras identify the pending intent filter equality in some cases, good practice to match
+            }
+        val pendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                ALARM_ID_BEDTIME,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
         alarmManager.cancel(pendingIntent)
     }
 
-    fun scheduleBreakReminder(context: Context, frequencyMinutes: Int) {
-         if (!canScheduleExactAlarms(context)) {
-             // Handle appropriately
-         }
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-            putExtra("type", "break")
-            putExtra("frequency", frequencyMinutes)
-        }
-        
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_ID_BREAK,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val triggerTime = System.currentTimeMillis() + (frequencyMinutes * 60 * 1000L)
-
-        scheduleAlarmSafe(context, alarmManager, triggerTime, pendingIntent)
-    }
-
-    fun cancelBreakReminder(context: Context) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-            putExtra("type", "break")
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_ID_BREAK,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pendingIntent)
-    }
-
-    private fun canScheduleExactAlarms(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    private fun canScheduleExactAlarms(context: Context): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             alarmManager.canScheduleExactAlarms()
         } else {
             true
         }
-    }
 
-    private fun scheduleAlarmSafe(context: Context, alarmManager: AlarmManager, triggerTime: Long, pendingIntent: PendingIntent) {
+    private fun scheduleAlarmSafe(
+        context: Context,
+        alarmManager: AlarmManager,
+        triggerTime: Long,
+        pendingIntent: PendingIntent,
+    ) {
         try {
             if (canScheduleExactAlarms(context)) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerTime,
-                    pendingIntent
+                    pendingIntent,
                 )
             } else {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerTime,
-                    pendingIntent
+                    pendingIntent,
                 )
             }
         } catch (e: SecurityException) {
