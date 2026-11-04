@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -57,6 +58,8 @@ fun SettingsHost(
     val navigator = rememberListDetailPaneScaffoldNavigator<String>(scaffoldDirective = rememberFlowPaneScaffoldDirective())
     val scope = rememberCoroutineScope()
     var stack by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    // A page leaves composition while a sub-page covers it; this keeps its scroll for the way back.
+    val pageStates = rememberSaveableStateHolder()
     var startConsumed by rememberSaveable { mutableStateOf(false) }
     val dpad = LocalDpadNavigation.current
     val listFocus = remember { FocusRequester() }
@@ -69,12 +72,25 @@ fun SettingsHost(
             navigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
     val current = stack.lastOrNull()?.let(SettingsTarget::decode) ?: SettingsTarget(SettingsDestination.APPEARANCE)
 
+    fun updateStack(next: List<String>) {
+        val kept = next.mapNotNull { SettingsTarget.decode(it)?.destination }
+        stack
+            .mapNotNull { SettingsTarget.decode(it)?.destination }
+            .filterNot { it in kept }
+            .forEach { pageStates.removeState(it.id) }
+        stack = next
+    }
+
     fun open(target: SettingsTarget) {
         // A new page takes focus as it enters; the one already open beside the list has to be asked.
         if (dpad && twoPane && target.destination == current.destination) pageFocus.requestFocus()
-        stack = target.destination.path
-            .dropLast(1)
-            .map { SettingsTarget(it).encode() } + target.encode()
+        // Opening from the list is a fresh visit, so even the page already showing starts from the top.
+        pageStates.removeState(target.destination.id)
+        updateStack(
+            target.destination.path
+                .dropLast(1)
+                .map { SettingsTarget(it).encode() } + target.encode(),
+        )
         scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, target.destination.root.id) }
     }
 
@@ -93,8 +109,9 @@ fun SettingsHost(
 
     fun back() {
         if (stack.size > 1) {
-            stack = stack.dropLast(1)
+            updateStack(stack.dropLast(1))
         } else {
+            pageStates.removeState(current.destination.id)
             scope.launch { if (!navigator.navigateBack()) onExit() }
         }
     }
@@ -147,13 +164,15 @@ fun SettingsHost(
                         label = "settingsDetail",
                     ) { target ->
                         Box(modifier = dpadFocusOnEnter()) {
-                            SettingsDetail(
-                                target = target,
-                                onBack = if (twoPane && stack.size <= 1) null else ::back,
-                                onNavigate = ::push,
-                                onOpenRecap = onOpenRecap,
-                                options = options,
-                            )
+                            pageStates.SaveableStateProvider(target.destination.id) {
+                                SettingsDetail(
+                                    target = target,
+                                    onBack = if (twoPane && stack.size <= 1) null else ::back,
+                                    onNavigate = ::push,
+                                    onOpenRecap = onOpenRecap,
+                                    options = options,
+                                )
+                            }
                         }
                     }
                 }
@@ -161,7 +180,7 @@ fun SettingsHost(
         )
     }
 
-    BackHandler(enabled = stack.size > 1) { stack = stack.dropLast(1) }
+    BackHandler(enabled = stack.size > 1) { updateStack(stack.dropLast(1)) }
 }
 
 /**
