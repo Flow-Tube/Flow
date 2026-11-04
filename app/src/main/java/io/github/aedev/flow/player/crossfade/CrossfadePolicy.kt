@@ -1,8 +1,10 @@
 package io.github.aedev.flow.player.crossfade
 
+import io.github.aedev.flow.data.local.CrossfadeCurve
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
 
 /** What decides whether, when and how a song blends into the next one (#1675). */
@@ -32,6 +34,9 @@ internal object CrossfadePolicy {
 
     /** The furthest the muted tail's speed moves from the session's while it catches up. */
     private const val MAX_NUDGE = 0.15f
+
+    /** The gentle curve's shape: its two gains add up to one, so the middle of the fade dips a little. */
+    private const val GENTLE_POWER = 1.6f
 
     /** The nudge closes the gap over about this long; a fixed horizon keeps it from overshooting. */
     private const val NUDGE_HORIZON_MS = 700f
@@ -102,10 +107,33 @@ internal object CrossfadePolicy {
     }
 
     /** The outgoing song's gain [progress] of the way through the fade. */
-    fun fadeOutGain(progress: Float): Float = cos(progress.coerceIn(0f, 1f) * PI / 2).toFloat()
+    fun fadeOutGain(
+        progress: Float,
+        curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
+    ): Float {
+        val p = progress.coerceIn(0f, 1f)
+        return if (curve == CrossfadeCurve.GENTLE) (1f - p).pow(GENTLE_POWER) else cos(eased(p, curve) * PI / 2).toFloat()
+    }
 
     /** The incoming song's gain [progress] of the way through the fade. */
-    fun fadeInGain(progress: Float): Float = sin(progress.coerceIn(0f, 1f) * PI / 2).toFloat()
+    fun fadeInGain(
+        progress: Float,
+        curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
+    ): Float {
+        val p = progress.coerceIn(0f, 1f)
+        return if (curve == CrossfadeCurve.GENTLE) 1f - (1f - p).pow(GENTLE_POWER) else sin(eased(p, curve) * PI / 2).toFloat()
+    }
+
+    /** Equal-power curves differ only in how time passes through them, so all of them keep the blend's loudness. */
+    private fun eased(
+        p: Float,
+        curve: CrossfadeCurve,
+    ): Float =
+        when (curve) {
+            CrossfadeCurve.S_CURVE -> p * p * (3f - 2f * p)
+            CrossfadeCurve.HOLD -> p * p
+            CrossfadeCurve.EQUAL_POWER, CrossfadeCurve.GENTLE -> p
+        }
 
     /**
      * The muted tail's speed while it lines up: a tail [deltaMs] ahead of the session player slows

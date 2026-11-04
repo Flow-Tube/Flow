@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.settings.playback
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.data.local.CrossfadeCurve
 import io.github.aedev.flow.data.local.DEFAULT_BACKGROUND_PLAY_ENABLED
 import io.github.aedev.flow.data.local.DEFAULT_KEEP_PLAYING_AFTER_SWIPE
 import io.github.aedev.flow.data.local.DEFAULT_SPEED_SWIPE_STEP
@@ -113,6 +114,9 @@ class PlaybackSettingsViewModel
         val musicResume = preferences.musicResumeLongTracks.asState(false)
         val crossfadeSeconds = preferences.musicCrossfadeSeconds.asState(0)
         val crossfadeKeepAlbums = preferences.musicCrossfadeKeepAlbums.asState(true)
+        val crossfadeCurve = preferences.musicCrossfadeCurve.asState(CrossfadeCurve.EQUAL_POWER)
+
+        fun setCrossfadeCurve(curve: CrossfadeCurve) = write { preferences.setMusicCrossfadeCurve(curve) }
 
         fun setCrossfadeSeconds(seconds: Int) = write { preferences.setMusicCrossfadeSeconds(seconds) }
 

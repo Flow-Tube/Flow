@@ -256,6 +256,7 @@ class PlayerPreferences(
         val MUSIC_RESUME_LONG_TRACKS = booleanPreferencesKey("music_resume_long_tracks")
         val MUSIC_CROSSFADE_SECONDS = intPreferencesKey("music_crossfade_seconds")
         val MUSIC_CROSSFADE_KEEP_ALBUMS = booleanPreferencesKey("music_crossfade_keep_albums")
+        val MUSIC_CROSSFADE_CURVE = stringPreferencesKey("music_crossfade_curve")
         val RECAP_SOURCE = stringPreferencesKey("recap_source")
         val HIDDEN_MUSIC_HOME_SHELVES = stringSetPreferencesKey("hidden_music_home_shelves")
         val HIDDEN_LIBRARY_SECTIONS = stringSetPreferencesKey("hidden_library_sections")
@@ -2421,6 +2422,18 @@ class PlayerPreferences(
         }
     }
 
+    /** How the two songs' volumes move during a crossfade. */
+    val musicCrossfadeCurve: Flow<CrossfadeCurve> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> CrossfadeCurve.fromString(preferences[Keys.MUSIC_CROSSFADE_CURVE]) }
+            .distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeCurve(curve: CrossfadeCurve) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_CURVE] = curve.name
+        }
+    }
+
     /** Podcasts and other long tracks pick up where they stopped when played again. */
     val musicResumeLongTracks: Flow<Boolean> =
         context.playerPreferencesDataStore.data
@@ -4191,6 +4204,19 @@ enum class SponsorBlockAction {
 
     companion object {
         fun fromString(name: String): SponsorBlockAction = entries.find { it.name == name } ?: SKIP
+    }
+}
+
+/** How the two songs' volumes move during a crossfade, in the order settings list them. */
+enum class CrossfadeCurve {
+    EQUAL_POWER,
+    S_CURVE,
+    HOLD,
+    GENTLE,
+    ;
+
+    companion object {
+        fun fromString(name: String?): CrossfadeCurve = entries.find { it.name == name } ?: EQUAL_POWER
     }
 }
 

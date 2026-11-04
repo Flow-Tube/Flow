@@ -545,10 +545,11 @@ class Media3MusicService : MediaLibraryService() {
         musicResume.attach(player)
         crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
         lifecycleScope.launch {
-            combine(prefs.musicCrossfadeSeconds, prefs.musicCrossfadeKeepAlbums, ::Pair).collect { (seconds, keepAlbums) ->
-                crossfader?.setSettings(seconds, keepAlbums)
-                updateOffload { it.copy(crossfade = seconds > 0) }
-            }
+            combine(prefs.musicCrossfadeSeconds, prefs.musicCrossfadeKeepAlbums, prefs.musicCrossfadeCurve, ::Triple)
+                .collect { (seconds, keepAlbums, curve) ->
+                    crossfader?.setSettings(seconds, keepAlbums, curve)
+                    updateOffload { it.copy(crossfade = seconds > 0) }
+                }
         }
 
         player.addListener(

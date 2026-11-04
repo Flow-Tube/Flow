@@ -11,6 +11,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.PlayerMessage
+import io.github.aedev.flow.data.local.CrossfadeCurve
 import kotlin.math.abs
 
 /**
@@ -45,6 +46,7 @@ internal class MusicCrossfader(
     private var stage = Stage.IDLE
     private var fadeSeconds = 0
     private var keepAlbumsGapless = true
+    private var curve = CrossfadeCurve.EQUAL_POWER
 
     private var tail: ExoPlayer? = null
     private var prepareMessage: PlayerMessage? = null
@@ -136,11 +138,13 @@ internal class MusicCrossfader(
 
     fun attach() = session.addListener(listener)
 
-    /** The chosen fade length (0 is off) and whether an album's tracks stay gapless. */
+    /** The chosen fade length (0 is off), whether an album's tracks stay gapless, and the fade's curve. */
     fun setSettings(
         seconds: Int,
         keepAlbums: Boolean,
+        fadeCurve: CrossfadeCurve,
     ) {
+        curve = fadeCurve
         if (seconds == fadeSeconds && keepAlbums == keepAlbumsGapless) return
         fadeSeconds = seconds
         keepAlbumsGapless = keepAlbums
@@ -309,8 +313,8 @@ internal class MusicCrossfader(
         val player = tail ?: return
         if (stage != Stage.FADING) return
         val progress = (SystemClock.elapsedRealtime() - fadeBeganAtMs).toFloat() / fadeClockMs
-        player.volume = tailGain * CrossfadePolicy.fadeOutGain(progress)
-        sessionScale = CrossfadePolicy.fadeInGain(progress)
+        player.volume = tailGain * CrossfadePolicy.fadeOutGain(progress, curve)
+        sessionScale = CrossfadePolicy.fadeInGain(progress, curve)
         onSessionScaleChanged()
         if (progress >= 1f || player.playbackState == Player.STATE_ENDED) {
             finish()

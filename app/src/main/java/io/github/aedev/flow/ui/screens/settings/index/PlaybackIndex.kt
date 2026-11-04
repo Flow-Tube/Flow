@@ -432,6 +432,14 @@ internal object PlaybackIndex {
             destination = page,
             revealVia = "playback.crossfade",
         )
+    val crossfadeCurve =
+        SettingEntry(
+            key = "playback.crossfade_curve",
+            title = R.string.settings_crossfade_curve_title,
+            section = R.string.settings_section_music,
+            destination = page,
+            revealVia = "playback.crossfade",
+        )
     val musicResume =
         SettingEntry(
             key = "playback.music_resume",
@@ -530,6 +538,7 @@ internal object PlaybackIndex {
                 pauseMusicWhenMuted,
                 crossfade,
                 crossfadeKeepAlbums,
+                crossfadeCurve,
                 musicResume,
                 resumeFromHeadphones,
                 musicSideSwipes,
