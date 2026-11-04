@@ -40,7 +40,7 @@ internal class UpcomingPremiereController(
     private val probe: UpcomingPremiereProbe,
     private val scope: CoroutineScope,
     private val isLoadCurrent: (Long) -> Boolean,
-    private val armMetadata: (videoId: String, channelId: String?) -> Unit,
+    private val armMetadata: (videoId: String) -> Unit,
 ) {
     /** Mirrors the stored reminder ids onto the video the screen currently holds. */
     fun collectReminderState() {
@@ -61,7 +61,7 @@ internal class UpcomingPremiereController(
     ): Boolean {
         val releaseTimeMs = UpcomingPremierePolicy.releaseTimeFor(video) ?: return false
         uiState.update { UpcomingPremierePolicy.applyTo(it, video, releaseTimeMs, preserveQueueTitle) }
-        armMetadata(video.id, video.channelId)
+        armMetadata(video.id)
         return true
     }
 
@@ -72,7 +72,7 @@ internal class UpcomingPremiereController(
                 ?.takeIf { it.id == videoId && it.isUpcoming }
                 ?.let(UpcomingPremierePolicy::releaseTimeFor) ?: return false
         uiState.update { it.applyCachedUpcoming(releaseTimeMs) }
-        armMetadata(videoId, uiState.value.cachedVideo?.channelId)
+        armMetadata(videoId)
         return true
     }
 

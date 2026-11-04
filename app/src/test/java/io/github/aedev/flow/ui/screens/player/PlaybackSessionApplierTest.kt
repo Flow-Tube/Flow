@@ -157,7 +157,7 @@ class PlaybackSessionApplierTest {
                 playbackPreparer.beginSession(VIDEO_ID, "InnerTube title", "InnerTube channel", any())
                 playbackPreparer.applyAutoplayCandidates(VIDEO_ID, related)
                 secondaryMetadata.loadRelatedVideos(VIDEO_ID, related, CURRENT_TOKEN)
-                secondaryMetadata.loadChannelMetadata(VIDEO_ID, null, "UC_innertube", any(), CURRENT_TOKEN)
+                secondaryMetadata.loadChannelMetadata(VIDEO_ID, any(), CURRENT_TOKEN)
                 playbackPreparer.prepareVodStreams(VIDEO_ID, any(), any(), 0L, any(), any())
             }
             verify { GlobalPlayerState.setCurrentVideo(match { it.id == VIDEO_ID && it.title == "InnerTube title" }) }
@@ -205,7 +205,7 @@ class PlaybackSessionApplierTest {
                 playbackPreparer.beginSession(VIDEO_ID, any(), any(), any())
                 playbackPreparer.applyAutoplayCandidates(VIDEO_ID, any())
                 playbackPreparer.prepareLiveStreams(VIDEO_ID, LIVE_HLS_URL, any(), any(), any())
-                secondaryMetadata.loadChannelMetadata(VIDEO_ID, null, "UC_innertube", any(), CURRENT_TOKEN)
+                secondaryMetadata.loadChannelMetadata(VIDEO_ID, any(), CURRENT_TOKEN)
                 liveChat.start(VIDEO_ID)
                 secondaryMetadata.refreshLiveWatchMetadata(VIDEO_ID, any(), CURRENT_TOKEN)
             }
@@ -220,7 +220,7 @@ class PlaybackSessionApplierTest {
             advanceUntilIdle()
 
             assertThat(uiState.value.hlsUrl).isEqualTo(LIVE_HLS_URL)
-            coVerify(exactly = 0) { secondaryMetadata.loadChannelMetadata(any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { secondaryMetadata.loadChannelMetadata(any(), any(), any()) }
             verify(exactly = 0) { liveChat.start(any()) }
             coVerify(exactly = 0) { secondaryMetadata.refreshLiveWatchMetadata(any(), any(), any()) }
         }
@@ -366,8 +366,6 @@ class PlaybackSessionApplierTest {
             coVerify(exactly = 1) {
                 secondaryMetadata.loadChannelMetadata(
                     VIDEO_ID,
-                    null,
-                    "UC_real",
                     listOf("https://example.invalid/a.jpg"),
                     CURRENT_TOKEN,
                     false,
@@ -395,7 +393,7 @@ class PlaybackSessionApplierTest {
             applier().applySecondary(SecondaryMetadata.WatchInfo(VIDEO_ID, CURRENT_TOKEN, video(VIDEO_ID)))
             advanceUntilIdle()
 
-            coVerify(exactly = 0) { secondaryMetadata.loadChannelMetadata(any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { secondaryMetadata.loadChannelMetadata(any(), any(), any(), any()) }
         }
 
     @Test
