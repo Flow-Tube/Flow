@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.PictureInPicture
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
@@ -37,7 +38,7 @@ private const val AUDIO_ROWS = 1
 private const val CAPTION_ROWS = 2
 private const val OVERLAY_ROWS = 3
 private const val EFFECT_ROWS = 3
-private const val DISPLAY_ROWS = 1
+private const val DISPLAY_ROWS = 2
 
 @Composable
 internal fun PlayerSettingsMainPage(
@@ -60,6 +61,7 @@ internal fun PlayerSettingsMainPage(
     onSponsorBlockToggle: (off: Boolean) -> Unit = {},
     notePositionMs: Long? = null,
     onAddNote: () -> Unit = {},
+    onStatsForNerds: () -> Unit = {},
 ) {
     val playbackRows = if (sponsorBlockSegmentCount > 0) PLAYBACK_ROWS + 1 else PLAYBACK_ROWS
     FlowSectionHeader(stringResource(R.string.video))
@@ -215,6 +217,12 @@ internal fun PlayerSettingsMainPage(
             checked = ambientModeEnabled,
             shape = flowRowGroupShape(0, DISPLAY_ROWS),
             onCheckedChange = onAmbientModeToggle,
+        )
+        FlowNavRow(
+            leadingIcon = Icons.Filled.QueryStats,
+            title = stringResource(R.string.stats_for_nerds),
+            shape = flowRowGroupShape(1, DISPLAY_ROWS),
+            onClick = onStatsForNerds,
         )
     }
 }

@@ -4,6 +4,7 @@ import io.github.aedev.flow.data.local.VideoQuality
 import io.github.aedev.flow.data.model.LiveChatMessage
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.player.stream.StoryboardLevel
@@ -30,6 +31,8 @@ data class VideoPlayerUiState(
     val isNotificationsEnabled: Boolean = false,
     val likeState: String? = null,
     val channelSubscriberCount: Long? = null,
+    val streamClient: String? = null,
+    val paidPromotion: PaidPromotionLabel? = null,
     val channelAvatarUrl: String? = null,
     val chapters: List<StreamSegment> = emptyList(),
     val storyboard: List<StoryboardLevel> = emptyList(),

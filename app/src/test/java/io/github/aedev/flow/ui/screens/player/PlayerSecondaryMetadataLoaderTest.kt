@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 import io.github.aedev.flow.data.repository.WatchChannel
 import io.github.aedev.flow.data.repository.YouTubeRepository
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
@@ -164,6 +165,35 @@ class PlayerSecondaryMetadataLoaderTest {
 
             assertThat(channelResults("v1")).isEmpty()
             assertThat(channelResults("v2").single().subscriberCount).isEqualTo(20L)
+        }
+
+    @Test
+    fun `the paid promotion label asks for nothing while the switch is off`() =
+        runTest(testDispatcher) {
+            every { playerPreferences.paidPromotionLabel } returns flowOf(false)
+
+            playing("v1")
+            loader().loadPaidPromotion("v1", TOKEN_A)
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { repository.paidPromotion(any()) }
+            assertThat(results).isEmpty()
+        }
+
+    @Test
+    fun `the paid promotion label costs one request per load with the switch on`() =
+        runTest(testDispatcher) {
+            val label = PaidPromotionLabel("Includes paid promotion", 10_000L)
+            every { playerPreferences.paidPromotionLabel } returns flowOf(true)
+            coEvery { repository.paidPromotion("v1") } returns label
+            val loader = loader()
+
+            playing("v1")
+            repeat(3) { loader.loadPaidPromotion("v1", TOKEN_A) }
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { repository.paidPromotion("v1") }
+            assertThat(results.filterIsInstance<SecondaryMetadata.PaidPromotion>().single().label).isEqualTo(label)
         }
 
     @Test

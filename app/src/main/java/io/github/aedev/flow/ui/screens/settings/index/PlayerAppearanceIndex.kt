@@ -145,6 +145,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_appearance_grouped_quality_selector_subtitle,
             R.string.settings_section_video_player,
         )
+    val paidPromotion =
+        entry(
+            "paid_promotion",
+            R.string.player_appearance_paid_promotion_title,
+            R.string.player_appearance_paid_promotion_subtitle,
+            R.string.settings_section_video_player,
+        )
     val gestureOverlay =
         entry(
             "gesture_overlay",
@@ -203,6 +210,7 @@ internal object PlayerAppearanceIndex {
             adaptiveSize,
             ambientMode,
             groupedQuality,
+            paidPromotion,
             gestureOverlay,
             shortsUi,
             miniPlayerSize,

@@ -58,6 +58,10 @@ class AudioFeaturesManager(
     // inheriting the gain of the video before it.
     private var loudness: Pair<String, Float>? = null
 
+    /** The loudness correction in force for what is playing, for the stats panel. */
+    val appliedLoudnessDb: Float?
+        get() = loudness?.second?.takeIf { normalizationEnabled }
+
     /**
      * Set the player reference. Must be called after ExoPlayer is created.
      * Applies any pending skip-silence state that was set before the player was ready.

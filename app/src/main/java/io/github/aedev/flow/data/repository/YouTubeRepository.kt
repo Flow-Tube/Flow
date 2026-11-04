@@ -10,6 +10,7 @@ import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.model.needsCollaboratorResolution
 import io.github.aedev.flow.data.shorts.ShortsClassifier
 import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoChaptersParser
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
@@ -76,6 +77,13 @@ class YouTubeRepository
             InFlightRequestCoalescer<String, String?>(
                 CoroutineScope(SupervisorJob() + Dispatchers.IO),
             )
+
+        private val paidPromotionCoalescer =
+            InFlightRequestCoalescer<String, PaidPromotionLabel?>(
+                CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            )
+
+        private val paidPromotionCache = LruCache<String, PaidPromotionAnswer>(PAID_PROMOTION_CACHE_SIZE)
 
         // A category never changes, so this is a plain memo rather than a short player-side cache:
         // the value is worth keeping for every video the engine has already learned from.
@@ -604,6 +612,19 @@ class YouTubeRepository
         }
 
         /**
+         * The paid promotion label for [videoId], or null when it has none or the request failed.
+         * An answer is kept for the process, so seeing a video again costs nothing.
+         */
+        suspend fun paidPromotion(videoId: String): PaidPromotionLabel? {
+            paidPromotionCache.get(videoId)?.let { return it.label }
+            return paidPromotionCoalescer.run(videoId) {
+                val answer = YouTube.paidPromotion(videoId)
+                answer.onSuccess { paidPromotionCache.put(videoId, PaidPromotionAnswer(it)) }
+                answer.getOrNull()
+            }
+        }
+
+        /**
          * The rewatch curve for [videoId], or null when the video has none.
          *
          * Free: it rides the watch response the description and comments already fetch. Plenty of
@@ -1103,6 +1124,7 @@ class YouTubeRepository
             private const val COMMENT_AVATAR_FETCH_TIMEOUT_MS = 6_000L
             private const val WATCH_NEXT_CACHE_SIZE = 3
             private const val VIDEO_CATEGORY_CACHE_SIZE = 500
+            private const val PAID_PROMOTION_CACHE_SIZE = 100
             private val CHANNEL_ID_IN_URL = Regex("""/channel/(UC[\w-]{22})""")
 
             @Volatile
@@ -1216,6 +1238,10 @@ internal fun String?.isLiveViewCountText(): Boolean {
  * Process-lifetime memo for video categories. Separate from the repository so the keep/skip rules
  * can be exercised without standing one up; a category never changes, so there is no TTL.
  */
+private class PaidPromotionAnswer(
+    val label: PaidPromotionLabel?,
+)
+
 internal class VideoCategoryMemo(
     private val maxEntries: Int = 500,
 ) {

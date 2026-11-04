@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -152,6 +153,8 @@ internal fun VideoStage(
             modifier
         }
 
+    // Removed rather than just unplaced while the player is small, so the panel's reads stop with it.
+    val expandedSurfacesPlacedNow by remember { derivedStateOf(expandedSurfacesPlaced) }
     val configuration = LocalConfiguration.current
     val firstFrameVideoId by EnhancedPlayerManager.getInstance().firstFrameVideoId.collectAsStateWithLifecycle()
 
@@ -243,6 +246,12 @@ internal fun VideoStage(
                 onSbSubmitClick = onSbSubmitClick,
                 onCastClick = onCastClick,
             )
+        }
+
+        if (expandedSurfacesPlacedNow && expandedSurfacesMounted && !localIsInPipMode) {
+            Box(modifier = Modifier.matchParentSize()) {
+                PlayerStatsLayer(session = session)
+            }
         }
     }
 }

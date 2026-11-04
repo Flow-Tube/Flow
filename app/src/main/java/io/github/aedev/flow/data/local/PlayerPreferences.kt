@@ -132,6 +132,7 @@ class PlayerPreferences(
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
         val GROUPED_QUALITY_SELECTOR_ENABLED = booleanPreferencesKey("grouped_quality_selector_enabled")
+        val PAID_PROMOTION_LABEL = booleanPreferencesKey("paid_promotion_label")
         val SHORTS_CONTENT_ENABLED = booleanPreferencesKey("shorts_content_enabled")
         val CHANNEL_SHORTS_TAB_WHEN_HIDDEN = booleanPreferencesKey("channel_shorts_tab_when_hidden")
         val NOTES_ENABLED = booleanPreferencesKey("notes_enabled")
@@ -1047,6 +1048,16 @@ class PlayerPreferences(
     suspend fun setGroupedQualitySelectorEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.GROUPED_QUALITY_SELECTOR_ENABLED] = enabled
+        }
+    }
+
+    val paidPromotionLabel: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.PAID_PROMOTION_LABEL] ?: false }
+
+    suspend fun setPaidPromotionLabel(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.PAID_PROMOTION_LABEL] = enabled
         }
     }
 
