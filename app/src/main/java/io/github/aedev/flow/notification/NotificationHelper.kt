@@ -893,7 +893,7 @@ object NotificationHelper {
 
         val intent =
             profileIntent(context).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
 
         val pendingIntent =
