@@ -89,6 +89,7 @@ import io.github.aedev.flow.innertube.pages.explore.exploreShelves
 import io.github.aedev.flow.innertube.pages.explore.ranked
 import io.github.aedev.flow.innertube.pages.explore.toExploreDestinationShell
 import io.github.aedev.flow.innertube.pages.explore.trendingVideoChart
+import io.github.aedev.flow.innertube.pages.mixSeedVideoId
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.reel.ReelLockup
 import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
@@ -110,6 +111,7 @@ import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
+import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
 import io.github.aedev.flow.innertube.pages.toVideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.toVideoPlaylistPage
@@ -854,6 +856,13 @@ object YouTube {
                     continuation = continuation,
                 )
             Json.parseToJsonElement(response.bodyAsText()).toVideoPlaylistPage()
+        }
+
+    /** A mix's queue, which is the only list of it: the playlist browse refuses mixes. */
+    suspend fun mixPlaylistPage(playlistId: String): Result<VideoPlaylistPage> =
+        runCatching {
+            val response = innerTube.nextMix(mixSeedVideoId(playlistId), playlistId)
+            Json.parseToJsonElement(response.bodyAsText()).toMixPlaylistPage()
         }
 
     private suspend fun communityPostsPage(

@@ -4,6 +4,7 @@ import android.util.Log
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.VideoPlaylistPage
+import io.github.aedev.flow.innertube.pages.isMix
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
@@ -63,7 +64,7 @@ class YouTubePlaylistRepository
 
         suspend fun firstPage(playlistId: String): RemotePlaylistPage? {
             val page =
-                fetch { YouTube.videoPlaylistPage(playlistId) }
+                fetch { if (isMix(playlistId)) YouTube.mixPlaylistPage(playlistId) else YouTube.videoPlaylistPage(playlistId) }
                     ?.takeIf { it.title != null || it.videos.isNotEmpty() } ?: return null
             // A Shorts grid stops at 100 with no next page; its "show unavailable" view is a list
             // that pages through every video. Only grids ask for it: on a list it would add

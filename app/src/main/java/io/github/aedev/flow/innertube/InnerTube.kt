@@ -696,14 +696,17 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.webYouTubeHeaders(client: YouTubeClient) {
+    private fun HttpRequestBuilder.webYouTubeHeaders(
+        client: YouTubeClient,
+        visitor: String? = visitorData,
+    ) {
         headers {
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId)
             append("X-YouTube-Client-Version", client.clientVersion)
             append("X-Origin", "https://www.youtube.com")
             append("Referer", "https://www.youtube.com/")
-            visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            visitor?.let { append("X-Goog-Visitor-Id", it) }
         }
         contentType(ContentType.Application.Json)
         userAgent(client.userAgent)
@@ -751,6 +754,31 @@ class InnerTube {
                     index = null,
                     params = null,
                     continuation = continuation,
+                ),
+            )
+        }
+    }
+
+    /**
+     * A mix's queue on the main site. Sent without the visitor id: with it, YouTube answers with a
+     * queue personalised for this visitor that leaves out the video the mix is named after.
+     */
+    suspend fun nextMix(
+        videoId: String?,
+        playlistId: String,
+    ) = withRetry {
+        val client = YouTubeClient.WEB
+        httpClient.post("https://www.youtube.com/youtubei/v1/next") {
+            webYouTubeHeaders(client, visitor = null)
+            setBody(
+                NextBody(
+                    context = client.toContext(locale, null, null),
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    playlistSetVideoId = null,
+                    index = null,
+                    params = null,
+                    continuation = null,
                 ),
             )
         }
