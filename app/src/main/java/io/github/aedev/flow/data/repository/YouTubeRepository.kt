@@ -896,6 +896,15 @@ class YouTubeRepository
                 )
             }
 
+        /**
+         * The channel a video belongs to, off the watch response the description and comments already
+         * fetch. Its owner is the channel people see, where a player response can name a hidden one.
+         */
+        internal suspend fun watchChannel(videoId: String): WatchChannel? =
+            withContext(Dispatchers.IO) {
+                watchMetadataFor(videoId)?.let { watchChannelOf(it, YouTube.locale.hl) }
+            }
+
         /** Light related-video harvest for the feed (InnerTube /next, no stream resolution). */
         suspend fun getRelatedCandidates(videoId: String): List<Video> =
             withContext(Dispatchers.IO) {
@@ -1145,6 +1154,20 @@ internal fun Video.needsChannelMetadata(): Boolean =
         !channelId.startsWith("UC") ||
         channelThumbnailUrl.isBlank() ||
         ThumbnailUrlResolver.isUnusableChannelAvatar(channelThumbnailUrl)
+
+internal data class WatchChannel(
+    val avatarUrl: String?,
+    val subscriberCount: Long?,
+)
+
+internal fun watchChannelOf(
+    response: WatchMetadataResponse,
+    hl: String?,
+): WatchChannel =
+    WatchChannel(
+        avatarUrl = response.channelAvatarUrl(),
+        subscriberCount = YouTubeCountParser.parse(response.subscriberCountText(), hl),
+    )
 
 internal fun mergeWatchMetadata(
     video: Video,

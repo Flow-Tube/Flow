@@ -100,10 +100,10 @@ fun SponsorBlockSkipButton(
         val seg = displaySegment ?: return@AnimatedVisibility
         val categoryRes = sponsorCategoryLabelRes(seg.category)
         val skipLabel =
-            if (categoryRes != null) {
-                stringResource(R.string.sb_skip_segment, stringResource(categoryRes))
-            } else {
-                stringResource(R.string.sb_manual_skip)
+            when {
+                seg.isPoint -> stringResource(R.string.sb_jump_to_highlight)
+                categoryRes != null -> stringResource(R.string.sb_skip_segment, stringResource(categoryRes))
+                else -> stringResource(R.string.sb_manual_skip)
             }
         Surface(
             onClick = {

@@ -194,6 +194,8 @@ class PlayerPreferences(
         val SB_ACTION_FILLER = stringPreferencesKey("sb_action_filler")
         val SB_ACTION_PREVIEW = stringPreferencesKey("sb_action_preview")
         val SB_ACTION_EXCLUSIVE_ACCESS = stringPreferencesKey("sb_action_exclusive_access")
+        val SB_ACTION_HOOK = stringPreferencesKey("sb_action_hook")
+        val SB_ACTION_HIGHLIGHT = stringPreferencesKey("sb_action_poi_highlight")
 
         // SponsorBlock per-category color keys
         val SB_COLOR_SPONSOR = intPreferencesKey("sb_color_sponsor")
@@ -205,6 +207,8 @@ class PlayerPreferences(
         val SB_COLOR_FILLER = intPreferencesKey("sb_color_filler")
         val SB_COLOR_PREVIEW = intPreferencesKey("sb_color_preview")
         val SB_COLOR_EXCLUSIVE_ACCESS = intPreferencesKey("sb_color_exclusive_access")
+        val SB_COLOR_HOOK = intPreferencesKey("sb_color_hook")
+        val SB_COLOR_HIGHLIGHT = intPreferencesKey("sb_color_poi_highlight")
 
         // SponsorBlock submit
         val SB_SUBMIT_ENABLED = booleanPreferencesKey("sb_submit_enabled")
@@ -735,6 +739,8 @@ class PlayerPreferences(
                 "filler" -> Keys.SB_ACTION_FILLER
                 "preview" -> Keys.SB_ACTION_PREVIEW
                 "exclusive_access" -> Keys.SB_ACTION_EXCLUSIVE_ACCESS
+                "hook" -> Keys.SB_ACTION_HOOK
+                "poi_highlight" -> Keys.SB_ACTION_HIGHLIGHT
                 else -> Keys.SB_ACTION_SPONSOR
             }
         return context.playerPreferencesDataStore.data.map { preferences ->
@@ -757,6 +763,8 @@ class PlayerPreferences(
                 "filler" -> Keys.SB_ACTION_FILLER
                 "preview" -> Keys.SB_ACTION_PREVIEW
                 "exclusive_access" -> Keys.SB_ACTION_EXCLUSIVE_ACCESS
+                "hook" -> Keys.SB_ACTION_HOOK
+                "poi_highlight" -> Keys.SB_ACTION_HIGHLIGHT
                 else -> Keys.SB_ACTION_SPONSOR
             }
         context.playerPreferencesDataStore.edit { preferences ->
@@ -776,6 +784,8 @@ class PlayerPreferences(
             "filler" to Keys.SB_COLOR_FILLER,
             "preview" to Keys.SB_COLOR_PREVIEW,
             "exclusive_access" to Keys.SB_COLOR_EXCLUSIVE_ACCESS,
+            "hook" to Keys.SB_COLOR_HOOK,
+            "poi_highlight" to Keys.SB_COLOR_HIGHLIGHT,
         )
 
     private fun sbColorKey(category: String): Preferences.Key<Int> = sbColorKeys[category] ?: Keys.SB_COLOR_SPONSOR

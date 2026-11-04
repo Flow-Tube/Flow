@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.player
 
 import android.util.Log
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 import io.github.aedev.flow.data.repository.YouTubeRepository
@@ -9,12 +10,10 @@ import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.player.EnhancedPlayerManager
-import io.github.aedev.flow.player.PlayerChannelMetadataPolicy
 import io.github.aedev.flow.player.PlayerRelatedVideosPolicy
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.utils.OriginalTextPolicy
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
-import io.github.aedev.flow.utils.distinctBestImageUrls
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -283,8 +282,6 @@ internal class PlayerSecondaryMetadataLoader(
 
     fun loadChannelMetadata(
         videoId: String,
-        uploaderUrl: String?,
-        channelId: String?,
         embeddedAvatarUrls: List<String>,
         loadToken: Long,
         awaitPlayback: Boolean = true,
@@ -306,42 +303,29 @@ internal class PlayerSecondaryMetadataLoader(
             )
         }
 
-        val references = PlayerChannelMetadataPolicy.channelReferences(uploaderUrl, channelId)
-        if (references.isEmpty()) return
+        if (LocalMediaIds.isLocal(videoId)) return
         if (!channelLoad.claim(videoId, loadToken)) return
 
         channelLoad.job =
             scope.launch(networkDispatcher) {
-                // Embedded avatars can update immediately, but the extra channel request waits until
-                // playback has actually started so it cannot compete with the first media buffer.
                 if (awaitPlayback) awaitPlaybackStarted(videoId)
                 if (!isPlaybackCurrent(loadToken)) return@launch
 
-                var channelInfo: org.schabi.newpipe.extractor.channel.ChannelInfo? = null
-                for (reference in references) {
-                    channelInfo =
-                        withTimeoutOrNull(CHANNEL_INFO_TIMEOUT_MS) {
-                            repository.getChannelInfo(reference)
-                        }
-                    if (channelInfo != null) break
-                }
-
-                if (!isPlaybackCurrent(loadToken) || channelInfo == null) return@launch
-
-                val fetchedAvatar =
-                    channelInfo.avatars
-                        .distinctBestImageUrls(limit = 1)
-                        .firstOrNull()
-                        ?.let(ThumbnailUrlResolver::resolveChannelAvatar)
-                        ?.takeIf { it.isNotBlank() }
+                val channel =
+                    withTimeoutOrNull(CHANNEL_INFO_TIMEOUT_MS) { repository.watchChannel(videoId) }
+                        ?: return@launch
+                if (!isPlaybackCurrent(loadToken) || !channelLoad.holds(videoId, loadToken)) return@launch
 
                 onResult(
                     SecondaryMetadata.Channel(
                         videoId = videoId,
                         loadToken = loadToken,
-                        fetchedAvatarUrl = fetchedAvatar,
+                        fetchedAvatarUrl =
+                            channel.avatarUrl
+                                ?.let(ThumbnailUrlResolver::resolveChannelAvatar)
+                                ?.takeIf { it.isNotBlank() },
                         embeddedAvatarUrl = embeddedAvatar,
-                        subscriberCount = channelInfo.subscriberCount.takeIf { it > 0L },
+                        subscriberCount = channel.subscriberCount?.takeIf { it > 0L },
                     ),
                 )
             }

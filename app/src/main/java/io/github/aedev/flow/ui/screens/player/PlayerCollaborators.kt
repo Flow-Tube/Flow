@@ -151,8 +151,8 @@ internal class PlayerCollaborators(
             scope = scope,
             isLoadCurrent = isLoadCurrent,
             // A countdown the video's own metadata enters skips the load, so it arms what a load would.
-            armMetadata = { videoId, channelId ->
-                sessionApplier.armCountdownMetadata(LoadContext(videoId, currentLoadToken()), emptyList(), channelId)
+            armMetadata = { videoId ->
+                sessionApplier.armCountdownMetadata(LoadContext(videoId, currentLoadToken()), emptyList())
             },
         )
 

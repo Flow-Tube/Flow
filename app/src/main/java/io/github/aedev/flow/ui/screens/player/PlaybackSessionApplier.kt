@@ -110,7 +110,7 @@ internal class PlaybackSessionApplier(
 
             is ResolvedPlayback.Upcoming -> {
                 enterUpcoming(load.videoId, step.releaseTimeMs, step.relatedVideos, load.token, step.details)
-                armCountdownMetadata(load, step.relatedVideos, step.details?.channelId)
+                armCountdownMetadata(load, step.relatedVideos)
             }
 
             is ResolvedPlayback.Failed -> {
@@ -224,7 +224,7 @@ internal class PlaybackSessionApplier(
         } catch (e: Exception) {
             Log.e(TAG, "InnerTube VOD fallback failed for ${load.videoId}", e)
             if (tryEnterUpcoming(load.videoId, step.relatedVideos, load.token)) {
-                armCountdownMetadata(load, step.relatedVideos, channelId = null)
+                armCountdownMetadata(load, step.relatedVideos)
             } else {
                 val videoError = VideoErrorMapper.from(context, e, load.videoId)
                 if (isLoadCurrent(load.token)) {
@@ -331,8 +331,6 @@ internal class PlaybackSessionApplier(
 
         secondaryMetadata.loadChannelMetadata(
             videoId = videoId,
-            uploaderUrl = null,
-            channelId = identity.channelId,
             embeddedAvatarUrls = identity.embeddedAvatarUrls,
             loadToken = load.token,
         )
@@ -417,8 +415,6 @@ internal class PlaybackSessionApplier(
         secondaryMetadata.loadWatchInfo(videoId, identity.enrichedVideo, load.token)
         secondaryMetadata.loadChannelMetadata(
             videoId = videoId,
-            uploaderUrl = null,
-            channelId = identity.channelId,
             embeddedAvatarUrls = identity.embeddedAvatarUrls,
             loadToken = load.token,
         )
@@ -449,13 +445,10 @@ internal class PlaybackSessionApplier(
     fun armCountdownMetadata(
         load: LoadContext,
         relatedVideos: List<Video>,
-        channelId: String?,
     ) {
         if (!isLoadCurrent(load.token)) return
         secondaryMetadata.loadChannelMetadata(
             videoId = load.videoId,
-            uploaderUrl = null,
-            channelId = channelId?.takeIf { it.isNotBlank() } ?: uiState.value.cachedVideo?.channelId,
             embeddedAvatarUrls = emptyList(),
             loadToken = load.token,
             awaitPlayback = false,
@@ -486,8 +479,6 @@ internal class PlaybackSessionApplier(
         if (uiState.value.localFileVideoId == result.videoId) {
             secondaryMetadata.loadChannelMetadata(
                 videoId = result.videoId,
-                uploaderUrl = null,
-                channelId = result.video.channelId,
                 embeddedAvatarUrls = listOf(result.video.channelThumbnailUrl).filter { it.isNotBlank() },
                 loadToken = result.loadToken,
                 awaitPlayback = false,

@@ -117,14 +117,17 @@ private fun SegmentRow(
                 )
             }
         },
-        supportingContent = { Text(sponsorActionLabel(action)) },
+        supportingContent = { Text(segmentActionLabel(category, action)) },
     ) {
         Text(label)
     }
     if (menuOpen) {
         FlowChoiceDialog(
             title = label,
-            options = SponsorBlockAction.entries.map { FlowChoice(it, sponsorActionLabel(it), sponsorActionDetail(it)) },
+            options =
+                SponsorBlockCategories.actionsFor(category).map {
+                    FlowChoice(it, segmentActionLabel(category, it), segmentActionDetail(category, it))
+                },
             selected = action,
             onSelect = onActionSelected,
             onDismiss = { menuOpen = false },
@@ -133,7 +136,29 @@ private fun SegmentRow(
 }
 
 @Composable
-internal fun sponsorActionLabel(action: SponsorBlockAction): String =
+private fun segmentActionLabel(
+    category: String,
+    action: SponsorBlockAction,
+): String =
+    if (category == SponsorBlockCategories.HIGHLIGHT && action == SponsorBlockAction.SKIP_BUTTON) {
+        stringResource(R.string.sb_action_jump_button)
+    } else {
+        sponsorActionLabel(action)
+    }
+
+@Composable
+private fun segmentActionDetail(
+    category: String,
+    action: SponsorBlockAction,
+): String? =
+    if (category == SponsorBlockCategories.HIGHLIGHT && action == SponsorBlockAction.SKIP_BUTTON) {
+        stringResource(R.string.sb_action_jump_button_detail)
+    } else {
+        sponsorActionDetail(action)
+    }
+
+@Composable
+private fun sponsorActionLabel(action: SponsorBlockAction): String =
     when (action) {
         SponsorBlockAction.SKIP -> stringResource(R.string.sb_action_skip_automatically)
         SponsorBlockAction.SKIP_ONCE -> stringResource(R.string.sb_action_skip_once)

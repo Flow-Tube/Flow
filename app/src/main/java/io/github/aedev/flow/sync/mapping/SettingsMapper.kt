@@ -49,6 +49,8 @@ object SettingsMapper {
             Entry("sponsorblock_action_filler", "sb_action_filler", Ty.STRING),
             Entry("sponsorblock_action_preview", "sb_action_preview", Ty.STRING),
             Entry("sponsorblock_action_exclusive_access", "sb_action_exclusive_access", Ty.STRING),
+            Entry("sponsorblock_action_hook", "sb_action_hook", Ty.STRING),
+            Entry("sponsorblock_action_poi_highlight", "sb_action_poi_highlight", Ty.STRING),
             Entry("dearrow_enabled", "dearrow_enabled", Ty.BOOL),
             Entry("dearrow_badge_enabled", "dearrow_badge_enabled", Ty.BOOL),
             Entry("subtitles_enabled", "subtitles_enabled", Ty.BOOL),
