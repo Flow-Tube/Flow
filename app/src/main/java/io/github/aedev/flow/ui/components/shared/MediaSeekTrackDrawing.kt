@@ -16,6 +16,8 @@ import io.github.aedev.flow.ui.theme.SPONSOR_BLOCK_SEGMENT_ALPHA
 import io.github.aedev.flow.ui.theme.defaultSponsorBlockColor
 import org.schabi.newpipe.extractor.stream.StreamSegment
 
+private val SponsorPointWidth = 3.dp
+
 internal val RestTrackHeight = 5.dp
 internal val ActiveTrackHeight = 10.dp
 
@@ -122,9 +124,16 @@ internal fun DrawScope.drawSeekTrack(
                 val startRatio = (segment.startTime * 1000f / duration.toFloat()).coerceIn(0f, 1f)
                 val endRatio = (segment.endTime * 1000f / duration.toFloat()).coerceIn(0f, 1f)
 
-                if (endRatio > startRatio) {
-                    val startX = startRatio * width
-                    val segWidth = (endRatio * width) - startX
+                val startX: Float
+                val segWidth: Float
+                if (segment.isPoint) {
+                    segWidth = minOf(SponsorPointWidth.toPx(), width)
+                    startX = (startRatio * width - segWidth / 2f).coerceIn(0f, width - segWidth)
+                } else {
+                    startX = startRatio * width
+                    segWidth = (endRatio * width) - startX
+                }
+                if (segWidth > 0f) {
                     val segmentColor =
                         (
                             sponsorColors[segment.category]
