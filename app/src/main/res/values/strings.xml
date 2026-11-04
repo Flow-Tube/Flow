@@ -1407,7 +1407,7 @@
     <string name="sb_action_seek_bar_only">Show in seek bar</string>
     <string name="sb_action_disable">Disable</string>
     <string name="sb_action_jump_button">Show a jump button</string>
-    <string name="sb_action_jump_button_detail">Offers the jump in the first 10 seconds</string>
+    <string name="sb_action_jump_button_detail">Offers the jump for 10 seconds as the video starts</string>
     <string name="sb_jump_to_highlight">Jump to highlight</string>
     <string name="sb_color_custom">Custom color</string>
     <string name="sb_color_custom_value">Custom color: %1$s</string>
