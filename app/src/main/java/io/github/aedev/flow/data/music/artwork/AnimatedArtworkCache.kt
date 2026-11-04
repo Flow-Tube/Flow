@@ -9,9 +9,25 @@ import kotlinx.coroutines.flow.first
 
 /** A lookup answered before: the loop, or null when the album has none, and when it was asked. */
 internal data class CachedLoop(
-    val url: String?,
+    val loop: AnimatedLoop?,
     val atMs: Long,
 )
+
+private const val SEPARATOR = "|"
+
+internal fun CachedLoop.encoded(): String = listOf(atMs.toString(), loop?.square.orEmpty(), loop?.tall.orEmpty()).joinToString(SEPARATOR)
+
+/** Entries from before tall loops have no third part. They read as a miss, so the album is asked once more. */
+internal fun decodeCachedLoop(stored: String): CachedLoop? {
+    val parts = stored.split(SEPARATOR)
+    if (parts.size != ENCODED_PARTS) return null
+    val atMs = parts[0].toLongOrNull() ?: return null
+    val square = parts[1].ifEmpty { null }
+    val tall = parts[2].ifEmpty { null }
+    return CachedLoop(if (square == null && tall == null) null else AnimatedLoop(square, tall), atMs)
+}
+
+private const val ENCODED_PARTS = 3
 
 internal interface AnimatedArtworkCache {
     suspend fun get(key: String): CachedLoop?
@@ -32,8 +48,7 @@ internal class DataStoreAnimatedArtworkCache(
 ) : AnimatedArtworkCache {
     override suspend fun get(key: String): CachedLoop? {
         val stored = context.animatedArtworkStore.data.first()[stringPreferencesKey(key)] ?: return null
-        val atMs = stored.substringBefore(SEPARATOR).toLongOrNull() ?: return null
-        return CachedLoop(stored.substringAfter(SEPARATOR).ifEmpty { null }, atMs)
+        return decodeCachedLoop(stored)
     }
 
     override suspend fun put(
@@ -41,7 +56,7 @@ internal class DataStoreAnimatedArtworkCache(
         loop: CachedLoop,
     ) {
         context.animatedArtworkStore.edit { preferences ->
-            preferences[stringPreferencesKey(key)] = "${loop.atMs}$SEPARATOR${loop.url.orEmpty()}"
+            preferences[stringPreferencesKey(key)] = loop.encoded()
             val overflow = preferences.asMap().size - MAX_ENTRIES
             if (overflow > 0) {
                 preferences
@@ -59,7 +74,6 @@ internal class DataStoreAnimatedArtworkCache(
     }
 
     private companion object {
-        const val SEPARATOR = "|"
         const val MAX_ENTRIES = 600
     }
 }

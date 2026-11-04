@@ -43,20 +43,20 @@ class AnimatedArtworkRepository internal constructor(
 
     private val lock = Mutex()
 
-    /** The HLS loop for [track]'s album, or null when it has none. Throws when the service could not answer. */
-    suspend fun loopFor(track: MusicTrack): String? =
+    /** The HLS loops for [track]'s album, or null when it has none. Throws when the service could not answer. */
+    internal suspend fun loopFor(track: MusicTrack): AnimatedLoop? =
         lock.withLock {
             val key = AnimatedArtworkLookup.key(track)
-            cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return@withLock it.url }
-            val url = ask(track)
-            cache.put(key, CachedLoop(url, now()))
-            url
+            cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return@withLock it.loop }
+            val loop = ask(track)
+            cache.put(key, CachedLoop(loop, now()))
+            loop
         }
 
     /** Drops [track]'s answer, for a loop that no longer plays. */
     suspend fun forget(track: MusicTrack) = cache.remove(AnimatedArtworkLookup.key(track))
 
-    private suspend fun ask(track: MusicTrack): String? {
+    private suspend fun ask(track: MusicTrack): AnimatedLoop? {
         val country = storefront().lowercase()
         for (query in AnimatedArtworkLookup.queries(track)) {
             val params =
@@ -68,12 +68,14 @@ class AnimatedArtworkRepository internal constructor(
                     put("storefront", country)
                 }
             val answer = fetch(params)
-            if (AnimatedArtworkLookup.accepts(track, answer)) return answer.animated
+            if (AnimatedArtworkLookup.accepts(track, answer)) {
+                return AnimatedLoop(answer.animated, answer.animatedVertical).takeIf { it.square != null || it.tall != null }
+            }
         }
         return null
     }
 
-    private fun ttlFor(loop: CachedLoop): Long = if (loop.url != null) FOUND_TTL_MS else MISSING_TTL_MS
+    private fun ttlFor(answer: CachedLoop): Long = if (answer.loop != null) FOUND_TTL_MS else MISSING_TTL_MS
 
     private companion object {
         const val FOUND_TTL_MS = 14L * 24 * 60 * 60 * 1000

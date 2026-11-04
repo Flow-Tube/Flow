@@ -36,6 +36,7 @@ class AnimatedArtworkRepositoryTest {
             artists = listOf(MusicArtist("Taylor Swift", "ts")),
         )
     private val loop = "https://mvod.itunes.apple.com/itunes-assets/loop.m3u8"
+    private val tallLoop = "https://mvod.itunes.apple.com/itunes-assets/tall.m3u8"
     private val requests = mutableListOf<Map<String, String>>()
     private var answer: (Map<String, String>) -> ArtworkAnswer = { ArtworkAnswer("Anti-Hero", "Taylor Swift", loop) }
     private var clock = 0L
@@ -54,7 +55,7 @@ class AnimatedArtworkRepositoryTest {
     @Test
     fun `a song is asked for by title, artist, album and length in the viewer's storefront`() =
         runTest {
-            assertThat(repository.loopFor(antiHero)).isEqualTo(loop)
+            assertThat(repository.loopFor(antiHero)?.square).isEqualTo(loop)
 
             assertThat(requests.single())
                 .containsExactly("s", "Anti-Hero", "a", "Taylor Swift", "al", "Midnights", "d", "201", "storefront", "us")
@@ -99,7 +100,7 @@ class AnimatedArtworkRepositoryTest {
                 }
             }
 
-            assertThat(repository.loopFor(featured)).isEqualTo(loop)
+            assertThat(repository.loopFor(featured)?.square).isEqualTo(loop)
             assertThat(requests.map { it["s"] }).containsExactly("Anti-Hero (feat. Bleachers)", "Anti-Hero").inOrder()
         }
 
@@ -125,6 +126,47 @@ class AnimatedArtworkRepositoryTest {
 
             assertThat(requests).hasSize(2)
         }
+
+    @Test
+    fun `an album's tall loop is kept beside its square one`() =
+        runTest {
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift", loop, tallLoop) }
+
+            assertThat(repository.loopFor(antiHero)).isEqualTo(AnimatedLoop(loop, tallLoop))
+            assertThat(repository.loopFor(antiHero)).isEqualTo(AnimatedLoop(loop, tallLoop))
+            assertThat(requests).hasSize(1)
+        }
+
+    @Test
+    fun `an album with only a tall loop still counts as having one`() =
+        runTest {
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift", null, tallLoop) }
+
+            assertThat(repository.loopFor(antiHero)).isEqualTo(AnimatedLoop(null, tallLoop))
+        }
+
+    @Test
+    fun `a tall space takes the tall loop, then the square one`() {
+        assertThat(AnimatedLoop(loop, tallLoop).urlFor(tallSpace = true)).isEqualTo(tallLoop)
+        assertThat(AnimatedLoop(loop, null).urlFor(tallSpace = true)).isEqualTo(loop)
+        assertThat(AnimatedLoop(loop, tallLoop).urlFor(tallSpace = false)).isEqualTo(loop)
+        assertThat(AnimatedLoop(null, tallLoop).urlFor(tallSpace = false)).isNull()
+    }
+
+    @Test
+    fun `a stored answer reads back as it was written`() {
+        val found = CachedLoop(AnimatedLoop(loop, tallLoop), 42L)
+        val missing = CachedLoop(null, 42L)
+
+        assertThat(decodeCachedLoop(found.encoded())).isEqualTo(found)
+        assertThat(decodeCachedLoop(missing.encoded())).isEqualTo(missing)
+    }
+
+    @Test
+    fun `an entry stored before tall loops is a miss, so the album is asked again`() {
+        assertThat(decodeCachedLoop("42|$loop")).isNull()
+        assertThat(decodeCachedLoop("42|")).isNull()
+    }
 
     @Test
     fun `the artist channel's Topic suffix is not sent`() {

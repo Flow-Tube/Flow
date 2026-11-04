@@ -46,26 +46,26 @@ import io.github.aedev.flow.ui.screens.music.AnimatedArtworkViewModel
 /**
  * The animated artwork for the open player's [track], or null while it may not run: it needs the
  * setting on, the player open and in front ([visible]), and the app on screen. Lookups follow the
- * same rule, so a collapsed player never asks for one. [shown] fades it out without releasing it.
+ * same rule, so a collapsed player never asks for one. [tallSpace] asks for the loop cut for a tall
+ * screen, and [shown] fades it out without releasing it.
  */
 @Composable
 internal fun rememberAnimatedArtwork(
     track: MusicTrack?,
     visible: Boolean,
-    playing: Boolean,
+    tallSpace: Boolean,
     shown: Boolean,
     viewModel: AnimatedArtworkViewModel = hiltViewModel(),
 ): (@Composable () -> Unit)? {
     val enabled by viewModel.isEnabled.collectAsState()
-    val loopUrl by viewModel.loopUrl.collectAsState()
+    val loop by viewModel.loop.collectAsState()
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val active = enabled && visible && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
     LaunchedEffect(track, active) { if (active && track != null) viewModel.load(track) }
-    val url = loopUrl?.takeIf { active } ?: return null
+    val url = loop?.urlFor(tallSpace)?.takeIf { active } ?: return null
     return {
         PlayerAnimatedArtwork(
             url = url,
-            playing = playing,
             shown = shown,
             dataSourceFactory = viewModel.dataSourceFactory,
             onFailed = viewModel::onLoopFailed,
@@ -77,14 +77,13 @@ internal fun rememberAnimatedArtwork(
 /**
  * An album's motion artwork looping over its cover. It has a muted player of its own that never
  * takes audio focus, fades in on its first frame, and is released when it leaves composition, so
- * the caller decides when it may run. [playing] pauses the loop with the song, and [shown] hides it
+ * the caller decides when it may run. It keeps moving while the song is paused, and [shown] hides it
  * without tearing it down, as during an artwork swipe.
  */
 @OptIn(UnstableApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlayerAnimatedArtwork(
     url: String,
-    playing: Boolean,
     shown: Boolean,
     dataSourceFactory: DataSource.Factory,
     onFailed: () -> Unit,
@@ -102,6 +101,7 @@ internal fun PlayerAnimatedArtwork(
                 .apply {
                     repeatMode = Player.REPEAT_MODE_ONE
                     volume = 0f
+                    playWhenReady = true
                     trackSelectionParameters =
                         trackSelectionParameters
                             .buildUpon()
@@ -131,8 +131,6 @@ internal fun PlayerAnimatedArtwork(
         player.prepare()
         onDispose { player.removeListener(listener) }
     }
-    LaunchedEffect(player, playing) { player.playWhenReady = playing }
-
     val alpha by animateFloatAsState(
         targetValue = if (hasFrame && shown) 1f else 0f,
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
@@ -140,14 +138,15 @@ internal fun PlayerAnimatedArtwork(
     )
 
     BoxWithConstraints(modifier = modifier) {
-        // The loop is square and fills this box, so a larger variant would only cost data.
-        val sidePx = maxOf(constraints.maxWidth, constraints.maxHeight).takeIf { it != Constraints.Infinity }
-        LaunchedEffect(player, sidePx) {
-            if (sidePx == null) return@LaunchedEffect
+        // The smallest variant that covers this box: a larger one would only cost data.
+        val widthPx = constraints.maxWidth
+        val heightPx = constraints.maxHeight
+        LaunchedEffect(player, widthPx, heightPx) {
+            if (widthPx == Constraints.Infinity || heightPx == Constraints.Infinity) return@LaunchedEffect
             player.trackSelectionParameters =
                 player.trackSelectionParameters
                     .buildUpon()
-                    .setMaxVideoSize(sidePx, sidePx)
+                    .setViewportSize(widthPx, heightPx, false)
                     .build()
         }
         AndroidView(
