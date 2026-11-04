@@ -1,6 +1,7 @@
 package io.github.aedev.flow.data.repository
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
@@ -41,5 +42,34 @@ class WatchMetadataDecodeTest {
     @Test
     fun `a payload that is not a watch response decodes to null instead of throwing`() {
         assertThat(decodeWatchMetadata(JsonPrimitive("not a watch response"))).isNull()
+    }
+
+    private fun ownerResponse(subscriberText: String?): WatchMetadataResponse {
+        val count = subscriberText?.let { """"subscriberCountText":{"simpleText":"$it"},""" }.orEmpty()
+        val raw =
+            """
+            {"contents":{"twoColumnWatchNextResults":{"results":{"results":{"contents":[
+              {"videoSecondaryInfoRenderer":{"owner":{"videoOwnerRenderer":{
+                $count
+                "thumbnail":{"thumbnails":[{"url":"https://example.invalid/a.jpg","width":88,"height":88}]},
+                "title":{"runs":[{"text":"Owner"}]},
+                "navigationEndpoint":{"browseEndpoint":{"browseId":"UCreal"}}
+              }}}}
+            ]}}}}}
+            """.trimIndent()
+        return decodeWatchMetadata(json.parseToJsonElement(raw))!!
+    }
+
+    @Test
+    fun `the owner carries the avatar and the subscriber count`() {
+        val channel = watchChannelOf(ownerResponse("17.2M subscribers"), "en")
+
+        assertThat(channel.subscriberCount).isEqualTo(17_200_000L)
+        assertThat(channel.avatarUrl).isEqualTo("https://example.invalid/a.jpg")
+    }
+
+    @Test
+    fun `an owner with a hidden count has none`() {
+        assertThat(watchChannelOf(ownerResponse(null), "en").subscriberCount).isNull()
     }
 }
