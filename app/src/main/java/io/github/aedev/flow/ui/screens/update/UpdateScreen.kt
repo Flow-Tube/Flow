@@ -170,7 +170,11 @@ private fun ReleaseHeader(release: AppRelease) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(FactSpacing), verticalArrangement = Arrangement.spacedBy(FactSpacing)) {
             ReleaseFact(
                 Icons.Outlined.SyncAlt,
-                stringResource(R.string.update_version_change, AppVersions.normalize(BuildConfig.VERSION_NAME), release.version),
+                stringResource(
+                    R.string.update_version_change,
+                    AppVersions.installedLabel(BuildConfig.VERSION_NAME, BuildConfig.NIGHTLY_RUN),
+                    release.version,
+                ),
             )
             release.apk?.sizeBytes?.takeIf { it > 0 }?.let {
                 ReleaseFact(

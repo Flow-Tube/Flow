@@ -27,6 +27,7 @@ internal data class GitHubAsset(
     @SerialName("browser_download_url") val downloadUrl: String = "",
     val size: Long = 0,
     val digest: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
 )
 
 internal fun parseGitHubRelease(json: String): GitHubRelease = ReleaseJson.decodeFromString(GitHubRelease.serializer(), json)
@@ -60,10 +61,11 @@ internal fun GitHubRelease.toNightlyReleaseIfNewer(currentRun: Int): AppRelease?
             ?: return null
     if (run <= currentRun) return null
     return AppRelease(
-        version = "nightly.$run",
+        version = AppVersions.nightly(run),
         tag = tagName,
         notes = body.orEmpty(),
-        publishedAt = publishedAt?.let { runCatching { Instant.parse(it) }.getOrNull() },
+        // The rolling release is edited in place, so its published_at never moves; the APK is new each run.
+        publishedAt = (apk.updatedAt ?: publishedAt)?.let { runCatching { Instant.parse(it) }.getOrNull() },
         pageUrl = htmlUrl,
         apk = apk.toReleaseApk(),
     )

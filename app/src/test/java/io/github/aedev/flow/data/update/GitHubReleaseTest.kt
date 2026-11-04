@@ -81,6 +81,29 @@ class GitHubReleaseTest {
     }
 
     @Test
+    fun `a nightly is dated by its apk because the rolling release keeps its first date`() {
+        val apk = GitHubAsset("flow-nightly-1430.apk", "https://example.test/a", 1, null, updatedAt = "2026-11-04T13:32:28Z")
+        val nightly = GitHubRelease(tagName = "nightly", publishedAt = "2026-09-29T11:39:22Z", assets = listOf(apk))
+
+        assertThat(nightly.toNightlyReleaseIfNewer(currentRun = 1428)?.publishedAt).isEqualTo(Instant.parse("2026-11-04T13:32:28Z"))
+    }
+
+    @Test
+    fun `a nightly apk without a date falls back to the release date`() {
+        val nightly =
+            GitHubRelease(tagName = "nightly", publishedAt = "2026-09-29T11:39:22Z", assets = listOf(asset("flow-nightly-1430.apk")))
+
+        assertThat(nightly.toNightlyReleaseIfNewer(currentRun = 1428)?.publishedAt).isEqualTo(Instant.parse("2026-09-29T11:39:22Z"))
+    }
+
+    @Test
+    fun `the update page names a nightly by its run and a stable build by its version`() {
+        assertThat(AppVersions.installedLabel("3.0.0-nightly.1914+52d4b63", nightlyRun = 1914)).isEqualTo("nightly.1914")
+        assertThat(AppVersions.installedLabel("3.0.0-nightly", nightlyRun = 0)).isEqualTo("3.0.0")
+        assertThat(AppVersions.installedLabel("3.0.0", nightlyRun = 0)).isEqualTo("3.0.0")
+    }
+
+    @Test
     fun `the running nightly or an older one is not an update`() {
         val nightly = GitHubRelease(tagName = "nightly", assets = listOf(asset("flow-nightly-1428.apk")))
 
