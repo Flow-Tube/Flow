@@ -19,6 +19,7 @@ import io.github.aedev.flow.data.music.model.toMusicTrack
 import io.github.aedev.flow.data.music.model.toVideo
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
 import io.github.aedev.flow.ui.components.musicplayer.sheet.MusicPlayerSheetState
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
@@ -63,6 +64,7 @@ fun NavGraphBuilder.flowAppGraph(
     defaultStartRoute: String = "home",
     onMusicStarted: () -> Unit = {},
     openDownloads: () -> Unit = {},
+    searchExitTab: () -> FlowTab = { FlowTab.Home },
 ) {
     // =============================================
     // ONBOARDING (First-time user experience)
@@ -259,7 +261,12 @@ fun NavGraphBuilder.flowAppGraph(
                 navController.navigate("playlist/${playlist.id}")
             },
             onBack = {
-                if (!navController.popBackStack()) navController.navigate("home")
+                // As the opening tab Search has nothing under it, and Home may be hidden (#1697).
+                if (navController.previousBackStackEntry != null) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigateToTab(searchExitTab(), defaultStartRoute)
+                }
             },
         )
     }

@@ -42,6 +42,7 @@ import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.LocalFlowSnackbarHostState
 import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationChrome
 import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationDefaults
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.NavigationVisibility
 import io.github.aedev.flow.ui.components.layout.navigation.flowUsesNavigationRail
 import io.github.aedev.flow.ui.components.layout.navigation.rememberFlowNavigationScrollState
@@ -242,7 +243,7 @@ fun FlowApp(
                     if (musicPlayerSheetState.isExpanded) musicPlayerSheetState.collapse()
                 }
             }
-        val currentShortsExitRoute by rememberUpdatedState(shortsExitRoute(navigationTabs))
+        val currentShortsExitRoute by rememberUpdatedState(exitTab(navigationTabs, FlowTab.Shorts).route)
         val mediaNavigator =
             remember(navController, collapseExpandedPlayers) {
                 FlowMediaNavigator(navController, collapseExpandedPlayers) { currentShortsExitRoute }
@@ -554,6 +555,7 @@ fun FlowApp(
                                             defaultStartRoute = defaultStartRoute,
                                             onMusicStarted = onMusicStarted,
                                             openDownloads = openDownloads,
+                                            searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
                                         )
                                     }
                                 }
