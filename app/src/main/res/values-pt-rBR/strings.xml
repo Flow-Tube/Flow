@@ -3046,7 +3046,7 @@
     <string name="music_player_lyrics_full_screen">Letras em tela cheia</string>
     <string name="lyrics_show_translation">Tradução</string>
     <string name="lyrics_play_from_line">Tocar a partir dessa linha</string>
-    <string name="lyrics_show_translation_summary">Mostrar a linha traduzida abaixo de cada letra</string>
+    <string name="lyrics_show_translation_summary">Mostrar uma tradução quando a letra incluir uma</string>
     <string name="lyrics_show_romanization">Romanização</string>
     <string name="lyrics_auto_romanize">Romanizar neste dispositivo</string>
     <string name="lyrics_auto_romanize_summary">Quando a fonte da letra não tem romanização</string>
@@ -4561,4 +4561,25 @@
     <string name="play_on_consent_always">Permitir sempre</string>
     <string name="play_on_consent_once">Apenas uma vez</string>
     <string name="play_on_consent_decline">Negar</string>
+    <string name="auto_group_music_playlists">Playlists de músicas</string>
+    <string name="auto_group_video_playlists">Playlists de vídeos</string>
+    <string name="lyrics_no_translation">Essa letra não tem tradução</string>
+    <string name="player_appearance_idle_progress_title">Barra De Progresso Com Controles Ocultos</string>
+    <string name="player_appearance_idle_progress_subtitle">Onde a barra fina fica em retrato</string>
+    <string name="player_appearance_idle_progress_on_video">No vídeo</string>
+    <string name="player_appearance_idle_progress_below">Abaixo</string>
+    <string name="player_appearance_idle_progress_off">Desativada</string>
+    <string name="sb_action_seek_bar_only">Mostrar na barra de progresso</string>
+    <string name="sb_action_with_button_detail">Também mostra um botão de pular</string>
+    <string name="sb_action_notify">Notificar</string>
+    <string name="pip_listen_in_background">Escute em segundo plano</string>
+    <string name="autoplay_countdown_mini_label">Próximo em %1$d</string>
+    <string name="sb_action_skip_automatically">Pular automaticamente</string>
+    <string name="sb_action_skip_once">Pular automaticamente uma vez</string>
+    <string name="sb_action_skip_once_detail">Mostrar um botão de pular se você voltar a ele</string>
+    <string name="sb_action_skip_button">Mostrar um botão de pular</string>
+    <string name="sb_action_disable">Desativado</string>
+    <string name="cache_size_custom">Customizado…</string>
+    <string name="cache_size_custom_field">Tamanho</string>
+    <string name="cache_size_custom_range">De 50 MB há 50 GB</string>
 </resources>
