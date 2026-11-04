@@ -3136,7 +3136,7 @@
     <string name="eq_built_in">Integrato</string>
     <string name="eq_import_file">Importa un file</string>
     <string name="eq_import_file_desc">Testo AutoEQ o EqualizerAPO</string>
-    <string name="eq_paste_text">Incolla il testo</string>
+    <string name="eq_paste_text">Incolla testo</string>
     <string name="eq_export">Esportare</string>
     <string name="eq_mode_parametric">Parametrico</string>
     <string name="eq_mode_graphic">Grafico</string>
@@ -3266,7 +3266,7 @@
     <string name="play_on_this_phone">Questo telefono</string>
     <string name="play_on_this_tablet">Questa tavoletta</string>
     <string name="play_on_this_tv">Questa televisione</string>
-    <string name="play_on_status_playing">Giocando · %1$s</string>
+    <string name="play_on_status_playing">In riproduzione · %1$s</string>
     <string name="play_on_status_paused">In pausa · %1$s</string>
     <string name="play_on_status_ready">Pronto</string>
     <string name="play_on_last_seen">Visto l\'ultima volta %1$s</string>
@@ -3985,7 +3985,7 @@
     <string name="settings_topics_title">Interessi e argomenti bloccati</string>
     <string name="settings_integrations_title">Integrazioni</string>
     <string name="settings_backup_title">Backup e ripristino</string>
-    <string name="settings_history_title">Storia e privacy</string>
+    <string name="settings_history_title">Cronologia e privacy</string>
     <string name="settings_downloads_title">Download e archiviazione</string>
     <string name="settings_network_title">Rete</string>
     <string name="settings_wellbeing_title">Benessere</string>
