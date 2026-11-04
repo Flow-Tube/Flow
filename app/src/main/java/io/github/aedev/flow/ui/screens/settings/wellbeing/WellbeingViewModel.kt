@@ -82,17 +82,9 @@ class WellbeingViewModel
                 localData.setBedtimeSchedule(start.hour, start.minute, time.hour, time.minute)
             }
 
-        fun setBreakEnabled(enabled: Boolean) =
-            write {
-                localData.setBreakReminder(enabled)
-                scheduleBreak(enabled, breakMinutes.value)
-            }
+        fun setBreakEnabled(enabled: Boolean) = write { localData.setBreakReminder(enabled) }
 
-        fun setBreakMinutes(minutes: Int) =
-            write {
-                localData.setBreakFrequency(minutes)
-                if (breakEnabled.value) scheduleBreak(true, minutes)
-            }
+        fun setBreakMinutes(minutes: Int) = write { localData.setBreakFrequency(minutes) }
 
         private fun timeOf(
             hour: Flow<Int>,
@@ -111,13 +103,6 @@ class WellbeingViewModel
                 ReminderManager.cancelBedtimeReminder(context)
             }
         }.onFailure { Log.w(TAG, "Bedtime reminder could not be scheduled", it) }
-
-        private fun scheduleBreak(
-            enabled: Boolean,
-            minutes: Int,
-        ) = runCatching {
-            if (enabled) ReminderManager.scheduleBreakReminder(context, minutes) else ReminderManager.cancelBreakReminder(context)
-        }.onFailure { Log.w(TAG, "Break reminder could not be scheduled", it) }
 
         private companion object {
             const val TAG = "WellbeingViewModel"
