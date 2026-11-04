@@ -15,7 +15,7 @@ class MemberSecrets(
     }
 }
 
-/** The id of a group: it commits to the keys of its genesis, so a store can't write a rival one. */
+/** The id of a group commits to the keys of its genesis (spec/crypto.md, Group id). */
 fun groupId(
     device: Pair<ByteArray, ByteArray>,
     recovery: Pair<ByteArray, ByteArray>,
