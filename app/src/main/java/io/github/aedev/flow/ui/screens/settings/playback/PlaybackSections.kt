@@ -173,7 +173,13 @@ internal fun SettingsListScope.playbackSections(
             valueLabel = { crossfadeLabel(it.roundToInt()) },
         )
         if (state.crossfadeSeconds > 0) {
+            switch(PlaybackIndex.crossfadeOnAutoAdvance, viewModel.crossfadeOnAutoAdvance, viewModel::setCrossfadeOnAutoAdvance)
+            switch(PlaybackIndex.crossfadeOnManualSkip, viewModel.crossfadeOnManualSkip, viewModel::setCrossfadeOnManualSkip)
             switch(PlaybackIndex.crossfadeKeepAlbums, viewModel.crossfadeKeepAlbums, viewModel::setCrossfadeKeepAlbums)
+            choice(PlaybackIndex.crossfadeCurve, onClick = { openDialog(PlaybackDialog.CROSSFADE_CURVE) }) {
+                val curve by viewModel.crossfadeCurve.collectAsStateWithLifecycle()
+                crossfadeCurveLabel(curve)
+            }
         }
         switch(PlaybackIndex.musicResume, viewModel.musicResume, viewModel::setMusicResume)
         switch(PlaybackIndex.resumeFromHeadphones, viewModel.resumeFromHeadphones, viewModel::setResumeFromHeadphones)

@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.CrossfadeCurve
 import io.github.aedev.flow.data.local.SPEED_SWIPE_STEPS
 import io.github.aedev.flow.data.local.SpeedSwipeSide
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
@@ -150,8 +151,41 @@ internal fun PlaybackDialogs(
         PlaybackDialog.LYRICS -> {
             LyricsProvidersSheet(viewModel = viewModel, onDismiss = onDismiss)
         }
+
+        PlaybackDialog.CROSSFADE_CURVE -> {
+            val curve by viewModel.crossfadeCurve.collectAsStateWithLifecycle()
+            FlowChoiceDialog(
+                title = stringResource(R.string.settings_crossfade_curve_title),
+                options = CrossfadeCurve.entries.map { FlowChoice(it, crossfadeCurveLabel(it), crossfadeCurveDetail(it)) },
+                selected = curve,
+                onSelect = viewModel::setCrossfadeCurve,
+                onDismiss = onDismiss,
+            )
+        }
     }
 }
+
+@Composable
+internal fun crossfadeCurveLabel(curve: CrossfadeCurve): String =
+    stringResource(
+        when (curve) {
+            CrossfadeCurve.EQUAL_POWER -> R.string.crossfade_curve_equal_power
+            CrossfadeCurve.S_CURVE -> R.string.crossfade_curve_s_curve
+            CrossfadeCurve.HOLD -> R.string.crossfade_curve_hold
+            CrossfadeCurve.GENTLE -> R.string.crossfade_curve_gentle
+        },
+    )
+
+@Composable
+private fun crossfadeCurveDetail(curve: CrossfadeCurve): String =
+    stringResource(
+        when (curve) {
+            CrossfadeCurve.EQUAL_POWER -> R.string.crossfade_curve_equal_power_detail
+            CrossfadeCurve.S_CURVE -> R.string.crossfade_curve_s_curve_detail
+            CrossfadeCurve.HOLD -> R.string.crossfade_curve_hold_detail
+            CrossfadeCurve.GENTLE -> R.string.crossfade_curve_gentle_detail
+        },
+    )
 
 @Composable
 private fun languageChoices(): List<FlowChoice<String>> =
