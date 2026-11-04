@@ -27,6 +27,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onLayoutRectChanged
+import androidx.compose.ui.node.Ref
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
@@ -45,6 +50,7 @@ import io.github.aedev.flow.ui.components.shared.clipToCornerRadius
 import io.github.aedev.flow.ui.components.shared.flowPlayerViewLayout
 import io.github.aedev.flow.ui.components.videoplayer.ambient.VideoAmbientBackground
 import io.github.aedev.flow.ui.components.videoplayer.ambient.rememberAmbientFrame
+import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
@@ -162,22 +168,7 @@ fun VideoPlayerSurface(
     }
 
     DisposableEffect(playerView) {
-        val rect = android.graphics.Rect()
-        val updateHint = {
-            if (playerView.getGlobalVisibleRect(rect) && !rect.isEmpty) {
-                PictureInPictureHelper.setVideoViewBounds(
-                    context as? Activity,
-                    PipBounds(rect.left, rect.top, rect.right, rect.bottom),
-                )
-            }
-        }
-        val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateHint() }
-        playerView.addOnLayoutChangeListener(listener)
-        updateHint()
-        onDispose {
-            playerView.removeOnLayoutChangeListener(listener)
-            PictureInPictureHelper.setVideoViewBounds(context as? Activity, null)
-        }
+        onDispose { PictureInPictureHelper.setVideoViewBounds(context as? Activity, null) }
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_START, lifecycleOwner) { surfaceRestoreTrigger++ }
@@ -282,7 +273,7 @@ fun VideoPlayerSurface(
 
                 view.clipToCornerRadius(cornerRadiusPx)
             },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().then(rememberPipSourceHintModifier(context as? Activity)),
         )
     }
 }
@@ -296,3 +287,32 @@ private val Float.dp: androidx.compose.ui.unit.Dp
     get() =
         androidx.compose.ui.unit
             .Dp(this)
+
+/**
+ * Publishes where the video is drawn as the PiP source hint. The sheet and the fullscreen layouts move
+ * it with graphics layers, which no layout pass reports, so a hint read on layout left the next entry
+ * growing from above or below the video (#1671). onLayoutRectChanged sees those moves, once they stop,
+ * but its rect leaves out scale, so the bounds themselves come from the coordinates.
+ */
+@Composable
+private fun rememberPipSourceHintModifier(activity: Activity?): Modifier {
+    val placed = remember { Ref<LayoutCoordinates>() }
+    return remember(activity, placed) {
+        Modifier
+            .onGloballyPositioned { placed.value = it }
+            .onLayoutRectChanged {
+                val bounds = placed.value?.takeIf { it.isAttached }?.boundsInWindow()
+                if (bounds != null && !bounds.isEmpty) {
+                    PictureInPictureHelper.setVideoViewBounds(
+                        activity,
+                        PipBounds(
+                            bounds.left.roundToInt(),
+                            bounds.top.roundToInt(),
+                            bounds.right.roundToInt(),
+                            bounds.bottom.roundToInt(),
+                        ),
+                    )
+                }
+            }
+    }
+}
