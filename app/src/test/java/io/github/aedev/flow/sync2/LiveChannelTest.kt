@@ -9,12 +9,15 @@ import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.device.DeviceKeys
 import io.github.aedev.flow.sync2.engine.Session
+import io.github.aedev.flow.sync2.linking.rotateEpoch
 import io.github.aedev.flow.sync2.live.LiveChannel
 import io.github.aedev.flow.sync2.live.LiveMessage
 import io.github.aedev.flow.sync2.live.LiveReceived
 import io.github.aedev.flow.sync2.live.LiveTransport
 import io.github.aedev.flow.sync2.live.openLive
 import io.github.aedev.flow.sync2.live.sealLive
+import io.github.aedev.flow.sync2.store.GroupStore
+import io.github.aedev.flow.sync2.store.parseObject
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineStart
@@ -82,6 +85,33 @@ class LiveChannelTest {
 
             val restarted = g.channel(g.a, dbA)
             assertEquals("the counter survives a restart", 4L, restarted.send(now))
+        }
+
+    @Test
+    fun a_new_epoch_in_the_roster_moves_the_channel_though_the_group_record_stays_the_same() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val db = g.deviceDb()
+            val local = heldStore(db)
+            local.addEntries(g.store.roster)
+            g.store.keys.forEach { (key, wrap) -> local.putKey(key.first, key.second, wrap) }
+            val channel = LiveChannel(context, db, mockk<DeviceKeys> { coEvery { load() } returns g.a }, local)
+            val sent = ArrayList<ByteArray>()
+            channel.attach(
+                object : LiveTransport {
+                    override suspend fun send(envelope: ByteArray) {
+                        sent += envelope
+                    }
+                },
+            )
+
+            check(rotateEpoch(Session.open(g.deviceDb(), g.store, g.a), g.a))
+            local.addEntries(g.store.roster)
+            g.store.keys.forEach { (key, wrap) -> local.putKey(key.first, key.second, wrap) }
+            Session.open(db, GroupStore(local, null), g.a)
+            channel.send(now)
+
+            assertEquals(listOf(0, 1), sent.map { parseObject(it, g.group).header.epoch })
         }
 
     @Test
