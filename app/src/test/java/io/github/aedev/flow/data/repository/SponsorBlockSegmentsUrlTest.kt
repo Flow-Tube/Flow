@@ -28,13 +28,16 @@ class SponsorBlockSegmentsUrlTest {
     }
 
     @Test
-    fun `highlights and chapters are not fetched`() {
-        assertThat(jsonList("categories")).containsNoneOf("poi_highlight", "chapter")
+    fun `hooks and highlights are fetched but chapters are not`() {
+        val categories = jsonList("categories")
+
+        assertThat(categories).containsAtLeast("hook", "poi_highlight")
+        assertThat(categories).doesNotContain("chapter")
     }
 
     @Test
     fun `the lookup asks for whole-video labels alongside skip and mute ranges`() {
-        assertThat(jsonList("actionTypes")).containsExactly("skip", "mute", "full")
+        assertThat(jsonList("actionTypes")).containsExactly("skip", "mute", "full", "poi")
     }
 
     @Test
@@ -49,9 +52,9 @@ class SponsorBlockSegmentsUrlTest {
     }
 
     @Test
-    fun `only filler and preview default to showing without skipping`() {
+    fun `only filler, preview, hook and highlight default to showing without skipping`() {
         val ignoredByDefault = SponsorBlockCategories.all.filter { SponsorBlockCategories.defaultAction(it) == SponsorBlockAction.IGNORE }
 
-        assertThat(ignoredByDefault).containsExactly("filler", "preview")
+        assertThat(ignoredByDefault).containsExactly("filler", "preview", "hook", "poi_highlight")
     }
 }
