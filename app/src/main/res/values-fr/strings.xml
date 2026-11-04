@@ -343,33 +343,33 @@
     <string name="theme_name_cream_paper">Papier crème</string>
     <string name="theme_desc_cream_paper">Des nuances de papier chaudes pour une lecture agréable en journée.</string>
     <string name="theme_name_classic_dark">Flow par défaut</string>
-    <string name="theme_desc_classic_dark">La palette originale de Flow avec l\'accent rouge de YouTube</string>
+    <string name="theme_desc_classic_dark">La palette Flow originale, rehaussée d\'une touche de rouge YouTube.</string>
     <string name="theme_name_true_black">Noir intense</string>
     <string name="theme_desc_true_black">OLED pur</string>
     <string name="theme_name_midnight">Minuit</string>
-    <string name="theme_desc_midnight">Profond et concentré</string>
+    <string name="theme_desc_midnight">Des noirs profonds et bien définis, parfaits pour regarder la télévision tard le soir.</string>
     <string name="theme_name_deep_ocean">Océan profond</string>
-    <string name="theme_desc_deep_ocean">Profondeurs calmes</string>
+    <string name="theme_desc_deep_ocean">Des bleus apaisants tirés des profondeurs de l\'eau.</string>
     <string name="theme_name_forest">Forêt</string>
-    <string name="theme_desc_forest">Naturel et apaisant</string>
+    <string name="theme_desc_forest">Des espaces verts naturels aux surfaces stabilisées.</string>
     <string name="theme_name_lavender">Lavande</string>
-    <string name="theme_desc_lavender">Doux et rêveur</string>
+    <string name="theme_desc_lavender">Des tons violets apaisants aux contrastes subtils.</string>
     <string name="theme_name_sunset">Coucher de soleil</string>
-    <string name="theme_desc_sunset">Chaleureux et dynamique</string>
+    <string name="theme_desc_sunset">Des tons orange chauds et éclatants pour la soirée.</string>
     <string name="theme_name_nebula">Nébuleuse</string>
-    <string name="theme_desc_nebula">Cosmique et audacieux</string>
+    <string name="theme_desc_nebula">Des violets cosmiques éclatants aux nuances profondes.</string>
     <string name="theme_name_rose_gold">Or rose</string>
-    <string name="theme_desc_rose_gold">Élégant et luxueux</string>
+    <string name="theme_desc_rose_gold">Des touches élégantes d\'or rose sur des tons sombres et chaleureux.</string>
     <string name="theme_name_arctic">Arctique</string>
-    <string name="theme_desc_arctic">Clarté glaciale</string>
+    <string name="theme_desc_arctic">Des bleus glacés et vifs, aux contrastes marqués.</string>
     <string name="theme_name_mint_night">Nuit mentholée</string>
-    <string name="theme_desc_mint_night">Sérénité apaisante</string>
+    <string name="theme_desc_mint_night">Des touches de menthe fraîche sur un fond sombre et discret.</string>
     <string name="theme_name_crimson">Cramoisi</string>
-    <string name="theme_desc_crimson">Audacieux et puissant</string>
+    <string name="theme_desc_crimson">Un rouge audacieux et intense sur des tons très sombres.</string>
     <string name="theme_name_cosmic_void">Vide cosmique</string>
-    <string name="theme_desc_cosmic_void">Obscurité infinie</string>
+    <string name="theme_desc_cosmic_void">Des profondeurs presque noires rehaussées de violet électrique.</string>
     <string name="theme_name_solar_flare">Éruption solaire</string>
-    <string name="theme_desc_solar_flare">Énergie débordante</string>
+    <string name="theme_desc_solar_flare">Des tons dorés et ambrés éclatants sur un fond doré foncé.</string>
     <string name="theme_name_cyberpunk">Cyberpunk</string>
     <string name="theme_desc_cyberpunk">Du magenta et du cyan néon pour une ville du futur.</string>
     <string name="theme_name_royal_gold">Or royal</string>
@@ -395,7 +395,7 @@
     <string name="content_settings_preview_small">Petit - Miniatures de 104dp</string>
     <string name="content_settings_dynamic_components">Composants dynamiques</string>
     <string name="settings_subs_shorts_shelf_title">Abonnements Shorts</string>
-    <string name="settings_subs_shorts_shelf_subtitle">Afficher la barre horizontale des Shorts dans la grille du flux d\'abonnement.</string>
+    <string name="settings_subs_shorts_shelf_subtitle">Afficher une section « Shorts » dans le fil d\'actualités de l\'abonnement</string>
     <string name="settings_home_shorts_shelf_title">Shorts sur l\'écran d\'accueil</string>
     <string name="settings_home_shorts_shelf_subtitle">Afficher la section des Shorts sur l\'écran d\'accueil.</string>
     <string name="settings_shorts_nav_tab_title">Onglet Shorts dans la navigation</string>
@@ -567,7 +567,7 @@
     <string name="location_downloads_label">Téléchargements / Flow</string>
     <string name="location_movies_label">Vidéos / Flow</string>
     <string name="location_internal_app_label">Stockage interne de l\'application</string>
-    <string name="location_internal_app_desc">Privé à l\'application — les fichiers peuvent être supprimés si vous désinstallez</string>
+    <string name="location_internal_app_desc">Privé pour Flow. Supprimé en cas de désinstallation.</string>
     <string name="location_custom_saf_label">Parcourir…</string>
     <string name="location_custom_saf_desc">Sélectionnez un dossier à l\'aide du sélecteur de fichiers du système</string>
     <string name="location_custom_manual_label">Saisir un chemin manuellement</string>
@@ -922,7 +922,7 @@
     <string name="sb_color_picker_title">Couleur de mise en évidence du segment</string>
     <string name="auto_backup_pick_folder">Sélectionner un dossier</string>
     <string name="player_settings_shorts_background_play_subtitle">Continuer à lire les Shorts lorsque l\'application est en arrière-plan</string>
-    <string name="player_settings_play_during_calls_subtitle">Poursuivre la lecture pendant les appels téléphoniques ou VoIP (par exemple, WhatsApp)</string>
+    <string name="player_settings_play_during_calls_subtitle">Continuer à jouer pendant les appels téléphoniques et via l\'application</string>
     <string name="import_engine_data_desc">Restaurez votre profil de personnalité IA à partir d\'un fichier de sauvegarde</string>
     <string name="mini_player_normal">Normal</string>
     <string name="skip_button_title">Afficher les boutons « Passer »</string>
@@ -936,7 +936,7 @@
     <string name="theme_desc_system_default">Suit votre appareil entre la lumière et l\'obscurité.</string>
     <string name="theme_name_monochrome">Monochrome</string>
     <string name="theme_name_custom">Personnalisé</string>
-    <string name="theme_desc_custom">Créez votre propre palette professionnelle</string>
+    <string name="theme_desc_custom">Votre propre palette, dont toutes les couleurs sont modifiables.</string>
     <string name="content_settings_home_layout_title">Mode d\'affichage d\'accueil</string>
     <string name="content_settings_home_layout_subtitle">Choisissez comment les vidéos s\'affichent sur l\'écran d\'accueil</string>
     <string name="content_settings_layout_grid">Grille</string>
@@ -959,7 +959,7 @@
     <string name="settings_music_nav_tab_title">Onglet « Musique » dans le menu de navigation</string>
     <string name="settings_music_nav_tab_subtitle">Afficher l\'onglet « Musique » dans la barre de navigation inférieure.</string>
     <string name="settings_search_nav_tab_title">Onglet « Recherche » dans le menu de navigation</string>
-    <string name="settings_search_nav_tab_subtitle">Afficher un onglet « Recherche » à accès rapide dans la barre de navigation inférieure.</string>
+    <string name="settings_search_nav_tab_subtitle">Ajouter un onglet « Recherche » à la barre de navigation</string>
     <string name="nav_search">Recherche</string>
     <string name="appearance_role_on_secondary">Au niveau secondaire</string>
     <string name="appearance_role_on_tertiary">Au niveau tertiaire</string>
@@ -974,7 +974,7 @@
     <string name="merge_playlist_no_playlists">Il n\'y a pas encore de playlist. Commencez par en créer une !</string>
     <string name="mini_player_small">Petit</string>
     <string name="mini_player_large">Grand</string>
-    <string name="theme_desc_monochrome">Une pureté en noir et blanc</string>
+    <string name="theme_desc_monochrome">Une palette neutre, sans éléments de distraction, offrant une clarté optimale.</string>
     <string name="player_settings_custom_speeds_title">Vitesses de lecture personnalisées</string>
     <string name="player_settings_custom_speeds_subtitle">Définissez vos propres réglages de vitesse pour le lecteur</string>
     <string name="player_settings_custom_speeds_header">Réglages de vitesse prédéfinis</string>
@@ -1003,7 +1003,7 @@
     <string name="content_settings_video_card_actions_title">Boutons « J\'aime » et « Je n\'aime pas » pour les cartes vidéo</string>
     <string name="content_settings_video_card_actions_subtitle">Affichez les boutons « J\'aime » et « Je n\'aime pas » sur les fiches vidéo pour affiner rapidement vos recommandations</string>
     <string name="settings_categories_nav_tab_title">Onglet « Explorer » dans le menu de navigation</string>
-    <string name="settings_categories_nav_tab_subtitle">Afficher un onglet « Tendances et catégories » dans la barre de navigation inférieure.</string>
+    <string name="settings_categories_nav_tab_subtitle">Ajouter un onglet « Tendances et catégories » à la barre de navigation</string>
     <string name="nav_explore">Découvrir</string>
     <string name="player_mini_player_continue_watching_label">Continuer à regarder</string>
     <string name="proxy_settings_title">Paramètres du proxy</string>
@@ -1200,7 +1200,7 @@
     <string name="player_settings_overlay_pip">Bouton « PiP »</string>
     <string name="player_settings_overlay_pip_subtitle">Afficher le bouton « PiP » sur la fenêtre superposée du lecteur vidéo</string>
     <string name="player_settings_auto_pip_title">PiP automatique</string>
-    <string name="player_settings_auto_pip_subtitle">Passer automatiquement en mode PiP lorsque vous quittez l\'application. Désactivez cette option pour utiliser le mode PiP uniquement via le bouton manuel.</string>
+    <string name="player_settings_auto_pip_subtitle">Passer en mode « picture-in-picture » lorsque vous quittez l\'application</string>
     <string name="player_settings_overlay_autoplay">Activer/désactiver la lecture automatique</string>
     <string name="player_settings_overlay_autoplay_subtitle">Afficher le bouton de lecture automatique sur la fenêtre superposée du lecteur vidéo</string>
     <string name="player_settings_overlay_sleep_timer">Bouton de mise en veille</string>
@@ -1221,7 +1221,7 @@
     <string name="diagnostics_clear_crashes">Effacer les rapports d\'incident</string>
     <string name="diagnostics_clear_confirm_title">Effacer les rapports d\'incident ?</string>
     <string name="diagnostics_clear_confirm_body">Tous les rapports d\'incident enregistrés seront définitivement supprimés. Cette action est irréversible.</string>
-    <string name="diagnostics_no_crashes">Aucun rapport d\'incident — super !</string>
+    <string name="diagnostics_no_crashes">Aucun rapport d\'accident</string>
     <string name="diagnostics_no_session_logs">Aucun avertissement ni aucune erreur n\'ont été signalés au cours de cette session.</string>
     <string name="diagnostics_loading">Lecture des journaux…</string>
     <string name="diagnostics_copied">Le rapport a été copié dans le presse-papiers</string>
@@ -1467,7 +1467,7 @@
     <string name="notif_master_toggle">Activer les notifications</string>
     <string name="notif_master_toggle_subtitle">Autoriser Flow à s\'activer en arrière-plan pour vérifier les notifications et les alertes</string>
     <string name="notif_check_interval_disabled">Les vérifications de notification en arrière-plan sont désactivées</string>
-    <string name="player_settings_rytd_title">Return YouTube Dislike</string>
+    <string name="player_settings_rytd_title">Réintroduire le bouton « Je n\'aime pas »</string>
     <string name="player_settings_rytd_subtitle">Récupérer le nombre de « J\'aime pas » à l\'aide du service « Return YouTube Dislike »</string>
     <string name="player_adaptive_size_title">Taille adaptative du lecteur</string>
     <string name="player_adaptive_size_subtitle">Ajuster le lecteur à la vidéo. L\'option « Off » conserve le format 16:9.</string>
@@ -1613,7 +1613,7 @@
     <string name="datetime_override_exact">Exact</string>
     <string name="datetime_override_both">Les deux</string>
     <string name="player_appearance_volume_boost_title">Activer l\'amplification du volume</string>
-    <string name="player_appearance_volume_boost_subtitle">Lorsque cette option est désactivée, le geste de réglage du volume par glissement s\'arrête au volume maximal du système. Activez-la pour augmenter encore davantage le volume.</string>
+    <string name="player_appearance_volume_boost_subtitle">Autoriser le réglage du volume à dépasser la limite maximale du système</string>
     <string name="shorts_playback_speed">Vitesse de lecture</string>
     <string name="speed_normal">Normal</string>
     <string name="export_watch_history_title">Historique des visionnages</string>
@@ -1668,7 +1668,7 @@
     <string name="history_tab_local_videos">Vidéos locales</string>
     <string name="history_tab_local_music">Musique locale</string>
     <string name="deep_flow_save_history_title">Ajouter à l\'historique</string>
-    <string name="deep_flow_save_history_subtitle">Conserver les vidéos visionnées dans l\'historique (avec la progression). Le moteur ne s\'en servira toutefois pas pour s\'améliorer. Désactivé = rien n\'est enregistré.</string>
+    <string name="deep_flow_save_history_subtitle">Conserver l\'historique des vidéos visionnées sans recommandations de visionnage</string>
     <string name="share_link_only_template">https://youtube.com/watch?v=%1$s</string>
     <string name="content_settings_share_without_text_title">Partager des liens sans texte</string>
     <string name="content_settings_share_without_text_subtitle">Partagez uniquement le lien vers la vidéo, sans le message « Regardez cette vidéo »</string>
@@ -1690,9 +1690,9 @@
     <string name="content_settings_watched_threshold_99">99 % ont joué</string>
     <string name="content_settings_watched_threshold_almost">Presque terminé (dernière minute)</string>
     <string name="content_settings_navbar_hide_on_scroll_title">Masquer la barre de navigation lors du défilement</string>
-    <string name="content_settings_navbar_hide_on_scroll_subtitle">Masquer la barre de navigation inférieure lors du défilement vers le bas. Désactivez cette option pour qu\'elle reste toujours visible (utile en cas de ralentissement de l\'animation).</string>
+    <string name="content_settings_navbar_hide_on_scroll_subtitle">Masquer la barre de navigation lors du défilement vers le bas</string>
     <string name="player_settings_queue_autoplay">Lecture automatique des vidéos en file d\'attente</string>
-    <string name="player_settings_queue_autoplay_subtitle">Lire automatiquement la vidéo suivante d\'une playlist ou de la file d\'attente « À regarder plus tard ». Lorsque cette option est désactivée, vous pouvez toujours passer manuellement à la vidéo suivante.</string>
+    <string name="player_settings_queue_autoplay_subtitle">Lancer la vidéo suivante de la playlist ou la regarder plus tard</string>
     <string name="recognize_music">Reconnaître un morceau de musique</string>
     <string name="recognition_history">Historique de reconnaissance</string>
     <string name="tap_to_recognize">Appuyez pour reconnaître</string>
@@ -1757,7 +1757,7 @@
     <string name="sync_error_no_network">Aucune connexion Wi-Fi/LAN. Connectez les deux appareils au même réseau ou à un point d\'accès.</string>
     <string name="sync_error_peer_also_send">L\'autre appareil est également réglé sur « Envoi ». Réglez-le sur « Réception », puis relancez la recherche.</string>
     <string name="sync_error_peer_also_receive">L\'autre appareil est également réglé sur « Réception ». Réglez-le sur « Émission », puis relancez la recherche.</string>
-    <string name="sync_error_qr_expired">Ce QR code a expiré. Demandez à l\'autre appareil d\'en afficher un nouveau.</string>
+    <string name="sync_error_qr_expired">Ce code a expiré. Demandez à l\'autre appareil d\'en générer un nouveau. Si les codes continuent d\'expirer immédiatement, vérifiez que la date et l\'heure sont correctes sur les deux appareils.</string>
     <string name="sync_error_qr_wrong_version">Version de l\'application incompatible sur l\'autre appareil.</string>
     <string name="sync_error_qr_not_flow">Ça ne ressemble pas à un code de synchronisation Flow.</string>
     <string name="sync_error_qr_bad_address">Il manque une adresse réseau valide dans le code de synchronisation.</string>
@@ -2175,9 +2175,9 @@
     <string name="discord_presence_privacy_section">Confidentialité et risques liés au compte</string>
     <string name="discord_presence_privacy_title">Confidentialité</string>
     <string name="discord_presence_privacy_body">Lorsqu\'elle est activée, l\'application Flow partage avec Discord le titre de la vidéo, du « Shorts », du live ou du morceau en cours de lecture, ainsi que le nom du créateur ou de l\'artiste, la pochette et la durée de lecture. Ce paramètre est désactivé par défaut. Votre jeton de session Discord est chiffré à l\'aide du Keystore Android et n\'est jamais ajouté aux journaux de l\'application.</string>
-    <string name="discord_presence_gateway_warning">Flow utilise une connexion non officielle de type « self-bot » via le jeton de votre compte Discord, et non via OAuth. Cela constitue une violation des Conditions d\'utilisation de Discord et peut entraîner la suspension ou la résiliation de votre compte. Les clients non pris en charge peuvent également déclencher des alertes de fuite de jeton, des réinitialisations de mot de passe, des CAPTCHA ou des verrouillages nécessitant une vérification par téléphone.</string>
+    <string name="discord_presence_gateway_warning">Cette méthode utilise votre jeton Discord pour vous connecter, au lieu d\'une connexion officielle. Elle enfreint les Conditions générales d\'utilisation de Discord et peut entraîner une restriction ou une suspension de votre compte.</string>
     <string name="discord_presence_risk_dialog_title">Accepter les risques liés au compte Discord ?</string>
-    <string name="discord_presence_risk_dialog_body">En vous connectant via Discord, vous fournissez à Flow le jeton de votre compte Discord. Flow le stocke en le chiffrant à l\'aide du Keystore Android et ne l\'envoie qu\'à Discord, mais cette méthode non officielle d\'utilisation d\'un bot personnel enfreint les Conditions d\'utilisation de Discord. Discord peut suspendre ou résilier votre compte, vous obliger à réinitialiser votre mot de passe, vous demander de saisir des CAPTCHA ou verrouiller votre compte en exigeant une vérification par téléphone.</string>
+    <string name="discord_presence_risk_dialog_body">La connexion fournit à Flow votre jeton Discord. Celui-ci reste crypté sur cet appareil et n\'est transmis qu\'à Discord. Cette méthode enfreint les Conditions d\'utilisation de Discord ; votre compte pourrait donc être restreint ou banni.</string>
     <string name="discord_presence_risk_accept">Je comprends, me connecter</string>
     <string name="discord_error_not_initialized">La fonctionnalité « Rich Presence » de Discord ne s\'est pas initialisée.</string>
     <string name="discord_error_enable_before_connect">Activez la fonctionnalité « Rich Presence » de Discord avant de connecter un compte.</string>
@@ -2769,6 +2769,8 @@
     <string name="search_filter_unwatched">Pas regarder</string>
     <plurals name="search_watch_empty_watched">
         <item quantity="one">Aucune vidéo regardée ici</item>
+        <item quantity="many">Aucune vidéo regardée ici</item>
+        <item quantity="other">Aucune vidéo regardée ici</item>
     </plurals>
     <string name="home_load_more_failed">Impossible de charger d\'autres vidéos</string>
     <string name="home_load_more_failed_body">Vérifiez votre connection</string>
@@ -2872,7 +2874,7 @@
     <string name="deep_flow_scrobble_subtitle">Continuez à envoyer des écoutes sur Last.fm, Libre.fm et ListenBrainz</string>
     <string name="deep_flow_on_search_title">Afficher lors de la recherche</string>
     <string name="deep_flow_on_search_subtitle">Un commutateur Deep Flow au-dessus des recherches récentes</string>
-    <string name="deep_flow_long_press_hint">Appuyez longuement sur le logo ou le nom Flow sur Accueil pour basculer sur Deep Flow.</string>
+    <string name="deep_flow_long_press_hint">Appuyez longuement sur le logo ou le nom de Flow sur l\'écran d\'accueil pour activer Deep Flow.</string>
     <string name="notif_type_shorts">Shorts</string>
     <string name="notif_type_shorts_subtitle">Inclure Shorts dans les alertes de nouvelles vidéos provenant des abonnements</string>
     <string name="notif_check_interval_off_new_videos">Désactivé lorsque les nouvelles vidéos sont désactivées</string>
@@ -2916,7 +2918,7 @@
     <string name="lyrics_provider_unison_desc">Paroles de la communauté · petit catalogue</string>
     <string name="lyrics_provider_youtube_captions_desc">Synchronisation de ligne · les légendes de la vidéo</string>
     <string name="lyrics_provider_youtube_music_desc">Texte brut · l\'onglet Paroles</string>
-    <string name="theme_name_sage">Sage</string>
+    <string name="theme_name_sage">Sauge</string>
     <string name="theme_name_caffeine">Caféine</string>
     <string name="theme_desc_catppuccin">Couleurs pastel apaisantes inspirées du Latte et du Moka.</string>
     <string name="theme_desc_green_apple">Des accents verts frais avec des surfaces organiques douces.</string>
@@ -2944,7 +2946,7 @@
     <string name="content_settings_channel_shorts_tab_title">Onglet Shorts sur les chaînes</string>
     <string name="content_settings_channel_shorts_tab_subtitle">Conserver l\'onglet Shorts d\'une chaîne pendant que les Shorts sont masqués</string>
     <string name="content_settings_hide_watched_shorts_title">Masquer Shorts regardé</string>
-    <string name="content_settings_hide_watched_shorts_subtitle">Gardez Shorts que vous avez terminé hors des étagères et du flux Shorts.</string>
+    <string name="content_settings_hide_watched_shorts_subtitle">Ne laissez pas les shorts que vous avez terminés sur les étagères ni dans le bac à shorts</string>
     <string name="settings_open_music_player_on_play_title">Ouvrez le lecteur complet pour de nouvelles chansons</string>
     <string name="settings_open_music_player_on_play_summary">Off conserve une nouvelle chanson dans le mini-lecteur</string>
     <string name="content_settings_live_chat_enabled_title">Chat en direct</string>
@@ -2980,7 +2982,7 @@
     <string name="player_settings_tilt_fullscreen">Incliner pour le plein écran</string>
     <string name="player_settings_tilt_fullscreen_subtitle">Tournez sur le côté pour afficher le plein écran, même avec la rotation verrouillée</string>
     <string name="player_settings_normalize_volume">Normaliser le volume</string>
-    <string name="player_settings_normalize_volume_summary">Réduisez le volume des vidéos au niveau de YouTube</string>
+    <string name="player_settings_normalize_volume_summary">Réduisez le volume des vidéos trop bruyantes pour qu\'il soit au même niveau, comme sur youtube.com</string>
     <string name="player_settings_sponsorblock_video">SponsorBlock pour cette vidéo</string>
     <string name="dearrow_random_frame">Utiliser une image vidéo</string>
     <string name="dearrow_random_frame_subtitle">Lorsque rien n\'est soumis, affichez une image de la vidéo</string>
@@ -3126,9 +3128,9 @@
     <string name="onboarding_get_started">Commencer</string>
     <string name="onboarding_start_watching">Commencez à regarder</string>
     <plurals name="onboarding_pick_more">
-        <item quantity="one">Choisissez %d de plus</item>
-        <item quantity="many">Choisissez %d de plus</item>
-        <item quantity="other">Choisissez %d de plus</item>
+        <item quantity="one">Choisissez-en encore %d</item>
+        <item quantity="many">Choisissez-en encore %d</item>
+        <item quantity="other">Choisissez-en encore %d</item>
     </plurals>
     <string name="onboarding_welcome_title">Personnalisez Flow</string>
     <string name="onboarding_welcome_subtitle">Vidéos et musique autour de ce que vous aimez. L\'installation prend une minute.</string>
@@ -3180,7 +3182,7 @@
     <string name="playback_background_restricted_title">L\'activité en arrière-plan est restreinte</string>
     <string name="playback_background_restricted_subtitle">Votre téléphone peut arrêter Flow lorsque vous le faites glisser. Appuyez pour l\'autoriser.</string>
     <string name="settings_music_side_swipes_title">Balayages de vitesse et de volume</string>
-    <string name="settings_music_side_swipes_summary">Faites glisser votre doigt vers la gauche pour la vitesse, vers la droite pour le volume.</string>
+    <string name="settings_music_side_swipes_summary">Faites glisser votre doigt vers la gauche pour régler la vitesse, vers la droite pour régler le volume</string>
     <string name="music_watch_video_desc">Ouvrez le clip vidéo dans le lecteur vidéo</string>
     <string name="player_appearance_animated_artwork_title">Oeuvre animée</string>
     <string name="player_appearance_animated_artwork_subtitle">Boucler l\'illustration animée d\'un album lorsqu\'il en possède une</string>
@@ -3739,9 +3741,9 @@
         <item quantity="other">%d minutes restantes</item>
     </plurals>
     <plurals name="widget_downloads_in_progress">
-        <item quantity="one">%d téléchargement</item>
-        <item quantity="many">%d téléchargement</item>
-        <item quantity="other">%d téléchargement</item>
+        <item quantity="one">%d en cours de téléchargement</item>
+        <item quantity="many">%d en cours de téléchargement</item>
+        <item quantity="other">%d en cours de téléchargement</item>
     </plurals>
     <string name="widget_browse_downloads">Parcourir les téléchargements</string>
     <string name="widget_shuffle">Mélanger</string>
@@ -3795,7 +3797,7 @@
     </plurals>
     <string name="subtitle_load_failed">Impossible de charger les sous-titres %1$s – réessayez</string>
     <string name="subtitle_translation_unavailable">Traduction indisponible – affichant %1$s</string>
-    <string name="sb_segment_notice">%1$s segment</string>
+    <string name="sb_segment_notice">Segment %1$s</string>
     <string name="sb_off_for_video">SponsorBlock désactivé pour cette vidéo</string>
     <string name="sb_on_for_video">SponsorBlock activé pour cette vidéo</string>
     <plurals name="sb_video_segments">
@@ -4053,7 +4055,7 @@
     <string name="font_preview_label">Je joue en ce moment</string>
     <string name="font_imported">Maintenant en utilisant %1$s</string>
     <string name="font_import_not_font">Choisissez un fichier .ttf ou .otf</string>
-    <string name="font_import_too_large">Les fichiers de polices peuvent atteindre %1$d Mo.</string>
+    <string name="font_import_too_large">La taille des fichiers de polices peut atteindre %1$d Mo</string>
     <string name="font_import_unreadable">Ce fichier n\'a pas pu être lu comme une police</string>
     <string name="settings_navigation_bar_summary">Les onglets, leur ordre et l\'onglet par défaut</string>
     <string name="settings_player_appearance_summary">Barre de recherche, arrière-plans et mini-lecteur</string>
@@ -4104,7 +4106,7 @@
     <string name="settings_section_shorts_player">Lecteur Shorts</string>
     <string name="settings_section_music">Musique</string>
     <string name="settings_section_advanced">Avancé</string>
-    <string name="settings_keywords_autoplay">vidéo suivante, suivante, lecture continue</string>
+    <string name="settings_keywords_autoplay">vidéo suivante, à suivre, lecture en continu</string>
     <string name="settings_keywords_captions">sous-titres, cc, sous-titres codés</string>
     <string name="settings_keywords_next_prev">sauter, vidéo précédente, vidéo suivante, appuyer deux fois</string>
     <string name="settings_keywords_gestures">glisser, appuyer deux fois, toucher</string>
@@ -4198,7 +4200,7 @@
     <string name="settings_storage_usage">%1$s gratuit de %2$s</string>
     <string name="settings_location_default">Défaut</string>
     <string name="settings_music_folder_label">Musique / Flow</string>
-    <string name="settings_keywords_downloads">enregistrer hors ligne, dossier, stockage, carte SD</string>
+    <string name="settings_keywords_downloads">enregistrer hors ligne, dossier, espace de stockage, carte SD</string>
     <string name="settings_section_notification_types">Informez-moi de</string>
     <string name="settings_keywords_notifications">alertes, push, nouveaux téléchargements, vérifications des antécédents, courts métrages</string>
     <string name="settings_section_proxy_server">Serveur</string>
@@ -4379,7 +4381,7 @@
     <string name="taste_starter_searches_detail">%1$s. Utilisé jusqu\'à ce que Flow apprenne ce que vous regardez.</string>
     <string name="recap_title">Récapitulatif Flow</string>
     <string name="recap_summary">Ce que vous avez regardé et écouté, mois par mois</string>
-    <string name="recap_keywords">enveloppé, statistiques, statistiques, récapitulation, bilan de l\'année, durée de visionnage, durée d\'écoute, les plus regardés, meilleurs artistes</string>
+    <string name="recap_keywords">résumé, statistiques, récapitulatif, bilan de l\'année, durée de visionnage, durée d\'écoute, vidéos les plus vues, artistes les plus populaires</string>
     <string name="recap_period_month">Mois</string>
     <string name="recap_period_year">Année</string>
     <string name="recap_period_all">Tout le temps</string>
@@ -4691,7 +4693,7 @@
     <string name="music_home_shelf_charts">Graphiques</string>
     <string name="settings_music_home_title">Musique à la maison</string>
     <string name="settings_music_home_summary">Choisissez les sections que les émissions musicales à domicile</string>
-    <string name="settings_music_home_sections">Sections</string>
+    <string name="settings_music_home_sections">Rubriques</string>
     <string name="settings_library_summary">Choisissez les sections que la bibliothèque présente</string>
     <string name="onboarding_step_artists">Artistes</string>
     <string name="onboarding_artists_title">Choisissez quelques artistes</string>
@@ -4704,7 +4706,7 @@
     </plurals>
     <string name="scrobbling_title">Scrobbler</string>
     <string name="scrobbling_summary">Envoyez ce que vous écoutez à Last.fm, Libre.fm ou ListenBrainz</string>
-    <string name="settings_keywords_scrobbling">scrobble scrobble last.fm lastfm libre.fm librefm écouterbrainz</string>
+    <string name="settings_keywords_scrobbling">scrobble, scrobbling, last.fm, lastfm, libre.fm, librefm, listenbrainz</string>
     <string name="scrobbling_lastfm">Last.fm</string>
     <string name="scrobbling_librefm">Libre.fm</string>
     <string name="scrobbling_listenbrainz">ListenBrainz</string>
@@ -4771,4 +4773,48 @@
     <string name="keyboard_shortcut_exit_fullscreen">Quitter le plein écran</string>
     <string name="keyboard_shortcut_faster">Plus rapide</string>
     <string name="keyboard_shortcut_slower">Ralentissez</string>
+    <string name="auto_group_music_playlists">Playlists musicales</string>
+    <string name="auto_group_video_playlists">Playlists vidéo</string>
+    <string name="autoplay_countdown_mini_label">Suivant dans %1$d</string>
+    <string name="sb_action_skip_automatically">Passer automatiquement</string>
+    <string name="sb_action_skip_once">Passer automatiquement au titre suivant</string>
+    <string name="sb_action_skip_once_detail">Affiche un bouton « Passer » si vous y revenez</string>
+    <string name="sb_action_skip_button">Afficher un bouton « Passer »</string>
+    <string name="sb_action_notify">Notifier</string>
+    <string name="sb_action_with_button_detail">Affiche également un bouton « Passer »</string>
+    <string name="sb_action_seek_bar_only">Afficher dans la barre de recherche</string>
+    <string name="sb_action_disable">Désactiver</string>
+    <string name="cache_size_custom">Personnalisé…</string>
+    <string name="cache_size_custom_field">Taille</string>
+    <string name="cache_size_custom_range">De 50 Mo à 50 Go</string>
+    <string name="cache_size_unit_mb">Mo</string>
+    <string name="cache_size_unit_gb">Go</string>
+    <string name="cache_size_mb_value">%1$s Mo</string>
+    <string name="cache_size_gb_value">%1$s Go</string>
+    <string name="buffer_cache_size_link">Taille du cache</string>
+    <string name="buffer_cache_size_link_summary">Quelle quantité de vidéos et de musique Flow conserve sur le disque ?</string>
+    <string name="linked_always_intro">Vos appareils restent synchronisés en permanence grâce à votre propre serveur de synchronisation Flow, à un dossier WebDAV ou à votre réseau Wi-Fi. Toutes les données sont chiffrées de bout en bout ; aucun serveur ne peut les lire.</string>
+    <string name="linked_replace_words">Remplacer les mots de récupération</string>
+    <string name="linked_replace_words_hint">Procurez-vous de nouveaux mots si les anciens ont été perdus ou si quelqu\'un d\'autre les a vus</string>
+    <string name="linked_replace_words_title">Remplacer vos mots de récupération ?</string>
+    <string name="linked_replace_words_body">Flow génère de nouveaux mots de récupération et de nouvelles clés de chiffrement pour vos appareils. Les anciens mots ne fonctionnent plus : ils ne permettent plus de restaurer ce groupe ni d\'accéder aux données synchronisées à partir de maintenant. Notez les nouveaux mots dès qu\'ils s\'affichent.</string>
+    <string name="linked_replace">Remplacer</string>
+    <string name="sync_devices_summary">Synchronisez votre bibliothèque, votre historique et votre profil sur tous vos appareils, avec un chiffrement de bout en bout</string>
+    <string name="sync_one_time_title">Virement ponctuel</string>
+    <string name="sync_one_time_body">Copiez une seule fois votre bibliothèque, votre historique, vos coups de cœur et vos paramètres sur un autre appareil, via le Wi-Fi. Aucune donnée ne quitte votre réseau.</string>
+    <string name="settings_highlight_new_title">Mettre en évidence les nouveaux paramètres</string>
+    <string name="settings_highlight_new_summary">Marquer les paramètres ajoutés lors d\'une mise à jour indiquée par un point</string>
+    <string name="settings_highlight_new_days_title">Conservez le point pour</string>
+    <string name="settings_keywords_cache">taille du cache, limite du cache, cache multimédia, stockage, espace disque</string>
+    <string name="settings_keywords_crossfade">fondu, transition, fusion, lecture en continu, mixage</string>
+    <plurals name="settings_highlight_new_days">
+        <item quantity="one">%d jour</item>
+        <item quantity="many">%d jours</item>
+        <item quantity="other">%d jours</item>
+    </plurals>
+    <string name="new_badge_label">Nouveautés</string>
+    <string name="settings_crossfade_title">Fondu enchaîné</string>
+    <string name="settings_crossfade_summary">Enchaîner la fin d\'un morceau avec le début du suivant</string>
+    <string name="settings_crossfade_albums_title">Conserver les albums sans pause</string>
+    <string name="settings_crossfade_albums_summary">Pas de fondu enchaîné entre les morceaux d\'un même album</string>
 </resources>
