@@ -415,6 +415,7 @@ internal fun InlineLyricsPanel(
                         isPlaying = isPlaying,
                         syncOffsetMs = latestSyncOffsetMs,
                         motionEnabled = motionEnabled,
+                        blurOtherLines = display.blurOtherLines,
                         indicatorColor = expressiveAccent,
                         positionProvider = panelPosition,
                         onHeight = { itemHeights[listIndex] = it },

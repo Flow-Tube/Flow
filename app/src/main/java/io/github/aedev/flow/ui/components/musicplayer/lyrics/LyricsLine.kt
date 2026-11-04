@@ -168,6 +168,7 @@ internal fun LyricsLine(
     showTranslation: Boolean,
     romanization: String?,
     motionEnabled: Boolean,
+    blurOtherLines: Boolean,
     onSizeChanged: (Int) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -177,7 +178,7 @@ internal fun LyricsLine(
     val lineDistance = abs(index - displayedCurrentLineIndex)
     val dofBlurRadius by animateFloatAsState(
         targetValue =
-            if (!isSynced || isActiveLine || item.isBackground) {
+            if (!blurOtherLines || !isSynced || isActiveLine || item.isBackground) {
                 0f
             } else {
                 with(density) { (lineDistance.coerceAtMost(MAX_BLUR_DISTANCE) * 4.dp.toPx()) }
