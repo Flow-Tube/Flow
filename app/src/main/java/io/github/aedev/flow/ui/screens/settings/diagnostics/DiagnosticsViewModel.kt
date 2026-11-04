@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.profile.ProfileRepository
 import io.github.aedev.flow.data.profile.ProfileSwitcher
 import io.github.aedev.flow.data.profile.SlicePart
 import io.github.aedev.flow.data.recommendation.snapshot.HomeSnapshotStore
+import io.github.aedev.flow.player.error.PlaybackErrorLog
 import io.github.aedev.flow.player.stream.ResetYouTubeSession
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
 import io.github.aedev.flow.utils.DeviceInfo
@@ -34,6 +35,7 @@ class DiagnosticsViewModel
         private val resetYouTubeSession: ResetYouTubeSession,
         private val profiles: ProfileRepository,
         private val switcher: ProfileSwitcher,
+        private val playbackErrors: PlaybackErrorLog,
     ) : SettingsViewModel() {
         val device: DeviceInfo by lazy { FlowDiagnostics.deviceInfo(context) }
 
@@ -74,7 +76,8 @@ class DiagnosticsViewModel
                     .getOrDefault(false)
             }
 
-        suspend fun report(): String = withContext(Dispatchers.IO) { FlowDiagnostics.buildFullReport(context, sessionText) }
+        suspend fun report(): String =
+            withContext(Dispatchers.IO) { FlowDiagnostics.buildFullReport(context, sessionText, playbackErrors.recent()) }
 
         fun clearCrashes() =
             write {

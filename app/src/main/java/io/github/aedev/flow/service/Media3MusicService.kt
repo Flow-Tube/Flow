@@ -80,6 +80,7 @@ import io.github.aedev.flow.player.audio.shouldHandleAudioFocus
 import io.github.aedev.flow.player.crossfade.CrossfadePolicy
 import io.github.aedev.flow.player.crossfade.MusicCrossfader
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
+import io.github.aedev.flow.player.error.PlaybackErrorLog
 import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.error.StreamDenialClassifier
 import io.github.aedev.flow.player.error.StreamDenialKind
@@ -224,6 +225,9 @@ class Media3MusicService : MediaLibraryService() {
     private var pendingRetryJob: Job? = null
 
     private var waitingForNetwork = false
+
+    @Inject
+    lateinit var playbackErrorLog: PlaybackErrorLog
 
     @Inject
     lateinit var downloadUtil: DownloadUtil
@@ -938,6 +942,9 @@ class Media3MusicService : MediaLibraryService() {
 
         Log.e(TAG, "Playback error for $mediaId: ${error.errorCodeName} (code=${error.errorCode})", error)
         lastPlaybackErrorAtMap[mediaId] = System.currentTimeMillis()
+        lifecycleScope.launch {
+            playbackErrorLog.add(mediaId, error.errorCodeName, retryCountMap.getOrDefault(mediaId, 0))
+        }
 
         if (MusicLoadErrorPolicy.isUnavailable(error)) {
             Log.w(TAG, "$mediaId is unavailable on every client, skipping without retries")
