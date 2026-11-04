@@ -52,7 +52,11 @@ class LocalStore(
                 .sortedBy { it.seq }
         }
 
-    private suspend fun resolved(): List<Entry> = resolveForks(entries())
+    /** The chain the rule picks from what this device holds, within the group it has verified. */
+    private suspend fun resolved(): List<Entry> {
+        val genesis = held.genesis()?.let { parseEntry(Json.parseToJsonElement(it)) }
+        return resolveForks(genesis?.group, entries(), held.rosterPins().toSet(), genesis?.let(::entryHash)).chain
+    }
 
     suspend fun addEntries(entries: List<Entry>) =
         withContext(Dispatchers.IO) {
@@ -80,6 +84,12 @@ class LocalStore(
     }
 
     override suspend fun rosterAfter(after: Long): List<Entry> = resolved().filter { it.seq > after }
+
+    override suspend fun rosterView(): List<Entry> = entries()
+
+    override val linear: Boolean get() = false
+
+    override val heldHere: Boolean get() = true
 
     override suspend fun appendRoster(
         head: String,

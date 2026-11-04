@@ -3,6 +3,7 @@ package io.github.aedev.flow.sync2.roster
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.SyncSerialization
 import io.github.aedev.flow.sync2.crypto.ProtocolError
+import io.github.aedev.flow.sync2.crypto.groupId
 import io.github.aedev.flow.sync2.crypto.isValidSigningKey
 import io.github.aedev.flow.sync2.crypto.memberId
 import io.github.aedev.flow.sync2.crypto.reject
@@ -237,6 +238,15 @@ private fun checkSigner(
     return signer ?: reject(ProtocolError.ROSTER_SIGNER)
 }
 
+/** A genesis must carry the id its keys commit to (spec/crypto.md, Group id). */
+private fun checkGroupId(entry: Entry) {
+    fun keys(role: Role): Pair<ByteArray, ByteArray> {
+        val subject = entry.add.orEmpty().first { it.role == role }
+        return SyncBytes.b64urlDecode(subject.sig) to SyncBytes.b64urlDecode(subject.kem)
+    }
+    if (SyncBytes.toHex(groupId(keys(Role.DEVICE), keys(Role.RECOVERY))) != entry.group) reject(ProtocolError.ROSTER_GROUP)
+}
+
 private fun checkChain(
     state: RosterState?,
     entry: Entry,
@@ -257,6 +267,7 @@ fun applyEntry(
 ): RosterState {
     checkChain(state, entry)
     checkShape(entry)
+    if (entry.op == Op.GENESIS) checkGroupId(entry)
 
     val seen = state?.seen.orEmpty().toMutableSet()
     val added = entry.add.orEmpty().associate { it.did to checkSubject(it, seen) }
@@ -315,15 +326,3 @@ fun replayRoster(entries: List<Entry>): RosterState =
  * removal first, then the lowest entry hash.
  */
 fun forkWinner(candidates: List<Entry>): Entry? = candidates.minWithOrNull(compareBy({ it.op.rank }, { entryHash(it) }))
-
-/** The chain every device picks from [entries]: at each `seq`, the winner among the entries valid there (spec/protocol.md, Forks). */
-fun resolveForks(entries: List<Entry>): List<Entry> {
-    val chain = ArrayList<Entry>()
-    var state: RosterState? = null
-    for ((_, candidates) in entries.groupBy { it.seq }.toSortedMap()) {
-        val winner = forkWinner(candidates.filter { runCatching { applyEntry(state, it) }.isSuccess }) ?: break
-        state = applyEntry(state, winner)
-        chain += winner
-    }
-    return chain
-}

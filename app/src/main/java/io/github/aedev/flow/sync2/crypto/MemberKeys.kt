@@ -15,6 +15,12 @@ class MemberSecrets(
     }
 }
 
+/** The id of a group: it commits to the keys of its genesis, so a store can't write a rival one. */
+fun groupId(
+    device: Pair<ByteArray, ByteArray>,
+    recovery: Pair<ByteArray, ByteArray>,
+): ByteArray = labeledId("group", device.first + device.second + recovery.first + recovery.second, 16)
+
 fun memberId(
     sigPublic: ByteArray,
     kemPublic: ByteArray,

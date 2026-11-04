@@ -22,6 +22,11 @@ internal fun LinkedError.message(): String =
             LinkedError.LOCAL -> R.string.linked_error_local
             LinkedError.NOT_LINKED -> R.string.linked_error_not_linked
             LinkedError.REMOVED -> R.string.linked_error_removed
+            LinkedError.REMOVAL_UNCONFIRMED -> R.string.linked_error_removal_unconfirmed
+            LinkedError.CONTESTED -> R.string.linked_error_contested
+            LinkedError.ROLLED_BACK -> R.string.linked_error_rolled_back
+            LinkedError.ROSTER_CHANGED -> R.string.linked_error_roster_changed
+            LinkedError.GROUP_OUTDATED -> R.string.linked_error_group_outdated
             LinkedError.DECLINED -> R.string.linked_error_declined
             LinkedError.TIMED_OUT -> R.string.linked_error_timed_out
             LinkedError.JOIN_DECLINED -> R.string.linked_error_join_declined

@@ -4,6 +4,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.SyncSerialization
 import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
+import io.github.aedev.flow.sync2.crypto.groupId
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
@@ -27,9 +28,9 @@ import kotlin.random.Random
 
 /** Roster entries as a store or a LAN peer hands them over (spec/protocol.md, Roster). */
 class RosterFuzzTest {
-    private val group = ByteArray(16) { 7 }
     private val device = newMember()
     private val recovery = newMember()
+    private val group = groupId(device.sigPublic to device.kemPublic, recovery.sigPublic to recovery.kemPublic)
     private val joiner = newMember()
     private val genesis =
         buildEntry(

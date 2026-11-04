@@ -2813,6 +2813,17 @@
     <string name="linked_error_local">Something went wrong on this device. Try again.</string>
     <string name="linked_error_not_linked">This device isn\'t in a group.</string>
     <string name="linked_error_removed">This device was removed from the group.</string>
+    <string name="linked_error_removal_unconfirmed">This device is no longer in the group\'s device list, but that list replaced changes it had already seen.</string>
+    <string name="linked_error_contested">Two devices removed each other. Choose which one to keep.</string>
+    <string name="linked_error_rolled_back">The sync storage no longer shows a change to the device list that this device has seen, so it stopped writing.</string>
+    <string name="linked_error_roster_changed">The sync storage changed the device list in a way it shouldn\'t, so this device stopped writing.</string>
+    <string name="linked_error_group_outdated">This group was made by an older test version. Forget the group here and create it again.</string>
+    <string name="linked_unconfirmed_title">This device may have been removed</string>
+    <string name="linked_unconfirmed_body">The group\'s device list no longer includes it, but that list replaced changes this device had already seen, so nothing was deleted. If you didn\'t expect this, check your other devices before you forget the group here.</string>
+    <string name="linked_contest_title">Choose which device to keep</string>
+    <string name="linked_contest_body">Two devices in this group removed each other, and this device can\'t tell which one you still trust. Syncing is paused and nothing was deleted. Keep the device you still have. Your other devices will ask too.</string>
+    <string name="linked_contest_keep">Keep %1$s</string>
+    <string name="linked_contest_removes">Removes %1$s</string>
     <string name="linked_error_declined">The verification codes weren\'t confirmed.</string>
     <string name="linked_error_join_declined">A linked device declined the request to join.</string>
     <string name="linked_error_timed_out">The other device didn\'t answer in time.</string>

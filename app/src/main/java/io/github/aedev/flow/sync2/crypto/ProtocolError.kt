@@ -21,6 +21,7 @@ enum class ProtocolError(
     KEY_COMMITMENT("key-commitment"),
     X25519("x25519"),
     ROSTER_FORMAT("roster-format"),
+    ROSTER_GROUP("roster-group"),
     ROSTER_CHAIN("roster-chain"),
     ROSTER_OP("roster-op"),
     ROSTER_SIGNER("roster-signer"),

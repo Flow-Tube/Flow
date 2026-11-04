@@ -8,6 +8,14 @@ sealed class LinkedException(
 
     class Removed : LinkedException("This device was removed from its sync group")
 
+    class RemovalUnconfirmed : LinkedException("The roster that leaves this device out replaces entries it had applied")
+
+    class Contested : LinkedException("Two sides of the roster removed each other")
+
+    class RosterRolledBack : LinkedException("The store no longer shows a roster entry this device applied")
+
+    class RosterRewritten : LinkedException("The store changed a roster entry this device applied")
+
     class Declined : LinkedException("The verification code was not confirmed")
 
     class TimedOut : LinkedException("The other device did not answer in time")

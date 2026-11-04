@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.crypto.SyncCrypto
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
+import io.github.aedev.flow.sync2.crypto.groupId
 import io.github.aedev.flow.sync2.crypto.wrapEpochKey
 import io.github.aedev.flow.sync2.data.GroupRecord
 import io.github.aedev.flow.sync2.data.LinkedDatabase
@@ -157,11 +158,11 @@ class LinkedGroup(
     private val scope: TestScope,
 ) {
     val store = MemoryStore()
-    val group: ByteArray = SyncCrypto.randomBytes(16)
     val epochKey: ByteArray = SyncCrypto.randomBytes(32)
     val a = newMember()
     val b = newMember()
     val recovery = newMember()
+    val group: ByteArray = groupId(a.sigPublic to a.kemPublic, recovery.sigPublic to recovery.kemPublic)
 
     suspend fun create() {
         val genesis =

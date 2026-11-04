@@ -24,12 +24,15 @@ import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.data.StreamRow
 import io.github.aedev.flow.sync2.data.addEntries
 import io.github.aedev.flow.sync2.data.replaceRoster
+import io.github.aedev.flow.sync2.data.serverUrl
 import io.github.aedev.flow.sync2.data.toEntries
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.RosterState
+import io.github.aedev.flow.sync2.roster.Settlement
 import io.github.aedev.flow.sync2.roster.applyEntry
 import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.replayRoster
+import io.github.aedev.flow.sync2.roster.settleRoster
 import io.github.aedev.flow.sync2.store.ChangeList
 import io.github.aedev.flow.sync2.store.Header
 import io.github.aedev.flow.sync2.store.ObjectType
@@ -112,6 +115,36 @@ class Session private constructor(
     }
 
     companion object {
+        /**
+         * What to settle from: a store's answer, or what this device holds with what it has applied.
+         * Peers on the LAN of a group on a server can only extend the applied chain: its server orders the rest.
+         */
+        internal suspend fun viewOf(
+            store: ChangeList,
+            record: GroupRecord,
+            applied: List<Entry>,
+        ): List<Entry> {
+            val shown = store.rosterView()
+            if (!store.heldHere) return shown
+            if (record.serverUrl == null) return applied + shown
+            val reached = applied.lastOrNull()?.let(::entryHash)?.let { hashSetOf(it) } ?: hashSetOf()
+            return applied + shown.sortedBy { it.seq }.filter { it.prev in reached && reached.add(entryHash(it)) }
+        }
+
+        /** The chain this device has applied, without asking the store whether it still stands. */
+        internal suspend fun onApplied(
+            db: LinkedDatabase,
+            store: ChangeList,
+            device: MemberSecrets,
+        ): Session {
+            val record = db.groups().group() ?: throw LinkedException.NotLinked()
+            val entries = db.groups().roster().toEntries()
+            val state = replayRoster(entries)
+            val session = Session(db, store, device, record, SyncBytes.fromHex(record.groupId), state, entries)
+            runCatching { session.unwrapCurrent() }
+            return session
+        }
+
         /** Brings the roster up to date and unwraps the current epoch key. */
         suspend fun open(
             db: LinkedDatabase,
@@ -120,21 +153,20 @@ class Session private constructor(
         ): Session {
             val groups = db.groups()
             val record = groups.group() ?: throw LinkedException.NotLinked()
-            val entries = groups.roster().toEntries().toMutableList()
-            var state = replayRoster(entries)
-            val chain = store.rosterAfter(-1)
-            // A store that resolved a fork the other way holds a chain this device's copy isn't a prefix of: take the winner.
-            if (chain.size >= entries.size && chain.take(entries.size).map(::entryHash) != entries.map(::entryHash)) {
-                groups.replaceRoster(chain)
-                entries.clear()
-                state = replayRoster(chain).also { entries += chain }
-            } else {
-                val fresh = chain.drop(entries.size)
-                for (entry in fresh) state = applyEntry(state, entry)
-                groups.addEntries(fresh)
-                entries += fresh
-            }
-            if (SyncBytes.toHex(device.did) !in state.members) throw LinkedException.Removed()
+            val applied = groups.roster().toEntries()
+            replayRoster(applied)
+            val pins = groups.rosterPins().toSet()
+            store.usePins(pins)
+            val settled = settleRoster(record.groupId, applied, viewOf(store, record, applied), pins, store.linear)
+            if (settled is Settlement.Contested) throw LinkedException.Contested()
+            if (settled is Settlement.Rollback) throw LinkedException.RosterRolledBack()
+            if (settled !is Settlement.Apply) throw LinkedException.RosterRewritten()
+            val entries = settled.chain.toMutableList()
+            val state = replayRoster(entries)
+            val member = SyncBytes.toHex(device.did) in state.members
+            if (!settled.extendsApplied && !member) throw LinkedException.RemovalUnconfirmed()
+            if (settled.extendsApplied) groups.addEntries(entries.drop(applied.size)) else groups.replaceRoster(entries)
+            if (!member) throw LinkedException.Removed()
             return Session(db, store, device, record, SyncBytes.fromHex(record.groupId), state, entries).apply { unwrapCurrent() }
         }
     }

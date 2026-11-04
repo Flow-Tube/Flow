@@ -2,6 +2,7 @@ package io.github.aedev.flow.sync2.store
 
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.roster.Entry
+import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.replayRoster
 
 /**
@@ -13,6 +14,23 @@ class GroupStore(
     val server: Remote?,
 ) : ChangeList {
     override suspend fun rosterAfter(after: Long): List<Entry> = local.rosterAfter(after)
+
+    /** What the shared store answers, which decides, or what this device holds when it has none. */
+    override suspend fun rosterView(): List<Entry> {
+        val server = server ?: return local.entries()
+        if (server !is FileLayout) return server.rosterView().also { local.addEntries(it) }
+        server.pullRoster(local)
+        val shown = server.rosterPaths().toSet()
+        return local.entries().filter { StorePaths.roster(it.seq, entryHash(it)) in shown }
+    }
+
+    override val linear: Boolean get() = server?.linear ?: false
+
+    override val heldHere: Boolean get() = server == null
+
+    override fun usePins(pins: Set<String>) {
+        server?.usePins(pins)
+    }
 
     override suspend fun appendRoster(
         head: String,

@@ -10,12 +10,15 @@ import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.data.GroupRecord
 import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.LinkedDatabase
+import io.github.aedev.flow.sync2.data.RosterPinRow
 import io.github.aedev.flow.sync2.data.webDavUrl
 import io.github.aedev.flow.sync2.device.DeviceKeys
 import io.github.aedev.flow.sync2.device.StoreCredentials
 import io.github.aedev.flow.sync2.device.WebDavLogin
+import io.github.aedev.flow.sync2.engine.ContestSide
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
+import io.github.aedev.flow.sync2.engine.contestSides
 import io.github.aedev.flow.sync2.lan.LanSync
 import io.github.aedev.flow.sync2.lan.lanPort
 import io.github.aedev.flow.sync2.linking.Code
@@ -257,6 +260,20 @@ class LinkedActions
         val leaveFailed: StateFlow<LinkedError?> = reset.leaveFailed
 
         fun keepGroup() = reset.keepGroup()
+
+        /** The sides to choose between while two devices have removed each other. */
+        suspend fun contest(): List<ContestSide> {
+            val record = db.groups().group() ?: return emptyList()
+            val device = keys.load()
+            return contestSides(db, sync.groupStore(record, device), device)
+        }
+
+        /** Keeps one side on this device, and syncs from it. */
+        suspend fun keepSide(entry: String) {
+            if (contest().none { it.entry == entry }) throw LinkedException.Unexpected()
+            db.groups().addRosterPin(RosterPinRow(entry))
+            LinkedSyncWorker.syncSoon(context, announce = true)
+        }
 
         /** Forgets the group and this device's keys without telling the others, as after being removed. */
         suspend fun forget() = reset.forget()

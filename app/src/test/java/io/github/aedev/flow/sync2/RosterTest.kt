@@ -10,7 +10,7 @@ import io.github.aedev.flow.sync2.roster.forkWinner
 import io.github.aedev.flow.sync2.roster.openDeviceMeta
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.roster.replayRoster
-import io.github.aedev.flow.sync2.roster.resolveForks
+import io.github.aedev.flow.sync2.roster.winningChain
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -25,6 +25,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 /**
@@ -105,6 +106,14 @@ class RosterTest {
     }
 
     @Test
+    fun a_genesis_must_match_its_group_id() {
+        for (n in v["geneses"].jsonArray) {
+            val failure = assertThrows(ProtocolException::class.java) { applyEntry(null, parseEntry(n["entry"]!!)) }
+            assertEquals(n["error"].text, failure.error.code)
+        }
+    }
+
+    @Test
     fun forks_resolve_to_the_same_winner() {
         for (f in v["forks"].jsonArray) {
             val state = base(f["base"])
@@ -128,6 +137,6 @@ class RosterTest {
         val epoch = JsonObject(raw[0].jsonObject + ("epoch" to JsonObject(raw[0]["epoch"].jsonObject + ("n" to JsonPrimitive(-1)))))
         assertEquals("roster-format", errorCode { parseEntry(seq) })
         assertEquals("roster-format", errorCode { parseEntry(epoch) })
-        assertEquals(entries, resolveForks((raw + seq).mapNotNull { runCatching { parseEntry(it) }.getOrNull() }))
+        assertEquals(entries, winningChain((raw + seq).mapNotNull { runCatching { parseEntry(it) }.getOrNull() }))
     }
 }

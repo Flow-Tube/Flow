@@ -27,6 +27,12 @@ val GroupRecord.webDavUrl: String? get() = storeUrl.takeIf { it.startsWith(WEBDA
 /** The Flow server the group lives on, or null for a group on WebDAV or on its devices alone. */
 val GroupRecord.serverUrl: String? get() = storeUrl.takeIf { it != LAN_STORE && webDavUrl == null }
 
+/** A roster entry the user kept between sides of a contested roster. It never leaves this device. */
+@Entity(tableName = "roster_pin")
+data class RosterPinRow(
+    @PrimaryKey val hash: String,
+)
+
 /** The group this device belongs to, where its store is, and how far it has written and read. */
 @Entity(tableName = "group_record")
 data class GroupRecord(
@@ -105,6 +111,12 @@ interface GroupDao {
         clearRoster()
         addRoster(rows)
     }
+
+    @Query("SELECT hash FROM roster_pin")
+    suspend fun rosterPins(): List<String>
+
+    @Upsert
+    suspend fun addRosterPin(pin: RosterPinRow)
 
     @Query("SELECT * FROM streams")
     suspend fun streams(): List<StreamRow>

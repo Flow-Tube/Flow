@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,8 @@ internal fun LinkedOverview(
     onReplaceWords: () -> Unit,
     onLeave: () -> Unit,
     onForget: () -> Unit,
+    onLoadContest: () -> Unit,
+    onKeepSide: (String) -> Unit,
     onUpdateLogin: (user: String, password: String) -> Unit,
     /** Each device's remembered playback answer: true allowed, false not, absent asks. */
     consent: Map<String, Boolean>,
@@ -72,6 +75,36 @@ internal fun LinkedOverview(
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
         )
         SyncActionRow(confirmLabel = stringResource(R.string.linked_forget), onConfirm = onForget, confirmEnabled = !state.busy)
+        return
+    }
+    if (state.error == LinkedError.REMOVAL_UNCONFIRMED) {
+        SyncStepHeader(
+            icon = Icons.Outlined.ErrorOutline,
+            title = stringResource(R.string.linked_unconfirmed_title),
+            body = stringResource(R.string.linked_unconfirmed_body),
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        )
+        SyncActionRow(confirmLabel = stringResource(R.string.linked_forget), onConfirm = onForget, confirmEnabled = !state.busy)
+        return
+    }
+    if (state.error == LinkedError.CONTESTED || state.contest.isNotEmpty()) {
+        LaunchedEffect(Unit) { onLoadContest() }
+        SyncStepHeader(
+            icon = Icons.Outlined.ErrorOutline,
+            title = stringResource(R.string.linked_contest_title),
+            body = stringResource(R.string.linked_contest_body),
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        )
+        for (side in state.contest) {
+            Text(stringResource(R.string.linked_contest_removes, side.removes.joinToString()))
+            SyncActionRow(
+                confirmLabel = stringResource(R.string.linked_contest_keep, side.device),
+                onConfirm = { onKeepSide(side.entry) },
+                confirmEnabled = !state.busy,
+            )
+        }
         return
     }
 

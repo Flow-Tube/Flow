@@ -10,6 +10,7 @@ import io.github.aedev.flow.sync.transport.WsClient
 import io.github.aedev.flow.sync.transport.WsServer
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.ProtocolException
+import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
@@ -63,6 +64,7 @@ class LanSyncTest {
         keys: MemberSecrets,
     ): Member {
         val db = g.deviceDb()
+        db.groups().saveGroup(checkNotNull(db.groups().group()).copy(storeUrl = LAN_STORE))
         val local = heldStore(db)
         local.addEntries(g.store.roster)
         val did = SyncBytes.toHex(keys.did)

@@ -13,6 +13,18 @@ import java.io.IOException
 interface Store {
     suspend fun rosterAfter(after: Long): List<Entry>
 
+    /** Every roster entry the store shows, fork candidates included. */
+    suspend fun rosterView(): List<Entry> = rosterAfter(-1)
+
+    /** Whether the store orders appends, so it has no honest way to change an entry it answered with. */
+    val linear: Boolean get() = true
+
+    /** Whether this is what the device itself holds, rather than a store's answer. */
+    val heldHere: Boolean get() = false
+
+    /** The entries this device chose between sides of a contested roster, for a store that picks a winner itself. */
+    fun usePins(pins: Set<String>) = Unit
+
     suspend fun appendRoster(
         head: String,
         entry: Entry,

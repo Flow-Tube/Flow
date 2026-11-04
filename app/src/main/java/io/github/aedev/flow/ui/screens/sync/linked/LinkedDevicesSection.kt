@@ -77,6 +77,8 @@ internal fun LinkedDevicesSection(
                 onReplaceWords = viewModel::replaceWords,
                 onLeave = viewModel::leave,
                 onForget = viewModel::forget,
+                onLoadContest = viewModel::loadContest,
+                onKeepSide = viewModel::keepSide,
                 onUpdateLogin = viewModel::updateLogin,
                 consent = consent,
                 onConsent = viewModel::setConsent,
