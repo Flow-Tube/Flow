@@ -315,9 +315,12 @@ fun FlowApp(
             }
         }
 
-        LaunchedEffect(currentMusicTrack, showRestoredMusicMiniPlayer) {
+        val isRestoredMusicQueue by EnhancedMusicPlayerManager.isRestoredQueue.collectAsStateWithLifecycle()
+        val hidesRestoredMusic = hidesRestoredMusicMiniPlayer(showRestoredMusicMiniPlayer, isRestoredMusicQueue)
+        LaunchedEffect(currentMusicTrack, showRestoredMusicMiniPlayer, hidesRestoredMusic) {
             if (currentMusicTrack != null &&
-                showRestoredMusicMiniPlayer == true &&
+                showRestoredMusicMiniPlayer != null &&
+                !hidesRestoredMusic &&
                 musicPlayerSheetState.isDismissed
             ) {
                 musicPlayerSheetState.collapse()
@@ -326,8 +329,8 @@ fun FlowApp(
             }
         }
 
-        LaunchedEffect(showRestoredMusicMiniPlayer) {
-            if (showRestoredMusicMiniPlayer == false && !musicPlayerSheetState.isExpanded) {
+        LaunchedEffect(hidesRestoredMusic) {
+            if (hidesRestoredMusic && !musicPlayerSheetState.isExpanded) {
                 musicPlayerSheetState.dismiss()
             }
         }
