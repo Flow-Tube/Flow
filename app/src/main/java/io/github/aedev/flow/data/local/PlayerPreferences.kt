@@ -168,6 +168,7 @@ class PlayerPreferences(
         val LYRICS_AUTO_ROMANIZE = booleanPreferencesKey("lyrics_auto_romanize")
         val LYRICS_KEEP_SCREEN_ON = booleanPreferencesKey("lyrics_keep_screen_on")
         val LYRICS_BLUR_OTHER_LINES = booleanPreferencesKey("lyrics_blur_other_lines")
+        val LYRICS_BACKGROUND = stringPreferencesKey("lyrics_background")
         val LYRICS_PROVIDER_ENABLED_BETTERLYRICS = booleanPreferencesKey("lyrics_provider_enabled_betterlyrics")
         val LYRICS_PROVIDER_ENABLED_SIMPMUSIC = booleanPreferencesKey("lyrics_provider_enabled_simpmusic")
         val LYRICS_PROVIDER_ENABLED_LYRICSPLUS = booleanPreferencesKey("lyrics_provider_enabled_lyricsplus")
@@ -3899,6 +3900,13 @@ class PlayerPreferences(
         context.playerPreferencesDataStore.edit { it[Keys.LYRICS_KEEP_SCREEN_ON] = enabled }
     }
 
+    val lyricsBackground: Flow<LyricsBackgroundStyle> =
+        context.playerPreferencesDataStore.data.map { LyricsBackgroundStyle.fromStored(it[Keys.LYRICS_BACKGROUND]) }
+
+    suspend fun setLyricsBackground(style: LyricsBackgroundStyle) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_BACKGROUND] = style.name }
+    }
+
     val lyricsBlurOtherLines: Flow<Boolean> =
         context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_BLUR_OTHER_LINES] ?: true }
 
@@ -4412,6 +4420,18 @@ enum class AutoDownloadMode {
 enum class MusicPlainControlColors {
     MONOCHROME,
     APP_THEME,
+}
+
+/** What the full-screen lyrics draw on. Stored by name. */
+enum class LyricsBackgroundStyle {
+    SOLID,
+    COLORFUL,
+    MOVING,
+    ;
+
+    companion object {
+        fun fromStored(stored: String?): LyricsBackgroundStyle = entries.firstOrNull { it.name == stored } ?: SOLID
+    }
 }
 
 enum class MusicPlayerBackgroundStyle {
