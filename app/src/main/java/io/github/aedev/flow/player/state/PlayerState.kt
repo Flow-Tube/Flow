@@ -52,6 +52,7 @@ data class QualityOption(
     val bitrate: Long,
     val codecKey: String = "",
     val streamKey: String? = null,
+    val isHdr: Boolean = false,
 )
 
 // audio track option for the audio selector.

@@ -39,17 +39,19 @@ internal fun PlayerSettingsQualityPage(
     onQualitySelected: (QualityOption) -> Unit,
 ) {
     val autoLabel = stringResource(R.string.quality_auto)
+    val hdrLabel = stringResource(R.string.download_quality_hdr)
     val selectorOptions =
         availableQualities.map { quality ->
             MediaQualitySelectorOption(
                 item = quality,
                 height = quality.height,
-                label = if (quality.height == 0) autoLabel else quality.displayLabel(),
+                label = if (quality.height == 0) autoLabel else quality.displayLabel().withHdr(quality, hdrLabel),
                 codecKey = quality.codecKey,
                 codecLabel =
                     quality.codecKey
                         .takeIf { it.isNotBlank() }
                         ?.let(VideoCodecUtils::codecLabelFromKey)
+                        ?.withHdr(quality, hdrLabel)
                         .orEmpty(),
                 selected = quality.isSelected(currentQuality, currentQualityKey),
             )
@@ -63,6 +65,11 @@ internal fun PlayerSettingsQualityPage(
 }
 
 private fun QualityOption.displayLabel(): String = label.takeIf { it.isNotBlank() } ?: "${height}p"
+
+private fun String.withHdr(
+    quality: QualityOption,
+    hdrLabel: String,
+): String = if (quality.isHdr) "$this $hdrLabel" else this
 
 private fun QualityOption.isSelected(
     currentQuality: Int,
