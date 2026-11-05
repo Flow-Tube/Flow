@@ -5,7 +5,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -42,17 +47,26 @@ import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.screens.music.AnimatedArtworkViewModel
+import kotlinx.coroutines.delay
+
+/** How long a hidden loop keeps its decoder, so a quick swipe back resumes at once. */
+private const val HIDDEN_DECODER_KEEP_MS = 30_000L
+
+/** Long enough for the next song's cover to fade in underneath, so the old song's still never shows. */
+private const val NEXT_COVER_WAIT_MS = 500
 
 /**
- * The animated artwork for the open player's [track], or null while it may not run: it needs the
- * setting on, the player open and in front ([visible]), and the app on screen. Lookups follow the
- * same rule, so a collapsed player never asks for one. [tallSpace] asks for the loop cut for a tall
- * screen, and [shown] fades it out without releasing it.
+ * The animated artwork for [track], or null while it may not exist: it needs the setting on, a layout
+ * that shows it ([allowed]) and the app on screen. Behind a collapsed player, lyrics or the queue it
+ * stays on its last frame instead of leaving ([running] false), so nothing changes as they open and
+ * close. Lookups only happen while it runs, so a collapsed player never asks for one. [tallSpace] asks
+ * for the loop cut for a tall screen, and [shown] fades it out without releasing it.
  */
 @Composable
 internal fun rememberAnimatedArtwork(
     track: MusicTrack?,
-    visible: Boolean,
+    allowed: Boolean,
+    running: Boolean,
     tallSpace: Boolean,
     shown: Boolean,
     viewModel: AnimatedArtworkViewModel = hiltViewModel(),
@@ -60,30 +74,48 @@ internal fun rememberAnimatedArtwork(
     val enabled by viewModel.isEnabled.collectAsState()
     val loop by viewModel.loop.collectAsState()
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val active = enabled && visible && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
+    val mounted = enabled && allowed && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
+    val active = mounted && running
     LaunchedEffect(track, active) { if (active && track != null) viewModel.load(track) }
-    val url = loop?.urlFor(tallSpace)?.takeIf { active } ?: return null
+    if (!mounted) return null
+    val url = loop?.urlFor(track?.videoId, tallSpace)
     return {
-        PlayerAnimatedArtwork(
-            url = url,
-            shown = shown,
-            dataSourceFactory = viewModel.dataSourceFactory,
-            onFailed = viewModel::onLoopFailed,
+        AnimatedContent(
+            targetState = url,
+            // A new loop fades in by itself on its first frame.
+            transitionSpec = {
+                (EnterTransition.None togetherWith fadeOut(tween(durationMillis = 300, delayMillis = NEXT_COVER_WAIT_MS))).using(null)
+            },
             modifier = Modifier.fillMaxSize(),
-        )
+            label = "animatedArtworkLoop",
+        ) { loopUrl ->
+            if (loopUrl != null) {
+                PlayerAnimatedArtwork(
+                    url = loopUrl,
+                    running = running,
+                    shown = shown,
+                    dataSourceFactory = viewModel.dataSourceFactory,
+                    onFailed = viewModel::onLoopFailed,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
     }
 }
 
 /**
  * An album's motion artwork looping over its cover. It has a muted player of its own that never
- * takes audio focus, fades in on its first frame, and is released when it leaves composition, so
- * the caller decides when it may run. It keeps moving while the song is paused, and [shown] hides it
- * without tearing it down, as during an artwork swipe.
+ * takes audio focus, fades in on its first frame, and is released when it leaves composition. It
+ * keeps moving while the song is paused and holds its frame while not [running], and it only starts
+ * loading once it runs. A paused player still wakes every second, so after a while hidden it stops
+ * and frees its decoder; the view keeps showing the frame. [shown] hides it without tearing it down,
+ * as during an artwork swipe.
  */
 @OptIn(UnstableApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlayerAnimatedArtwork(
     url: String,
+    running: Boolean,
     shown: Boolean,
     dataSourceFactory: DataSource.Factory,
     onFailed: () -> Unit,
@@ -101,7 +133,6 @@ internal fun PlayerAnimatedArtwork(
                 .apply {
                     repeatMode = Player.REPEAT_MODE_ONE
                     volume = 0f
-                    playWhenReady = true
                     trackSelectionParameters =
                         trackSelectionParameters
                             .buildUpon()
@@ -128,8 +159,16 @@ internal fun PlayerAnimatedArtwork(
                 .setMimeType(MimeTypes.APPLICATION_M3U8)
                 .build(),
         )
-        player.prepare()
         onDispose { player.removeListener(listener) }
+    }
+    LaunchedEffect(player, running) {
+        player.playWhenReady = running
+        if (running) {
+            if (player.playbackState == Player.STATE_IDLE) player.prepare()
+        } else {
+            delay(HIDDEN_DECODER_KEEP_MS)
+            player.stop()
+        }
     }
     val alpha by animateFloatAsState(
         targetValue = if (hasFrame && shown) 1f else 0f,
@@ -156,6 +195,7 @@ internal fun PlayerAnimatedArtwork(
                     layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
+                    setKeepContentOnPlayerReset(true)
                     artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_OFF
                     setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                     setBackgroundColor(android.graphics.Color.TRANSPARENT)
