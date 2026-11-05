@@ -40,6 +40,7 @@ enum class ObjectType(
     CHANGES(0x01, Purpose.CHANGES),
     SNAPSHOT(0x02, Purpose.SNAPSHOT),
     ACK(0x03, Purpose.ACK),
+    LOGIN(0x04, Purpose.STORE),
     LIVE(0x10, Purpose.LIVE),
 }
 

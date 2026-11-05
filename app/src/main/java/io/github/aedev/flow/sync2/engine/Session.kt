@@ -10,6 +10,7 @@ import io.github.aedev.flow.sync2.changes.parseBatch
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
+import io.github.aedev.flow.sync2.crypto.Purpose
 import io.github.aedev.flow.sync2.crypto.checkEpochKey
 import io.github.aedev.flow.sync2.crypto.decodePayload
 import io.github.aedev.flow.sync2.crypto.encodePayload
@@ -26,7 +27,10 @@ import io.github.aedev.flow.sync2.data.addEntries
 import io.github.aedev.flow.sync2.data.replaceRoster
 import io.github.aedev.flow.sync2.data.serverUrl
 import io.github.aedev.flow.sync2.data.toEntries
+import io.github.aedev.flow.sync2.data.webDavUrl
 import io.github.aedev.flow.sync2.roster.Entry
+import io.github.aedev.flow.sync2.roster.Op
+import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.RosterState
 import io.github.aedev.flow.sync2.roster.Settlement
 import io.github.aedev.flow.sync2.roster.applyEntry
@@ -37,9 +41,12 @@ import io.github.aedev.flow.sync2.store.ChangeList
 import io.github.aedev.flow.sync2.store.Header
 import io.github.aedev.flow.sync2.store.ObjectType
 import io.github.aedev.flow.sync2.store.ParsedObject
+import io.github.aedev.flow.sync2.store.StoreLogin
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
 import io.github.aedev.flow.sync2.store.ZERO_HASH
+import io.github.aedev.flow.sync2.store.decodeStoreLogin
+import io.github.aedev.flow.sync2.store.encodeStoreLogin
 import io.github.aedev.flow.sync2.store.kcName
 import io.github.aedev.flow.sync2.store.nextInStream
 import io.github.aedev.flow.sync2.store.parseObject
@@ -60,6 +67,11 @@ internal sealed interface Content {
 
     class Ack(
         val vv: Map<String, Long>,
+    ) : Content
+
+    /** A store login this device may take; null when the read rule says to ignore it. */
+    class Login(
+        val login: StoreLogin?,
     ) : Content
 }
 
@@ -83,6 +95,8 @@ class Pulled internal constructor(
     /** Where reading each link apart from the others stands, and the links that reached where reading of every link stood. */
     internal val reads: List<LinkReadRow>,
     internal val readsDone: List<LinkReadRow>,
+    /** The latest store login read, for the caller to keep as pending. */
+    val login: StoreLogin?,
 )
 
 /**
@@ -177,6 +191,10 @@ class Session private constructor(
             // Nothing is saved until the new chain's key opens: without it the device stays where it was.
             if (member) session.unwrapCurrent()
             if (settled.extendsApplied) groups.addEntries(entries.drop(applied.size)) else groups.replaceRoster(entries)
+            if (record.webDavUrl != null) {
+                val known = applied.map(::entryHash).toSet()
+                entries.lastOrNull { it.op == Op.REMOVE && entryHash(it) !in known }?.epoch?.let { groups.setLoginDue(it.n) }
+            }
             if (!member) throw LinkedException.Removed()
             return session
         }
@@ -335,6 +353,7 @@ class Session private constructor(
         val acks = HashMap<String, Map<String, Long>>()
         val manifests = ArrayList<Logged>()
         val named = HashSet<String?>()
+        var login: StoreLogin? = null
         val (reads, readsDone) = catchUp(db.profiles().reads().filter { wanted(it.link) }, positions, batches)
         var floors = emptyMap<Pair<String?, String>, Long>()
         if (positions.isEmpty() && cursor == 0L) {
@@ -367,6 +386,10 @@ class Session private constructor(
                                 acks[did] = content.vv
                             }
 
+                            is Content.Login -> {
+                                login = content.login ?: login
+                            }
+
                             is Content.Snapshot -> {
                                 manifests += Logged(did, seq, content.manifest)
                                 named += content.manifest.link
@@ -394,7 +417,7 @@ class Session private constructor(
             if (next <= cursor && positions.all { (did, at) -> before[did] == at.seq }) break
             cursor = next
         }
-        return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone)
+        return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone, login)
     }
 
     /**
@@ -453,19 +476,43 @@ class Session private constructor(
         return parsed
     }
 
+    /**
+     * A store login, under its own rule (spec/store.md, Store logins): only under the chain's key of the
+     * epoch in force, from a current device, and never a reason to stop reading a log.
+     */
+    private fun loginIn(parsed: ParsedObject): StoreLogin? {
+        val epoch = parsed.header.epoch
+        val sender = state.members[SyncBytes.toHex(parsed.header.sender)] ?: return null
+        if (record.webDavUrl == null || epoch != state.epoch || sender.role != Role.DEVICE) return null
+        return try {
+            decodeStoreLogin(decodePayload(parsed.open(purposeKey(currentKey(), group, epoch, Purpose.STORE))))
+        } catch (_: ProtocolException) {
+            null
+        }
+    }
+
+    /** Writes [login] to this device's log (spec/protocol.md, Replacing a store's login). The session was just opened, so the roster was re-read and isn't contested. */
+    suspend fun writeLogin(login: StoreLogin) {
+        write(ObjectType.LOGIN, encodeStoreLogin(login))
+        db.groups().setLoginSent(record.ownSeq)
+        db.groups().noteLogin(state.epoch)
+    }
+
     internal suspend fun openContent(parsed: ParsedObject): Content {
+        if (parsed.header.type == ObjectType.LOGIN) return Content.Login(loginIn(parsed))
         val epoch = parsed.header.epoch
         val content = decodePayload(openUnder(epoch) { parsed.open(purposeKey(it, group, epoch, parsed.header.type.purpose)) })
         return when (parsed.header.type) {
             ObjectType.CHANGES -> Content.Batch(parseBatch(content))
             ObjectType.SNAPSHOT -> Content.Snapshot(parseManifest(content))
             ObjectType.ACK -> Content.Ack(parseAck(content))
-            ObjectType.LIVE -> reject(ProtocolError.SUITE)
+            ObjectType.LIVE, ObjectType.LOGIN -> reject(ProtocolError.SUITE)
         }
     }
 
     /** Saves how far reading got, after the caller applied the batches, and acknowledges it. */
     suspend fun finish(pulled: Pulled) {
+        if (pulled.login != null) db.groups().noteLogin(state.epoch)
         db.groups().saveStreams(pulled.positions.map { (did, p) -> StreamRow(did, p.seq, SyncBytes.toHex(p.hash)) }, pulled.cursor)
         db.profiles().updateReads(pulled.reads, pulled.readsDone)
         record = record.copy(cursor = pulled.cursor)

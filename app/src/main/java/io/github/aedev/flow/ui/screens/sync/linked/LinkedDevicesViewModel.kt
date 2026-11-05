@@ -50,6 +50,10 @@ internal data class LinkedUiState(
     val error: LinkedError? = null,
     /** The sides to choose between while two devices have removed each other. */
     val contest: List<ContestSide> = emptyList(),
+    /** A removed device can still reach the WebDAV folder until its login changes. */
+    val loginDue: Boolean = false,
+    /** The devices yet to read the login this device sent, while that change is under way. */
+    val loginWaiting: List<String>? = null,
 ) {
     val linked: Boolean get() = storeUrl != null
 }
@@ -64,6 +68,7 @@ private data class Local(
     val busy: Boolean = false,
     val error: LinkedError? = null,
     val contest: List<ContestSide> = emptyList(),
+    val loginWaiting: List<String>? = null,
 )
 
 @HiltViewModel
@@ -114,6 +119,8 @@ internal class LinkedDevicesViewModel
                     syncing,
                     l.error ?: lastSync?.error,
                     l.contest,
+                    group?.loginDue != null,
+                    if (group?.loginSent != null) l.loginWaiting.orEmpty() else null,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LinkedUiState())
 
@@ -160,7 +167,11 @@ internal class LinkedDevicesViewModel
             }
         }
 
-        fun refreshDevices() = run { local.update { it.copy(devices = actions.devices()) } }
+        fun refreshDevices() =
+            run {
+                local.update { it.copy(devices = actions.devices()) }
+                refreshLoginWaiting()
+            }
 
         fun create(
             url: String,
@@ -184,6 +195,23 @@ internal class LinkedDevicesViewModel
             user: String,
             password: String,
         ) = run { actions.updateLogin(user, password) }
+
+        fun startLoginChange(
+            user: String,
+            password: String,
+        ) = run {
+            actions.startLoginChange(user, password)
+            refreshLoginWaiting()
+        }
+
+        fun finishLoginChange() = run { actions.finishLoginChange() }
+
+        fun cancelLoginChange() = run { actions.cancelLoginChange() }
+
+        private suspend fun refreshLoginWaiting() {
+            val waiting = actions.loginWaiting()
+            local.update { it.copy(loginWaiting = waiting) }
+        }
 
         fun resetAndCreate(
             url: String,

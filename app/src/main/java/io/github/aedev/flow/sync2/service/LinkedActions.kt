@@ -19,6 +19,7 @@ import io.github.aedev.flow.sync2.engine.ContestSide
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.contestSides
+import io.github.aedev.flow.sync2.engine.loginWaiting
 import io.github.aedev.flow.sync2.lan.LanSync
 import io.github.aedev.flow.sync2.lan.lanPort
 import io.github.aedev.flow.sync2.linking.Code
@@ -47,6 +48,7 @@ import io.github.aedev.flow.sync2.store.JoinRequest
 import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.ServerStore
 import io.github.aedev.flow.sync2.store.StoreException
+import io.github.aedev.flow.sync2.store.StoreLogin
 import io.github.aedev.flow.sync2.store.WebDavStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -221,14 +223,41 @@ class LinkedActions
             return restored.also { linkedNow() }
         }
 
-        /** Replaces a WebDAV login the server refused, then syncs with it. */
+        /** Replaces a WebDAV login the server refused, once the folder takes the new one and still holds the group, then syncs with it. */
         suspend fun updateLogin(
             user: String,
             password: String,
         ) {
-            credentials.save(WebDavLogin(user, password))
+            if (!sync.adoptLogin(StoreLogin(user, password))) throw LinkedException.Unexpected()
             syncNow()
         }
+
+        /** Sends the other devices a new login for the folder, before the user sets it there. Opening the session re-reads the roster, and fails while it is contested. */
+        suspend fun startLoginChange(
+            user: String,
+            password: String,
+        ) {
+            val login = StoreLogin(user.trim(), password)
+            session().writeLogin(login)
+            credentials.savePending(login)
+            syncNow()
+        }
+
+        /** The user set the new login at the provider: checks it, and uses it from now on. */
+        suspend fun finishLoginChange() {
+            val login = credentials.pending() ?: throw LinkedException.Unexpected()
+            if (!sync.adoptLogin(login)) throw LinkedException.Unexpected()
+            syncNow()
+        }
+
+        /** Stops a change this device started. A device that read the login still holds it, and only tries it if the folder refuses the current one. */
+        suspend fun cancelLoginChange() {
+            credentials.forgetPending()
+            db.groups().setLoginSent(null)
+        }
+
+        /** The devices yet to read the login this device sent, or null with no change under way. */
+        suspend fun loginWaiting(): List<String>? = loginWaiting(db, SyncBytes.toHex(keys.load().did))
 
         suspend fun confirmRecoverySaved() = db.groups().setRecoverySaved(true)
 
