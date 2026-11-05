@@ -165,6 +165,7 @@ class PlayerPreferences(
         val LYRICS_TEXT_ALIGN = stringPreferencesKey("lyrics_text_align")
         val LYRICS_SHOW_TRANSLATION = booleanPreferencesKey("lyrics_show_translation")
         val LYRICS_SHOW_ROMANIZATION = booleanPreferencesKey("lyrics_show_romanization")
+        val LYRICS_ON_LOCK_SCREEN = booleanPreferencesKey("lyrics_on_lock_screen")
         val LYRICS_AUTO_ROMANIZE = booleanPreferencesKey("lyrics_auto_romanize")
         val LYRICS_KEEP_SCREEN_ON = booleanPreferencesKey("lyrics_keep_screen_on")
         val LYRICS_BLUR_OTHER_LINES = booleanPreferencesKey("lyrics_blur_other_lines")
@@ -3885,6 +3886,13 @@ class PlayerPreferences(
     }
 
     /** Whether lyrics in other scripts get a Latin-script line made on the device when the source has none. */
+    val lyricsOnLockScreen: Flow<Boolean> =
+        context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_ON_LOCK_SCREEN] ?: false }
+
+    suspend fun setLyricsOnLockScreen(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ON_LOCK_SCREEN] = enabled }
+    }
+
     val lyricsAutoRomanize: Flow<Boolean> =
         context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_AUTO_ROMANIZE] ?: false }
 

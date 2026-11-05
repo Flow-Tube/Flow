@@ -14,6 +14,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
@@ -21,6 +24,13 @@ import java.util.Collections
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** A song's synced lyrics as shown on screen; empty until they load. */
+data class ShownLyrics(
+    val videoId: String,
+    val entries: List<LyricsEntry>,
+    val syncOffsetMs: Long,
+)
 
 @Singleton
 class LyricsHelper
@@ -57,6 +67,15 @@ class LyricsHelper
         private val inFlight = InFlightRuns<String, Pair<List<LyricsEntry>, String>?>(ioScope)
 
         private val providerCooldowns = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+        private val shownLyrics = MutableStateFlow<ShownLyrics?>(null)
+
+        /** The synced lyrics the player screen shows now, with the offset chosen there. */
+        val shown: StateFlow<ShownLyrics?> = shownLyrics.asStateFlow()
+
+        fun publishShown(value: ShownLyrics?) {
+            shownLyrics.value = value
+        }
 
         suspend fun forceRefresh(
             videoId: String,

@@ -92,6 +92,11 @@ class MusicPlayerViewModel
                 localLyrics,
                 downloadManager::getDownloadedTrackPath,
             )
+
+        init {
+            lyrics.publishShownLyrics()
+        }
+
         private val trackActions =
             MusicPlayerTrackActions(
                 context,

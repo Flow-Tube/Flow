@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
 import io.github.aedev.flow.data.lyrics.LyricsUtils
+import io.github.aedev.flow.data.lyrics.ShownLyrics
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.utils.NetworkState
@@ -19,6 +20,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -54,6 +57,14 @@ internal class MusicPlayerLyrics(
         scope.launch { playerPreferences.lyricsKeepScreenOn.collect { on -> uiState.update { it.copy(lyricsKeepScreenOn = on) } } }
         scope.launch { playerPreferences.lyricsBlurOtherLines.collect { on -> uiState.update { it.copy(lyricsBlurOtherLines = on) } } }
     }
+
+    fun publishShownLyrics(): Job =
+        scope.launch {
+            uiState
+                .map { state -> state.currentTrack?.let { ShownLyrics(it.videoId, state.syncedLyrics, state.lyricsSyncOffsetMs) } }
+                .distinctUntilChanged()
+                .collect(lyricsHelper::publishShown)
+        }
 
     fun setShowTranslation(show: Boolean) {
         scope.launch { playerPreferences.setLyricsShowTranslation(show) }
