@@ -54,8 +54,10 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
 @Composable
 fun PlayerCommentsUiState.visibleComments(screenState: PlayerScreenState): List<Comment> {
     val filter = screenState.commentSortFilter
-    return remember(comments, filter) {
-        applyVideoCommentFilters(comments, filter)
+    // Only Timed reads the length, so a live stream's growing duration recomposes nothing here.
+    val durationMs = if (filter == CommentSortFilter.TIMED) screenState.duration else 0L
+    return remember(comments, filter, durationMs) {
+        applyVideoCommentFilters(comments, filter, durationMs)
     }
 }
 

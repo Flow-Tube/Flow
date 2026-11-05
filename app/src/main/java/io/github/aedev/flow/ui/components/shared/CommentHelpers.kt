@@ -47,10 +47,12 @@ fun timedCommentOrders(options: List<VideoCommentSort>): List<VideoCommentSort> 
 fun applyVideoCommentFilters(
     comments: List<Comment>,
     filter: CommentSortFilter,
+    durationMs: Long = 0L,
 ): List<Comment> =
     when (filter) {
         CommentSortFilter.TOP, CommentSortFilter.NEWEST -> comments
-        CommentSortFilter.OLDEST, CommentSortFilter.TIMED -> sortCommentsByFilter(comments, filter)
+        CommentSortFilter.OLDEST -> sortCommentsByFilter(comments, filter)
+        CommentSortFilter.TIMED -> timedCommentsInOrder(comments, durationMs)
     }
 
 private fun relativeTimeToSeconds(timeStr: String): Long {
@@ -73,6 +75,7 @@ fun sortCommentsByFilter(
     comments: List<Comment>,
     filter: CommentSortFilter,
 ): List<Comment> {
+    if (filter == CommentSortFilter.TIMED) return timedCommentsInOrder(comments, durationMs = 0L)
     val pinned = comments.filter { it.isPinned }
     val unpinned = comments.filterNot { it.isPinned }
     val sortedUnpinned =
@@ -80,9 +83,9 @@ fun sortCommentsByFilter(
             CommentSortFilter.TOP -> unpinned.sortedByDescending { it.likeCount }
             CommentSortFilter.NEWEST -> unpinned.sortedBy { relativeTimeToSeconds(it.publishedTime) }
             CommentSortFilter.OLDEST -> unpinned.sortedByDescending { relativeTimeToSeconds(it.publishedTime) }
-            CommentSortFilter.TIMED -> unpinned.filter { it.richText?.hasTimestamp == true }
+            CommentSortFilter.TIMED -> unpinned
         }
-    return pinned.filter { filter != CommentSortFilter.TIMED || it.richText?.hasTimestamp == true } + sortedUnpinned
+    return pinned + sortedUnpinned
 }
 
 /** Converts a "H:MM:SS" / "MM:SS" comment timestamp into milliseconds, or 0 when it is not one. */
