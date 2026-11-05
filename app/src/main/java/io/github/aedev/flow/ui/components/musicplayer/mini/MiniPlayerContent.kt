@@ -7,7 +7,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -38,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +60,7 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.shared.MediaPlayPauseButton
+import io.github.aedev.flow.ui.components.shared.titleMarquee
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
 import io.github.aedev.flow.ui.screens.playon.PlayOnButton
 import io.github.aedev.flow.ui.theme.ArtworkScrimContent
@@ -200,22 +201,16 @@ internal fun MiniPlayerContent(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(
-                    text = track.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier =
-                        if (animationsEnabled) {
-                            Modifier.basicMarquee(
-                                iterations = Int.MAX_VALUE,
-                                repeatDelayMillis = 2500,
-                            )
-                        } else {
-                            Modifier
-                        },
-                )
+                key(track.videoId) {
+                    Text(
+                        text = track.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = if (animationsEnabled) Modifier.titleMarquee() else Modifier,
+                    )
+                }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
