@@ -63,6 +63,7 @@ fun MediaDownloadSheetCompact(
     video: Video,
     currentPlayingHeight: Int = 0,
     subtitles: List<SubtitleOption> = emptyList(),
+    replacesDownload: Boolean = false,
     slot: MediaSheetSlot? = null,
     onDismiss: () -> Unit,
 ) {
@@ -212,6 +213,9 @@ fun MediaDownloadSheetCompact(
         },
     ) {
         Column(modifier = Modifier.padding(horizontal = DownloadSheetPadding)) {
+            if (replacesDownload) {
+                DownloadReplacesNote(Modifier.padding(bottom = 12.dp))
+            }
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },

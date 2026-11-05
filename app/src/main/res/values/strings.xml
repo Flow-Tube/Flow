@@ -406,6 +406,7 @@
     <string name="added_to_playlist_toast">Added to playlist</string>
     <string name="already_downloaded_toast">Already downloaded</string>
     <string name="download_already_running">This video is already downloading</string>
+    <string name="download_replaces_existing">Replaces the copy you already downloaded</string>
     <string name="download_started_toast">Download started…</string>
     <string name="download_error_toast">Download error: %1$s</string>
     <string name="audio_effects">Audio Effects</string>

@@ -154,6 +154,19 @@ internal object DownloadLauncher {
             }
     }
 
+    suspend fun isDownloaded(
+        context: Context,
+        videoId: String,
+    ): Boolean =
+        withContext(PerformanceDispatcher.diskIO) {
+            runCatching {
+                EntryPointAccessors
+                    .fromApplication(context.applicationContext, Dependencies::class.java)
+                    .videoDownloadManager()
+                    .isDownloaded(videoId)
+            }.getOrDefault(false)
+        }
+
     /** Where a video download is saved and the space left there, or null when it can't be read. */
     suspend fun videoSaveFolder(context: Context): DownloadSaveFolder? =
         withContext(PerformanceDispatcher.diskIO) {
