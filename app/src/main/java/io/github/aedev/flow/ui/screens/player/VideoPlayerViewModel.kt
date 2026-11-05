@@ -603,6 +603,11 @@ class VideoPlayerViewModel
             sort: VideoCommentSort,
         ) = comments.selectSort(videoId, sort)
 
+        fun selectTimedComments(
+            videoId: String,
+            orders: List<VideoCommentSort>,
+        ) = comments.selectTimed(videoId, orders)
+
         fun loadCommentReplies(comment: Comment) {
             val videoId = _uiState.value.cachedVideo?.id ?: return
             comments.loadReplies(videoId, comment)

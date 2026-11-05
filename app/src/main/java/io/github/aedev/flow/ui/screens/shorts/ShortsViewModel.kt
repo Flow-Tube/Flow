@@ -98,6 +98,8 @@ class ShortsViewModel
         val commentsState: StateFlow<List<Comment>> = comments.comments
         val isLoadingComments: StateFlow<Boolean> = comments.isLoading
         val commentSortOptions: StateFlow<List<VideoCommentSort>> = comments.sortOptions
+        val isLoadingMoreComments: StateFlow<Boolean> = comments.isLoadingMore
+        val hasMoreComments: StateFlow<Boolean> = comments.hasMore
         val commentTotalText: StateFlow<String?> = comments.totalText
 
         private val savedShortIds = MutableStateFlow<Set<String>>(emptySet())
@@ -505,6 +507,13 @@ class ShortsViewModel
             videoId: String,
             sort: VideoCommentSort,
         ) = comments.selectSort(videoId, sort)
+
+        fun selectTimedComments(
+            videoId: String,
+            orders: List<VideoCommentSort>,
+        ) = comments.selectTimed(videoId, orders)
+
+        fun loadMoreComments(videoId: String) = comments.loadMore(videoId)
 
         fun loadCommentReplies(comment: Comment) {
             val currentShort = _uiState.value.shorts.getOrNull(_uiState.value.currentIndex) ?: return

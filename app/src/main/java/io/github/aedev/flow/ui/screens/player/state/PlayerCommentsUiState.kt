@@ -9,6 +9,7 @@ import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
 import io.github.aedev.flow.ui.components.shared.applyVideoCommentFilters
+import io.github.aedev.flow.ui.components.shared.timedCommentOrders
 import io.github.aedev.flow.ui.components.shared.videoCommentSortFor
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 
@@ -61,9 +62,9 @@ fun PlayerCommentsUiState.visibleComments(screenState: PlayerScreenState): List<
 /**
  * Applies a chip.
  *
- * Top and Newest are separate continuations, so picking one re-requests the section; Oldest reads
+ * Top and Newest are separate continuations, so picking one re-requests the section. Oldest reads
  * the chronological continuation and reverses it locally, which is why it selects the same one as
- * Newest.
+ * Newest. Timed reads both.
  */
 fun PlayerCommentsUiState.selectCommentSort(
     filter: CommentSortFilter,
@@ -72,6 +73,10 @@ fun PlayerCommentsUiState.selectCommentSort(
     viewModel: VideoPlayerViewModel,
 ) {
     screenState.commentSortFilter = filter
+    if (filter == CommentSortFilter.TIMED) {
+        viewModel.selectTimedComments(videoId, timedCommentOrders(sortOptions))
+        return
+    }
     videoCommentSortFor(sortOptions, filter)?.let { sort ->
         viewModel.selectCommentSort(videoId, sort)
     }

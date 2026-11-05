@@ -340,6 +340,7 @@
     <string name="filter_oldest">Oldest</string>
     <string name="filter_timed">Timed</string>
     <string name="no_timed_comments">No comments with a timestamp yet</string>
+    <string name="comments_load_more">Load more comments</string>
     <string name="comment_hearted_by_creator">Hearted by the creator</string>
     <string name="verified">Verified</string>
     <string name="comments_with_count_template">Comments · %1$s</string>

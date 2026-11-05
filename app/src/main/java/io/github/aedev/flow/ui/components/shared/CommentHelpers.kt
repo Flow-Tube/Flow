@@ -35,6 +35,9 @@ fun videoCommentSortFor(
         CommentSortFilter.NEWEST, CommentSortFilter.OLDEST, CommentSortFilter.TIMED -> options.getOrNull(1)
     }
 
+/** The orders Timed reads, in the order it reads them: Newest usually has more timestamps per page. */
+fun timedCommentOrders(options: List<VideoCommentSort>): List<VideoCommentSort> = listOfNotNull(options.getOrNull(1), options.getOrNull(0))
+
 /**
  * What a video's comment list shows for the selected chip.
  *

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +53,7 @@ fun FlowCommentsList(
     tint: MediaArtworkTint? = null,
 ) {
     val latestOnLoadMore by rememberUpdatedState(onLoadMore)
+    val timed = selectedFilter == CommentSortFilter.TIMED
     val uniqueComments =
         remember(comments) {
             comments.distinctByNonBlankKey(Comment::id)
@@ -67,7 +69,7 @@ fun FlowCommentsList(
                     repeat(6) { CommentSkeleton() }
                 }
             }
-        } else if (uniqueComments.isEmpty()) {
+        } else if (uniqueComments.isEmpty() && !(timed && isLoadingMore)) {
             item(key = "empty") {
                 Box(
                     modifier =
@@ -77,11 +79,12 @@ fun FlowCommentsList(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        stringResource(if (selectedFilter == CommentSortFilter.TIMED) R.string.no_timed_comments else R.string.no_comments_yet),
+                        stringResource(if (timed) R.string.no_timed_comments else R.string.no_comments_yet),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
+            if (timed && hasMore) item(key = "load_more_button") { CommentsLoadMoreButton(onLoadMore) }
         } else {
             items(
                 items = uniqueComments,
@@ -97,7 +100,12 @@ fun FlowCommentsList(
                     onAvatarClick = onAvatarClick,
                 )
             }
-            if (hasMore) {
+            if (timed) {
+                when {
+                    isLoadingMore -> item(key = "load_more_progress") { CommentsLoadingMoreRow() }
+                    hasMore -> item(key = "load_more_button") { CommentsLoadMoreButton(onLoadMore) }
+                }
+            } else if (hasMore) {
                 item(key = "load_more_trigger") {
                     LaunchedEffect(comments.size) {
                         latestOnLoadMore()
@@ -115,6 +123,34 @@ fun FlowCommentsList(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CommentsLoadingMoreRow() {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+    }
+}
+
+@Composable
+private fun CommentsLoadMoreButton(onClick: () -> Unit) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        TextButton(onClick = onClick) {
+            Text(stringResource(R.string.comments_load_more))
         }
     }
 }

@@ -48,6 +48,7 @@ import io.github.aedev.flow.ui.components.shared.MediaSheetSlot
 import io.github.aedev.flow.ui.components.shared.applyVideoCommentFilters
 import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
 import io.github.aedev.flow.ui.components.shared.rememberVideoShareAction
+import io.github.aedev.flow.ui.components.shared.timedCommentOrders
 import io.github.aedev.flow.ui.components.shared.videoCommentSortFor
 import io.github.aedev.flow.ui.components.shorts.SHORTS_SHEET_HEIGHT_FRACTION
 import io.github.aedev.flow.ui.components.shorts.ShortsDownloadSheet
@@ -112,6 +113,8 @@ fun ShortsScreen(
     val comments by viewModel.commentsState.collectAsState()
     val isLoadingComments by viewModel.isLoadingComments.collectAsState()
     val commentSortOptions by viewModel.commentSortOptions.collectAsState()
+    val isLoadingMoreComments by viewModel.isLoadingMoreComments.collectAsState()
+    val hasMoreComments by viewModel.hasMoreComments.collectAsState()
     val commentTotalText by viewModel.commentTotalText.collectAsState()
     val visibleComments =
         remember(comments, commentSortFilter) {
@@ -247,12 +250,21 @@ fun ShortsScreen(
                 showTimed = true,
                 onFilterChanged = { filter ->
                     commentSortFilter = filter
-                    videoCommentSortFor(commentSortOptions, filter)?.let { sort ->
-                        uiState.shorts
-                            .getOrNull(uiState.currentIndex)
-                            ?.id
-                            ?.let { videoId -> viewModel.selectCommentSort(videoId, sort) }
+                    uiState.shorts.getOrNull(uiState.currentIndex)?.id?.let { videoId ->
+                        if (filter == CommentSortFilter.TIMED) {
+                            viewModel.selectTimedComments(videoId, timedCommentOrders(commentSortOptions))
+                        } else {
+                            videoCommentSortFor(commentSortOptions, filter)?.let { sort -> viewModel.selectCommentSort(videoId, sort) }
+                        }
                     }
+                },
+                isLoadingMore = isLoadingMoreComments,
+                hasMore = commentSortFilter == CommentSortFilter.TIMED && hasMoreComments,
+                onLoadMore = {
+                    uiState.shorts
+                        .getOrNull(uiState.currentIndex)
+                        ?.id
+                        ?.let(viewModel::loadMoreComments)
                 },
                 onLoadReplies = { viewModel.loadCommentReplies(it) },
                 onAuthorClick = { authorChannelRef ->
