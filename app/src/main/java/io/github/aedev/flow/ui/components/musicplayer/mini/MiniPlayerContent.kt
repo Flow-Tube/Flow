@@ -1,13 +1,12 @@
 package io.github.aedev.flow.ui.components.musicplayer.mini
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -37,8 +36,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,10 +63,16 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.shared.MediaPlayPauseButton
+import io.github.aedev.flow.ui.components.shared.titleMarquee
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
 import io.github.aedev.flow.ui.screens.playon.PlayOnButton
 import io.github.aedev.flow.ui.theme.ArtworkScrimContent
 import io.github.aedev.flow.ui.theme.ArtworkScrimNowPlaying
+import kotlinx.coroutines.flow.conflate
+import kotlin.math.abs
+
+private const val RING_GLIDE_MILLIS = 900
+private const val RING_GLIDE_MIN_JUMP_MILLIS = 5_000f
 
 private val ArtworkRingSize = 52.dp
 private val ArtworkSize = 43.dp
@@ -79,7 +88,7 @@ internal fun MiniPlayerContent(
     track: MusicTrack,
     modifier: Modifier = Modifier,
     // False while the expanded player covers the (alpha-0) mini bar: the waveform, marquee
-    // and smooth progress ring stop forcing frames nobody can see. Values still update.
+    // and ring glide stop forcing frames nobody can see. Values still update.
     animationsEnabled: Boolean = true,
     showPrevious: Boolean = false,
     onOpen: (() -> Unit)? = null,
@@ -93,16 +102,17 @@ internal fun MiniPlayerContent(
             ?.collectAsStateWithLifecycle()
             ?.value
 
-    val animatedProgress by animateFloatAsState(
-        targetValue =
-            if (playerState.duration > 0) {
-                (playerState.position.toFloat() / playerState.duration.toFloat()).coerceIn(0f, 1f)
-            } else {
-                0f
-            },
-        animationSpec = if (animationsEnabled) tween(900, easing = LinearEasing) else snap(),
-        label = "miniProgress",
-    )
+    val ringProgress =
+        rememberRingProgress(
+            fraction =
+                if (playerState.duration > 0) {
+                    (playerState.position.toFloat() / playerState.duration.toFloat()).coerceIn(0f, 1f)
+                } else {
+                    0f
+                },
+            durationMillis = playerState.duration,
+            animationsEnabled = animationsEnabled,
+        )
 
     Row(
         modifier =
@@ -150,11 +160,12 @@ internal fun MiniPlayerContent(
                                 size = arcSize,
                                 style = Stroke(width = stroke, cap = StrokeCap.Round),
                             )
-                            if (animatedProgress > 0f) {
+                            val progress = ringProgress.value
+                            if (progress > 0f) {
                                 drawArc(
                                     color = ringFillColor,
                                     startAngle = -90f,
-                                    sweepAngle = 360f * animatedProgress,
+                                    sweepAngle = 360f * progress,
                                     useCenter = false,
                                     topLeft = Offset(inset, inset),
                                     size = arcSize,
@@ -200,22 +211,16 @@ internal fun MiniPlayerContent(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(
-                    text = track.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier =
-                        if (animationsEnabled) {
-                            Modifier.basicMarquee(
-                                iterations = Int.MAX_VALUE,
-                                repeatDelayMillis = 2500,
-                            )
-                        } else {
-                            Modifier
-                        },
-                )
+                key(track.videoId) {
+                    Text(
+                        text = track.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = if (animationsEnabled) Modifier.titleMarquee() else Modifier,
+                    )
+                }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
@@ -259,3 +264,36 @@ internal fun MiniPlayerContent(
         }
     }
 }
+
+/**
+ * The ring's fill. A position tick moves it only a pixel or two, so it steps there: gliding would
+ * draw at the display rate for most of every second. Seeks and new tracks still glide, and a glide
+ * runs to its end before the next position is taken.
+ */
+@Composable
+private fun rememberRingProgress(
+    fraction: Float,
+    durationMillis: Long,
+    animationsEnabled: Boolean,
+): Animatable<Float, AnimationVector1D> {
+    val ring = remember { Animatable(fraction) }
+    val latestFraction by rememberUpdatedState(fraction)
+    val latestDuration by rememberUpdatedState(durationMillis)
+    val mayGlide by rememberUpdatedState(animationsEnabled)
+    LaunchedEffect(ring) {
+        snapshotFlow { latestFraction }.conflate().collect { target ->
+            if (mayGlide && ringStepGlides(ring.value, target, latestDuration)) {
+                ring.animateTo(target, tween(RING_GLIDE_MILLIS, easing = LinearEasing))
+            } else {
+                ring.snapTo(target)
+            }
+        }
+    }
+    return ring
+}
+
+internal fun ringStepGlides(
+    fromFraction: Float,
+    toFraction: Float,
+    durationMillis: Long,
+): Boolean = durationMillis <= 0 || abs(toFraction - fromFraction) * durationMillis >= RING_GLIDE_MIN_JUMP_MILLIS
