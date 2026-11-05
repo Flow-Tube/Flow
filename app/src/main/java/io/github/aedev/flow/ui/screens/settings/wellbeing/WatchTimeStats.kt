@@ -24,6 +24,9 @@ data class WatchTimeSummary(
     val dailyAverageMillis: Long get() = weekMillis / WEEK_DAYS
     val isEmpty: Boolean get() = days.all { it.millis == 0L }
 
+    /** The row for [date], or null when it is not one of these seven days. */
+    fun dayOrNull(date: LocalDate?): DayWatchTime? = days.firstOrNull { it.date == date }
+
     companion object {
         fun empty(today: LocalDate) = WatchTimeSummary((WEEK_DAYS - 1 downTo 0).map { DayWatchTime(today.minusDays(it.toLong()), 0L) })
     }
