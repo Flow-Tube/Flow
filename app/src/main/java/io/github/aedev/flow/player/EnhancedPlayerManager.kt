@@ -65,6 +65,7 @@ import io.github.aedev.flow.player.sabr.integration.SabrStreamInfo
 import io.github.aedev.flow.player.sabr.integration.SabrUrlResolver
 import io.github.aedev.flow.player.service.BackgroundServiceManager
 import io.github.aedev.flow.player.sponsorblock.SponsorBlockHandler
+import io.github.aedev.flow.player.sponsorblock.SponsorBlockSkip
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.state.PlaybackCompletion
 import io.github.aedev.flow.player.state.QualityOption
@@ -3000,7 +3001,7 @@ class EnhancedPlayerManager private constructor() {
     val subtitleLoadFailedEvent: SharedFlow<SubtitleLoadFailure>
         get() = _subtitleLoadFailedEvent
 
-    val skipEvent: SharedFlow<SponsorBlockSegment>
+    val skipEvent: SharedFlow<SponsorBlockSkip>
         get() = sponsorBlockHandler?.skipEvent ?: MutableSharedFlow()
 
     val sbToastEvent: SharedFlow<SponsorBlockSegment>

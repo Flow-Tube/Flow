@@ -19,6 +19,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/** A skip that happened. [firstInVideo] is false when this segment was already skipped in this video. */
+class SponsorBlockSkip(
+    val segment: SponsorBlockSegment,
+    val firstInVideo: Boolean,
+)
+
 /**
  * Handles SponsorBlock segment loading and skip logic.
  *
@@ -43,8 +49,8 @@ class SponsorBlockHandler(
     val sponsorSegments: StateFlow<List<SponsorBlockSegment>> = _sponsorSegments.asStateFlow()
 
     /** Emitted when a segment should be skipped (seeked past). */
-    private val _skipEvent = MutableSharedFlow<SponsorBlockSegment>(extraBufferCapacity = 1)
-    val skipEvent: SharedFlow<SponsorBlockSegment> = _skipEvent.asSharedFlow()
+    private val _skipEvent = MutableSharedFlow<SponsorBlockSkip>(extraBufferCapacity = 1)
+    val skipEvent: SharedFlow<SponsorBlockSkip> = _skipEvent.asSharedFlow()
 
     /** Emitted when entering a MUTE segment (true) or leaving one (false). */
     private val _muteEvent = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
@@ -93,6 +99,8 @@ class SponsorBlockHandler(
 
     /** Segments of the current video a "skip once" category has already skipped. */
     val skippedOnce: StateFlow<Set<String>> = _skippedOnce.asStateFlow()
+
+    private val skippedInVideo = mutableSetOf<String>()
 
     /**
      * Set whether SponsorBlock is enabled.
@@ -224,6 +232,7 @@ class SponsorBlockHandler(
         if (videoId != skippedOnceVideoId) {
             skippedOnceVideoId = videoId
             _skippedOnce.value = emptySet()
+            skippedInVideo.clear()
         }
         currentVideoId = videoId
         if (videoId != disabledVideoId) disabledVideoId = null
@@ -320,7 +329,7 @@ class SponsorBlockHandler(
     ): Long {
         lastSkippedSegmentUuid = segment.uuid
         if (action == SponsorBlockAction.SKIP_ONCE) _skippedOnce.value += segment.uuid
-        _skipEvent.tryEmit(segment)
+        _skipEvent.tryEmit(SponsorBlockSkip(segment, firstInVideo = skippedInVideo.add(segment.uuid)))
         return (segment.endTime * 1000).toLong()
     }
 

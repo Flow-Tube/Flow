@@ -287,4 +287,25 @@ class SponsorBlockHandlerTest {
 
         assertThat(handler.skipTargetForSeek(15_000L)).isNull()
     }
+
+    @Test
+    fun `only the first skip of a segment in a video counts`() =
+        runTest {
+            val sponsor = segment("sponsor", 10f, 20f)
+            val handler = handlerWith(sponsor)
+            val skips = mutableListOf<SponsorBlockSkip>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { handler.skipEvent.toList(skips) }
+
+            handler.checkForSkip(15_000L)
+            handler.skipTargetForSeek(12_000L)
+            handler.reset()
+            handler.loadSegmentsFromList("video", listOf(sponsor))
+            handler.skipTargetForSeek(12_000L)
+            assertThat(skips.map { it.firstInVideo }).containsExactly(true, false, false).inOrder()
+
+            handler.reset()
+            handler.loadSegmentsFromList("next", listOf(sponsor))
+            handler.skipTargetForSeek(12_000L)
+            assertThat(skips.last().firstInVideo).isTrue()
+        }
 }
