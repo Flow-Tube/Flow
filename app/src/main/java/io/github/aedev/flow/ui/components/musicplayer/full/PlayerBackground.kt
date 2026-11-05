@@ -47,7 +47,11 @@ fun PlayerBackground(
     artworkAtStart: Boolean = false,
     // Immersive only: the album's motion artwork, playing where the still art is.
     animatedArtwork: (@Composable () -> Unit)? = null,
+    // Covers to have ready in Coil's memory, for a layout whose artwork box doesn't load its neighbours.
+    preloadCovers: List<String> = emptyList(),
 ) {
+    val context = LocalContext.current
+    LaunchedEffect(preloadCovers) { preloadCovers.forEach { context.imageLoader.execute(ImageRequest.Builder(context).data(it).build()) } }
     val baseColor = backdrop.base.copy(alpha = 0.78f)
     val accentColor = backdrop.accent.copy(alpha = 0.72f)
     val ground = backdrop.ground

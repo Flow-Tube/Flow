@@ -357,6 +357,12 @@ internal fun FullMusicPlayerContent(
             backdrop = backdrop,
             artworkAtStart = layout == MusicPlayerLayout.WIDE || layout == MusicPlayerLayout.SPLIT,
             animatedArtwork = animatedArtwork.takeIf { immersiveBackground },
+            preloadCovers =
+                if (immersiveBackground && isPlayerSheetExpanded) {
+                    listOfNotNull(nextTrack?.highResThumbnailUrl, previousTrack?.highResThumbnailUrl)
+                } else {
+                    emptyList()
+                },
         )
 
         val sideSwipes = rememberMusicSideSwipes(layout, isPlayerSheetExpanded) { queueState.fraction() > 0f || showLyricsSheet }
