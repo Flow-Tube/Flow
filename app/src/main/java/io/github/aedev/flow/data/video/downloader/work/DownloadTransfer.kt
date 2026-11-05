@@ -208,6 +208,7 @@ class DownloadTransfer
                             videoLmt = info.videoLmt,
                             audioXtags = info.audioXtags,
                             videoXtags = info.videoXtags,
+                            audioTrackId = info.audioTrackId,
                             poToken = info.poToken,
                             visitorId = info.visitorId,
                             ustreamerConfig = info.ustreamerConfig,
