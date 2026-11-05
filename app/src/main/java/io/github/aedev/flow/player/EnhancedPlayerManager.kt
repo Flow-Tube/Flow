@@ -2487,6 +2487,12 @@ class EnhancedPlayerManager private constructor() {
     fun seekTo(position: Long) {
         val p = player ?: return
         val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
+        if (!isLive) {
+            sponsorBlockHandler?.skipTargetForSeek(position)?.let { segmentEnd ->
+                skipToSegmentEnd(segmentEnd)
+                return
+            }
+        }
         val target = resolveSeekTarget(p, position)
         val isEndBoundary = !isLive && isEndBoundarySeek(position, p.duration)
         if (!isLive && !isEndBoundary && mediaLoader?.getActiveSabrOrchestrator() != null) {

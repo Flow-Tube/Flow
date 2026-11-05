@@ -276,10 +276,7 @@ class SponsorBlockHandler(
             Log.d(TAG, "Segment hit: ${segment.category} action=$action")
 
             if (SponsorBlockActionPolicy.skipsAutomatically(action, segment.uuid in _skippedOnce.value)) {
-                lastSkippedSegmentUuid = segment.uuid
-                if (action == SponsorBlockAction.SKIP_ONCE) _skippedOnce.value += segment.uuid
-                _skipEvent.tryEmit(segment)
-                return (segment.endTime * 1000).toLong()
+                return skip(segment, action)
             }
             when (action) {
                 SponsorBlockAction.MUTE -> {
@@ -301,6 +298,30 @@ class SponsorBlockHandler(
         }
 
         return null
+    }
+
+    /**
+     * Where a seek to [targetMs] lands instead when the target is inside a segment that skips
+     * automatically, or null to seek as asked. The tick's re-arm can't cover this: a segment at the very
+     * start of a video has no position before it, and the tick would show a second of the segment first.
+     */
+    fun skipTargetForSeek(targetMs: Long): Long? {
+        if (!isEnabled || _disabledForCurrentVideo.value) return null
+        val posSec = targetMs / 1000f
+        val segment = _sponsorSegments.value.find { posSec >= it.startTime && posSec < it.endTime } ?: return null
+        val action = SponsorBlockActionPolicy.actionFor(segment, categoryActions)
+        if (!SponsorBlockActionPolicy.skipsAutomatically(action, segment.uuid in _skippedOnce.value)) return null
+        return skip(segment, action)
+    }
+
+    private fun skip(
+        segment: SponsorBlockSegment,
+        action: SponsorBlockAction,
+    ): Long {
+        lastSkippedSegmentUuid = segment.uuid
+        if (action == SponsorBlockAction.SKIP_ONCE) _skippedOnce.value += segment.uuid
+        _skipEvent.tryEmit(segment)
+        return (segment.endTime * 1000).toLong()
     }
 
     /**
