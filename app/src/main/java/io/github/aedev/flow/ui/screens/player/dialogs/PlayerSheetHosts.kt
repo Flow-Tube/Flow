@@ -304,8 +304,7 @@ internal fun PlayerCommentsPanelHost(
         selectedFilter = screenState.commentSortFilter,
         totalText = commentsUiState.totalText,
         artworkUrl = artworkUrl,
-        timedOnly = screenState.commentsTimedOnly,
-        onTimedChange = { screenState.commentsTimedOnly = it },
+        showTimed = true,
         onFilterChanged = { filter ->
             commentsUiState.selectCommentSort(filter, videoId, screenState, viewModel)
         },

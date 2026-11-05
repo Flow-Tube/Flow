@@ -109,14 +109,13 @@ fun ShortsScreen(
     var showDescriptionSheet by remember { mutableStateOf(false) }
     val settingsSheet = remember { ShortsSettingsSheetState() }
     var commentSortFilter by remember { mutableStateOf(CommentSortFilter.TOP) }
-    var commentsTimedOnly by remember { mutableStateOf(false) }
     val comments by viewModel.commentsState.collectAsState()
     val isLoadingComments by viewModel.isLoadingComments.collectAsState()
     val commentSortOptions by viewModel.commentSortOptions.collectAsState()
     val commentTotalText by viewModel.commentTotalText.collectAsState()
     val visibleComments =
-        remember(comments, commentSortFilter, commentsTimedOnly) {
-            applyVideoCommentFilters(comments, commentSortFilter, commentsTimedOnly)
+        remember(comments, commentSortFilter) {
+            applyVideoCommentFilters(comments, commentSortFilter)
         }
 
     LaunchedEffect(source) { viewModel.load(source) }
@@ -244,8 +243,7 @@ fun ShortsScreen(
                 isLoading = isLoadingComments,
                 selectedFilter = commentSortFilter,
                 totalText = commentTotalText,
-                timedOnly = commentsTimedOnly,
-                onTimedChange = { commentsTimedOnly = it },
+                showTimed = true,
                 onFilterChanged = { filter ->
                     commentSortFilter = filter
                     videoCommentSortFor(commentSortOptions, filter)?.let { sort ->

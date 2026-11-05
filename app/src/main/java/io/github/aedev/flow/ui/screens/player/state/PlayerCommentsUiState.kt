@@ -49,13 +49,12 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
     }
 }
 
-/** The rows the chips currently select, out of the pages loaded so far. */
+/** The rows the selected chip shows, out of the pages loaded so far. */
 @Composable
 fun PlayerCommentsUiState.visibleComments(screenState: PlayerScreenState): List<Comment> {
     val filter = screenState.commentSortFilter
-    val timedOnly = screenState.commentsTimedOnly
-    return remember(comments, filter, timedOnly) {
-        applyVideoCommentFilters(comments, filter, timedOnly)
+    return remember(comments, filter) {
+        applyVideoCommentFilters(comments, filter)
     }
 }
 

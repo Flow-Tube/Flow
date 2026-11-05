@@ -1,6 +1,5 @@
 package io.github.aedev.flow.ui.components.shared
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,7 +49,6 @@ fun FlowCommentsList(
     hasMore: Boolean,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = 32.dp),
-    @StringRes emptyMessageRes: Int = R.string.no_comments_yet,
     tint: MediaArtworkTint? = null,
 ) {
     val latestOnLoadMore by rememberUpdatedState(onLoadMore)
@@ -79,7 +77,7 @@ fun FlowCommentsList(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        stringResource(emptyMessageRes),
+                        stringResource(if (selectedFilter == CommentSortFilter.TIMED) R.string.no_timed_comments else R.string.no_comments_yet),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

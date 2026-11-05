@@ -49,8 +49,7 @@ fun PlayerCommentsPanel(
     modifier: Modifier = Modifier,
     totalText: String? = null,
     artworkUrl: String? = null,
-    timedOnly: Boolean = false,
-    onTimedChange: ((Boolean) -> Unit)? = null,
+    showTimed: Boolean = false,
 ) {
     val listState = rememberLazyListState()
     val tint = rememberMediaArtworkTint(artworkUrl)
@@ -90,8 +89,7 @@ fun PlayerCommentsPanel(
         CommentSortChips(
             selected = selectedFilter,
             onSelect = onFilterChanged,
-            timedOnly = timedOnly,
-            onTimedChange = onTimedChange,
+            showTimed = showTimed,
             modifier = Modifier.padding(start = 16.dp, bottom = 6.dp),
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
@@ -108,7 +106,6 @@ fun PlayerCommentsPanel(
             isLoadingMore = isLoadingMore,
             onLoadMore = onLoadMore,
             hasMore = hasMore,
-            emptyMessageRes = if (timedOnly) R.string.no_timed_comments else R.string.no_comments_yet,
             tint = tint,
             modifier = Modifier.fillMaxWidth().weight(1f),
         )
