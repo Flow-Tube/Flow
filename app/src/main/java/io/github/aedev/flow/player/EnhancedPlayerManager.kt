@@ -2753,10 +2753,13 @@ class EnhancedPlayerManager private constructor() {
                         if (VideoCodecUtils.streamSizeKey(height, codecKey) in existingKeys) return@mapNotNull null
                         QualityOption(
                             height = height,
-                            label = "${qualityLabelFromFormat(best)} ${VideoCodecUtils.codecLabelFromKey(codecKey)}",
+                            label =
+                                "${VideoCodecUtils.qualityLabelWithFrameRate(height, best.fps ?: 0)} " +
+                                    VideoCodecUtils.codecLabelFromKey(codecKey),
                             bitrate = (best.averageBitrate ?: best.bitrate).toLong(),
                             codecKey = codecKey,
                             streamKey = "$SABR_QUALITY_KEY_PREFIX${best.itag}",
+                            isHdr = best.colorInfo?.isHdr == true,
                         )
                     }
             } else {
@@ -2816,11 +2819,6 @@ class EnhancedPlayerManager private constructor() {
 
     private fun qualityHeightFromFormat(format: PlayerResponse.StreamingData.Format): Int =
         VideoCodecUtils.qualityHeightFromFormat(format.qualityLabel, format.height ?: format.width ?: 0)
-
-    private fun qualityLabelFromFormat(format: PlayerResponse.StreamingData.Format): String =
-        format.qualityLabel
-            ?.takeIf { it.isNotBlank() }
-            ?: VideoCodecUtils.qualityLabelWithFrameRate(qualityHeightFromFormat(format), format.fps ?: 0)
 
     // ===== Quality & Audio Management =====
 

@@ -57,4 +57,15 @@ class AdaptiveLadderTest {
         val rungs = AdaptiveLadder.forPreload(null, streams, "vp9")
         assertThat(rungs.map(VideoCodecUtils::codecKeyFromStream).distinct()).containsExactly("vp9")
     }
+
+    @Test
+    fun `VP9 profile 2 counts as high bit depth in both clients' spellings`() {
+        val ios = LadderTestStreams.stream(1080, 5_000_000, "video/webm; codecs=\"vp09.02.51.10.01.09.16.09.00\"", 335)
+        val androidVr = LadderTestStreams.stream(1080, 5_000_000, "video/webm; codecs=\"vp9.2\"", 335)
+        val sdr = LadderTestStreams.stream(1080, 3_000_000, "video/webm; codecs=\"vp9\"", 248)
+
+        assertThat(AdaptiveLadder.isHighBitDepth(ios)).isTrue()
+        assertThat(AdaptiveLadder.isHighBitDepth(androidVr)).isTrue()
+        assertThat(AdaptiveLadder.isHighBitDepth(sdr)).isFalse()
+    }
 }
