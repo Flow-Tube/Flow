@@ -1713,7 +1713,7 @@
   "replacements": [
     {
       "name": "removing-the-device-that-set-the-key-replaces-it",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -1820,7 +1820,7 @@
     },
     {
       "name": "removing-the-device-that-set-the-key-without-replacing",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -1848,7 +1848,7 @@
     },
     {
       "name": "cut-for-the-replaced-key",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -1892,7 +1892,7 @@
     },
     {
       "name": "the-device-that-set-the-key-left",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -2005,7 +2005,7 @@
     },
     {
       "name": "rotate-while-the-key-is-due",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -2065,7 +2065,7 @@
     },
     {
       "name": "removal-while-the-key-is-due-without-replacing",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -2127,7 +2127,7 @@
     },
     {
       "name": "removal-while-the-key-is-due",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -2274,7 +2274,7 @@
     },
     {
       "name": "new-words-after-the-device-left",
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",
@@ -2426,7 +2426,7 @@
     {
       "name": "replacement-not-called-for",
       "base": 3,
-      "then": [
+      "steps": [
         {
           "v": 2,
           "group": "669a44456c08e4a12e4ceb3538860317",

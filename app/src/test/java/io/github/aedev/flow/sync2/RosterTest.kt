@@ -171,7 +171,7 @@ class RosterTest {
         for (case in v["replacements"].jsonArray) {
             val name = case["name"].text
             val count = case.jsonObject["base"]?.jsonPrimitive?.int ?: entries.size
-            val steps = case["then"].jsonArray.map(::parseEntry)
+            val steps = case["steps"].jsonArray.map(::parseEntry)
             val before = steps.dropLast(1).fold(replayRoster(entries.take(count)), ::applyEntry)
             val error = case.jsonObject["error"]
             if (error == null) {
