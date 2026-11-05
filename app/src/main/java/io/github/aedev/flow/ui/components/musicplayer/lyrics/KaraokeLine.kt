@@ -269,17 +269,16 @@ internal fun KaraokeLine(
             smoothPosition.longValue = Long.MIN_VALUE
             return@LaunchedEffect
         }
-        var lastPlayerPos = EnhancedMusicPlayerManager.getCurrentPosition()
-        var lastUpdate = System.currentTimeMillis()
+        val clock = LyricsFillClock()
         while (coroutineContext.isActive) {
-            withFrameMillis {
-                val now = System.currentTimeMillis()
-                val playerPos = EnhancedMusicPlayerManager.getCurrentPosition()
-                if (playerPos != lastPlayerPos) {
-                    lastPlayerPos = playerPos
-                    lastUpdate = now
-                }
-                smoothPosition.longValue = lastPlayerPos + (now - lastUpdate) + latestOffset
+            withFrameMillis { frameMs ->
+                val position =
+                    clock.next(
+                        playerPositionMs = EnhancedMusicPlayerManager.getCurrentPosition(),
+                        frameTimeMs = frameMs,
+                        speed = EnhancedMusicPlayerManager.playbackSpeed.value,
+                    )
+                smoothPosition.longValue = position + latestOffset
             }
         }
     }
