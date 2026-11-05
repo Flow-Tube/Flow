@@ -31,6 +31,14 @@ private const val STARTUP_GATE_TIMEOUT_MS = 20_000L
  */
 private const val DEFAULT_PREFETCH_PAGES = 3
 
+/**
+ * Pages Timed reads per order when it opens, and per order on each tap of Load more. Timed never
+ * pages by itself past this: only a few comments in a hundred carry a timestamp, so following the
+ * list's end could walk a video's whole comment section.
+ */
+private const val TIMED_PAGES_PER_ORDER = 8
+private const val TIMED_MORE_PAGES_PER_ORDER = 2
+
 /** What the pager needs to know about the surface's playback before it spends the network on comments. */
 internal data class CommentsPlaybackState(
     val isPlaybackLoading: Boolean,
@@ -90,6 +98,8 @@ internal class CommentsPager(
     private var prefetchJob: Job? = null
     private var loadingVideoId: String? = null
     private var activeSortToken: String? = null
+    private var timedCursors: MutableList<CommentsPageResult> = mutableListOf()
+    private var timedGeneration = 0
     private val repliesInFlight = mutableSetOf<String>()
 
     /** Empties the list, for a video with no comments to fetch and for a player being torn down. */
@@ -101,6 +111,8 @@ internal class CommentsPager(
         loadingVideoId = null
         activeSortToken = null
         next = CommentsPageResult.EMPTY
+        timedCursors = mutableListOf()
+        timedGeneration++
         _comments.value = emptyList()
         _isLoading.value = false
         _hasMore.value = false
@@ -124,37 +136,66 @@ internal class CommentsPager(
         startLoad(videoId, sortToken = sort.token)
     }
 
+    /**
+     * Reads [orders] in turn into one list, for Timed: no order has the timestamped comments on every
+     * video. One page at a time, and any other sort or video cancels what is left.
+     */
+    fun selectTimed(
+        videoId: String,
+        orders: List<VideoCommentSort>,
+    ) {
+        if (orders.isEmpty()) return
+        val key = orders.joinToString(separator = "|") { it.token }
+        if (activeSortToken == key && loadingVideoId == videoId && timedCursors.isNotEmpty()) return
+        resetForLoad(videoId, key)
+        timedCursors = orders.mapTo(mutableListOf()) { CommentsPageResult(continuation = it.token) }
+        walkTimed(videoId, TIMED_PAGES_PER_ORDER)
+    }
+
+    private fun walkTimed(
+        videoId: String,
+        pagesPerOrder: Int,
+    ) {
+        val generation = ++timedGeneration
+        loadJob =
+            scope.launch {
+                try {
+                    awaitPlaybackGate(videoId)
+                    repeat(pagesPerOrder) {
+                        timedCursors.indices.forEach { index ->
+                            val cursor = timedCursors[index]
+                            if (!cursor.hasMore || !isCurrentVideo(videoId)) return@forEach
+                            val page = fetch { fetchNextPage(videoId, cursor) } ?: return@launch
+                            if (!isCurrentVideo(videoId)) return@launch
+                            timedCursors[index] = page
+                            _comments.value = _comments.value.mergeDistinctByNonBlankKey(page.comments, Comment::id)
+                            _hasMore.value = timedCursors.any { it.hasMore }
+                            _isLoading.value = false
+                            _isLoadingMore.value = true
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error reading timed comments", e)
+                } finally {
+                    if (generation == timedGeneration) {
+                        _isLoading.value = false
+                        _isLoadingMore.value = false
+                    }
+                }
+            }
+    }
+
     private fun startLoad(
         videoId: String,
         sortToken: String?,
     ) {
-        loadJob?.cancel()
-        prefetchJob?.cancel()
-        // A re-sort keeps the header; a page without a count must not inherit the last video's (#1111).
-        if (videoId != loadingVideoId) {
-            _sortOptions.value = emptyList()
-            _totalText.value = null
-            _totalCount.value = null
-        }
-        loadingVideoId = videoId
-        activeSortToken = sortToken
-        _comments.value = emptyList()
-        next = CommentsPageResult.EMPTY
-        _hasMore.value = false
-        _isLoadingMore.value = false
-        _isLoading.value = true
+        resetForLoad(videoId, sortToken)
         loadJob =
             scope.launch {
                 try {
-                    withTimeoutOrNull(STARTUP_GATE_TIMEOUT_MS) {
-                        playbackState.first { state ->
-                            !PlaybackStartupPolicy.shouldDelaySecondaryContent(
-                                isPlaybackLoading = state.isPlaybackLoading,
-                                currentVideoId = state.currentVideoId,
-                                requestedVideoId = videoId,
-                            )
-                        }
-                    }
+                    awaitPlaybackGate(videoId)
                     if (!isCurrentVideo(videoId)) return@launch
                     val page = fetch { repository.getVideoComments(videoId, sortToken) } ?: return@launch
                     if (!isCurrentVideo(videoId)) return@launch
@@ -175,7 +216,49 @@ internal class CommentsPager(
             }
     }
 
+    private fun resetForLoad(
+        videoId: String,
+        sortToken: String?,
+    ) {
+        loadJob?.cancel()
+        prefetchJob?.cancel()
+        // A re-sort keeps the header; a page without a count must not inherit the last video's (#1111).
+        if (videoId != loadingVideoId) {
+            _sortOptions.value = emptyList()
+            _totalText.value = null
+            _totalCount.value = null
+        }
+        loadingVideoId = videoId
+        activeSortToken = sortToken
+        _comments.value = emptyList()
+        next = CommentsPageResult.EMPTY
+        timedCursors = mutableListOf()
+        timedGeneration++
+        _hasMore.value = false
+        _isLoadingMore.value = false
+        _isLoading.value = true
+    }
+
+    private suspend fun awaitPlaybackGate(videoId: String) {
+        withTimeoutOrNull(STARTUP_GATE_TIMEOUT_MS) {
+            playbackState.first { state ->
+                !PlaybackStartupPolicy.shouldDelaySecondaryContent(
+                    isPlaybackLoading = state.isPlaybackLoading,
+                    currentVideoId = state.currentVideoId,
+                    requestedVideoId = videoId,
+                )
+            }
+        }
+    }
+
     fun loadMore(videoId: String) {
+        if (timedCursors.isNotEmpty()) {
+            if (_hasMore.value && !_isLoading.value && !_isLoadingMore.value) {
+                _isLoadingMore.value = true
+                walkTimed(videoId, TIMED_MORE_PAGES_PER_ORDER)
+            }
+            return
+        }
         if (!next.hasMore) return
         if (_isLoadingMore.value) return
         prefetchJob?.cancel()
@@ -216,24 +299,30 @@ internal class CommentsPager(
             }
     }
 
-    private suspend fun appendNextPage(videoId: String) {
-        val continuation = next.continuation
-        val legacyPage = next.legacyPage
-        val page =
-            when {
-                continuation != null -> {
-                    repository.getMoreVideoComments(videoId, continuation)
-                }
-
-                legacyPage != null -> {
-                    val (comments, nextLegacy) = repository.getMoreComments(videoId, legacyPage)
-                    CommentsPageResult(comments = comments, legacyPage = nextLegacy)
-                }
-
-                else -> {
-                    return
-                }
+    private suspend fun fetchNextPage(
+        videoId: String,
+        cursor: CommentsPageResult,
+    ): CommentsPageResult? {
+        val continuation = cursor.continuation
+        val legacyPage = cursor.legacyPage
+        return when {
+            continuation != null -> {
+                repository.getMoreVideoComments(videoId, continuation)
             }
+
+            legacyPage != null -> {
+                val (comments, nextLegacy) = repository.getMoreComments(videoId, legacyPage)
+                CommentsPageResult(comments = comments, legacyPage = nextLegacy)
+            }
+
+            else -> {
+                null
+            }
+        }
+    }
+
+    private suspend fun appendNextPage(videoId: String) {
+        val page = fetchNextPage(videoId, next) ?: return
         if (!isCurrentVideo(videoId)) return
         _comments.value = _comments.value.mergeDistinctByNonBlankKey(page.comments, Comment::id)
         next = page
@@ -297,6 +386,6 @@ internal class CommentsPager(
         }
     }
 
-    private suspend fun fetch(block: suspend () -> CommentsPageResult): CommentsPageResult? =
+    private suspend fun fetch(block: suspend () -> CommentsPageResult?): CommentsPageResult? =
         if (fetchTimeoutMs == null) block() else withTimeoutOrNull(fetchTimeoutMs) { block() }
 }

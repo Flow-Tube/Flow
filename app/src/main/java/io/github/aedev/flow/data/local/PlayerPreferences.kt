@@ -327,6 +327,7 @@ class PlayerPreferences(
         val COMMENTS_ENABLED = booleanPreferencesKey("comments_enabled")
         val LIVE_CHAT_ENABLED = booleanPreferencesKey("live_chat_enabled")
         val COMMENTS_PREVIEW_ENABLED = booleanPreferencesKey("comments_preview_enabled")
+        val TIMED_COMMENTS_FOLLOW = booleanPreferencesKey("timed_comments_follow")
 
         val SUBSCRIPTION_SHOW_VIDEOS = booleanPreferencesKey("subscription_show_videos")
         val SUBSCRIPTION_SHOW_SHORTS = booleanPreferencesKey("subscription_show_shorts")
@@ -2828,6 +2829,16 @@ class PlayerPreferences(
     suspend fun setCommentsPreviewEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.COMMENTS_PREVIEW_ENABLED] = enabled
+        }
+    }
+
+    val timedCommentsFollow: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.TIMED_COMMENTS_FOLLOW] ?: true }
+
+    suspend fun setTimedCommentsFollow(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.TIMED_COMMENTS_FOLLOW] = enabled
         }
     }
 

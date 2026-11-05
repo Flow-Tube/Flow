@@ -85,6 +85,9 @@ fun VideoPlayerHost(
     val sponsorSegments by EnhancedPlayerManager.getInstance().sponsorSegments.collectAsStateWithLifecycle()
 
     val screenState = rememberPlayerScreenState()
+    LaunchedEffect(playerSheetState.currentValue) {
+        screenState.isPlayerExpanded = playerSheetState.currentValue == PlayerSheetValue.Expanded
+    }
     val audioSystemInfo = rememberAudioSystemInfo(context)
     val pipPreferences = rememberPipPreferences(context)
     val canGoPrevious by playerViewModel.canGoPrevious.collectAsStateWithLifecycle()
