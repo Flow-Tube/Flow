@@ -37,7 +37,9 @@ import io.github.aedev.flow.sync2.crypto.unwrapEpochKey
 import io.github.aedev.flow.sync2.crypto.verify
 import io.github.aedev.flow.sync2.crypto.wrapEpochKeyWithEphemeral
 import io.github.aedev.flow.sync2.store.ObjectType
+import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
+import io.github.aedev.flow.sync2.store.kcName
 import io.github.aedev.flow.sync2.store.nextInStream
 import io.github.aedev.flow.sync2.store.nextLiveCounter
 import io.github.aedev.flow.sync2.store.parseObject
@@ -154,6 +156,11 @@ class VectorsTest {
     @Test
     fun member_ids_epoch_keys_and_wraps() {
         val v = load("keys")
+        val paths = v["paths"]
+        val kc = kcName(paths["commitment"].bytes)
+        val pathEpoch = paths["epoch"].jsonPrimitive.int
+        assertEquals(paths["wrap"].text, StorePaths.key(pathEpoch, kc, paths["did"].text))
+        assertEquals(paths["chain"].text, StorePaths.key(pathEpoch, kc, "chain"))
         for (m in v["members"].items) {
             val derived = MemberSecrets(m["sigSeed"].bytes, m["kemSecret"].bytes)
             assertArrayEquals(m["sigPublic"].bytes, derived.sigPublic)

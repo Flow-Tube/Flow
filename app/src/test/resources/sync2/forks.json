@@ -668,6 +668,7 @@
           "addC",
           "aRemovesC"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -751,6 +752,7 @@
           "addC",
           "aRemovesC"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -776,6 +778,7 @@
           "addC",
           "cRemovesA"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -825,6 +828,7 @@
           "addC",
           "aRemovesC"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -852,6 +856,7 @@
           "aRename",
           "aRemovesCAbove"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -878,6 +883,7 @@
           "addC",
           "replaceWords"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -905,6 +911,7 @@
           "cPad1",
           "cPad2"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -931,6 +938,7 @@
           "restorePad2",
           "restorePad3"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -955,6 +963,7 @@
           "restore",
           "restored"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -979,6 +988,7 @@
           "cRotate",
           "aRemovesCOnRotate"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -1001,6 +1011,9 @@
           "addB",
           "addC",
           "bRotate"
+        ],
+        "standing": [
+          "aRotate"
         ],
         "extendsApplied": true
       }
@@ -1025,6 +1038,7 @@
           "addC",
           "aRemovesC"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -1048,6 +1062,7 @@
           "addC",
           "bRemovesA"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -1070,6 +1085,9 @@
           "addB",
           "addC",
           "cLeaves"
+        ],
+        "standing": [
+          "aRotate"
         ],
         "extendsApplied": true
       }
@@ -1123,6 +1141,9 @@
           "addC",
           "bAdds"
         ],
+        "standing": [
+          "aRemovesCAbove"
+        ],
         "extendsApplied": true
       }
     },
@@ -1170,6 +1191,7 @@
           "addC",
           "aRemovesC"
         ],
+        "standing": [],
         "extendsApplied": false
       }
     },
@@ -1216,6 +1238,7 @@
           "addB",
           "addC"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     },
@@ -1236,6 +1259,9 @@
           "genesis",
           "addB",
           "addC"
+        ],
+        "standing": [
+          "otherGenesis"
         ],
         "extendsApplied": true
       }
@@ -1262,6 +1288,7 @@
           "addB",
           "addC"
         ],
+        "standing": [],
         "extendsApplied": true
       }
     }

@@ -3,7 +3,6 @@ package io.github.aedev.flow.sync2.store
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.entryHash
-import io.github.aedev.flow.sync2.roster.replayRoster
 
 /**
  * The store a session works on: what this device holds, with the group's shared store, when it has
@@ -41,16 +40,23 @@ class GroupStore(
         val server = server ?: return local.appendRoster(head, entry, wraps, chain)
         val appended = server.appendRoster(head, entry, wraps, chain)
         if (appended == Appended.Done) {
-            val epoch = entry.epoch?.n ?: replayRoster(local.rosterAfter(-1)).epoch
-            local.hold(entry, epoch, wraps.mapValues { (_, wrap) -> SyncBytes.b64urlDecode(wrap) }, chain?.let(SyncBytes::b64urlDecode))
+            local.hold(
+                entry,
+                local.rosterAfter(-1),
+                wraps.mapValues { (_, wrap) ->
+                    SyncBytes.b64urlDecode(wrap)
+                },
+                chain?.let(SyncBytes::b64urlDecode),
+            )
         }
         return appended
     }
 
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
-    ): ByteArray? = local.key(epoch, name)
+    ): ByteArray? = local.key(epoch, kc, name)
 
     override suspend fun putObject(
         path: String,
@@ -85,8 +91,9 @@ class GroupStore(
                 server.rosterAfter(local.rosterAfter(-1).lastOrNull()?.seq ?: -1),
             )
         }
-        for ((epoch, name) in keyNames(local.rosterAfter(-1), me)) {
-            if (local.key(epoch, name) == null) server.key(epoch, name)?.let { local.putKey(epoch, name, it) }
+        val resolved = local.resolved()
+        for ((epoch, kc, name) in keyNames(resolved.chain, resolved.standing, me)) {
+            if (local.key(epoch, kc, name) == null) server.key(epoch, kc, name)?.let { local.putKey(epoch, kc, name, it) }
         }
         if (!objects) return cursor
         if (server is FileLayout) {

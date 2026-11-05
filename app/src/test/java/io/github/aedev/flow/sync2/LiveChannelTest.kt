@@ -46,7 +46,7 @@ class LiveChannelTest {
     ): LiveChannel {
         val local = heldStore(db)
         local.addEntries(store.roster)
-        store.keys.forEach { (key, wrap) -> local.putKey(key.first, key.second, wrap) }
+        store.keys.forEach { (key, wrap) -> local.putKey(key.epoch, key.kc, key.name, wrap) }
         return LiveChannel(context, db, mockk<DeviceKeys> { coEvery { load() } returns device }, local)
     }
 
@@ -94,7 +94,7 @@ class LiveChannelTest {
             val db = g.deviceDb()
             val local = heldStore(db)
             local.addEntries(g.store.roster)
-            g.store.keys.forEach { (key, wrap) -> local.putKey(key.first, key.second, wrap) }
+            g.store.keys.forEach { (key, wrap) -> local.putKey(key.epoch, key.kc, key.name, wrap) }
             val channel = LiveChannel(context, db, mockk<DeviceKeys> { coEvery { load() } returns g.a }, local)
             val sent = ArrayList<ByteArray>()
             channel.attach(
@@ -107,7 +107,7 @@ class LiveChannelTest {
 
             check(rotateEpoch(Session.open(g.deviceDb(), g.store, g.a), g.a))
             local.addEntries(g.store.roster)
-            g.store.keys.forEach { (key, wrap) -> local.putKey(key.first, key.second, wrap) }
+            g.store.keys.forEach { (key, wrap) -> local.putKey(key.epoch, key.kc, key.name, wrap) }
             Session.open(db, GroupStore(local, null), g.a)
             channel.send(now)
 

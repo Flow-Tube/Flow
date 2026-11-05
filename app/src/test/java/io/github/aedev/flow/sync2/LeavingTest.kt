@@ -68,9 +68,9 @@ class LeavingTest {
             assertEquals("LAN sync follows the epoch it advertises under", 1, dbA.groups().observeEpoch().first())
             assertFalse(after.rotate)
             assertEquals(setOf(g.hex(g.a), g.hex(g.recovery)), after.members.keys)
-            assertTrue("the recovery member gets the new key", (1 to g.hex(g.recovery)) in g.store.keys)
-            assertFalse("the device that left never does", (1 to g.hex(g.b)) in g.store.keys)
-            assertTrue((1 to "chain") in g.store.keys)
+            assertTrue("the recovery member gets the new key", g.store.holdsKey(1, g.hex(g.recovery)))
+            assertFalse("the device that left never does", g.store.holdsKey(1, g.hex(g.b)))
+            assertTrue(g.store.holdsKey(1, "chain"))
         }
 
     @Test

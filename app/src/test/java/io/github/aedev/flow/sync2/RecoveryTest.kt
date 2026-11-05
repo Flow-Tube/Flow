@@ -99,8 +99,8 @@ class RecoveryTest {
             assertFalse(SyncBytes.toHex(g.recovery.did) in state.members)
             val wrapped =
                 g.store.keys.keys
-                    .filter { it.first == 1 }
-                    .map { it.second }
+                    .filter { it.epoch == 1 }
+                    .map { it.name }
                     .toSet()
             assertEquals(setOf(SyncBytes.toHex(g.a.did), SyncBytes.toHex(g.b.did), next, "chain"), wrapped)
             val other = Session.open(g.deviceDb(), g.store, g.b)

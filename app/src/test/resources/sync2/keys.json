@@ -71,5 +71,12 @@
     "previousKey": "8128e933453fa0274765a77c7e2d1771524aaacbc321a7c8bbc31dd812e27094",
     "salt": "0f9dda3758c07abfe5c0bada7e35233bfef5c5f8d284a0c54ee6506a081e5103",
     "box": "0f9dda3758c07abfe5c0bada7e35233bfef5c5f8d284a0c54ee6506a081e5103f9400f469f82e44caf7a50721d3992e5007c5e2762ed61226ad70ddb95d7450a032afa5e93561de41036cdd59b3e8d463e93d2b47e0417d913810c26988fd54879fad82dad1e5853835e8b08b0ab888b"
+  },
+  "paths": {
+    "epoch": 3,
+    "commitment": "ddd0fe08552c3cfc5ce46e83bc24998f0a56e94c2b910ab6e6561f5ece8aa216",
+    "did": "894e311b2b2058e3bcc2ef3bde8ec864",
+    "wrap": "keys/00000003/ddd0fe08552c3cfc/894e311b2b2058e3bcc2ef3bde8ec864.k",
+    "chain": "keys/00000003/ddd0fe08552c3cfc/chain.k"
   }
 }

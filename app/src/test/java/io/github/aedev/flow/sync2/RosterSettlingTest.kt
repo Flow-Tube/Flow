@@ -5,6 +5,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.crypto.SyncCrypto
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.ProtocolException
+import io.github.aedev.flow.sync2.crypto.epochCommitment
 import io.github.aedev.flow.sync2.crypto.wrapEpochKey
 import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.LinkedDatabase
@@ -23,6 +24,7 @@ import io.github.aedev.flow.sync2.roster.epochDraft
 import io.github.aedev.flow.sync2.roster.memberSubject
 import io.github.aedev.flow.sync2.store.GroupStore
 import io.github.aedev.flow.sync2.store.LocalStore
+import io.github.aedev.flow.sync2.store.kcName
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -66,7 +68,7 @@ class RosterSettlingTest {
         val local = heldStore(db)
         local.addEntries(g.store.roster)
         val did = hex(g.b)
-        g.store.keys[0 to did]?.let { local.putKey(0, did, it) }
+        g.store.holdKeys(local, 0, did)
         Session.open(db, GroupStore(local, null), g.b)
         return Holding(c, applyEntry(before, add), db, local)
     }
@@ -93,7 +95,12 @@ class RosterSettlingTest {
         g: LinkedGroup,
         epoch: Int,
         key: ByteArray,
-    ) = local.putKey(epoch, hex(g.b), wrapEpochKey(g.b.kemPublic, g.group, epoch, g.b.did, key))
+    ) = local.putKey(
+        epoch,
+        kcName(epochCommitment(key, g.group, epoch)),
+        hex(g.b),
+        wrapEpochKey(g.b.kemPublic, g.group, epoch, g.b.did, key),
+    )
 
     @Test
     fun two_devices_that_removed_each_other_pause_sync_until_the_user_keeps_one() =

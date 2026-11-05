@@ -145,11 +145,10 @@ class LanPeer(
 
                     "key" -> {
                         val name = header.text("name").orEmpty()
+                        val kc = header.text("kc").orEmpty()
                         val key =
-                            if (name == "chain" ||
-                                name.matches(DID)
-                            ) {
-                                local.key(header.getValue("epoch").jsonPrimitive.int, name)
+                            if (kc.matches(KC) && (name == "chain" || name.matches(DID))) {
+                                local.key(header.getValue("epoch").jsonPrimitive.int, kc, name)
                             } else {
                                 null
                             }
@@ -204,9 +203,8 @@ class LanPeer(
      * entries after its head, the wraps and chain boxes it lacks, then the objects above its version vector.
      */
     suspend fun pull() {
-        val head = local.rosterAfter(-1).lastOrNull()
-        val asked = mapOf("after" to JsonPrimitive(head?.seq ?: -1)) + listOfNotNull(head?.let { "head" to JsonPrimitive(entryHash(it)) })
-        request("roster", asked)?.let { answer ->
+        // From the start: an entry that lost can sit below this device's head, and its key still reads.
+        request("roster", mapOf("after" to JsonPrimitive(-1)))?.let { answer ->
             local.addEntries(
                 answer.header
                     .field<JsonArray>("entries")
@@ -214,12 +212,13 @@ class LanPeer(
                     .mapNotNull { runCatching { parseEntry(it) }.getOrNull() },
             )
         }
-        for ((epoch, name) in keyNames(local.rosterAfter(-1), session.me)) {
-            if (local.key(epoch, name) != null) continue
+        val resolved = local.resolved()
+        for ((epoch, kc, name) in keyNames(resolved.chain, resolved.standing, session.me)) {
+            if (local.key(epoch, kc, name) != null) continue
             request(
                 "key",
-                mapOf("epoch" to JsonPrimitive(epoch), "name" to JsonPrimitive(name)),
-            )?.bytes?.let { local.putKey(epoch, name, it) }
+                mapOf("epoch" to JsonPrimitive(epoch), "kc" to JsonPrimitive(kc), "name" to JsonPrimitive(name)),
+            )?.bytes?.let { local.putKey(epoch, kc, name, it) }
         }
         val vv = JsonObject(heldVersions().mapValues { (_, seq) -> JsonPrimitive(seq) })
         val listed = request("list", mapOf("vv" to vv)) ?: return
@@ -256,5 +255,6 @@ class LanPeer(
 
     private companion object {
         val DID = Regex("[0-9a-f]{32}")
+        val KC = Regex("[0-9a-f]{16}")
     }
 }

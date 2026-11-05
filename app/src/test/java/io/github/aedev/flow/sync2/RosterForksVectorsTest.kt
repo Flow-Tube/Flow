@@ -39,6 +39,7 @@ class RosterForksVectorsTest {
             is Settlement.Apply -> {
                 assertEquals(name, "apply", outcome)
                 assertEquals(name, text(expect["chain"]), nameOf(settled.chain))
+                assertEquals(name, text(expect["standing"]), nameOf(settled.standing).sorted())
                 assertEquals(name, expect.getValue("extendsApplied").jsonPrimitive.boolean, settled.extendsApplied)
             }
 

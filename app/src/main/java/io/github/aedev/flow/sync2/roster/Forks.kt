@@ -12,12 +12,15 @@ data class ForkResolution(
     val contested: List<Entry> = emptyList(),
     /** The contested entries that revoke another contested entry: what the user chooses between. */
     val sides: List<Entry> = emptyList(),
+    /** The entries off the chain that stand and start an epoch: their keys still open objects. */
+    val standing: List<Entry> = emptyList(),
 )
 
 /** What a device does with a store's view of the roster. */
 sealed interface Settlement {
     data class Apply(
         val chain: List<Entry>,
+        val standing: List<Entry>,
         val extendsApplied: Boolean,
     ) : Settlement
 
@@ -184,7 +187,9 @@ fun resolveForks(
         chain += winner
         candidates = candidates.first { it.entry === winner }.children.filter { it.status == Status.STANDS }
     }
-    return ForkResolution(chain = chain)
+    val onChain = chain.map(::entryHash).toSet()
+    val standing = nodes.filter { it.status == Status.STANDS && it.entry.epoch != null && it.hash !in onChain }
+    return ForkResolution(chain = chain, standing = standing.map { it.entry })
 }
 
 /**
@@ -205,7 +210,7 @@ fun settleRoster(
     if (resolved.chain.isEmpty()) reject(ProtocolError.ROSTER_CHAIN)
     val extendsApplied = applied.map(::entryHash) == resolved.chain.take(applied.size).map(::entryHash)
     if (!extendsApplied && linear) return Settlement.Rewritten
-    return Settlement.Apply(resolved.chain, extendsApplied)
+    return Settlement.Apply(resolved.chain, resolved.standing, extendsApplied)
 }
 
 /** The chain the rule picks from what a store shows, or nothing while the roster is contested. */
