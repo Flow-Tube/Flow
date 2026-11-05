@@ -221,7 +221,7 @@ internal fun FullMusicPlayerContent(
                 visible =
                     isPlayerSheetExpanded && videoPlayer == null && (immersiveBackground || !hideArtwork) &&
                         !showLyricsSheet && !queueCoversArtwork,
-                playing = uiState.isPlaying,
+                tallSpace = immersiveBackground && layout != MusicPlayerLayout.WIDE && layout != MusicPlayerLayout.SPLIT,
                 shown = artworkDragPreview == null && previewDirection == null,
             )
 
