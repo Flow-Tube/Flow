@@ -175,6 +175,7 @@ class EnhancedPlayerManager private constructor() {
     private var currentDashManifestUrl: String? = null
     private var currentHlsUrl: String? = null
     private var currentIsLiveStream = false
+    private var scrubPreviewing = false
     private var liveQualityHeights: List<Int> = emptyList()
     private var liveIsPortrait = false
     private var liveQualityPick: LiveQualityPick? = null
@@ -2488,7 +2489,7 @@ class EnhancedPlayerManager private constructor() {
     fun seekTo(position: Long) {
         val p = player ?: return
         val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
-        if (!isLive) {
+        if (!isLive && !scrubPreviewing) {
             sponsorBlockHandler?.skipTargetForSeek(position)?.let { segmentEnd ->
                 skipToSegmentEnd(segmentEnd)
                 return
@@ -2609,12 +2610,24 @@ class EnhancedPlayerManager private constructor() {
     }
 
     fun setScrubbingModeEnabled(enabled: Boolean) {
+        scrubPreviewing = enabled
         player?.let { p ->
             val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
             p.setSeekParameters(
                 if (enabled || isLive) SeekParameters.EXACT else SeekParameters.CLOSEST_SYNC,
             )
         }
+    }
+
+    /** A drag previews every frame it crosses, so only the seek on release may skip a segment. */
+    fun finishScrubPreview() {
+        scrubPreviewing = false
+    }
+
+    /** Where a seek to [position] ends up, for a seek bar that holds its value until the player arrives. */
+    fun seekLandingFor(position: Long): Long {
+        if (currentIsLiveStream || player?.isCurrentMediaItemLive == true) return position
+        return sponsorBlockHandler?.seekLandingFor(position) ?: position
     }
 
     fun replay() {

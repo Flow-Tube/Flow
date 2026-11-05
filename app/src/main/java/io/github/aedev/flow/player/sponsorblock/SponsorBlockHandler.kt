@@ -315,12 +315,19 @@ class SponsorBlockHandler(
      * start of a video has no position before it, and the tick would show a second of the segment first.
      */
     fun skipTargetForSeek(targetMs: Long): Long? {
+        val segment = autoSkipSegmentAt(targetMs) ?: return null
+        return skip(segment, SponsorBlockActionPolicy.actionFor(segment, categoryActions))
+    }
+
+    /** Where [skipTargetForSeek] would land, without skipping anything. */
+    fun seekLandingFor(targetMs: Long): Long? = autoSkipSegmentAt(targetMs)?.let { (it.endTime * 1000).toLong() }
+
+    private fun autoSkipSegmentAt(targetMs: Long): SponsorBlockSegment? {
         if (!isEnabled || _disabledForCurrentVideo.value) return null
         val posSec = targetMs / 1000f
         val segment = _sponsorSegments.value.find { posSec >= it.startTime && posSec < it.endTime } ?: return null
         val action = SponsorBlockActionPolicy.actionFor(segment, categoryActions)
-        if (!SponsorBlockActionPolicy.skipsAutomatically(action, segment.uuid in _skippedOnce.value)) return null
-        return skip(segment, action)
+        return segment.takeIf { SponsorBlockActionPolicy.skipsAutomatically(action, segment.uuid in _skippedOnce.value) }
     }
 
     private fun skip(

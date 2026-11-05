@@ -238,6 +238,18 @@ class SponsorBlockHandlerTest {
     }
 
     @Test
+    fun `asking where a seek lands skips nothing`() {
+        val sponsor = segment("sponsor", 10f, 20f)
+        val handler = handlerWith(sponsor, mapOf("sponsor" to SponsorBlockAction.SKIP_ONCE))
+
+        assertThat(handler.seekLandingFor(15_000L)).isEqualTo(20_000L)
+        assertThat(handler.seekLandingFor(15_000L)).isEqualTo(20_000L)
+        assertThat(handler.seekLandingFor(9_999L)).isNull()
+        assertThat(handler.skippedOnce.value).isEmpty()
+        assertThat(handler.skipTargetForSeek(15_000L)).isEqualTo(20_000L)
+    }
+
+    @Test
     fun `a seek outside every segment goes where it was asked`() {
         val handler = handlerWith(segment("sponsor", 10f, 20f))
 
