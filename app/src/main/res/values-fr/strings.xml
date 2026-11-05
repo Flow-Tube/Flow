@@ -4855,4 +4855,6 @@
     <string name="crossfade_curve_hold_detail">Il maintient le titre en cours, puis change un peu plus tard</string>
     <string name="crossfade_curve_gentle">Doux</string>
     <string name="crossfade_curve_gentle_detail">Plus doux au milieu du dégradé</string>
+    <string name="lyrics_blur_other_lines">Faire disparaître les autres lignes</string>
+    <string name="lyrics_blur_other_lines_summary">Désactivez cette option pour lire chaque ligne clairement</string>
 </resources>
