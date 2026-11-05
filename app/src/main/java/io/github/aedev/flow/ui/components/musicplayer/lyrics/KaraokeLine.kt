@@ -19,7 +19,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.toArgb
@@ -33,7 +32,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.ResolvedTextDirection
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.lyrics.WordTimestamp
@@ -47,9 +45,6 @@ import kotlin.math.sqrt
 
 private val WordLift = 3.dp
 private const val FEATHER_EM = 0.9f
-private const val HELD_NOTE_MS = 1_100L
-private const val GLOW_STEPS = 8
-private val GlowRadius = 10.dp
 
 /** One visual row of the line, laid out alone so a cell can be drawn without its neighbours' ink. */
 internal class KaraokeRow(
@@ -60,7 +55,7 @@ internal class KaraokeRow(
 /**
  * A horizontal slice of one row: a word's part on that row, or punctuation no word covers. The
  * slices of a row meet halfway between their ink and never overlap, so every glyph pixel is drawn
- * exactly once. [glow] is the word laid out alone, for held notes that glow while sung.
+ * exactly once.
  */
 internal class KaraokeCell(
     val row: Int,
@@ -71,7 +66,6 @@ internal class KaraokeCell(
     val rtl: Boolean,
     val startFraction: Float,
     val widthFraction: Float,
-    val glow: TextLayoutResult?,
 ) {
     var clipLeft = 0f
     var clipRight = 0f
@@ -113,11 +107,9 @@ internal fun buildKaraokeGeometry(
 
     val placed = words.indices.filter { ranges.getOrNull(it) != null }
     val placedWords = placed.map { KaraokeWord(words[it].startTime, words[it].endTime) }
-    val glowStyle = style.copy(textAlign = TextAlign.Start)
     val cells = mutableListOf<KaraokeCell>()
     placed.forEachIndexed { wordIndex, original ->
         val range = ranges[original]!!
-        val held = words[original].endTime - words[original].startTime >= HELD_NOTE_MS
         val parts =
             rowSpans.indices.mapNotNull { row ->
                 val span = rowSpans[row]
@@ -130,18 +122,6 @@ internal fun buildKaraokeGeometry(
         var cursor = 0f
         parts.forEachIndexed { i, (row, first, last) ->
             val fraction = (inks[i][1] - inks[i][0]) / total
-            val glow =
-                if (held) {
-                    measurer.measure(
-                        text =
-                            rows[row]
-                                .layout.layoutInput.text.text
-                                .substring(first, last + 1),
-                        style = glowStyle,
-                    )
-                } else {
-                    null
-                }
             cells +=
                 KaraokeCell(
                     row = row,
@@ -152,7 +132,6 @@ internal fun buildKaraokeGeometry(
                     rtl = rows[row].layout.getBidiRunDirection(first) == ResolvedTextDirection.Rtl,
                     startFraction = cursor,
                     widthFraction = fraction,
-                    glow = glow,
                 )
             cursor += fraction
         }
@@ -172,7 +151,7 @@ internal fun buildKaraokeGeometry(
             while (end + 1 <= span.last && !covered[end + 1] && !text[end + 1].isWhitespace()) end++
             val ink = inkOf(rows[row].layout, i - span.first, end - span.first)
             val before = placedStarts.count { it <= i } - 1
-            cells += KaraokeCell(row, -1, before, ink[0], ink[1], false, 0f, 1f, null)
+            cells += KaraokeCell(row, -1, before, ink[0], ink[1], false, 0f, 1f)
             i = end + 1
         }
     }
@@ -259,8 +238,8 @@ private fun frontBrush(
 /**
  * One lyric line sung word by word. Every layer is drawn from a single text layout, so the lit and
  * unlit parts always match: a word fills behind a soft gradient front, lifts a few dp on a spring
- * as it starts and settles, and long held notes glow while they last. Nothing is allocated per
- * frame; only the active line runs a frame loop, and only while music plays.
+ * as it starts and settles. Nothing is allocated per frame; only the active line runs a frame loop,
+ * and only while music plays.
  */
 @Composable
 internal fun KaraokeLine(
@@ -290,17 +269,16 @@ internal fun KaraokeLine(
             smoothPosition.longValue = Long.MIN_VALUE
             return@LaunchedEffect
         }
-        var lastPlayerPos = EnhancedMusicPlayerManager.getCurrentPosition()
-        var lastUpdate = System.currentTimeMillis()
+        val clock = LyricsFillClock()
         while (coroutineContext.isActive) {
-            withFrameMillis {
-                val now = System.currentTimeMillis()
-                val playerPos = EnhancedMusicPlayerManager.getCurrentPosition()
-                if (playerPos != lastPlayerPos) {
-                    lastPlayerPos = playerPos
-                    lastUpdate = now
-                }
-                smoothPosition.longValue = lastPlayerPos + (now - lastUpdate) + latestOffset
+            withFrameMillis { frameMs ->
+                val position =
+                    clock.next(
+                        playerPositionMs = EnhancedMusicPlayerManager.getCurrentPosition(),
+                        frameTimeMs = frameMs,
+                        speed = EnhancedMusicPlayerManager.playbackSpeed.value,
+                    )
+                smoothPosition.longValue = position + latestOffset
             }
         }
     }
@@ -326,16 +304,8 @@ internal fun KaraokeLine(
         val fontPx = with(density) { style.fontSize.toPx() }
         val feather = fontPx * FEATHER_EM
         val liftPx = with(density) { WordLift.toPx() }
-        val glowPx = with(density) { GlowRadius.toPx() }
         val forward = remember(sungColor, unsungColor, feather) { frontBrush(feather, sungColor, unsungColor) }
         val backward = remember(sungColor, unsungColor, feather) { frontBrush(feather, unsungColor, sungColor) }
-        val glows =
-            remember(sungColor, glowPx) {
-                Array(GLOW_STEPS) { step ->
-                    val strength = (step + 1f) / GLOW_STEPS
-                    Shadow(color = sungColor.copy(alpha = 0.5f * strength), blurRadius = glowPx * strength)
-                }
-            }
 
         Canvas(
             modifier =
@@ -358,7 +328,8 @@ internal fun KaraokeLine(
             }
             // Words keep their lift while an ended line settles back, but their fill turns unsung.
             val liftClock = if (isCurrent) position else lastSungPosition[0]
-            val overscan = liftPx + glowPx
+            // The lift's spring overshoots, so the clip has to reach past its resting height.
+            val overscan = liftPx * 2f
             geometry.cells.forEach { cell ->
                 val row = geometry.rows[cell.row]
                 val word = geometry.words.getOrNull(cell.word)
@@ -379,23 +350,6 @@ internal fun KaraokeLine(
                     } else {
                         cell.inkLeft + (cell.inkRight - cell.inkLeft) * cellProgress
                     }
-                if (motionEnabled && cell.glow != null && progress > 0f && progress < 1f && cellProgress > 0f) {
-                    val step = (sin(progress * PI).toFloat() * GLOW_STEPS).toInt().coerceIn(0, GLOW_STEPS - 1)
-                    val glowLayout = cell.glow
-                    clipRect(
-                        left = if (cell.rtl) front else cell.inkLeft - glowPx,
-                        top = -overscan,
-                        right = if (cell.rtl) cell.inkRight + glowPx else front,
-                        bottom = size.height + overscan,
-                    ) {
-                        translate(
-                            left = cell.inkLeft - glowLayout.getBoundingBox(0).left,
-                            top = row.dy + row.layout.firstBaseline - glowLayout.firstBaseline - wordLift,
-                        ) {
-                            drawText(glowLayout, color = sungColor, shadow = glows[step])
-                        }
-                    }
-                }
                 clipRect(left = cell.clipLeft, top = -overscan, right = cell.clipRight, bottom = size.height + overscan) {
                     translate(top = row.dy - wordLift) {
                         when {

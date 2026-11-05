@@ -227,4 +227,97 @@ class SponsorBlockHandlerTest {
             handler.categoryActions = mapOf("filler" to SponsorBlockAction.IGNORE)
             assertThat(visible.last()).hasSize(1)
         }
+
+    @Test
+    fun `a seek into a segment at the very start lands on its end every time`() {
+        val handler = handlerWith(segment("music_offtopic", 0f, 148.99f))
+
+        assertThat(handler.skipTargetForSeek(140_000L)).isEqualTo(148_990L)
+        assertThat(handler.skipTargetForSeek(138_990L)).isEqualTo(148_990L)
+        assertThat(handler.skipTargetForSeek(0L)).isEqualTo(148_990L)
+    }
+
+    @Test
+    fun `asking where a seek lands skips nothing`() {
+        val sponsor = segment("sponsor", 10f, 20f)
+        val handler = handlerWith(sponsor, mapOf("sponsor" to SponsorBlockAction.SKIP_ONCE))
+
+        assertThat(handler.seekLandingFor(15_000L)).isEqualTo(20_000L)
+        assertThat(handler.seekLandingFor(15_000L)).isEqualTo(20_000L)
+        assertThat(handler.seekLandingFor(9_999L)).isNull()
+        assertThat(handler.skippedOnce.value).isEmpty()
+        assertThat(handler.skipTargetForSeek(15_000L)).isEqualTo(20_000L)
+    }
+
+    @Test
+    fun `a seek outside every segment goes where it was asked`() {
+        val handler = handlerWith(segment("sponsor", 10f, 20f))
+
+        assertThat(handler.skipTargetForSeek(9_999L)).isNull()
+        assertThat(handler.skipTargetForSeek(20_000L)).isNull()
+    }
+
+    @Test
+    fun `after a seek lands on the segment end the tick does not skip it again`() {
+        val handler = handlerWith(segment("sponsor", 10f, 20f))
+        handler.skipTargetForSeek(15_000L)
+
+        assertThat(handler.checkForSkip(19_900L)).isNull()
+    }
+
+    @Test
+    fun `skip once skips the first seek and then lets the user stay`() {
+        val sponsor = segment("sponsor", 10f, 20f)
+        val handler = handlerWith(sponsor, mapOf("sponsor" to SponsorBlockAction.SKIP_ONCE))
+
+        assertThat(handler.skipTargetForSeek(15_000L)).isEqualTo(20_000L)
+        assertThat(handler.skippedOnce.value).containsExactly(sponsor.uuid)
+        assertThat(handler.skipTargetForSeek(15_000L)).isNull()
+    }
+
+    @Test
+    fun `a seek into a segment that does not skip by itself stays there`() {
+        val sponsor = segment("sponsor", 10f, 20f)
+        val kept =
+            listOf(
+                SponsorBlockAction.SKIP_BUTTON,
+                SponsorBlockAction.SHOW_TOAST,
+                SponsorBlockAction.MUTE,
+                SponsorBlockAction.IGNORE,
+                SponsorBlockAction.DISABLED,
+            )
+
+        kept.forEach { action ->
+            assertThat(handlerWith(sponsor, mapOf("sponsor" to action)).skipTargetForSeek(15_000L)).isNull()
+        }
+    }
+
+    @Test
+    fun `a seek is left alone while SponsorBlock is off for this video`() {
+        val handler = handlerWith(segment("sponsor", 10f, 20f))
+        handler.setDisabledForCurrentVideo(true, currentPositionMs = 0L)
+
+        assertThat(handler.skipTargetForSeek(15_000L)).isNull()
+    }
+
+    @Test
+    fun `only the first skip of a segment in a video counts`() =
+        runTest {
+            val sponsor = segment("sponsor", 10f, 20f)
+            val handler = handlerWith(sponsor)
+            val skips = mutableListOf<SponsorBlockSkip>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { handler.skipEvent.toList(skips) }
+
+            handler.checkForSkip(15_000L)
+            handler.skipTargetForSeek(12_000L)
+            handler.reset()
+            handler.loadSegmentsFromList("video", listOf(sponsor))
+            handler.skipTargetForSeek(12_000L)
+            assertThat(skips.map { it.firstInVideo }).containsExactly(true, false, false).inOrder()
+
+            handler.reset()
+            handler.loadSegmentsFromList("next", listOf(sponsor))
+            handler.skipTargetForSeek(12_000L)
+            assertThat(skips.last().firstInVideo).isTrue()
+        }
 }

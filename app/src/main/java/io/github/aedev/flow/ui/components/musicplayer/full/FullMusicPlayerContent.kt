@@ -218,9 +218,8 @@ internal fun FullMusicPlayerContent(
             rememberAnimatedArtwork(
                 track = uiState.currentTrack,
                 // Immersive mode plays it as the background, so hiding the artwork box does not hide it there.
-                visible =
-                    isPlayerSheetExpanded && videoPlayer == null && (immersiveBackground || !hideArtwork) &&
-                        !showLyricsSheet && !queueCoversArtwork,
+                allowed = videoPlayer == null && (immersiveBackground || !hideArtwork),
+                running = isPlayerSheetExpanded && !showLyricsSheet && !queueCoversArtwork,
                 tallSpace = immersiveBackground && layout != MusicPlayerLayout.WIDE && layout != MusicPlayerLayout.SPLIT,
                 shown = artworkDragPreview == null && previewDirection == null,
             )
@@ -357,6 +356,12 @@ internal fun FullMusicPlayerContent(
             backdrop = backdrop,
             artworkAtStart = layout == MusicPlayerLayout.WIDE || layout == MusicPlayerLayout.SPLIT,
             animatedArtwork = animatedArtwork.takeIf { immersiveBackground },
+            preloadCovers =
+                if (immersiveBackground && isPlayerSheetExpanded) {
+                    listOfNotNull(nextTrack?.highResThumbnailUrl, previousTrack?.highResThumbnailUrl)
+                } else {
+                    emptyList()
+                },
         )
 
         val sideSwipes = rememberMusicSideSwipes(layout, isPlayerSheetExpanded) { queueState.fraction() > 0f || showLyricsSheet }

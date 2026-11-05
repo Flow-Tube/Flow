@@ -12,7 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.artwork.AnimatedArtworkRepository
-import io.github.aedev.flow.data.music.artwork.AnimatedLoop
+import io.github.aedev.flow.data.music.artwork.LoadedLoop
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.di.MusicCache
 import io.github.aedev.flow.network.ProxyAwareClient
@@ -46,10 +46,10 @@ class AnimatedArtworkViewModel
         val isEnabled: StateFlow<Boolean> =
             preferences.animatedArtwork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
 
-        private val loaded = MutableStateFlow<AnimatedLoop?>(null)
+        private val loaded = MutableStateFlow<LoadedLoop?>(null)
 
         /** The HLS loops of the song last [load]ed, or null while there are none to show. */
-        internal val loop: StateFlow<AnimatedLoop?> = loaded.asStateFlow()
+        internal val loop: StateFlow<LoadedLoop?> = loaded.asStateFlow()
 
         val dataSourceFactory: DataSource.Factory =
             CacheDataSource
@@ -72,7 +72,7 @@ class AnimatedArtworkViewModel
                     if (preferences.animatedArtworkWifiOnly.first() && !NetworkState.isOnWifi(context)) return@launch forgetLoaded()
                     loaded.value =
                         try {
-                            repository.loopFor(track)
+                            repository.loopFor(track)?.let { LoadedLoop(track.videoId, it) }
                         } catch (e: CancellationException) {
                             throw e
                         } catch (_: Exception) {

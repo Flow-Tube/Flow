@@ -62,6 +62,7 @@ internal object AdaptiveLadder {
         val parts = codecs.split('.')
         return when (parts.firstOrNull()) {
             "vp09" -> parts.getOrNull(1) == "02" || parts.getOrNull(1) == "03"
+            "vp9" -> parts.getOrNull(1) == "2" || parts.getOrNull(1) == "3"
             "av01" -> parts.getOrNull(3) == "10" || parts.getOrNull(3) == "12"
             "hev1", "hvc1" -> parts.getOrNull(1) == "2"
             else -> false
