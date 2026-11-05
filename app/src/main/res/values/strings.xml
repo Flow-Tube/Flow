@@ -2777,6 +2777,16 @@
     <string name="linked_save">Save</string>
     <string name="linked_cancel">Cancel</string>
     <string name="linked_remove">Remove</string>
+    <string name="linked_recovery_notice_title">Your recovery key was replaced</string>
+    <string name="linked_recovery_notice_body">%1$s replaced it. This device noticed %2$s. The words you have may have stopped working.</string>
+    <string name="linked_recovery_notice_unknown">A device that is no longer in the group</string>
+    <string name="linked_recovery_notice_mine">That was me</string>
+    <string name="linked_recovery_notice_not_mine">It wasn\'t me</string>
+    <string name="linked_recovery_due_title">Make new recovery words</string>
+    <string name="linked_recovery_due_body">The device that set your recovery key has left the group. Until you make new words on one of your devices, this one receives changes but doesn\'t send any.</string>
+    <string name="linked_error_recovery_due">Make new recovery words first. The device that set them has left the group.</string>
+    <string name="linked_leave_stops_others">This device set your current recovery words, so your other devices will stop sending changes until you make new words on one of them.</string>
+    <string name="linked_remove_also">%1$s added these devices. Tick any you don\'t recognise to remove them too.</string>
     <string name="linked_remove_title">Remove %1$s?</string>
     <string name="linked_remove_body">It stops receiving anything new right away. What it already has stays on it. Changes it made that this device hasn\'t received yet may not arrive.</string>
     <string name="linked_add_device">Add a device</string>

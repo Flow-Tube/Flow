@@ -8,6 +8,8 @@ sealed class LinkedException(
 
     class Removed : LinkedException("This device was removed from its sync group")
 
+    class RecoveryDue : LinkedException("The recovery key has to be replaced before anything is written")
+
     class RemovalUnconfirmed : LinkedException("The roster that leaves this device out replaces entries it had applied")
 
     class Contested : LinkedException("Two sides of the roster removed each other")

@@ -9,7 +9,7 @@ import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.writeSnapshot
 import io.github.aedev.flow.sync2.linking.leaveGroup
-import io.github.aedev.flow.sync2.linking.removeDevice
+import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.store.StorePaths
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -75,12 +75,31 @@ class RemovedLogTest {
             b.push(history("aaaaaaaaaaa"), link)
             val before = batchesANewReaderGets(g)
             readAll(a)
-            removeDevice(a, g.a, bDid(g))
+            removeDevices(a, g.a, listOf(bDid(g)))
 
             b.push(history("aaaaaaaaaaa", "bbbbbbbbbbb"), link)
 
             assertTrue(before > 0)
             assertEquals(before, batchesANewReaderGets(g))
+        }
+
+    @Test
+    fun what_a_removed_device_writes_later_is_deleted() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (dbA, dbB) = g.deviceDb() to g.deviceDb()
+            val a = Session.open(dbA, g.store, g.a)
+            val b = Session.open(dbB, g.store, g.b)
+            b.push(history("aaaaaaaaaaa"), link)
+            readAll(a)
+            val cut = ownSeq(dbB)
+            removeDevices(a, g.a, listOf(bDid(g)))
+            b.push(history("aaaaaaaaaaa", "bbbbbbbbbbb"), link)
+
+            readAll(Session.open(dbA, g.store, g.a))
+
+            assertTrue(StorePaths.log(bDid(g), cut) in g.store.objects)
+            assertTrue(StorePaths.log(bDid(g), cut + 1) !in g.store.objects)
         }
 
     @Test
@@ -91,7 +110,7 @@ class RemovedLogTest {
             val b = Session.open(g.deviceDb(), g.store, g.b)
             b.push(history("aaaaaaaaaaa"), link)
             assertTrue(batchesANewReaderGets(g) > 0)
-            removeDevice(a, g.a, bDid(g))
+            removeDevices(a, g.a, listOf(bDid(g)))
 
             assertEquals(0, batchesANewReaderGets(g))
         }
@@ -107,7 +126,7 @@ class RemovedLogTest {
             assertTrue(batchesANewReaderGets(g) > 0)
             readAll(a)
             val other = otherCopy(g, arrayOf("ccccccccccc"), arrayOf("ccccccccccc", "ddddddddddd"))
-            removeDevice(a, g.a, bDid(g))
+            removeDevices(a, g.a, listOf(bDid(g)))
 
             g.store.put(StorePaths.log(bDid(g), 1), other.getValue(1))
 
@@ -126,7 +145,7 @@ class RemovedLogTest {
             readAll(a)
             val last = ownSeq(dbB)
             val other = otherCopy(g, arrayOf("aaaaaaaaaaa"), arrayOf("aaaaaaaaaaa", "ccccccccccc"))
-            removeDevice(a, g.a, bDid(g))
+            removeDevices(a, g.a, listOf(bDid(g)))
 
             g.store.put(StorePaths.log(bDid(g), last), other.getValue(last))
 
@@ -156,7 +175,7 @@ class RemovedLogTest {
                     .seq
             assertEquals(reached, at(dbR))
             assertTrue(at(dbA) < reached)
-            removeDevice(a, g.a, did)
+            removeDevices(a, g.a, listOf(did))
 
             readAll(Session.open(dbR, g.store, g.a))
 
@@ -200,7 +219,7 @@ class RemovedLogTest {
             readAll(a)
             val did = bDid(g)
             val cut = ownSeq(dbB)
-            removeDevice(a, g.a, did)
+            removeDevices(a, g.a, listOf(did))
             b.push(history("aaaaaaaaaaa", "bbbbbbbbbbb"), link)
 
             val reader = Session.open(g.deviceDb(), g.store, g.a)
@@ -234,7 +253,7 @@ class RemovedLogTest {
                 assertEquals(manifest, ownSeq(dbCopy))
                 g.store.put(StorePaths.log(did, manifest), genuine.getValue(manifest))
 
-                removeDevice(a, g.a, did)
+                removeDevices(a, g.a, listOf(did))
                 if (replaced) g.store.put(StorePaths.log(did, manifest), other.getValue(manifest))
 
                 assertEquals("replaced: $replaced", !replaced, batchesANewReaderGets(g) > 0)

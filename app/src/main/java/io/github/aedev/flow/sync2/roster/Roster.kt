@@ -98,6 +98,8 @@ class Member(
     val kem: ByteArray,
     val role: Role,
     val used: Boolean,
+    /** For a recovery member from a `recovery` or `remove` entry: the device that signed it. */
+    val installer: String? = null,
 )
 
 /** A member of any time: what step 2 of reading an envelope checks a sender against. */
@@ -122,6 +124,8 @@ class RosterState(
     val senders: Map<String, Sender>,
     /** A device left during this epoch, so the next device to write appends a `rotate` first. */
     val rotate: Boolean = false,
+    /** The device that set the recovery key is gone, so it must be replaced before anything is written. */
+    val recoveryDue: Boolean = false,
 )
 
 // Strict: an unknown field is a malformed entry; absent fields are omitted, never null.
@@ -226,12 +230,20 @@ private fun checkShape(entry: Entry) {
     val (add, remove, epoch) =
         when (entry.op) {
             Op.GENESIS -> Triple(2, false, true)
+
             Op.ADD -> Triple(1, false, false)
+
             Op.RESTORE -> Triple(1, false, true)
-            Op.REMOVE -> Triple(0, true, true)
+
+            // Takes a subject when it replaces the recovery key too, which checkReplacement decides.
+            Op.REMOVE -> Triple(entry.add?.size ?: 0, true, true)
+
             Op.RENAME -> Triple(0, false, false)
+
             Op.RECOVERY -> Triple(1, true, true)
+
             Op.LEAVE -> Triple(0, true, false)
+
             Op.ROTATE -> Triple(0, false, true)
         }
     entry.cut?.let { cut ->
@@ -253,7 +265,7 @@ private fun checkShape(entry: Entry) {
     val expected =
         when (entry.op) {
             Op.GENESIS -> listOf(Role.DEVICE, Role.RECOVERY)
-            Op.RECOVERY -> listOf(Role.RECOVERY)
+            Op.RECOVERY, Op.REMOVE -> listOf(Role.RECOVERY)
             else -> listOf(Role.DEVICE)
         }
     if (added > 0 && roles != expected) reject(ProtocolError.ROSTER_OP)
@@ -286,6 +298,50 @@ private fun checkSigner(
     return signer ?: reject(ProtocolError.ROSTER_SIGNER)
 }
 
+/** The current recovery key's id and member. */
+fun recoveryMember(members: Map<String, Member>): Map.Entry<String, Member>? =
+    members.entries.firstOrNull { it.value.role == Role.RECOVERY }
+
+/** The current recovery key was set by a device that is gone, or goes with [removed]. */
+fun installerGone(
+    members: Map<String, Member>,
+    removed: Collection<String> = emptyList(),
+): Boolean {
+    val installer = recoveryMember(members)?.value?.installer ?: return false
+    return installer !in members || installer in removed
+}
+
+/** A removal replaces the recovery key exactly when the device that set it is gone. */
+private fun checkReplacement(
+    entry: Entry,
+    state: RosterState?,
+) {
+    if (state == null) return
+    if (entry.op == Op.ROTATE && state.recoveryDue) reject(ProtocolError.ROSTER_OP)
+    if (entry.op != Op.REMOVE) return
+    val removed = entry.remove.orEmpty()
+    val required = installerGone(state.members, removed)
+    val names = recoveryMember(state.members)?.key in removed
+    if (required != (entry.add != null) || required != names) reject(ProtocolError.ROSTER_OP)
+}
+
+/** The current devices [removed] added, following those devices' additions in turn. */
+fun devicesAddedBy(
+    entries: List<Entry>,
+    removed: String,
+): List<String> {
+    val found = LinkedHashSet<String>()
+    val from = ArrayDeque(listOf(removed))
+    while (from.isNotEmpty()) {
+        val signer = from.removeFirst()
+        for (entry in entries.filter { it.op == Op.ADD && it.signer == signer }) {
+            for (subject in entry.add.orEmpty()) if (found.add(subject.did)) from += subject.did
+        }
+    }
+    val members = replayRoster(entries).members
+    return found.filter { it in members }
+}
+
 /** A genesis must carry the id its keys commit to (spec/crypto.md, Group id). */
 private fun checkGroupId(entry: Entry) {
     fun keys(role: Role): Pair<ByteArray, ByteArray> {
@@ -316,6 +372,7 @@ fun applyEntry(
     checkChain(state, entry)
     checkShape(entry)
     if (entry.op == Op.GENESIS) checkGroupId(entry)
+    checkReplacement(entry, state)
 
     val senders = state?.senders.orEmpty().toMutableMap()
     val added = entry.add.orEmpty().associate { it.did to checkSubject(it, senders) }
@@ -329,18 +386,29 @@ fun applyEntry(
     }
 
     val members = state?.members.orEmpty().toMutableMap()
-    val removedRole = if (entry.op == Op.RECOVERY) Role.RECOVERY else Role.DEVICE
+    val replaces = entry.op == Op.RECOVERY || (entry.op == Op.REMOVE && entry.add != null)
     // A leave removes exactly its signer; every other removal removes someone else.
     for (id in entry.remove.orEmpty()) {
-        if (members[id]?.role != removedRole || (id == entry.signer) != (entry.op == Op.LEAVE)) reject(ProtocolError.ROSTER_OP)
+        val member = members[id] ?: reject(ProtocolError.ROSTER_OP)
+        if ((id == entry.signer) != (entry.op == Op.LEAVE)) reject(ProtocolError.ROSTER_OP)
+        val recovery = member.role == Role.RECOVERY
+        if (recovery && (!replaces || entry.cut?.containsKey(id) == true)) reject(ProtocolError.ROSTER_OP)
+        if (!recovery && entry.op == Op.RECOVERY) reject(ProtocolError.ROSTER_OP)
         members.remove(id)
         senders[id]?.let { senders[id] = Sender(it.sig, it.role, it.since, state?.epoch, entry.cut?.get(id)) }
     }
     if (entry.op == Op.LEAVE && members.values.none { it.role == Role.DEVICE }) reject(ProtocolError.ROSTER_OP)
-    if (entry.op == Op.RESTORE) members[entry.signer] = Member(signer.sig, signer.kem, signer.role, used = true)
+    if (entry.op ==
+        Op.RESTORE
+    ) {
+        members[entry.signer] = Member(signer.sig, signer.kem, signer.role, used = true, installer = signer.installer)
+    }
     val inForce = entry.epoch?.n ?: state?.epoch ?: 0
-    added.forEach { (id, member) -> senders[id] = Sender(member.sig, member.role, inForce) }
-    members += added
+    added.forEach { (id, member) ->
+        senders[id] = Sender(member.sig, member.role, inForce)
+        val installer = if (member.role == Role.RECOVERY && entry.op != Op.GENESIS) entry.signer else null
+        members[id] = Member(member.sig, member.kem, member.role, member.used, installer)
+    }
 
     val meta = entry.meta
     if (meta != null) {
@@ -365,6 +433,7 @@ fun applyEntry(
         members = members.toSortedMap(),
         senders = senders,
         rotate = entry.op == Op.LEAVE || (epoch == null && state?.rotate == true),
+        recoveryDue = installerGone(members),
     )
 }
 

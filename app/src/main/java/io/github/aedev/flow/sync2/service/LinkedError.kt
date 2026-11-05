@@ -26,6 +26,7 @@ enum class LinkedError(
     REMOVAL_UNCONFIRMED,
     CONTESTED(retryable = true),
     ROLLED_BACK(retryable = true),
+    RECOVERY_DUE(retryable = false),
     ROSTER_CHANGED(retryable = true),
     GROUP_OUTDATED,
     DECLINED,
@@ -101,6 +102,10 @@ fun Throwable.linkedError(): LinkedError =
 
         is LinkedException.Contested -> {
             LinkedError.CONTESTED
+        }
+
+        is LinkedException.RecoveryDue -> {
+            LinkedError.RECOVERY_DUE
         }
 
         is LinkedException.RosterRolledBack -> {

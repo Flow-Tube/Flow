@@ -53,6 +53,11 @@ data class GroupRecord(
     val loginDue: Int? = null,
     /** The `seq` of the login this device last wrote, while that change is under way. */
     val loginSent: Long? = null,
+    /** The device behind a change of the recovery key from elsewhere, until the user answers, and when this device learned of it. */
+    val recoveryNoticeDevice: String? = null,
+    val recoveryNoticeAt: Long? = null,
+    /** The device that set the recovery key left: nothing is written until it is replaced. */
+    @ColumnInfo(defaultValue = "0") val recoveryDue: Boolean = false,
     @PrimaryKey val id: Int = 1,
 )
 
@@ -103,6 +108,15 @@ interface GroupDao {
 
     @Query("UPDATE group_record SET loginDue = NULL, loginSent = NULL WHERE id = 1")
     suspend fun forgetLoginChange()
+
+    @Query("UPDATE group_record SET recoveryNoticeDevice = :device, recoveryNoticeAt = :at WHERE id = 1")
+    suspend fun setRecoveryNotice(
+        device: String?,
+        at: Long?,
+    )
+
+    @Query("UPDATE group_record SET recoveryDue = :due WHERE id = 1")
+    suspend fun setRecoveryDue(due: Boolean)
 
     @Query("UPDATE group_record SET recoverySaved = :saved WHERE id = 1")
     suspend fun setRecoverySaved(saved: Boolean)

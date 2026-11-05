@@ -62,7 +62,7 @@ interface SentDao {
         ProfileNameRow::class,
         LinkReadRow::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -72,6 +72,7 @@ interface SentDao {
         AutoMigration(from = 5, to = 6, spec = SentPerLink::class),
         AutoMigration(from = 6, to = 7),
         AutoMigration(from = 7, to = 8),
+        AutoMigration(from = 8, to = 9),
     ],
 )
 abstract class LinkedDatabase : RoomDatabase() {

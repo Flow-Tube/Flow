@@ -8,7 +8,7 @@ import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.linking.DeviceMeta
 import io.github.aedev.flow.sync2.linking.deviceNames
-import io.github.aedev.flow.sync2.linking.removeDevice
+import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.linking.renameDevice
 import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
@@ -33,7 +33,7 @@ class MembershipTest {
             val g = LinkedGroup(this).apply { create() }
             val dbA = g.deviceDb()
             val dbB = g.deviceDb()
-            removeDevice(Session.open(dbA, g.store, g.a), g.a, SyncBytes.toHex(g.b.did))
+            removeDevices(Session.open(dbA, g.store, g.a), g.a, listOf(SyncBytes.toHex(g.b.did)))
             val state = g.store.head()
             assertEquals(1, state.epoch)
             assertFalse(SyncBytes.toHex(g.b.did) in state.members)
@@ -47,7 +47,7 @@ class MembershipTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val stale = Session.open(g.deviceDb(), g.store, g.b)
-            removeDevice(Session.open(g.deviceDb(), g.store, g.a), g.a, SyncBytes.toHex(g.b.did))
+            removeDevices(Session.open(g.deviceDb(), g.store, g.a), g.a, listOf(SyncBytes.toHex(g.b.did)))
             val error = runCatching { renameDevice(stale, g.b, SyncBytes.toHex(g.b.did), meta("Mine")) }.exceptionOrNull()
             assertEquals("roster-chain", (error as ProtocolException).error.code)
         }
@@ -72,7 +72,7 @@ class MembershipTest {
                     listOf(g.a, c),
                 )
             g.store.appendRoster(state.head, add, wraps(g.group, 0, g.epochKey, listOf(c)), null)
-            removeDevice(Session.open(db, g.store, g.a), g.a, SyncBytes.toHex(c.did))
+            removeDevices(Session.open(db, g.store, g.a), g.a, listOf(SyncBytes.toHex(c.did)))
 
             val names = deviceNames(Session.open(db, g.store, g.a))
             assertEquals("Laptop", names.getValue(a).name)

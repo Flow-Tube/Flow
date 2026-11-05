@@ -4,6 +4,8 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.crypto.SyncCrypto
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.ProtocolError
+import io.github.aedev.flow.sync2.crypto.recoveryKeys
+import io.github.aedev.flow.sync2.crypto.recoveryWords
 import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.crypto.sealChain
 import io.github.aedev.flow.sync2.crypto.wrapEpochKey
@@ -13,9 +15,13 @@ import io.github.aedev.flow.sync2.roster.Draft
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.EpochField
 import io.github.aedev.flow.sync2.roster.Op
+import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.applyEntry
 import io.github.aedev.flow.sync2.roster.buildEntry
 import io.github.aedev.flow.sync2.roster.epochDraft
+import io.github.aedev.flow.sync2.roster.installerGone
+import io.github.aedev.flow.sync2.roster.memberSubject
+import io.github.aedev.flow.sync2.roster.recoveryMember
 import io.github.aedev.flow.sync2.roster.sealDeviceMeta
 import io.github.aedev.flow.sync2.store.Appended
 
@@ -56,22 +62,40 @@ suspend fun appendChecked(
 }
 
 /** Removes [removed] and starts a new epoch it never receives. The store also refuses it at once. */
-suspend fun removeDevice(
+suspend fun removeDevices(
     session: Session,
     device: MemberSecrets,
-    removed: String,
-) {
+    removed: List<String>,
+): String? {
     val state = session.state
-    val remaining = state.members.filterKeys { it != removed }.mapValues { (_, member) -> member.kem }
-    val epoch = newEpoch(session.group, state.epoch + 1, remaining, session.currentKey())
-    val cut =
+    val positions =
         session.db
             .groups()
             .streams()
-            .firstOrNull { it.did == removed }
-            ?.let { mapOf(removed to Cut(it.seq, it.hash)) }
-    val draft = Draft(Op.REMOVE, SyncBytes.toHex(device.did), remove = listOf(removed), cut = cut, epoch = epoch.field)
-    appendChecked(session, buildEntry(session.group, state, draft, listOf(device)), epoch.wraps, epoch.chain)
+            .associateBy { it.did }
+    val cut = removed.mapNotNull { did -> positions[did]?.let { did to Cut(it.seq, it.hash) } }.toMap()
+    val replacing = installerGone(state.members, removed)
+    val secret = SyncCrypto.randomBytes(32)
+    val next = recoveryKeys(secret)
+    val old = recoveryMember(state.members)?.key.takeIf { replacing }
+    val gone = removed + listOfNotNull(old)
+    val remaining =
+        state.members.filterKeys { it !in gone }.mapValues { (_, member) -> member.kem } +
+            if (replacing) mapOf(SyncBytes.toHex(next.did) to next.kemPublic) else emptyMap()
+    val epoch = newEpoch(session.group, state.epoch + 1, remaining, session.currentKey())
+    val draft =
+        Draft(
+            op = Op.REMOVE,
+            signer = SyncBytes.toHex(device.did),
+            add = if (replacing) listOf(memberSubject(next.sigPublic, next.kemPublic, Role.RECOVERY)) else null,
+            remove = gone,
+            cut = cut.ifEmpty { null },
+            epoch = epoch.field,
+        )
+    val signers = if (replacing) listOf(device, next) else listOf(device)
+    appendChecked(session, buildEntry(session.group, state, draft, signers), epoch.wraps, epoch.chain)
+    next.wipe()
+    return if (replacing) recoveryWords(secret).also { secret.fill(0) } else null
 }
 
 /**

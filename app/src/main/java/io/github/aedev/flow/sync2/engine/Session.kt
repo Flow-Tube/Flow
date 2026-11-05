@@ -42,6 +42,7 @@ import io.github.aedev.flow.sync2.store.ChangeList
 import io.github.aedev.flow.sync2.store.Header
 import io.github.aedev.flow.sync2.store.ObjectType
 import io.github.aedev.flow.sync2.store.ParsedObject
+import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StoreLogin
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
@@ -100,6 +101,8 @@ class Pulled internal constructor(
     internal val readsDone: List<LinkReadRow>,
     /** The latest store login read, for the caller to keep as pending. */
     val login: StoreLogin?,
+    /** Objects removed senders wrote after their logs ended, which [Session.finish] deletes. */
+    internal val pastCut: List<String> = emptyList(),
 )
 
 /**
@@ -195,6 +198,8 @@ class Session private constructor(
             // Nothing is saved until the new chain's key opens: without it the device stays where it was.
             if (member) session.unwrapCurrent()
             if (settled.extendsApplied) groups.addEntries(entries.drop(applied.size)) else groups.replaceRoster(entries)
+            recoveryChange(SyncBytes.toHex(device.did), applied, entries)?.let { groups.setRecoveryNotice(it, System.currentTimeMillis()) }
+            if (record.recoveryDue != session.state.recoveryDue) groups.setRecoveryDue(session.state.recoveryDue)
             if (record.webDavUrl != null) {
                 val known = applied.map(::entryHash).toSet()
                 entries.lastOrNull { it.op == Op.REMOVE && entryHash(it) !in known }?.epoch?.let { groups.setLoginDue(it.n) }
@@ -274,6 +279,7 @@ class Session private constructor(
         type: ObjectType,
         content: ByteArray,
     ) {
+        if (state.recoveryDue) throw LinkedException.RecoveryDue()
         val seq = record.ownSeq + 1
         val epoch = state.epoch
         val header = Header(type, group, epoch, device.did, seq, SyncBytes.fromHex(record.ownPrev))
@@ -289,6 +295,7 @@ class Session private constructor(
         exported: Map<String, CollectionWire>,
         link: String?,
     ): Int {
+        if (state.recoveryDue) return 0
         val outgoing = outgoingBatches(db.sent(), exported, state.head, link, System.currentTimeMillis())
         for (batch in outgoing.batches) write(ObjectType.CHANGES, batch.content)
         markSent(db.sent(), outgoing)
@@ -355,6 +362,7 @@ class Session private constructor(
         // The lowest seq of each sender left unread; nothing after it is read this time.
         val stopped = HashMap<String, Long>()
         val acks = HashMap<String, Map<String, Long>>()
+        val pastCut = ArrayList<String>()
         val manifests = ArrayList<Logged>()
         val named = HashSet<String?>()
         var login: StoreLogin? = null
@@ -373,13 +381,14 @@ class Session private constructor(
             if (changes.isEmpty()) break
             val before = positions.mapValues { it.value.seq }
             // Objects of one sender may be listed out of order: retry while a pass makes progress.
-            var waiting =
+            val listed =
                 changes
                     .mapNotNull { change ->
                         StorePaths.parseLog(change.path)?.let { (did, seq) -> Triple(did, seq, change.path) }
-                    }.filter { (did, seq) ->
-                        did != me && (positions[did]?.seq ?: 0) < seq && seq < (stopped[did] ?: Long.MAX_VALUE) && !pastItsCut(did, seq)
-                    }
+                    }.filter { (did, seq) -> did != me && (positions[did]?.seq ?: 0) < seq }
+            val (ended, reading) = listed.partition { (did, seq) -> pastItsCut(did, seq) }
+            pastCut += ended.map { it.third }
+            var waiting = reading.filter { (did, seq) -> seq < (stopped[did] ?: Long.MAX_VALUE) }
             while (waiting.isNotEmpty()) {
                 val still =
                     waiting.filter { (did, seq, path) ->
@@ -421,7 +430,7 @@ class Session private constructor(
             if (next <= cursor && positions.all { (did, at) -> before[did] == at.seq }) break
             cursor = next
         }
-        return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone, login)
+        return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone, login, pastCut)
     }
 
     /**
@@ -557,7 +566,12 @@ class Session private constructor(
         db.profiles().updateReads(pulled.reads, pulled.readsDone)
         record = record.copy(cursor = pulled.cursor)
         recordCollection(pulled)
-        if (pulled.consumed > 0) {
+        try {
+            pulled.pastCut.forEach { store.deleteObject(it) }
+        } catch (_: StoreException) {
+            // Best effort: a new reader's listing finds them again.
+        }
+        if (pulled.consumed > 0 && !state.recoveryDue) {
             val vv = JsonObject(pulled.positions.toSortedMap().mapValues { (_, p) -> JsonPrimitive(p.seq) })
             write(ObjectType.ACK, SyncSerialization.canonicalJson(JsonObject(mapOf("vv" to vv))).toByteArray())
         }
