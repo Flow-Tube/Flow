@@ -47,6 +47,8 @@ data class DownloadedTrack(
     val downloadedAt: Long = System.currentTimeMillis(),
     val fileSize: Long = 0,
     val downloadId: Long = -1,
+    /** What the row shows for the file: its bitrate, and the track for a video's dub. */
+    val quality: String? = null,
 )
 
 /**
@@ -142,6 +144,7 @@ class DownloadManager
                         artists = artists,
                     ),
                 filePath = item.filePath,
+                quality = item.quality,
                 downloadedAt = entity.createdAt,
                 fileSize = item.totalBytes.takeIf { it > 0 } ?: item.downloadedBytes,
             )

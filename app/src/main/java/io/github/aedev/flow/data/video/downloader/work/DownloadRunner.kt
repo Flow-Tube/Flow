@@ -176,11 +176,14 @@ class DownloadRunner
             }
         }
 
-        /** What the row shows for the stream it holds: "VP9 1080p60" for a video, "128 kbps" for audio. */
+        /** What the row shows for the stream it holds: "VP9 1080p60" for a video, "128 kbps · Arabic" for a dub's audio. */
         private fun qualityOf(fetched: FetchOutcome.Fetched): String {
             val streams = fetched.streams ?: return ""
             return streams.video?.let { DownloadStreamPolicy.videoQualityLabel(it, context.getString(R.string.download_quality_hdr)) }
-                ?: "${DownloadStreamPolicy.audioBitrateKbps(streams.audio)} ${context.getString(R.string.kbps)}"
+                ?: listOfNotNull(
+                    "${DownloadStreamPolicy.audioBitrateKbps(streams.audio)} ${context.getString(R.string.kbps)}",
+                    streams.audio.audioTrack?.let { DownloadStreamPolicy.audioLanguageLabel(streams.audio) },
+                ).joinToString(context.getString(R.string.list_separator_dot))
         }
 
         /** Only when the user has SponsorBlock on: otherwise no video id is sent to its API at all. */
