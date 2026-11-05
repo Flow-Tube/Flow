@@ -426,6 +426,11 @@ class EnhancedPlayerManager private constructor() {
 
                     override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
 
+                    // The notification's seek bar lands here, not in the manager's own seekTo.
+                    override fun seekTo(positionMs: Long) {
+                        if (currentIsLiveStream || !skipSegmentAt(positionMs)) super.seekTo(positionMs)
+                    }
+
                     override fun seekToNext() {
                         autoNextLog("MediaSession seekToNext")
                         this@EnhancedPlayerManager.skipToNextFromSession()
@@ -2489,12 +2494,7 @@ class EnhancedPlayerManager private constructor() {
     fun seekTo(position: Long) {
         val p = player ?: return
         val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
-        if (!isLive && !scrubPreviewing) {
-            sponsorBlockHandler?.skipTargetForSeek(position)?.let { segmentEnd ->
-                skipToSegmentEnd(segmentEnd)
-                return
-            }
-        }
+        if (!isLive && !scrubPreviewing && skipSegmentAt(position)) return
         val target = resolveSeekTarget(p, position)
         val isEndBoundary = !isLive && isEndBoundarySeek(position, p.duration)
         if (!isLive && !isEndBoundary && mediaLoader?.getActiveSabrOrchestrator() != null) {
@@ -2513,6 +2513,12 @@ class EnhancedPlayerManager private constructor() {
         } else if (isEndBoundary) {
             p.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         }
+    }
+
+    private fun skipSegmentAt(position: Long): Boolean {
+        val segmentEnd = sponsorBlockHandler?.skipTargetForSeek(position) ?: return false
+        skipToSegmentEnd(segmentEnd)
+        return true
     }
 
     fun skipToSegmentEnd(endPositionMs: Long) {
