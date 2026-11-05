@@ -44,15 +44,17 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.screens.music.AnimatedArtworkViewModel
 
 /**
- * The animated artwork for the open player's [track], or null while it may not run: it needs the
- * setting on, the player open and in front ([visible]), and the app on screen. Lookups follow the
- * same rule, so a collapsed player never asks for one. [tallSpace] asks for the loop cut for a tall
- * screen, and [shown] fades it out without releasing it.
+ * The animated artwork for [track], or null while it may not exist: it needs the setting on, a layout
+ * that shows it ([allowed]) and the app on screen. Behind a collapsed player, lyrics or the queue it
+ * stays on its last frame instead of leaving ([running] false), so nothing changes as they open and
+ * close. Lookups only happen while it runs, so a collapsed player never asks for one. [tallSpace] asks
+ * for the loop cut for a tall screen, and [shown] fades it out without releasing it.
  */
 @Composable
 internal fun rememberAnimatedArtwork(
     track: MusicTrack?,
-    visible: Boolean,
+    allowed: Boolean,
+    running: Boolean,
     tallSpace: Boolean,
     shown: Boolean,
     viewModel: AnimatedArtworkViewModel = hiltViewModel(),
@@ -60,12 +62,14 @@ internal fun rememberAnimatedArtwork(
     val enabled by viewModel.isEnabled.collectAsState()
     val loop by viewModel.loop.collectAsState()
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val active = enabled && visible && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
+    val mounted = enabled && allowed && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
+    val active = mounted && running
     LaunchedEffect(track, active) { if (active && track != null) viewModel.load(track) }
-    val url = loop?.urlFor(tallSpace)?.takeIf { active } ?: return null
+    val url = loop?.urlFor(track?.videoId, tallSpace)?.takeIf { mounted } ?: return null
     return {
         PlayerAnimatedArtwork(
             url = url,
+            running = running,
             shown = shown,
             dataSourceFactory = viewModel.dataSourceFactory,
             onFailed = viewModel::onLoopFailed,
@@ -76,14 +80,15 @@ internal fun rememberAnimatedArtwork(
 
 /**
  * An album's motion artwork looping over its cover. It has a muted player of its own that never
- * takes audio focus, fades in on its first frame, and is released when it leaves composition, so
- * the caller decides when it may run. It keeps moving while the song is paused, and [shown] hides it
- * without tearing it down, as during an artwork swipe.
+ * takes audio focus, fades in on its first frame, and is released when it leaves composition. It
+ * keeps moving while the song is paused and holds its frame while not [running], and it only starts
+ * loading once it runs. [shown] hides it without tearing it down, as during an artwork swipe.
  */
 @OptIn(UnstableApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlayerAnimatedArtwork(
     url: String,
+    running: Boolean,
     shown: Boolean,
     dataSourceFactory: DataSource.Factory,
     onFailed: () -> Unit,
@@ -101,7 +106,6 @@ internal fun PlayerAnimatedArtwork(
                 .apply {
                     repeatMode = Player.REPEAT_MODE_ONE
                     volume = 0f
-                    playWhenReady = true
                     trackSelectionParameters =
                         trackSelectionParameters
                             .buildUpon()
@@ -128,8 +132,11 @@ internal fun PlayerAnimatedArtwork(
                 .setMimeType(MimeTypes.APPLICATION_M3U8)
                 .build(),
         )
-        player.prepare()
         onDispose { player.removeListener(listener) }
+    }
+    LaunchedEffect(player, running) {
+        player.playWhenReady = running
+        if (running && player.playbackState == Player.STATE_IDLE) player.prepare()
     }
     val alpha by animateFloatAsState(
         targetValue = if (hasFrame && shown) 1f else 0f,

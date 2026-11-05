@@ -24,6 +24,17 @@ internal data class AnimatedLoop(
     fun urlFor(tallSpace: Boolean): String? = if (tallSpace) tall ?: square else square
 }
 
+/** A loop and the song it was looked up for, so it can never show on another song. */
+internal class LoadedLoop(
+    private val videoId: String,
+    private val loop: AnimatedLoop,
+) {
+    fun urlFor(
+        currentVideoId: String?,
+        tallSpace: Boolean,
+    ): String? = loop.urlFor(tallSpace).takeIf { videoId == currentVideoId }
+}
+
 /**
  * How a song is asked for and how an answer is trusted. A loop belongs to an album, so the songs
  * of one album share a single lookup, and an answer counts only when it names the same song by the
