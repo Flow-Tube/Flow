@@ -5,7 +5,6 @@ import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.engine.Session
-import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.entryJson
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.store.LocalStore
@@ -128,19 +127,8 @@ class LanPeer(
             runCatching {
                 when (op) {
                     "roster" -> {
-                        // An asker whose head isn't on this device's winning chain is on another fork, or lost one
-                        // this device already resolved: it gets everything to choose from.
-                        val head = header.text("head")
-                        val held = local.entries()
-                        val after =
-                            if (head != null &&
-                                local.rosterAfter(-1).none { entryHash(it) == head }
-                            ) {
-                                -1
-                            } else {
-                                header["after"]?.jsonPrimitive?.long ?: -1
-                            }
-                        ok(mapOf("entries" to JsonArray(held.filter { it.seq > after }.map(::entryJson))))
+                        val after = header["after"]?.jsonPrimitive?.long ?: -1
+                        ok(mapOf("entries" to JsonArray(local.entries().filter { it.seq > after }.map(::entryJson))))
                     }
 
                     "key" -> {
