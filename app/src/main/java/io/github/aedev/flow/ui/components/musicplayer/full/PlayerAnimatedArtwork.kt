@@ -42,6 +42,10 @@ import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.screens.music.AnimatedArtworkViewModel
+import kotlinx.coroutines.delay
+
+/** How long a hidden loop keeps its decoder, so a quick swipe back resumes at once. */
+private const val HIDDEN_DECODER_KEEP_MS = 30_000L
 
 /**
  * The animated artwork for [track], or null while it may not exist: it needs the setting on, a layout
@@ -82,7 +86,9 @@ internal fun rememberAnimatedArtwork(
  * An album's motion artwork looping over its cover. It has a muted player of its own that never
  * takes audio focus, fades in on its first frame, and is released when it leaves composition. It
  * keeps moving while the song is paused and holds its frame while not [running], and it only starts
- * loading once it runs. [shown] hides it without tearing it down, as during an artwork swipe.
+ * loading once it runs. A paused player still wakes every second, so after a while hidden it stops
+ * and frees its decoder; the view keeps showing the frame. [shown] hides it without tearing it down,
+ * as during an artwork swipe.
  */
 @OptIn(UnstableApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -136,7 +142,12 @@ internal fun PlayerAnimatedArtwork(
     }
     LaunchedEffect(player, running) {
         player.playWhenReady = running
-        if (running && player.playbackState == Player.STATE_IDLE) player.prepare()
+        if (running) {
+            if (player.playbackState == Player.STATE_IDLE) player.prepare()
+        } else {
+            delay(HIDDEN_DECODER_KEEP_MS)
+            player.stop()
+        }
     }
     val alpha by animateFloatAsState(
         targetValue = if (hasFrame && shown) 1f else 0f,
@@ -163,6 +174,7 @@ internal fun PlayerAnimatedArtwork(
                     layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
+                    setKeepContentOnPlayerReset(true)
                     artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_OFF
                     setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                     setBackgroundColor(android.graphics.Color.TRANSPARENT)
