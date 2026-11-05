@@ -141,16 +141,12 @@ fun MediaDownloadSheet(
                 onClick = {
                     val started =
                         if (audioOnly != null) {
-                            DownloadLauncher.startAudioOnlyDownload(context, video, audioOnly).also { queued ->
-                                if (queued) {
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            context.getString(R.string.ui_started_download, video.title),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                }
-                            }
+                            DownloadLauncher.startAudioOnlyDownload(
+                                context = context,
+                                video = video,
+                                format = audioOnly,
+                                startedMessage = context.getString(R.string.ui_started_download, video.title),
+                            )
                         } else {
                             startVideo(context, video, format, videoAudio, subtitleOptions, subtitleChoice, prefs)
                         }

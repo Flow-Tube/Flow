@@ -159,13 +159,15 @@ fun MediaDownloadSheetCompact(
         val taggedVideo = video.copy(title = finalTitle)
         if (isAudioMode) {
             val stream = audioStreams.getOrNull(selectedAudioIndex) ?: return false
-            if (!DownloadLauncher.startAudioOnlyDownload(context, taggedVideo, stream, threads)) return false
-            Toast
-                .makeText(
-                    context,
-                    context.getString(R.string.downloading_template, audioOptionLabel(stream, audioLabelStrings)),
-                    Toast.LENGTH_SHORT,
-                ).show()
+            val started =
+                DownloadLauncher.startAudioOnlyDownload(
+                    context = context,
+                    video = taggedVideo,
+                    format = stream,
+                    startedMessage = context.getString(R.string.downloading_template, audioOptionLabel(stream, audioLabelStrings)),
+                    threads = threads,
+                )
+            if (!started) return false
             downloadPrefsScope.launch {
                 prefs.setLastDownloadAudioChoice(audioOptionLabel(stream, audioLabelStrings))
                 prefs.setDownloadThreads(threads)
