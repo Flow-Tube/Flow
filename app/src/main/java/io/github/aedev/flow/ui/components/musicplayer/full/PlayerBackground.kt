@@ -12,6 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -23,9 +28,12 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.ui.components.musicplayer.common.PlayerBackdropColors
 
@@ -62,7 +70,7 @@ fun PlayerBackground(
             }
 
             MusicPlayerBackgroundStyle.BLUR -> {
-                BlurredArtworkLayer(thumbnailUrl = thumbnailUrl, alpha = 0.62f)
+                BlurredArtworkLayer(thumbnailUrl = rememberLoadedCover(thumbnailUrl), alpha = 0.62f)
                 Box(
                     modifier =
                         Modifier
@@ -93,8 +101,9 @@ fun PlayerBackground(
             MusicPlayerBackgroundStyle.IMMERSIVE -> {
                 // Issue #954: full-bleed artwork holds the top of the screen, then hands off to
                 // its own blurred continuation and a scrim so the controls stay readable.
-                BlurredArtworkLayer(thumbnailUrl = thumbnailUrl, alpha = 0.85f, crossfadeMillis = 450)
-                ImmersiveArtworkLayer(thumbnailUrl = thumbnailUrl, atStart = artworkAtStart, animatedArtwork = animatedArtwork)
+                val cover = rememberLoadedCover(thumbnailUrl)
+                BlurredArtworkLayer(thumbnailUrl = cover, alpha = 0.85f, crossfadeMillis = 450)
+                ImmersiveArtworkLayer(thumbnailUrl = cover, atStart = artworkAtStart, animatedArtwork = animatedArtwork)
                 Box(
                     modifier =
                         Modifier
@@ -113,7 +122,7 @@ fun PlayerBackground(
             }
 
             MusicPlayerBackgroundStyle.BLUR_GRADIENT -> {
-                BlurredArtworkLayer(thumbnailUrl = thumbnailUrl, alpha = 0.55f)
+                BlurredArtworkLayer(thumbnailUrl = rememberLoadedCover(thumbnailUrl), alpha = 0.55f)
                 Box(
                     modifier =
                         Modifier
@@ -134,6 +143,21 @@ fun PlayerBackground(
             }
         }
     }
+}
+
+/**
+ * The cover to draw for [url]: the previous one until [url] is in Coil's memory, so a crossfade always
+ * has both pictures. A failed load lets go too, so the art can't stay stuck on the old song.
+ */
+@Composable
+private fun rememberLoadedCover(url: String?): String? {
+    val context = LocalContext.current
+    var loaded by remember { mutableStateOf(url) }
+    LaunchedEffect(url) {
+        if (url != null) context.imageLoader.execute(ImageRequest.Builder(context).data(url).build())
+        loaded = url
+    }
+    return loaded
 }
 
 @Composable
@@ -170,7 +194,8 @@ private fun ImmersiveArtworkLayer(
     ) {
         AnimatedContent(
             targetState = thumbnailUrl,
-            transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) },
+            // The old cover stays solid under the new one, so the dark ground never shows through.
+            transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(durationMillis = 1, delayMillis = 400)) },
             label = "playerImmersiveArt",
         ) { targetUrl ->
             AsyncImage(
