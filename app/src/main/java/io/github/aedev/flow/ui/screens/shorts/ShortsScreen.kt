@@ -207,6 +207,7 @@ fun ShortsScreen(
                             ShortsReelActions(
                                 onChannelClick = { onChannelClick(short.channelId) },
                                 onCommentsClick = {
+                                    commentSortFilter = CommentSortFilter.TOP
                                     viewModel.loadComments(short.id)
                                     showCommentsSheet = true
                                 },

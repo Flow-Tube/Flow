@@ -92,6 +92,7 @@ class PlayerScreenState {
         lockOverlayRevealSignal = 0
         currentPosition = 0L
         duration = 0L
+        commentSortFilter = CommentSortFilter.TOP
         selectedTranscriptUrl = null
         showBrightnessOverlay = false
         showVolumeOverlay = false
