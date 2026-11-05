@@ -2411,6 +2411,11 @@
     <string name="eq_remove_band">Remove band</string>
     <string name="eq_band_removed">Band removed</string>
     <string name="eq_bass_boost">Bass boost</string>
+    <string name="eq_spatial_sound">Spatial sound</string>
+    <string name="eq_spatial_sound_summary">Widens stereo on any headphones</string>
+    <string name="eq_spatial_low">Low</string>
+    <string name="eq_spatial_medium">Medium</string>
+    <string name="eq_spatial_high">High</string>
     <string name="eq_edit">Edit equalizer</string>
     <string name="eq_system">System equalizer</string>
     <string name="eq_system_desc">Adds to Flow\'s own equalizer</string>

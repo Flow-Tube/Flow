@@ -18,6 +18,7 @@ import io.github.aedev.flow.data.audio.eq.DeletedEqPreset
 import io.github.aedev.flow.data.audio.eq.EqBand
 import io.github.aedev.flow.data.audio.eq.EqLimits
 import io.github.aedev.flow.data.audio.eq.EqMode
+import io.github.aedev.flow.data.audio.eq.EqSpatialSound
 import io.github.aedev.flow.data.audio.eq.EqState
 import io.github.aedev.flow.data.audio.eq.EqStateJson
 import io.github.aedev.flow.data.audio.eq.EqualizerRepository
@@ -197,6 +198,8 @@ class EqualizerViewModel
         }
 
         fun setBassBoost(db: Double) = edit { it.withBassBoost(db.roundToDecimals(0)) }
+
+        fun setSpatialSound(sound: EqSpatialSound) = edit { it.copy(spatialSound = sound) }
 
         fun setAutoPreamp(enabled: Boolean) = edit { it.copy(autoPreamp = enabled) }
 

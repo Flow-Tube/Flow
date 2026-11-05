@@ -5,6 +5,7 @@ import androidx.media3.common.audio.AudioProcessor
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.audio.eq.EqBand
 import io.github.aedev.flow.data.audio.eq.EqProcessingSpec
+import io.github.aedev.flow.data.audio.eq.EqSpatialSound
 import org.junit.Test
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -16,6 +17,56 @@ import kotlin.math.sqrt
 
 class EqualizerAudioProcessorTest {
     private val rate = 48_000
+
+    private fun spatial(sound: EqSpatialSound) = EqProcessingSpec(enabled = true, preampDb = 0.0, bands = emptyList(), spatialSound = sound)
+
+    @Test
+    fun `spatial sound widens a stereo signal`() {
+        val samples = ShortArray(9_600) { i -> if (i % 2 == 0) sine(1_000.0, 4_800, channels = 1)[i / 2] else 0 }
+        val output = processor(spec = spatial(EqSpatialSound.HIGH)).run(samples)
+        val right = output.filterIndexed { i, _ -> i % 2 == 1 }.takeLast(2_000).maxOf { abs(it.toInt()) }
+
+        assertThat(right).isGreaterThan(500)
+    }
+
+    @Test
+    fun `spatial sound leaves surround streams alone`() {
+        val samples = sine(1_000.0, 2_000, channels = 6)
+
+        assertThat(processor(channels = 6, spec = spatial(EqSpatialSound.HIGH)).run(samples)).isEqualTo(samples)
+    }
+
+    @Test
+    fun `spatial sound bends the widest input instead of wrapping around`() {
+        val samples = ShortArray(9_600) { i -> if (i % 2 == 0) Short.MAX_VALUE else Short.MIN_VALUE }
+        val output = processor(spec = spatial(EqSpatialSound.HIGH)).run(samples)
+
+        output.forEachIndexed { i, sample -> if (i % 2 == 0) assertThat(sample).isGreaterThan(0) else assertThat(sample).isLessThan(0) }
+    }
+
+    @Test
+    fun `turning spatial sound off returns to an exact pass through`() {
+        val eq = processor(spec = spatial(EqSpatialSound.MEDIUM))
+        eq.run(sine(1_000.0, 4_800))
+        eq.setSpec(EqProcessingSpec.OFF)
+        eq.run(sine(1_000.0, 4_800, start = 4_800))
+        val tail = sine(1_000.0, 2_000, start = 9_600)
+
+        assertThat(eq.run(tail)).isEqualTo(tail)
+    }
+
+    @Test
+    fun `turning spatial sound on does not click`() {
+        val eq = processor()
+        val input = sine(200.0, 9_600)
+        val first = eq.run(input.copyOfRange(0, 4_800))
+        eq.setSpec(spatial(EqSpatialSound.HIGH))
+        val second = eq.run(input.copyOfRange(4_800, input.size))
+        val left = (first.toList() + second.toList()).filterIndexed { i, _ -> i % 2 == 0 }
+        val largestJump = left.zipWithNext { a, b -> abs(a - b) }.max()
+
+        assertThat(largestJump).isLessThan(200)
+    }
 
     private fun processor(
         channels: Int = 2,
