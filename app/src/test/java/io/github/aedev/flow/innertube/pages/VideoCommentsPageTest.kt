@@ -10,6 +10,39 @@ import org.junit.Test
 
 class VideoCommentsPageTest {
     @Test
+    fun `reads the sort menu and count from the comments panel of a watch response`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {"engagementPanels": [
+                  {"engagementPanelSectionListRenderer": {"panelIdentifier": "other", "header": {}}},
+                  {"engagementPanelSectionListRenderer": {
+                    "panelIdentifier": "engagement-panel-comments-section",
+                    "header": {"engagementPanelTitleHeaderRenderer": {
+                      "contextualInfo": {"runs": [{"text": "481K"}]},
+                      "menu": {"sortFilterSubMenuRenderer": {"subMenuItems": [
+                        {"title": "Top", "selected": true, "serviceEndpoint": {"continuationCommand": {"token": "top"}}},
+                        {"title": "Newest", "selected": false, "serviceEndpoint": {"continuationCommand": {"token": "newest"}}}
+                      ]}}
+                    }}
+                  }}
+                ]}
+                """.trimIndent(),
+            )
+
+        val header = response.videoCommentsPanelHeader()
+
+        assertEquals(listOf("top", "newest"), header?.sortOptions?.map { it.token })
+        assertEquals("481K", header?.totalText)
+        assertEquals(481_000L, header?.totalCount)
+    }
+
+    @Test
+    fun `a watch response with no comments panel has no panel header`() {
+        assertNull(Json.parseToJsonElement("""{"engagementPanels": []}""").videoCommentsPanelHeader())
+    }
+
+    @Test
     fun `reads the comment section continuation out of a watch response`() {
         val response =
             Json.parseToJsonElement(

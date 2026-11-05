@@ -680,12 +680,19 @@ class YouTubeRepository
                         ?: watchNextResponse(videoId)?.let(YouTube::commentsContinuation)
                 val page = token?.let { YouTube.comments(it, videoId).getOrNull() }
                 if (page != null && page.comments.isNotEmpty()) {
+                    // A first page has just read the watch response, so this costs no second request.
+                    val panel =
+                        if (sortToken == null && (page.sortOptions.isEmpty() || page.totalText == null)) {
+                            watchNextResponse(videoId)?.let(YouTube::commentsPanelHeader)
+                        } else {
+                            null
+                        }
                     return@withContext CommentsPageResult(
                         comments = page.comments,
                         continuation = page.continuation,
-                        sortOptions = page.sortOptions,
-                        totalText = page.totalText,
-                        totalCount = page.totalCount,
+                        sortOptions = page.sortOptions.ifEmpty { panel?.sortOptions.orEmpty() },
+                        totalText = page.totalText ?: panel?.totalText,
+                        totalCount = page.totalCount ?: panel?.totalCount,
                     )
                 }
                 Log.i(TAG, "InnerTube comments empty for $videoId, falling back to the extractor")

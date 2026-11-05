@@ -67,6 +67,7 @@ import io.github.aedev.flow.innertube.pages.SearchResult
 import io.github.aedev.flow.innertube.pages.SearchSuggestionPage
 import io.github.aedev.flow.innertube.pages.SearchSummaryPage
 import io.github.aedev.flow.innertube.pages.VideoCommentsPage
+import io.github.aedev.flow.innertube.pages.VideoCommentsPanelHeader
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.VideoPlaylistPage
 import io.github.aedev.flow.innertube.pages.channel.ChannelAbout
@@ -116,6 +117,7 @@ import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
 import io.github.aedev.flow.innertube.pages.toVideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.toVideoPlaylistPage
 import io.github.aedev.flow.innertube.pages.videoCommentsContinuation
+import io.github.aedev.flow.innertube.pages.videoCommentsPanelHeader
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.avatarImageIdentityKey
 import io.github.aedev.flow.utils.relativedate.RelativeUploadDateParser
@@ -2453,6 +2455,9 @@ object YouTube {
 
     /** The continuation that opens [videoId]'s comment section, from an already-fetched watch response. */
     fun commentsContinuation(watchNext: JsonElement): String? = watchNext.videoCommentsContinuation()
+
+    /** The sort menu and count in [watchNext]'s comments panel, from an already-fetched watch response. */
+    fun commentsPanelHeader(watchNext: JsonElement): VideoCommentsPanelHeader? = watchNext.videoCommentsPanelHeader()
 
     suspend fun comments(
         continuation: String,
