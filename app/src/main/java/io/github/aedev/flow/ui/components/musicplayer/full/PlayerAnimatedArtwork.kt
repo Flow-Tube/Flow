@@ -5,7 +5,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -69,16 +73,28 @@ internal fun rememberAnimatedArtwork(
     val mounted = enabled && allowed && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
     val active = mounted && running
     LaunchedEffect(track, active) { if (active && track != null) viewModel.load(track) }
-    val url = loop?.urlFor(track?.videoId, tallSpace)?.takeIf { mounted } ?: return null
+    if (!mounted) return null
+    val url = loop?.urlFor(track?.videoId, tallSpace)
     return {
-        PlayerAnimatedArtwork(
-            url = url,
-            running = running,
-            shown = shown,
-            dataSourceFactory = viewModel.dataSourceFactory,
-            onFailed = viewModel::onLoopFailed,
+        val fade = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
+        AnimatedContent(
+            targetState = url,
+            // A new loop fades in by itself on its first frame.
+            transitionSpec = { (EnterTransition.None togetherWith fade).using(null) },
             modifier = Modifier.fillMaxSize(),
-        )
+            label = "animatedArtworkLoop",
+        ) { loopUrl ->
+            if (loopUrl != null) {
+                PlayerAnimatedArtwork(
+                    url = loopUrl,
+                    running = running,
+                    shown = shown,
+                    dataSourceFactory = viewModel.dataSourceFactory,
+                    onFailed = viewModel::onLoopFailed,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
     }
 }
 
