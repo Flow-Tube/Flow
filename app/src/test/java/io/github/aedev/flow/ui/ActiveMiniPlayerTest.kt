@@ -47,4 +47,12 @@ class ActiveMiniPlayerTest {
     fun `the Shorts player hides the video bar`() {
         assertThat(resolve(hasVideo = true, videoInBackground = true, onShortsPlayer = true)).isEqualTo(ActiveMiniPlayer.None)
     }
+
+    @Test
+    fun `the restored setting only hides a restored queue`() {
+        assertThat(hidesRestoredMusicMiniPlayer(showRestored = false, isRestoredQueue = true)).isTrue()
+        assertThat(hidesRestoredMusicMiniPlayer(showRestored = false, isRestoredQueue = false)).isFalse()
+        assertThat(hidesRestoredMusicMiniPlayer(showRestored = true, isRestoredQueue = true)).isFalse()
+        assertThat(hidesRestoredMusicMiniPlayer(showRestored = null, isRestoredQueue = true)).isFalse()
+    }
 }

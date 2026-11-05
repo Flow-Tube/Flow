@@ -179,6 +179,11 @@ object EnhancedMusicPlayerManager {
     private val _currentTrack = MutableStateFlow<MusicTrack?>(null)
     val currentTrack: StateFlow<MusicTrack?> = _currentTrack.asStateFlow()
 
+    private val _isRestoredQueue = MutableStateFlow(false)
+
+    /** True while the queue is the one brought back from last time and nothing has played since. */
+    val isRestoredQueue: StateFlow<Boolean> = _isRestoredQueue.asStateFlow()
+
     private val _shuffleEnabled = MutableStateFlow(false)
     val shuffleEnabled: StateFlow<Boolean> = _shuffleEnabled.asStateFlow()
 
@@ -362,7 +367,10 @@ object EnhancedMusicPlayerManager {
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     updatePlayerState()
-                    if (isPlaying) startPositionUpdates()
+                    if (isPlaying) {
+                        _isRestoredQueue.value = false
+                        startPositionUpdates()
+                    }
                 }
 
                 override fun onMediaItemTransition(
@@ -863,6 +871,7 @@ object EnhancedMusicPlayerManager {
             if (loadedItem != null && !resumedBySystem) return
 
             Log.d("EnhancedMusicPlayer", "Restoring saved queue: ${restored.queue.size} tracks")
+            _isRestoredQueue.value = controller?.isPlaying != true
 
             // The service may have rearranged a resumed queue (a shuffle while the app was closed).
             val playerOrder = controller?.let { c -> List(c.mediaItemCount) { c.getMediaItemAt(it).mediaId } }

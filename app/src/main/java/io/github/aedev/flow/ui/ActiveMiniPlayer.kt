@@ -1,5 +1,14 @@
 package io.github.aedev.flow.ui
 
+/**
+ * The restored mini player setting is about a session brought back from last time. A song already
+ * running in this one keeps its mini player, for example after leaving the app and coming back.
+ */
+internal fun hidesRestoredMusicMiniPlayer(
+    showRestored: Boolean?,
+    isRestoredQueue: Boolean,
+): Boolean = showRestored == false && isRestoredQueue
+
 /** The one mini player the shell shows. Never more than one: they are not stacked. */
 internal enum class ActiveMiniPlayer { None, Video, VideoBar, Music, Remote }
 
