@@ -34,6 +34,7 @@ import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.RosterState
 import io.github.aedev.flow.sync2.roster.Settlement
 import io.github.aedev.flow.sync2.roster.applyEntry
+import io.github.aedev.flow.sync2.roster.checkSender
 import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.replayRoster
 import io.github.aedev.flow.sync2.roster.settleRoster
@@ -45,6 +46,7 @@ import io.github.aedev.flow.sync2.store.StoreLogin
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
 import io.github.aedev.flow.sync2.store.ZERO_HASH
+import io.github.aedev.flow.sync2.store.cutChain
 import io.github.aedev.flow.sync2.store.decodeStoreLogin
 import io.github.aedev.flow.sync2.store.encodeStoreLogin
 import io.github.aedev.flow.sync2.store.kcName
@@ -53,6 +55,7 @@ import io.github.aedev.flow.sync2.store.parseObject
 import io.github.aedev.flow.sync2.store.sealObject
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import java.security.MessageDigest
 import java.util.TreeMap
 
 /** What a log object carries, once checked and opened. */
@@ -114,7 +117,6 @@ class Session private constructor(
     standing: List<Entry> = emptyList(),
 ) {
     internal val me = SyncBytes.toHex(device.did)
-    private val signingKeys = HashMap<String, ByteArray>()
     private val commitments = HashMap<Int, ByteArray>()
     private val keys = TreeMap<Int, ByteArray>()
 
@@ -124,6 +126,9 @@ class Session private constructor(
     /** The keys of those entries unwrapped so far, by `kc`. */
     private val standingKeys = HashMap<String, ByteArray>()
 
+    /** The hashes found walking down from each removed sender's cut. */
+    private val cutWalks = HashMap<String, Map<Long, ByteArray>>()
+
     var record = record
         private set
 
@@ -131,7 +136,6 @@ class Session private constructor(
 
     init {
         for (entry in entries) {
-            entry.add?.forEach { signingKeys[it.did] = SyncBytes.b64urlDecode(it.sig) }
             entry.epoch?.let { commitments[it.n] = SyncBytes.b64urlDecode(it.kc) }
         }
     }
@@ -374,7 +378,7 @@ class Session private constructor(
                     .mapNotNull { change ->
                         StorePaths.parseLog(change.path)?.let { (did, seq) -> Triple(did, seq, change.path) }
                     }.filter { (did, seq) ->
-                        did != me && (positions[did]?.seq ?: 0) < seq && seq < (stopped[did] ?: Long.MAX_VALUE)
+                        did != me && (positions[did]?.seq ?: 0) < seq && seq < (stopped[did] ?: Long.MAX_VALUE) && !pastItsCut(did, seq)
                     }
             while (waiting.isNotEmpty()) {
                 val still =
@@ -458,7 +462,9 @@ class Session private constructor(
         val bytes = store.getObject(path) ?: return null
         return try {
             val parsed = verified(bytes, did, seq)
-            ReadObject(nextInStream(last, parsed), openContent(parsed))
+            val position = nextInStream(last, parsed)
+            checkCutChain(did, parsed, last)
+            ReadObject(position, openContent(parsed))
         } catch (_: ProtocolException) {
             null
         }
@@ -471,9 +477,43 @@ class Session private constructor(
         seq: Long,
     ): ParsedObject {
         val parsed = parseObject(bytes, group)
-        parsed.verify(signingKeys[did] ?: reject(ProtocolError.SENDER))
+        parsed.verify(checkSender(state.senders, did, parsed.header.epoch, seq).sig)
         if (SyncBytes.toHex(parsed.header.sender) != did || parsed.header.seq != seq) reject(ProtocolError.REPLAY)
         return parsed
+    }
+
+    /** An object a removed sender wrote after its log ended, which never gets read, so it isn't missing either. */
+    private fun pastItsCut(
+        did: String,
+        seq: Long,
+    ): Boolean {
+        val sender = state.senders[did] ?: return false
+        return sender.until != null && seq > (sender.cut?.seq ?: 0)
+    }
+
+    /**
+     * Checks a removed sender's chain from where this device has read, down from the hash its removal names, before
+     * anything of it is applied (spec/store.md, A removed sender's chain).
+     */
+    private suspend fun checkCutChain(
+        did: String,
+        parsed: ParsedObject,
+        last: StreamPosition?,
+    ) {
+        if (state.senders[did]?.until == null) return
+        val seq = parsed.header.seq
+        if (cutWalks[did]?.containsKey(seq) != true) cutWalks[did] = walkCut(did, last?.seq ?: 0, last?.hash ?: ZERO_HASH)
+        if (!MessageDigest.isEqual(cutWalks[did]?.get(seq), parsed.hash)) reject(ProtocolError.PREV)
+    }
+
+    /** The hashes of a removed sender's log from its cut down to [from]. */
+    internal suspend fun walkCut(
+        did: String,
+        from: Long,
+        hash: ByteArray?,
+    ): Map<Long, ByteArray> {
+        val cut = state.senders[did]?.cut ?: reject(ProtocolError.SENDER)
+        return cutChain(cut.seq, SyncBytes.fromHex(cut.hash), from, hash, group) { store.getObject(StorePaths.log(did, it)) }
     }
 
     /**

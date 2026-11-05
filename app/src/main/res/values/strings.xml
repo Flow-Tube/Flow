@@ -2778,7 +2778,7 @@
     <string name="linked_cancel">Cancel</string>
     <string name="linked_remove">Remove</string>
     <string name="linked_remove_title">Remove %1$s?</string>
-    <string name="linked_remove_body">It stops receiving anything new right away. What it already has stays on it.</string>
+    <string name="linked_remove_body">It stops receiving anything new right away. What it already has stays on it. Changes it made that this device hasn\'t received yet may not arrive.</string>
     <string name="linked_add_device">Add a device</string>
     <string name="linked_scan_this_code">Scan this code</string>
     <string name="linked_scan_this_code_body">On the other device, open Linked devices and scan this code. Keep both devices on the same network if the other one can\'t reach the server.</string>

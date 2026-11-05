@@ -278,6 +278,8 @@ class LinkedActions
         }
 
         suspend fun remove(id: String) {
+            // The cut names what this device has read, so read what it can first (spec/protocol.md, Removal).
+            sync.syncNow()
             removeDevice(session(), keys.load(), id)
             db.snapshots().snapshotSoon()
         }

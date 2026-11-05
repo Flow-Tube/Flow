@@ -74,6 +74,30 @@ class RosterTest {
                     }
                 },
             )
+            put(
+                "senders",
+                buildJsonArray {
+                    for ((did, sender) in state.senders.toSortedMap()) {
+                        add(
+                            buildJsonObject {
+                                put("did", did)
+                                put("role", sender.role.name.lowercase())
+                                put("since", sender.since)
+                                sender.until?.let { put("until", it) }
+                                sender.cut?.let { cut ->
+                                    put(
+                                        "cut",
+                                        buildJsonObject {
+                                            put("seq", cut.seq)
+                                            put("hash", cut.hash)
+                                        },
+                                    )
+                                }
+                            },
+                        )
+                    }
+                },
+            )
         }
 
     @Test

@@ -70,6 +70,13 @@ data class EpochField(
     val to: List<String>,
 )
 
+/** The last object of a removed device's log that its removal accepts. */
+@Serializable
+data class Cut(
+    val seq: Long,
+    val hash: String,
+)
+
 @Serializable
 data class Entry(
     val v: Int,
@@ -80,6 +87,7 @@ data class Entry(
     val signer: String,
     val add: List<Subject>? = null,
     val remove: List<String>? = null,
+    val cut: Map<String, Cut>? = null,
     val epoch: EpochField? = null,
     val meta: Map<String, String>? = null,
     val sigs: Map<String, String>,
@@ -92,6 +100,18 @@ class Member(
     val used: Boolean,
 )
 
+/** A member of any time: what step 2 of reading an envelope checks a sender against. */
+class Sender(
+    val sig: ByteArray,
+    val role: Role,
+    /** The epoch in force when it was added. */
+    val since: Int,
+    /** The last epoch it could write under, once it was removed or left. */
+    val until: Int? = null,
+    /** Absent when its removal accepts none of its log. */
+    val cut: Cut? = null,
+)
+
 class RosterState(
     val group: String,
     val seq: Long,
@@ -99,7 +119,7 @@ class RosterState(
     val epoch: Int,
     val kc: String,
     val members: Map<String, Member>,
-    val seen: Set<String>,
+    val senders: Map<String, Sender>,
     /** A device left during this epoch, so the next device to write appends a `rotate` first. */
     val rotate: Boolean = false,
 )
@@ -125,6 +145,25 @@ fun b64(
         .getOrNull()
         ?.takeIf { it.size == size && SyncBytes.b64urlEncode(it) == value }
 
+/** The largest integer every implementation reads exactly. */
+private const val MAX_SEQ = (1L shl 53) - 1
+
+/**
+ * Step 2 of reading an envelope: a device, within the epochs it belonged to, and no further along its log than its
+ * removal accepted.
+ */
+fun checkSender(
+    senders: Map<String, Sender>,
+    did: String,
+    epoch: Int,
+    seq: Long,
+): Sender {
+    val sender = senders[did] ?: reject(ProtocolError.SENDER)
+    val gone = sender.until != null && (epoch > sender.until || seq > (sender.cut?.seq ?: 0))
+    if (sender.role != Role.DEVICE || epoch < sender.since || gone) reject(ProtocolError.SENDER)
+    return sender
+}
+
 private fun wellFormed(entry: Entry): Boolean {
     val dids = { list: List<String> -> list.isNotEmpty() && list.all { isHex(it, 16) } }
     return entry.v == 2 &&
@@ -145,6 +184,11 @@ private fun wellFormed(entry: Entry): Boolean {
                 ?: true
         ) &&
         (entry.remove?.let(dids) ?: true) &&
+        (
+            entry.cut?.let { cut ->
+                cut.isNotEmpty() && cut.all { (did, at) -> isHex(did, 16) && isHex(at.hash, 32) && at.seq in 1..MAX_SEQ }
+            } ?: true
+        ) &&
         (entry.epoch?.let { it.n >= 0 && b64(it.kc, 32) != null && dids(it.to) } ?: true) &&
         (entry.meta?.all { (did, sealed) -> isHex(did, 16) && sealed.isNotEmpty() } ?: true) &&
         entry.sigs.all { (did, signature) -> isHex(did, 16) && b64(signature, 64) != null }
@@ -190,6 +234,10 @@ private fun checkShape(entry: Entry) {
             Op.LEAVE -> Triple(0, true, false)
             Op.ROTATE -> Triple(0, false, true)
         }
+    entry.cut?.let { cut ->
+        val removes = entry.op == Op.REMOVE || entry.op == Op.LEAVE
+        if (!removes || !entry.remove.orEmpty().containsAll(cut.keys)) reject(ProtocolError.ROSTER_OP)
+    }
     val added = entry.add?.size ?: 0
     if (added != add || remove != (entry.remove != null) || epoch != (entry.epoch != null)) reject(ProtocolError.ROSTER_OP)
     val sorted =
@@ -213,11 +261,11 @@ private fun checkShape(entry: Entry) {
 
 private fun checkSubject(
     subject: Subject,
-    seen: Set<String>,
+    senders: Map<String, Sender>,
 ): Member {
     val sig = b64(subject.sig, 32) ?: reject(ProtocolError.ROSTER_FORMAT)
     val kem = b64(subject.kem, 32) ?: reject(ProtocolError.ROSTER_FORMAT)
-    if (!isValidSigningKey(sig) || SyncBytes.toHex(memberId(sig, kem)) != subject.did || subject.did in seen) {
+    if (!isValidSigningKey(sig) || SyncBytes.toHex(memberId(sig, kem)) != subject.did || subject.did in senders) {
         reject(ProtocolError.ROSTER_KEY)
     }
     return Member(sig, kem, subject.role, used = false)
@@ -269,8 +317,8 @@ fun applyEntry(
     checkShape(entry)
     if (entry.op == Op.GENESIS) checkGroupId(entry)
 
-    val seen = state?.seen.orEmpty().toMutableSet()
-    val added = entry.add.orEmpty().associate { it.did to checkSubject(it, seen) }
+    val senders = state?.senders.orEmpty().toMutableMap()
+    val added = entry.add.orEmpty().associate { it.did to checkSubject(it, senders) }
 
     val signer = checkSigner(entry, state, added)
     if (entry.sigs.keys != setOf(entry.signer) + added.keys) reject(ProtocolError.ROSTER_SIGNATURE)
@@ -286,10 +334,12 @@ fun applyEntry(
     for (id in entry.remove.orEmpty()) {
         if (members[id]?.role != removedRole || (id == entry.signer) != (entry.op == Op.LEAVE)) reject(ProtocolError.ROSTER_OP)
         members.remove(id)
+        senders[id]?.let { senders[id] = Sender(it.sig, it.role, it.since, state?.epoch, entry.cut?.get(id)) }
     }
     if (entry.op == Op.LEAVE && members.values.none { it.role == Role.DEVICE }) reject(ProtocolError.ROSTER_OP)
     if (entry.op == Op.RESTORE) members[entry.signer] = Member(signer.sig, signer.kem, signer.role, used = true)
-    seen += added.keys
+    val inForce = entry.epoch?.n ?: state?.epoch ?: 0
+    added.forEach { (id, member) -> senders[id] = Sender(member.sig, member.role, inForce) }
     members += added
 
     val meta = entry.meta
@@ -310,10 +360,10 @@ fun applyEntry(
         group = entry.group,
         seq = entry.seq,
         head = entryHash(entry),
-        epoch = epoch?.n ?: state?.epoch ?: 0,
+        epoch = inForce,
         kc = epoch?.kc ?: state?.kc.orEmpty(),
         members = members.toSortedMap(),
-        seen = seen,
+        senders = senders,
         rotate = entry.op == Op.LEAVE || (epoch == null && state?.rotate == true),
     )
 }

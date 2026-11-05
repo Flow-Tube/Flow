@@ -8,6 +8,7 @@ import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.crypto.sealChain
 import io.github.aedev.flow.sync2.crypto.wrapEpochKey
 import io.github.aedev.flow.sync2.engine.Session
+import io.github.aedev.flow.sync2.roster.Cut
 import io.github.aedev.flow.sync2.roster.Draft
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.EpochField
@@ -63,7 +64,13 @@ suspend fun removeDevice(
     val state = session.state
     val remaining = state.members.filterKeys { it != removed }.mapValues { (_, member) -> member.kem }
     val epoch = newEpoch(session.group, state.epoch + 1, remaining, session.currentKey())
-    val draft = Draft(Op.REMOVE, SyncBytes.toHex(device.did), remove = listOf(removed), epoch = epoch.field)
+    val cut =
+        session.db
+            .groups()
+            .streams()
+            .firstOrNull { it.did == removed }
+            ?.let { mapOf(removed to Cut(it.seq, it.hash)) }
+    val draft = Draft(Op.REMOVE, SyncBytes.toHex(device.did), remove = listOf(removed), cut = cut, epoch = epoch.field)
     appendChecked(session, buildEntry(session.group, state, draft, listOf(device)), epoch.wraps, epoch.chain)
 }
 
@@ -76,9 +83,11 @@ suspend fun leaveGroup(
     device: MemberSecrets,
 ) {
     val did = SyncBytes.toHex(device.did)
+    val own = session.record
+    val cut = if (own.ownSeq > 0) mapOf(did to Cut(own.ownSeq, own.ownPrev)) else null
     appendChecked(
         session,
-        buildEntry(session.group, session.state, Draft(Op.LEAVE, did, remove = listOf(did)), listOf(device)),
+        buildEntry(session.group, session.state, Draft(Op.LEAVE, did, remove = listOf(did), cut = cut), listOf(device)),
         emptyMap(),
         null,
     )
