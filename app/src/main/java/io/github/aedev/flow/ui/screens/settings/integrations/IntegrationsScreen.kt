@@ -41,6 +41,7 @@ internal fun IntegrationsScreen(
     val submitButton by viewModel.submitButton.collectAsStateWithLifecycle()
     val userId by viewModel.userId.collectAsStateWithLifecycle()
     val segments by viewModel.segments.collectAsStateWithLifecycle()
+    val skipButtonStyle by viewModel.skipButtonStyle.collectAsStateWithLifecycle()
     val deArrow by viewModel.deArrow.collectAsStateWithLifecycle()
     val discordState by viewModel.discordState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -63,6 +64,8 @@ internal fun IntegrationsScreen(
             submitButton = submitButton,
             userId = userId,
             segments = segments,
+            skipButtonStyle = skipButtonStyle,
+            onPickSkipButtonStyle = { dialog = IntegrationsDialog.SKIP_BUTTON_STYLE },
             onEditUserId = { dialog = IntegrationsDialog.USER_ID },
             onPickColour = { colourCategory = it },
         )
@@ -95,6 +98,7 @@ internal fun IntegrationsScreen(
     IntegrationsDialogs(
         dialog = dialog,
         userId = userId,
+        skipButtonStyle = skipButtonStyle,
         viewModel = viewModel,
         onDismiss = { dialog = null },
     )
