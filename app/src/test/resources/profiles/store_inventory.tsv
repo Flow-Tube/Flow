@@ -27,6 +27,7 @@ prefs_datastore	widget_content	main:widget/core/refresh/WidgetContentSync.kt	DEV
 prefs_datastore	widget_theme	main:widget/core/theme/WidgetThemeSignatureStore.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
 prefs_datastore	now_playing_widget	main:widget/core/state/NowPlayingState.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
 prefs_datastore	animated_artwork	main:data/music/artwork/AnimatedArtworkCache.kt	DEVICE	-	Album to artwork-loop lookup; not personal.
+prefs_datastore	playback_errors	main:player/error/PlaybackErrorLog.kt	DEVICE	-	Latest music playback failures for diagnostics; song ids and error codes.
 prefs_datastore	downloads	main:data/music/DownloadManager.kt	DEVICE	-	Legacy downloaded-track list and its Room migration marker.
 factory_datastore	every safePreferencesDataStore	main:data/local/SafeDataStore.kt	DEVICE	-	The one wrapper every preferences store goes through; each call states its scope and ProfileFiles picks the file.
 shared_prefs	youtube_identity	main:utils/potoken/VisitorIdentityStore.kt	PROFILE	identity	Visitor data per profile; Default keeps the name, others get youtube_identity_<id>.
