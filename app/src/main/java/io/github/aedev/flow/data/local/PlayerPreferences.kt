@@ -167,6 +167,7 @@ class PlayerPreferences(
         val LYRICS_SHOW_ROMANIZATION = booleanPreferencesKey("lyrics_show_romanization")
         val LYRICS_AUTO_ROMANIZE = booleanPreferencesKey("lyrics_auto_romanize")
         val LYRICS_KEEP_SCREEN_ON = booleanPreferencesKey("lyrics_keep_screen_on")
+        val LYRICS_BLUR_OTHER_LINES = booleanPreferencesKey("lyrics_blur_other_lines")
         val LYRICS_PROVIDER_ENABLED_BETTERLYRICS = booleanPreferencesKey("lyrics_provider_enabled_betterlyrics")
         val LYRICS_PROVIDER_ENABLED_SIMPMUSIC = booleanPreferencesKey("lyrics_provider_enabled_simpmusic")
         val LYRICS_PROVIDER_ENABLED_LYRICSPLUS = booleanPreferencesKey("lyrics_provider_enabled_lyricsplus")
@@ -3885,6 +3886,13 @@ class PlayerPreferences(
 
     suspend fun setLyricsKeepScreenOn(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { it[Keys.LYRICS_KEEP_SCREEN_ON] = enabled }
+    }
+
+    val lyricsBlurOtherLines: Flow<Boolean> =
+        context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_BLUR_OTHER_LINES] ?: true }
+
+    suspend fun setLyricsBlurOtherLines(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_BLUR_OTHER_LINES] = enabled }
     }
 
     // ========== MINI PLAYER PREFERENCES ==========

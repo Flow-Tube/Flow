@@ -121,6 +121,7 @@ internal data class LyricsDisplayOptions(
     val showRomanization: Boolean = true,
     val autoRomanize: Boolean = false,
     val keepScreenOn: Boolean = false,
+    val blurOtherLines: Boolean = true,
 )
 
 /**

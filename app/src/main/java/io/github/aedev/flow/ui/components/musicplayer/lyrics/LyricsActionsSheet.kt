@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Abc
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.BlurOn
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FormatAlignCenter
@@ -209,6 +210,14 @@ internal fun LyricsActionsSheet(
                         supporting = stringResource(R.string.lyrics_keep_screen_on_summary),
                         checked = display.keepScreenOn,
                         onCheckedChange = { onDisplayChange(display.copy(keepScreenOn = it)) },
+                    ) +
+                    lyricsSwitchRow(
+                        key = "blur_other_lines",
+                        icon = Icons.Outlined.BlurOn,
+                        title = stringResource(R.string.lyrics_blur_other_lines),
+                        supporting = stringResource(R.string.lyrics_blur_other_lines_summary),
+                        checked = display.blurOtherLines,
+                        onCheckedChange = { onDisplayChange(display.copy(blurOtherLines = it)) },
                     ),
         )
         Spacer(modifier = Modifier.height(12.dp))
