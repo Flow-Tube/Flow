@@ -40,6 +40,7 @@ import io.github.aedev.flow.sync2.store.ParsedObject
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
 import io.github.aedev.flow.sync2.store.ZERO_HASH
+import io.github.aedev.flow.sync2.store.kcName
 import io.github.aedev.flow.sync2.store.nextInStream
 import io.github.aedev.flow.sync2.store.parseObject
 import io.github.aedev.flow.sync2.store.sealObject
@@ -96,11 +97,18 @@ class Session private constructor(
     internal val group: ByteArray,
     val state: RosterState,
     internal val entries: List<Entry>,
+    standing: List<Entry> = emptyList(),
 ) {
     internal val me = SyncBytes.toHex(device.did)
     private val signingKeys = HashMap<String, ByteArray>()
     private val commitments = HashMap<Int, ByteArray>()
     private val keys = TreeMap<Int, ByteArray>()
+
+    /** The `kc` of each entry that lost a fork and stands, by the epoch it starts. */
+    private val standing = standing.mapNotNull { it.epoch }.groupBy({ it.n }, { it.kc })
+
+    /** The keys of those entries unwrapped so far, by `kc`. */
+    private val standingKeys = HashMap<String, ByteArray>()
 
     var record = record
         private set
@@ -165,18 +173,41 @@ class Session private constructor(
             val state = replayRoster(entries)
             val member = SyncBytes.toHex(device.did) in state.members
             if (!settled.extendsApplied && !member) throw LinkedException.RemovalUnconfirmed()
+            val session = Session(db, store, device, record, SyncBytes.fromHex(record.groupId), state, entries, settled.standing)
+            // Nothing is saved until the new chain's key opens: without it the device stays where it was.
+            if (member) session.unwrapCurrent()
             if (settled.extendsApplied) groups.addEntries(entries.drop(applied.size)) else groups.replaceRoster(entries)
             if (!member) throw LinkedException.Removed()
-            return Session(db, store, device, record, SyncBytes.fromHex(record.groupId), state, entries).apply { unwrapCurrent() }
+            return session
         }
+
+        /** Like [open], but while this device lacks its wrap of the settled chain's epoch it stays on the chain it had: a LAN session is how it gets that wrap. */
+        suspend fun openForLan(
+            db: LinkedDatabase,
+            store: ChangeList,
+            device: MemberSecrets,
+        ): Session =
+            try {
+                open(db, store, device)
+            } catch (e: ProtocolException) {
+                if (e.error != ProtocolError.KEY_COMMITMENT) throw e
+                onApplied(db, store, device)
+            }
     }
 
     private suspend fun unwrapCurrent() {
-        val epoch = state.epoch
-        val wrap = store.key(epoch, me) ?: reject(ProtocolError.KEY_COMMITMENT)
+        keys[state.epoch] = unwrapWrap(state.epoch, commitments[state.epoch] ?: reject(ProtocolError.KEY_COMMITMENT))
+    }
+
+    /** This device's key of the entry that starts [epoch] with [commitment]. */
+    private suspend fun unwrapWrap(
+        epoch: Int,
+        commitment: ByteArray,
+    ): ByteArray {
+        val wrap = store.key(epoch, kcName(commitment), me) ?: reject(ProtocolError.KEY_COMMITMENT)
         val key = unwrapEpochKey(device.kemSecret, group, epoch, device.did, wrap)
-        checkEpochKey(key, group, epoch, commitments[epoch] ?: reject(ProtocolError.KEY_COMMITMENT))
-        keys[epoch] = key
+        checkEpochKey(key, group, epoch, commitment)
+        return key
     }
 
     /** The key of [epoch], walking the history chain back from the oldest key this device holds. */
@@ -184,12 +215,37 @@ class Session private constructor(
         while (epoch !in keys) {
             val (known, key) = keys.firstEntry() ?: reject(ProtocolError.KEY_COMMITMENT)
             if (known <= epoch) reject(ProtocolError.KEY_COMMITMENT)
-            val chain = store.key(known, "chain") ?: reject(ProtocolError.KEY_COMMITMENT)
+            val knownCommitment = commitments[known] ?: reject(ProtocolError.KEY_COMMITMENT)
+            val chain = store.key(known, kcName(knownCommitment), "chain") ?: reject(ProtocolError.KEY_COMMITMENT)
             val previous = openChain(key, group, known, chain)
             checkEpochKey(previous, group, known - 1, commitments[known - 1] ?: reject(ProtocolError.KEY_COMMITMENT))
             keys[known - 1] = previous
         }
         return keys.getValue(epoch)
+    }
+
+    /**
+     * Opens something sealed under [epoch] with the chain's key, or else with the key of an entry that
+     * lost that epoch and stands (spec/store.md, Reading an envelope).
+     */
+    internal suspend fun <T> openUnder(
+        epoch: Int,
+        open: (ByteArray) -> T,
+    ): T {
+        val failure =
+            try {
+                return open(epochKey(epoch))
+            } catch (e: ProtocolException) {
+                e
+            }
+        for (kc in standing[epoch].orEmpty()) {
+            try {
+                return open(standingKeys.getOrPut(kc) { unwrapWrap(epoch, SyncBytes.b64urlDecode(kc)) })
+            } catch (_: ProtocolException) {
+                continue
+            }
+        }
+        throw failure
     }
 
     internal suspend fun write(
@@ -399,7 +455,7 @@ class Session private constructor(
 
     internal suspend fun openContent(parsed: ParsedObject): Content {
         val epoch = parsed.header.epoch
-        val content = decodePayload(parsed.open(purposeKey(epochKey(epoch), group, epoch, parsed.header.type.purpose)))
+        val content = decodePayload(openUnder(epoch) { parsed.open(purposeKey(it, group, epoch, parsed.header.type.purpose)) })
         return when (parsed.header.type) {
             ObjectType.CHANGES -> Content.Batch(parseBatch(content))
             ObjectType.SNAPSHOT -> Content.Snapshot(parseManifest(content))

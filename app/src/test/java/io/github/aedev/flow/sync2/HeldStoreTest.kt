@@ -149,7 +149,8 @@ class HeldStoreTest {
 
         override suspend fun key(
             epoch: Int,
+            kc: String,
             name: String,
-        ) = inner.key(epoch, name).also { if (it == null) missing += epoch to name }
+        ) = inner.key(epoch, kc, name).also { if (it == null) missing += epoch to name }
     }
 }

@@ -369,8 +369,10 @@ class ServerStore private constructor(
         return Appended.Done
     }
 
+    /** The server names a wrap by epoch alone: only one entry can start an epoch there. */
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
     ): ByteArray? = getBytes("v1/keys/${epochName(epoch)}/$name.k")
 

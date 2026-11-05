@@ -53,7 +53,7 @@ class FileLayoutTest {
         files: FileStore,
     ) {
         g.store.roster.forEach { files.put(StorePaths.roster(it.seq, entryHash(it)), canonicalEntry(it).toByteArray()) }
-        g.store.keys.forEach { (key, wrap) -> files.put(StorePaths.key(key.first, key.second), wrap) }
+        g.store.keys.forEach { (key, wrap) -> files.put(StorePaths.key(key.epoch, key.kc, key.name), wrap) }
     }
 
     private suspend fun TestScope.device(

@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.crypto.SyncCrypto
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
+import io.github.aedev.flow.sync2.crypto.epochCommitment
 import io.github.aedev.flow.sync2.crypto.groupId
 import io.github.aedev.flow.sync2.crypto.wrapEpochKey
 import io.github.aedev.flow.sync2.data.GroupRecord
@@ -24,9 +25,12 @@ import io.github.aedev.flow.sync2.roster.replayRoster
 import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.ChangeList
 import io.github.aedev.flow.sync2.store.ChangedObject
+import io.github.aedev.flow.sync2.store.KeyName
 import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.Mailbox
 import io.github.aedev.flow.sync2.store.Remote
+import io.github.aedev.flow.sync2.store.kcName
+import io.github.aedev.flow.sync2.store.wrapsEpoch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlin.io.path.createTempDirectory
@@ -45,7 +49,7 @@ class MemoryStore :
     private val slots = HashMap<String, HashMap<String, ByteArray>>()
 
     val roster = ArrayList<Entry>()
-    val keys = HashMap<Pair<Int, String>, ByteArray>()
+    val keys = HashMap<KeyName, ByteArray>()
     val objects = LinkedHashMap<String, Pair<Long, ByteArray>>()
     private var cursor = 0L
 
@@ -70,17 +74,31 @@ class MemoryStore :
     ): Appended {
         val current = head()
         if (current.head != head) return Appended.Conflict(current.head)
-        val epoch = entry.epoch?.n ?: current.epoch
-        wraps.forEach { (did, wrap) -> keys[epoch to did] = SyncBytes.b64urlDecode(wrap) }
-        chain?.let { keys[epoch to "chain"] = SyncBytes.b64urlDecode(it) }
+        val (epoch, kc) = wrapsEpoch(entry, roster)
+        wraps.forEach { (did, wrap) -> keys[KeyName(epoch, kc, did)] = SyncBytes.b64urlDecode(wrap) }
+        chain?.let { keys[KeyName(epoch, kc, "chain")] = SyncBytes.b64urlDecode(it) }
         roster += entry
         return Appended.Done
     }
 
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
-    ) = keys[epoch to name]
+    ) = keys[KeyName(epoch, kc, name)]
+
+    /** Whether the store holds [name] under any entry that starts [epoch]. */
+    fun holdsKey(
+        epoch: Int,
+        name: String,
+    ) = keys.keys.any { it.epoch == epoch && it.name == name }
+
+    /** Holds in [local] the keys of [epoch] named [name]. */
+    suspend fun holdKeys(
+        local: LocalStore,
+        epoch: Int,
+        name: String,
+    ) = keys.filterKeys { it.epoch == epoch && it.name == name }.forEach { (key, wrap) -> local.putKey(key.epoch, key.kc, key.name, wrap) }
 
     override suspend fun putObject(
         path: String,
@@ -175,7 +193,11 @@ class LinkedGroup(
                 epoch = epochDraft(epochKey, group, 0, listOf(a, recovery).map { SyncBytes.toHex(it.did) }),
             )
         store.roster += buildEntry(group, null, genesis, listOf(a, recovery))
-        wraps(group, 0, epochKey, listOf(a, recovery)).forEach { (did, wrap) -> store.keys[0 to did] = SyncBytes.b64urlDecode(wrap) }
+        val kc = kcName(epochCommitment(epochKey, group, 0))
+        wraps(group, 0, epochKey, listOf(a, recovery)).forEach { (did, wrap) ->
+            store.keys[KeyName(0, kc, did)] =
+                SyncBytes.b64urlDecode(wrap)
+        }
         val state = store.head()
         val add =
             buildEntry(

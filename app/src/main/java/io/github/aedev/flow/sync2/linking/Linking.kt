@@ -44,6 +44,7 @@ import io.github.aedev.flow.sync2.store.ServerStore
 import io.github.aedev.flow.sync2.store.Store
 import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.WebDavStore
+import io.github.aedev.flow.sync2.store.kcName
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.selects.select
@@ -301,7 +302,13 @@ class Welcomed internal constructor(
         try {
             if (server == null) {
                 local.addEntries(roster)
-                local.putKey(replayRoster(roster).epoch, me.did, SyncBytes.b64urlDecode(welcome.wrap ?: throw LinkedException.Unexpected()))
+                val state = replayRoster(roster)
+                local.putKey(
+                    state.epoch,
+                    kcName(SyncBytes.b64urlDecode(state.kc)),
+                    me.did,
+                    SyncBytes.b64urlDecode(welcome.wrap ?: throw LinkedException.Unexpected()),
+                )
             }
             db.groups().addEntries(roster)
             // A joined device never had recovery words to confirm; the device that created or restored the group did.

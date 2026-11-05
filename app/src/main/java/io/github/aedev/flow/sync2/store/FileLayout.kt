@@ -51,17 +51,18 @@ class FileLayout(
         val current = winningChain(entries(), pins)
         val currentHead = current.lastOrNull()?.let(::entryHash).orEmpty()
         if (currentHead != head) return Appended.Conflict(currentHead)
-        val epoch = epochOf(entry, current)
-        wraps.forEach { (did, wrap) -> files.put(StorePaths.key(epoch, did), wrapBytes(wrap)) }
-        chain?.let { files.put(StorePaths.key(epoch, "chain"), wrapBytes(it)) }
+        val (epoch, kc) = wrapsEpoch(entry, current)
+        wraps.forEach { (did, wrap) -> files.put(StorePaths.key(epoch, kc, did), wrapBytes(wrap)) }
+        chain?.let { files.put(StorePaths.key(epoch, kc, "chain"), wrapBytes(it)) }
         files.put(StorePaths.roster(entry.seq, entryHash(entry)), canonicalEntry(entry).toByteArray())
         return Appended.Done
     }
 
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
-    ): ByteArray? = files.get(StorePaths.key(epoch, name))
+    ): ByteArray? = files.get(StorePaths.key(epoch, kc, name))
 
     override suspend fun putObject(
         path: String,

@@ -136,7 +136,7 @@ suspend fun createLanGroup(
     link: String,
 ): String {
     val genesis = Genesis(device, meta)
-    local.hold(genesis.entry, 0, genesis.wraps.mapValues { (_, wrap) -> SyncBytes.b64urlDecode(wrap) }, null)
+    local.hold(genesis.entry, emptyList(), genesis.wraps.mapValues { (_, wrap) -> SyncBytes.b64urlDecode(wrap) }, null)
     db.groups().addEntries(listOf(genesis.entry))
     db.profiles().saveGroup(GroupRecord(SyncBytes.toHex(genesis.group), LAN_STORE, null, link), profile = link)
     return genesis.words
