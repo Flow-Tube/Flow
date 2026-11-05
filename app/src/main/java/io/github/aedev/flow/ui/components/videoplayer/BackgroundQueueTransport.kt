@@ -14,6 +14,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -23,8 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -77,55 +80,58 @@ internal fun BackgroundQueueTransport(
     val playback by rememberPolledPlayback(isPlaying)
     var scrubFraction by remember { mutableStateOf<Float?>(null) }
 
-    Column(
-        modifier = modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        MediaSeekBar(
-            value = { scrubFraction ?: playback.fraction },
-            onValueChange = { scrubFraction = it },
-            onValueChangeFinished = {
-                scrubFraction?.let { manager.seekTo((it * playback.durationMs).toLong()) }
-                scrubFraction = null
-            },
-            enabled = playback.durationMs > 0L,
-            duration = playback.durationMs,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    // Transport follows the timeline, as in the main player: time and skips run left to right.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Column(
+            modifier = modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Text(
-                text = formatDurationMillis(playback.positionMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
+            MediaSeekBar(
+                value = { scrubFraction ?: playback.fraction },
+                onValueChange = { scrubFraction = it },
+                onValueChangeFinished = {
+                    scrubFraction?.let { manager.seekTo((it * playback.durationMs).toLong()) }
+                    scrubFraction = null
+                },
+                enabled = playback.durationMs > 0L,
+                duration = playback.durationMs,
+                modifier = Modifier.fillMaxWidth(),
             )
-            IconButton(
-                onClick = { actions.commit(MiniBarSwipeAction.PREVIOUS)?.perform?.invoke() },
-                enabled = actions.isAvailable(MiniBarSwipeAction.PREVIOUS),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Rounded.SkipPrevious, contentDescription = stringResource(R.string.previous))
+                Text(
+                    text = formatDurationMillis(playback.positionMs),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = { actions.commit(MiniBarSwipeAction.PREVIOUS)?.perform?.invoke() },
+                    enabled = actions.isAvailable(MiniBarSwipeAction.PREVIOUS),
+                ) {
+                    Icon(Icons.Rounded.SkipPrevious, contentDescription = stringResource(R.string.previous))
+                }
+                MediaPlayPauseButton(
+                    isPlaying = isPlaying,
+                    isBuffering = playerState.isBuffering,
+                    onClick = { if (isPlaying) manager.pause() else manager.play() },
+                )
+                IconButton(
+                    onClick = { actions.commit(MiniBarSwipeAction.NEXT)?.perform?.invoke() },
+                    enabled = actions.isAvailable(MiniBarSwipeAction.NEXT),
+                ) {
+                    Icon(Icons.Rounded.SkipNext, contentDescription = stringResource(R.string.next))
+                }
+                Text(
+                    text = formatDurationMillis(playback.durationMs),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f),
+                )
             }
-            MediaPlayPauseButton(
-                isPlaying = isPlaying,
-                isBuffering = playerState.isBuffering,
-                onClick = { if (isPlaying) manager.pause() else manager.play() },
-            )
-            IconButton(
-                onClick = { actions.commit(MiniBarSwipeAction.NEXT)?.perform?.invoke() },
-                enabled = actions.isAvailable(MiniBarSwipeAction.NEXT),
-            ) {
-                Icon(Icons.Rounded.SkipNext, contentDescription = stringResource(R.string.next))
-            }
-            Text(
-                text = formatDurationMillis(playback.durationMs),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f),
-            )
         }
     }
 }

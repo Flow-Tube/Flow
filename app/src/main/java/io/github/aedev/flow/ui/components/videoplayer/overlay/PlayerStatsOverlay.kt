@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.ButtonDefaults
@@ -21,6 +19,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
@@ -30,7 +29,10 @@ import io.github.aedev.flow.ui.theme.PlayerScrimPanel
 
 private val PanelMaxWidth = 520.dp
 
-/** "Stats for nerds", over the top of the video. Taps away from its two buttons reach the player. */
+/**
+ * "Stats for nerds", over the top of the video. Taps away from its two buttons reach the player, so
+ * nothing here may take pointer input: a scroller would swallow every touch over the controls.
+ */
 @Composable
 internal fun PlayerStatsOverlay(
     lines: List<PlayerStatLine>,
@@ -39,12 +41,18 @@ internal fun PlayerStatsOverlay(
     modifier: Modifier = Modifier,
 ) {
     val rows = lines.map { stringResource(R.string.stats_line, stringResource(it.label), it.value) }
-    Box(modifier = modifier.widthIn(max = PanelMaxWidth).fillMaxWidth().background(PlayerScrimPanel)) {
+    Box(
+        modifier =
+            modifier
+                .widthIn(max = PanelMaxWidth)
+                .fillMaxWidth()
+                .background(PlayerScrimPanel)
+                .clipToBounds(),
+    ) {
         Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
                     .padding(start = 12.dp, top = 8.dp, end = 48.dp, bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {

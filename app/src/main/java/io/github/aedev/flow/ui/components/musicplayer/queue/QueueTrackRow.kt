@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -295,7 +297,8 @@ private fun BoxScope.SwipeRevealPanel(
     val density = LocalDensity.current
     val revealWidthPx = kotlin.math.abs(offsetX)
     val revealProgress = (revealWidthPx / (56.dp.value * density.density)).coerceIn(0f, 1f)
-    val towardStart = offsetX < 0f
+    // The row moves by a physical offset, so the panel ignores the layout direction too.
+    val towardLeft = offsetX < 0f
 
     val containerColor = swipe.containerColor
     val contentColor = swipe.contentColor
@@ -319,16 +322,16 @@ private fun BoxScope.SwipeRevealPanel(
     Box(
         modifier =
             Modifier
-                .align(if (towardStart) Alignment.CenterEnd else Alignment.CenterStart)
-                .padding(
-                    start = if (towardStart) 0.dp else 8.dp,
-                    end = if (towardStart) 8.dp else 0.dp,
+                .align(if (towardLeft) AbsoluteAlignment.CenterRight else AbsoluteAlignment.CenterLeft)
+                .absolutePadding(
+                    left = if (towardLeft) 0.dp else 8.dp,
+                    right = if (towardLeft) 8.dp else 0.dp,
                 ).height(with(density) { rowHeightPx.toDp() })
                 .padding(vertical = 2.dp)
                 .width(revealWidthDp)
                 .clip(CircleShape)
                 .background(backgroundColor),
-        contentAlignment = if (towardStart) Alignment.CenterEnd else Alignment.CenterStart,
+        contentAlignment = if (towardLeft) AbsoluteAlignment.CenterRight else AbsoluteAlignment.CenterLeft,
     ) {
         Icon(
             imageVector = swipe.icon,
