@@ -4,14 +4,25 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.roster.Entry
-import io.github.aedev.flow.sync2.roster.RosterState
-import io.github.aedev.flow.sync2.roster.applyEntry
+import io.github.aedev.flow.sync2.roster.EpochField
 import kotlinx.serialization.Serializable
 import java.io.IOException
 
 /** What the sync engine needs from a store: the Flow server, plain file stores through [FileLayout], and what a device holds. */
 interface Store {
     suspend fun rosterAfter(after: Long): List<Entry>
+
+    /** Every roster entry the store shows, fork candidates included. */
+    suspend fun rosterView(): List<Entry> = rosterAfter(-1)
+
+    /** Whether the store orders appends, so it has no honest way to change an entry it answered with. */
+    val linear: Boolean get() = true
+
+    /** Whether this is what the device itself holds, rather than a store's answer. */
+    val heldHere: Boolean get() = false
+
+    /** The entries this device chose between sides of a contested roster, for a store that picks a winner itself. */
+    fun usePins(pins: Set<String>) = Unit
 
     suspend fun appendRoster(
         head: String,
@@ -20,8 +31,10 @@ interface Store {
         chain: String?,
     ): Appended
 
+    /** A wrap or chain box: [kc] is the `<kc:16>` of its path. */
     suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
     ): ByteArray?
 
@@ -47,30 +60,44 @@ interface ChangeList : Store {
     suspend fun changes(cursor: Long): Pair<List<ChangedObject>, Long>
 }
 
-/** The epoch an appended [entry]'s wraps belong to: the one it starts, or the current one on [chain]. */
-internal fun epochOf(
+/** Where a wrap or chain box lives under `keys/`: its epoch, its `<kc:16>`, and a member's id or `chain`. */
+data class KeyName(
+    val epoch: Int,
+    val kc: String,
+    val name: String,
+)
+
+/** An epoch's `<kc:16>`, from the `kc` an entry names. */
+internal fun kcNameOf(field: EpochField): String = kcName(wrapBytes(field.kc))
+
+/** The epoch and `<kc:16>` an appended [entry]'s wraps belong to: the epoch it starts, or the one in force on [chain]. */
+internal fun wrapsEpoch(
     entry: Entry,
     chain: List<Entry>,
-): Int = entry.epoch?.n ?: chain.fold(null as RosterState?) { state, e -> applyEntry(state, e) }?.epoch ?: 0
+): Pair<Int, String> {
+    val field = entry.epoch ?: chain.lastOrNull { it.epoch != null }?.epoch ?: reject(ProtocolError.ROSTER_CHAIN)
+    return field.n to kcNameOf(field)
+}
 
 /**
- * The wraps and chain boxes a store holds for [me] along [chain]: a chain box for every epoch after
- * genesis, and [me]'s wrap only for the epochs since it joined.
+ * The wraps and chain boxes a store holds for [me] along [chain] and for the [standing] entries that lost: a chain box for
+ * every epoch after genesis, and [me]'s wrap only for the epochs since it joined.
  */
 internal fun keyNames(
     chain: List<Entry>,
+    standing: List<Entry>,
     me: String,
-): List<Pair<Int, String>> {
-    var epoch = 0
-    val names = ArrayList<Pair<Int, String>>()
-    for (entry in chain) {
+): List<KeyName> {
+    val names = ArrayList<KeyName>()
+    for ((index, entry) in (chain + standing).withIndex()) {
         val started = entry.epoch
         if (started != null) {
-            epoch = started.n
-            if (epoch > 0) names += epoch to "chain"
-            if (me in started.to) names += epoch to me
+            val kc = kcNameOf(started)
+            if (started.n > 0) names += KeyName(started.n, kc, "chain")
+            if (me in started.to) names += KeyName(started.n, kc, me)
         } else if (entry.add.orEmpty().any { it.did == me }) {
-            names += epoch to me
+            val (epoch, kc) = wrapsEpoch(entry, chain.take(index))
+            names += KeyName(epoch, kc, me)
         }
     }
     return names

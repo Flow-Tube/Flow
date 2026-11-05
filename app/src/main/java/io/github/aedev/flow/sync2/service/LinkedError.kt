@@ -1,5 +1,6 @@
 package io.github.aedev.flow.sync2.service
 
+import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.store.StoreException
@@ -22,6 +23,11 @@ enum class LinkedError(
     LOCAL(retryable = true),
     NOT_LINKED,
     REMOVED,
+    REMOVAL_UNCONFIRMED,
+    CONTESTED(retryable = true),
+    ROLLED_BACK(retryable = true),
+    ROSTER_CHANGED(retryable = true),
+    GROUP_OUTDATED,
     DECLINED,
     TIMED_OUT,
     JOIN_DECLINED,
@@ -73,7 +79,11 @@ fun Throwable.linkedError(): LinkedError =
             LinkedError.REMOVED
         }
 
-        is StoreException.Malformed, is ProtocolException -> {
+        is ProtocolException -> {
+            if (error == ProtocolError.ROSTER_GROUP) LinkedError.GROUP_OUTDATED else LinkedError.PROTOCOL
+        }
+
+        is StoreException.Malformed -> {
             LinkedError.PROTOCOL
         }
 
@@ -83,6 +93,22 @@ fun Throwable.linkedError(): LinkedError =
 
         is LinkedException.Removed -> {
             LinkedError.REMOVED
+        }
+
+        is LinkedException.RemovalUnconfirmed -> {
+            LinkedError.REMOVAL_UNCONFIRMED
+        }
+
+        is LinkedException.Contested -> {
+            LinkedError.CONTESTED
+        }
+
+        is LinkedException.RosterRolledBack -> {
+            LinkedError.ROLLED_BACK
+        }
+
+        is LinkedException.RosterRewritten -> {
+            LinkedError.ROSTER_CHANGED
         }
 
         is LinkedException.Declined -> {

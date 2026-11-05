@@ -3,6 +3,7 @@ package io.github.aedev.flow.sync2
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.aedev.flow.sync.crypto.SyncBytes
+import io.github.aedev.flow.sync.crypto.SyncCrypto
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync.transport.SyncConnection
@@ -10,7 +11,9 @@ import io.github.aedev.flow.sync.transport.WsClient
 import io.github.aedev.flow.sync.transport.WsServer
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.ProtocolException
+import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.LinkedDatabase
+import io.github.aedev.flow.sync2.data.toEntries
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.lan.LanLink
@@ -18,11 +21,19 @@ import io.github.aedev.flow.sync2.lan.LanPeer
 import io.github.aedev.flow.sync2.lan.SESSION_PATH
 import io.github.aedev.flow.sync2.lan.acceptLink
 import io.github.aedev.flow.sync2.lan.connectLink
+import io.github.aedev.flow.sync2.lan.dialLink
 import io.github.aedev.flow.sync2.lan.portFree
 import io.github.aedev.flow.sync2.linking.DeviceMeta
+import io.github.aedev.flow.sync2.linking.newEpoch
 import io.github.aedev.flow.sync2.linking.renameDevice
+import io.github.aedev.flow.sync2.roster.Entry
+import io.github.aedev.flow.sync2.roster.Op
+import io.github.aedev.flow.sync2.roster.Role
+import io.github.aedev.flow.sync2.roster.buildEntry
 import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.forkWinner
+import io.github.aedev.flow.sync2.roster.memberSubject
+import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.GroupStore
 import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.MAX_SEQ
@@ -38,12 +49,15 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import okhttp3.OkHttpClient
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import java.nio.ByteBuffer
 
 /** LAN sessions over loopback (spec/live.md, Session and Requests): the hello, then each member pulls from the other. */
 @RunWith(AndroidJUnit4::class)
@@ -55,6 +69,8 @@ class LanSyncTest {
         val local: LocalStore,
     ) {
         suspend fun session() = Session.open(db, GroupStore(local, null), keys)
+
+        suspend fun lanSession() = Session.openForLan(db, GroupStore(local, null), keys)
     }
 
     /** A member of [g] that holds the roster and its own wrap, as a LAN group member would. */
@@ -63,10 +79,11 @@ class LanSyncTest {
         keys: MemberSecrets,
     ): Member {
         val db = g.deviceDb()
+        db.groups().saveGroup(checkNotNull(db.groups().group()).copy(storeUrl = LAN_STORE))
         val local = heldStore(db)
         local.addEntries(g.store.roster)
         val did = SyncBytes.toHex(keys.did)
-        g.store.keys[0 to did]?.let { local.putKey(0, did, it) }
+        g.store.holdKeys(local, 0, did)
         return Member(keys, db, local)
     }
 
@@ -88,6 +105,51 @@ class LanSyncTest {
             listener.stop()
         }
     }
+
+    /** One session from [client] to [server] as LanSync dials it: [server] closes what it can't answer. */
+    private suspend fun dialed(
+        client: Member,
+        server: Member,
+    ) = withContext(Dispatchers.Default) {
+        val answered = CompletableDeferred<Unit>()
+        val listener =
+            WsServer(SESSION_PATH) { connection ->
+                val link =
+                    try {
+                        acceptLink(connection, server.lanSession())
+                    } catch (_: ProtocolException) {
+                        connection.close()
+                        return@WsServer
+                    }
+                // Closing the link cancels this handler, which runs inside the socket's scope.
+                try {
+                    pullBoth(link, server)
+                } finally {
+                    answered.complete(Unit)
+                }
+            }
+        val port = listener.start()
+        val link = dialLink(client.lanSession(), null) { WsClient(OkHttpClient()).connect("ws://127.0.0.1:$port$SESSION_PATH") }
+        pullBoth(checkNotNull(link), client)
+        answered.await()
+        listener.stop()
+    }
+
+    /** [member], alone on the LAN, starts the next epoch in what it holds. */
+    private suspend fun rotateAlone(
+        g: LinkedGroup,
+        member: Member,
+    ): Entry {
+        val session = member.lanSession()
+        val state = session.state
+        val epoch = newEpoch(g.group, state.epoch + 1, state.members.mapValues { it.value.kem }, session.currentKey())
+        val entry = buildEntry(g.group, state, draft(Op.ROTATE, member.keys).copy(epoch = epoch.field), listOf(member.keys))
+        assertEquals(Appended.Done, member.local.appendRoster(state.head, entry, epoch.wraps, epoch.chain))
+        return entry
+    }
+
+    private suspend fun Member.write(video: String) =
+        session().push(mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"$video"}"""), 1, "")), LINK)
 
     /** [client]'s link to [server], whose peer answers until [block] returns; [block] may also have that peer ask. */
     private suspend fun linked(
@@ -132,7 +194,7 @@ class LanSyncTest {
         envelope: ByteArray? = null,
         heard: MutableList<ByteArray> = ArrayList(),
     ) = coroutineScope {
-        val peer = LanPeer(link, member.session(), member.local) { heard += it }
+        val peer = LanPeer(link, member.lanSession(), member.local) { heard += it }
         val reader = peer.start(this)
         envelope?.let { peer.sendLive(it) }
         peer.pull()
@@ -283,6 +345,144 @@ class LanSyncTest {
                 server.close()
                 listener.stop()
             }
+        }
+
+    @Test
+    fun members_that_each_rotated_meet_and_settle_on_one_chain() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = member(g, g.a) to member(g, g.b)
+            rotateAlone(g, a)
+            rotateAlone(g, b)
+
+            dialed(client = b, server = a)
+
+            val (onA, onB) = a.session() to b.session()
+            assertEquals(onA.state.head, onB.state.head)
+            assertArrayEquals(onA.currentKey(), onB.currentKey())
+        }
+
+    @Test
+    fun objects_sealed_under_a_rotation_that_lost_are_read_after_settling() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = member(g, g.a) to member(g, g.b)
+            rotateAlone(g, a)
+            rotateAlone(g, b)
+            a.write("aaaaaaaaaaa")
+            b.write("bbbbbbbbbbb")
+
+            dialed(client = b, server = a)
+
+            assertEquals(
+                setOf(SyncBytes.toHex(g.b.did)),
+                a
+                    .session()
+                    .pull(setOf(LINK))
+                    .batches.keys,
+            )
+            assertEquals(
+                setOf(SyncBytes.toHex(g.a.did)),
+                b
+                    .session()
+                    .pull(setOf(LINK))
+                    .batches.keys,
+            )
+        }
+
+    @Test
+    fun an_object_sealed_under_an_entry_that_fell_stops_only_its_sender() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val c = MemberSecrets(SyncCrypto.randomBytes(32), SyncCrypto.randomBytes(32))
+            val before = g.store.head()
+            val add =
+                buildEntry(
+                    g.group,
+                    before,
+                    draft(Op.ADD, g.a).copy(add = listOf(memberSubject(c.sigPublic, c.kemPublic, Role.DEVICE))),
+                    listOf(g.a, c),
+                )
+            g.store.appendRoster(before.head, add, wraps(g.group, 0, g.epochKey, listOf(c)), null)
+            val (a, b, removed) = Triple(member(g, g.a), member(g, g.b), member(g, c))
+
+            rotateAlone(g, removed)
+            removed.write("ccccccccccc")
+            dialed(client = b, server = removed)
+
+            val session = a.lanSession()
+            val state = session.state
+            val stays = state.members.filterKeys { it != SyncBytes.toHex(c.did) }.mapValues { it.value.kem }
+            val epoch = newEpoch(g.group, state.epoch + 1, stays, session.currentKey())
+            val remove =
+                buildEntry(
+                    g.group,
+                    state,
+                    draft(Op.REMOVE, g.a).copy(remove = listOf(SyncBytes.toHex(c.did)), epoch = epoch.field),
+                    listOf(g.a),
+                )
+            a.local.appendRoster(state.head, remove, epoch.wraps, epoch.chain)
+            a.write("aaaaaaaaaaa")
+            dialed(client = b, server = a)
+
+            assertEquals(
+                setOf(SyncBytes.toHex(g.a.did)),
+                b
+                    .session()
+                    .pull(setOf(LINK))
+                    .batches.keys,
+            )
+        }
+
+    @Test
+    fun a_device_missing_its_wrap_stays_on_its_chain_and_fetches_it_over_the_lan() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = member(g, g.a) to member(g, g.b)
+            val applied = b.session().state.head
+            val rotated = rotateAlone(g, a)
+            b.local.addEntries(listOf(rotated))
+
+            val refused = runCatching { b.session() }.exceptionOrNull()
+            assertEquals("key-commitment", (refused as? ProtocolException)?.error?.code)
+            assertEquals(
+                applied,
+                entryHash(
+                    b.db
+                        .groups()
+                        .roster()
+                        .toEntries()
+                        .last(),
+                ),
+            )
+            assertEquals(applied, b.lanSession().state.head)
+
+            dialed(client = b, server = a)
+
+            assertEquals(entryHash(rotated), b.session().state.head)
+        }
+
+    @Test
+    fun a_dial_tries_lower_epochs_and_stops_after_four_attempts() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val b = member(g, g.b)
+            repeat(5) { rotateAlone(g, b) }
+            val epochs = ArrayList<Int>()
+            val link =
+                dialLink(b.lanSession(), null) {
+                    object : SyncConnection {
+                        override suspend fun send(bytes: ByteArray) {
+                            epochs += ByteBuffer.wrap(bytes, 0, 4).int
+                        }
+
+                        override suspend fun receive(): ByteArray? = null
+
+                        override fun close() = Unit
+                    }
+                }
+            assertNull(link)
+            assertEquals(listOf(5, 4, 3, 2), epochs)
         }
 
     @Test

@@ -74,7 +74,7 @@ class HandoffTest {
     ): Device {
         val held = heldStore(db)
         held.addEntries(store.roster)
-        store.keys.forEach { (key, wrap) -> held.putKey(key.first, key.second, wrap) }
+        store.keys.forEach { (key, wrap) -> held.putKey(key.epoch, key.kc, key.name, wrap) }
         val channel = LiveChannel(context, db, mockk<DeviceKeys> { coEvery { load() } returns secrets }, held)
         val consent = LiveConsent(db)
         val local =

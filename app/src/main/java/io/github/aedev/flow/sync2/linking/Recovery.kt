@@ -31,6 +31,7 @@ import io.github.aedev.flow.sync2.store.FileLayout
 import io.github.aedev.flow.sync2.store.ServerStore
 import io.github.aedev.flow.sync2.store.Store
 import io.github.aedev.flow.sync2.store.WebDavStore
+import io.github.aedev.flow.sync2.store.kcName
 
 /** The roster after a restore, and the new recovery words to show once. */
 class Restored(
@@ -66,9 +67,10 @@ suspend fun restore(
     val recoveryId = SyncBytes.toHex(recovery.did)
     if (state.members[recoveryId]?.used != false) throw LinkedException.RecoveryUsed()
     val group = SyncBytes.fromHex(state.group)
-    val wrap = asRecovery.key(state.epoch, recoveryId) ?: reject(ProtocolError.KEY_COMMITMENT)
+    val commitment = SyncBytes.b64urlDecode(state.kc)
+    val wrap = asRecovery.key(state.epoch, kcName(commitment), recoveryId) ?: reject(ProtocolError.KEY_COMMITMENT)
     val current = unwrapEpochKey(recovery.kemSecret, group, state.epoch, recovery.did, wrap)
-    checkEpochKey(current, group, state.epoch, SyncBytes.b64urlDecode(state.kc))
+    checkEpochKey(current, group, state.epoch, commitment)
 
     val kems = state.members.mapValues { (_, member) -> member.kem }
     val restored = newEpoch(group, state.epoch + 1, kems + (SyncBytes.toHex(device.did) to device.kemPublic), current)

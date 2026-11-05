@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.sync2.device.WebDavLogin
+import io.github.aedev.flow.sync2.engine.ContestSide
 import io.github.aedev.flow.sync2.live.LiveConsent
 import io.github.aedev.flow.sync2.live.LiveDevices
 import io.github.aedev.flow.sync2.live.deviceKind
@@ -47,6 +48,8 @@ internal data class LinkedUiState(
     val busy: Boolean = false,
     val syncing: Boolean = false,
     val error: LinkedError? = null,
+    /** The sides to choose between while two devices have removed each other. */
+    val contest: List<ContestSide> = emptyList(),
 ) {
     val linked: Boolean get() = storeUrl != null
 }
@@ -60,6 +63,7 @@ private data class Local(
     val words: String? = null,
     val busy: Boolean = false,
     val error: LinkedError? = null,
+    val contest: List<ContestSide> = emptyList(),
 )
 
 @HiltViewModel
@@ -109,6 +113,7 @@ internal class LinkedDevicesViewModel
                     l.busy,
                     syncing,
                     l.error ?: lastSync?.error,
+                    l.contest,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LinkedUiState())
 
@@ -231,6 +236,14 @@ internal class LinkedDevicesViewModel
             }
 
         fun syncNow() = actions.syncNow()
+
+        fun loadContest() = run { local.update { it.copy(contest = actions.contest()) } }
+
+        fun keepSide(entry: String) =
+            run {
+                actions.keepSide(entry)
+                local.update { it.copy(contest = emptyList()) }
+            }
 
         fun enterCode(
             code: String,

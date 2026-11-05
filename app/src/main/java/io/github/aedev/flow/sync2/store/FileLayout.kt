@@ -5,7 +5,7 @@ import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.parseEntry
-import io.github.aedev.flow.sync2.roster.resolveForks
+import io.github.aedev.flow.sync2.roster.winningChain
 import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,12 +23,23 @@ class FileLayout(
     private suspend fun entry(path: String): Entry? =
         files.get(path)?.let { runCatching { parseEntry(Json.parseToJsonElement(it.decodeToString())) }.getOrNull() }
 
-    private suspend fun rosterPaths(): List<String> = files.list("roster").filter { it.endsWith(".r") }.map { "roster/$it" }
+    suspend fun rosterPaths(): List<String> = files.list("roster").filter { it.endsWith(".r") }.map { "roster/$it" }
 
     /** Every roster entry stored, fork candidates included. */
     private suspend fun entries(): List<Entry> = rosterPaths().mapNotNull { entry(it) }
 
-    override suspend fun rosterAfter(after: Long): List<Entry> = resolveForks(entries()).filter { it.seq > after }
+    @Volatile
+    private var pins: Set<String> = emptySet()
+
+    override suspend fun rosterAfter(after: Long): List<Entry> = winningChain(entries(), pins).filter { it.seq > after }
+
+    override suspend fun rosterView(): List<Entry> = entries()
+
+    override val linear: Boolean get() = false
+
+    override fun usePins(pins: Set<String>) {
+        this.pins = pins
+    }
 
     /** Wraps and the chain box first, then the entry (spec/store.md, Writing rules). */
     override suspend fun appendRoster(
@@ -37,20 +48,21 @@ class FileLayout(
         wraps: Map<String, String>,
         chain: String?,
     ): Appended {
-        val current = resolveForks(entries())
+        val current = winningChain(entries(), pins)
         val currentHead = current.lastOrNull()?.let(::entryHash).orEmpty()
         if (currentHead != head) return Appended.Conflict(currentHead)
-        val epoch = epochOf(entry, current)
-        wraps.forEach { (did, wrap) -> files.put(StorePaths.key(epoch, did), wrapBytes(wrap)) }
-        chain?.let { files.put(StorePaths.key(epoch, "chain"), wrapBytes(it)) }
+        val (epoch, kc) = wrapsEpoch(entry, current)
+        wraps.forEach { (did, wrap) -> files.put(StorePaths.key(epoch, kc, did), wrapBytes(wrap)) }
+        chain?.let { files.put(StorePaths.key(epoch, kc, "chain"), wrapBytes(it)) }
         files.put(StorePaths.roster(entry.seq, entryHash(entry)), canonicalEntry(entry).toByteArray())
         return Appended.Done
     }
 
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
-    ): ByteArray? = files.get(StorePaths.key(epoch, name))
+    ): ByteArray? = files.get(StorePaths.key(epoch, kc, name))
 
     override suspend fun putObject(
         path: String,

@@ -145,6 +145,7 @@ class LinkedSync
                         // Nothing more goes to a WebDAV server that refused the login until the user enters it again.
                         when (e) {
                             is LinkedException.Removed -> reset.removed()
+                            is LinkedException.RemovalUnconfirmed -> LinkedSyncWorker.cancel(context)
                             is StoreException.SignInRefused -> LinkedSyncWorker.cancel(context)
                             is StoreException.LoginRefused -> credentials.webDav()?.let { credentials.save(it.copy(refused = true)) }
                         }

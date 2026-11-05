@@ -20,6 +20,12 @@ data class HeldRow(
 
 @Dao
 interface HeldDao {
+    @Query("SELECT entry FROM roster WHERE seq = 0")
+    suspend fun genesis(): String?
+
+    @Query("SELECT hash FROM roster_pin")
+    suspend fun rosterPins(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun add(row: HeldRow)
 

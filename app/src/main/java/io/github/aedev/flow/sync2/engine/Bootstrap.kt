@@ -120,11 +120,12 @@ internal suspend fun Session.snapshotBatches(
     writer: String,
     epoch: Int,
     manifest: Manifest,
-): List<IncomingBatch> {
-    val key = purposeKey(epochKey(epoch), group, epoch, ObjectType.SNAPSHOT.purpose)
-    return manifest.parts.map { part ->
+): List<IncomingBatch> =
+    manifest.parts.map { part ->
         val blob = store.getObject(StorePaths.blob(writer, part.blob)) ?: reject(ProtocolError.BLOB_HASH)
         val hash = runCatching { SyncBytes.fromHex(part.blob) }.getOrNull() ?: reject(ProtocolError.BLOB_HASH)
-        parseBatch(decodePayload(openBlob(key, group, epoch, SyncBytes.fromHex(writer), blob, hash)))
+        val sealedBy = SyncBytes.fromHex(writer)
+        val payload =
+            openUnder(epoch) { openBlob(purposeKey(it, group, epoch, ObjectType.SNAPSHOT.purpose), group, epoch, sealedBy, blob, hash) }
+        parseBatch(decodePayload(payload))
     }
-}

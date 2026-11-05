@@ -4,6 +4,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.crypto.SyncCrypto
 import io.github.aedev.flow.sync.protocol.SyncSerialization
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
+import io.github.aedev.flow.sync2.crypto.groupId
 import io.github.aedev.flow.sync2.crypto.recoveryKeys
 import io.github.aedev.flow.sync2.crypto.recoveryWords
 import io.github.aedev.flow.sync2.crypto.wrapEpochKey
@@ -37,7 +38,7 @@ private class Genesis(
     device: MemberSecrets,
     meta: DeviceMeta,
 ) {
-    val group: ByteArray = SyncCrypto.randomBytes(16)
+    val group: ByteArray
     val entry: Entry
     val wraps: Map<String, String>
     val words: String
@@ -46,6 +47,7 @@ private class Genesis(
         val epochKey = SyncCrypto.randomBytes(32)
         val recoverySecret = SyncCrypto.randomBytes(32)
         val recovery = recoveryKeys(recoverySecret)
+        group = groupId(device.sigPublic to device.kemPublic, recovery.sigPublic to recovery.kemPublic)
         val members = listOf(device, recovery)
         val sealedMeta = sealDeviceMeta(epochKey, group, 0, 0, device.did, metaJson(meta))
         val draft =
@@ -134,7 +136,7 @@ suspend fun createLanGroup(
     link: String,
 ): String {
     val genesis = Genesis(device, meta)
-    local.hold(genesis.entry, 0, genesis.wraps.mapValues { (_, wrap) -> SyncBytes.b64urlDecode(wrap) }, null)
+    local.hold(genesis.entry, emptyList(), genesis.wraps.mapValues { (_, wrap) -> SyncBytes.b64urlDecode(wrap) }, null)
     db.groups().addEntries(listOf(genesis.entry))
     db.profiles().saveGroup(GroupRecord(SyncBytes.toHex(genesis.group), LAN_STORE, null, link), profile = link)
     return genesis.words

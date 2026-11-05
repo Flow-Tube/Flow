@@ -335,6 +335,19 @@ class ServerStore private constructor(
             ?.map(::parseEntry)
             ?: throw StoreException.Malformed()
 
+    /** The whole roster, page by page. A page that doesn't advance ends the read. */
+    override suspend fun rosterView(): List<Entry> {
+        val entries = ArrayList<Entry>()
+        var after = -1L
+        while (true) {
+            val page = rosterAfter(after)
+            val last = page.lastOrNull()?.seq ?: return entries
+            if (last <= after) throw StoreException.Malformed()
+            after = last
+            entries += page
+        }
+    }
+
     override suspend fun appendRoster(
         head: String,
         entry: Entry,
@@ -356,8 +369,10 @@ class ServerStore private constructor(
         return Appended.Done
     }
 
+    /** The server names a wrap by epoch alone: only one entry can start an epoch there. */
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
     ): ByteArray? = getBytes("v1/keys/${epochName(epoch)}/$name.k")
 
