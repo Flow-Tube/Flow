@@ -38,6 +38,9 @@ class PlayerScreenState {
     // Comment Sorting
     var commentSortFilter by mutableStateOf(CommentSortFilter.TOP)
 
+    // Written by the host from the player sheet's settled anchor; the comments sheet outlives a collapse.
+    var isPlayerExpanded by mutableStateOf(true)
+
     // Gesture States
     var brightnessLevel by mutableFloatStateOf(0.5f)
     var volumeLevel by mutableFloatStateOf(0.5f)

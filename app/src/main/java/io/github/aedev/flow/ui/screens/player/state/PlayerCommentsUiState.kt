@@ -8,6 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
+import io.github.aedev.flow.ui.components.shared.CommentsTimedFollow
 import io.github.aedev.flow.ui.components.shared.applyVideoCommentFilters
 import io.github.aedev.flow.ui.components.shared.timedCommentOrders
 import io.github.aedev.flow.ui.components.shared.videoCommentSortFor
@@ -46,6 +47,24 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
             hasMore = hasMore,
             totalText = totalText,
             sortOptions = sortOptions,
+        )
+    }
+}
+
+/** What the player's comment surfaces give the Timed list to follow the video with. */
+@Composable
+fun rememberPlayerCommentsTimedFollow(
+    viewModel: VideoPlayerViewModel,
+    screenState: PlayerScreenState,
+): CommentsTimedFollow {
+    val enabled by viewModel.timedCommentsFollow.collectAsStateWithLifecycle()
+    val isVisible = screenState.isPlayerExpanded
+    return remember(enabled, isVisible) {
+        CommentsTimedFollow(
+            enabled = enabled,
+            onEnabledChange = viewModel::setTimedCommentsFollow,
+            isSurfaceVisible = isVisible,
+            positionMs = { screenState.currentPosition },
         )
     }
 }

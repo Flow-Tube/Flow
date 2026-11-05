@@ -46,6 +46,7 @@ fun FlowCommentsBottomSheet(
     totalText: String? = null,
     artworkUrl: String? = null,
     showTimed: Boolean = false,
+    timedFollow: CommentsTimedFollow? = null,
     isLoadingMore: Boolean = false,
     onLoadMore: () -> Unit = {},
     hasMore: Boolean = false,
@@ -82,6 +83,7 @@ fun FlowCommentsBottomSheet(
                 selectedFilter = selectedFilter,
                 totalText = totalText,
                 showTimed = showTimed,
+                timedFollow = timedFollow,
                 onFilterChanged = onFilterChanged,
                 onClose = { sheetState.dismiss() },
                 dragModifier = dragModifier,
@@ -102,6 +104,7 @@ fun FlowCommentsBottomSheet(
             onLoadMore = onLoadMore,
             hasMore = hasMore,
             tint = tint,
+            timedFollow = timedFollow,
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -116,6 +119,7 @@ private fun CommentsSheetHeader(
     selectedFilter: CommentSortFilter,
     totalText: String?,
     showTimed: Boolean,
+    timedFollow: CommentsTimedFollow?,
     onFilterChanged: (CommentSortFilter) -> Unit,
     onClose: () -> Unit,
     dragModifier: Modifier,
@@ -169,6 +173,9 @@ private fun CommentsSheetHeader(
                 showTimed = showTimed,
                 modifier = Modifier.padding(top = 2.dp),
             )
+        }
+        if (selectedFilter == CommentSortFilter.TIMED && timedFollow != null) {
+            CommentsTimedFollowRow(timedFollow)
         }
         HorizontalDivider(
             color =

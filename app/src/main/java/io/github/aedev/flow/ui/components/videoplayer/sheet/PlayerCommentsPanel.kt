@@ -25,6 +25,8 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.ui.components.shared.CommentSortChips
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
+import io.github.aedev.flow.ui.components.shared.CommentsTimedFollow
+import io.github.aedev.flow.ui.components.shared.CommentsTimedFollowRow
 import io.github.aedev.flow.ui.components.shared.FlowCommentsList
 import io.github.aedev.flow.ui.components.shared.rememberMediaArtworkTint
 
@@ -50,6 +52,7 @@ fun PlayerCommentsPanel(
     totalText: String? = null,
     artworkUrl: String? = null,
     showTimed: Boolean = false,
+    timedFollow: CommentsTimedFollow? = null,
 ) {
     val listState = rememberLazyListState()
     val tint = rememberMediaArtworkTint(artworkUrl)
@@ -92,6 +95,9 @@ fun PlayerCommentsPanel(
             showTimed = showTimed,
             modifier = Modifier.padding(start = 16.dp, bottom = 6.dp),
         )
+        if (selectedFilter == CommentSortFilter.TIMED && timedFollow != null) {
+            CommentsTimedFollowRow(timedFollow)
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
         FlowCommentsList(
             comments = comments,
@@ -107,6 +113,7 @@ fun PlayerCommentsPanel(
             onLoadMore = onLoadMore,
             hasMore = hasMore,
             tint = tint,
+            timedFollow = timedFollow,
             modifier = Modifier.fillMaxWidth().weight(1f),
         )
     }

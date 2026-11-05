@@ -29,6 +29,7 @@ import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.rememberPlayerCommentsTimedFollow
 import io.github.aedev.flow.ui.screens.player.state.transcriptTrackUrl
 import io.github.aedev.flow.ui.screens.player.state.visibleComments
 
@@ -79,6 +80,7 @@ internal fun PlayerBottomSheetsContainer(
             totalText = commentsUiState.totalText,
             artworkUrl = video.thumbnailUrl,
             showTimed = true,
+            timedFollow = rememberPlayerCommentsTimedFollow(viewModel, screenState),
             onFilterChanged = onSelectCommentSort,
             onLoadReplies = onLoadReplies,
             onLoadMoreReplies = onLoadMoreReplies,
