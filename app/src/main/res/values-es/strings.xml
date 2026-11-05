@@ -4267,4 +4267,27 @@
     <string name="linked_replace_words_body">Flow genera nuevas palabras de recuperación y nuevas claves de cifrado para tus dispositivos. Las palabras antiguas dejan de funcionar: no pueden restaurar este grupo ni leer nada de lo que se sincronice a partir de ahora. Anota las palabras nuevas cuando aparezcan.</string>
     <string name="linked_replace">Reemplazar</string>
     <string name="sync_devices_summary">Mantén tu biblioteca, tu historial y tu perfil sincronizados entre tus dispositivos, con cifrado de extremo a extremo</string>
+    <string name="sync_one_time_title">Transferencia única</string>
+    <string name="sync_one_time_body">Copia tu biblioteca, tu historial, tus «Me gusta» y tus ajustes a otro dispositivo una vez, por Wi-Fi. Nada sale de tu red.</string>
+    <string name="settings_highlight_new_title">Destacar los ajustes nuevos</string>
+    <string name="settings_highlight_new_summary">Marca con un punto los ajustes añadidos en una actualización</string>
+    <string name="settings_highlight_new_days_title">Mantener el punto durante</string>
+    <plurals name="settings_highlight_new_days">
+        <item quantity="one">%d día</item>
+        <item quantity="many">%d días</item>
+        <item quantity="other">%d días</item>
+    </plurals>
+    <string name="new_badge_label">Nuevo</string>
+    <string name="settings_crossfade_title">Fundido cruzado</string>
+    <string name="settings_crossfade_summary">Mezcla el final de una canción con la siguiente</string>
+    <string name="lyrics_blur_other_lines">Desenfocar las demás líneas</string>
+    <string name="lyrics_blur_other_lines_summary">Desactívalo para leer cada línea con claridad</string>
+    <string name="settings_crossfade_albums_title">Mantener los álbumes sin pausas</string>
+    <string name="settings_crossfade_albums_summary">Sin fundido cruzado entre pistas del mismo álbum</string>
+    <string name="settings_crossfade_auto_title">Fundido al terminar una canción</string>
+    <string name="settings_crossfade_auto_summary">Se mezcla con la siguiente canción automáticamente</string>
+    <string name="settings_crossfade_skip_title">Fundido al saltar</string>
+    <string name="settings_crossfade_skip_summary">Se mezcla con la canción a la que saltas</string>
+    <string name="settings_crossfade_curve_title">Curva de desvanecimiento</string>
+    <string name="crossfade_curve_equal_power">Potencia constante</string>
 </resources>
