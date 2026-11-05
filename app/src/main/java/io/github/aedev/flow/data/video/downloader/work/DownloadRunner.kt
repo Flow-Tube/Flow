@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.video.DownloadStreamPolicy
 import io.github.aedev.flow.data.video.OfflineSubtitleStore
 import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
+import io.github.aedev.flow.data.video.downloader.resolve.ResolvedStreams
 import io.github.aedev.flow.data.video.downloader.subtitle.DownloadSubtitleFile
 import io.github.aedev.flow.data.video.downloader.tags.CoverArtLoader
 import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
@@ -22,7 +23,6 @@ import io.github.aedev.flow.data.video.storage.DownloadCovers
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadPlacement
 import io.github.aedev.flow.data.video.storage.PlacedFile
-import io.github.aedev.flow.player.stream.ResolvedCaption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -146,7 +146,7 @@ class DownloadRunner
                 return
             }
             withContext(NonCancellable) {
-                commit(request, staging, itemId, placed, extension, size, qualityOf(fetched), cover, fetched.streams?.captions.orEmpty())
+                commit(request, staging, itemId, placed, extension, size, qualityOf(fetched), cover, fetched.streams)
             }
         }
 
@@ -159,15 +159,20 @@ class DownloadRunner
             size: Long,
             quality: String,
             cover: ByteArray?,
-            captions: List<ResolvedCaption>,
+            streams: ResolvedStreams?,
         ) {
+            val captions = streams?.captions.orEmpty()
+            val swappedTrack =
+                streams?.takeIf { it.audioTrackSwapped }?.let {
+                    DownloadStreamPolicy.audioLanguageLabel(it.audio) ?: context.getString(R.string.audio_track_original)
+                }
             val path = placed.path
             val mimeType = if (request.wantsAudioOnly) "audio/mp4" else "video/mp4"
             downloadDao.completeItem(itemId, path, placed.fileName, extension, mimeType, quality, size)
             cover?.let { DownloadCovers.save(context, request.videoId, it) }?.let { downloadDao.updateThumbnailPath(request.videoId, it) }
             if (!DownloadFiles.isDocument(path)) downloads.scanFile(path, mimeType)
             downloads.emitProgress(DownloadProgressUpdate(request.videoId, itemId, size, size, DownloadItemStatus.COMPLETED))
-            notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo))
+            notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo, swappedTrack))
             staging.clear()
             if (request.kind != DownloadKind.MUSIC && !request.wantsAudioOnly) {
                 saveSponsorBlockSegments(request.videoId)
