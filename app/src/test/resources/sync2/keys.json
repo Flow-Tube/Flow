@@ -37,7 +37,8 @@
       "ack": "ffca81a454964ace1c484081daab1a296942b0d9551f53d90c825759fb1743fb",
       "live": "6bce630e6995dd73fcb420045dbde0e591f6fa283d9fb27d5786c7ff10beeb3f",
       "lan": "beea959bd09d911e2d909565cebb4980d45aa665c6ce470cdd1db313c30bbc82",
-      "chain": "55456cb32f0bb6491f49fd01d51d40ea34aa72ec2c30275b81bbaa82f50a21f8"
+      "chain": "55456cb32f0bb6491f49fd01d51d40ea34aa72ec2c30275b81bbaa82f50a21f8",
+      "store": "5d0928fc8ef84269d9bbfbd4098f3b3559b86ac6317cdd135937d3c18ab750b7"
     }
   },
   "wrap": {

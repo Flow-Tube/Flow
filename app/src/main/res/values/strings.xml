@@ -2724,6 +2724,14 @@
     <string name="linked_join_login_body">Only needed when the two devices aren\'t on the same network: then pairing goes through the folder.</string>
     <string name="linked_join_login_entered">WebDAV login entered. Change it</string>
     <string name="linked_login_again">Enter the WebDAV login again</string>
+    <string name="linked_login_change_title">Change this folder\'s password</string>
+    <string name="linked_login_change_due">A device you removed can still reach this folder until its password changes. Do this on the device you removed it from.</string>
+    <string name="linked_login_change_first">Enter the new password here before you set it at your provider, so your other devices get it first.</string>
+    <string name="linked_login_change_send">Send to my devices</string>
+    <string name="linked_login_change_waiting">Waiting for these devices to get the new password: %1$s. You can go on without one, but you\'ll have to type the password on it.</string>
+    <string name="linked_login_change_everyone">Your other devices have the new password.</string>
+    <string name="linked_login_change_now">Now set this password at your provider. If it has app passwords, create the new one, then revoke the old one.</string>
+    <string name="linked_login_change_done">I\'ve changed it</string>
     <string name="linked_continue">Continue</string>
     <string name="linked_create_lan_title">Create a group on this network</string>
     <string name="linked_create_lan_body">No server: your devices sync with each other when they share a Wi-Fi network</string>

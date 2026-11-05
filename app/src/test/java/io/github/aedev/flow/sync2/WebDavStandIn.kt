@@ -25,13 +25,17 @@ class WebDavStandIn(
     val folders = sortedSetOf("")
     val requests = ArrayList<String>()
 
+    /** What the folder takes now. */
+    @Volatile
+    var password = PASSWORD
+
     private val server =
         StandInServer {
             val method = request.httpMethod.value
             val path = request.path().removePrefix("/dav/")
             requests += "$method $path"
             when {
-                request.headers["Authorization"] != Credentials.basic(USER, PASSWORD) -> {
+                request.headers["Authorization"] != Credentials.basic(USER, password) -> {
                     respondText("", status = HttpStatusCode.Unauthorized)
                 }
 

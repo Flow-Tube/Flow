@@ -12,6 +12,7 @@ enum class Purpose(
     LIVE("live"),
     LAN("lan"),
     CHAIN("chain"),
+    STORE("store"),
 }
 
 fun epochCommitment(

@@ -24,6 +24,7 @@ import io.github.aedev.flow.sync2.data.serverUrl
 import io.github.aedev.flow.sync2.data.webDavUrl
 import io.github.aedev.flow.sync2.device.DeviceKeys
 import io.github.aedev.flow.sync2.device.StoreCredentials
+import io.github.aedev.flow.sync2.device.WebDavLogin
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.collectGarbage
@@ -38,7 +39,9 @@ import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.Remote
 import io.github.aedev.flow.sync2.store.ServerStore
 import io.github.aedev.flow.sync2.store.StoreException
+import io.github.aedev.flow.sync2.store.StoreLogin
 import io.github.aedev.flow.sync2.store.WebDavStore
+import io.github.aedev.flow.sync2.store.checkFolder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -129,6 +132,28 @@ class LinkedSync
             return Session.open(db, store, device)
         }
 
+        /**
+         * Whether the folder takes [login] and still holds the group. If so it replaces the saved one, whatever
+         * was pending, and the change this device had under way.
+         */
+        suspend fun adoptLogin(login: StoreLogin): Boolean {
+            val record = db.groups().group() ?: return false
+            val folder = record.webDavUrl ?: return false
+            val conditional = checkFolder(WebDavStore.connect(folder, login.user, login.password), record.groupId) ?: return false
+            credentials.save(WebDavLogin(login.user, login.password, conditional))
+            credentials.forgetPending()
+            db.groups().forgetLoginChange()
+            return true
+        }
+
+        /** The folder refused the login: tries the pending one once, and otherwise nothing more is sent until the user enters one. */
+        private suspend fun onLoginRefused() {
+            val login = credentials.webDav() ?: return
+            if (login.refused) return
+            val adopted = credentials.pending()?.let { pending -> runCatching { adoptLogin(pending) }.getOrDefault(false) } ?: false
+            if (adopted) LinkedSyncWorker.syncSoon(context) else credentials.save(login.copy(refused = true))
+        }
+
         /** [announce]: say what arrived, for a sync the user asked for; the others stay silent. */
         suspend fun syncNow(announce: Boolean = false): LastSync =
             running.withLock {
@@ -147,7 +172,7 @@ class LinkedSync
                             is LinkedException.Removed -> reset.removed()
                             is LinkedException.RemovalUnconfirmed -> LinkedSyncWorker.cancel(context)
                             is StoreException.SignInRefused -> LinkedSyncWorker.cancel(context)
-                            is StoreException.LoginRefused -> credentials.webDav()?.let { credentials.save(it.copy(refused = true)) }
+                            is StoreException.LoginRefused -> onLoginRefused()
                         }
                         e.linkedError()
                     } finally {
@@ -270,6 +295,7 @@ class LinkedSync
             val pulled = session.pull(links.mapTo(HashSet<String?>()) { it.link } + null)
             if (pushed > 0 || merged > 0 || pulled.batches.isNotEmpty()) indicator.show()
             route(pulled.batches)
+            pulled.login?.let { credentials.savePending(it) }
             session.finish(pulled)
             if (announce) {
                 counts.filterValues { it > 0 }.forEach { (sender, changes) ->

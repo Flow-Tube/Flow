@@ -49,6 +49,10 @@ data class GroupRecord(
     @ColumnInfo(defaultValue = "0") val serverCursor: Long = 0,
     /** This device's own log objects up to this `seq` are on the server. */
     @ColumnInfo(defaultValue = "0") val uploaded: Long = 0,
+    /** The epoch of the last `remove` applied, until a login at that epoch or later is read. */
+    val loginDue: Int? = null,
+    /** The `seq` of the login this device last wrote, while that change is under way. */
+    val loginSent: Long? = null,
     @PrimaryKey val id: Int = 1,
 )
 
@@ -86,6 +90,19 @@ interface GroupDao {
 
     @Query("UPDATE group_record SET uploaded = :heldCursor WHERE id = 1")
     suspend fun setUploaded(heldCursor: Long)
+
+    @Query("UPDATE group_record SET loginDue = :epoch WHERE id = 1")
+    suspend fun setLoginDue(epoch: Int?)
+
+    @Query("UPDATE group_record SET loginSent = :seq WHERE id = 1")
+    suspend fun setLoginSent(seq: Long?)
+
+    /** A login sealed under [epoch] was read or written. */
+    @Query("UPDATE group_record SET loginDue = NULL WHERE id = 1 AND loginDue <= :epoch")
+    suspend fun noteLogin(epoch: Int)
+
+    @Query("UPDATE group_record SET loginDue = NULL, loginSent = NULL WHERE id = 1")
+    suspend fun forgetLoginChange()
 
     @Query("UPDATE group_record SET recoverySaved = :saved WHERE id = 1")
     suspend fun setRecoverySaved(saved: Boolean)
