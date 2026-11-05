@@ -8,6 +8,7 @@ import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -51,6 +52,9 @@ import kotlinx.coroutines.delay
 /** How long a hidden loop keeps its decoder, so a quick swipe back resumes at once. */
 private const val HIDDEN_DECODER_KEEP_MS = 30_000L
 
+/** Long enough for the next song's cover to fade in underneath, so the old song's still never shows. */
+private const val NEXT_COVER_WAIT_MS = 500
+
 /**
  * The animated artwork for [track], or null while it may not exist: it needs the setting on, a layout
  * that shows it ([allowed]) and the app on screen. Behind a collapsed player, lyrics or the queue it
@@ -76,11 +80,12 @@ internal fun rememberAnimatedArtwork(
     if (!mounted) return null
     val url = loop?.urlFor(track?.videoId, tallSpace)
     return {
-        val fade = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
         AnimatedContent(
             targetState = url,
             // A new loop fades in by itself on its first frame.
-            transitionSpec = { (EnterTransition.None togetherWith fade).using(null) },
+            transitionSpec = {
+                (EnterTransition.None togetherWith fadeOut(tween(durationMillis = 300, delayMillis = NEXT_COVER_WAIT_MS))).using(null)
+            },
             modifier = Modifier.fillMaxSize(),
             label = "animatedArtworkLoop",
         ) { loopUrl ->
