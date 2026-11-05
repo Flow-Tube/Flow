@@ -48,6 +48,7 @@ internal fun LyricsListRow(
     isPlaying: Boolean,
     syncOffsetMs: Long,
     motionEnabled: Boolean,
+    blurOtherLines: Boolean,
     indicatorColor: Color,
     positionProvider: () -> Long,
     onHeight: (Int) -> Unit,
@@ -136,6 +137,7 @@ internal fun LyricsListRow(
                     showTranslation = presentation.showTranslation,
                     romanization = presentation.romanizations.getOrNull(index),
                     motionEnabled = motionEnabled,
+                    blurOtherLines = blurOtherLines,
                     onSizeChanged = onHeight,
                     onClick = { onLineClick(index, item) },
                 )

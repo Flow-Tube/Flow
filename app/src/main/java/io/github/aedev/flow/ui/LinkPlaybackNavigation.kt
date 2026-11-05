@@ -12,6 +12,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.innertube.pages.isMix
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.screens.music.sharedMusicPlayerViewModel

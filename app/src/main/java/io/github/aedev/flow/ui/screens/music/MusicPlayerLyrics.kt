@@ -52,6 +52,7 @@ internal class MusicPlayerLyrics(
         }
         scope.launch { playerPreferences.lyricsAutoRomanize.collect { on -> uiState.update { it.copy(lyricsAutoRomanize = on) } } }
         scope.launch { playerPreferences.lyricsKeepScreenOn.collect { on -> uiState.update { it.copy(lyricsKeepScreenOn = on) } } }
+        scope.launch { playerPreferences.lyricsBlurOtherLines.collect { on -> uiState.update { it.copy(lyricsBlurOtherLines = on) } } }
     }
 
     fun setShowTranslation(show: Boolean) {
@@ -68,6 +69,10 @@ internal class MusicPlayerLyrics(
 
     fun setKeepScreenOn(enabled: Boolean) {
         scope.launch { playerPreferences.setLyricsKeepScreenOn(enabled) }
+    }
+
+    fun setBlurOtherLines(enabled: Boolean) {
+        scope.launch { playerPreferences.setLyricsBlurOtherLines(enabled) }
     }
 
     private fun cleanName(name: String): String =

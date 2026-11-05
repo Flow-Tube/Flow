@@ -77,6 +77,7 @@ class BackupRulesTest {
             "widget_theme",
             "downloads",
             "animated_artwork",
+            "playback_errors",
             "flow_file_tombstones",
             "music_home_cache_prefs",
         )

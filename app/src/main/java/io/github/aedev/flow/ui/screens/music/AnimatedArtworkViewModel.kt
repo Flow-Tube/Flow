@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.artwork.AnimatedArtworkRepository
+import io.github.aedev.flow.data.music.artwork.AnimatedLoop
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.di.MusicCache
 import io.github.aedev.flow.network.ProxyAwareClient
@@ -45,10 +46,10 @@ class AnimatedArtworkViewModel
         val isEnabled: StateFlow<Boolean> =
             preferences.animatedArtwork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
 
-        private val loop = MutableStateFlow<String?>(null)
+        private val loaded = MutableStateFlow<AnimatedLoop?>(null)
 
-        /** The HLS loop of the song last [load]ed, or null while there is none to show. */
-        val loopUrl: StateFlow<String?> = loop.asStateFlow()
+        /** The HLS loops of the song last [load]ed, or null while there are none to show. */
+        internal val loop: StateFlow<AnimatedLoop?> = loaded.asStateFlow()
 
         val dataSourceFactory: DataSource.Factory =
             CacheDataSource
@@ -64,12 +65,12 @@ class AnimatedArtworkViewModel
             if (track == loadedTrack) return
             loadedTrack = track
             lookup?.cancel()
-            loop.value = null
+            loaded.value = null
             lookup =
                 viewModelScope.launch {
                     if (!preferences.animatedArtwork.first()) return@launch forgetLoaded()
                     if (preferences.animatedArtworkWifiOnly.first() && !NetworkState.isOnWifi(context)) return@launch forgetLoaded()
-                    loop.value =
+                    loaded.value =
                         try {
                             repository.loopFor(track)
                         } catch (e: CancellationException) {
@@ -84,7 +85,7 @@ class AnimatedArtworkViewModel
         /** A loop that would not play is dropped, so it is asked about again next time. */
         fun onLoopFailed() {
             val track = loadedTrack ?: return
-            loop.value = null
+            loaded.value = null
             viewModelScope.launch { repository.forget(track) }
         }
 

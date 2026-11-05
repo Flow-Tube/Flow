@@ -586,6 +586,8 @@ class MusicPlayerViewModel
 
         fun setLyricsKeepScreenOn(enabled: Boolean) = lyrics.setKeepScreenOn(enabled)
 
+        fun setLyricsBlurOtherLines(enabled: Boolean) = lyrics.setBlurOtherLines(enabled)
+
         override fun onCleared() {
             super.onCleared()
         }

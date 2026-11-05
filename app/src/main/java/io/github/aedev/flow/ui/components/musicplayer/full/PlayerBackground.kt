@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
@@ -145,7 +147,7 @@ private fun ImmersiveArtworkLayer(
     Box(
         modifier =
             Modifier
-                .then(if (atStart) Modifier.fillMaxHeight().fillMaxWidth(IMMERSIVE_START_WIDTH_FRACTION) else Modifier.fillMaxSize())
+                .then(if (atStart) Modifier.fillMaxHeight().fillMaxWidth(IMMERSIVE_START_WIDTH_FRACTION) else Modifier.immersiveArtBox())
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                 .drawWithContent {
                     drawContent()
@@ -158,8 +160,8 @@ private fun ImmersiveArtworkLayer(
                                 )
                             } else {
                                 Brush.verticalGradient(
-                                    0.42f to Color.Black,
-                                    0.85f to Color.Transparent,
+                                    IMMERSIVE_FADE_START to Color.Black,
+                                    1.00f to Color.Transparent,
                                 )
                             },
                         blendMode = BlendMode.DstIn,
@@ -207,5 +209,19 @@ internal fun BlurredArtworkLayer(
     }
 }
 
+/** Full width at the 3:4 of the album's tall loop, so nothing is cropped, unless the window is too short for it. */
+private fun Modifier.immersiveArtBox(): Modifier =
+    layout { measurable, constraints ->
+        val height = minOf(constraints.maxWidth * 4 / 3, (constraints.maxHeight * IMMERSIVE_MAX_HEIGHT_FRACTION).toInt())
+        val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, height))
+        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+
 /** How much of a landscape window the immersive art covers from the start edge before it fades out. */
 private const val IMMERSIVE_START_WIDTH_FRACTION = 0.62f
+
+/** The most of a tall window's height the immersive art takes, keeping clear of the title and controls. */
+private const val IMMERSIVE_MAX_HEIGHT_FRACTION = 0.7f
+
+/** Where the art starts fading in its box, so it has melted away by the bottom edge. */
+private const val IMMERSIVE_FADE_START = 0.72f
