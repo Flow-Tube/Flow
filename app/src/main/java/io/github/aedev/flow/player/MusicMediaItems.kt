@@ -29,6 +29,7 @@ internal fun musicMediaItem(
                     .Builder()
                     .setTitle(track.title)
                     .setArtist(track.artist)
+                    .setAlbumTitle(track.album.takeIf(String::isNotBlank))
                     .setArtworkUri(AutoArtworkProvider.sessionArtworkUri(track.highResThumbnailUrl))
                     .setDurationMs(track.duration.takeIf { it > 0 }?.let { it * MILLIS_PER_SECOND })
                     .apply { if (fromVideoList) setExtras(Bundle().apply { putBoolean(EXTRA_VIDEO_LIST_ITEM, true) }) }

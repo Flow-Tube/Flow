@@ -25,7 +25,7 @@ class PaxsenixLyricsProvider(
     ): Result<List<LyricsEntry>> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val lrc = paxsenix.getLyrics(title, artist, duration, album).getOrThrow()
+                val lrc = paxsenix.getLyrics(title, LyricsMatching.cleanArtist(artist), duration, album).getOrThrow()
                 LyricsUtils.parseLyrics(lrc)
             }
         }

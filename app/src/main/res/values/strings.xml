@@ -1057,7 +1057,7 @@
     <string name="lyrics_provider_lrclib_desc">Line sync · open database</string>
     <string name="lyrics_provider_unison_desc">Community lyrics · small catalogue</string>
     <string name="lyrics_provider_youtube_captions_desc">Line sync · the video\'s captions</string>
-    <string name="lyrics_provider_youtube_music_desc">Plain text · the Lyrics tab</string>
+    <string name="lyrics_provider_youtube_music_desc">Line sync · the Lyrics tab</string>
     <!-- Theme Names & Descriptions -->
     <string name="theme_name_system_default">System Default</string>
     <string name="theme_desc_system_default">Follows your device between light and dark.</string>

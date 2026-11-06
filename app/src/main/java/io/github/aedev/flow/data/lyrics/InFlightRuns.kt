@@ -3,6 +3,7 @@ package io.github.aedev.flow.data.lyrics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 
 /**
  * One run per key. A caller asking for a key that is already running waits for that run instead
@@ -18,6 +19,12 @@ internal class InFlightRuns<K : Any, V>(
     }
 
     private val runs = HashMap<K, Run<V>>()
+
+    /** Ends a run whatever is waiting on it, and returns once it has stopped. Its waiters see a cancellation. */
+    suspend fun cancelAndJoin(key: K) {
+        val run = synchronized(runs) { runs.remove(key) } ?: return
+        run.result.cancelAndJoin()
+    }
 
     suspend fun join(
         key: K,
