@@ -151,7 +151,7 @@ internal class SessionLyrics(
             title = item.mediaMetadata.title.toString(),
             artist = item.mediaMetadata.artist.toString(),
             duration = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt(),
-            album = null,
+            album = item.mediaMetadata.albumTitle?.toString(),
             onAnswer = onAnswer,
         )
 
