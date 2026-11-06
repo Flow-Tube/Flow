@@ -35,6 +35,16 @@ object NetworkState {
     /** Whether the active network can actually reach the internet. */
     fun isOnline(context: Context): Boolean = capabilities(context).hasInternet()
 
+    /** Whether Android's Data Saver is holding this app's background use back on the current network. */
+    fun isDataSaverOn(context: Context): Boolean =
+        try {
+            val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            manager != null && manager.isActiveNetworkMetered &&
+                manager.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+        } catch (_: Exception) {
+            false
+        }
+
     private fun capabilities(context: Context): NetworkCapabilities? =
         try {
             val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager

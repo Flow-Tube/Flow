@@ -21,6 +21,7 @@ import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.innertube.models.WatchEndpoint
 import io.github.aedev.flow.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
 import io.github.aedev.flow.innertube.models.YouTubeClient
+import io.github.aedev.flow.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
 import io.github.aedev.flow.innertube.models.YouTubeClient.Companion.WEB
 import io.github.aedev.flow.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import io.github.aedev.flow.innertube.models.YouTubeLocale
@@ -66,6 +67,7 @@ import io.github.aedev.flow.innertube.pages.SearchPage
 import io.github.aedev.flow.innertube.pages.SearchResult
 import io.github.aedev.flow.innertube.pages.SearchSuggestionPage
 import io.github.aedev.flow.innertube.pages.SearchSummaryPage
+import io.github.aedev.flow.innertube.pages.TimedLyricLine
 import io.github.aedev.flow.innertube.pages.VideoCommentsPage
 import io.github.aedev.flow.innertube.pages.VideoCommentsPanelHeader
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
@@ -111,6 +113,7 @@ import io.github.aedev.flow.innertube.pages.search.SearchResultsPage
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
+import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
 import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
@@ -2579,12 +2582,7 @@ object YouTube {
                     ?.tabbedRenderer
                     ?.watchNextTabbedResultsRenderer
                     ?.tabs
-            val lyricsBrowseEndpoint =
-                watchNextTabs?.firstNotNullOfOrNull { tab ->
-                    tab.tabRenderer.endpoint
-                        ?.browseEndpoint
-                        ?.takeIf { it.browseId.startsWith("MPLYt") }
-                }
+            val lyricsBrowseEndpoint = response.lyricsBrowseEndpoint()
             val relatedBrowseEndpoint =
                 watchNextTabs?.firstNotNullOfOrNull { tab ->
                     tab.tabRenderer.endpoint
@@ -2656,6 +2654,31 @@ object YouTube {
                 continuation = playlistPanelRenderer.continuations?.getContinuation(),
                 endpoint = endpoint,
             )
+        }
+
+    private fun NextResponse.lyricsBrowseEndpoint(): BrowseEndpoint? =
+        contents.singleColumnMusicWatchNextResultsRenderer
+            ?.tabbedRenderer
+            ?.watchNextTabbedResultsRenderer
+            ?.tabs
+            ?.firstNotNullOfOrNull { tab ->
+                tab.tabRenderer.endpoint
+                    ?.browseEndpoint
+                    ?.takeIf { it.browseId.startsWith("MPLYt") }
+            }
+
+    /** One `next` and nothing else: [next] follows the automix row, which is a second, slower request. */
+    suspend fun lyricsEndpoint(videoId: String): Result<BrowseEndpoint?> =
+        runCatching {
+            innerTube
+                .next(WEB_REMIX, videoId, null, null, null, null)
+                .body<NextResponse>()
+                .lyricsBrowseEndpoint()
+        }
+
+    suspend fun timedLyrics(endpoint: BrowseEndpoint): Result<List<TimedLyricLine>> =
+        runCatching {
+            timedLyricLines(innerTube.browse(ANDROID_MUSIC, endpoint.browseId, endpoint.params).body<JsonObject>())
         }
 
     suspend fun lyrics(endpoint: BrowseEndpoint): Result<String?> =

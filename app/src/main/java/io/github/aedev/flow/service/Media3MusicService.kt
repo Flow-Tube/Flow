@@ -49,6 +49,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.audio.eq.EqualizerRepository
 import io.github.aedev.flow.data.download.DownloadUtil
 import io.github.aedev.flow.data.download.LegacySongDownloads
+import io.github.aedev.flow.data.local.BufferProfile
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.QueuePersistence
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
@@ -1434,6 +1435,7 @@ class Media3MusicService : MediaLibraryService() {
                     prefs.lyricsOnLockScreen,
                     prefs.lyricsOnLockScreenDelayMs,
                     videoLyricsTiming,
+                    isSavingData = { NetworkState.isDataSaverOn(this) || prefs.bufferProfile.first() == BufferProfile.DATASAVER },
                 )
         }
 

@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -63,7 +61,6 @@ private val BackgroundPreviewHeight = 72.dp
 private val GesturePreviewHeight = 184.dp
 
 /** The real player slider in [style], parked at 40 %. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SliderStylePreview(style: SliderStyle) {
     val position = PREVIEW_DURATION * PREVIEW_PROGRESS
@@ -73,13 +70,8 @@ internal fun SliderStylePreview(style: SliderStyle) {
             SquigglySlider(
                 value = position,
                 onValueChange = {},
+                onValueChangeFinished = {},
                 valueRange = range,
-                colors =
-                    SliderDefaults.colors(
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                    ),
                 isPlaying = true,
             )
         }

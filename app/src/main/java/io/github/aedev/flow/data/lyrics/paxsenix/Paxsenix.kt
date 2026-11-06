@@ -8,6 +8,7 @@ import android.util.Log
 import com.google.gson.Gson
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.data.lyrics.LyricsMatching
+import io.github.aedev.flow.data.lyrics.LyricsNotFoundException
 import io.github.aedev.flow.data.lyrics.TTMLParser
 import io.github.aedev.flow.data.lyrics.paxsenix.models.AppleMusicSearchResponse
 import io.github.aedev.flow.data.lyrics.paxsenix.models.LyricsResponse
@@ -19,6 +20,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import java.net.URLEncoder
 import java.util.Locale
 import kotlin.math.abs
@@ -83,23 +85,26 @@ class Paxsenix(
                 }
 
             var allResults: List<Pair<SearchResult, Double>> = emptyList()
+            var couldNotAsk = false
 
             for (query in searchQueries) {
                 if (allResults.isEmpty()) {
-                    val searchResults = search(query)
+                    val searchResults = search(query) { couldNotAsk = true }
                     if (searchResults.isNotEmpty()) {
                         allResults = scoreAndFilterResults(searchResults, title, artist, duration)
                     }
                 }
             }
 
-            if (allResults.isEmpty()) throw IllegalStateException("No tracks found on Paxsenix")
+            if (allResults.isEmpty()) {
+                throw if (couldNotAsk) IOException("Paxsenix search failed") else LyricsNotFoundException("No tracks found on Paxsenix")
+            }
 
             var bestLyrics: String? = null
             var bestQuality = 0
 
             for ((result, _) in allResults.take(10)) {
-                val lrc = fetchLyricsForTrack(result.id) ?: continue
+                val lrc = fetchLyricsForTrack(result.id) { couldNotAsk = true } ?: continue
                 if (lrc.isEmpty()) continue
 
                 val quality = getQuality(lrc)
@@ -110,15 +115,20 @@ class Paxsenix(
                 if (bestQuality == 3) break
             }
 
-            bestLyrics ?: throw IllegalStateException("No lyrics available from Paxsenix")
+            bestLyrics ?: throw if (couldNotAsk) IOException("Paxsenix lyrics failed") else LyricsNotFoundException()
         }
 
-    private suspend fun search(query: String): List<SearchResult> {
+    private suspend fun search(
+        query: String,
+        onCouldNotAsk: () -> Unit,
+    ): List<SearchResult> {
         // The public iTunes Search needs no token and finds the same Apple Music ids; the token
         // scraped from Apple's web player is the fallback.
         runCatching { searchItunes(query) }
-            .onFailure { Log.w(TAG, "iTunes search error: ${it.message}") }
-            .getOrNull()
+            .onFailure {
+                Log.w(TAG, "iTunes search error: ${it.message}")
+                onCouldNotAsk()
+            }.getOrNull()
             ?.takeIf { it.isNotEmpty() }
             ?.let { return it }
         return try {
@@ -155,8 +165,9 @@ class Paxsenix(
                 .build()
         val body =
             client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) response.body.string() else null
-            } ?: return emptyList()
+                if (!response.isSuccessful) throw IOException("iTunes search returned ${response.code}")
+                response.body.string()
+            }
         return parseItunesSearch(body)
     }
 
@@ -293,7 +304,10 @@ class Paxsenix(
             .take(10)
     }
 
-    private fun fetchLyricsForTrack(id: String): String? {
+    private fun fetchLyricsForTrack(
+        id: String,
+        onCouldNotAsk: () -> Unit,
+    ): String? {
         return try {
             val url = "$PAXSENIX_BASE/apple-music/lyrics?id=$id"
             val request =
@@ -305,6 +319,7 @@ class Paxsenix(
 
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) {
+                if (response.code != 404) onCouldNotAsk()
                 response.close()
                 return null
             }
@@ -361,6 +376,7 @@ class Paxsenix(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch lyrics for track $id: ${e.message}")
+            onCouldNotAsk()
             null
         }
     }

@@ -41,7 +41,7 @@ internal object LyricsMatching {
         Regex("""(?i)\s*[-|]\s*(?:official\s*)?(?:music\s*)?(?:video|audio|visuali[sz]er|lyrics?\s*video|lyrics?)\s*$""")
     private val BRACKETED = Regex("""[(\[](.*?)[)\]]""")
     private val DASH_SUFFIX = Regex("""\s+[-–—]\s+([^-–—(\[]+)$""")
-    private val ARTIST_SPLIT = Regex("""(?i)\s*(?:,|&|/|\bx\b|\band\b|\bvs\.?|\bfeat\.?|\bft\.?|\bfeaturing\b|\bwith\b)\s*""")
+    private val ARTIST_SPLIT = Regex("""(?i)\s*(?:,|、|&|/|\bx\b|\band\b|\bvs\.?|\bfeat\.?|\bft\.?|\bfeaturing\b|\bwith\b)\s*""")
     private val PRIMARY_ARTIST_SPLIT = Regex("""(?i)\s+(feat\.?|ft\.?|featuring|&|,|vs\.?)\s+""")
     private val TOPIC_SUFFIX = Regex("""(?i)\s*-\s*Topic""")
     private val APOSTROPHES = Regex("""['’`]""")
@@ -127,7 +127,15 @@ internal object LyricsMatching {
         request: Song,
         describe: (T) -> Song,
         preferred: (T) -> Boolean = { false },
-    ): T? =
+    ): T? = ranked(candidates, request, describe, preferred).firstOrNull()
+
+    /** Every candidate [best] would accept, best first. */
+    fun <T> ranked(
+        candidates: List<T>,
+        request: Song,
+        describe: (T) -> Song,
+        preferred: (T) -> Boolean = { false },
+    ): List<T> =
         candidates
             .map { it to describe(it) }
             .filter { (_, song) -> sameVersion(request.title, song.title) }
@@ -137,8 +145,7 @@ internal object LyricsMatching {
                 compareByDescending<Triple<T, Song, Int>> { it.third }
                     .thenByDescending { preferred(it.first) }
                     .thenBy { durationGap(request, it.second) },
-            ).firstOrNull()
-            ?.first
+            ).map { it.first }
 
     private fun durationGap(
         request: Song,
@@ -168,11 +175,14 @@ internal object LyricsMatching {
         candidate: String,
         request: String,
     ): Boolean {
-        val wanted = normalize(cleanArtist(request))
-        if (wanted.isEmpty() || candidate.isBlank()) return false
-        val credited = listOf(candidate) + candidate.split(ARTIST_SPLIT)
-        return credited.map(::normalize).filter { it.isNotEmpty() }.any { it == wanted || similar(it, wanted, minRatio = 0.6) }
+        val wanted = credits(request.replace(TOPIC_SUFFIX, ""))
+        val credited = credits(candidate)
+        return wanted.any { name -> credited.any { it == name || similar(it, name, minRatio = 0.6) } }
     }
+
+    /** The whole name comes too: a comma can be part of one, as in "Tyler, The Creator". */
+    private fun credits(artist: String): List<String> =
+        (listOf(artist) + artist.split(ARTIST_SPLIT)).map(::normalize).filter { it.isNotEmpty() }
 
     /** The title without its brackets and trailing "- …" part, once versions are known to agree. */
     private fun baseTitle(title: String): String = cleanTitle(title).replace(BRACKETED, " ").replace(DASH_SUFFIX, "")

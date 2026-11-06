@@ -76,7 +76,7 @@ internal fun rememberAnimatedArtwork(
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val mounted = enabled && allowed && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
     val active = mounted && running
-    LaunchedEffect(track, active) { if (active && track != null) viewModel.load(track) }
+    LaunchedEffect(track, active) { if (active && track != null) viewModel.load(track) else viewModel.stopLookup() }
     if (!mounted) return null
     val url = loop?.urlFor(track?.videoId, tallSpace)
     return {

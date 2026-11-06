@@ -440,6 +440,7 @@ fun VideoPlayerHost(
             screenState = screenState,
             playerState = playerState,
             uiState = playerUiState,
+            commentsUiState = commentsUiState,
             viewModel = playerViewModel,
             sheetState = playerSheetState,
             prefs = prefs,

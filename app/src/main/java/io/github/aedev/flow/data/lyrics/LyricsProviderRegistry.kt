@@ -12,6 +12,7 @@ class LyricsProviderRegistry(
         fun create(client: OkHttpClient): LyricsProviderRegistry {
             val providers =
                 listOf(
+                    YouTubeLyricsProvider(),
                     BetterLyricsProvider(client),
                     LrcRedLyricsProvider(client),
                     LyricsPlusProvider(client),
@@ -21,7 +22,6 @@ class LyricsProviderRegistry(
                     LrcLibLyricsProvider(client),
                     UnisonLyricsProvider(client),
                     YouTubeSubtitleLyricsProvider(),
-                    YouTubeLyricsProvider(),
                 )
             return LyricsProviderRegistry(providers.associateBy { it.name })
         }
