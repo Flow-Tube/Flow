@@ -6,10 +6,13 @@ package io.github.aedev.flow.data.lyrics.kugou
 
 import android.util.Log
 import com.google.gson.Gson
+import io.github.aedev.flow.data.lyrics.LyricsMatching
 import io.github.aedev.flow.data.lyrics.kugou.models.DownloadLyricsResponse
 import io.github.aedev.flow.data.lyrics.kugou.models.Keyword
 import io.github.aedev.flow.data.lyrics.kugou.models.SearchLyricsResponse
 import io.github.aedev.flow.data.lyrics.kugou.models.SearchSongResponse
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URLEncoder
@@ -30,7 +33,7 @@ class KuGou(
         runCatching {
             val keyword = generateKeyword(title, artist, album)
             val candidate =
-                getLyricsCandidate(keyword, duration)
+                getLyricsCandidate(keyword, LyricsMatching.Song(title, artist, duration))
                     ?: throw IllegalStateException("No lyrics candidate")
             val downloaded = downloadLyrics(candidate.id, candidate.accesskey)
             val decoded =
@@ -40,18 +43,15 @@ class KuGou(
             decoded.normalize()
         }
 
-    private fun getLyricsCandidate(
+    private suspend fun getLyricsCandidate(
         keyword: Keyword,
-        duration: Int,
+        request: LyricsMatching.Song,
     ): SearchLyricsResponse.Candidate? {
-        val songs = searchSongs(keyword)
-        for (song in songs.data.info) {
-            if (duration <= 0 || abs(song.duration - duration) <= DURATION_TOLERANCE) {
-                val candidate = searchLyricsByHash(song.hash).candidates.firstOrNull()
-                if (candidate != null) return candidate
-            }
+        for (song in matchingRows(searchSongs(keyword).data.info, request)) {
+            currentCoroutineContext().ensureActive()
+            bestLyric(searchLyricsByHash(song.hash).candidates, request)?.let { return it }
         }
-        return searchLyricsByKeyword(keyword, duration).candidates.firstOrNull()
+        return bestLyric(searchLyricsByKeyword(keyword, request.durationSeconds).candidates, request)
     }
 
     private fun searchSongs(keyword: Keyword): SearchSongResponse {
@@ -189,14 +189,47 @@ class KuGou(
                 filteredLines.dropLast(tailCutLine).joinToString("\n")
             }
 
-    private companion object {
-        const val TAG = "KuGou"
-        const val PAGE_SIZE = 8
-        const val HEAD_CUT_LIMIT = 30
-        const val DURATION_TOLERANCE = 8
+    internal companion object {
+        private const val TAG = "KuGou"
+        private const val PAGE_SIZE = 8
+        private const val HEAD_CUT_LIMIT = 30
+        private const val DURATION_TOLERANCE = 8
+
+        // A lyric search by keyword states the length in seconds, one by hash in milliseconds.
+        private const val LONGEST_DURATION_IN_SECONDS = 10_000L
 
         @Suppress("RegExpRedundantEscape")
-        val ACCEPTED_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\].*".toRegex()
-        val BANNED_REGEX = ".+].+[:：].+".toRegex()
+        private val ACCEPTED_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\].*".toRegex()
+        private val BANNED_REGEX = ".+].+[:：].+".toRegex()
+
+        /** The rows naming the requested song, best first. A close length alone proves nothing. */
+        fun matchingRows(
+            rows: List<SearchSongResponse.Data.Info>,
+            request: LyricsMatching.Song,
+        ): List<SearchSongResponse.Data.Info> =
+            LyricsMatching.ranked(
+                rows.filter { closeInLength(it.duration, request) },
+                request,
+                describe = { LyricsMatching.Song(it.songname, it.singername, it.duration) },
+            )
+
+        /** A hash can list another song's lyric first, so each candidate is checked on its own names. */
+        fun bestLyric(
+            candidates: List<SearchLyricsResponse.Candidate>,
+            request: LyricsMatching.Song,
+        ): SearchLyricsResponse.Candidate? =
+            LyricsMatching.best(
+                candidates.filter { closeInLength(it.seconds, request) },
+                request,
+                describe = { LyricsMatching.Song(it.song, it.singer, it.seconds) },
+            )
+
+        private val SearchLyricsResponse.Candidate.seconds: Int
+            get() = (if (duration > LONGEST_DURATION_IN_SECONDS) duration / 1000 else duration).toInt()
+
+        private fun closeInLength(
+            seconds: Int,
+            request: LyricsMatching.Song,
+        ): Boolean = request.durationSeconds <= 0 || seconds <= 0 || abs(seconds - request.durationSeconds) <= DURATION_TOLERANCE
     }
 }
