@@ -232,7 +232,7 @@ class LyricsHelper
                         },
                         show = { keepAnswer(targetContext, videoId, it) },
                     ).run()
-                if (savedCopy != null && result.best == null && result.finishedCleanly) {
+                if (savedCopy != null && result.best == null && result.someSourceReplied) {
                     LyricsCacheManager.markUpgradeLookDone(targetContext, videoId)
                 }
                 if (savedCopy == null && result.everySourceMissed && providers.size == registered.size) {

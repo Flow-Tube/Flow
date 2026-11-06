@@ -433,15 +433,15 @@ class LyricsProviderRunTest {
         }
 
     @Test
-    fun `a run finishes cleanly only with no failure and no stop`() =
+    fun `a run counts as having looked once any source really replied`() =
         runTest {
-            val misses = listOf("YouTube", "LrcLib").associateWith { after(100, LyricsReply.Miss) }
-            val failing = mapOf("YouTube" to after(100, LyricsReply.Miss), "LrcLib" to after(100, LyricsReply.Failed))
+            val oneReplied = mapOf("YouTube" to after(100, LyricsReply.Miss), "LrcLib" to after(100, LyricsReply.Failed))
+            val allFailed = listOf("YouTube", "LrcLib").associateWith { after(100, LyricsReply.Failed) }
             val stalled = mapOf("YouTube" to after(100, LyricsReply.Miss))
 
-            assertThat(Harness(this, misses.keys.toList(), misses).run.run().finishedCleanly).isTrue()
-            assertThat(Harness(this, failing.keys.toList(), failing).run.run().finishedCleanly).isFalse()
-            assertThat(Harness(this, listOf("YouTube", "LrcLib"), stalled).run.run().finishedCleanly).isFalse()
+            assertThat(Harness(this, oneReplied.keys.toList(), oneReplied).run.run().someSourceReplied).isTrue()
+            assertThat(Harness(this, allFailed.keys.toList(), allFailed).run.run().someSourceReplied).isFalse()
+            assertThat(Harness(this, listOf("YouTube", "LrcLib"), stalled).run.run().someSourceReplied).isTrue()
         }
 
     private companion object {

@@ -31,8 +31,8 @@ internal sealed interface LyricsReply {
 internal data class LyricsRunResult(
     val best: LyricsAnswer?,
     val everySourceMissed: Boolean,
-    /** Nothing failed and nothing was cut off, so what it found is all there was to find. */
-    val finishedCleanly: Boolean,
+    /** At least one source really replied, so an empty result isn't just being offline. */
+    val someSourceReplied: Boolean,
 )
 
 /**
@@ -85,6 +85,7 @@ internal class LyricsProviderRun(
     private var preferredSettled = preferred !in sources
     private var stopped = false
     private var anyFailed = false
+    private var someSourceReplied = false
 
     suspend fun run(): LyricsRunResult =
         coroutineScope {
@@ -96,12 +97,10 @@ internal class LyricsProviderRun(
             coroutineContext.cancelChildren()
             LyricsRunResult(
                 best = shown,
-                everySourceMissed = sources.isNotEmpty() && waiting.isEmpty() && finishedCleanly() && nothingFound(),
-                finishedCleanly = finishedCleanly(),
+                everySourceMissed = sources.isNotEmpty() && waiting.isEmpty() && !stopped && !anyFailed && nothingFound(),
+                someSourceReplied = someSourceReplied,
             )
         }
-
-    private fun finishedCleanly(): Boolean = !stopped && !anyFailed
 
     private fun nothingFound(): Boolean = lines.isEmpty() && plain == null && shown == null
 
@@ -161,6 +160,7 @@ internal class LyricsProviderRun(
         source: String,
         reply: LyricsReply,
     ) {
+        if (reply !is LyricsReply.Failed) someSourceReplied = true
         when (reply) {
             is LyricsReply.Found -> {
                 val answer = LyricsAnswer(reply.kind, reply.entries, source)
