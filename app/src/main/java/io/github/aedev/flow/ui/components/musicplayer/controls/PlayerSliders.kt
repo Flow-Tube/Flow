@@ -106,6 +106,8 @@ fun ExpressivePlayerSlider(
     )
 }
 
+private val WavyStrokeWidth = 5.dp
+
 // ============================================================================
 // EXPRESSIVE WAVY SLIDER (seekable LinearWavyProgressIndicator + round thumb)
 // ============================================================================
@@ -136,7 +138,7 @@ fun ExpressiveWavySlider(
     val inactiveColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
     val density = LocalDensity.current
     val thumbRadius = 7.dp
-    val stroke = remember(density) { Stroke(width = with(density) { 5.dp.toPx() }, cap = StrokeCap.Round) }
+    val stroke = remember(density) { Stroke(width = with(density) { WavyStrokeWidth.toPx() }, cap = StrokeCap.Round) }
 
     Box(
         modifier =
@@ -191,13 +193,12 @@ fun ExpressiveWavySlider(
 }
 
 // ============================================================================
-// SQUIGGLY SLIDER (M3 Slider with a wavy track, in the system media card's proportions)
+// SQUIGGLY SLIDER (M3 Slider with a wavy track and a bar thumb)
 // ============================================================================
-private val SquigglyStrokeWidth = 2.dp
-private val SquigglyWaveAmplitude = 2.dp
-private val SquigglyWavelength = 20.dp
+private val SquigglyWaveAmplitude = 3.dp
+private val SquigglyWavelength = 32.dp
 private val SquigglyWaveSpeed = 8.dp
-private val SquigglyThumbSize = DpSize(width = 3.dp, height = 16.dp)
+private val SquigglyThumbSize = DpSize(width = 5.dp, height = 20.dp)
 private const val SQUIGGLY_INACTIVE_TRACK_ALPHA = 0.3f
 
 // How long LinearWavyProgressIndicator takes to flatten. Its wave phase snaps to 0 as soon as the
@@ -234,7 +235,7 @@ fun SquigglySlider(
             inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = SQUIGGLY_INACTIVE_TRACK_ALPHA),
         )
     val density = LocalDensity.current
-    val stroke = remember(density) { Stroke(width = with(density) { SquigglyStrokeWidth.toPx() }, cap = StrokeCap.Round) }
+    val stroke = remember(density) { Stroke(width = with(density) { WavyStrokeWidth.toPx() }, cap = StrokeCap.Round) }
 
     Slider(
         value = value,
@@ -257,7 +258,7 @@ fun SquigglySlider(
                     Modifier
                         .clearAndSetSemantics {}
                         .fillMaxWidth()
-                        .height(SquigglyStrokeWidth + SquigglyWaveAmplitude * 2),
+                        .height(WavyStrokeWidth + SquigglyWaveAmplitude * 2),
                 color = colors.activeTrackColor,
                 trackColor = colors.inactiveTrackColor,
                 stroke = stroke,
