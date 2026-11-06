@@ -1441,6 +1441,16 @@
     <string name="sb_action_jump_button">Show a jump button</string>
     <string name="sb_action_jump_button_detail">Offers the jump for 10 seconds as the video starts</string>
     <string name="sb_jump_to_highlight">Jump to highlight</string>
+    <string name="sb_jump">Jump</string>
+    <string name="sb_skip_notice_title">Show skip message</string>
+    <string name="sb_skip_notice_summary">Shows a message when a segment is skipped</string>
+    <string name="sb_skip_style_title">Skip button style</string>
+    <string name="sb_skip_style_full">Full</string>
+    <string name="sb_skip_style_full_detail">Names the segment</string>
+    <string name="sb_skip_style_compact">Compact</string>
+    <string name="sb_skip_style_compact_detail">Just Skip and an icon</string>
+    <string name="sb_skip_style_icon">Icon only</string>
+    <string name="sb_skip_style_icon_detail">Takes the least space</string>
     <string name="sb_color_custom">Custom color</string>
     <string name="sb_color_custom_value">Custom color: %1$s</string>
     <!-- SponsorBlock submit dialog -->

@@ -33,6 +33,23 @@ internal object IntegrationsIndex {
             revealVia = sponsorBlock.key,
             destination = page,
         )
+    val skipNotice =
+        SettingEntry(
+            key = "integrations.sponsorblock.skip_notice",
+            title = R.string.sb_skip_notice_title,
+            summary = R.string.sb_skip_notice_summary,
+            section = R.string.player_settings_sponsorblock,
+            revealVia = sponsorBlock.key,
+            destination = page,
+        )
+    val skipButtonStyle =
+        SettingEntry(
+            key = "integrations.sponsorblock.skip_button_style",
+            title = R.string.sb_skip_style_title,
+            section = R.string.player_settings_sponsorblock,
+            revealVia = sponsorBlock.key,
+            destination = page,
+        )
     val userId =
         SettingEntry(
             key = "integrations.sponsorblock.user_id",
@@ -93,5 +110,18 @@ internal object IntegrationsIndex {
         )
 
     val all =
-        listOf(sponsorBlock, segments, contribute, userId, deArrow, deArrowRandomFrame, deArrowBadge, dislikes, discord, discordAccount)
+        listOf(
+            sponsorBlock,
+            segments,
+            skipNotice,
+            skipButtonStyle,
+            contribute,
+            userId,
+            deArrow,
+            deArrowRandomFrame,
+            deArrowBadge,
+            dislikes,
+            discord,
+            discordAccount,
+        )
 }

@@ -216,6 +216,8 @@ class PlayerPreferences(
         // SponsorBlock submit
         val SB_SUBMIT_ENABLED = booleanPreferencesKey("sb_submit_enabled")
         val SB_USER_ID = stringPreferencesKey("sb_user_id")
+        val SB_SKIP_NOTICE_ENABLED = booleanPreferencesKey("sb_skip_notice_enabled")
+        val SB_SKIP_BUTTON_STYLE = stringPreferencesKey("sb_skip_button_style")
 
         // DeArrow
         val DEARROW_ENABLED = booleanPreferencesKey("dearrow_enabled")
@@ -891,6 +893,27 @@ class PlayerPreferences(
     suspend fun setSbSubmitEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.SB_SUBMIT_ENABLED] = enabled
+        }
+    }
+
+    /** Whether an automatic skip shows a message. The Notify action has its own message and ignores this. */
+    val sbSkipNoticeEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SB_SKIP_NOTICE_ENABLED] ?: true }
+
+    suspend fun setSbSkipNoticeEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SB_SKIP_NOTICE_ENABLED] = enabled
+        }
+    }
+
+    val sbSkipButtonStyle: Flow<SponsorBlockSkipButtonStyle> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> SponsorBlockSkipButtonStyle.fromStored(preferences[Keys.SB_SKIP_BUTTON_STYLE]) }
+
+    suspend fun setSbSkipButtonStyle(style: SponsorBlockSkipButtonStyle) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SB_SKIP_BUTTON_STYLE] = style.name
         }
     }
 
@@ -4275,6 +4298,18 @@ private val FirstSeenSerializer = MapSerializer(String.serializer(), Long.serial
 
 /** Loud videos play at their own level unless the user turns levelling on. */
 const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = false
+
+/** How the skip button looks over the video. Stored and synced by name. */
+enum class SponsorBlockSkipButtonStyle {
+    FULL,
+    COMPACT,
+    ICON_ONLY,
+    ;
+
+    companion object {
+        fun fromStored(stored: String?): SponsorBlockSkipButtonStyle = entries.firstOrNull { it.name == stored } ?: FULL
+    }
+}
 
 /**
  * What the player does with a SponsorBlock segment, in the order settings list them. The names are

@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.local.SpeedSwipeSide
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.SubtitleStyle
 
@@ -33,6 +34,8 @@ internal class VideoPlayerPreferencesState(
     val gestureOverlayStyle: GestureOverlayStyle,
     val hapticsEnabled: Boolean,
     val sbSubmitEnabled: Boolean,
+    val sbSkipNoticeEnabled: Boolean,
+    val sbSkipButtonStyle: SponsorBlockSkipButtonStyle,
     val sponsorBlockEnabled: Boolean,
     val doubleTapSeekSeconds: Int,
     val doubleTapSeekZone: DoubleTapSeekZone,
@@ -70,6 +73,8 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         playerPreferences.gestureOverlayStyle.collectAsState(initial = GestureOverlayStyle.CIRCULAR)
     val hapticsEnabled by playerPreferences.playerHapticsEnabled.collectAsState(initial = true)
     val sbSubmitEnabled by playerPreferences.sbSubmitEnabled.collectAsState(initial = false)
+    val sbSkipNoticeEnabled by playerPreferences.sbSkipNoticeEnabled.collectAsState(initial = true)
+    val sbSkipButtonStyle by playerPreferences.sbSkipButtonStyle.collectAsState(initial = SponsorBlockSkipButtonStyle.FULL)
     val sponsorBlockEnabled by playerPreferences.sponsorBlockEnabled.collectAsState(initial = false)
     val doubleTapSeekSeconds by playerPreferences.doubleTapSeekSeconds.collectAsState(initial = 10)
     val doubleTapSeekZone by playerPreferences.doubleTapSeekZone.collectAsState(initial = DoubleTapSeekZone.NORMAL)
@@ -105,6 +110,8 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         gestureOverlayStyle = gestureOverlayStyle,
         hapticsEnabled = hapticsEnabled,
         sbSubmitEnabled = sbSubmitEnabled,
+        sbSkipNoticeEnabled = sbSkipNoticeEnabled,
+        sbSkipButtonStyle = sbSkipButtonStyle,
         sponsorBlockEnabled = sponsorBlockEnabled,
         doubleTapSeekSeconds = doubleTapSeekSeconds,
         doubleTapSeekZone = doubleTapSeekZone,

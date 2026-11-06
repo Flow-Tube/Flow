@@ -40,6 +40,8 @@ object SettingsMapper {
             Entry("playback_speed", "playback_speed", Ty.FLOAT),
             Entry("sponsorblock_enabled", "sponsor_block_enabled", Ty.BOOL),
             Entry("sponsorblock_submit_enabled", "sb_submit_enabled", Ty.BOOL),
+            Entry("sponsorblock_skip_notice_enabled", "sb_skip_notice_enabled", Ty.BOOL),
+            Entry("sponsorblock_skip_button_style", "sb_skip_button_style", Ty.STRING),
             Entry("sponsorblock_action_sponsor", "sb_action_sponsor", Ty.STRING),
             Entry("sponsorblock_action_intro", "sb_action_intro", Ty.STRING),
             Entry("sponsorblock_action_outro", "sb_action_outro", Ty.STRING),
