@@ -66,6 +66,45 @@ class TimedCommentsTest {
     }
 
     @Test
+    fun `marks run in playing order as fractions of the length`() {
+        val comments = listOf(comment("late", 0 to 90L), comment("plain"), comment("early", 0 to 10L))
+
+        assertThat(timedCommentMarks(comments, durationMs = 100_000L))
+            .containsExactly(0.1f, 0.9f)
+            .inOrder()
+    }
+
+    @Test
+    fun `marks that would sit on top of each other merge into the earliest`() {
+        val comments =
+            listOf(
+                comment("a", 0 to 100L),
+                comment("same", 0 to 100L),
+                comment("close", 0 to 103L),
+                comment("apart", 0 to 104L),
+                comment("next", 0 to 900L),
+            )
+
+        assertThat(timedCommentMarks(comments, durationMs = 1_000_000L))
+            .containsExactly(0.1f, 0.104f, 0.9f)
+            .inOrder()
+    }
+
+    @Test
+    fun `a mark past the end goes and one on the end stays`() {
+        val comments = listOf(comment("past", 0 to 1_577L), comment("end", 0 to 403L))
+
+        assertThat(timedCommentMarks(comments, durationMs = 403_000L)).containsExactly(1f)
+    }
+
+    @Test
+    fun `nothing marks a bar with no timed comments or no length`() {
+        assertThat(timedCommentMarks(emptyList(), durationMs = 100_000L)).isEmpty()
+        assertThat(timedCommentMarks(listOf(comment("plain")), durationMs = 100_000L)).isEmpty()
+        assertThat(timedCommentMarks(listOf(comment("timed", 0 to 10L)), durationMs = 0L)).isEmpty()
+    }
+
+    @Test
     fun `the anchor is the latest timestamp already passed`() {
         val seconds = listOf(200L, 90L, 90L, 10L)
 

@@ -160,6 +160,7 @@ private fun LockedSeekbar(
         chapters = content.chapters,
         sponsorSegments = content.sponsorSegments,
         sponsorColors = content.sponsorColors,
+        commentMarks = content.commentMarks,
         duration = seekDuration,
         bufferedValue = content.bufferedPercentage,
         edgeAligned = !isFullscreen,

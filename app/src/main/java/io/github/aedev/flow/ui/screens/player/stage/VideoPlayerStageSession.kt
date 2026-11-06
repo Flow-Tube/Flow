@@ -9,6 +9,7 @@ import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.effects.AudioSystemInfo
 import io.github.aedev.flow.ui.screens.player.effects.PipPreferences
+import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
@@ -28,6 +29,7 @@ internal class VideoPlayerStageSession(
     val screenState: PlayerScreenState,
     val playerState: EnhancedPlayerState,
     val uiState: VideoPlayerUiState,
+    val commentsUiState: PlayerCommentsUiState,
     val viewModel: VideoPlayerViewModel,
     val sheetState: PlayerDraggableState,
     val prefs: VideoPlayerPreferencesState,
