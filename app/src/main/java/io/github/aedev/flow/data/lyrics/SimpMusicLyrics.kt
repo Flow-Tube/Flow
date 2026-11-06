@@ -6,6 +6,7 @@ package io.github.aedev.flow.data.lyrics
 
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
@@ -74,7 +75,7 @@ class SimpMusicLyrics(
                         return@withContext Result.failure(Exception("Empty response from SimpMusic"))
                     }
 
-                    val entries = parseSimpMusicResponse(body, duration)
+                    val entries = parseResponse(body, duration)
                     if (entries != null && entries.isNotEmpty()) {
                         Log.d(TAG, "Got ${entries.size} lines, ${entries.count { it.words != null }} with word sync")
                         Result.success(entries)
@@ -88,7 +89,7 @@ class SimpMusicLyrics(
             }
         }
 
-    private fun parseSimpMusicResponse(
+    internal fun parseResponse(
         json: String,
         duration: Int?,
     ): List<LyricsEntry>? {
@@ -103,7 +104,7 @@ class SimpMusicLyrics(
 
                     root.isJsonObject -> {
                         val obj = root.asJsonObject
-                        val type = obj.get("type")?.asString
+                        val type = obj.text("type")
                         if (type != null && type != "success") {
                             Log.d(TAG, "API returned type=$type")
                             return null
@@ -118,31 +119,9 @@ class SimpMusicLyrics(
 
             if (lyricsArray.size() == 0) return null
 
-            var bestMatch: com.google.gson.JsonObject? = null
-            var bestDurationDiff = Double.MAX_VALUE
+            val bestMatch = closestRow(lyricsArray.map { it.asJsonObject }, duration) ?: return null
 
-            for (element in lyricsArray) {
-                val lyricObj = element.asJsonObject
-
-                if (duration != null && duration > 0) {
-                    val lyricDuration =
-                        lyricObj.get("durationSeconds")?.asInt
-                            ?: lyricObj.get("duration")?.asInt
-                            ?: 0
-                    val diff = abs(lyricDuration - duration).toDouble()
-                    if (diff <= 10 && diff < bestDurationDiff) {
-                        bestDurationDiff = diff
-                        bestMatch = lyricObj
-                    }
-                } else {
-                    bestMatch = lyricObj
-                    break
-                }
-            }
-
-            if (bestMatch == null) bestMatch = lyricsArray[0].asJsonObject
-
-            val richSyncStr = bestMatch?.get("richSyncLyrics")?.asString
+            val richSyncStr = bestMatch.text("richSyncLyrics")
             if (!richSyncStr.isNullOrBlank()) {
                 val richEntries = parseRichSyncJson(richSyncStr, duration)
                 if (richEntries != null && richEntries.isNotEmpty()) {
@@ -151,7 +130,7 @@ class SimpMusicLyrics(
                 }
             }
 
-            val syncedStr = bestMatch?.get("syncedLyrics")?.asString
+            val syncedStr = bestMatch.text("syncedLyrics")
             if (!syncedStr.isNullOrBlank()) {
                 val entries = LyricsUtils.parseLyrics(syncedStr)
                 if (entries.isNotEmpty()) {
@@ -161,8 +140,8 @@ class SimpMusicLyrics(
             }
 
             val plainStr =
-                bestMatch?.get("plainLyrics")?.asString
-                    ?: bestMatch?.get("plainLyric")?.asString
+                bestMatch.text("plainLyrics")
+                    ?: bestMatch.text("plainLyric")
             if (!plainStr.isNullOrBlank()) {
                 Log.d(TAG, "Using plainLyrics")
                 return listOf(LyricsEntry(time = 0L, text = plainStr))
@@ -172,6 +151,27 @@ class SimpMusicLyrics(
         }
         return null
     }
+
+    /**
+     * The video id can still list lyrics for a shorter or longer upload, whose lines would drift, so
+     * a row more than [MAX_DURATION_GAP_SECONDS] from the song's length is never used.
+     */
+    private fun closestRow(
+        rows: List<JsonObject>,
+        duration: Int?,
+    ): JsonObject? {
+        val votes = compareByDescending<JsonObject> { it.number("vote") }
+        if (duration == null || duration <= 0) return rows.minWithOrNull(votes)
+        return rows
+            .filter { abs(it.length() - duration) <= MAX_DURATION_GAP_SECONDS }
+            .minWithOrNull(compareBy<JsonObject> { abs(it.length() - duration) }.then(votes))
+    }
+
+    private fun JsonObject.length(): Int = number("durationSeconds").takeIf { it > 0 } ?: number("duration")
+
+    private fun JsonObject.number(key: String): Int = get(key)?.takeUnless { it.isJsonNull }?.asInt ?: 0
+
+    private fun JsonObject.text(key: String): String? = get(key)?.takeUnless { it.isJsonNull }?.asString
 
     /**
      * Parse SimpMusic's richSyncLyrics JSON format into LyricsEntry with word timestamps.
@@ -317,5 +317,6 @@ class SimpMusicLyrics(
     private companion object {
         const val TAG = "SimpMusicLyrics"
         const val BASE_URL = "https://api-lyrics.simpmusic.org/v1/"
+        const val MAX_DURATION_GAP_SECONDS = 10
     }
 }
