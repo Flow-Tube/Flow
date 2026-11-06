@@ -55,6 +55,7 @@ class PlayerScreenStateTest {
 
     private val resetForNewVideoTouches =
         setOf(
+            "commentSortFilter",
             "showControls",
             "isScrubbing",
             "isSeekDragging",
@@ -88,7 +89,6 @@ class PlayerScreenStateTest {
         setOf(
             "isFullscreen",
             "bufferedPosition",
-            "commentSortFilter",
             "brightnessLevel",
             "volumeLevel",
             "speedSwipeLevel",

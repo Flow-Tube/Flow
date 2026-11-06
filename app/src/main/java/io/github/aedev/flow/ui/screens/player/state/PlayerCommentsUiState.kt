@@ -8,7 +8,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
+import io.github.aedev.flow.ui.components.shared.CommentsTimedFollow
 import io.github.aedev.flow.ui.components.shared.applyVideoCommentFilters
+import io.github.aedev.flow.ui.components.shared.timedCommentOrders
 import io.github.aedev.flow.ui.components.shared.videoCommentSortFor
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 
@@ -49,22 +51,41 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
     }
 }
 
-/** The rows the chips currently select, out of the pages loaded so far. */
+/** What the player's comment surfaces give the Timed list to follow the video with. */
+@Composable
+fun rememberPlayerCommentsTimedFollow(
+    viewModel: VideoPlayerViewModel,
+    screenState: PlayerScreenState,
+): CommentsTimedFollow {
+    val enabled by viewModel.timedCommentsFollow.collectAsStateWithLifecycle()
+    val isVisible = screenState.isPlayerExpanded
+    return remember(enabled, isVisible) {
+        CommentsTimedFollow(
+            enabled = enabled,
+            onEnabledChange = viewModel::setTimedCommentsFollow,
+            isSurfaceVisible = isVisible,
+            positionMs = { screenState.currentPosition },
+        )
+    }
+}
+
+/** The rows the selected chip shows, out of the pages loaded so far. */
 @Composable
 fun PlayerCommentsUiState.visibleComments(screenState: PlayerScreenState): List<Comment> {
     val filter = screenState.commentSortFilter
-    val timedOnly = screenState.commentsTimedOnly
-    return remember(comments, filter, timedOnly) {
-        applyVideoCommentFilters(comments, filter, timedOnly)
+    // Only Timed reads the length, so a live stream's growing duration recomposes nothing here.
+    val durationMs = if (filter == CommentSortFilter.TIMED) screenState.duration else 0L
+    return remember(comments, filter, durationMs) {
+        applyVideoCommentFilters(comments, filter, durationMs)
     }
 }
 
 /**
  * Applies a chip.
  *
- * Top and Newest are separate continuations, so picking one re-requests the section; Oldest reads
+ * Top and Newest are separate continuations, so picking one re-requests the section. Oldest reads
  * the chronological continuation and reverses it locally, which is why it selects the same one as
- * Newest.
+ * Newest. Timed reads both.
  */
 fun PlayerCommentsUiState.selectCommentSort(
     filter: CommentSortFilter,
@@ -73,6 +94,10 @@ fun PlayerCommentsUiState.selectCommentSort(
     viewModel: VideoPlayerViewModel,
 ) {
     screenState.commentSortFilter = filter
+    if (filter == CommentSortFilter.TIMED) {
+        viewModel.selectTimedComments(videoId, timedCommentOrders(sortOptions))
+        return
+    }
     videoCommentSortFor(sortOptions, filter)?.let { sort ->
         viewModel.selectCommentSort(videoId, sort)
     }

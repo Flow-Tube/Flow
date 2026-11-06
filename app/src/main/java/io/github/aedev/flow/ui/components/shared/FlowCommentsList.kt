@@ -1,6 +1,5 @@
 package io.github.aedev.flow.ui.components.shared
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,14 +13,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -50,13 +51,34 @@ fun FlowCommentsList(
     hasMore: Boolean,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = 32.dp),
-    @StringRes emptyMessageRes: Int = R.string.no_comments_yet,
     tint: MediaArtworkTint? = null,
+    timedFollow: CommentsTimedFollow? = null,
 ) {
     val latestOnLoadMore by rememberUpdatedState(onLoadMore)
+    val timed = selectedFilter == CommentSortFilter.TIMED
     val uniqueComments =
         remember(comments) {
             comments.distinctByNonBlankKey(Comment::id)
+        }
+    val followPosition = timedFollow?.takeIf { timed && it.enabled && it.isSurfaceVisible }?.positionMs
+    val anchor = rememberTimedAnchor(uniqueComments, followPosition)
+    val pause = remember { TimedFollowPause() }
+    if (followPosition != null) {
+        FollowTimedAnchor(listState, anchor, uniqueComments, pause)
+    }
+    val seekAndResume: (Long) -> Unit =
+        remember(onSeekMs, pause) {
+            { positionMs ->
+                pause.resume()
+                onSeekMs(positionMs)
+            }
+        }
+    val loadRepliesAndPause: (Comment) -> Unit =
+        remember(onLoadReplies, pause) {
+            { comment ->
+                pause.afterOpeningReplies()
+                onLoadReplies(comment)
+            }
         }
     LazyColumn(
         state = listState,
@@ -69,7 +91,7 @@ fun FlowCommentsList(
                     repeat(6) { CommentSkeleton() }
                 }
             }
-        } else if (uniqueComments.isEmpty()) {
+        } else if (uniqueComments.isEmpty() && !(timed && isLoadingMore)) {
             item(key = "empty") {
                 Box(
                     modifier =
@@ -79,27 +101,36 @@ fun FlowCommentsList(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        stringResource(emptyMessageRes),
+                        stringResource(if (timed) R.string.no_timed_comments else R.string.no_comments_yet),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
+            if (timed && hasMore) item(key = "load_more_button") { CommentsLoadMoreButton(onLoadMore) }
         } else {
-            items(
+            itemsIndexed(
                 items = uniqueComments,
-                key = { comment -> "${selectedFilter.name}_${comment.id}" },
-            ) { comment ->
-                FlowCommentItem(
-                    comment = comment,
-                    tint = tint,
-                    onSeekMs = onSeekMs,
-                    onLoadReplies = onLoadReplies,
-                    onLoadMoreReplies = onLoadMoreReplies,
-                    onAuthorClick = onAuthorClick,
-                    onAvatarClick = onAvatarClick,
-                )
+                key = { _, comment -> "${selectedFilter.name}_${comment.id}" },
+            ) { index, comment ->
+                val highlighted by remember(index, anchor) { derivedStateOf { anchor.value == index } }
+                TimedCommentBackdrop(highlighted) {
+                    FlowCommentItem(
+                        comment = comment,
+                        tint = tint,
+                        onSeekMs = seekAndResume,
+                        onLoadReplies = loadRepliesAndPause,
+                        onLoadMoreReplies = onLoadMoreReplies,
+                        onAuthorClick = onAuthorClick,
+                        onAvatarClick = onAvatarClick,
+                    )
+                }
             }
-            if (hasMore) {
+            if (timed) {
+                when {
+                    isLoadingMore -> item(key = "load_more_progress") { CommentsLoadingMoreRow() }
+                    hasMore -> item(key = "load_more_button") { CommentsLoadMoreButton(onLoadMore) }
+                }
+            } else if (hasMore) {
                 item(key = "load_more_trigger") {
                     LaunchedEffect(comments.size) {
                         latestOnLoadMore()
@@ -117,6 +148,34 @@ fun FlowCommentsList(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CommentsLoadingMoreRow() {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+    }
+}
+
+@Composable
+private fun CommentsLoadMoreButton(onClick: () -> Unit) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        TextButton(onClick = onClick) {
+            Text(stringResource(R.string.comments_load_more))
         }
     }
 }

@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.settings.integrations
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -25,8 +26,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.SponsorBlockAction
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
+import io.github.aedev.flow.ui.components.settings.choice
 import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.shared.FlowChoice
 import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
@@ -45,11 +48,17 @@ internal fun SettingsListScope.sponsorBlockSection(
     submitButton: Boolean,
     userId: String?,
     segments: Map<String, SegmentSetting>,
+    skipButtonStyle: SponsorBlockSkipButtonStyle,
+    onPickSkipButtonStyle: () -> Unit,
     onEditUserId: () -> Unit,
     onPickColour: (String) -> Unit,
 ) {
     group(key = "integrations.sponsorblock.group", header = R.string.player_settings_sponsorblock) {
         switch(IntegrationsIndex.sponsorBlock, viewModel.sponsorBlock, viewModel::setSponsorBlock, iconRes = R.drawable.ic_block)
+        switch(IntegrationsIndex.skipNotice, viewModel.skipNotice, viewModel::setSkipNotice, enabled = enabled)
+        choice(IntegrationsIndex.skipButtonStyle, onClick = onPickSkipButtonStyle, enabled = enabled) {
+            stringResource(skipButtonStyleLabel(skipButtonStyle))
+        }
         switch(IntegrationsIndex.contribute, viewModel.submitButton, viewModel::setSubmitButton, enabled = enabled)
         if (submitButton) {
             row(IntegrationsIndex.userId.key) { shape ->
@@ -81,6 +90,14 @@ internal fun SettingsListScope.sponsorBlockSection(
         }
     }
 }
+
+@StringRes
+internal fun skipButtonStyleLabel(style: SponsorBlockSkipButtonStyle): Int =
+    when (style) {
+        SponsorBlockSkipButtonStyle.FULL -> R.string.sb_skip_style_full
+        SponsorBlockSkipButtonStyle.COMPACT -> R.string.sb_skip_style_compact
+        SponsorBlockSkipButtonStyle.ICON_ONLY -> R.string.sb_skip_style_icon
+    }
 
 /**
  * One segment category: its colour on the seek bar (tap to change) and what the player does when it

@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.settings.wellbeing
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,22 +11,31 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.stats.spentTimeLabel
+import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -38,22 +48,30 @@ private const val MIN_BAR_FRACTION = 0.02f
 private const val BAR_WIDTH_FRACTION = 0.6f
 
 /**
- * The daily average over the last week, above one bar per day. Today's bar is in the primary
- * colour so it can be told apart from the rest; the chart is otherwise static.
+ * The daily average over the last week, above one bar per day. Today's bar is in the primary colour
+ * so it can be told apart from the rest. Tapping a bar shows that day's time instead of the average,
+ * and tapping it again goes back.
  */
 @Composable
 internal fun WatchTimeCard(
     summary: WatchTimeSummary?,
     modifier: Modifier = Modifier,
 ) {
+    var selectedEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(modifier = Modifier.padding(CardPadding)) {
+            val selectedDay = summary?.dayOrNull(selectedEpochDay?.let(LocalDate::ofEpochDay))
             Text(
-                text = stringResource(R.string.daily_average_label),
+                text =
+                    if (summary != null && selectedDay != null) {
+                        dayLabel(selectedDay.date, summary.days.last().date)
+                    } else {
+                        stringResource(R.string.daily_average_label)
+                    },
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -62,7 +80,7 @@ internal fun WatchTimeCard(
                 return@Column
             }
             Text(
-                text = spentTimeLabel(summary.dailyAverageMillis),
+                text = spentTimeLabel(selectedDay?.millis ?: summary.dailyAverageMillis),
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -81,28 +99,65 @@ internal fun WatchTimeCard(
                     )
                 }
             } else {
-                WeekChart(summary)
+                WeekChart(
+                    summary = summary,
+                    selected = selectedDay?.date,
+                    onDayClick = { date ->
+                        selectedEpochDay = date.toEpochDay().takeUnless { date == selectedDay?.date }
+                    },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun WeekChart(summary: WatchTimeSummary) {
+private fun dayLabel(
+    date: LocalDate,
+    today: LocalDate,
+): String =
+    when (date) {
+        today -> stringResource(R.string.time_today)
+        today.minusDays(1) -> stringResource(R.string.time_yesterday)
+        else -> date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    }
+
+@Composable
+private fun WeekChart(
+    summary: WatchTimeSummary,
+    selected: LocalDate?,
+    onDayClick: (LocalDate) -> Unit,
+) {
     val peak = summary.days.maxOf { it.millis }.coerceAtLeast(1L)
-    val today = summary.days.last().date
+    val marked = selected ?: summary.days.last().date
     val locale = Locale.getDefault()
-    val description = summary.days.map { "${it.date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)} ${spentTimeLabel(it.millis)}" }
+    val haptics = LocalHapticFeedback.current
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clearAndSetSemantics { contentDescription = description.joinToString() },
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(BarSpacing),
     ) {
         summary.days.forEach { day ->
-            val isToday = day.date == today
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            val isMarked = day.date == marked
+            val barColor by animateColorAsState(
+                targetValue = if (isMarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
+                animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                label = "watchTimeBar",
+            )
+            val description = "${day.date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)} ${spentTimeLabel(day.millis)}"
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(MaterialTheme.shapes.small)
+                        .selectable(
+                            selected = day.date == selected,
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                onDayClick(day.date)
+                            },
+                        ).semantics { contentDescription = description },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Box(modifier = Modifier.fillMaxWidth().height(ChartHeight), contentAlignment = Alignment.BottomCenter) {
                     Box(
                         modifier =
@@ -110,18 +165,17 @@ private fun WeekChart(summary: WatchTimeSummary) {
                                 .fillMaxWidth(BAR_WIDTH_FRACTION)
                                 .fillMaxHeight((day.millis.toFloat() / peak).coerceIn(MIN_BAR_FRACTION, 1f))
                                 .clip(MaterialTheme.shapes.small)
-                                .background(
-                                    if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-                                ),
+                                .background(barColor),
                     )
                 }
                 Spacer(Modifier.height(LabelSpacing))
                 Text(
                     text = day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isMarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
+                    modifier = Modifier.clearAndSetSemantics {},
                 )
             }
         }
