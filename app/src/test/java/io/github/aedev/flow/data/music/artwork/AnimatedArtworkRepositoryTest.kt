@@ -3,6 +3,10 @@ package io.github.aedev.flow.data.music.artwork
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.innertube.models.Album
+import io.github.aedev.flow.innertube.models.Artist
+import io.github.aedev.flow.innertube.models.SongItem
+import io.github.aedev.flow.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.io.IOException
@@ -39,6 +43,8 @@ class AnimatedArtworkRepositoryTest {
     private val tallLoop = "https://mvod.itunes.apple.com/itunes-assets/tall.m3u8"
     private val requests = mutableListOf<Map<String, String>>()
     private var answer: (Map<String, String>) -> ArtworkAnswer = { ArtworkAnswer("Anti-Hero", "Taylor Swift", loop) }
+    private val searches = mutableListOf<String>()
+    private var searchAnswer: (String) -> List<SongItem> = { emptyList() }
     private var clock = 0L
     private val cache = MemoryCache()
     private val repository =
@@ -46,6 +52,10 @@ class AnimatedArtworkRepositoryTest {
             fetch = { params ->
                 requests += params
                 answer(params)
+            },
+            searchSongs = { query ->
+                searches += query
+                searchAnswer(query)
             },
             cache = cache,
             storefront = { "US" },
@@ -167,6 +177,144 @@ class AnimatedArtworkRepositoryTest {
         assertThat(decodeCachedLoop("42|$loop")).isNull()
         assertThat(decodeCachedLoop("42|")).isNull()
     }
+
+    private val besharamRangVideo =
+        MusicTrack(
+            videoId = "huxhqphtDrM",
+            title = "Besharam Rang",
+            artist = "Shilpa Rao",
+            thumbnailUrl = "",
+            duration = 194,
+            isVideoSong = true,
+            artists = listOf(MusicArtist("Shilpa Rao"), MusicArtist("Caralisa Monteiro"), MusicArtist("Vishal Dadlani")),
+        )
+    private val besharamRangSong =
+        SongItem(
+            id = "Uo_OSlQZlgY",
+            title = "Besharam Rang (From \"Pathaan\")",
+            artists = listOf(Artist("Shilpa Rao", null), Artist("Vishal-Shekhar", null), Artist("Caralisa Monteiro", null)),
+            album = Album("Pathaan", "pathaan"),
+            duration = 259,
+            musicVideoType = MUSIC_VIDEO_TYPE_ATV,
+            thumbnail = "",
+        )
+
+    /** The service as it answered live: no album gets a compilation without a loop, the film's album has both loops. */
+    private fun besharamRangService(params: Map<String, String>): ArtworkAnswer =
+        if (params["al"] == "Pathaan") {
+            ArtworkAnswer(params["s"], "Vishal & Shekhar, Shilpa Rao, Caralisa Monteiro", loop, tallLoop)
+        } else {
+            ArtworkAnswer("Besharam Rang", "Vishal & Shekhar, Shilpa Rao, Caralisa Monteiro")
+        }
+
+    @Test
+    fun `a video row with no album takes the loop of its song version's album`() =
+        runTest {
+            answer = ::besharamRangService
+            searchAnswer = { listOf(besharamRangSong) }
+
+            assertThat(repository.loopFor(besharamRangVideo)).isEqualTo(AnimatedLoop(loop, tallLoop))
+
+            assertThat(searches).containsExactly("Besharam Rang Shilpa Rao")
+            assertThat(requests.last())
+                .containsExactly(
+                    "s",
+                    "Besharam Rang (From \"Pathaan\")",
+                    "a",
+                    "Shilpa Rao",
+                    "al",
+                    "Pathaan",
+                    "d",
+                    "259",
+                    "storefront",
+                    "us",
+                )
+        }
+
+    @Test
+    fun `the song version's answer is kept, so one row searches once`() =
+        runTest {
+            answer = ::besharamRangService
+            searchAnswer = { listOf(besharamRangSong) }
+
+            repository.loopFor(besharamRangVideo)
+            val requestsAfterFirst = requests.size
+            assertThat(repository.loopFor(besharamRangVideo)).isEqualTo(AnimatedLoop(loop, tallLoop))
+
+            assertThat(searches).hasSize(1)
+            assertThat(requests).hasSize(requestsAfterFirst)
+        }
+
+    @Test
+    fun `a video row with no song version is a miss, kept for days`() =
+        runTest {
+            answer = ::besharamRangService
+
+            assertThat(repository.loopFor(besharamRangVideo)).isNull()
+            repository.loopFor(besharamRangVideo)
+            assertThat(searches).hasSize(1)
+
+            clock += 4L * 24 * 60 * 60 * 1000
+            repository.loopFor(besharamRangVideo)
+            assertThat(searches).hasSize(2)
+        }
+
+    @Test
+    fun `a failed search is not kept as a miss`() =
+        runTest {
+            answer = ::besharamRangService
+            searchAnswer = { throw IOException("no network") }
+            runCatching { repository.loopFor(besharamRangVideo) }
+            assertThat(cache.entries).isEmpty()
+
+            searchAnswer = { listOf(besharamRangSong) }
+            assertThat(repository.loopFor(besharamRangVideo)).isEqualTo(AnimatedLoop(loop, tallLoop))
+        }
+
+    @Test
+    fun `a service failure on the song version is not kept as a miss`() =
+        runTest {
+            searchAnswer = { listOf(besharamRangSong) }
+            answer = { params -> if (params["al"] == "Pathaan") throw IOException("503") else besharamRangService(params) }
+
+            assertThat(runCatching { repository.loopFor(besharamRangVideo) }.isFailure).isTrue()
+            assertThat(cache.entries).isEmpty()
+        }
+
+    @Test
+    fun `a song row with an album never searches, loop or none`() =
+        runTest {
+            val albumVersion =
+                besharamRangVideo.copy(videoId = "Uo_OSlQZlgY", title = besharamRangSong.title, album = "Pathaan", duration = 259)
+            val gehraHua =
+                MusicTrack(
+                    videoId = "i1o1p_DD6TU",
+                    title = "Gehra Hua (From \"Dhurandhar\")",
+                    artist = "Shashwat Sachdev",
+                    thumbnailUrl = "",
+                    duration = 363,
+                    album = "Gehra Hua (From \"Dhurandhar\")",
+                    artists = listOf(MusicArtist("Shashwat Sachdev"), MusicArtist("Arijit Singh")),
+                )
+
+            answer = ::besharamRangService
+            assertThat(repository.loopFor(albumVersion)).isEqualTo(AnimatedLoop(loop, tallLoop))
+            answer = { ArtworkAnswer("Gehra Hua (From \"Dhurandhar\")", "Shashwat Sachdev, Arijit Singh, Irshad Kamil", loop, tallLoop) }
+            assertThat(repository.loopFor(gehraHua)).isEqualTo(AnimatedLoop(loop, tallLoop))
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift") }
+            assertThat(repository.loopFor(antiHero)).isNull()
+
+            assertThat(searches).isEmpty()
+        }
+
+    @Test
+    fun `a row with no album whose answer already has a loop does not search`() =
+        runTest {
+            answer = { ArtworkAnswer("Besharam Rang", "Shilpa Rao", loop) }
+
+            assertThat(repository.loopFor(besharamRangVideo)?.square).isEqualTo(loop)
+            assertThat(searches).isEmpty()
+        }
 
     @Test
     fun `the artist channel's Topic suffix is not sent`() {

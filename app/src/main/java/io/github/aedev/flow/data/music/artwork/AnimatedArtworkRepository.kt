@@ -4,6 +4,8 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.network.ProxyAwareClient
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.flow.first
@@ -21,11 +23,13 @@ import javax.inject.Singleton
  * Album motion artwork for the music player, from the artwork service that sits beside the
  * BetterLyrics lyrics API. It returns Apple Music's loops for an album, sends nothing but the
  * song's title, artist, album and length, and needs no account. Each album is asked about once;
- * the answer, loop or none, is kept for days, as the service asks of its clients.
+ * the answer, loop or none, is kept for days, as the service asks of its clients. A row with no
+ * album, usually a music video, is asked about again under its song version's album on a miss.
  */
 @Singleton
 class AnimatedArtworkRepository internal constructor(
     private val fetch: suspend (Map<String, String>) -> ArtworkAnswer,
+    private val searchSongs: suspend (String) -> List<SongItem>,
     private val cache: AnimatedArtworkCache,
     private val storefront: suspend () -> String,
     private val now: () -> Long,
@@ -36,6 +40,16 @@ class AnimatedArtworkRepository internal constructor(
         preferences: PlayerPreferences,
     ) : this(
         fetch = ArtworkService::fetch,
+        // Not YouTubeMusicService.searchMusic: it turns a failed search into an empty list, which would be kept as a miss for days.
+        searchSongs = { query ->
+            withContext(PerformanceDispatcher.networkIO) {
+                YouTube
+                    .search(query, YouTube.SearchFilter.FILTER_SONG)
+                    .getOrThrow()
+                    .items
+                    .filterIsInstance<SongItem>()
+            }
+        },
         cache = DataStoreAnimatedArtworkCache(context),
         storefront = { preferences.trendingRegion.first() },
         now = System::currentTimeMillis,
@@ -48,7 +62,7 @@ class AnimatedArtworkRepository internal constructor(
         lock.withLock {
             val key = AnimatedArtworkLookup.key(track)
             cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return@withLock it.loop }
-            val loop = ask(track)
+            val loop = ask(track) ?: askAlbumVersion(track)
             cache.put(key, CachedLoop(loop, now()))
             loop
         }
@@ -73,6 +87,12 @@ class AnimatedArtworkRepository internal constructor(
             }
         }
         return null
+    }
+
+    private suspend fun askAlbumVersion(track: MusicTrack): AnimatedLoop? {
+        if (track.album.isNotBlank()) return null
+        val version = AnimatedArtworkLookup.albumVersion(track, searchSongs(AnimatedArtworkLookup.songSearch(track))) ?: return null
+        return ask(version)
     }
 
     private fun ttlFor(answer: CachedLoop): Long = if (answer.loop != null) FOUND_TTL_MS else MISSING_TTL_MS
