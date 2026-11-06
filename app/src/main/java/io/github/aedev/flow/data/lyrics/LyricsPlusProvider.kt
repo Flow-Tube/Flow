@@ -54,7 +54,7 @@ class LyricsPlusProvider(
     ): Result<List<LyricsEntry>> =
         withContext(Dispatchers.IO) {
             runCatching {
-                fetchLyricsPlus(title, artist, duration, album)
+                fetchLyricsPlus(title, LyricsMatching.cleanArtist(artist), duration, album)
                     ?: throw LyricsNotFoundException("LyricsPlus lyrics unavailable")
             }
         }

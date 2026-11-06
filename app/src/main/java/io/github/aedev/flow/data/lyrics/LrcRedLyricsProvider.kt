@@ -47,16 +47,17 @@ class LrcRedLyricsProvider(
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = LyricsMatching.Song(title, artist, duration)
+                val searchArtist = LyricsMatching.cleanArtist(artist)
                 val shaped =
                     buildList {
                         add("track" to title)
-                        if (artist.isNotBlank()) add("artist" to artist)
+                        if (searchArtist.isNotBlank()) add("artist" to searchArtist)
                         if (!album.isNullOrBlank()) add("album" to album)
                         if (duration > 0) add("duration" to duration.toString())
                     }
                 val hit =
                     pick(search(shaped), request)
-                        ?: pick(search(listOf("q" to if (artist.isBlank()) title else "$artist - $title")), request)
+                        ?: pick(search(listOf("q" to if (searchArtist.isBlank()) title else "$searchArtist - $title")), request)
                         ?: throw LyricsNotFoundException("No lrc.red match")
                 val document = get(hit.lyricsUrl!!.toHttpUrl()) ?: throw LyricsNotFoundException("lrc.red document missing")
                 TTMLParser.parseTTMLToLyricsEntries(document).ifEmpty { throw LyricsNotFoundException("lrc.red document has no lines") }

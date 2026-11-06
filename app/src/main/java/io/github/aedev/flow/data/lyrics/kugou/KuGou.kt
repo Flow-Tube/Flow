@@ -32,7 +32,7 @@ class KuGou(
         album: String? = null,
     ): Result<String> =
         runCatching {
-            val keyword = generateKeyword(title, artist, album)
+            val keyword = generateKeyword(title, LyricsMatching.cleanArtist(artist), album)
             val candidate =
                 getLyricsCandidate(keyword, LyricsMatching.Song(title, artist, duration))
                     ?: throw LyricsNotFoundException("No lyrics candidate")

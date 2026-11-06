@@ -208,8 +208,7 @@ class LyricsHelper
             }
 
             val cleanedTitle = LyricsMatching.cleanTitle(title)
-            val cleanedArtist = LyricsMatching.cleanArtist(artist)
-            Log.d(TAG, "Querying providers: cleanedTitle=\"$cleanedTitle\", cleanedArtist=\"$cleanedArtist\"")
+            Log.d(TAG, "Querying providers: cleanedTitle=\"$cleanedTitle\", artist=\"$artist\"")
 
             val orderString = playerPreferences.lyricsProviderOrder.first()
             val enabledStates = playerPreferences.allLyricsProviderEnabledStates().first()
@@ -229,7 +228,7 @@ class LyricsHelper
                         preferred = providers.keys.firstOrNull().orEmpty(),
                         alreadyShown = savedCopy?.kind,
                         ask = { name ->
-                            askProvider(providers.getValue(name), videoId, cleanedTitle, cleanedArtist, duration, album)
+                            askProvider(providers.getValue(name), videoId, cleanedTitle, artist, duration, album)
                         },
                         show = { keepAnswer(targetContext, videoId, it) },
                     ).run()
@@ -358,7 +357,6 @@ class LyricsHelper
             onCandidate: suspend (LyricsCandidate) -> Unit,
         ) {
             val cleanedTitle = LyricsMatching.cleanTitle(title)
-            val cleanedArtist = LyricsMatching.cleanArtist(artist)
             val orderString = playerPreferences.lyricsProviderOrder.first()
             val enabledStates = playerPreferences.allLyricsProviderEnabledStates().first()
             val orderedProviders =
@@ -368,7 +366,7 @@ class LyricsHelper
             for (provider in orderedProviders) {
                 val providerResult =
                     try {
-                        callProvider(provider, PER_PROVIDER_TIMEOUT_MS, videoId, cleanedTitle, cleanedArtist, duration, album)
+                        callProvider(provider, PER_PROVIDER_TIMEOUT_MS, videoId, cleanedTitle, artist, duration, album)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {

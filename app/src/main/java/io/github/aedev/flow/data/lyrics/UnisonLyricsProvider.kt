@@ -48,7 +48,7 @@ class UnisonLyricsProvider(
                         .toHttpUrl()
                         .newBuilder()
                         .addQueryParameter("song", title)
-                        .addQueryParameter("artist", artist)
+                        .addQueryParameter("artist", LyricsMatching.cleanArtist(artist))
                         .apply {
                             if (!album.isNullOrBlank()) addQueryParameter("album", album)
                             if (duration > 0) addQueryParameter("duration", duration.toString())

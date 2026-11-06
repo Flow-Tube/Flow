@@ -45,7 +45,7 @@ class LrcLibLyricsProvider(
     ): Result<List<LyricsEntry>> =
         withContext(Dispatchers.IO) {
             try {
-                val result = tryFetch(artist, title, duration) ?: trySearch(artist, title, duration)
+                val result = tryFetch(LyricsMatching.cleanArtist(artist), title, duration) ?: trySearch(artist, title, duration)
 
                 if (result != null) {
                     val syncedLrc = result.syncedLyrics
@@ -98,7 +98,8 @@ class LrcLibLyricsProvider(
         title: String,
         duration: Int,
     ): SearchResult? {
-        val q = if (artist.isNotEmpty()) "$artist $title" else title
+        val searchArtist = LyricsMatching.cleanArtist(artist)
+        val q = if (searchArtist.isNotEmpty()) "$searchArtist $title" else title
         val body = get("https://lrclib.net/api/search?q=${URLEncoder.encode(q, "UTF-8")}") ?: return null
         val results = gson.fromJson(body, Array<SearchResult>::class.java)
         return pick(results.asList(), LyricsMatching.Song(title, artist, duration))
