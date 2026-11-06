@@ -133,6 +133,34 @@ class LyricsCacheManagerTest {
             assertThat(LyricsCacheManager.syncOffset(context, "v")).isNull()
         }
 
+    @Test
+    fun `no lyrics is remembered for a week`() =
+        runTest {
+            LyricsCacheManager.rememberNoLyrics(context, "v")
+            val rememberedAt = File(folder.root, "lyrics/v.none").lastModified()
+
+            assertThat(LyricsCacheManager.remembersNoLyrics(context, "v", nowMs = rememberedAt + 6 * DAY_MS)).isTrue()
+            assertThat(LyricsCacheManager.remembersNoLyrics(context, "v", nowMs = rememberedAt + 7 * DAY_MS)).isFalse()
+        }
+
+    @Test
+    fun `forgetting no lyrics or saving some ends the memory of it`() =
+        runTest {
+            LyricsCacheManager.rememberNoLyrics(context, "v")
+            LyricsCacheManager.forgetNoLyrics(context, "v")
+            assertThat(LyricsCacheManager.remembersNoLyrics(context, "v")).isFalse()
+
+            LyricsCacheManager.rememberNoLyrics(context, "w")
+            LyricsCacheManager.saveLyrics(context, "w", found)
+            assertThat(LyricsCacheManager.remembersNoLyrics(context, "w")).isFalse()
+        }
+
+    @Test
+    fun `a song never looked up is not remembered as having no lyrics`() =
+        runTest {
+            assertThat(LyricsCacheManager.remembersNoLyrics(context, "v")).isFalse()
+        }
+
     private companion object {
         const val DAY_MS = 24 * 60 * 60 * 1000L
     }

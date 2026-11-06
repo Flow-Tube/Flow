@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import kotlin.math.abs
 
 /**
@@ -64,6 +65,7 @@ class SimpMusicLyrics(
                         .build()
 
                 client.newCall(request).execute().use { response ->
+                    if (response.code == 404) return@withContext Result.failure(LyricsNotFoundException())
                     if (!response.isSuccessful) {
                         return@withContext Result.failure(
                             Exception("SimpMusic API returned ${response.code}"),
@@ -80,7 +82,7 @@ class SimpMusicLyrics(
                         Log.d(TAG, "Got ${entries.size} lines, ${entries.count { it.words != null }} with word sync")
                         Result.success(entries)
                     } else {
-                        Result.failure(Exception("No lyrics found in SimpMusic response"))
+                        Result.failure(LyricsNotFoundException("No lyrics found in SimpMusic response"))
                     }
                 }
             } catch (e: Exception) {
@@ -89,65 +91,57 @@ class SimpMusicLyrics(
             }
         }
 
+    /** Null when the response is fine and has nothing usable. A response that isn't one throws. */
     internal fun parseResponse(
         json: String,
         duration: Int?,
     ): List<LyricsEntry>? {
-        try {
-            val root = JsonParser.parseString(json)
+        val root = JsonParser.parseString(json)
 
-            val lyricsArray =
-                when {
-                    root.isJsonArray -> {
-                        root.asJsonArray
-                    }
-
-                    root.isJsonObject -> {
-                        val obj = root.asJsonObject
-                        val type = obj.text("type")
-                        if (type != null && type != "success") {
-                            Log.d(TAG, "API returned type=$type")
-                            return null
-                        }
-                        obj.getAsJsonArray("data") ?: return null
-                    }
-
-                    else -> {
-                        return null
-                    }
+        val lyricsArray =
+            when {
+                root.isJsonArray -> {
+                    root.asJsonArray
                 }
 
-            if (lyricsArray.size() == 0) return null
+                root.isJsonObject -> {
+                    val obj = root.asJsonObject
+                    val type = obj.text("type")
+                    if (type != null && type != "success") throw IOException("SimpMusic returned type=$type")
+                    obj.getAsJsonArray("data") ?: return null
+                }
 
-            val bestMatch = closestRow(lyricsArray.map { it.asJsonObject }, duration) ?: return null
-
-            val richSyncStr = bestMatch.text("richSyncLyrics")
-            if (!richSyncStr.isNullOrBlank()) {
-                val richEntries = parseRichSyncJson(richSyncStr, duration)
-                if (richEntries != null && richEntries.isNotEmpty()) {
-                    Log.d(TAG, "Using richSyncLyrics (${richEntries.size} lines)")
-                    return richEntries
+                else -> {
+                    throw IOException("SimpMusic sent no lyrics list")
                 }
             }
 
-            val syncedStr = bestMatch.text("syncedLyrics")
-            if (!syncedStr.isNullOrBlank()) {
-                val entries = LyricsUtils.parseLyrics(syncedStr)
-                if (entries.isNotEmpty()) {
-                    Log.d(TAG, "Using syncedLyrics (${entries.size} lines)")
-                    return entries
-                }
-            }
+        if (lyricsArray.size() == 0) return null
 
-            val plainStr =
-                bestMatch.text("plainLyrics")
-                    ?: bestMatch.text("plainLyric")
-            if (!plainStr.isNullOrBlank()) {
-                Log.d(TAG, "Using plainLyrics")
-                return listOf(LyricsEntry(time = 0L, text = plainStr))
+        val bestMatch = closestRow(lyricsArray.map { it.asJsonObject }, duration) ?: return null
+
+        val richSyncStr = bestMatch.text("richSyncLyrics")
+        if (!richSyncStr.isNullOrBlank()) {
+            val richEntries = parseRichSyncJson(richSyncStr, duration)
+            if (richEntries != null && richEntries.isNotEmpty()) {
+                Log.d(TAG, "Using richSyncLyrics (${richEntries.size} lines)")
+                return richEntries
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse response", e)
+        }
+
+        val syncedStr = bestMatch.text("syncedLyrics")
+        if (!syncedStr.isNullOrBlank()) {
+            val entries = LyricsUtils.parseLyrics(syncedStr)
+            if (entries.isNotEmpty()) {
+                Log.d(TAG, "Using syncedLyrics (${entries.size} lines)")
+                return entries
+            }
+        }
+
+        val plainStr = bestMatch.text("plainLyrics") ?: bestMatch.text("plainLyric")
+        if (!plainStr.isNullOrBlank()) {
+            Log.d(TAG, "Using plainLyrics")
+            return listOf(LyricsEntry(time = 0L, text = plainStr))
         }
         return null
     }

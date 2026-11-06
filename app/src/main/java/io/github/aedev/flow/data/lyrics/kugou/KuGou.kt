@@ -4,9 +4,9 @@
 
 package io.github.aedev.flow.data.lyrics.kugou
 
-import android.util.Log
 import com.google.gson.Gson
 import io.github.aedev.flow.data.lyrics.LyricsMatching
+import io.github.aedev.flow.data.lyrics.LyricsNotFoundException
 import io.github.aedev.flow.data.lyrics.kugou.models.DownloadLyricsResponse
 import io.github.aedev.flow.data.lyrics.kugou.models.Keyword
 import io.github.aedev.flow.data.lyrics.kugou.models.SearchLyricsResponse
@@ -15,6 +15,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import java.net.URLEncoder
 import kotlin.math.abs
 import kotlin.math.min
@@ -34,7 +35,7 @@ class KuGou(
             val keyword = generateKeyword(title, artist, album)
             val candidate =
                 getLyricsCandidate(keyword, LyricsMatching.Song(title, artist, duration))
-                    ?: throw IllegalStateException("No lyrics candidate")
+                    ?: throw LyricsNotFoundException("No lyrics candidate")
             val downloaded = downloadLyrics(candidate.id, candidate.accesskey)
             val decoded =
                 android.util.Base64
@@ -71,7 +72,7 @@ class KuGou(
                 append("?version=9108&plat=0&pagesize=$PAGE_SIZE&showtype=0")
                 append("&keyword=${URLEncoder.encode(searchQuery, "UTF-8")}")
             }
-        return executeGet(url, SearchSongResponse::class.java) ?: SearchSongResponse()
+        return executeGet(url, SearchSongResponse::class.java)
     }
 
     private fun searchLyricsByKeyword(
@@ -95,12 +96,12 @@ class KuGou(
                 if (duration > 0) append("&duration=${duration * 1000}")
                 append("&keyword=${URLEncoder.encode(searchQuery, "UTF-8")}")
             }
-        return executeGet(url, SearchLyricsResponse::class.java) ?: SearchLyricsResponse()
+        return executeGet(url, SearchLyricsResponse::class.java)
     }
 
     private fun searchLyricsByHash(hash: String): SearchLyricsResponse {
         val url = "https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash=$hash"
-        return executeGet(url, SearchLyricsResponse::class.java) ?: SearchLyricsResponse()
+        return executeGet(url, SearchLyricsResponse::class.java)
     }
 
     private fun downloadLyrics(
@@ -108,35 +109,24 @@ class KuGou(
         accessKey: String,
     ): DownloadLyricsResponse {
         val url = "https://lyrics.kugou.com/download?fmt=lrc&charset=utf8&client=pc&ver=1&id=$id&accesskey=$accessKey"
-        return executeGet(url, DownloadLyricsResponse::class.java) ?: DownloadLyricsResponse()
+        return executeGet(url, DownloadLyricsResponse::class.java)
     }
 
     private fun <T> executeGet(
         url: String,
         clazz: Class<T>,
-    ): T? {
-        return try {
-            val request =
-                Request
-                    .Builder()
-                    .url(url)
-                    .build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.w(TAG, "HTTP ${response.code} for $url")
-                    return null
-                }
-                val body = response.body?.string() ?: return null
-                val trimmed = body.trimStart()
-                if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-                    Log.w(TAG, "Non-JSON response (${trimmed.take(80)}...) for $url")
-                    return null
-                }
-                gson.fromJson(body, clazz)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "HTTP request failed: ${e.message}")
-            null
+    ): T {
+        val request =
+            Request
+                .Builder()
+                .url(url)
+                .build()
+        return client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("KuGou returned ${response.code}")
+            val body = response.body.string()
+            val trimmed = body.trimStart()
+            if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) throw IOException("KuGou sent no JSON: ${trimmed.take(80)}")
+            gson.fromJson(body, clazz)
         }
     }
 
@@ -190,7 +180,6 @@ class KuGou(
             }
 
     internal companion object {
-        private const val TAG = "KuGou"
         private const val PAGE_SIZE = 8
         private const val HEAD_CUT_LIMIT = 30
         private const val DURATION_TOLERANCE = 8

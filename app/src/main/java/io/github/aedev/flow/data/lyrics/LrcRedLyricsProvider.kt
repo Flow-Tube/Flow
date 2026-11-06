@@ -11,6 +11,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 
 /**
  * lrc.red: Apple Music word-synced TTML archived by ISRC. Its search names the recording behind
@@ -56,9 +57,9 @@ class LrcRedLyricsProvider(
                 val hit =
                     pick(search(shaped), request)
                         ?: pick(search(listOf("q" to if (artist.isBlank()) title else "$artist - $title")), request)
-                        ?: error("No lrc.red match")
-                val document = get(hit.lyricsUrl!!.toHttpUrl()) ?: error("lrc.red document unavailable")
-                TTMLParser.parseTTMLToLyricsEntries(document).ifEmpty { error("lrc.red document has no lines") }
+                        ?: throw LyricsNotFoundException("No lrc.red match")
+                val document = get(hit.lyricsUrl!!.toHttpUrl()) ?: throw LyricsNotFoundException("lrc.red document missing")
+                TTMLParser.parseTTMLToLyricsEntries(document).ifEmpty { throw LyricsNotFoundException("lrc.red document has no lines") }
             }
         }
 
@@ -80,7 +81,11 @@ class LrcRedLyricsProvider(
                 .header("User-Agent", "Flow/${BuildConfig.VERSION_NAME}")
                 .build()
         return client.newCall(request).execute().use { response ->
-            if (response.isSuccessful) response.body.string().takeIf { it.isNotBlank() } else null
+            when {
+                response.isSuccessful -> response.body.string().takeIf { it.isNotBlank() }
+                response.code == 404 -> null
+                else -> throw IOException("lrc.red returned ${response.code}")
+            }
         }
     }
 

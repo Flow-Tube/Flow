@@ -105,6 +105,7 @@ class LyricsHelper
             try {
                 LyricsCacheManager.evictLyrics(ctx ?: context, videoId)
                 LyricsCacheManager.clearManual(ctx ?: context, videoId)
+                LyricsCacheManager.forgetNoLyrics(ctx ?: context, videoId)
             } catch (e: Exception) {
                 Log.w(TAG, "Disk cache evict failed: ${e.message}")
             }
@@ -201,6 +202,11 @@ class LyricsHelper
                 }
             }
 
+            if (savedCopy == null && LyricsCacheManager.remembersNoLyrics(targetContext, videoId)) {
+                Log.d(TAG, "No lyrics for $videoId, as of the last week")
+                return null
+            }
+
             val cleanedTitle = LyricsMatching.cleanTitle(title)
             val cleanedArtist = LyricsMatching.cleanArtist(artist)
             Log.d(TAG, "Querying providers: cleanedTitle=\"$cleanedTitle\", cleanedArtist=\"$cleanedArtist\"")
@@ -208,9 +214,9 @@ class LyricsHelper
             val orderString = playerPreferences.lyricsProviderOrder.first()
             val enabledStates = playerPreferences.allLyricsProviderEnabledStates().first()
             val now = System.currentTimeMillis()
+            val registered = registry.getOrderedProviders(orderString)
             val providers =
-                registry
-                    .getOrderedProviders(orderString)
+                registered
                     .filter { enabledStates[it.name] != false && (providerCooldowns[it.name] ?: 0L) <= now }
                     .associateBy { it.name }
             Log.d(TAG, "Providers in order: ${providers.keys}")
@@ -229,6 +235,9 @@ class LyricsHelper
                     ).run()
                 if (savedCopy != null && result.best == null && result.finishedCleanly) {
                     LyricsCacheManager.markUpgradeLookDone(targetContext, videoId)
+                }
+                if (savedCopy == null && result.everySourceMissed && providers.size == registered.size) {
+                    LyricsCacheManager.rememberNoLyrics(targetContext, videoId)
                 }
                 val best = result.best ?: savedCopy
                 if (best == null) Log.w(TAG, "No lyrics found for $videoId")
@@ -275,6 +284,7 @@ class LyricsHelper
             }
             val found =
                 result.getOrElse { error ->
+                    if (error is LyricsNotFoundException) return LyricsReply.Miss
                     if (isAuthFailure(error.message)) {
                         providerCooldowns[provider.name] = System.currentTimeMillis() + PROVIDER_COOLDOWN_MS
                         Log.w(TAG, "${provider.name} auth failure (${error.message}), cooling down for 10 min")

@@ -13,6 +13,7 @@ object LyricsCacheManager {
     private const val LYRICS_DIR = "lyrics"
     private const val MANUAL_SUFFIX = ".manual"
     private const val SYNC_OFFSET_SUFFIX = ".offset"
+    private const val NO_LYRICS_SUFFIX = ".none"
     private const val UNVERIFIED_MARKER = ".unverified-expired"
     private const val WEEK_MS = 7 * 24 * 60 * 60 * 1000L
     private val lock = Any()
@@ -48,6 +49,7 @@ object LyricsCacheManager {
     ) {
         try {
             getCacheFile(context, videoId).writeText(json.encodeToString(entries), Charsets.UTF_8)
+            sidecar(context, videoId, NO_LYRICS_SUFFIX).delete()
             Log.d(TAG, "Successfully cached lyrics to disk for videoId: $videoId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to cache lyrics for $videoId to disk: ${e.message}", e)
@@ -146,6 +148,42 @@ object LyricsCacheManager {
                 }
             }
         }
+    }
+
+    /** Every source answered and none had this song. Never call this after a failure or a timeout. */
+    suspend fun rememberNoLyrics(
+        context: Context,
+        videoId: String,
+    ) {
+        withContext(Dispatchers.IO) {
+            synchronized(lock) {
+                runCatching {
+                    sidecar(context, videoId, NO_LYRICS_SUFFIX).apply {
+                        createNewFile()
+                        setLastModified(System.currentTimeMillis())
+                    }
+                }.onFailure { Log.e(TAG, "Failed to remember no lyrics for $videoId: ${it.message}") }
+            }
+        }
+    }
+
+    suspend fun remembersNoLyrics(
+        context: Context,
+        videoId: String,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            synchronized(lock) {
+                val file = sidecar(context, videoId, NO_LYRICS_SUFFIX)
+                file.exists() && !weekHasPassed(file, nowMs)
+            }
+        }
+
+    suspend fun forgetNoLyrics(
+        context: Context,
+        videoId: String,
+    ) {
+        withContext(Dispatchers.IO) { synchronized(lock) { sidecar(context, videoId, NO_LYRICS_SUFFIX).delete() } }
     }
 
     /** Kept apart from the lyrics, so a nudge outlives a better answer, another source or Refresh. */

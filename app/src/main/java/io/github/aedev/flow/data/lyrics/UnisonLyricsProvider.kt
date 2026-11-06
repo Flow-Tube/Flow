@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 
 /**
  * Unison: lyrics people submit themselves, so its catalogue is small and uneven, but it sometimes
@@ -61,9 +62,13 @@ class UnisonLyricsProvider(
                         .build()
                 val body =
                     client.newCall(request).execute().use { response ->
-                        if (response.isSuccessful) response.body.string() else null
+                        when {
+                            response.isSuccessful -> response.body.string()
+                            response.code == 404 -> null
+                            else -> throw IOException("Unison returned ${response.code}")
+                        }
                     }
-                body?.let(::parse)?.ifEmpty { null } ?: error("No Unison lyrics")
+                body?.let(::parse)?.ifEmpty { null } ?: throw LyricsNotFoundException("No Unison lyrics")
             }
         }
 

@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -63,9 +64,9 @@ class LrcLibLyricsProvider(
                         return@withContext Result.success(entries)
                     }
 
-                    Result.failure(Exception("No lyrics content in response"))
+                    Result.failure(LyricsNotFoundException("No lyrics content in response"))
                 } else {
-                    Result.failure(Exception("No lyrics found on LrcLib"))
+                    Result.failure(LyricsNotFoundException("No lyrics found on LrcLib"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -77,30 +78,19 @@ class LrcLibLyricsProvider(
         title: String,
         duration: Int,
     ): SearchResult? {
-        try {
-            if (artist.isEmpty()) return null
+        if (artist.isEmpty()) return null
 
-            val encodedArtist = URLEncoder.encode(artist, "UTF-8")
-            val encodedTitle = URLEncoder.encode(title, "UTF-8")
+        val encodedArtist = URLEncoder.encode(artist, "UTF-8")
+        val encodedTitle = URLEncoder.encode(title, "UTF-8")
 
-            val url =
-                if (duration > 0) {
-                    "https://lrclib.net/api/get?artist_name=$encodedArtist&track_name=$encodedTitle&duration=$duration"
-                } else {
-                    "https://lrclib.net/api/get?artist_name=$encodedArtist&track_name=$encodedTitle"
-                }
-
-            val request = Request.Builder().url(url).build()
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val body = response.body?.string() ?: return null
-                    return gson.fromJson(body, SearchResult::class.java)
-                }
+        val url =
+            if (duration > 0) {
+                "https://lrclib.net/api/get?artist_name=$encodedArtist&track_name=$encodedTitle&duration=$duration"
+            } else {
+                "https://lrclib.net/api/get?artist_name=$encodedArtist&track_name=$encodedTitle"
             }
-        } catch (e: Exception) {
-            android.util.Log.e("LrcLibProvider", "Fetch failed", e)
-        }
-        return null
+
+        return get(url)?.let { gson.fromJson(it, SearchResult::class.java) }
     }
 
     private fun trySearch(
@@ -108,23 +98,20 @@ class LrcLibLyricsProvider(
         title: String,
         duration: Int,
     ): SearchResult? {
-        try {
-            val q = if (artist.isNotEmpty()) "$artist $title" else title
-            val encodedQ = URLEncoder.encode(q, "UTF-8")
-            val url = "https://lrclib.net/api/search?q=$encodedQ"
-
-            val request = Request.Builder().url(url).build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return null
-                val body = response.body?.string() ?: return null
-                val results = gson.fromJson(body, Array<SearchResult>::class.java)
-                return pick(results.asList(), LyricsMatching.Song(title, artist, duration))
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("LrcLibProvider", "Search failed", e)
-        }
-        return null
+        val q = if (artist.isNotEmpty()) "$artist $title" else title
+        val body = get("https://lrclib.net/api/search?q=${URLEncoder.encode(q, "UTF-8")}") ?: return null
+        val results = gson.fromJson(body, Array<SearchResult>::class.java)
+        return pick(results.asList(), LyricsMatching.Song(title, artist, duration))
     }
+
+    private fun get(url: String): String? =
+        client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            when {
+                response.isSuccessful -> response.body.string()
+                response.code == 404 -> null
+                else -> throw IOException("LrcLib returned ${response.code}")
+            }
+        }
 
     internal companion object {
         private const val MAX_DURATION_GAP_SECONDS = 10

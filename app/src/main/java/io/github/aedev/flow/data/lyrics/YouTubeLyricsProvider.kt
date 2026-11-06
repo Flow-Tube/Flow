@@ -20,10 +20,10 @@ class YouTubeLyricsProvider : LyricsProvider {
     ): Result<List<LyricsEntry>> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val endpoint = YouTube.lyricsEndpoint(id).getOrThrow() ?: error("No YouTube lyrics found")
+                val endpoint = YouTube.lyricsEndpoint(id).getOrThrow() ?: throw LyricsNotFoundException()
                 val timed = YouTube.timedLyrics(endpoint).getOrNull().orEmpty()
                 timed.map { LyricsEntry(time = it.startMs, text = it.text) }.ifEmpty {
-                    val plain = YouTube.lyrics(endpoint).getOrThrow() ?: error("No YouTube lyrics found")
+                    val plain = YouTube.lyrics(endpoint).getOrThrow() ?: throw LyricsNotFoundException()
                     listOf(LyricsEntry(time = 0L, text = plain))
                 }
             }
