@@ -48,6 +48,7 @@ internal class MusicPlayerLyrics(
 ) {
     private var lyricsJob: kotlinx.coroutines.Job? = null
     private var videoTimingJob: Job? = null
+    private var shownAnswer: List<LyricsEntry>? = null
 
     init {
         scope.launch {
@@ -138,24 +139,7 @@ internal class MusicPlayerLyrics(
                         }
 
                     if (result != null) {
-                        val (entries, providerName) = result
-                        val hasWords = entries.any { it.words != null }
-                        val isSynced = lyricsHelper.entriesAreSynced(entries)
-                        android.util.Log.d(
-                            "MusicPlayerViewModel",
-                            "Got ${entries.size} lyrics lines from $providerName (word-sync=$hasWords, synced=$isSynced)",
-                        )
-
-                        val plainText = entries.joinToString("\n") { it.text }
-                        uiState.update {
-                            it.copy(
-                                isLyricsLoading = false,
-                                lyrics = plainText.takeIf { it.isNotBlank() },
-                                syncedLyrics = if (isSynced) entries else emptyList(),
-                                lyricsProviderName = providerName,
-                            )
-                        }
-                        if (isSynced) followVideoTiming(videoId, entries, targetDuration)
+                        showLyrics(videoId, result, targetDuration)
                     } else {
                         uiState.update { it.copy(isLyricsLoading = false) }
                     }
@@ -166,6 +150,41 @@ internal class MusicPlayerLyrics(
                     uiState.update { it.copy(isLyricsLoading = false) }
                 }
             }
+    }
+
+    private fun showLyrics(
+        videoId: String,
+        result: Pair<List<LyricsEntry>, String>,
+        durationSeconds: Int,
+    ) {
+        val (entries, providerName) = result
+        val hasWords = entries.any { it.words != null }
+        val isSynced = lyricsHelper.entriesAreSynced(entries)
+        android.util.Log.d(
+            "MusicPlayerViewModel",
+            "Got ${entries.size} lyrics lines from $providerName (word-sync=$hasWords, synced=$isSynced)",
+        )
+
+        // A run delivers its final answer twice; a repeat must not undo the timing already fitted.
+        val isRepeat = entries == shownAnswer
+        shownAnswer = entries
+        val plainText = entries.joinToString("\n") { it.text }
+        uiState.update {
+            it.copy(
+                isLyricsLoading = false,
+                lyrics = plainText.takeIf { it.isNotBlank() },
+                syncedLyrics =
+                    when {
+                        isRepeat -> it.syncedLyrics
+                        isSynced -> entries
+                        else -> emptyList()
+                    },
+                lyricsProviderName = providerName,
+            )
+        }
+        if (!isRepeat) {
+            if (isSynced) followVideoTiming(videoId, entries, durationSeconds) else videoTimingJob?.cancel()
+        }
     }
 
     /**
@@ -198,7 +217,7 @@ internal class MusicPlayerLyrics(
         album: String?,
     ): Pair<List<LyricsEntry>, String>? =
         try {
-            lyricsHelper.getLyrics(videoId, title, artist, duration, album)
+            lyricsHelper.getLyrics(videoId, title, artist, duration, album, onAnswer = { showLyrics(videoId, it, duration) })
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -224,6 +243,7 @@ internal class MusicPlayerLyrics(
 
     private fun beginLoading() {
         videoTimingJob?.cancel()
+        shownAnswer = null
         uiState.update {
             it.copy(
                 isLyricsLoading = true,

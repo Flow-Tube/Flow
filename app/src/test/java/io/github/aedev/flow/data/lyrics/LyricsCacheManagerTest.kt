@@ -71,6 +71,12 @@ class LyricsCacheManagerTest {
 
             assertThat(LyricsCacheManager.getLyrics(context, "typed")).isEqualTo(found)
             assertThat(LyricsCacheManager.upgradeIsDue(context, "typed")).isTrue()
+            assertThat(LyricsCacheManager.isUnverified(context, "typed")).isTrue()
+
+            LyricsCacheManager.markUpgradeLookDone(context, "typed")
+
+            assertThat(LyricsCacheManager.getLyrics(context, "typed")).isEqualTo(found)
+            assertThat(LyricsCacheManager.isUnverified(context, "typed")).isFalse()
         }
 
     @Test

@@ -189,6 +189,12 @@ object LyricsCacheManager {
         }
     }
 
+    /** Saved by an older version and not looked at since: [clearUnverifiedOnce] left its time at zero. */
+    suspend fun isUnverified(
+        context: Context,
+        videoId: String,
+    ): Boolean = withContext(Dispatchers.IO) { synchronized(lock) { getCacheFile(context, videoId).lastModified() == 0L } }
+
     private fun weekHasPassed(
         file: File,
         nowMs: Long,

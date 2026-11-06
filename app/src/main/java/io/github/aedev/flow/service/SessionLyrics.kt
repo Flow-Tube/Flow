@@ -54,6 +54,7 @@ internal class SessionLyrics(
     private var shown: ShownLyrics? = null
     private var timeline: SessionLyricTimeline? = null
     private var pendingLine: Job? = null
+    private var loadJob: Job? = null
 
     private var isEnabled = false
     private var delayMs = 0
@@ -105,6 +106,7 @@ internal class SessionLyrics(
     fun load(item: MediaItem) {
         val videoId = item.mediaId
         if (videoId.isBlank()) return
+        loadJob?.cancel()
         if (LocalMediaIds.isLocal(videoId)) {
             if (isEnabled) loadDeviceLyrics(videoId)
             return
@@ -112,36 +114,54 @@ internal class SessionLyrics(
         val title = item.mediaMetadata.title?.toString()
         val artist = item.mediaMetadata.artist?.toString()
         if (title.isNullOrBlank() || artist.isNullOrBlank()) return
+        val durationSeconds = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt()
         val showsLines = isEnabled
-        loadOffMain {
-            val durationSeconds = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt()
-            val entries = lyricsHelper.getLyrics(videoId, title, artist, durationSeconds, null)?.first.orEmpty()
-            val synced = entries.takeIf(lyricsHelper::entriesAreSynced).orEmpty()
-            val fitted = if (showsLines && synced.isNotEmpty()) videoTiming.fit(videoId, synced, durationSeconds) else synced
-            Fetched(videoId, fitted, offsetMs = 0L)
+        var lastAnswer: List<LyricsEntry>? = null
+        val show: suspend (Pair<List<LyricsEntry>, String>) -> Unit = { answer ->
+            if (answer.first != lastAnswer) {
+                val synced = answer.first.takeIf(lyricsHelper::entriesAreSynced).orEmpty()
+                val fitted =
+                    if (showsLines && synced.isNotEmpty()) {
+                        withContext(Dispatchers.IO) { videoTiming.fit(videoId, synced, durationSeconds) }
+                    } else {
+                        synced
+                    }
+                fetched = Fetched(videoId, fitted, offsetMs = 0L)
+                rebuild()
+                lastAnswer = answer.first
+            }
+        }
+        loadGuarded {
+            lyricsHelper.getLyrics(videoId, title, artist, durationSeconds, null, onAnswer = show)?.let { show(it) }
         }
     }
 
     private fun loadDeviceLyrics(videoId: String) {
-        loadOffMain {
-            val text = localLyrics.read(videoId)?.text ?: return@loadOffMain null
-            val entries = LyricsUtils.parseLyrics(text).takeIf(lyricsHelper::entriesAreSynced).orEmpty()
-            Fetched(videoId, entries, lrcOffsetMs(text))
+        loadGuarded {
+            val read =
+                withContext(Dispatchers.IO) {
+                    val text = localLyrics.read(videoId)?.text ?: return@withContext null
+                    val entries = LyricsUtils.parseLyrics(text).takeIf(lyricsHelper::entriesAreSynced).orEmpty()
+                    Fetched(videoId, entries, lrcOffsetMs(text))
+                }
+            if (read != null) {
+                fetched = read
+                rebuild()
+            }
         }
     }
 
-    private fun loadOffMain(read: suspend () -> Fetched?) {
-        scope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) { read() } ?: return@launch
-                fetched = result
-                rebuild()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.w(TAG, "Lyrics load failed: ${e.message}")
+    private fun loadGuarded(load: suspend () -> Unit) {
+        loadJob =
+            scope.launch {
+                try {
+                    load()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Lyrics load failed: ${e.message}")
+                }
             }
-        }
     }
 
     private fun setEnabled(value: Boolean) {

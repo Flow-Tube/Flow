@@ -8,9 +8,11 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalLyrics
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
 import io.github.aedev.flow.data.localmedia.LocalLyricsSource
+import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
 import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
+import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.utils.NetworkState
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -19,10 +21,12 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -77,7 +81,7 @@ class MusicPlayerLyricsTest {
             lyrics.fetch(videoId = "local_7", artist = "Artist", title = "Song")
             state.first { it.lyricsProviderName.isNotEmpty() }
 
-            coVerify(exactly = 0) { helper.getLyrics(any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) }
             assertThat(state.value.syncedLyrics.map { it.text }).containsExactly("First", "Second").inOrder()
             assertThat(state.value.lyricsProviderName).isEqualTo("Lyrics file")
             assertThat(state.value.lyricsSyncOffsetMs).isEqualTo(250L)
@@ -95,7 +99,7 @@ class MusicPlayerLyricsTest {
             lyrics.fetch(videoId = "dQw4w9WgXcQ", artist = "Artist", title = "Song")
             state.first { it.lyricsProviderName.isNotEmpty() }
 
-            coVerify(exactly = 0) { helper.getLyrics(any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) }
             assertThat(state.value.syncedLyrics.map { it.text }).containsExactly("Saved", "Offline").inOrder()
             assertThat(state.value.lyricsProviderName).isEqualTo("Embedded lyrics")
         }
@@ -154,7 +158,7 @@ class MusicPlayerLyricsTest {
         runTest {
             mockkObject(NetworkState)
             every { NetworkState.isOnline(any()) } returns true
-            coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any()) } returns null
+            coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) } returns null
             val state = MutableStateFlow(MusicPlayerUiState())
             val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
 
@@ -162,5 +166,81 @@ class MusicPlayerLyricsTest {
             state.first { it.lyricsProviderName.isNotEmpty() }
 
             assertThat(state.value.lyricsProviderName).isEqualTo("Embedded lyrics")
+        }
+
+    private val lineSynced = listOf(LyricsEntry(1_000L, "line one"), LyricsEntry(20_000L, "line two"))
+    private val wordSynced = listOf(LyricsEntry(1_000L, "word one"), LyricsEntry(20_000L, "word two"))
+
+    private fun answerEarlyThenSwap() {
+        mockkObject(NetworkState)
+        every { NetworkState.isOnline(any()) } returns true
+        coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) } coAnswers {
+            val onAnswer = arg<suspend (Pair<List<LyricsEntry>, String>) -> Unit>(6)
+            delay(800)
+            onAnswer(lineSynced to "YouTube")
+            delay(2_000)
+            onAnswer(wordSynced to "BetterLyrics")
+            wordSynced to "BetterLyrics"
+        }
+    }
+
+    @Test
+    fun `an early answer shows right away and a later one swaps it`() =
+        runTest {
+            answerEarlyThenSwap()
+            val state = MutableStateFlow(MusicPlayerUiState())
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.fetch(videoId = "dQw4w9WgXcQ", artist = "Artist", title = "Song")
+            advanceTimeBy(1_000)
+
+            assertThat(state.value.isLyricsLoading).isFalse()
+            assertThat(state.value.syncedLyrics).isEqualTo(lineSynced)
+            assertThat(state.value.lyricsProviderName).isEqualTo("YouTube")
+
+            advanceTimeBy(2_000)
+
+            assertThat(state.value.syncedLyrics).isEqualTo(wordSynced)
+            assertThat(state.value.lyricsProviderName).isEqualTo("BetterLyrics")
+        }
+
+    @Test
+    fun `a source picked by hand is not swapped by a run still going`() =
+        runTest {
+            answerEarlyThenSwap()
+            val track = mockk<MusicTrack>(relaxed = true)
+            val picked = listOf(LyricsEntry(1_000L, "picked one"), LyricsEntry(20_000L, "picked two"))
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = track))
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.fetch(videoId = "dQw4w9WgXcQ", artist = "Artist", title = "Song")
+            advanceTimeBy(1_000)
+            lyrics.applyCandidate(LyricsCandidate("LrcLib", picked, synced = true))
+            advanceTimeBy(5_000)
+
+            assertThat(state.value.syncedLyrics).isEqualTo(picked)
+            assertThat(state.value.lyricsProviderName).isEqualTo("LrcLib")
+        }
+
+    @Test
+    fun `a final answer repeating the early one keeps the fitted timing`() =
+        runTest {
+            mockkObject(NetworkState)
+            every { NetworkState.isOnline(any()) } returns true
+            timingSetting.value = true
+            coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) } coAnswers {
+                val onAnswer = arg<suspend (Pair<List<LyricsEntry>, String>) -> Unit>(6)
+                onAnswer(lineSynced to "YouTube")
+                delay(1_000)
+                lineSynced to "YouTube"
+            }
+            val state = MutableStateFlow(MusicPlayerUiState())
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.fetch(videoId = "dQw4w9WgXcQ", artist = "Artist", title = "Song")
+            advanceTimeBy(2_000)
+
+            assertThat(state.value.syncedLyrics.map { it.time }).containsExactly(11_000L, 30_000L).inOrder()
+            coVerify(exactly = 1) { timing.lookUpAndFit(any(), any(), any()) }
         }
 }
