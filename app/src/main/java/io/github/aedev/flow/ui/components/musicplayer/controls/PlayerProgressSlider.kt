@@ -93,13 +93,8 @@ fun PlayerProgressSlider(
                         onValueChange = { handleSeekPreview(it) },
                         onValueChangeFinished = { commitSeekPreview() },
                         valueRange = 0f..sliderEnd,
-                        colors =
-                            SliderDefaults.colors(
-                                activeTrackColor = MaterialTheme.colorScheme.primary,
-                                inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
-                                thumbColor = MaterialTheme.colorScheme.primary,
-                            ),
                         isPlaying = isPlaying,
+                        interactionSource = interactionSource,
                     )
                 }
 
