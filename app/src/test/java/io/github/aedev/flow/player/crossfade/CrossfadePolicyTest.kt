@@ -176,7 +176,7 @@ class CrossfadePolicyTest {
     }
 
     @Test
-    fun `by default a song fades when it ends and Next stays immediate`() {
+    fun `by default a song fades when it ends and Next does not`() {
         val defaults = CrossfadePolicy.Settings()
 
         assertThat(defaults.onAutoAdvance).isTrue()
@@ -263,9 +263,25 @@ class CrossfadePolicyTest {
     }
 
     @Test
-    fun `the next song is never held silent for a tail that has not started`() {
-        assertThat(CrossfadePolicy.keepsTailWhenNextSongPlays(tailPlaying = false)).isFalse()
-        assertThat(CrossfadePolicy.keepsTailWhenNextSongPlays(tailPlaying = true)).isTrue()
+    fun `a skip overlaps for the chosen fade, or just a moment without one`() {
+        val fading = CrossfadePolicy.Settings(seconds = 6, onManualSkip = true)
+        val clock = { settings: CrossfadePolicy.Settings, position: Long ->
+            CrossfadePolicy.skipClockMs(settings, position, durationMs = 200_000L, speed = 1f)
+        }
+
+        assertThat(clock(fading, 30_000L)).isEqualTo(6_000L)
+        assertThat(clock(CrossfadePolicy.Settings(), 30_000L)).isEqualTo(CrossfadePolicy.SKIP_BLEND_MS)
+        assertThat(clock(fading.copy(onManualSkip = false), 30_000L)).isEqualTo(CrossfadePolicy.SKIP_BLEND_MS)
+        assertThat(clock(CrossfadePolicy.Settings(), 199_900L)).isEqualTo(100L)
+    }
+
+    @Test
+    fun `only a tail carrying a whole fade straight on from the session starts exactly`() {
+        val fading = CrossfadePolicy.Settings(seconds = 6, onManualSkip = true)
+
+        assertThat(CrossfadePolicy.tailStartsAtSyncPoint(fading, sessionStillPlaysSong = true)).isFalse()
+        assertThat(CrossfadePolicy.tailStartsAtSyncPoint(fading, sessionStillPlaysSong = false)).isTrue()
+        assertThat(CrossfadePolicy.tailStartsAtSyncPoint(CrossfadePolicy.Settings(), sessionStillPlaysSong = true)).isTrue()
     }
 
     @Test

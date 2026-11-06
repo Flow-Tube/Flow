@@ -119,10 +119,6 @@ object EnhancedMusicPlayerManager {
     private var skipJob: kotlinx.coroutines.Job? = null
     private var heldSkipLimit: kotlinx.coroutines.Job? = null
 
-    /** Fade when you skip is on, so the service holds a skip back until the old song's tail plays. */
-    @Volatile
-    var holdsSkipsForFade = false
-
     /** Reads what a skip has to respect from storage. The app's ViewModel sets it; until then a skip rebuilds. */
     private var readSkipStored: (suspend (MusicTrack) -> MusicSkipPolicy.Stored)? = null
 
@@ -1210,7 +1206,7 @@ object EnhancedMusicPlayerManager {
     ) {
         queueStarts++
         clearPendingPlayNext()
-        if (holdsSkipsForFade && controller is MediaController) {
+        if (controller is MediaController) {
             Media3MusicService.requestSkip(controller, index, track.videoId)
             awaitHeldSkip(controller, index)
         } else {

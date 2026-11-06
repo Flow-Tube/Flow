@@ -10,9 +10,11 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.PlayerMessage
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 
 /**
@@ -30,12 +32,13 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
  * the fade shortens to what is left of the song. A tail that cannot line up before
  * [CrossfadePolicy.latestHandOffMs] is dropped and the song ends as it does without crossfade.
  *
- * A song the user skips away from has no tail waiting, so one is built from where the song is; only
- * while the settings ask for it. A skip from inside the app ([skipTo]) can wait for it: the session
- * goes on playing the old song while the tail starts muted, and changes song once the tail is playing,
- * so the old song never goes quiet. A skip from the notification or a headset has already changed the
- * song by the time it gets here, so the next song stays silent only until one of the two plays. Either
- * way the fade runs once both are playing.
+ * A song the user skips away from has no tail waiting, so one is built from where the song is. A skip
+ * from inside the app ([skipTo]) can wait for it: the session goes on playing the old song while the
+ * tail starts muted, and changes song once the tail is playing, so the old song never goes quiet. This
+ * runs with crossfade off too, as a [CrossfadePolicy.SKIP_BLEND_MS] overlap. A skip from the notification
+ * or a headset has already changed the song by the time it gets here, so it only gets a tail while the
+ * settings ask for a fade, and the next song stays muted until the tail plays. Either way the fade runs
+ * once both are playing.
  *
  * Every step is driven by the players: [PlayerMessage]s at a position, their listeners for readiness,
  * seeks, skips and pauses. The only timed loops run while a song is changing hands: [TailAligner]'s
@@ -43,7 +46,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
  */
 internal class MusicCrossfader(
     private val session: ExoPlayer,
-    private val buildTail: () -> ExoPlayer,
+    private val buildTail: (skipOverlapMs: Long?) -> ExoPlayer,
     private val moment: (settings: CrossfadePolicy.Settings) -> CrossfadePolicy.Moment,
     private val onSessionScaleChanged: () -> Unit,
 ) {
@@ -253,7 +256,7 @@ internal class MusicCrossfader(
         left: MediaItem,
         positionMs: Long,
     ): Long? {
-        if (!settings.fadesOnSkip || !session.playWhenReady || moment(settings).showsVideo) return null
+        if (!session.playWhenReady || moment(settings).showsVideo) return null
         return CrossfadePolicy.skipResumeMs(positionMs, skipLeadMs, left.mediaMetadata.durationMs, session.playerError != null)
     }
 
@@ -262,6 +265,7 @@ internal class MusicCrossfader(
         left: MediaItem,
         positionMs: Long,
     ): Boolean {
+        if (!settings.fadesOnSkip) return false
         val resumeAt = skipResumeAt(left, positionMs) ?: return false
         val gain = session.volume
         abort(null)
@@ -283,19 +287,37 @@ internal class MusicCrossfader(
         mediaId = item.mediaId
         tailGain = gain
         val durationMs = item.mediaMetadata.durationMs ?: 0L
-        fadeClockMs = CrossfadePolicy.fadeClockMs(settings.seconds, resumeAt, durationMs, session.playbackParameters.speed)
+        fadeClockMs = CrossfadePolicy.skipClockMs(settings, resumeAt, durationMs, session.playbackParameters.speed)
         tail =
-            buildTail().apply {
+            buildTail(fadeClockMs).apply {
                 volume = tailVolume
                 playbackParameters = session.playbackParameters
                 addListener(tailListener)
                 addAnalyticsListener(skipTailListener)
+                if (CrossfadePolicy.tailStartsAtSyncPoint(settings, heldTarget != null)) startAtSyncPoint(resumeAt)
                 setMediaItem(item, resumeAt)
                 playWhenReady = true
                 prepare()
             }
         stage = Stage.SKIP_STARTING
         handler.postDelayed(skipTimeoutStep, SKIP_START_TIMEOUT_MS)
+    }
+
+    /**
+     * Starting between sync points decodes from the one before first, about 500 ms the skip would wait.
+     * A start position ignores seek parameters, so the seek comes as soon as the tail knows its tracks.
+     */
+    private fun ExoPlayer.startAtSyncPoint(positionMs: Long) {
+        setSeekParameters(SeekParameters.CLOSEST_SYNC)
+        addListener(
+            object : Player.Listener {
+                override fun onTracksChanged(tracks: Tracks) {
+                    if (tracks.isEmpty) return
+                    removeListener(this)
+                    seekTo(positionMs)
+                }
+            },
+        )
     }
 
     private fun skipTailOutOfTime() {
@@ -311,7 +333,8 @@ internal class MusicCrossfader(
         if (stage != Stage.SKIP_STARTING) return
         val waited = SystemClock.elapsedRealtime() - skipPressedAtMs
         skipLeadMs = CrossfadePolicy.learnedHeadStartMs(skipLeadMs, skipLeadMs - waited)
-        Log.d(TAG, "skipped $mediaId, its tail played after ${waited}ms, fading over ${fadeClockMs}ms")
+        val apart = (tail?.currentPosition ?: 0L) - session.currentPosition
+        Log.d(TAG, "skipped $mediaId, its tail played after ${waited}ms, ${apart}ms from the session, fading over ${fadeClockMs}ms")
         handler.removeCallbacks(skipTimeoutStep)
         val target = heldTarget
         heldTarget = null
@@ -329,17 +352,9 @@ internal class MusicCrossfader(
         if (session.isPlaying) startFade() else stage = Stage.WAITING_FOR_NEXT_SONG
     }
 
-    /** The next song has started: it fades in once a tail plays, and never waits silently for one that has not. */
+    /** The next song has started: a tail already playing fades it in, and one still starting has [SKIP_START_TIMEOUT_MS] to. */
     private fun nextSongPlaying() {
-        if (heldTarget != null) return
-        val tailStarted = stage == Stage.WAITING_FOR_NEXT_SONG
-        if (!tailStarted && stage != Stage.SKIP_STARTING) return
-        if (tailStarted || CrossfadePolicy.keepsTailWhenNextSongPlays(tail?.isPlaying == true)) {
-            startFade()
-        } else {
-            abort("the next song was ready before the tail")
-            schedule()
-        }
+        if (heldTarget == null && stage == Stage.WAITING_FOR_NEXT_SONG) startFade()
     }
 
     /** A tail already carries the old song, so only the song under it changes, and the fade waits for that one. */
@@ -405,7 +420,7 @@ internal class MusicCrossfader(
         val item = session.currentMediaItem?.takeIf { it.mediaId == id } ?: return
         tail?.release()
         tail =
-            buildTail().apply {
+            buildTail(null).apply {
                 volume = 0f
                 playbackParameters = session.playbackParameters
                 addListener(tailListener)

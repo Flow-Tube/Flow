@@ -1,5 +1,5 @@
 ## Fixed
-- Next and Previous in the music player no longer stop the player and rebuild the queue, so the pause between songs is shorter (#1761)
+- Next and Previous in the music player keep the old song playing until the next one starts, so the pause between songs is mostly gone (#1761)
 
 ## Improved
-- With Fade when you skip on, the old song keeps playing until the next one can fade in (#1761)
+- With Fade when you skip on, the old song keeps playing until the next one can fade in, and skips from the notification or a headset have a shorter pause (#1761)

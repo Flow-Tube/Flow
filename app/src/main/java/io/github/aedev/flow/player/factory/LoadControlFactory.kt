@@ -23,6 +23,8 @@ import io.github.aedev.flow.player.config.PlayerConfig
 object LoadControlFactory {
     private const val TAG = "LoadControlFactory"
     private const val BYTES_PER_MB = 1024L * 1024L
+    private const val SKIP_TAIL_START_MS = 250
+    private const val SKIP_TAIL_SPARE_MS = 3_000
     private val StockMaxBufferMs = BufferProfile.entries.maxOf { it.maxBuffer }
 
     /**
@@ -140,6 +142,20 @@ object LoadControlFactory {
             retainBackBufferFromKeyframe = false,
             targetBufferBytes = C.LENGTH_UNSET,
         )
+
+    /** A skipped song's tail plays for moments, so it starts on little audio and loads no more than it will play. */
+    fun forSkipTail(overlapMs: Long): DefaultLoadControl {
+        val keepMs = overlapMs.toInt() + SKIP_TAIL_SPARE_MS
+        return build(
+            minMs = keepMs,
+            maxMs = keepMs,
+            playbackMs = SKIP_TAIL_START_MS,
+            rebufferMs = PlayerConfig.MUSIC_BUFFER_FOR_REBUFFER_MS,
+            backBufferMs = 0,
+            retainBackBufferFromKeyframe = false,
+            targetBufferBytes = C.LENGTH_UNSET,
+        )
+    }
 
     /**
      * @param targetBufferBytes `C.LENGTH_UNSET` lets `DefaultLoadControl` derive the cap from the

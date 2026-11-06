@@ -165,7 +165,7 @@ class Media3MusicService : MediaLibraryService() {
         fun requestStop(controller: MediaController): ListenableFuture<SessionResult> =
             controller.sendCustomCommand(CommandStop, Bundle.EMPTY)
 
-        /** An in-app skip with Fade when you skip on, which the service can hold back until the old song's tail plays. */
+        /** An in-app skip, which the service holds back until the old song's tail plays. */
         fun requestSkip(
             controller: MediaController,
             index: Int,
@@ -399,14 +399,14 @@ class Media3MusicService : MediaLibraryService() {
     }
 
     /** The player that plays the outgoing song's last seconds during a crossfade; see [MusicCrossfader]. */
-    private fun buildCrossfadeTail(): ExoPlayer {
+    private fun buildCrossfadeTail(skipOverlapMs: Long?): ExoPlayer {
         val tailEqualizer = EqualizerAudioProcessor().apply { setSpec(equalizerRepository.processingSpec.value) }
         return ExoPlayer
             .Builder(this)
             .setMediaSourceFactory(musicSourceFactory)
             .setRenderersFactory(musicRenderers(tailEqualizer))
             .setAudioAttributes(musicAudioAttributes, false)
-            .setLoadControl(LoadControlFactory.forMusic())
+            .setLoadControl(skipOverlapMs?.let(LoadControlFactory::forSkipTail) ?: LoadControlFactory.forMusic())
             .build()
             .also { tail ->
                 tail.trackSelectionParameters =
@@ -583,7 +583,6 @@ class Media3MusicService : MediaLibraryService() {
                 CrossfadePolicy::Settings,
             ).collect { settings ->
                 crossfader?.setSettings(settings)
-                io.github.aedev.flow.player.EnhancedMusicPlayerManager.holdsSkipsForFade = settings.fadesOnSkip
                 updateOffload { it.copy(crossfade = settings.seconds > 0) }
             }
         }
