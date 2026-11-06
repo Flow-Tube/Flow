@@ -5171,5 +5171,6 @@
     <string name="lyrics_timing_on_time">بلا تغيير</string>
     <string name="lyrics_timing_earlier">متقدم %1$s ثانية</string>
     <string name="lyrics_timing_later">متأخر %1$s ثانية</string>
-    <string name="sb_jump">انتقال</string>
+    <string name="sb_jump">اقفز</string>
+    <string name="sb_skip_notice_title">إظهار رسالة التخطي</string>
 </resources>
