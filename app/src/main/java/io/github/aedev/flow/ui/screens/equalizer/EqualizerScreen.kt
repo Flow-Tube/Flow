@@ -75,6 +75,7 @@ fun EqualizerScreen(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     inSettings: Boolean = false,
+    highlight: String? = null,
     viewModel: EqualizerViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -184,6 +185,7 @@ fun EqualizerScreen(
                 twoPane = twoPane,
                 onOpenPresets = { showPresets = true },
                 onSaveAs = { dialog = EqDialog.SaveAs },
+                highlight = highlight,
                 onSystemEqualizer =
                     if (hasSystemEqualizer) {
                         { viewModel.systemEqualizerIntent()?.let(openSystemEqualizer::launch) }

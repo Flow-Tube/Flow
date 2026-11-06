@@ -24,6 +24,7 @@ internal object DestinationIndex {
             title = destination.titleRes,
             destination = destination.parent ?: SettingsDestination.HOME,
             summary = summaryOf(destination),
+            keywords = if (destination == SettingsDestination.EQUALIZER) R.string.eq_settings_keywords else null,
             availability =
                 when (destination) {
                     in notOnTv -> SettingAvailability.NotOnTv

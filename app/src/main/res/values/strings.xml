@@ -2438,6 +2438,7 @@
     <string name="eq_bass_boost">Bass boost</string>
     <string name="eq_spatial_sound">Spatial sound</string>
     <string name="eq_spatial_sound_summary">Widens stereo on any headphones</string>
+    <string name="eq_spatial_sound_keywords">spatial audio, surround, 3D audio, stereo</string>
     <string name="eq_spatial_low">Low</string>
     <string name="eq_spatial_medium">Medium</string>
     <string name="eq_spatial_high">High</string>
@@ -2470,7 +2471,7 @@
     </plurals>
     <string name="eq_settings_section">Sound</string>
     <string name="eq_settings_summary">Presets, bands and AutoEQ import</string>
-    <string name="eq_settings_keywords">equaliser, eq, bass, treble, autoeq, preamp, sound</string>
+    <string name="eq_settings_keywords">equaliser, eq, bass boost, treble, autoeq, preamp, sound</string>
     <string name="eq_reset_done">Curve reset</string>
     <!-- Player -->
     <string name="now_playing">NOW PLAYING</string>

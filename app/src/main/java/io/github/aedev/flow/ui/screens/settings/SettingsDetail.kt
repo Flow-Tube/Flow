@@ -136,7 +136,7 @@ internal fun SettingsDetail(
         }
 
         SettingsDestination.EQUALIZER -> {
-            EqualizerScreen(onBack = onBack, inSettings = true)
+            EqualizerScreen(onBack = onBack, inSettings = true, highlight = target.highlight)
         }
 
         SettingsDestination.QUALITY -> {
