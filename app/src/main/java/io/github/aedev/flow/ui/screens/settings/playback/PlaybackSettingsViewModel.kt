@@ -132,6 +132,7 @@ class PlaybackSettingsViewModel
         val resumeFromHeadphones = preferences.resumeFromHeadphones.asState(true)
         val musicSideSwipes = preferences.musicSideSwipes.asState(false)
         val lyricsOnLockScreen = preferences.lyricsOnLockScreen.asState(false)
+        val lyricsOnLockScreenDelayMs = preferences.lyricsOnLockScreenDelayMs.asState(0)
         val normalizeVolume = preferences.videoVolumeNormalizationEnabled.asState(DEFAULT_VIDEO_VOLUME_NORMALIZATION)
         val lyricsProviders =
             combine(preferences.lyricsProviderOrder, preferences.allLyricsProviderEnabledStates()) { order, enabled ->
@@ -284,6 +285,8 @@ class PlaybackSettingsViewModel
         fun setMusicSideSwipes(value: Boolean) = write { preferences.setMusicSideSwipes(value) }
 
         fun setLyricsOnLockScreen(value: Boolean) = write { preferences.setLyricsOnLockScreen(value) }
+
+        fun setLyricsOnLockScreenDelayMs(delayMs: Int) = write { preferences.setLyricsOnLockScreenDelayMs(delayMs) }
 
         fun setNormalizeVolume(value: Boolean) = write { preferences.setVideoVolumeNormalizationEnabled(value) }
 

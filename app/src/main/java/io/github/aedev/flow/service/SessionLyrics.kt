@@ -40,6 +40,7 @@ internal class SessionLyrics(
     private val lyricsHelper: LyricsHelper,
     private val localLyrics: LocalLyricsReader,
     lockScreenSetting: Flow<Boolean>,
+    delaySetting: Flow<Int>,
 ) {
     private class Fetched(
         val videoId: String,
@@ -53,6 +54,7 @@ internal class SessionLyrics(
     private var pendingLine: Job? = null
 
     private var isEnabled = false
+    private var delayMs = 0
 
     private val listener =
         object : Player.Listener {
@@ -83,6 +85,12 @@ internal class SessionLyrics(
     init {
         scope.launch { PlaybackTarget.followed.collect { update() } }
         scope.launch { lyricsHelper.shown.collect(::setShown) }
+        scope.launch {
+            delaySetting.collect {
+                delayMs = it
+                rebuild()
+            }
+        }
         scope.launch {
             lockScreenSetting.collect { enabled ->
                 setEnabled(enabled)
@@ -170,7 +178,8 @@ internal class SessionLyrics(
         val onScreen = shown?.takeIf { it.videoId == videoId }
         val source = fetched?.takeIf { it.videoId == videoId }
         val entries = onScreen?.entries?.takeIf { it.isNotEmpty() } ?: source?.entries.orEmpty()
-        timeline = if (entries.isEmpty()) null else SessionLyricTimeline(entries, onScreen?.syncOffsetMs ?: source?.offsetMs ?: 0L)
+        val songOffsetMs = onScreen?.syncOffsetMs ?: source?.offsetMs ?: 0L
+        timeline = if (entries.isEmpty()) null else SessionLyricTimeline(entries, songOffsetMs - delayMs)
         update()
     }
 

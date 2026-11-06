@@ -146,6 +146,11 @@
     <string name="lyrics_blur_other_lines_summary">Turn off to read every line clearly</string>
     <string name="lyrics_on_lock_screen">Lyrics on lock screen</string>
     <string name="lyrics_on_lock_screen_summary">Shows the current line as the song title, also to other apps</string>
+    <string name="lyrics_on_lock_screen_timing">Lock screen lyrics timing</string>
+    <string name="lyrics_on_lock_screen_timing_summary">Move lines earlier if they feel late</string>
+    <string name="lyrics_timing_on_time">No change</string>
+    <string name="lyrics_timing_earlier">%1$s s earlier</string>
+    <string name="lyrics_timing_later">%1$s s later</string>
     <string name="lyrics_keep_screen_on">Keep screen on</string>
     <string name="lyrics_keep_screen_on_summary">While lyrics are showing and music plays</string>
     <string name="player_appearance_artwork_control_colors_title">Artwork colors on controls</string>

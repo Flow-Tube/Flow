@@ -25,6 +25,27 @@ class SessionLyricTimelineTest {
     }
 
     @Test
+    fun `the timing setting snaps to its steps and stays in range`() {
+        assertThat(SessionLyricDelay.snap(-790f)).isEqualTo(-800)
+        assertThat(SessionLyricDelay.snap(90f)).isEqualTo(0)
+        assertThat(SessionLyricDelay.snap(110f)).isEqualTo(200)
+        assertThat(SessionLyricDelay.snap(-9_000f)).isEqualTo(-SessionLyricDelay.MAX_MS)
+        assertThat(SessionLyricDelay.snap(9_000f)).isEqualTo(SessionLyricDelay.MAX_MS)
+    }
+
+    @Test
+    fun `a negative delay shows a line early and a positive one shows it late`() {
+        val early = SessionLyricTimeline(entries, 800L)
+        val late = SessionLyricTimeline(entries, -800L)
+
+        assertThat(early.lineAt(4_200L)).isEqualTo("First line")
+        assertThat(early.nextChangeAfter(4_200L)).isEqualTo(9_200L)
+        assertThat(late.lineAt(5_500L)).isNull()
+        assertThat(late.lineAt(5_800L)).isEqualTo("First line")
+        assertThat(late.nextChangeAfter(5_800L)).isEqualTo(10_800L)
+    }
+
+    @Test
     fun `no line before the first one starts`() {
         assertThat(SessionLyricTimeline(entries, 0L).lineAt(4_999L)).isNull()
     }

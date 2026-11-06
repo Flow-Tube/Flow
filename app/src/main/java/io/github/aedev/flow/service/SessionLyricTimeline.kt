@@ -3,6 +3,7 @@ package io.github.aedev.flow.service
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import java.text.BreakIterator
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val MAX_LINE_WIDTH = 24.0
 private const val WIDE_CHARACTER_WEIGHT = 1.75
@@ -11,6 +12,14 @@ private const val MIN_PIECE_MS = 700L
 
 /** A slow singer's pace, so a line followed by a long gap doesn't stretch its parts across the gap. */
 private const val MAX_MS_PER_CHARACTER = 100L
+
+/** The steps of the setting that lets people move lock screen lines if they feel late or early. */
+internal object SessionLyricDelay {
+    const val MAX_MS = 2_000
+    const val STEP_MS = 200
+
+    fun snap(delayMs: Float): Int = ((delayMs / STEP_MS).roundToInt() * STEP_MS).coerceIn(-MAX_MS, MAX_MS)
+}
 
 /**
  * Which lyric text belongs at a playback position, for the music session. Positions are the player's

@@ -1420,7 +1420,17 @@ class Media3MusicService : MediaLibraryService() {
             updateOffload { it.copy(pausedLong = false) }
         }.also {
             it.follow(lifecycleScope)
-            sessionLyrics = SessionLyrics(this, player, it, lifecycleScope, lyricsHelper, localLyrics, prefs.lyricsOnLockScreen)
+            sessionLyrics =
+                SessionLyrics(
+                    this,
+                    player,
+                    it,
+                    lifecycleScope,
+                    lyricsHelper,
+                    localLyrics,
+                    prefs.lyricsOnLockScreen,
+                    prefs.lyricsOnLockScreenDelayMs,
+                )
         }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
