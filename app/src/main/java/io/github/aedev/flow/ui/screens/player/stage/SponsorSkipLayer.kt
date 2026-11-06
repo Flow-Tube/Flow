@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.ui.components.videoplayer.overlay.SponsorBlockSkipButton
@@ -29,6 +30,7 @@ internal fun BoxScope.SponsorSkipLayer(
     expandedPlayerBottom: Dp,
     playerWidth: Dp,
     expandedSurfacesPlaced: () -> Boolean,
+    style: SponsorBlockSkipButtonStyle,
     endPadding: Dp,
     bottomPadding: Dp,
 ) {
@@ -63,6 +65,7 @@ internal fun BoxScope.SponsorSkipLayer(
             skippedOnceUuids = skippedOnce,
             controlsVisible = screenState.showControls,
             playbackEnded = playerState.hasEnded,
+            style = style,
             onSkipClick = { endPositionMs ->
                 EnhancedPlayerManager.getInstance().skipToSegmentEnd(endPositionMs)
             },

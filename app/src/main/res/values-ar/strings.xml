@@ -5152,4 +5152,9 @@
     <string name="linked_contest_removes">إزالة %1$s</string>
     <string name="linked_error_roster_changed">غيّر تخزين المزامنة قائمة الأجهزة بطريقة غير متوقعة، لذا توقف هذا الجهاز عن الكتابة.</string>
     <string name="linked_error_group_outdated">تم إنشاء هذه المجموعة باستخدام إصدار تجريبي أقدم. انسَ المجموعة هنا وأنشئها من جديد.</string>
+    <string name="comments_load_more">تحميل المزيد من التعليقات</string>
+    <string name="comments_timed_follow">تابع الفيديو</string>
+    <string name="download_already_running">هذا الفيديو قيد التنزيل بالفعل</string>
+    <string name="download_replaces_existing">يستبدل النسخة التي نزّلتها بالفعل</string>
+    <string name="notification_download_other_audio_track">لم يكن المسار الصوتي الخاص بك متاحاً. تم حفظ %1$s بدلًا منه</string>
 </resources>

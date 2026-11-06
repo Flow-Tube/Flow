@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.settings.integrations
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +41,10 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
+import io.github.aedev.flow.ui.components.shared.FlowChoice
+import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
 import io.github.aedev.flow.ui.components.shared.FlowColorPickerDialog
 import io.github.aedev.flow.ui.theme.SponsorBlockSegmentPresets
 import io.github.aedev.flow.ui.theme.defaultSponsorBlockColor
@@ -54,16 +58,38 @@ private val CustomButtonSpacing = 12.dp
 private const val ARGB_MASK = 0xFFFFFFFFL
 private const val LIGHT_SWATCH_LUMINANCE = 0.5f
 
-internal enum class IntegrationsDialog { USER_ID, DISCORD_RISK }
+internal enum class IntegrationsDialog { USER_ID, DISCORD_RISK, SKIP_BUTTON_STYLE }
+
+@StringRes
+private fun skipButtonStyleDetail(style: SponsorBlockSkipButtonStyle): Int =
+    when (style) {
+        SponsorBlockSkipButtonStyle.FULL -> R.string.sb_skip_style_full_detail
+        SponsorBlockSkipButtonStyle.COMPACT -> R.string.sb_skip_style_compact_detail
+        SponsorBlockSkipButtonStyle.ICON_ONLY -> R.string.sb_skip_style_icon_detail
+    }
 
 @Composable
 internal fun IntegrationsDialogs(
     dialog: IntegrationsDialog?,
     userId: String?,
+    skipButtonStyle: SponsorBlockSkipButtonStyle,
     viewModel: IntegrationsViewModel,
     onDismiss: () -> Unit,
 ) {
     when (dialog) {
+        IntegrationsDialog.SKIP_BUTTON_STYLE -> {
+            FlowChoiceDialog(
+                title = stringResource(R.string.sb_skip_style_title),
+                options =
+                    SponsorBlockSkipButtonStyle.entries.map {
+                        FlowChoice(it, stringResource(skipButtonStyleLabel(it)), stringResource(skipButtonStyleDetail(it)))
+                    },
+                selected = skipButtonStyle,
+                onSelect = viewModel::setSkipButtonStyle,
+                onDismiss = onDismiss,
+            )
+        }
+
         IntegrationsDialog.USER_ID -> {
             var input by rememberSaveable { mutableStateOf(userId.orEmpty()) }
             FlowAlertDialog(

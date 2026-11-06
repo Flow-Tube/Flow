@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.components.videoplayer.overlay
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.SponsorBlockAction
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import org.junit.Test
 
@@ -13,6 +14,13 @@ class SponsorBlockSkipPolicyTest {
             uuid = "outro-id",
             actionType = "skip",
         )
+
+    @Test
+    fun `a skip button style that is missing or unknown reads as full`() {
+        assertThat(SponsorBlockSkipButtonStyle.fromStored(null)).isEqualTo(SponsorBlockSkipButtonStyle.FULL)
+        assertThat(SponsorBlockSkipButtonStyle.fromStored("LARGE")).isEqualTo(SponsorBlockSkipButtonStyle.FULL)
+        assertThat(SponsorBlockSkipButtonStyle.fromStored("ICON_ONLY")).isEqualTo(SponsorBlockSkipButtonStyle.ICON_ONLY)
+    }
 
     @Test
     fun `manual outro is visible while playback is active`() {
