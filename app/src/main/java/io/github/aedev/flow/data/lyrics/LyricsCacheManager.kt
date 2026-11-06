@@ -12,6 +12,8 @@ object LyricsCacheManager {
     private const val TAG = "LyricsCacheManager"
     private const val LYRICS_DIR = "lyrics"
     private const val MANUAL_SUFFIX = ".manual"
+    private const val UNVERIFIED_MARKER = ".unverified-expired"
+    private const val WEEK_MS = 7 * 24 * 60 * 60 * 1000L
     private val lock = Any()
 
     private val json =
@@ -144,6 +146,53 @@ object LyricsCacheManager {
             }
         }
     }
+
+    /** Saved lyrics without word sync look for an upgrade at most this often, going by the file's modified time. */
+    suspend fun upgradeIsDue(
+        context: Context,
+        videoId: String,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean = withContext(Dispatchers.IO) { synchronized(lock) { weekHasPassed(getCacheFile(context, videoId), nowMs) } }
+
+    suspend fun markUpgradeLookDone(
+        context: Context,
+        videoId: String,
+        nowMs: Long = System.currentTimeMillis(),
+    ) {
+        withContext(Dispatchers.IO) { synchronized(lock) { getCacheFile(context, videoId).setLastModified(nowMs) } }
+    }
+
+    /**
+     * Older versions saved answers nobody had checked, and those used to repair themselves on every
+     * play. With the weekly look they would stay, so each one's look comes due on its next play,
+     * except hand picks and word-synced files. A look that finds nothing leaves the file alone, so a
+     * lyric typed in by hand for a song no source has survives this.
+     */
+    suspend fun clearUnverifiedOnce(
+        context: Context,
+        keep: (List<LyricsEntry>) -> Boolean,
+    ) {
+        withContext(Dispatchers.IO) {
+            synchronized(lock) {
+                runCatching {
+                    val dir = getCacheFile(context, UNVERIFIED_MARKER).parentFile ?: return@runCatching
+                    val marker = File(dir, UNVERIFIED_MARKER)
+                    if (marker.exists()) return@runCatching
+                    dir.listFiles { file -> file.extension == "json" }.orEmpty().forEach { file ->
+                        if (sidecar(context, file.nameWithoutExtension, MANUAL_SUFFIX).exists()) return@forEach
+                        val entries = runCatching { json.decodeFromString<List<LyricsEntry>>(file.readText(Charsets.UTF_8)) }.getOrNull()
+                        if (entries == null || !keep(entries)) file.setLastModified(0L)
+                    }
+                    marker.createNewFile()
+                }.onFailure { Log.e(TAG, "Failed to expire old lyrics: ${it.message}") }
+            }
+        }
+    }
+
+    private fun weekHasPassed(
+        file: File,
+        nowMs: Long,
+    ): Boolean = nowMs - file.lastModified() >= WEEK_MS
 
     suspend fun cacheSizeBytes(context: Context): Long =
         withContext(Dispatchers.IO) {

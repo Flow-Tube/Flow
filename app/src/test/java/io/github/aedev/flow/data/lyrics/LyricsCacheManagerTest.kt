@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 class LyricsCacheManagerTest {
     @get:Rule
@@ -46,4 +47,65 @@ class LyricsCacheManagerTest {
 
             assertThat(LyricsCacheManager.saveLyrics(context, "w", found)).isTrue()
         }
+
+    @Test
+    fun `an upgrade look is due a week after the file was written or looked at`() =
+        runTest {
+            LyricsCacheManager.saveLyrics(context, "v", found)
+            val savedAt = File(folder.root, "lyrics/v.json").lastModified()
+
+            assertThat(LyricsCacheManager.upgradeIsDue(context, "v", nowMs = savedAt + 6 * DAY_MS)).isFalse()
+            assertThat(LyricsCacheManager.upgradeIsDue(context, "v", nowMs = savedAt + 7 * DAY_MS)).isTrue()
+
+            LyricsCacheManager.markUpgradeLookDone(context, "v", nowMs = savedAt + 7 * DAY_MS)
+
+            assertThat(LyricsCacheManager.upgradeIsDue(context, "v", nowMs = savedAt + 8 * DAY_MS)).isFalse()
+        }
+
+    @Test
+    fun `the one time pass keeps every file and makes a look due on the next play`() =
+        runTest {
+            LyricsCacheManager.saveLyrics(context, "typed", found)
+
+            LyricsCacheManager.clearUnverifiedOnce(context) { false }
+
+            assertThat(LyricsCacheManager.getLyrics(context, "typed")).isEqualTo(found)
+            assertThat(LyricsCacheManager.upgradeIsDue(context, "typed")).isTrue()
+        }
+
+    @Test
+    fun `the one time pass leaves hand picks and what it should keep`() =
+        runTest {
+            val kept = listOf(LyricsEntry(1L, "kept"))
+            LyricsCacheManager.saveLyrics(context, "word", kept)
+            LyricsCacheManager.saveManualLyrics(context, "picked", picked)
+
+            LyricsCacheManager.clearUnverifiedOnce(context) { it == kept }
+
+            assertThat(LyricsCacheManager.upgradeIsDue(context, "word")).isFalse()
+            assertThat(LyricsCacheManager.upgradeIsDue(context, "picked")).isFalse()
+        }
+
+    @Test
+    fun `the one time pass runs once`() =
+        runTest {
+            LyricsCacheManager.clearUnverifiedOnce(context) { false }
+            LyricsCacheManager.saveLyrics(context, "later", found)
+
+            LyricsCacheManager.clearUnverifiedOnce(context) { false }
+
+            assertThat(LyricsCacheManager.upgradeIsDue(context, "later")).isFalse()
+        }
+
+    @Test
+    fun `a failing marker write does not fail the lookup that started it`() =
+        runTest {
+            val blocked = mockk<Context> { every { filesDir } returns File(folder.root, "file-not-dir").apply { writeText("") } }
+
+            LyricsCacheManager.clearUnverifiedOnce(blocked) { false }
+        }
+
+    private companion object {
+        const val DAY_MS = 24 * 60 * 60 * 1000L
+    }
 }

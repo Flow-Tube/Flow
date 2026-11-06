@@ -11,6 +11,7 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.di.MetadataClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -71,6 +72,9 @@ class LyricsHelper
 
         private val providerCooldowns = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
+        private val unverifiedCleared =
+            ioScope.async(start = CoroutineStart.LAZY) { LyricsCacheManager.clearUnverifiedOnce(context, ::hasWordSync) }
+
         private val shownLyrics = MutableStateFlow<ShownLyrics?>(null)
 
         /** The synced lyrics the player screen shows now, with the offset chosen there. */
@@ -121,6 +125,7 @@ class LyricsHelper
             ctx: Context?,
         ): Pair<List<LyricsEntry>, String>? {
             val targetContext = ctx ?: context
+            unverifiedCleared.await()
 
             cache[videoId]?.let { cached ->
                 val normalized = normalizeEntries(cached)
@@ -145,7 +150,12 @@ class LyricsHelper
                 cache[videoId] = normalizedDiskCached
                 return normalizedDiskCached to "DiskCache"
             } else if (!normalizedDiskCached.isNullOrEmpty() && hasReasonableTimestamps(normalizedDiskCached, duration)) {
-                cachedLineFallback = stripWordTimings(normalizedDiskCached) to "DiskCache"
+                val saved = stripWordTimings(normalizedDiskCached)
+                if (!LyricsCacheManager.upgradeIsDue(targetContext, videoId)) {
+                    cache[videoId] = saved
+                    return saved to "DiskCache"
+                }
+                cachedLineFallback = saved to "DiskCache"
                 Log.d(TAG, "Disk cache has line/plain lyrics only; trying to upgrade to word-sync")
             } else if (!diskCached.isNullOrEmpty()) {
                 Log.d(TAG, "Disk cache has invalid timestamps for $videoId, discarding")
@@ -260,6 +270,7 @@ class LyricsHelper
 
             cachedLineFallback?.let {
                 cache[videoId] = it.first
+                LyricsCacheManager.markUpgradeLookDone(targetContext, videoId)
                 return it
             }
 
