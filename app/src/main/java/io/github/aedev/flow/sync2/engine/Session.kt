@@ -231,11 +231,26 @@ class Session private constructor(
         epoch: Int,
         commitment: ByteArray,
     ): ByteArray {
-        val wrap = store.key(epoch, kcName(commitment), me) ?: reject(ProtocolError.KEY_COMMITMENT)
-        val key = unwrapEpochKey(device.kemSecret, group, epoch, device.did, wrap)
-        checkEpochKey(key, group, epoch, commitment)
-        return key
+        val kc = kcName(commitment)
+        val wrap = store.key(epoch, kc, me) ?: reject(ProtocolError.KEY_COMMITMENT)
+        return forgettingIfBad(epoch, kc, me) {
+            unwrapEpochKey(device.kemSecret, group, epoch, device.did, wrap).also { checkEpochKey(it, group, epoch, commitment) }
+        }
     }
+
+    /** A wrap or chain box that fails its checks isn't kept: it may be fine next time the store is asked. */
+    private suspend fun <T> forgettingIfBad(
+        epoch: Int,
+        kc: String,
+        name: String,
+        open: () -> T,
+    ): T =
+        try {
+            open()
+        } catch (e: ProtocolException) {
+            store.forgetKey(epoch, kc, name)
+            throw e
+        }
 
     /** The key of [epoch], walking the history chain back from the oldest key this device holds. */
     internal suspend fun epochKey(epoch: Int): ByteArray {
@@ -243,10 +258,13 @@ class Session private constructor(
             val (known, key) = keys.firstEntry() ?: reject(ProtocolError.KEY_COMMITMENT)
             if (known <= epoch) reject(ProtocolError.KEY_COMMITMENT)
             val knownCommitment = commitments[known] ?: reject(ProtocolError.KEY_COMMITMENT)
-            val chain = store.key(known, kcName(knownCommitment), "chain") ?: reject(ProtocolError.KEY_COMMITMENT)
-            val previous = openChain(key, group, known, chain)
-            checkEpochKey(previous, group, known - 1, commitments[known - 1] ?: reject(ProtocolError.KEY_COMMITMENT))
-            keys[known - 1] = previous
+            val kc = kcName(knownCommitment)
+            val chain = store.key(known, kc, "chain") ?: reject(ProtocolError.KEY_COMMITMENT)
+            val below = commitments[known - 1] ?: reject(ProtocolError.KEY_COMMITMENT)
+            keys[known - 1] =
+                forgettingIfBad(known, kc, "chain") {
+                    openChain(key, group, known, chain).also { checkEpochKey(it, group, known - 1, below) }
+                }
         }
         return keys.getValue(epoch)
     }

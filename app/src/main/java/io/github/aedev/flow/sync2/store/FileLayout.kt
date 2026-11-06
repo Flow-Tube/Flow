@@ -1,6 +1,5 @@
 package io.github.aedev.flow.sync2.store
 
-import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.roster.entryHash
@@ -89,19 +88,24 @@ class FileLayout(
     suspend fun pullLogs(local: LocalStore) {
         val tag = files.tag("dev")
         if (tag != null && tags[files.location] == tag) return
+        val check = ObjectCheck(me, local.resolved().chain)
         val tips = local.logTips()
+        var whole = true
         for (did in files.list("dev").filter { it != me && DID.matches(it) }) {
             var seq = tips[did]?.plus(1) ?: oldest(did) ?: continue
             while (true) {
                 val path = StorePaths.log(did, seq)
                 val bytes = files.get(path) ?: break
                 // A store that answers every path, with an error page say, would otherwise never end the log.
-                if (!namesLogObject(bytes, SyncBytes.fromHex(did), seq)) break
+                if (!check.admits(path, bytes)) {
+                    whole = false
+                    break
+                }
                 local.putObject(path, bytes)
                 seq++
             }
         }
-        tag?.let { tags[files.location] = it }
+        if (whole) tag?.let { tags[files.location] = it }
     }
 
     /** The oldest log object of [did] still stored, from its first shard only. */

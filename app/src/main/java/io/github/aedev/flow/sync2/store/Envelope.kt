@@ -121,16 +121,6 @@ fun parseObject(
     return ParsedObject(header, bytes)
 }
 
-/** Whether [bytes] start as [sender]'s log object [seq]; anything else, such as an error page, is no object at all. */
-fun namesLogObject(
-    bytes: ByteArray,
-    sender: ByteArray,
-    seq: Long,
-): Boolean =
-    bytes.size >= HEADER_SIZE &&
-        bytes.copyOfRange(SENDER_AT, SEQ_AT).contentEquals(sender) &&
-        ByteBuffer.wrap(bytes).getLong(SEQ_AT) == seq
-
 class StreamPosition(
     val seq: Long,
     val hash: ByteArray,

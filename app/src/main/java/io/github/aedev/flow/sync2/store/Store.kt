@@ -58,6 +58,13 @@ interface Remote :
 interface ChangeList : Store {
     /** Objects that arrived after [cursor], and the cursor to pass next time. */
     suspend fun changes(cursor: Long): Pair<List<ChangedObject>, Long>
+
+    /** Lets go of a held wrap or chain box that failed its checks, so the next sync asks for it again. */
+    suspend fun forgetKey(
+        epoch: Int,
+        kc: String,
+        name: String,
+    ) = Unit
 }
 
 /** Where a wrap or chain box lives under `keys/`: its epoch, its `<kc:16>`, and a member's id or `chain`. */

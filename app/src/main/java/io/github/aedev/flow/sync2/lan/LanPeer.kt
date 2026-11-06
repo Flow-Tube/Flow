@@ -8,6 +8,7 @@ import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.roster.entryJson
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.store.LocalStore
+import io.github.aedev.flow.sync2.store.ObjectCheck
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.checkSeq
 import io.github.aedev.flow.sync2.store.keyNames
@@ -201,6 +202,7 @@ class LanPeer(
             )
         }
         val resolved = local.resolved()
+        val check = ObjectCheck(session.me, resolved.chain)
         for ((epoch, kc, name) in keyNames(resolved.chain, resolved.standing, session.me)) {
             if (local.key(epoch, kc, name) != null) continue
             request(
@@ -214,9 +216,12 @@ class LanPeer(
             (listed.header.field<JsonArray>("paths").orEmpty() + listed.header.field<JsonArray>("blobs").orEmpty()).map {
                 (it as? JsonPrimitive)?.contentOrNull ?: reject(ProtocolError.PAYLOAD)
             }
-        for (path in wanted.filter { StorePaths.isObject(it) }) {
+        for (path in wanted.filter { StorePaths.isObject(it) && !check.isOwn(it) }) {
             if (local.getObject(path) != null) continue
-            request("get", mapOf("path" to JsonPrimitive(path)))?.bytes?.let { local.putObject(path, it) }
+            request(
+                "get",
+                mapOf("path" to JsonPrimitive(path)),
+            )?.bytes?.takeIf { check.admits(path, it) }?.let { local.putObject(path, it) }
         }
     }
 

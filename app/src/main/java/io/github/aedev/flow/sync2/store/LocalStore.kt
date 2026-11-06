@@ -73,6 +73,14 @@ class LocalStore(
         withContext(Dispatchers.IO) { write(StorePaths.key(epoch, kc, name), bytes) }
     }
 
+    override suspend fun forgetKey(
+        epoch: Int,
+        kc: String,
+        name: String,
+    ) {
+        withContext(Dispatchers.IO) { file(StorePaths.key(epoch, kc, name)).delete() }
+    }
+
     /** Holds an entry with its wraps and chain box, wraps first (spec/store.md, Writing rules). */
     suspend fun hold(
         entry: Entry,
