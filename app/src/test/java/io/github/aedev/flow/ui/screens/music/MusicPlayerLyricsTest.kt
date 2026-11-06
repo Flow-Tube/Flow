@@ -8,7 +8,9 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalLyrics
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
 import io.github.aedev.flow.data.localmedia.LocalLyricsSource
+import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
+import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.utils.NetworkState
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -20,6 +22,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -52,6 +56,14 @@ class MusicPlayerLyricsTest {
                 LocalLyrics("[00:02.00]Saved\n[00:12.00]Offline", LocalLyricsSource.EMBEDDED)
         }
     private val downloads = mapOf("dQw4w9WgXcQ" to "/music/Song.m4a")
+    private val timingSetting = MutableStateFlow(false)
+    private val timing =
+        mockk<MusicVideoLyricsTiming> {
+            every { enabled } returns timingSetting
+            coEvery { lookUpAndFit(any(), any(), any()) } answers {
+                secondArg<List<LyricsEntry>>().map { it.copy(time = it.time + 10_000L) }
+            }
+        }
 
     @After
     fun tearDown() = unmockkObject(NetworkState)
@@ -60,7 +72,7 @@ class MusicPlayerLyricsTest {
     fun `a device song reads its lrc and never asks an online provider`() =
         runTest {
             val state = MutableStateFlow(MusicPlayerUiState())
-            val lyrics = MusicPlayerLyrics(context, this, state, helper, preferences, reader, downloads::get)
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
 
             lyrics.fetch(videoId = "local_7", artist = "Artist", title = "Song")
             state.first { it.lyricsProviderName.isNotEmpty() }
@@ -78,7 +90,7 @@ class MusicPlayerLyricsTest {
             mockkObject(NetworkState)
             every { NetworkState.isOnline(any()) } returns false
             val state = MutableStateFlow(MusicPlayerUiState())
-            val lyrics = MusicPlayerLyrics(context, this, state, helper, preferences, reader, downloads::get)
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
 
             lyrics.fetch(videoId = "dQw4w9WgXcQ", artist = "Artist", title = "Song")
             state.first { it.lyricsProviderName.isNotEmpty() }
@@ -88,6 +100,55 @@ class MusicPlayerLyricsTest {
             assertThat(state.value.lyricsProviderName).isEqualTo("Embedded lyrics")
         }
 
+    private val providerLines = listOf(LyricsEntry(1_000L, "One"), LyricsEntry(9_000L, "Two"))
+
+    private fun TestScope.lyricsFromProvider(state: MutableStateFlow<MusicPlayerUiState>): MusicPlayerLyrics {
+        mockkObject(NetworkState)
+        every { NetworkState.isOnline(any()) } returns true
+        coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any()) } returns (providerLines to "LrcLib")
+        return MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+    }
+
+    @Test
+    fun `lyrics stay as they came and nothing is looked up with the setting off`() =
+        runTest {
+            val state = MutableStateFlow(MusicPlayerUiState())
+
+            lyricsFromProvider(state).fetch(videoId = "v", artist = "Artist", title = "Song", duration = 200)
+            state.first { it.lyricsProviderName.isNotEmpty() }
+            advanceUntilIdle()
+
+            assertThat(state.value.syncedLyrics).isEqualTo(providerLines)
+            coVerify(exactly = 0) { timing.lookUpAndFit(any(), any(), any()) }
+        }
+
+    @Test
+    fun `lyrics move with the setting on and go back when it is switched off`() =
+        runTest {
+            timingSetting.value = true
+            val state = MutableStateFlow(MusicPlayerUiState())
+
+            lyricsFromProvider(state).fetch(videoId = "v", artist = "Artist", title = "Song", duration = 200)
+            state.first { it.syncedLyrics.firstOrNull()?.time == 11_000L }
+
+            timingSetting.value = false
+            state.first { it.syncedLyrics.firstOrNull()?.time == 1_000L }
+            coVerify(exactly = 1) { timing.lookUpAndFit("v", providerLines, 200) }
+        }
+
+    @Test
+    fun `a late answer doesn't touch the next song's lyrics`() =
+        runTest {
+            timingSetting.value = true
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = mockk { every { videoId } returns "next" }))
+
+            lyricsFromProvider(state).fetch(videoId = "v", artist = "Artist", title = "Song", duration = 200)
+            state.first { it.lyricsProviderName.isNotEmpty() }
+            advanceUntilIdle()
+
+            assertThat(state.value.syncedLyrics).isEqualTo(providerLines)
+        }
+
     @Test
     fun `a downloaded song falls back to its saved lyrics when no provider has any`() =
         runTest {
@@ -95,7 +156,7 @@ class MusicPlayerLyricsTest {
             every { NetworkState.isOnline(any()) } returns true
             coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any()) } returns null
             val state = MutableStateFlow(MusicPlayerUiState())
-            val lyrics = MusicPlayerLyrics(context, this, state, helper, preferences, reader, downloads::get)
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
 
             lyrics.fetch(videoId = "dQw4w9WgXcQ", artist = "Artist", title = "Song")
             state.first { it.lyricsProviderName.isNotEmpty() }

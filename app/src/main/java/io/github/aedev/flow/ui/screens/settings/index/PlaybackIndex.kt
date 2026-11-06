@@ -506,6 +506,14 @@ internal object PlaybackIndex {
             section = R.string.settings_section_music,
             destination = page,
         )
+    val lyricsSponsorBlockTiming =
+        SettingEntry(
+            key = "playback.lyrics_sponsorblock_timing",
+            title = R.string.lyrics_sponsorblock_timing,
+            summary = R.string.lyrics_sponsorblock_timing_summary,
+            section = R.string.settings_section_music,
+            destination = page,
+        )
     val lyricsProviders =
         SettingEntry(
             key = "playback.lyrics_providers",
@@ -581,6 +589,7 @@ internal object PlaybackIndex {
                 musicVideoSwitch,
                 lyricsOnLockScreen,
                 lyricsOnLockScreenTiming,
+                lyricsSponsorBlockTiming,
                 lyricsProviders,
             )
 }

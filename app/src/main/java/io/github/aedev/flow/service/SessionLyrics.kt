@@ -16,6 +16,7 @@ import io.github.aedev.flow.data.localmedia.lrcOffsetMs
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
 import io.github.aedev.flow.data.lyrics.LyricsUtils
+import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.lyrics.ShownLyrics
 import io.github.aedev.flow.player.PlaybackTarget
 import kotlinx.coroutines.CancellationException
@@ -41,6 +42,7 @@ internal class SessionLyrics(
     private val localLyrics: LocalLyricsReader,
     lockScreenSetting: Flow<Boolean>,
     delaySetting: Flow<Int>,
+    private val videoTiming: MusicVideoLyricsTiming,
 ) {
     private class Fetched(
         val videoId: String,
@@ -110,10 +112,13 @@ internal class SessionLyrics(
         val title = item.mediaMetadata.title?.toString()
         val artist = item.mediaMetadata.artist?.toString()
         if (title.isNullOrBlank() || artist.isNullOrBlank()) return
+        val showsLines = isEnabled
         loadOffMain {
             val durationSeconds = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt()
             val entries = lyricsHelper.getLyrics(videoId, title, artist, durationSeconds, null)?.first.orEmpty()
-            Fetched(videoId, entries.takeIf(lyricsHelper::entriesAreSynced).orEmpty(), offsetMs = 0L)
+            val synced = entries.takeIf(lyricsHelper::entriesAreSynced).orEmpty()
+            val fitted = if (showsLines && synced.isNotEmpty()) videoTiming.fit(videoId, synced, durationSeconds) else synced
+            Fetched(videoId, fitted, offsetMs = 0L)
         }
     }
 
