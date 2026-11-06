@@ -42,6 +42,7 @@ val EqState.changesSound: Boolean
         enabled &&
             (
                 bassBoost > 0.0 ||
+                    spatialSound != EqSpatialSound.OFF ||
                     active.curve.bands.any { !EqFilterMath.isBypassed(it, EqFilterMath.REFERENCE_SAMPLE_RATE) } ||
                     (!autoPreamp && active.curve.preamp != 0.0)
             )
@@ -201,7 +202,7 @@ fun EqState.processingSpec(
             }
         }
     val preamp = if (autoPreamp) EqFilterMath.autoPreampDb(bands) else curve.preamp
-    return EqProcessingSpec(enabled = true, preampDb = preamp, bands = bands)
+    return EqProcessingSpec(enabled = true, preampDb = preamp, bands = bands, spatialSound = spatialSound)
 }
 
 /** Clamps every value and repairs anything a hand-edited backup or an old version could hold. */
