@@ -37,6 +37,7 @@ import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.GroupStore
 import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.MAX_SEQ
+import io.github.aedev.flow.sync2.store.StorePaths
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -222,6 +223,32 @@ class LanSyncTest {
 
             assertTrue(SyncBytes.toHex(g.a.did) in b.session().pull(setOf(LINK)).batches)
             assertTrue(SyncBytes.toHex(g.b.did) in a.session().pull(setOf(LINK)).batches)
+        }
+
+    @Test
+    fun a_pull_keeps_nothing_at_this_devices_own_paths() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = member(g, g.a) to member(g, g.b)
+            val own = StorePaths.log(SyncBytes.toHex(g.b.did), 1)
+            a.local.putObject(own, ByteArray(600))
+
+            meet(client = a, server = b)
+
+            assertNull(b.local.getObject(own))
+        }
+
+    @Test
+    fun a_pull_keeps_only_objects_that_pass_their_checks() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = member(g, g.a) to member(g, g.b)
+            val bad = StorePaths.log(SyncBytes.toHex(g.a.did), 1)
+            a.local.putObject(bad, ByteArray(600))
+
+            meet(client = a, server = b)
+
+            assertNull(b.local.getObject(bad))
         }
 
     @Test

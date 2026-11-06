@@ -64,7 +64,7 @@ class GroupStore(
     ) = local.putObject(path, bytes)
 
     override suspend fun getObject(path: String): ByteArray? =
-        local.getObject(path) ?: (server as? FileLayout)?.blob(path)?.also { local.putObject(path, it) }
+        local.getObject(path) ?: (server as? FileLayout)?.blob(path)?.takeIf { namesBlob(path, it) }?.also { local.putObject(path, it) }
 
     // The server first: a delete it refuses leaves the object held, so a later collection tries again.
     override suspend fun deleteObject(path: String) {
@@ -74,9 +74,16 @@ class GroupStore(
 
     override suspend fun changes(cursor: Long): Pair<List<ChangedObject>, Long> = local.changes(cursor)
 
+    override suspend fun forgetKey(
+        epoch: Int,
+        kc: String,
+        name: String,
+    ) = local.forgetKey(epoch, kc, name)
+
     /**
      * Copies what the server holds that this device doesn't: roster entries, this device's wraps and
-     * the chain boxes, and, with [objects], the objects after [cursor]. Returns the next cursor.
+     * the chain boxes, and, with [objects], the objects after [cursor]. Returns the next cursor, which
+     * stays before the first page holding an object this device couldn't keep, so that page is read again.
      */
     suspend fun download(
         me: String,
@@ -101,16 +108,32 @@ class GroupStore(
             return cursor
         }
         if (server !is ChangeList) return cursor
+        val check = ObjectCheck(me, resolved.chain)
         var next = cursor
+        var unkept: Long? = null
         while (true) {
             val (changed, after) = server.changes(next)
-            for (change in changed.filter { StorePaths.isObject(it.path) }) {
-                if (local.getObject(change.path) == null) server.getObject(change.path)?.let { local.putObject(change.path, it) }
+            var kept = true
+            for (change in changed.filter { StorePaths.isObject(it.path) && !check.isOwn(it.path) }) {
+                if (!keep(change.path, server, check)) kept = false
             }
+            if (!kept) unkept = unkept ?: next
             // A cursor that doesn't move would hand out the same page forever.
-            if (changed.isEmpty() || after <= next) return next
+            if (changed.isEmpty() || after <= next) return unkept ?: next
             next = after
         }
+    }
+
+    private suspend fun keep(
+        path: String,
+        server: ChangeList,
+        check: ObjectCheck,
+    ): Boolean {
+        if (local.getObject(path) != null) return true
+        val bytes = server.getObject(path) ?: return true
+        if (!check.admits(path, bytes)) return false
+        local.putObject(path, bytes)
+        return true
     }
 
     /** Sends the server this device's own objects held after [heldCursor]; returns how far it got. */
