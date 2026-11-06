@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 
 private const val COMMENT_SECTION_IDENTIFIER = "comment-item-section"
 private const val PINNED_RENDERING_PRIORITY = "RENDERING_PRIORITY_PINNED_COMMENT"
+private const val COMMENTS_PANEL_IDENTIFIER = "engagement-panel-comments-section"
 
 /** One entry of the comment section's sort menu, with the continuation that loads that order. */
 data class VideoCommentSort(
@@ -21,6 +22,13 @@ data class VideoCommentsPage(
     val sortOptions: List<VideoCommentSort> = emptyList(),
     val totalText: String? = null,
     val totalCount: Long? = null,
+)
+
+/** The sort menu and count a `next` response carries in its comments panel. */
+data class VideoCommentsPanelHeader(
+    val sortOptions: List<VideoCommentSort>,
+    val totalText: String?,
+    val totalCount: Long?,
 )
 
 /**
@@ -59,6 +67,35 @@ internal fun JsonElement.videoCommentsContinuation(): String? {
 }
 
 /**
+ * The comments panel's header, for a first page whose own header leaves out the menu and the count,
+ * which YouTube does for some visitors.
+ */
+internal fun JsonElement.videoCommentsPanelHeader(): VideoCommentsPanelHeader? {
+    val header =
+        objectOrNull()
+            ?.get("engagementPanels")
+            .arrayOrNull()
+            .orEmpty()
+            .firstNotNullOfOrNull { entry ->
+                entry
+                    .objectOrNull()
+                    ?.get("engagementPanelSectionListRenderer")
+                    .objectOrNull()
+                    ?.takeIf { it["panelIdentifier"].stringOrNull() == COMMENTS_PANEL_IDENTIFIER }
+            }?.get("header")
+            .objectOrNull()
+            ?.get("engagementPanelTitleHeaderRenderer")
+            .objectOrNull()
+            ?: return null
+    val totalText = header["contextualInfo"].youtubeText()
+    return VideoCommentsPanelHeader(
+        sortOptions = header["menu"].objectOrNull()?.toSortOptions().orEmpty(),
+        totalText = totalText,
+        totalCount = totalText?.let(::parseYouTubeViewCount)?.takeIf { it > 0L },
+    )
+}
+
+/**
  * A page of a video's comments.
  *
  * [ownVideoId] is what lets a `1:57` in a comment be recognised as a seek into this video rather
@@ -89,7 +126,12 @@ internal fun JsonElement.toVideoCommentsPage(ownVideoId: String?): VideoComments
     return VideoCommentsPage(
         comments = comments.distinctBy(Comment::id),
         continuation = continuation,
-        sortOptions = header?.toSortOptions().orEmpty(),
+        sortOptions =
+            header
+                ?.get("sortMenu")
+                .objectOrNull()
+                ?.toSortOptions()
+                .orEmpty(),
         totalText = header?.get("commentsCount").youtubeText(),
         totalCount =
             header
@@ -163,10 +205,9 @@ private fun JsonObject.toVideoComment(
     }
 }
 
+/** The entries of a menu object that holds a `sortFilterSubMenuRenderer`. */
 private fun JsonObject.toSortOptions(): List<VideoCommentSort> =
-    this["sortMenu"]
-        .objectOrNull()
-        ?.get("sortFilterSubMenuRenderer")
+    this["sortFilterSubMenuRenderer"]
         .objectOrNull()
         ?.get("subMenuItems")
         .arrayOrNull()

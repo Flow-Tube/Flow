@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.audio.eq.EqLimits
 import io.github.aedev.flow.data.audio.eq.EqMode
+import io.github.aedev.flow.data.audio.eq.EqSpatialSound
 import io.github.aedev.flow.data.audio.eq.EqState
 import io.github.aedev.flow.data.audio.eq.GraphicEq
 import io.github.aedev.flow.data.audio.eq.canSaveActive
@@ -322,7 +323,9 @@ private class EqSections(
             EqFramed {
                 Column {
                     FlowSectionHeader(stringResource(R.string.eq_settings_section))
-                    val rows = if (state.autoPreamp) 2 else 3
+                    val spatialOn = state.spatialSound != EqSpatialSound.OFF
+                    val rows = (if (state.autoPreamp) 3 else 4) + (if (spatialOn) 1 else 0)
+                    val bassRow = if (state.autoPreamp) 1 else 2
                     FlowRowGroup {
                         FlowSwitchRow(
                             title = stringResource(R.string.eq_auto_preamp),
@@ -336,12 +339,34 @@ private class EqSections(
                                 ManualPreamp(value = state.active.curve.preamp, onValueChange = viewModel::setPreamp)
                             }
                         }
-                        PanelRow(shape = flowRowGroupShape(rows - 1, rows)) {
+                        PanelRow(shape = flowRowGroupShape(bassRow, rows)) {
                             EqBassBoostSlider(
                                 value = state.bassBoost,
                                 onValueChange = viewModel::setBassBoost,
                                 modifier = Modifier.padding(PanelPadding),
                             )
+                        }
+                        FlowSwitchRow(
+                            title = stringResource(R.string.eq_spatial_sound),
+                            supportingText = stringResource(R.string.eq_spatial_sound_summary),
+                            checked = spatialOn,
+                            onCheckedChange = { on -> viewModel.setSpatialSound(if (on) EqSpatialSound.MEDIUM else EqSpatialSound.OFF) },
+                            shape = flowRowGroupShape(bassRow + 1, rows),
+                        )
+                        if (spatialOn) {
+                            PanelRow(shape = flowRowGroupShape(rows - 1, rows)) {
+                                FlowConnectedToggleGroup(
+                                    options =
+                                        listOf(
+                                            FlowToggleOption(EqSpatialSound.LOW, stringResource(R.string.eq_spatial_low)),
+                                            FlowToggleOption(EqSpatialSound.MEDIUM, stringResource(R.string.eq_spatial_medium)),
+                                            FlowToggleOption(EqSpatialSound.HIGH, stringResource(R.string.eq_spatial_high)),
+                                        ),
+                                    selected = state.spatialSound,
+                                    onSelected = viewModel::setSpatialSound,
+                                    modifier = Modifier.padding(PanelPadding),
+                                )
+                            }
                         }
                     }
                 }

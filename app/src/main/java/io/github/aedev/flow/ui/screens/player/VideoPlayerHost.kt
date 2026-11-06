@@ -85,6 +85,9 @@ fun VideoPlayerHost(
     val sponsorSegments by EnhancedPlayerManager.getInstance().sponsorSegments.collectAsStateWithLifecycle()
 
     val screenState = rememberPlayerScreenState()
+    LaunchedEffect(playerSheetState.currentValue) {
+        screenState.isPlayerExpanded = playerSheetState.currentValue == PlayerSheetValue.Expanded
+    }
     val audioSystemInfo = rememberAudioSystemInfo(context)
     val pipPreferences = rememberPipPreferences(context)
     val canGoPrevious by playerViewModel.canGoPrevious.collectAsStateWithLifecycle()
@@ -360,7 +363,7 @@ fun VideoPlayerHost(
         showShortsPlayerPrompt = prefs.showShortsPlayerPrompt,
     )
 
-    SponsorSkipEffect(context, onSkipped = playerViewModel::onSponsorSegmentSkipped)
+    SponsorSkipEffect(context, showSkipNotice = prefs.sbSkipNoticeEnabled, onSkipped = playerViewModel::onSponsorSegmentSkipped)
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { playerViewModel.checkpointWatchSession() }
 
     SubtitleLoadErrorEffect(
@@ -565,6 +568,7 @@ fun VideoPlayerHost(
                     expandedPlayerBottom = expandedPlayerBottom,
                     playerWidth = sidePanelState.playerWidth,
                     expandedSurfacesPlaced = expandedSurfacesPlaced,
+                    style = prefs.sbSkipButtonStyle,
                     endPadding = sponsorSkipEndPadding,
                     bottomPadding = floatingSponsorSkipBottomPadding,
                 )

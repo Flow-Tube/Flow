@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.theme.newBadgeColor
 
 private val BadgeSpacing = 6.dp
 
@@ -25,7 +26,7 @@ fun FlowNewBadge(modifier: Modifier = Modifier) {
     val label = stringResource(R.string.new_badge_label)
     Badge(
         modifier = modifier.semantics { contentDescription = label },
-        containerColor = MaterialTheme.colorScheme.primary,
+        containerColor = newBadgeColor(MaterialTheme.colorScheme.surface),
     )
 }
 

@@ -37,7 +37,9 @@ class PlayerScreenState {
 
     // Comment Sorting
     var commentSortFilter by mutableStateOf(CommentSortFilter.TOP)
-    var commentsTimedOnly by mutableStateOf(false)
+
+    // Written by the host from the player sheet's settled anchor; the comments sheet outlives a collapse.
+    var isPlayerExpanded by mutableStateOf(true)
 
     // Gesture States
     var brightnessLevel by mutableFloatStateOf(0.5f)
@@ -93,6 +95,7 @@ class PlayerScreenState {
         lockOverlayRevealSignal = 0
         currentPosition = 0L
         duration = 0L
+        commentSortFilter = CommentSortFilter.TOP
         selectedTranscriptUrl = null
         showBrightnessOverlay = false
         showVolumeOverlay = false

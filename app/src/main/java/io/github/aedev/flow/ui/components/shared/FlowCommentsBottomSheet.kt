@@ -45,8 +45,8 @@ fun FlowCommentsBottomSheet(
     selectedFilter: CommentSortFilter = CommentSortFilter.TOP,
     totalText: String? = null,
     artworkUrl: String? = null,
-    timedOnly: Boolean = false,
-    onTimedChange: ((Boolean) -> Unit)? = null,
+    showTimed: Boolean = false,
+    timedFollow: CommentsTimedFollow? = null,
     isLoadingMore: Boolean = false,
     onLoadMore: () -> Unit = {},
     hasMore: Boolean = false,
@@ -82,8 +82,8 @@ fun FlowCommentsBottomSheet(
             CommentsSheetHeader(
                 selectedFilter = selectedFilter,
                 totalText = totalText,
-                timedOnly = timedOnly,
-                onTimedChange = onTimedChange,
+                showTimed = showTimed,
+                timedFollow = timedFollow,
                 onFilterChanged = onFilterChanged,
                 onClose = { sheetState.dismiss() },
                 dragModifier = dragModifier,
@@ -103,8 +103,8 @@ fun FlowCommentsBottomSheet(
             isLoadingMore = isLoadingMore,
             onLoadMore = onLoadMore,
             hasMore = hasMore,
-            emptyMessageRes = if (timedOnly) R.string.no_timed_comments else R.string.no_comments_yet,
             tint = tint,
+            timedFollow = timedFollow,
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -118,8 +118,8 @@ fun FlowCommentsBottomSheet(
 private fun CommentsSheetHeader(
     selectedFilter: CommentSortFilter,
     totalText: String?,
-    timedOnly: Boolean,
-    onTimedChange: ((Boolean) -> Unit)?,
+    showTimed: Boolean,
+    timedFollow: CommentsTimedFollow?,
     onFilterChanged: (CommentSortFilter) -> Unit,
     onClose: () -> Unit,
     dragModifier: Modifier,
@@ -170,10 +170,12 @@ private fun CommentsSheetHeader(
             CommentSortChips(
                 selected = selectedFilter,
                 onSelect = onFilterChanged,
-                timedOnly = timedOnly,
-                onTimedChange = onTimedChange,
+                showTimed = showTimed,
                 modifier = Modifier.padding(top = 2.dp),
             )
+        }
+        if (selectedFilter == CommentSortFilter.TIMED && timedFollow != null) {
+            CommentsTimedFollowRow(timedFollow)
         }
         HorizontalDivider(
             color =

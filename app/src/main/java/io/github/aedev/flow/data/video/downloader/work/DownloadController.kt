@@ -55,7 +55,9 @@ class DownloadController
 
         /**
          * Queues [request]. A finished download is kept unless [replaceExisting], in which case it is
-         * removed first so the new file does not leave the old one behind untracked.
+         * removed first so the new file does not leave the old one behind untracked. A running download
+         * is never replaced: its job shares staging files with this video and only stops for a pause or
+         * a cancel. One still waiting has no job yet, so [replaceExisting] swaps in a different request.
          */
         suspend fun enqueue(
             request: DownloadRequest,
@@ -68,7 +70,13 @@ class DownloadController
                     downloads.deleteDownload(request.videoId)
                 }
 
-                DownloadItemStatus.PENDING, DownloadItemStatus.DOWNLOADING -> {
+                DownloadItemStatus.PENDING -> {
+                    if (!replaceExisting || DownloadRequest.decode(existing.download.requestJson) == request) {
+                        return EnqueueOutcome.ALREADY_QUEUED
+                    }
+                }
+
+                DownloadItemStatus.DOWNLOADING -> {
                     return EnqueueOutcome.ALREADY_QUEUED
                 }
 
