@@ -56,6 +56,7 @@ object MusicPlayerUtils {
         val streamExpiresInSeconds: Int,
         val usedClient: YouTubeClient,
         val videoFormats: List<PlayerResponse.StreamingData.Format> = emptyList(),
+        val audioFormats: List<PlayerResponse.StreamingData.Format> = emptyList(),
     )
 
     private data class AudioSelectionPreferences(
@@ -187,6 +188,7 @@ object MusicPlayerUtils {
                 streamExpiresInSeconds = response.streamingData?.expiresInSeconds ?: 21600,
                 usedClient = extraction.usedClient,
                 videoFormats = extraction.videoFormats,
+                audioFormats = extraction.audioFormats,
             )
         }.onFailure { e ->
             val message =

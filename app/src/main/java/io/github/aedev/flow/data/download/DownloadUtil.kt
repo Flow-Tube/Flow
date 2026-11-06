@@ -8,7 +8,10 @@ import androidx.media3.common.C
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.ContentMetadata
+import androidx.media3.datasource.cache.ContentMetadataMutations
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,9 +49,17 @@ class DownloadUtil
             private const val TAG = "DownloadUtil"
             private const val CHUNK_LENGTH = 512 * 1024L // per stream request
             private val URL_RANGE_PARAM_REGEX = Regex("""([?&])range=\d+-\d*(&?)""")
+            private const val SONG_FILE_METADATA = ContentMetadata.KEY_CUSTOM_PREFIX + "flow_song_file"
         }
 
-        private val songUrlCache = java.util.concurrent.ConcurrentHashMap<String, Triple<String, String, Long>>()
+        private class ResolvedSong(
+            val url: String,
+            val userAgent: String,
+            val expiresAtMs: Long,
+            val fileId: String,
+        )
+
+        private val songUrlCache = java.util.concurrent.ConcurrentHashMap<String, ResolvedSong>()
 
         private val okHttpClient: OkHttpClient by lazy {
             AppProxyManager.buildLive(
@@ -141,9 +153,10 @@ class DownloadUtil
 
         private fun resolveStream(dataSpec: DataSpec): DataSpec {
             val mediaId = dataSpec.key ?: error("No media id (key) in dataSpec")
-            songUrlCache[mediaId]?.takeIf(::isReusable)?.let { (url, ua, _) ->
+            songUrlCache[mediaId]?.takeIf(::isReusable)?.let { song ->
                 Log.d(TAG, "[Player] Using cached URL for $mediaId")
-                return buildPlaybackDataSpec(dataSpec, url, ua)
+                recordSongFile(mediaId, song.fileId)
+                return buildPlaybackDataSpec(dataSpec, song.url, song.userAgent)
             }
 
             val playbackData =
@@ -151,14 +164,40 @@ class DownloadUtil
                     MusicPlayerUtils.playerResponseForPlayback(mediaId)
                 }.getOrThrow()
 
-            val streamUrl = playbackData.streamUrl
+            val cachedFileId = cachedSongFile(mediaId)
+            val format =
+                streamToContinue(cachedFileId, playbackData.format, playbackData.audioFormats)
+                    ?: throw SongFileGoneException(mediaId)
+            if (format !== playbackData.format) Log.d(TAG, "[Player] $mediaId keeps its cached file $cachedFileId")
+
+            val streamUrl = format.url ?: throw IOException("Audio format ${format.itag} of $mediaId has no url")
             val userAgent = playbackData.usedClient.userAgent
             val expiration = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds - 60) * 1000L
 
-            songUrlCache[mediaId] = Triple(streamUrl, userAgent, expiration)
+            songUrlCache[mediaId] = ResolvedSong(streamUrl, userAgent, expiration, format.fileId())
+            recordSongFile(mediaId, format.fileId())
             Log.d(TAG, "[Player] Resolved $mediaId via ${playbackData.usedClient.clientName}")
 
             return buildPlaybackDataSpec(dataSpec, streamUrl, userAgent)
+        }
+
+        /** The file the song's cached bytes came from. A song cached before this was kept has none on record. */
+        private fun cachedSongFile(mediaId: String): String? =
+            musicCache
+                .takeIf { it.getCachedSpans(mediaId).isNotEmpty() }
+                ?.getContentMetadata(mediaId)
+                ?.get(SONG_FILE_METADATA, null as String?)
+
+        private fun recordSongFile(
+            mediaId: String,
+            fileId: String,
+        ) {
+            if (musicCache.getContentMetadata(mediaId).get(SONG_FILE_METADATA, null as String?) == fileId) return
+            try {
+                musicCache.applyContentMetadataMutations(mediaId, ContentMetadataMutations().set(SONG_FILE_METADATA, fileId))
+            } catch (e: Cache.CacheException) {
+                Log.w(TAG, "[Player] Could not record the file of $mediaId", e)
+            }
         }
 
         private fun onStreamRefused(
@@ -184,8 +223,8 @@ class DownloadUtil
         }
 
         // A url resolved before its client was demoted would stall the same way ~30 s in.
-        private fun isReusable(entry: Triple<String, String, Long>): Boolean =
-            entry.third > System.currentTimeMillis() && !ClientGateTracker.isGated(StreamDenialClassifier.clientOf(entry.first))
+        private fun isReusable(song: ResolvedSong): Boolean =
+            song.expiresAtMs > System.currentTimeMillis() && !ClientGateTracker.isGated(StreamDenialClassifier.clientOf(song.url))
 
         private fun buildPlaybackDataSpec(
             dataSpec: DataSpec,
