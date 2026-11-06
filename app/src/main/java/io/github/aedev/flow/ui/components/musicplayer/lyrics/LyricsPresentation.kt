@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import io.github.aedev.flow.data.local.LyricsBackgroundStyle
 import io.github.aedev.flow.data.lyrics.LyricsEntry
+import io.github.aedev.flow.data.lyrics.WordTimestamp
 import io.github.aedev.flow.ui.theme.ensureContrastOn
 import io.github.aedev.flow.ui.theme.withTone
 
@@ -121,6 +122,7 @@ internal data class LyricsDisplayOptions(
     val showTranslation: Boolean = true,
     val showRomanization: Boolean = true,
     val autoRomanize: Boolean = false,
+    val romanizationOnly: Boolean = false,
     val keepScreenOn: Boolean = false,
     val blurOtherLines: Boolean = true,
     val background: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,
@@ -147,11 +149,27 @@ internal fun lyricsRomanizations(
     }
 }
 
+/**
+ * The source's word timings carried onto [romanized], when it splits into as many words as they do.
+ * Null otherwise: a Chinese line is timed per character but romanizes into fewer words.
+ */
+internal fun romanizedWordTimings(
+    romanized: String,
+    words: List<WordTimestamp>,
+): List<WordTimestamp>? {
+    val tokens = romanized.split(WhiteSpace).filter(String::isNotBlank)
+    if (tokens.size != words.size) return null
+    return words.mapIndexed { index, word -> word.copy(text = tokens[index]) }
+}
+
+private val WhiteSpace = Regex("\\s+")
+
 /** Everything the rows need to dress each line, worked out once per lyrics and settings. */
 internal class LyricsPresentation(
     val looks: List<LyricsLineLook>,
     val nextLineTimes: List<Long?>,
     val romanizations: List<String?>,
+    val romanizationOnly: Boolean,
     val showTranslation: Boolean,
 )
 
@@ -168,6 +186,7 @@ internal fun lyricsPresentation(
     userAlign: TextAlign,
     showTranslation: Boolean,
     romanizations: List<String?>,
+    romanizationOnly: Boolean,
 ): LyricsPresentation {
     val primary = backdrop?.let { ensureContrastOn(accent, it, minRatio = 4.5f) } ?: accent
     val secondary = backdrop?.let { ensureContrastOn(it.withTone(88.0), it, minRatio = 4.5f) } ?: primary
@@ -181,7 +200,7 @@ internal fun lyricsPresentation(
                 null -> LyricsLineLook(baseTextSize, LINE_SPACING, primary, userAlign, backdrop)
             }
         }
-    return LyricsPresentation(looks, nextMainLineTimes(lines), romanizations, showTranslation)
+    return LyricsPresentation(looks, nextMainLineTimes(lines), romanizations, romanizationOnly, showTranslation)
 }
 
 private const val LINE_SPACING = 1.3f

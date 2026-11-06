@@ -64,6 +64,7 @@ internal class MusicPlayerLyrics(
             }
         }
         scope.launch { playerPreferences.lyricsAutoRomanize.collect { on -> uiState.update { it.copy(lyricsAutoRomanize = on) } } }
+        scope.launch { playerPreferences.lyricsRomanizationOnly.collect { on -> uiState.update { it.copy(lyricsRomanizationOnly = on) } } }
         scope.launch { playerPreferences.lyricsKeepScreenOn.collect { on -> uiState.update { it.copy(lyricsKeepScreenOn = on) } } }
         scope.launch { playerPreferences.lyricsBlurOtherLines.collect { on -> uiState.update { it.copy(lyricsBlurOtherLines = on) } } }
         scope.launch { playerPreferences.lyricsBackground.collect { style -> uiState.update { it.copy(lyricsBackground = style) } } }
@@ -87,6 +88,10 @@ internal class MusicPlayerLyrics(
 
     fun setAutoRomanize(enabled: Boolean) {
         scope.launch { playerPreferences.setLyricsAutoRomanize(enabled) }
+    }
+
+    fun setRomanizationOnly(enabled: Boolean) {
+        scope.launch { playerPreferences.setLyricsRomanizationOnly(enabled) }
     }
 
     fun setKeepScreenOn(enabled: Boolean) {

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BlurOn
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.FormatAlignCenter
 import androidx.compose.material.icons.outlined.FormatAlignLeft
 import androidx.compose.material.icons.outlined.FormatAlignRight
@@ -220,6 +221,15 @@ internal fun LyricsActionsSheet(
                             enabled = display.showRomanization,
                             onCheckedChange = { onDisplayChange(display.copy(autoRomanize = it)) },
                         ).takeIf { LyricsRomanizer.isAvailable },
+                        lyricsSwitchRow(
+                            key = "romanization_only",
+                            icon = Icons.Outlined.FontDownload,
+                            title = stringResource(R.string.lyrics_romanization_only),
+                            supporting = stringResource(R.string.lyrics_romanization_only_summary),
+                            checked = display.romanizationOnly,
+                            enabled = display.showRomanization,
+                            onCheckedChange = { onDisplayChange(display.copy(romanizationOnly = it)) },
+                        ),
                     ) +
                     lyricsSwitchRow(
                         key = "keep_screen_on",
