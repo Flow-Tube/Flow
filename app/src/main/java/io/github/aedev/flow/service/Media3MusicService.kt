@@ -603,9 +603,10 @@ class Media3MusicService : MediaLibraryService() {
                         val videoId = item.mediaId
                         if (!videoId.isNullOrBlank() && !LocalMediaIds.isLocal(videoId)) {
                             // Desktop radio semantics: only a genuinely NEW queue seeds a
-                            // fresh radio. In-app skips also arrive as PLAYLIST_CHANGED
-                            // (playTrack rebuilds the playlist), so the discriminator is
-                            // whether the queue CONTENTS changed — never the current track.
+                            // fresh radio. Queue taps and skips that had to rebuild also arrive
+                            // as PLAYLIST_CHANGED (playTrack rebuilds the playlist), so the
+                            // discriminator is whether the queue CONTENTS changed — never the
+                            // current track.
                             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED && !versionSwap) {
                                 onQueueContextChanged(videoId)
                             } else {

@@ -84,7 +84,7 @@ class MusicPlayerViewModel
         private var loadTrackJob: kotlinx.coroutines.Job? = null
         private val seekGuard = MusicSeekGuard()
         private val radioSwitch = MusicRadioSwitch(viewModelScope, _uiState, playerPreferences)
-        private val playStart = MusicPlayStart(downloadManager, viewHistory, playerPreferences)
+        private val playStart = MusicPlayStart(downloadManager, viewHistory, playerPreferences, playlistRepository)
         private val lyrics =
             MusicPlayerLyrics(
                 context,
@@ -116,6 +116,7 @@ class MusicPlayerViewModel
 
         init {
             EnhancedMusicPlayerManager.initialize(context, downloadManager::isDownloaded)
+            EnhancedMusicPlayerManager.setSkipStoredReader(playStart::skipStored)
             initializeObservers()
             viewModelScope.launch {
                 playerPreferences.lyricsTextAlign.collect { align ->
@@ -138,6 +139,12 @@ class MusicPlayerViewModel
 
                         is EnhancedMusicPlayerManager.PlayerEvent.RequestToggleLike -> {
                             toggleLike()
+                        }
+
+                        is EnhancedMusicPlayerManager.PlayerEvent.SkippedOnPlayer -> {
+                            loadTrackJob?.cancel()
+                            _uiState.update { it.copy(isLoading = false, error = null) }
+                            viewModelScope.launch(PerformanceDispatcher.diskIO) { playStart.recordSkip(event.track) }
                         }
                     }
                 }
