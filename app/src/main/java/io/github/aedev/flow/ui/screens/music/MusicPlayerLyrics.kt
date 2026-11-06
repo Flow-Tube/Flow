@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.music
 
 import android.content.Context
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
 import io.github.aedev.flow.data.localmedia.LocalLyricsSource
@@ -56,6 +57,7 @@ internal class MusicPlayerLyrics(
         scope.launch { playerPreferences.lyricsAutoRomanize.collect { on -> uiState.update { it.copy(lyricsAutoRomanize = on) } } }
         scope.launch { playerPreferences.lyricsKeepScreenOn.collect { on -> uiState.update { it.copy(lyricsKeepScreenOn = on) } } }
         scope.launch { playerPreferences.lyricsBlurOtherLines.collect { on -> uiState.update { it.copy(lyricsBlurOtherLines = on) } } }
+        scope.launch { playerPreferences.lyricsBackground.collect { style -> uiState.update { it.copy(lyricsBackground = style) } } }
     }
 
     fun publishShownLyrics(): Job =
@@ -80,6 +82,10 @@ internal class MusicPlayerLyrics(
 
     fun setKeepScreenOn(enabled: Boolean) {
         scope.launch { playerPreferences.setLyricsKeepScreenOn(enabled) }
+    }
+
+    fun setBackground(style: LyricsBackgroundStyle) {
+        scope.launch { playerPreferences.setLyricsBackground(style) }
     }
 
     fun setBlurOtherLines(enabled: Boolean) {
