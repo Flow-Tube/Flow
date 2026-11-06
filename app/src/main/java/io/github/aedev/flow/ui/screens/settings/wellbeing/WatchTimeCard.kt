@@ -150,9 +150,10 @@ private fun WeekChart(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .clip(MaterialTheme.shapes.small)
                         .selectable(
                             selected = isChosen,
+                            interactionSource = null,
+                            indication = null,
                             onClick = {
                                 if (!isChosen) {
                                     haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
