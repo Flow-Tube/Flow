@@ -2,7 +2,7 @@ package io.github.aedev.flow.sync2.store
 
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.qr.LocalNetworkAddress
-import io.github.aedev.flow.sync.transport.BoundedListener
+import io.github.aedev.flow.sync.transport.MessageLimit
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.sign
 import io.github.aedev.flow.sync2.crypto.tag
@@ -49,7 +49,7 @@ private const val TOKEN_MARGIN_MS = 60_000L
 private const val LIVE_PING_S = 15L
 
 /** The most a live message or a server notice may hold (spec/store.md, Untrusted input). */
-private const val MAX_LIVE_MESSAGE = 64L * 1024
+internal const val MAX_LIVE_MESSAGE = 64L * 1024
 private val JSON = "application/json".toMediaType()
 private val BYTES = "application/octet-stream".toMediaType()
 
@@ -302,8 +302,9 @@ class ServerStore private constructor(
             .pingInterval(LIVE_PING_S, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.SECONDS)
             .callTimeout(0, TimeUnit.SECONDS)
+            .addInterceptor(MessageLimit(MAX_LIVE_MESSAGE))
             .build()
-            .newWebSocket(request, BoundedListener(MAX_LIVE_MESSAGE, listener))
+            .newWebSocket(request, listener)
     }
 
     /** Join requests no member has answered yet. */
