@@ -60,6 +60,7 @@ class RosterTest {
             put("head", state.head)
             put("epoch", state.epoch)
             put("rotate", state.rotate)
+            put("recoveryDue", state.recoveryDue)
             put(
                 "members",
                 buildJsonArray {
@@ -69,6 +70,31 @@ class RosterTest {
                                 put("did", did)
                                 put("role", member.role.name.lowercase())
                                 put("used", member.used)
+                                member.installer?.let { put("installer", it) }
+                            },
+                        )
+                    }
+                },
+            )
+            put(
+                "senders",
+                buildJsonArray {
+                    for ((did, sender) in state.senders.toSortedMap()) {
+                        add(
+                            buildJsonObject {
+                                put("did", did)
+                                put("role", sender.role.name.lowercase())
+                                put("since", sender.since)
+                                sender.until?.let { put("until", it) }
+                                sender.cut?.let { cut ->
+                                    put(
+                                        "cut",
+                                        buildJsonObject {
+                                            put("seq", cut.seq)
+                                            put("hash", cut.hash)
+                                        },
+                                    )
+                                }
                             },
                         )
                     }
@@ -138,5 +164,21 @@ class RosterTest {
         assertEquals("roster-format", errorCode { parseEntry(seq) })
         assertEquals("roster-format", errorCode { parseEntry(epoch) })
         assertEquals(entries, winningChain((raw + seq).mapNotNull { runCatching { parseEntry(it) }.getOrNull() }))
+    }
+
+    @Test
+    fun a_removal_replaces_a_recovery_key_set_by_a_device_that_is_gone() {
+        for (case in v["replacements"].jsonArray) {
+            val name = case["name"].text
+            val count = case.jsonObject["base"]?.jsonPrimitive?.int ?: entries.size
+            val steps = case["steps"].jsonArray.map(::parseEntry)
+            val before = steps.dropLast(1).fold(replayRoster(entries.take(count)), ::applyEntry)
+            val error = case.jsonObject["error"]
+            if (error == null) {
+                assertEquals(name, case["state"], view(applyEntry(before, steps.last())))
+            } else {
+                assertEquals(name, error.text, errorCode { applyEntry(before, steps.last()) })
+            }
+        }
     }
 }

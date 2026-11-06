@@ -24,6 +24,7 @@ internal fun LinkedError.message(): String =
             LinkedError.REMOVED -> R.string.linked_error_removed
             LinkedError.REMOVAL_UNCONFIRMED -> R.string.linked_error_removal_unconfirmed
             LinkedError.CONTESTED -> R.string.linked_error_contested
+            LinkedError.RECOVERY_DUE -> R.string.linked_error_recovery_due
             LinkedError.ROLLED_BACK -> R.string.linked_error_rolled_back
             LinkedError.ROSTER_CHANGED -> R.string.linked_error_roster_changed
             LinkedError.GROUP_OUTDATED -> R.string.linked_error_group_outdated

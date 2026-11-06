@@ -225,7 +225,7 @@ class LinkedSync
             var session = Session.open(db, reading, device)
             val links = profiles.links(session) ?: return
             // A device left: start the epoch it never receives before writing anything, then read the roster back (spec/protocol.md, Leaving).
-            if (session.state.rotate && offline == null) {
+            if (session.state.rotate && !session.state.recoveryDue && offline == null) {
                 if (rotateEpoch(session, device)) db.snapshots().snapshotSoon()
                 store.download(me, record.serverCursor, objects = false)
                 session = Session.open(db, reading, device)

@@ -329,6 +329,103 @@
         "6e1946f855d4d7de61c0d3e3e4491cae": "1ZlWE1GIFQsHZctvKMB3kT3PXOCfNaaCaqyBojUoqIX0fmcgDEnBSa-cEoZYL8aZbz94N2P9SZLEyBWllMVRBA"
       }
     },
+    "cSetsWords": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "recovery",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "remove": [
+        "ab6095990ebaaf36d4c49e86fc3a65c3"
+      ],
+      "add": [
+        {
+          "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+          "sig": "Vf_aa5oQPKegF8I5KW-kJQA1A8SmYzefeeQZXBCarWw",
+          "kem": "LanAutNDQmnqurSUmasEyIqWkeRw-aJYeD46qlmcrT4",
+          "role": "recovery"
+        }
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "LVnz8_RjdXlODK2EsEoQ9F8-RSo6Ukq8mOoj-7GqQfk",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "iQuBIUf9ilQqapHqeTyMt8YInG15TLQtAgXnVqP_binIPET8Hvww_HvOikA3r5SYdW6ZfLjyoqFDHrL4ZufhBA",
+        "6e1946f855d4d7de61c0d3e3e4491cae": "whSbrNJh6UStQx36dp4XSdZrWSzQ_9jeVblhvv-eSHmpcngR03wEyfiX-jmXgtK8oEnzgmCuciry_n403LebCw"
+      }
+    },
+    "restoreWithThem": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "27bf210b63b8a3ae91de6282cd3473e609387abc3ead6906e565d78d03695416",
+      "op": "restore",
+      "signer": "6e1946f855d4d7de61c0d3e3e4491cae",
+      "add": [
+        {
+          "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "sig": "RsTU5IjEf1rjeyLp-09xbUp-OfjjWUqwFdO04YajNZ0",
+          "kem": "GXeu_UDlHVNWxtd9eoaDmQgIMjNwiRnINQ5z03xH_18",
+          "role": "device"
+        }
+      ],
+      "epoch": {
+        "n": 2,
+        "kc": "UqcQQZ4nqoocD0SDzJMubBByW4vefTd1qPTbDLDptrA",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "6e1946f855d4d7de61c0d3e3e4491cae": "0IhBJuEAAmPsJl1s_opzKKOevB9IuJgP-z5Sm-x-Eht5vqjJepXR-ieCrK_QCOSn5GuANVYawWu8gs34tiuWCA",
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "6VkMHW7irxBJflpKxiV_kOdNl2cwxHAEzbZRn4WcuysnCSUp5lUlD6kj_rV-HLwH-mgg2BR7Ho4bf5SHqhWkBQ"
+      }
+    },
+    "aRemovesCReplacing": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "27bf210b63b8a3ae91de6282cd3473e609387abc3ead6906e565d78d03695416",
+      "op": "remove",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "remove": [
+        "6e1946f855d4d7de61c0d3e3e4491cae",
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "add": [
+        {
+          "did": "2b4bc2fbe53e4adaad7b3c9270a335f5",
+          "sig": "7Ia_W6iMAVlxUYngARu37l8gwiFhc9zFF4mkxPi5jEQ",
+          "kem": "K4o73nvvMWnnFXK8heU7G_VEa7kvVeQ0wyD3NDeYSRg",
+          "role": "recovery"
+        }
+      ],
+      "epoch": {
+        "n": 2,
+        "kc": "5PmT-Vmt5RSUX254losATf-gwxXXFc-IuZDpZImH31E",
+        "to": [
+          "2b4bc2fbe53e4adaad7b3c9270a335f5",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "1g0zD2RGSm-Pl022VVoApa78UqKKY9yIcj-s3PBCbdtksh3uT3CM7GU7gWDdqvk8EQj97todSHERA7nk5P4wDQ",
+        "2b4bc2fbe53e4adaad7b3c9270a335f5": "DzQ64wdSu6EgK8_KuyCuM2sBBD-tNOgibd3pS1spOgYCXEEpKA-AYKAm-daa0pRtBJw_QrZFzN1nPH3J5MG0CA"
+      }
+    },
     "restoreEarly": {
       "v": 2,
       "group": "669a44456c08e4a12e4ceb3538860317",
@@ -962,6 +1059,32 @@
           "addC",
           "restore",
           "restored"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "restore-against-the-removal-that-replaces-its-key",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "cSetsWords",
+        "restoreWithThem",
+        "aRemovesCReplacing"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "cSetsWords",
+          "aRemovesCReplacing"
         ],
         "standing": [],
         "extendsApplied": true

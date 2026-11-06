@@ -9,7 +9,7 @@ import io.github.aedev.flow.sync2.data.observeEpoch
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.linking.leaveGroup
-import io.github.aedev.flow.sync2.linking.removeDevice
+import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.linking.rotateEpoch
 import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
@@ -94,7 +94,7 @@ class LeavingTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val dbA = g.deviceDb()
-            removeDevice(Session.open(dbA, g.store, g.a), g.a, g.hex(g.b))
+            removeDevices(Session.open(dbA, g.store, g.a), g.a, listOf(g.hex(g.b)))
             assertFalse(Session.open(dbA, g.store, g.a).state.rotate)
 
             val error = runCatching { leaveGroup(Session.open(dbA, g.store, g.a), g.a) }.exceptionOrNull()

@@ -17,7 +17,7 @@ import io.github.aedev.flow.sync2.data.WEBDAV_STORE
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.loginWaiting
 import io.github.aedev.flow.sync2.linking.leaveGroup
-import io.github.aedev.flow.sync2.linking.removeDevice
+import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
@@ -266,7 +266,7 @@ class StoreLoginTest {
                     ?.loginDue,
             )
 
-            removeDevice(session, g.a, hex(c))
+            removeDevices(session, g.a, listOf(hex(c)))
             a.upload()
             assertEquals(
                 1,

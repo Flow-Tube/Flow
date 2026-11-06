@@ -37,12 +37,14 @@ import io.github.aedev.flow.sync2.linking.join
 import io.github.aedev.flow.sync2.linking.listen
 import io.github.aedev.flow.sync2.linking.newOffer
 import io.github.aedev.flow.sync2.linking.readCode
-import io.github.aedev.flow.sync2.linking.removeDevice
+import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.linking.renameDevice
 import io.github.aedev.flow.sync2.linking.replaceRecovery
 import io.github.aedev.flow.sync2.linking.restoreGroup
 import io.github.aedev.flow.sync2.linking.restoreWebDavGroup
 import io.github.aedev.flow.sync2.roster.Role
+import io.github.aedev.flow.sync2.roster.devicesAddedBy
+import io.github.aedev.flow.sync2.roster.recoveryMember
 import io.github.aedev.flow.sync2.store.FileLayout
 import io.github.aedev.flow.sync2.store.JoinRequest
 import io.github.aedev.flow.sync2.store.LocalStore
@@ -95,6 +97,8 @@ data class LinkedDevice(
     val name: String,
     val platform: String,
     val thisDevice: Boolean,
+    /** It set the current recovery key, so its leaving stops the others writing. */
+    val setRecoveryKey: Boolean = false,
     /** When the server last heard from it; null in a group without a server. */
     val seen: Long? = null,
 )
@@ -154,11 +158,13 @@ class LinkedActions
                 } catch (_: StoreException) {
                     null
                 }.orEmpty()
+            val installer = recoveryMember(session.state.members)?.value?.installer
             return session.state.members
                 .filterValues { it.role == Role.DEVICE }
                 .keys
-                .map { id -> LinkedDevice(id, names[id]?.name.orEmpty(), names[id]?.platform.orEmpty(), id == me, seen[id]) }
-                .sortedByDescending { it.thisDevice }
+                .map { id ->
+                    LinkedDevice(id, names[id]?.name.orEmpty(), names[id]?.platform.orEmpty(), id == me, id == installer, seen[id])
+                }.sortedByDescending { it.thisDevice }
         }
 
         /** Creates a group on a fresh server and returns the recovery words to show once. */
@@ -277,10 +283,24 @@ class LinkedActions
             return words
         }
 
-        suspend fun remove(id: String) {
-            removeDevice(session(), keys.load(), id)
+        /** Removes [id] and [also], and returns the new recovery words to show once when they had to be replaced with it. */
+        suspend fun remove(
+            id: String,
+            also: List<String>,
+        ): String? {
+            // The cut names what this device has read, so read what it can first (spec/protocol.md, Removal).
+            sync.syncNow()
+            val words = removeDevices(session(), keys.load(), also + id)
+            if (words != null) db.groups().setRecoverySaved(false)
             db.snapshots().snapshotSoon()
+            return words
         }
+
+        /** The current devices [id] added, for the user to remove with it if they don't recognise them. */
+        suspend fun addedBy(id: String): List<String> = devicesAddedBy(session().entries, id)
+
+        /** The user answered the notice that the recovery key changed. */
+        suspend fun answerRecoveryNotice() = db.groups().setRecoveryNotice(null, null)
 
         /** Leaves the group, telling the others ([LinkedReset.leave]). */
         suspend fun leave() = reset.leave()

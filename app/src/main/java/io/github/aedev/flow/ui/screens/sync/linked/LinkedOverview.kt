@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.sync.linked
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -21,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -50,7 +53,10 @@ internal fun LinkedOverview(
     /** Null on a device without a camera. */
     onScanNewDevice: (() -> Unit)?,
     onRename: (id: String, name: String) -> Unit,
-    onRemove: (id: String) -> Unit,
+    onRemove: (id: String, also: List<String>) -> Unit,
+    addedBy: suspend (String) -> List<String>,
+    onAnswerRecoveryNotice: () -> Unit,
+    onRemoveAfterNotice: (String) -> Unit,
     onReplaceWords: () -> Unit,
     onLeave: () -> Unit,
     onForget: () -> Unit,
@@ -151,6 +157,7 @@ internal fun LinkedOverview(
     } else if (state.storeUrl?.startsWith(WEBDAV_STORE) == true) {
         LoginChange(state, onStartLoginChange, onFinishLoginChange, onCancelLoginChange)
     }
+    RecoveryNotices(state, onReplaceWords, onAnswerRecoveryNotice, onRemoveAfterNotice)
     if (!state.recoverySaved) SyncInfoRow(icon = Icons.Outlined.Warning, text = stringResource(R.string.linked_recovery_unsaved))
 
     state.requests.forEach { request ->
@@ -170,7 +177,7 @@ internal fun LinkedOverview(
         )
     }
     profiles()
-    DeviceList(state.devices.orEmpty(), state.nearby, state.kinds, state.busy, consent, onRename, onRemove, onConsent)
+    DeviceList(state.devices.orEmpty(), state.nearby, state.kinds, state.busy, consent, onRename, onRemove, addedBy, onConsent)
     ReplaceRecoveryWords(state.busy, onReplaceWords)
     onScanNewDevice?.let {
         SyncActionRow(confirmLabel = stringResource(R.string.linked_scan_new_device), onConfirm = it, confirmEnabled = !state.busy)
@@ -186,7 +193,14 @@ internal fun LinkedOverview(
         AlertDialog(
             onDismissRequest = { confirmLeave = false },
             title = { Text(stringResource(R.string.linked_leave_title)) },
-            text = { Text(stringResource(R.string.linked_leave_body)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.linked_leave_body))
+                    if (state.devices.orEmpty().any { it.thisDevice && it.setRecoveryKey }) {
+                        Text(stringResource(R.string.linked_leave_stops_others))
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmLeave = false
@@ -206,7 +220,8 @@ private fun DeviceList(
     busy: Boolean,
     consent: Map<String, Boolean>,
     onRename: (id: String, name: String) -> Unit,
-    onRemove: (id: String) -> Unit,
+    onRemove: (id: String, also: List<String>) -> Unit,
+    addedBy: suspend (String) -> List<String>,
     onConsent: (id: String, allowed: Boolean?) -> Unit,
 ) {
     var open by rememberSaveable { mutableStateOf<String?>(null) }
@@ -250,10 +265,12 @@ private fun DeviceList(
                 open = null
                 onRename(device.id, name)
             },
-            onRemove = {
+            onRemove = { also ->
                 open = null
-                onRemove(device.id)
+                onRemove(device.id, also)
             },
+            devices = devices,
+            addedBy = addedBy,
             onDismiss = { open = null },
             consent = consent[device.id],
             onConsent = { onConsent(device.id, it) },
@@ -268,13 +285,23 @@ private fun synced(atMs: Long): String = DateUtils.getRelativeTimeSpanString(atM
 private fun DeviceDialog(
     device: LinkedDevice,
     onRename: (String) -> Unit,
-    onRemove: () -> Unit,
+    onRemove: (also: List<String>) -> Unit,
     onDismiss: () -> Unit,
+    devices: List<LinkedDevice>,
+    addedBy: suspend (String) -> List<String>,
     consent: Boolean?,
     onConsent: (Boolean?) -> Unit,
 ) {
     var name by rememberSaveable { mutableStateOf(device.name) }
     var removing by rememberSaveable { mutableStateOf(false) }
+    var added by remember { mutableStateOf(emptyList<LinkedDevice>()) }
+    var also by remember { mutableStateOf(emptySet<String>()) }
+    LaunchedEffect(removing) {
+        if (removing) {
+            val ids = addedBy(device.id)
+            added = devices.filter { it.id in ids && !it.thisDevice }
+        }
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -284,7 +311,19 @@ private fun DeviceDialog(
         },
         text = {
             if (removing) {
-                Text(stringResource(R.string.linked_remove_body))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.linked_remove_body))
+                    if (added.isNotEmpty()) Text(stringResource(R.string.linked_remove_also, device.name))
+                    for (other in added) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = other.id in also,
+                                onCheckedChange = { also = if (it) also + other.id else also - other.id },
+                            )
+                            Text(other.name)
+                        }
+                    }
+                }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -312,7 +351,7 @@ private fun DeviceDialog(
         },
         confirmButton = {
             if (removing) {
-                TextButton(onClick = onRemove) { Text(stringResource(R.string.linked_remove)) }
+                TextButton(onClick = { onRemove(also.toList()) }) { Text(stringResource(R.string.linked_remove)) }
             } else {
                 TextButton(onClick = { onRename(name) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.linked_save)) }
             }
@@ -414,4 +453,56 @@ internal fun LeaveAnyway(
         dismissLabel = stringResource(R.string.linked_keep_group),
         onDismiss = onKeep,
     )
+}
+
+/** What the user has to know about the recovery key: it has to change, or it did. */
+@Composable
+private fun RecoveryNotices(
+    state: LinkedUiState,
+    onReplaceWords: () -> Unit,
+    onAnswer: () -> Unit,
+    onRemove: (String) -> Unit,
+) {
+    if (state.recoveryDue) {
+        SyncStepHeader(
+            icon = Icons.Outlined.Warning,
+            title = stringResource(R.string.linked_recovery_due_title),
+            body = stringResource(R.string.linked_recovery_due_body),
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        )
+        ReplaceRecoveryWords(state.busy, onReplaceWords)
+    }
+    val notice = state.recoveryNoticeDevice ?: return
+    val device = state.devices?.firstOrNull { it.id == notice && !it.thisDevice }
+    val name = device?.name?.ifBlank { null } ?: stringResource(R.string.linked_recovery_notice_unknown)
+    var removing by rememberSaveable { mutableStateOf(false) }
+    SyncStepHeader(
+        icon = Icons.Outlined.Warning,
+        title = stringResource(R.string.linked_recovery_notice_title),
+        body = stringResource(R.string.linked_recovery_notice_body, name, synced(state.recoveryNoticeAt ?: 0)),
+        containerColor = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    )
+    SyncActionRow(
+        confirmLabel = stringResource(R.string.linked_recovery_notice_mine),
+        onConfirm = onAnswer,
+        confirmEnabled = !state.busy,
+        dismissLabel = device?.let { stringResource(R.string.linked_recovery_notice_not_mine) },
+        onDismiss = { removing = true },
+    )
+    if (removing && device != null) {
+        AlertDialog(
+            onDismissRequest = { removing = false },
+            title = { Text(stringResource(R.string.linked_remove_title, name)) },
+            text = { Text(stringResource(R.string.linked_remove_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    removing = false
+                    onRemove(device.id)
+                }) { Text(stringResource(R.string.linked_remove)) }
+            },
+            dismissButton = { TextButton(onClick = { removing = false }) { Text(stringResource(R.string.linked_cancel)) } },
+        )
+    }
 }

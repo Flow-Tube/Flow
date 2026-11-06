@@ -87,6 +87,7 @@ suspend fun Session.writeSnapshot(
     exported: Map<String, CollectionWire>,
     link: String?,
 ) {
+    if (state.recoveryDue) return
     val epoch = state.epoch
     val key = purposeKey(currentKey(), group, epoch, ObjectType.SNAPSHOT.purpose)
     val parts =

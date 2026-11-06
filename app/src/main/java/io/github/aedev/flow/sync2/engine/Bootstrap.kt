@@ -10,8 +10,10 @@ import io.github.aedev.flow.sync2.crypto.openBlob
 import io.github.aedev.flow.sync2.crypto.purposeKey
 import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.store.ObjectType
+import io.github.aedev.flow.sync2.store.ParsedObject
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
+import java.security.MessageDigest
 
 /** The snapshots a device starts from: their records by writer, and where each log goes on. */
 internal class Start(
@@ -98,6 +100,16 @@ private fun Session.positions(manifest: Manifest): Map<String, StreamPosition> =
         StreamPosition(tip.seq, hash)
     }
 
+/** A removed sender's manifest counts only if the walk down from its cut reaches it. */
+private suspend fun Session.checkManifestChain(
+    did: String,
+    parsed: ParsedObject,
+) {
+    if (state.senders[did]?.until == null) return
+    val seq = parsed.header.seq
+    if (!MessageDigest.isEqual(walkCut(did, seq - 1, null)[seq], parsed.hash)) reject(ProtocolError.PREV)
+}
+
 /** Every snapshot manifest of [links] (every link when null) in [did]'s log. */
 private suspend fun Session.manifests(
     did: String,
@@ -109,6 +121,7 @@ private suspend fun Session.manifests(
         try {
             val parsed = verified(bytes, did, seq)
             if (parsed.header.type != ObjectType.SNAPSHOT) return@mapNotNull null
+            checkManifestChain(did, parsed)
             val manifest = (openContent(parsed) as Content.Snapshot).manifest
             Found(did, parsed.header.epoch, manifest).takeIf { links == null || manifest.link in links }
         } catch (_: ProtocolException) {

@@ -12,6 +12,7 @@ data class Draft(
     val signer: String,
     val add: List<Subject>? = null,
     val remove: List<String>? = null,
+    val cut: Map<String, Cut>? = null,
     val epoch: EpochField? = null,
     val meta: Map<String, String>? = null,
 )
@@ -54,6 +55,7 @@ fun buildEntry(
             signer = draft.signer,
             add = draft.add?.sortedBy { it.did },
             remove = draft.remove?.sorted(),
+            cut = draft.cut,
             epoch = draft.epoch,
             meta = draft.meta,
             sigs = emptyMap(),

@@ -34,6 +34,7 @@ import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.RosterState
 import io.github.aedev.flow.sync2.roster.Settlement
 import io.github.aedev.flow.sync2.roster.applyEntry
+import io.github.aedev.flow.sync2.roster.checkSender
 import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.replayRoster
 import io.github.aedev.flow.sync2.roster.settleRoster
@@ -41,10 +42,12 @@ import io.github.aedev.flow.sync2.store.ChangeList
 import io.github.aedev.flow.sync2.store.Header
 import io.github.aedev.flow.sync2.store.ObjectType
 import io.github.aedev.flow.sync2.store.ParsedObject
+import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StoreLogin
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.StreamPosition
 import io.github.aedev.flow.sync2.store.ZERO_HASH
+import io.github.aedev.flow.sync2.store.cutChain
 import io.github.aedev.flow.sync2.store.decodeStoreLogin
 import io.github.aedev.flow.sync2.store.encodeStoreLogin
 import io.github.aedev.flow.sync2.store.kcName
@@ -53,6 +56,7 @@ import io.github.aedev.flow.sync2.store.parseObject
 import io.github.aedev.flow.sync2.store.sealObject
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import java.security.MessageDigest
 import java.util.TreeMap
 
 /** What a log object carries, once checked and opened. */
@@ -97,6 +101,8 @@ class Pulled internal constructor(
     internal val readsDone: List<LinkReadRow>,
     /** The latest store login read, for the caller to keep as pending. */
     val login: StoreLogin?,
+    /** Objects removed senders wrote after their logs ended, which [Session.finish] deletes. */
+    internal val pastCut: List<String> = emptyList(),
 )
 
 /**
@@ -114,7 +120,6 @@ class Session private constructor(
     standing: List<Entry> = emptyList(),
 ) {
     internal val me = SyncBytes.toHex(device.did)
-    private val signingKeys = HashMap<String, ByteArray>()
     private val commitments = HashMap<Int, ByteArray>()
     private val keys = TreeMap<Int, ByteArray>()
 
@@ -124,6 +129,9 @@ class Session private constructor(
     /** The keys of those entries unwrapped so far, by `kc`. */
     private val standingKeys = HashMap<String, ByteArray>()
 
+    /** The hashes found walking down from each removed sender's cut. */
+    private val cutWalks = HashMap<String, Map<Long, ByteArray>>()
+
     var record = record
         private set
 
@@ -131,7 +139,6 @@ class Session private constructor(
 
     init {
         for (entry in entries) {
-            entry.add?.forEach { signingKeys[it.did] = SyncBytes.b64urlDecode(it.sig) }
             entry.epoch?.let { commitments[it.n] = SyncBytes.b64urlDecode(it.kc) }
         }
     }
@@ -191,6 +198,8 @@ class Session private constructor(
             // Nothing is saved until the new chain's key opens: without it the device stays where it was.
             if (member) session.unwrapCurrent()
             if (settled.extendsApplied) groups.addEntries(entries.drop(applied.size)) else groups.replaceRoster(entries)
+            recoveryChange(SyncBytes.toHex(device.did), applied, entries)?.let { groups.setRecoveryNotice(it, System.currentTimeMillis()) }
+            if (record.recoveryDue != session.state.recoveryDue) groups.setRecoveryDue(session.state.recoveryDue)
             if (record.webDavUrl != null) {
                 val known = applied.map(::entryHash).toSet()
                 entries.lastOrNull { it.op == Op.REMOVE && entryHash(it) !in known }?.epoch?.let { groups.setLoginDue(it.n) }
@@ -270,6 +279,7 @@ class Session private constructor(
         type: ObjectType,
         content: ByteArray,
     ) {
+        if (state.recoveryDue) throw LinkedException.RecoveryDue()
         val seq = record.ownSeq + 1
         val epoch = state.epoch
         val header = Header(type, group, epoch, device.did, seq, SyncBytes.fromHex(record.ownPrev))
@@ -285,6 +295,7 @@ class Session private constructor(
         exported: Map<String, CollectionWire>,
         link: String?,
     ): Int {
+        if (state.recoveryDue) return 0
         val outgoing = outgoingBatches(db.sent(), exported, state.head, link, System.currentTimeMillis())
         for (batch in outgoing.batches) write(ObjectType.CHANGES, batch.content)
         markSent(db.sent(), outgoing)
@@ -351,6 +362,7 @@ class Session private constructor(
         // The lowest seq of each sender left unread; nothing after it is read this time.
         val stopped = HashMap<String, Long>()
         val acks = HashMap<String, Map<String, Long>>()
+        val pastCut = ArrayList<String>()
         val manifests = ArrayList<Logged>()
         val named = HashSet<String?>()
         var login: StoreLogin? = null
@@ -369,13 +381,14 @@ class Session private constructor(
             if (changes.isEmpty()) break
             val before = positions.mapValues { it.value.seq }
             // Objects of one sender may be listed out of order: retry while a pass makes progress.
-            var waiting =
+            val listed =
                 changes
                     .mapNotNull { change ->
                         StorePaths.parseLog(change.path)?.let { (did, seq) -> Triple(did, seq, change.path) }
-                    }.filter { (did, seq) ->
-                        did != me && (positions[did]?.seq ?: 0) < seq && seq < (stopped[did] ?: Long.MAX_VALUE)
-                    }
+                    }.filter { (did, seq) -> did != me && (positions[did]?.seq ?: 0) < seq }
+            val (ended, reading) = listed.partition { (did, seq) -> pastItsCut(did, seq) }
+            pastCut += ended.map { it.third }
+            var waiting = reading.filter { (did, seq) -> seq < (stopped[did] ?: Long.MAX_VALUE) }
             while (waiting.isNotEmpty()) {
                 val still =
                     waiting.filter { (did, seq, path) ->
@@ -417,7 +430,7 @@ class Session private constructor(
             if (next <= cursor && positions.all { (did, at) -> before[did] == at.seq }) break
             cursor = next
         }
-        return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone, login)
+        return Pulled(batches, positions, held ?: cursor, consumed, held != null, acks, manifests, named, reads, readsDone, login, pastCut)
     }
 
     /**
@@ -458,7 +471,9 @@ class Session private constructor(
         val bytes = store.getObject(path) ?: return null
         return try {
             val parsed = verified(bytes, did, seq)
-            ReadObject(nextInStream(last, parsed), openContent(parsed))
+            val position = nextInStream(last, parsed)
+            checkCutChain(did, parsed, last)
+            ReadObject(position, openContent(parsed))
         } catch (_: ProtocolException) {
             null
         }
@@ -471,9 +486,43 @@ class Session private constructor(
         seq: Long,
     ): ParsedObject {
         val parsed = parseObject(bytes, group)
-        parsed.verify(signingKeys[did] ?: reject(ProtocolError.SENDER))
+        parsed.verify(checkSender(state.senders, did, parsed.header.epoch, seq).sig)
         if (SyncBytes.toHex(parsed.header.sender) != did || parsed.header.seq != seq) reject(ProtocolError.REPLAY)
         return parsed
+    }
+
+    /** An object a removed sender wrote after its log ended, which never gets read, so it isn't missing either. */
+    private fun pastItsCut(
+        did: String,
+        seq: Long,
+    ): Boolean {
+        val sender = state.senders[did] ?: return false
+        return sender.until != null && seq > (sender.cut?.seq ?: 0)
+    }
+
+    /**
+     * Checks a removed sender's chain from where this device has read, down from the hash its removal names, before
+     * anything of it is applied (spec/store.md, A removed sender's chain).
+     */
+    private suspend fun checkCutChain(
+        did: String,
+        parsed: ParsedObject,
+        last: StreamPosition?,
+    ) {
+        if (state.senders[did]?.until == null) return
+        val seq = parsed.header.seq
+        if (cutWalks[did]?.containsKey(seq) != true) cutWalks[did] = walkCut(did, last?.seq ?: 0, last?.hash ?: ZERO_HASH)
+        if (!MessageDigest.isEqual(cutWalks[did]?.get(seq), parsed.hash)) reject(ProtocolError.PREV)
+    }
+
+    /** The hashes of a removed sender's log from its cut down to [from]. */
+    internal suspend fun walkCut(
+        did: String,
+        from: Long,
+        hash: ByteArray?,
+    ): Map<Long, ByteArray> {
+        val cut = state.senders[did]?.cut ?: reject(ProtocolError.SENDER)
+        return cutChain(cut.seq, SyncBytes.fromHex(cut.hash), from, hash, group) { store.getObject(StorePaths.log(did, it)) }
     }
 
     /**
@@ -517,7 +566,12 @@ class Session private constructor(
         db.profiles().updateReads(pulled.reads, pulled.readsDone)
         record = record.copy(cursor = pulled.cursor)
         recordCollection(pulled)
-        if (pulled.consumed > 0) {
+        try {
+            pulled.pastCut.forEach { store.deleteObject(it) }
+        } catch (_: StoreException) {
+            // Best effort: a new reader's listing finds them again.
+        }
+        if (pulled.consumed > 0 && !state.recoveryDue) {
             val vv = JsonObject(pulled.positions.toSortedMap().mapValues { (_, p) -> JsonPrimitive(p.seq) })
             write(ObjectType.ACK, SyncSerialization.canonicalJson(JsonObject(mapOf("vv" to vv))).toByteArray())
         }

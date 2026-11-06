@@ -54,6 +54,11 @@ internal data class LinkedUiState(
     val loginDue: Boolean = false,
     /** The devices yet to read the login this device sent, while that change is under way. */
     val loginWaiting: List<String>? = null,
+    /** The device behind a change of the recovery key, until the user answers, and when this device learned of it. */
+    val recoveryNoticeDevice: String? = null,
+    val recoveryNoticeAt: Long? = null,
+    /** The device that set the recovery key left: nothing is written until it is replaced. */
+    val recoveryDue: Boolean = false,
 ) {
     val linked: Boolean get() = storeUrl != null
 }
@@ -121,6 +126,9 @@ internal class LinkedDevicesViewModel
                     l.contest,
                     group?.loginDue != null,
                     if (group?.loginSent != null) l.loginWaiting.orEmpty() else null,
+                    group?.recoveryNoticeDevice,
+                    group?.recoveryNoticeAt,
+                    group?.recoveryDue == true,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LinkedUiState())
 
@@ -241,10 +249,24 @@ internal class LinkedDevicesViewModel
             local.update { it.copy(devices = actions.devices()) }
         }
 
-        fun remove(id: String) =
+        fun remove(
+            id: String,
+            also: List<String> = emptyList(),
+        ) = run {
+            val words = actions.remove(id, also)
+            local.update { it.copy(words = words ?: it.words, devices = actions.devices()) }
+        }
+
+        suspend fun addedBy(id: String): List<String> = runCatching { actions.addedBy(id) }.getOrDefault(emptyList())
+
+        fun answerRecoveryNotice() = run { actions.answerRecoveryNotice() }
+
+        /** The user said the change wasn't theirs. */
+        fun removeAfterNotice(id: String) =
             run {
-                actions.remove(id)
-                local.update { it.copy(devices = actions.devices()) }
+                val words = actions.remove(id, emptyList())
+                actions.answerRecoveryNotice()
+                local.update { it.copy(words = words ?: it.words, devices = actions.devices()) }
             }
 
         fun leave() =
