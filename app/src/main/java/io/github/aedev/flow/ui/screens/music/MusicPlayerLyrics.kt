@@ -115,6 +115,7 @@ internal class MusicPlayerLyrics(
         album: String? = null,
     ) {
         lyricsJob?.cancel()
+        browseLyricsJob?.cancel()
         if (LocalMediaIds.isLocal(videoId)) {
             lyricsJob = scope.launch { loadDeviceLyrics(videoId) }
             return
@@ -290,6 +291,8 @@ internal class MusicPlayerLyrics(
         )
     }
 
+    private fun isCurrent(track: MusicTrack): Boolean = uiState.value.currentTrack?.videoId == track.videoId
+
     fun refresh() {
         val track = uiState.value.currentTrack ?: return
         scope.launch {
@@ -298,6 +301,7 @@ internal class MusicPlayerLyrics(
             } catch (e: Exception) {
                 android.util.Log.w("MusicPlayerViewModel", "forceRefresh failed: ${e.message}")
             }
+            if (!isCurrent(track)) return@launch
             fetch(
                 videoId = track.videoId,
                 artist = track.artist,
@@ -325,7 +329,7 @@ internal class MusicPlayerLyrics(
                         duration = track.duration,
                         album = track.album,
                     ) { candidate ->
-                        if (isActive) {
+                        if (isActive && isCurrent(track)) {
                             uiState.update { it.copy(lyricsCandidates = it.lyricsCandidates + candidate) }
                         }
                     }
@@ -351,11 +355,14 @@ internal class MusicPlayerLyrics(
 
     fun applyCandidate(candidate: LyricsCandidate) {
         val track = uiState.value.currentTrack ?: return
+        lyricsJob?.cancel()
         scope.launch {
             lyricsHelper.applyManualLyrics(track.videoId, candidate.entries)
+            if (!isCurrent(track)) return@launch
             val plainText = candidate.entries.joinToString("\n") { it.text }
             uiState.update {
                 it.copy(
+                    isLyricsLoading = false,
                     lyrics = plainText.takeIf { text -> text.isNotBlank() },
                     syncedLyrics = if (candidate.synced) candidate.entries else emptyList(),
                     lyricsProviderName = candidate.providerName,
@@ -371,6 +378,7 @@ internal class MusicPlayerLyrics(
 
     fun applyEdited(text: String) {
         val track = uiState.value.currentTrack ?: return
+        lyricsJob?.cancel()
         scope.launch {
             val parsed =
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
@@ -389,9 +397,11 @@ internal class MusicPlayerLyrics(
             videoTimingJob?.cancel()
             val synced = lyricsHelper.entriesAreSynced(entries)
             lyricsHelper.applyManualLyrics(track.videoId, entries)
+            if (!isCurrent(track)) return@launch
             val plainText = entries.joinToString("\n") { it.text }
             uiState.update {
                 it.copy(
+                    isLyricsLoading = false,
                     lyrics = plainText.takeIf { t -> t.isNotBlank() },
                     syncedLyrics = if (synced) entries else emptyList(),
                     lyricsProviderName = context.getString(io.github.aedev.flow.R.string.lyrics_source_edited),

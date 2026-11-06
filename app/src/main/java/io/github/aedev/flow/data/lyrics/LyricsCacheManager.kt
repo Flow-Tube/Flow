@@ -11,6 +11,7 @@ import java.io.File
 object LyricsCacheManager {
     private const val TAG = "LyricsCacheManager"
     private const val LYRICS_DIR = "lyrics"
+    private const val MANUAL_SUFFIX = ".manual"
     private val lock = Any()
 
     private val json =
@@ -31,7 +32,44 @@ object LyricsCacheManager {
         return File(dir, "$videoId.json")
     }
 
+    private fun sidecar(
+        context: Context,
+        videoId: String,
+        suffix: String,
+    ): File = File(getCacheFile(context, videoId).parentFile, videoId + suffix)
+
+    private fun write(
+        context: Context,
+        videoId: String,
+        entries: List<LyricsEntry>,
+    ) {
+        try {
+            getCacheFile(context, videoId).writeText(json.encodeToString(entries), Charsets.UTF_8)
+            Log.d(TAG, "Successfully cached lyrics to disk for videoId: $videoId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to cache lyrics for $videoId to disk: ${e.message}", e)
+        }
+    }
+
+    /** Saves what a provider found. Lyrics picked by hand stay; returns whether this was saved. */
     suspend fun saveLyrics(
+        context: Context,
+        videoId: String,
+        entries: List<LyricsEntry>,
+    ): Boolean {
+        if (videoId.isBlank() || entries.isEmpty()) return false
+
+        return withContext(Dispatchers.IO) {
+            synchronized(lock) {
+                if (sidecar(context, videoId, MANUAL_SUFFIX).exists()) return@synchronized false
+                write(context, videoId, entries)
+                true
+            }
+        }
+    }
+
+    /** Saves lyrics the user chose or edited, and marks them so nothing replaces them automatically. */
+    suspend fun saveManualLyrics(
         context: Context,
         videoId: String,
         entries: List<LyricsEntry>,
@@ -40,17 +78,23 @@ object LyricsCacheManager {
 
         withContext(Dispatchers.IO) {
             synchronized(lock) {
-                try {
-                    val file = getCacheFile(context, videoId)
-                    val jsonString = json.encodeToString(entries)
-                    file.writeText(jsonString, Charsets.UTF_8)
-                    Log.d(TAG, "Successfully cached lyrics to disk for videoId: $videoId")
-                    Unit
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to cache lyrics for $videoId to disk: ${e.message}", e)
-                }
+                write(context, videoId, entries)
+                runCatching { sidecar(context, videoId, MANUAL_SUFFIX).createNewFile() }
+                    .onFailure { Log.e(TAG, "Failed to mark $videoId as picked by hand: ${it.message}") }
             }
         }
+    }
+
+    suspend fun isManual(
+        context: Context,
+        videoId: String,
+    ): Boolean = withContext(Dispatchers.IO) { synchronized(lock) { sidecar(context, videoId, MANUAL_SUFFIX).exists() } }
+
+    suspend fun clearManual(
+        context: Context,
+        videoId: String,
+    ) {
+        withContext(Dispatchers.IO) { synchronized(lock) { sidecar(context, videoId, MANUAL_SUFFIX).delete() } }
     }
 
     suspend fun getLyrics(

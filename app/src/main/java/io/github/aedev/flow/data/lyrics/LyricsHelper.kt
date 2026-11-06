@@ -14,6 +14,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +50,7 @@ class LyricsHelper
             // After a line-synced hit, the providers after it get this long in total to find word sync.
             private const val WORD_SYNC_GRACE_MS = 4_000L
             private const val MEMORY_CACHE_SIZE = 32
+            private const val MEMORY_CACHE_NAME = "MemoryCache"
         }
 
         // Bounded per call too: a provider's blocking request would otherwise outlive its timeout.
@@ -81,9 +84,11 @@ class LyricsHelper
             videoId: String,
             ctx: Context? = null,
         ) {
+            inFlight.cancelAndJoin(videoId)
             cache.remove(videoId)
             try {
                 LyricsCacheManager.evictLyrics(ctx ?: context, videoId)
+                LyricsCacheManager.clearManual(ctx ?: context, videoId)
             } catch (e: Exception) {
                 Log.w(TAG, "Disk cache evict failed: ${e.message}")
             }
@@ -98,7 +103,14 @@ class LyricsHelper
             duration: Int,
             album: String? = null,
             ctx: Context? = null,
-        ): Pair<List<LyricsEntry>, String>? = inFlight.join(videoId) { fetchLyrics(videoId, title, artist, duration, album, ctx) }
+        ): Pair<List<LyricsEntry>, String>? =
+            try {
+                inFlight.join(videoId) { fetchLyrics(videoId, title, artist, duration, album, ctx) }
+            } catch (e: CancellationException) {
+                // A hand pick or Refresh ended the run under this caller, which itself lives on.
+                currentCoroutineContext().ensureActive()
+                cache[videoId]?.let { it to MEMORY_CACHE_NAME }
+            }
 
         private suspend fun fetchLyrics(
             videoId: String,
@@ -114,7 +126,7 @@ class LyricsHelper
                 val normalized = normalizeEntries(cached)
                 if (normalized.none { !it.words.isNullOrEmpty() } || hasWordSync(normalized)) {
                     Log.d(TAG, "Returning in-memory cached lyrics for $videoId")
-                    return normalized to "MemoryCache"
+                    return normalized to MEMORY_CACHE_NAME
                 }
                 Log.d(TAG, "Ignoring weak in-memory word-sync cache for $videoId")
                 cache.remove(videoId)
@@ -123,6 +135,10 @@ class LyricsHelper
             var cachedLineFallback: Pair<List<LyricsEntry>, String>? = null
             val diskCached = LyricsCacheManager.getLyrics(targetContext, videoId)
             val normalizedDiskCached = diskCached?.let { normalizeEntries(it.sorted()) }
+            if (!normalizedDiskCached.isNullOrEmpty() && LyricsCacheManager.isManual(targetContext, videoId)) {
+                cache[videoId] = normalizedDiskCached
+                return normalizedDiskCached to "DiskCache"
+            }
             if (!normalizedDiskCached.isNullOrEmpty() && hasWordSync(normalizedDiskCached) &&
                 hasReasonableTimestamps(normalizedDiskCached, duration)
             ) {
@@ -396,6 +412,7 @@ class LyricsHelper
         /**
          * Makes a user-chosen or user-edited set of entries the lyrics of record for [videoId] by
          * overwriting both the in-memory and disk caches, so it survives sheet reopens and restarts.
+         * No provider run replaces it until Refresh.
          */
         suspend fun applyManualLyrics(
             videoId: String,
@@ -403,9 +420,10 @@ class LyricsHelper
             ctx: Context? = null,
         ) {
             if (entries.isEmpty()) return
+            inFlight.cancelAndJoin(videoId)
             cache[videoId] = entries
             try {
-                LyricsCacheManager.saveLyrics(ctx ?: context, videoId, entries)
+                LyricsCacheManager.saveManualLyrics(ctx ?: context, videoId, entries)
             } catch (e: Exception) {
                 Log.w(TAG, "Manual lyrics save failed: ${e.message}")
             }
