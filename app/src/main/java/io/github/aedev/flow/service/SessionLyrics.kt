@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -19,6 +20,7 @@ import io.github.aedev.flow.data.lyrics.LyricsUtils
 import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.lyrics.ShownLyrics
 import io.github.aedev.flow.player.PlaybackTarget
+import io.github.aedev.flow.utils.NetworkState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +45,7 @@ internal class SessionLyrics(
     lockScreenSetting: Flow<Boolean>,
     delaySetting: Flow<Int>,
     private val videoTiming: MusicVideoLyricsTiming,
+    private val isSavingData: suspend () -> Boolean,
 ) {
     private class Fetched(
         val videoId: String,
@@ -55,6 +58,8 @@ internal class SessionLyrics(
     private var timeline: SessionLyricTimeline? = null
     private var pendingLine: Job? = null
     private var loadJob: Job? = null
+    private var aheadJob: Job? = null
+    private var aheadId: String? = null
 
     private var isEnabled = false
     private var delayMs = 0
@@ -107,13 +112,12 @@ internal class SessionLyrics(
         val videoId = item.mediaId
         if (videoId.isBlank()) return
         loadJob?.cancel()
+        if (aheadId != videoId) stopFetchingAhead()
         if (LocalMediaIds.isLocal(videoId)) {
             if (isEnabled) loadDeviceLyrics(videoId)
             return
         }
-        val title = item.mediaMetadata.title?.toString()
-        val artist = item.mediaMetadata.artist?.toString()
-        if (title.isNullOrBlank() || artist.isNullOrBlank()) return
+        if (!item.hasLyricsNames) return
         val durationSeconds = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt()
         val showsLines = isEnabled
         loadGuarded {
@@ -133,9 +137,59 @@ internal class SessionLyrics(
                     lastAnswer = answer.first
                 }
             }
-            lyricsHelper.getLyrics(videoId, title, artist, durationSeconds, null, onAnswer = show)?.let { show(it) }
+            lookUp(item, show)?.let { show(it) }
+            fetchAhead(videoId)
         }
     }
+
+    private suspend fun lookUp(
+        item: MediaItem,
+        onAnswer: (suspend (Pair<List<LyricsEntry>, String>) -> Unit)?,
+    ): Pair<List<LyricsEntry>, String>? =
+        lyricsHelper.getLyrics(
+            videoId = item.mediaId,
+            title = item.mediaMetadata.title.toString(),
+            artist = item.mediaMetadata.artist.toString(),
+            duration = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt(),
+            album = null,
+            onAnswer = onAnswer,
+        )
+
+    /** One song ahead, once this song's lyrics are done. A skip stops it, unless it skips to that song. */
+    private suspend fun fetchAhead(currentId: String) {
+        val nextIndex = player.nextMediaItemIndex
+        val next = if (nextIndex == C.INDEX_UNSET) null else player.getMediaItemAt(nextIndex)
+        val allowed =
+            shouldFetchLyricsAhead(
+                currentId = currentId,
+                nextId = next?.mediaId,
+                nextHasNames = next?.hasLyricsNames == true,
+                online = NetworkState.isOnline(context),
+                dataSaving = isSavingData(),
+                playingElsewhere = PlaybackTarget.followed.value != null,
+            )
+        if (next == null || !allowed) return
+        stopFetchingAhead()
+        aheadId = next.mediaId
+        aheadJob =
+            scope.launch {
+                try {
+                    lookUp(next, onAnswer = null)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Lyrics ahead failed: ${e.message}")
+                }
+            }
+    }
+
+    private fun stopFetchingAhead() {
+        aheadJob?.cancel()
+        aheadId = null
+    }
+
+    private val MediaItem.hasLyricsNames: Boolean
+        get() = !mediaMetadata.title.isNullOrBlank() && !mediaMetadata.artist.isNullOrBlank()
 
     private fun loadDeviceLyrics(videoId: String) {
         loadGuarded {
@@ -193,6 +247,8 @@ internal class SessionLyrics(
         if (isEnabled) stopListening()
         isEnabled = false
         pendingLine?.cancel()
+        loadJob?.cancel()
+        stopFetchingAhead()
     }
 
     private fun stopListening() {
