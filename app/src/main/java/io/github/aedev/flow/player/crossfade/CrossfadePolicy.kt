@@ -54,7 +54,48 @@ internal object CrossfadePolicy {
         val curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
         val onAutoAdvance: Boolean = true,
         val onManualSkip: Boolean = false,
-    )
+    ) {
+        val fadesOnSkip: Boolean get() = seconds > 0 && onManualSkip
+    }
+
+    /** Where an in-app skip finds the outgoing song. */
+    enum class SkipPhase {
+        /** Nothing carries it but the session. */
+        NONE,
+
+        /** The session still plays it while its tail starts, muted, and the skip waits for that. */
+        HOLDING,
+
+        /** A tail has it, or is about to, and the session has moved on. */
+        UNDER_TAIL,
+    }
+
+    enum class SkipPress { START_TAIL, PLAIN, MOVE_TARGET, BACK_TO_PLAYING_SONG, SEEK_UNDER_TAIL }
+
+    /**
+     * What another press does. Only the first press of a run builds a tail: later ones just change
+     * where the session goes, so no press is lost and no second tail starts.
+     */
+    fun onSkipPress(
+        phase: SkipPhase,
+        targetIsPlayingSong: Boolean,
+        canStartTail: Boolean,
+    ): SkipPress =
+        when (phase) {
+            SkipPhase.NONE -> if (canStartTail) SkipPress.START_TAIL else SkipPress.PLAIN
+            SkipPhase.HOLDING -> if (targetIsPlayingSong) SkipPress.BACK_TO_PLAYING_SONG else SkipPress.MOVE_TARGET
+            SkipPhase.UNDER_TAIL -> SkipPress.SEEK_UNDER_TAIL
+        }
+
+    /** The next song has started before the fade: a tail not playing yet is dropped, so neither stays silent. */
+    fun keepsTailWhenNextSongPlays(tailPlaying: Boolean): Boolean = tailPlaying
+
+    /** When a fade began, for it to go on from [progress]; the next song may have kept it waiting. */
+    fun fadeBeganAtMs(
+        nowMs: Long,
+        progress: Float,
+        fadeClockMs: Long,
+    ): Long = nowMs - (progress * fadeClockMs).toLong()
 
     /** The facts one decision needs; the service reads them from the player and the queue. */
     data class Moment(

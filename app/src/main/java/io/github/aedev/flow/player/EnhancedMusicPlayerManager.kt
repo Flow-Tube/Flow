@@ -10,6 +10,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Util
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
@@ -116,6 +117,11 @@ object EnhancedMusicPlayerManager {
 
     private var pendingSkip: PendingSkip? = null
     private var skipJob: kotlinx.coroutines.Job? = null
+    private var heldSkipLimit: kotlinx.coroutines.Job? = null
+
+    /** Fade when you skip is on, so the service holds a skip back until the old song's tail plays. */
+    @Volatile
+    var holdsSkipsForFade = false
 
     /** Reads what a skip has to respect from storage. The app's ViewModel sets it; until then a skip rebuilds. */
     private var readSkipStored: (suspend (MusicTrack) -> MusicSkipPolicy.Stored)? = null
@@ -406,6 +412,7 @@ object EnhancedMusicPlayerManager {
                     pendingSkip?.let { skip ->
                         if (mediaItem.mediaId != skip.mediaId) return
                         pendingSkip = null
+                        heldSkipLimit?.cancel()
                     }
 
                     val isAutomaticTransition = reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO
@@ -619,8 +626,8 @@ object EnhancedMusicPlayerManager {
                 _playerState.value.copy(
                     isPlaying = p.isPlaying,
                     isBuffering = p.playbackState == Player.STATE_BUFFERING,
-                    duration = if (p.duration > 0) p.duration else _playerState.value.duration,
-                    position = p.currentPosition,
+                    duration = if (pendingSkip == null && p.duration > 0) p.duration else _playerState.value.duration,
+                    position = if (pendingSkip == null) p.currentPosition else 0L,
                 )
         }
     }
@@ -632,14 +639,15 @@ object EnhancedMusicPlayerManager {
                 while (true) {
                     val p = player
                     if (p != null && p.isPlaying) {
-                        val position = p.currentPosition
+                        // A held skip shows the next song while the player still plays the old one.
+                        val position = if (pendingSkip == null) p.currentPosition else 0L
                         _currentPosition.value = position
 
                         // Coarsened deliberately. Every consumer of playerState renders seconds, but a
                         // copy here emits a whole new MusicPlayerState to the mini player and the
                         // playback service, so it must not follow the fast tick.
                         val state = _playerState.value
-                        val duration = if (p.duration > 0) p.duration else state.duration
+                        val duration = if (pendingSkip == null && p.duration > 0) p.duration else state.duration
                         if (position / 1000L != state.position / 1000L || duration != state.duration) {
                             _playerState.value = state.copy(position = position, duration = duration)
                         }
@@ -977,10 +985,11 @@ object EnhancedMusicPlayerManager {
                     _currentTrack.value?.let { track ->
                         _playerEvents.emit(PlayerEvent.RequestPlayTrack(track))
                     }
-                } else if (p.isPlaying) {
-                    p.pause()
-                } else {
+                } else if (Util.shouldShowPlayButton(p)) {
+                    // Not isPlaying: while the next song buffers under a skip fade, the old song is still heard.
                     p.play()
+                } else {
+                    p.pause()
                 }
             }
         }
@@ -1122,6 +1131,7 @@ object EnhancedMusicPlayerManager {
     private fun dropPendingSkip() {
         pendingSkip?.let { Log.d("EnhancedMusicPlayer", "Skip to ${it.mediaId} dropped by a new play") }
         skipJob?.cancel()
+        heldSkipLimit?.cancel()
         pendingSkip = null
     }
 
@@ -1134,12 +1144,14 @@ object EnhancedMusicPlayerManager {
      */
     private fun skipTo(index: Int) {
         val track = _queue.value.getOrNull(index) ?: return
+        Log.d("EnhancedMusicPlayer", "Skip pressed, to ${track.videoId} at $index")
         pendingSkip = PendingSkip(index, track.videoId)
         _currentTrack.value = track
         _currentQueueIndex.value = index
         _currentPosition.value = 0L
         _playerState.value = _playerState.value.copy(position = 0L, duration = track.duration * 1000L)
         skipJob?.cancel()
+        heldSkipLimit?.cancel()
         skipJob =
             scope.launch {
                 val stored =
@@ -1152,7 +1164,10 @@ object EnhancedMusicPlayerManager {
                         null
                     }
                 val route = skipRoute(index, track, stored)
-                Log.d("EnhancedMusicPlayer", "Skip pressed, to ${track.videoId} at $index: $route, queue ${_queue.value.size}, player ${player?.mediaItemCount}")
+                Log.d(
+                    "EnhancedMusicPlayer",
+                    "Skip to ${track.videoId}: $route, queue ${_queue.value.size}, player ${player?.mediaItemCount}",
+                )
                 val controller = player
                 if (route == MusicSkipPolicy.Route.SEEK && controller != null) {
                     seekToQueueEntry(controller, index, track)
@@ -1193,12 +1208,36 @@ object EnhancedMusicPlayerManager {
         index: Int,
         track: MusicTrack,
     ) {
-        pendingSkip = null
         queueStarts++
         clearPendingPlayNext()
-        controller.seekTo(index, 0L)
-        controller.play()
+        if (holdsSkipsForFade && controller is MediaController) {
+            Media3MusicService.requestSkip(controller, index, track.videoId)
+            awaitHeldSkip(controller, index)
+        } else {
+            pendingSkip = null
+            controller.seekTo(index, 0L)
+            controller.play()
+        }
         scope.launch { _playerEvents.emit(PlayerEvent.SkippedOnPlayer(track)) }
+    }
+
+    /** The player moves when the service says so, and if the song left the queue meanwhile it never does. */
+    private fun awaitHeldSkip(
+        controller: Player,
+        index: Int,
+    ) {
+        if (controller.currentMediaItemIndex == index) {
+            pendingSkip = null
+            updatePlayerState()
+            return
+        }
+        heldSkipLimit =
+            scope.launch {
+                kotlinx.coroutines.delay(HELD_SKIP_LIMIT_MS)
+                pendingSkip = null
+                controller.currentMediaItem?.let { syncCurrentTrackFromMediaItem(controller, it) }
+                updatePlayerState()
+            }
     }
 
     /** The bar's swipe to the song before: a Previous that goes back whatever the position. */
@@ -1292,7 +1331,7 @@ object EnhancedMusicPlayerManager {
 
     fun getCurrentPosition(): Long =
         try {
-            if (player?.isPlaying == true) {
+            if (player?.isPlaying == true && pendingSkip == null) {
                 player?.currentPosition ?: _currentPosition.value
             } else {
                 _currentPosition.value
@@ -1442,6 +1481,7 @@ object EnhancedMusicPlayerManager {
         _currentQueueIndex.value = 0
         clearPendingPlayNext()
         skipJob?.cancel()
+        heldSkipLimit?.cancel()
         pendingSkip = null
         playerItemFiles = emptyMap()
         _currentPosition.value = 0L
@@ -1540,6 +1580,9 @@ data class MusicPlayerState(
 
 private const val PRECISE_POSITION_INTERVAL_MS = 250L
 private const val COARSE_POSITION_INTERVAL_MS = 1_000L
+
+/** Longer than the service waits for a tail, so it only ends a skip whose song left the queue. */
+private const val HELD_SKIP_LIMIT_MS = 3_000L
 
 /** [savedCode] is how a saved queue writes the mode; [playerMode] is Media3's own value for it. */
 enum class RepeatMode(

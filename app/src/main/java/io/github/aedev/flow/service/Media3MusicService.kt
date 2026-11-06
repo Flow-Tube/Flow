@@ -123,6 +123,9 @@ class Media3MusicService : MediaLibraryService() {
         private const val ACTION_TOGGLE_SHUFFLE = "ACTION_TOGGLE_SHUFFLE"
         private const val ACTION_TOGGLE_REPEAT = "ACTION_TOGGLE_REPEAT"
         private const val ACTION_STOP = "ACTION_STOP"
+        private const val ACTION_SKIP_TO = "ACTION_SKIP_TO"
+        private const val EXTRA_SKIP_INDEX = "index"
+        private const val EXTRA_SKIP_MEDIA_ID = "mediaId"
 
         private const val MAX_RETRY_PER_SONG = 5
         private const val BASE_RETRY_DELAY_MS = 3000L
@@ -141,6 +144,7 @@ class Media3MusicService : MediaLibraryService() {
         private val CommandToggleShuffle = SessionCommand(ACTION_TOGGLE_SHUFFLE, Bundle.EMPTY)
         private val CommandToggleRepeat = SessionCommand(ACTION_TOGGLE_REPEAT, Bundle.EMPTY)
         private val CommandStop = SessionCommand(ACTION_STOP, Bundle.EMPTY)
+        private val CommandSkipTo = SessionCommand(ACTION_SKIP_TO, Bundle.EMPTY)
 
         const val ACTION_TOGGLE_LIKE = "ACTION_TOGGLE_LIKE"
         private val CommandToggleLike = SessionCommand(ACTION_TOGGLE_LIKE, Bundle.EMPTY)
@@ -160,6 +164,20 @@ class Media3MusicService : MediaLibraryService() {
          */
         fun requestStop(controller: MediaController): ListenableFuture<SessionResult> =
             controller.sendCustomCommand(CommandStop, Bundle.EMPTY)
+
+        /** An in-app skip with Fade when you skip on, which the service can hold back until the old song's tail plays. */
+        fun requestSkip(
+            controller: MediaController,
+            index: Int,
+            mediaId: String,
+        ): ListenableFuture<SessionResult> =
+            controller.sendCustomCommand(
+                CommandSkipTo,
+                Bundle().apply {
+                    putInt(EXTRA_SKIP_INDEX, index)
+                    putString(EXTRA_SKIP_MEDIA_ID, mediaId)
+                },
+            )
     }
 
     private lateinit var mediaLibrarySession: MediaLibrarySession
@@ -565,6 +583,7 @@ class Media3MusicService : MediaLibraryService() {
                 CrossfadePolicy::Settings,
             ).collect { settings ->
                 crossfader?.setSettings(settings)
+                io.github.aedev.flow.player.EnhancedMusicPlayerManager.holdsSkipsForFade = settings.fadesOnSkip
                 updateOffload { it.copy(crossfade = settings.seconds > 0) }
             }
         }
@@ -1972,6 +1991,7 @@ class Media3MusicService : MediaLibraryService() {
                     .add(CommandToggleRepeat)
                     .add(CommandToggleLike)
                     .add(CommandStop)
+                    .add(CommandSkipTo)
                     .build()
             return MediaSession.ConnectionResult
                 .AcceptedResultBuilder(session)
@@ -2038,6 +2058,11 @@ class Media3MusicService : MediaLibraryService() {
                         else -> Player.REPEAT_MODE_OFF
                     }
                 player.repeatMode = newMode
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+            if (customCommand.customAction == ACTION_SKIP_TO) {
+                crossfader?.skipTo(args.getInt(EXTRA_SKIP_INDEX), args.getString(EXTRA_SKIP_MEDIA_ID).orEmpty())
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
 
