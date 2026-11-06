@@ -332,7 +332,10 @@ object LyricsUtils {
             val timeMatchResults = TIME_REGEX.findAll(line).toList()
             if (timeMatchResults.isNotEmpty()) {
                 val content = line.replace(TIME_REGEX, "").trim()
-                if (content.isNotEmpty()) {
+                if (content.isEmpty()) {
+                    // A timed blank line is how LRC marks an instrumental break.
+                    timeMatchResults.forEach { match -> result.add(LyricsEntry(standardLineTime(match), "")) }
+                } else {
                     val wordTimestamps =
                         if (i + 1 < lines.size) {
                             val nextLine = lines[i + 1].trim()
@@ -346,19 +349,22 @@ object LyricsUtils {
                         }
 
                     timeMatchResults.forEach { match ->
-                        val min = match.groupValues[1].toLong()
-                        val sec = match.groupValues[2].toLong()
-                        val msStr = match.groupValues[3]
-                        val ms = if (msStr.length == 2) msStr.toLong() * 10 else msStr.toLong()
-                        val time = min * 60000 + sec * 1000 + ms
-                        result.add(LyricsEntry(time, content, wordTimestamps))
+                        result.add(LyricsEntry(standardLineTime(match), content, wordTimestamps))
                     }
                 }
             }
             i++
         }
 
-        return result.sorted()
+        return result.takeIf { lines -> lines.any { it.text.isNotBlank() } }.orEmpty().sorted()
+    }
+
+    private fun standardLineTime(match: MatchResult): Long {
+        val min = match.groupValues[1].toLong()
+        val sec = match.groupValues[2].toLong()
+        val msStr = match.groupValues[3]
+        val ms = if (msStr.length == 2) msStr.toLong() * 10 else msStr.toLong()
+        return min * 60000 + sec * 1000 + ms
     }
 
     /**

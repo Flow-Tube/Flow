@@ -58,6 +58,7 @@ private fun hasLinesInside(
 ): Boolean =
     entries.count { entry ->
         !entry.isBackground &&
+            entry.text.isNotBlank() &&
             parts.any { part ->
                 val start = if (part.startMs == 0L) 0L else part.startMs + EDGE_MARGIN_MS
                 entry.time in start..<part.endMs - EDGE_MARGIN_MS

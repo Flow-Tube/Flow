@@ -3,6 +3,9 @@ package io.github.aedev.flow.ui.components.musicplayer.lyrics
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.WordTimestamp
 
+/** A wordless stretch shorter than this gets no instrumental break row. */
+private const val MIN_BREAK_MS = 4000L
+
 internal sealed class LyricsListItem {
     data class Line(
         val index: Int,
@@ -37,7 +40,7 @@ internal fun buildLines(
     syncedLyrics: List<LyricsEntry>,
 ): List<LyricsEntry> {
     if (syncedLyrics.isNotEmpty() && entriesLookSynced(syncedLyrics)) {
-        return listOf(LyricsEntry(time = 0L, text = "")) + syncedLyrics.sorted()
+        return listOf(LyricsEntry(time = 0L, text = "")) + withoutShortBreaks(syncedLyrics.sorted())
     }
 
     val plainSource =
@@ -54,6 +57,16 @@ internal fun buildLines(
         LyricsEntry(time = 1_000_000L + index, text = line)
     }
 }
+
+/**
+ * A blank line only stays when it opens a break long enough to get a row. The list follows the
+ * active line's row, so a blank line with none would send it back to the top while it is active.
+ */
+private fun withoutShortBreaks(lines: List<LyricsEntry>): List<LyricsEntry> =
+    lines.filterIndexed { index, line ->
+        val next = lines.getOrNull(index + 1)
+        line.text.isNotBlank() || (next != null && next.time - line.time > MIN_BREAK_MS)
+    }
 
 internal fun entriesLookSynced(entries: List<LyricsEntry>): Boolean {
     if (entries.size < 2) return false
@@ -83,7 +96,7 @@ internal fun buildMergedLyricsList(lines: List<LyricsEntry>): List<LyricsListIte
                     entry.text.isBlank() -> entry.time
                     else -> null
                 }
-            if (currentEnd != null && currentEnd < nextStart && nextStart - currentEnd > 4000L) {
+            if (currentEnd != null && currentEnd < nextStart && nextStart - currentEnd > MIN_BREAK_MS) {
                 result.add(LyricsListItem.Indicator(index, currentEnd, nextStart))
             }
         }
