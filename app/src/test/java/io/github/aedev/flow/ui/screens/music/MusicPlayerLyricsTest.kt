@@ -110,7 +110,7 @@ class MusicPlayerLyricsTest {
     private fun TestScope.lyricsFromProvider(state: MutableStateFlow<MusicPlayerUiState>): MusicPlayerLyrics {
         mockkObject(NetworkState)
         every { NetworkState.isOnline(any()) } returns true
-        coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any()) } returns (providerLines to "LrcLib")
+        coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) } returns (providerLines to "LrcLib")
         return MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
     }
 
