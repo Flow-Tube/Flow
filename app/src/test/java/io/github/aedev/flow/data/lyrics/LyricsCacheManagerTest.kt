@@ -67,7 +67,7 @@ class LyricsCacheManagerTest {
         runTest {
             LyricsCacheManager.saveLyrics(context, "typed", found)
 
-            LyricsCacheManager.clearUnverifiedOnce(context) { false }
+            LyricsCacheManager.recheckUnverifiedOnce(context) { false }
 
             assertThat(LyricsCacheManager.getLyrics(context, "typed")).isEqualTo(found)
             assertThat(LyricsCacheManager.upgradeIsDue(context, "typed")).isTrue()
@@ -86,7 +86,7 @@ class LyricsCacheManagerTest {
             LyricsCacheManager.saveLyrics(context, "word", kept)
             LyricsCacheManager.saveManualLyrics(context, "picked", picked)
 
-            LyricsCacheManager.clearUnverifiedOnce(context) { it == kept }
+            LyricsCacheManager.recheckUnverifiedOnce(context) { it == kept }
 
             assertThat(LyricsCacheManager.upgradeIsDue(context, "word")).isFalse()
             assertThat(LyricsCacheManager.upgradeIsDue(context, "picked")).isFalse()
@@ -95,10 +95,10 @@ class LyricsCacheManagerTest {
     @Test
     fun `the one time pass runs once`() =
         runTest {
-            LyricsCacheManager.clearUnverifiedOnce(context) { false }
+            LyricsCacheManager.recheckUnverifiedOnce(context) { false }
             LyricsCacheManager.saveLyrics(context, "later", found)
 
-            LyricsCacheManager.clearUnverifiedOnce(context) { false }
+            LyricsCacheManager.recheckUnverifiedOnce(context) { false }
 
             assertThat(LyricsCacheManager.upgradeIsDue(context, "later")).isFalse()
         }
@@ -108,7 +108,7 @@ class LyricsCacheManagerTest {
         runTest {
             val blocked = mockk<Context> { every { filesDir } returns File(folder.root, "file-not-dir").apply { writeText("") } }
 
-            LyricsCacheManager.clearUnverifiedOnce(blocked) { false }
+            LyricsCacheManager.recheckUnverifiedOnce(blocked) { false }
         }
 
     @Test

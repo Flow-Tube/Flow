@@ -244,7 +244,7 @@ object LyricsCacheManager {
      * except hand picks and word-synced files. A look that finds nothing leaves the file alone, so a
      * lyric typed in by hand for a song no source has survives this.
      */
-    suspend fun clearUnverifiedOnce(
+    suspend fun recheckUnverifiedOnce(
         context: Context,
         keep: (List<LyricsEntry>) -> Boolean,
     ) {
@@ -265,7 +265,7 @@ object LyricsCacheManager {
         }
     }
 
-    /** Saved by an older version and not looked at since: [clearUnverifiedOnce] left its time at zero. */
+    /** Saved by an older version and not looked at since: [recheckUnverifiedOnce] left its time at zero. */
     suspend fun isUnverified(
         context: Context,
         videoId: String,

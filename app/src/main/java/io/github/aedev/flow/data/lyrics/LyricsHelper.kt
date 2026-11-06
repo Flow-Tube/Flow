@@ -82,7 +82,7 @@ class LyricsHelper
         private val providerCooldowns = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
         private val unverifiedCleared =
-            ioScope.async(start = CoroutineStart.LAZY) { LyricsCacheManager.clearUnverifiedOnce(context, LyricsChecks::hasWordSync) }
+            ioScope.async(start = CoroutineStart.LAZY) { LyricsCacheManager.recheckUnverifiedOnce(context, LyricsChecks::hasWordSync) }
 
         // What each running song's run shows now, so a caller joining late still gets it.
         private val runAnswers = MutableStateFlow<Map<String, LyricsAnswer>>(emptyMap())
