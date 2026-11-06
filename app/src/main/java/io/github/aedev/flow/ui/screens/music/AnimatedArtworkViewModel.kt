@@ -19,6 +19,7 @@ import io.github.aedev.flow.network.ProxyAwareClient
 import io.github.aedev.flow.utils.NetworkState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +32,8 @@ import javax.inject.Inject
 /**
  * The music player's animated artwork: the loop of the playing song's album, looked up only when
  * the open player asks for it and only once per album. The loop's segments go through the music
- * cache, so replaying a loop does not download it again.
+ * cache, so replaying a loop does not download it again. A lookup that fails is tried again twice
+ * while the song stays on screen, since the service often answers 503 well under its rate limit.
  */
 @HiltViewModel
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -68,19 +70,32 @@ class AnimatedArtworkViewModel
             loaded.value = null
             lookup =
                 viewModelScope.launch {
-                    if (!preferences.animatedArtwork.first()) return@launch forgetLoaded()
-                    if (preferences.animatedArtworkWifiOnly.first() && !NetworkState.isOnWifi(context)) return@launch forgetLoaded()
-                    loaded.value =
+                    for (waitMs in ATTEMPT_WAITS_MS) {
+                        delay(waitMs)
+                        if (!mayLookUp()) break
                         try {
-                            repository.loopFor(track)?.let { LoadedLoop(track.videoId, it) }
+                            loaded.value = repository.loopFor(track)?.let { LoadedLoop(track.videoId, it) }
+                            return@launch
                         } catch (e: CancellationException) {
                             throw e
                         } catch (_: Exception) {
-                            forgetLoaded()
-                            null
+                            // The next attempt, if any, asks again.
                         }
+                    }
+                    forgetLoaded()
                 }
         }
+
+        /** The song left the screen: an unfinished lookup stops, and starts over when it shows again. */
+        fun stopLookup() {
+            if (lookup?.isActive != true) return
+            lookup?.cancel()
+            forgetLoaded()
+        }
+
+        private suspend fun mayLookUp(): Boolean =
+            preferences.animatedArtwork.first() &&
+                (!preferences.animatedArtworkWifiOnly.first() || NetworkState.isOnWifi(context))
 
         /** A loop that would not play is dropped, so it is asked about again next time. */
         fun onLoopFailed() {
@@ -96,5 +111,8 @@ class AnimatedArtworkViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
+
+            /** Tried at once, then 20 s and 60 s after the first failure. */
+            val ATTEMPT_WAITS_MS = listOf(0L, 20_000L, 40_000L)
         }
     }
