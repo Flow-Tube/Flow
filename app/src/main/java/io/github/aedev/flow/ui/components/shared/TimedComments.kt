@@ -4,6 +4,7 @@ import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.RichTextTarget
 
 private const val MILLIS_PER_SECOND = 1_000L
+private const val MARK_MERGE_FRACTION = 0.004f
 
 /** Where a comment first points in its video, in seconds, or null when it points nowhere. */
 fun Comment.firstTimestampSeconds(): Long? =
@@ -30,6 +31,28 @@ fun timedCommentsInOrder(
                 ?.let { seconds -> comment to seconds }
         }.sortedWith(compareByDescending<Pair<Comment, Long>> { it.second }.thenByDescending { it.first.likeCount })
         .map { it.first }
+
+/**
+ * Where the timed comments sit along a video of [durationMs], as fractions of the bar in playing
+ * order. Positions closer than [MARK_MERGE_FRACTION] share one mark. Nothing is known about where
+ * anything sits until the length is.
+ */
+fun timedCommentMarks(
+    comments: List<Comment>,
+    durationMs: Long,
+): List<Float> {
+    if (durationMs <= 0L) return emptyList()
+    val fractions =
+        timedCommentsInOrder(comments, durationMs)
+            .asReversed()
+            .mapNotNull { it.firstTimestampSeconds() }
+            .map { seconds -> seconds * MILLIS_PER_SECOND / durationMs.toFloat() }
+    return buildList {
+        fractions.forEach { fraction ->
+            if (isEmpty() || fraction - last() >= MARK_MERGE_FRACTION) add(fraction)
+        }
+    }
+}
 
 /** The index of the latest timestamp already passed at [positionMs], or -1 before the first one. */
 fun timedAnchorIndex(
