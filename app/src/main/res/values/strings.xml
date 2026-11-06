@@ -1691,7 +1691,6 @@
         <item quantity="one">Every %1$d min</item>
         <item quantity="other">Every %1$d min</item>
     </plurals>
-    <string name="daily_average_label">Daily Average</string>
     <string name="stats_today">Today</string>
     <string name="stats_last_7_days">Last 7 days</string>
     <string name="frequency_dialog_title">Frequency</string>
@@ -4277,7 +4276,7 @@
     <string name="settings_keywords_wellbeing">screen time, digital wellbeing, sleep, bedtime, break, watch time, usage</string>
     <string name="settings_sleep_window_summary">Sleep window: %1$s</string>
     <string name="settings_notification_permission_needed">Allow notifications to get reminders</string>
-    <string name="settings_watch_time_week_total">%1$s this week</string>
+    <string name="settings_watch_time_average_and_week">Daily average %1$s · %2$s this week</string>
     <string name="settings_section_this_device">This device</string>
     <string name="settings_section_report">Report</string>
     <string name="settings_diagnostics_model">Model</string>
