@@ -48,29 +48,29 @@ private const val MIN_BAR_FRACTION = 0.02f
 private const val BAR_WIDTH_FRACTION = 0.6f
 
 /**
- * The daily average over the last week, above one bar per day. Today's bar is in the primary colour
- * so it can be told apart from the rest. Tapping a bar shows that day's time instead of the average,
- * and tapping it again goes back.
+ * One chosen day's time above one bar per day, with the daily average and week total beneath it.
+ * Exactly one day is always chosen, starting with today, and its bar is in the primary colour.
+ * Tapping another bar chooses that day.
  */
 @Composable
 internal fun WatchTimeCard(
     summary: WatchTimeSummary?,
     modifier: Modifier = Modifier,
 ) {
-    var selectedEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pickedEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(modifier = Modifier.padding(CardPadding)) {
-            val selectedDay = summary?.dayOrNull(selectedEpochDay?.let(LocalDate::ofEpochDay))
+            val chosen = summary?.chosenDay(pickedEpochDay?.let(LocalDate::ofEpochDay))
             Text(
                 text =
-                    if (summary != null && selectedDay != null) {
-                        dayLabel(selectedDay.date, summary.days.last().date)
+                    if (summary != null && chosen != null) {
+                        dayLabel(chosen.date, summary.days.last().date)
                     } else {
-                        stringResource(R.string.daily_average_label)
+                        stringResource(R.string.time_today)
                     },
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -80,12 +80,17 @@ internal fun WatchTimeCard(
                 return@Column
             }
             Text(
-                text = spentTimeLabel(selectedDay?.millis ?: summary.dailyAverageMillis),
+                text = spentTimeLabel(chosen?.millis ?: 0L),
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = stringResource(R.string.settings_watch_time_week_total, spentTimeLabel(summary.weekMillis)),
+                text =
+                    stringResource(
+                        R.string.settings_watch_time_average_and_week,
+                        spentTimeLabel(summary.dailyAverageMillis),
+                        spentTimeLabel(summary.weekMillis),
+                    ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -101,10 +106,8 @@ internal fun WatchTimeCard(
             } else {
                 WeekChart(
                     summary = summary,
-                    selected = selectedDay?.date,
-                    onDayClick = { date ->
-                        selectedEpochDay = date.toEpochDay().takeUnless { date == selectedDay?.date }
-                    },
+                    chosen = chosen?.date,
+                    onDayClick = { date -> pickedEpochDay = summary.pickAfterTap(date)?.toEpochDay() },
                 )
             }
         }
@@ -125,11 +128,10 @@ private fun dayLabel(
 @Composable
 private fun WeekChart(
     summary: WatchTimeSummary,
-    selected: LocalDate?,
+    chosen: LocalDate?,
     onDayClick: (LocalDate) -> Unit,
 ) {
     val peak = summary.days.maxOf { it.millis }.coerceAtLeast(1L)
-    val marked = selected ?: summary.days.last().date
     val locale = Locale.getDefault()
     val haptics = LocalHapticFeedback.current
     Row(
@@ -137,9 +139,9 @@ private fun WeekChart(
         horizontalArrangement = Arrangement.spacedBy(BarSpacing),
     ) {
         summary.days.forEach { day ->
-            val isMarked = day.date == marked
+            val isChosen = day.date == chosen
             val barColor by animateColorAsState(
-                targetValue = if (isMarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
+                targetValue = if (isChosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
                 animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                 label = "watchTimeBar",
             )
@@ -148,12 +150,15 @@ private fun WeekChart(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .clip(MaterialTheme.shapes.small)
                         .selectable(
-                            selected = day.date == selected,
+                            selected = isChosen,
+                            interactionSource = null,
+                            indication = null,
                             onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                onDayClick(day.date)
+                                if (!isChosen) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    onDayClick(day.date)
+                                }
                             },
                         ).semantics { contentDescription = description },
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -172,7 +177,7 @@ private fun WeekChart(
                 Text(
                     text = day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isMarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isChosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     modifier = Modifier.clearAndSetSemantics {},
