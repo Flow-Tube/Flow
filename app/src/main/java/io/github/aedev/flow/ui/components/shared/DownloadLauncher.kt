@@ -8,6 +8,7 @@ import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import dagger.hilt.EntryPoint
@@ -24,6 +25,7 @@ import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.request.DownloadSubtitle
 import io.github.aedev.flow.data.video.downloader.request.toDownloadRequest
 import io.github.aedev.flow.data.video.downloader.work.DownloadController
+import io.github.aedev.flow.data.video.downloader.work.EnqueueOutcome
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.utils.PerformanceDispatcher
@@ -90,8 +92,8 @@ internal object DownloadLauncher {
                 threads = threads,
                 subtitle = subtitle,
             ),
+            startedMessage = context.getString(R.string.ui_started_download, video.title),
         )
-        Toast.makeText(context, context.getString(R.string.ui_started_download, video.title), Toast.LENGTH_SHORT).show()
     }
 
     /** Queues an audio-only download of [format]'s track, saved as an M4A. */
@@ -99,6 +101,7 @@ internal object DownloadLauncher {
         context: Context,
         video: Video,
         format: PlayerResponse.StreamingData.Format,
+        startedMessage: String,
         threads: Int? = null,
     ): Boolean {
         promptStoragePermissionIfNeeded(context)
@@ -111,6 +114,7 @@ internal object DownloadLauncher {
                 audioLanguage = format.audioLanguageTag,
                 threads = threads,
             ),
+            startedMessage = startedMessage,
         )
         return true
     }
@@ -124,19 +128,44 @@ internal object DownloadLauncher {
         video: Video,
     ) {
         promptStoragePermissionIfNeeded(context)
-        submit(context, video.toDownloadRequest(targetHeight = 0))
-        Toast.makeText(context, context.getString(R.string.ui_started_download, video.title), Toast.LENGTH_SHORT).show()
+        submit(context, video.toDownloadRequest(targetHeight = 0), context.getString(R.string.ui_started_download, video.title))
     }
 
+    /** The toast waits for the queue's answer, because the queue can decline the request. */
     private fun submit(
         context: Context,
         request: DownloadRequest,
+        startedMessage: String,
     ) {
+        val appContext = context.applicationContext
         EntryPointAccessors
-            .fromApplication(context.applicationContext, Dependencies::class.java)
+            .fromApplication(appContext, Dependencies::class.java)
             .downloadController()
-            .submit(request, replaceExisting = true)
+            .submit(request, replaceExisting = true) { outcome ->
+                val message =
+                    when (outcome) {
+                        EnqueueOutcome.QUEUED -> startedMessage
+                        EnqueueOutcome.ALREADY_QUEUED -> appContext.getString(R.string.download_already_running)
+                        EnqueueOutcome.ALREADY_DOWNLOADED -> appContext.getString(R.string.already_downloaded_toast)
+                    }
+                ContextCompat.getMainExecutor(appContext).execute {
+                    Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
+                }
+            }
     }
+
+    suspend fun isDownloaded(
+        context: Context,
+        videoId: String,
+    ): Boolean =
+        withContext(PerformanceDispatcher.diskIO) {
+            runCatching {
+                EntryPointAccessors
+                    .fromApplication(context.applicationContext, Dependencies::class.java)
+                    .videoDownloadManager()
+                    .isDownloaded(videoId)
+            }.getOrDefault(false)
+        }
 
     /** Where a video download is saved and the space left there, or null when it can't be read. */
     suspend fun videoSaveFolder(context: Context): DownloadSaveFolder? =

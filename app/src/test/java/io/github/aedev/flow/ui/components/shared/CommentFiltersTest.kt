@@ -47,6 +47,7 @@ class CommentFiltersTest {
     fun `top reads the first order and newest the second`() {
         assertThat(videoCommentSortFor(options, CommentSortFilter.TOP)?.token).isEqualTo("top_token")
         assertThat(videoCommentSortFor(options, CommentSortFilter.NEWEST)?.token).isEqualTo("newest_token")
+        assertThat(videoCommentSortFor(options, CommentSortFilter.TIMED)?.token).isEqualTo("newest_token")
     }
 
     @Test
@@ -64,10 +65,10 @@ class CommentFiltersTest {
     fun `top and newest keep the order the server returned`() {
         val comments = listOf(comment("c1", published = "2 years ago"), comment("c2", published = "1 hour ago"))
 
-        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.TOP, timedOnly = false).map { it.id })
+        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.TOP).map { it.id })
             .containsExactly("c1", "c2")
             .inOrder()
-        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.NEWEST, timedOnly = false).map { it.id })
+        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.NEWEST).map { it.id })
             .containsExactly("c1", "c2")
             .inOrder()
     }
@@ -81,7 +82,7 @@ class CommentFiltersTest {
                 comment("old", published = "2 years ago"),
             )
 
-        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.OLDEST, timedOnly = false).map { it.id })
+        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.OLDEST).map { it.id })
             .containsExactly("pin", "old", "new")
             .inOrder()
     }
@@ -90,7 +91,7 @@ class CommentFiltersTest {
     fun `the timed filter keeps only comments that point at a position`() {
         val comments = listOf(comment("plain"), comment("timed", timestamp = true))
 
-        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.TOP, timedOnly = true).map { it.id })
+        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.TIMED).map { it.id })
             .containsExactly("timed")
     }
 
@@ -106,6 +107,6 @@ class CommentFiltersTest {
                 publishedTime = "1 day ago",
             )
 
-        assertThat(applyVideoCommentFilters(listOf(fallback), CommentSortFilter.TOP, timedOnly = true)).isEmpty()
+        assertThat(applyVideoCommentFilters(listOf(fallback), CommentSortFilter.TIMED)).isEmpty()
     }
 }

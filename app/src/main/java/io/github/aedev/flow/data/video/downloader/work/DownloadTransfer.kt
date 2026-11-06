@@ -78,13 +78,30 @@ class DownloadTransfer
             threads: Int,
         ): FetchOutcome {
             var avoid = emptySet<Int>()
+            var acceptOtherTrack = false
             val refusals = mutableMapOf<Int, Int>()
             repeat(MAX_RESOLVES) {
                 val streams =
-                    when (val resolved = resolver.resolve(request, avoid)) {
-                        is ResolveOutcome.Resolved -> resolved.streams
-                        ResolveOutcome.Unavailable -> return FetchOutcome.Failed(FetchFailure.UNAVAILABLE)
-                        ResolveOutcome.NoCompatibleAudio -> return FetchOutcome.Failed(FetchFailure.NO_COMPATIBLE_AUDIO)
+                    when (val resolved = resolver.resolve(request, avoid, acceptOtherTrack)) {
+                        is ResolveOutcome.Resolved -> {
+                            resolved.streams
+                        }
+
+                        ResolveOutcome.Unavailable -> {
+                            return FetchOutcome.Failed(FetchFailure.UNAVAILABLE)
+                        }
+
+                        ResolveOutcome.NoCompatibleAudio -> {
+                            return FetchOutcome.Failed(FetchFailure.NO_COMPATIBLE_AUDIO)
+                        }
+
+                        ResolveOutcome.AudioTrackMissing -> {
+                            val sabr = viaSabr(request, staging, itemId, requireChosenTrack = true)
+                            if (sabr is FetchOutcome.Fetched) return sabr
+                            currentCoroutineContext().ensureActive()
+                            acceptOtherTrack = true
+                            return@repeat
+                        }
                     }
                 val video = streams.video
                 val parts =
@@ -168,6 +185,7 @@ class DownloadTransfer
             request: DownloadRequest,
             staging: DownloadStaging,
             itemId: Int,
+            requireChosenTrack: Boolean = false,
         ): FetchOutcome {
             staging.clearParts()
             val info =
@@ -184,6 +202,7 @@ class DownloadTransfer
                     Log.w(TAG, "${request.videoId}: SABR resolve failed", e)
                     null
                 } ?: return FetchOutcome.Failed(FetchFailure.REFUSED)
+            if (requireChosenTrack && info.audioTrackId != request.audioTrackId) return FetchOutcome.Failed(FetchFailure.REFUSED)
             val engine = SabrDownloadEngine()
             var estimated = 0L
             val done =
@@ -208,6 +227,7 @@ class DownloadTransfer
                             videoLmt = info.videoLmt,
                             audioXtags = info.audioXtags,
                             videoXtags = info.videoXtags,
+                            audioTrackId = info.audioTrackId,
                             poToken = info.poToken,
                             visitorId = info.visitorId,
                             ustreamerConfig = info.ustreamerConfig,

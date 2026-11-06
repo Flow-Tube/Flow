@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.musicplayer.lyrics
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.TravelExplore
+import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +50,10 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_CENTER
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_LEFT
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_RIGHT
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
+import io.github.aedev.flow.ui.components.shared.FlowChoice
+import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSectionHeader
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
@@ -76,6 +81,19 @@ internal fun LyricsActionsSheet(
     onAdjustSync: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var showBackgroundChoice by remember { mutableStateOf(false) }
+    if (showBackgroundChoice) {
+        FlowChoiceDialog(
+            title = stringResource(R.string.lyrics_background),
+            options =
+                LyricsBackgroundStyle.entries.map {
+                    FlowChoice(it, stringResource(lyricsBackgroundLabel(it)), stringResource(lyricsBackgroundDetail(it)))
+                },
+            selected = display.background,
+            onSelect = { onDisplayChange(display.copy(background = it)) },
+            onDismiss = { showBackgroundChoice = false },
+        )
+    }
     QuickActionsSheet(onDismiss = onDismiss) { sheet ->
         fun run(action: () -> Unit): () -> Unit =
             {
@@ -218,6 +236,13 @@ internal fun LyricsActionsSheet(
                         supporting = stringResource(R.string.lyrics_blur_other_lines_summary),
                         checked = display.blurOtherLines,
                         onCheckedChange = { onDisplayChange(display.copy(blurOtherLines = it)) },
+                    ) +
+                    lyricsRow(
+                        key = "background",
+                        icon = Icons.Outlined.Wallpaper,
+                        title = stringResource(R.string.lyrics_background),
+                        supporting = stringResource(lyricsBackgroundLabel(display.background)),
+                        onClick = { showBackgroundChoice = true },
                     ),
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -239,6 +264,22 @@ internal fun LyricsActionsSheet(
         )
     }
 }
+
+@StringRes
+private fun lyricsBackgroundLabel(style: LyricsBackgroundStyle): Int =
+    when (style) {
+        LyricsBackgroundStyle.SOLID -> R.string.lyrics_background_solid
+        LyricsBackgroundStyle.COLORFUL -> R.string.lyrics_background_colorful
+        LyricsBackgroundStyle.MOVING -> R.string.lyrics_background_moving
+    }
+
+@StringRes
+private fun lyricsBackgroundDetail(style: LyricsBackgroundStyle): Int =
+    when (style) {
+        LyricsBackgroundStyle.SOLID -> R.string.lyrics_background_solid_detail
+        LyricsBackgroundStyle.COLORFUL -> R.string.lyrics_background_colorful_detail
+        LyricsBackgroundStyle.MOVING -> R.string.lyrics_background_moving_detail
+    }
 
 private fun lyricsRow(
     key: String,

@@ -152,15 +152,18 @@ internal fun SubscriptionAndLikeEffect(
 @Composable
 internal fun SponsorSkipEffect(
     context: Context,
+    showSkipNotice: Boolean,
     onSkipped: (category: String, skippedMs: Long) -> Unit,
 ) {
     val currentOnSkipped by rememberUpdatedState(onSkipped)
+    val currentShowSkipNotice by rememberUpdatedState(showSkipNotice)
     LaunchedEffect(Unit) {
         // Rapid taps back into a segment skip it each time; toasts would otherwise queue for seconds.
         var shown: Toast? = null
         EnhancedPlayerManager.getInstance().skipEvent.collect { skip ->
             val segment = skip.segment
             if (skip.firstInVideo) currentOnSkipped(segment.category, ((segment.endTime - segment.startTime) * 1000).toLong())
+            if (!currentShowSkipNotice) return@collect
             val message = context.getString(R.string.ui_skipped_segment, context.sponsorCategoryLabel(segment.category))
             shown?.cancel()
             shown = Toast.makeText(context, message, Toast.LENGTH_SHORT).also { it.show() }

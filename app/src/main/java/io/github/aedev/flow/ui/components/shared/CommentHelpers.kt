@@ -15,14 +15,16 @@ enum class CommentSortFilter(
     TOP(R.string.filter_top),
     NEWEST(R.string.filter_newest),
     OLDEST(R.string.filter_oldest),
+    TIMED(R.string.filter_timed),
 }
 
 /**
  * The continuation that serves [filter], out of the orders the section offered.
  *
  * The menu is matched by position rather than by title, because the titles arrive in the user's
- * language. YouTube serves two orders and no third: Oldest reads the chronological one and reverses
- * what it has, which is why it maps to the same continuation as Newest.
+ * language. YouTube's web section serves two orders and no third: Oldest and Timed read the
+ * chronological one and arrange what they have, which is why they map to the same continuation as
+ * Newest.
  */
 fun videoCommentSortFor(
     options: List<VideoCommentSort>,
@@ -30,27 +32,28 @@ fun videoCommentSortFor(
 ): VideoCommentSort? =
     when (filter) {
         CommentSortFilter.TOP -> options.getOrNull(0)
-        CommentSortFilter.NEWEST, CommentSortFilter.OLDEST -> options.getOrNull(1)
+        CommentSortFilter.NEWEST, CommentSortFilter.OLDEST, CommentSortFilter.TIMED -> options.getOrNull(1)
     }
 
+/** The orders Timed reads, in the order it reads them: Newest usually has more timestamps per page. */
+fun timedCommentOrders(options: List<VideoCommentSort>): List<VideoCommentSort> = listOfNotNull(options.getOrNull(1), options.getOrNull(0))
+
 /**
- * What a video's comment list shows for the current chips.
+ * What a video's comment list shows for the selected chip.
  *
- * Top and Newest are already the order the server returned, so they are left alone; only Oldest
- * re-orders, and only over the pages loaded so far.
+ * Top and Newest are already the order the server returned, so they are left alone. Oldest and Timed
+ * arrange what they read, and only over the pages loaded so far.
  */
 fun applyVideoCommentFilters(
     comments: List<Comment>,
     filter: CommentSortFilter,
-    timedOnly: Boolean,
-): List<Comment> {
-    val filtered = if (timedOnly) comments.filter { it.richText?.hasTimestamp == true } else comments
-    return if (filter == CommentSortFilter.OLDEST) {
-        sortCommentsByFilter(filtered, filter)
-    } else {
-        filtered
+    durationMs: Long = 0L,
+): List<Comment> =
+    when (filter) {
+        CommentSortFilter.TOP, CommentSortFilter.NEWEST -> comments
+        CommentSortFilter.OLDEST -> sortCommentsByFilter(comments, filter)
+        CommentSortFilter.TIMED -> timedCommentsInOrder(comments, durationMs)
     }
-}
 
 private fun relativeTimeToSeconds(timeStr: String): Long {
     val lower = timeStr.lowercase().trim()
@@ -72,6 +75,7 @@ fun sortCommentsByFilter(
     comments: List<Comment>,
     filter: CommentSortFilter,
 ): List<Comment> {
+    if (filter == CommentSortFilter.TIMED) return timedCommentsInOrder(comments, durationMs = 0L)
     val pinned = comments.filter { it.isPinned }
     val unpinned = comments.filterNot { it.isPinned }
     val sortedUnpinned =
@@ -79,6 +83,7 @@ fun sortCommentsByFilter(
             CommentSortFilter.TOP -> unpinned.sortedByDescending { it.likeCount }
             CommentSortFilter.NEWEST -> unpinned.sortedBy { relativeTimeToSeconds(it.publishedTime) }
             CommentSortFilter.OLDEST -> unpinned.sortedByDescending { relativeTimeToSeconds(it.publishedTime) }
+            CommentSortFilter.TIMED -> unpinned
         }
     return pinned + sortedUnpinned
 }

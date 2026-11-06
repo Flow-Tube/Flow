@@ -57,6 +57,7 @@ import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.rememberPlayerCommentsTimedFollow
 import io.github.aedev.flow.ui.screens.player.state.selectCommentSort
 import io.github.aedev.flow.ui.screens.player.state.visibleComments
 import io.github.aedev.flow.utils.DateContext
@@ -295,6 +296,7 @@ internal fun PlayerCommentsPanelHost(
     onNavigateToChannel: (String) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    canFollowVideo: Boolean = true,
 ) {
     PlayerCommentsPanel(
         comments = commentsUiState.visibleComments(screenState),
@@ -304,8 +306,8 @@ internal fun PlayerCommentsPanelHost(
         selectedFilter = screenState.commentSortFilter,
         totalText = commentsUiState.totalText,
         artworkUrl = artworkUrl,
-        timedOnly = screenState.commentsTimedOnly,
-        onTimedChange = { screenState.commentsTimedOnly = it },
+        showTimed = true,
+        timedFollow = if (canFollowVideo) rememberPlayerCommentsTimedFollow(viewModel, screenState) else null,
         onFilterChanged = { filter ->
             commentsUiState.selectCommentSort(filter, videoId, screenState, viewModel)
         },
