@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.ui.theme.ensureContrastOn
 import io.github.aedev.flow.ui.theme.withTone
@@ -122,6 +123,7 @@ internal data class LyricsDisplayOptions(
     val autoRomanize: Boolean = false,
     val keepScreenOn: Boolean = false,
     val blurOtherLines: Boolean = true,
+    val background: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,
 )
 
 /**

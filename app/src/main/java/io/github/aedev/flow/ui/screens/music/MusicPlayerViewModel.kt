@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.LikedVideosRepository
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
@@ -587,6 +588,8 @@ class MusicPlayerViewModel
         fun setLyricsKeepScreenOn(enabled: Boolean) = lyrics.setKeepScreenOn(enabled)
 
         fun setLyricsBlurOtherLines(enabled: Boolean) = lyrics.setBlurOtherLines(enabled)
+
+        fun setLyricsBackground(style: LyricsBackgroundStyle) = lyrics.setBackground(style)
 
         override fun onCleared() {
             super.onCleared()

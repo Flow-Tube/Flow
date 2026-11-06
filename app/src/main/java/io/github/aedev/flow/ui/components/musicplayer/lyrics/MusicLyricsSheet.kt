@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
 import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.lrcText
@@ -193,7 +194,12 @@ internal fun MusicLyricsSheet(
     val sheetAtRestHidden by remember { derivedStateOf { !sheetShown.isRunning && sheetShown.value == 0f } }
     if (!visible && !panelComposed && sheetAtRestHidden) return
 
-    val backdropColor = remember(backdropBaseColor) { lyricsBackdrop(backdropBaseColor) }
+    val usesCover = display.background != LyricsBackgroundStyle.SOLID
+    val cover = rememberLyricsCover(artworkUrl, enabled = usesCover && visible)
+    val backdropColor =
+        remember(backdropBaseColor, cover, usesCover) {
+            cover?.backdrop?.takeIf { usesCover } ?: lyricsBackdrop(backdropBaseColor)
+        }
 
     Box(
         modifier =
@@ -211,6 +217,13 @@ internal fun MusicLyricsSheet(
                     }
                 }.background(backdropColor),
     ) {
+        if (usesCover) {
+            LyricsCoverLayer(
+                cover = cover,
+                moving = display.background == LyricsBackgroundStyle.MOVING,
+                running = visible && isPlaying,
+            )
+        }
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier =
