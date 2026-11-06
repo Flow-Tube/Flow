@@ -29,6 +29,7 @@ internal data class PlayerControlsUiState(
     val chapters: List<StreamSegment> = emptyList(),
     val storyboard: List<StoryboardLevel> = emptyList(),
     val heatmap: VideoHeatmap? = null,
+    val commentMarks: List<Float> = emptyList(),
     val isSubtitlesEnabled: Boolean = false,
     val autoplayEnabled: Boolean = true,
     val isLooping: Boolean = false,

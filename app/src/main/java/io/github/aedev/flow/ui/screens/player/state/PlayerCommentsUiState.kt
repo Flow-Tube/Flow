@@ -10,6 +10,7 @@ import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
 import io.github.aedev.flow.ui.components.shared.CommentsTimedFollow
 import io.github.aedev.flow.ui.components.shared.applyVideoCommentFilters
+import io.github.aedev.flow.ui.components.shared.timedCommentMarks
 import io.github.aedev.flow.ui.components.shared.timedCommentOrders
 import io.github.aedev.flow.ui.components.shared.videoCommentSortFor
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
@@ -78,6 +79,21 @@ fun PlayerCommentsUiState.visibleComments(screenState: PlayerScreenState): List<
     return remember(comments, filter, durationMs) {
         applyVideoCommentFilters(comments, filter, durationMs)
     }
+}
+
+/**
+ * Where the seek bar dots the loaded comments, for as long as Timed is the selected chip.
+ *
+ * A live stream's length is its playhead, which no comment's timestamp is measured against, and
+ * reading it here would recompute the marks on every tick.
+ */
+@Composable
+fun PlayerCommentsUiState.seekBarCommentMarks(
+    screenState: PlayerScreenState,
+    isLive: Boolean,
+): List<Float> {
+    val durationMs = if (screenState.commentSortFilter == CommentSortFilter.TIMED && !isLive) screenState.duration else 0L
+    return remember(comments, durationMs) { timedCommentMarks(comments, durationMs) }
 }
 
 /**

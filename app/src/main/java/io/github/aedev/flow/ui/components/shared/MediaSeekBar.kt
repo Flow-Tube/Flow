@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.model.SponsorBlockSegment
+import io.github.aedev.flow.ui.theme.PlayerScrimContent
 import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val EdgeAlignedHeight = 14.dp
@@ -49,6 +50,7 @@ internal data class SeekTrackColors(
     val buffered: Color,
     val active: Color,
     val playhead: Color,
+    val mark: Color,
 )
 
 /**
@@ -84,6 +86,8 @@ fun MediaSeekBar(
      * from the map fall back to the shared defaults.
      */
     sponsorColors: Map<String, Color> = emptyMap(),
+    /** Fractions of the bar to dot, in ascending order. Only painted: they take no touches. */
+    commentMarks: List<Float> = emptyList(),
     duration: Long = 0L,
     bufferedValue: Float = 0f,
     edgeAligned: Boolean = false,
@@ -96,6 +100,8 @@ fun MediaSeekBar(
             buffered = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.56f),
             active = primaryColor,
             playhead = thumbFillColor,
+            // The bar sits over the video in every theme, so onSurface would be dark on dark in a light one.
+            mark = PlayerScrimContent,
         )
     val thumbStateLayerColor = primaryColor.copy(alpha = 0.18f)
 
@@ -187,6 +193,7 @@ fun MediaSeekBar(
                     chapters = chapters,
                     sponsorSegments = sponsorSegments,
                     sponsorColors = sponsorColors,
+                    commentMarks = commentMarks,
                     duration = duration,
                     bufferedValue = bufferedValue,
                     colors = trackColors,
@@ -221,6 +228,7 @@ fun MediaSeekBar(
                                     chapters = chapters,
                                     sponsorSegments = sponsorSegments,
                                     sponsorColors = sponsorColors,
+                                    commentMarks = commentMarks,
                                     duration = duration,
                                     bufferedValue = bufferedValue,
                                     colors = trackColors,
