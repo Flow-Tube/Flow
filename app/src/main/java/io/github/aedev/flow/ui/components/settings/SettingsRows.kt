@@ -258,6 +258,7 @@ fun SettingsGroupScope.slider(
     steps: Int = 0,
     enabled: Boolean = true,
     summary: String? = null,
+    centered: Boolean = false,
 ) = entryRow(entry) { shape ->
     SettingsSliderRow(
         title = stringResource(entry.title),
@@ -270,6 +271,7 @@ fun SettingsGroupScope.slider(
         enabled = enabled,
         shape = shape,
         titleBadge = entry.isNew(),
+        centered = centered,
     )
 }
 

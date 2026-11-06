@@ -25,6 +25,8 @@ internal class SessionPlayer(
     private val requester: () -> MediaSession.ControllerInfo?,
     private val onResume: () -> Unit,
 ) : ForwardingSimpleBasePlayer(player) {
+    private var lyricLine: String? = null
+
     /** Republishes the state whenever the followed session changes, for as long as [scope] lives. */
     fun follow(scope: CoroutineScope) {
         scope.launch { PlaybackTarget.followed.collect { invalidateState() } }
@@ -36,16 +38,35 @@ internal class SessionPlayer(
             PlaybackTarget.followed.value != null && requester()?.connectionHints?.getBoolean(APP_CONTROLLER_HINT) == false
         }
 
+    /** Reports [line] as the title: HyperOS's shade and lock screen read only the title and artist keys. */
+    fun setLyricLine(line: String?) {
+        if (lyricLine == line) return
+        lyricLine = line
+        invalidateState()
+    }
+
     override fun getState(): State {
         val state = super.getState()
         val followed = PlaybackTarget.followed.value
-        if (followed == null || state.playlist.isEmpty()) return state
+        if (followed == null || state.playlist.isEmpty()) return state.withLyricLine()
         return state
             .buildUpon()
             .setPlaybackState(STATE_READY)
             .setPlayWhenReady(followed.playing, PLAY_WHEN_READY_CHANGE_REASON_REMOTE)
             .setContentPositionMs { followed.positionAt(System.currentTimeMillis()) }
             .build()
+    }
+
+    private fun State.withLyricLine(): State {
+        val line = lyricLine ?: return this
+        if (playlist.isEmpty()) return this
+        val metadata =
+            currentMetadata
+                .buildUpon()
+                .setTitle(line)
+                .setArtist(sessionLyricArtist(currentMetadata.title, currentMetadata.artist))
+                .build()
+        return buildUpon().setPlaylist(timeline, currentTracks, metadata).build()
     }
 
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {

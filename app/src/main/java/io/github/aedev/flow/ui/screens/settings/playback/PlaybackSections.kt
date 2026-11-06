@@ -11,6 +11,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.local.SpeedSwipeSide
 import io.github.aedev.flow.player.crossfade.CrossfadePolicy
+import io.github.aedev.flow.service.SessionLyricDelay
 import io.github.aedev.flow.ui.components.equalizer.equalizerSummary
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
@@ -27,9 +28,12 @@ import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackGesturesIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackIndex
+import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val UNLIMITED_TITLE_LINES = 0
+private const val MS_PER_SECOND = 1000f
 
 internal fun SettingsListScope.playbackSections(
     viewModel: PlaybackSettingsViewModel,
@@ -185,6 +189,18 @@ internal fun SettingsListScope.playbackSections(
         switch(PlaybackIndex.resumeFromHeadphones, viewModel.resumeFromHeadphones, viewModel::setResumeFromHeadphones)
         switch(PlaybackIndex.musicSideSwipes, viewModel.musicSideSwipes, viewModel::setMusicSideSwipes)
         switch(PlaybackIndex.musicVideoSwitch, viewModel.musicVideoSwitch, viewModel::setMusicVideoSwitch)
+        switch(PlaybackIndex.lyricsOnLockScreen, viewModel.lyricsOnLockScreen, viewModel::setLyricsOnLockScreen)
+        if (state.lyricsOnLockScreen) {
+            slider(
+                entry = PlaybackIndex.lyricsOnLockScreenTiming,
+                value = state.lyricsOnLockScreenDelayMs.toFloat(),
+                onValueCommitted = { viewModel.setLyricsOnLockScreenDelayMs(SessionLyricDelay.snap(it)) },
+                valueRange = -SessionLyricDelay.MAX_MS.toFloat()..SessionLyricDelay.MAX_MS.toFloat(),
+                steps = 2 * SessionLyricDelay.MAX_MS / SessionLyricDelay.STEP_MS - 1,
+                valueLabel = { lyricsTimingLabel(SessionLyricDelay.snap(it)) },
+                centered = true,
+            )
+        }
         choice(PlaybackIndex.lyricsProviders, onClick = { openDialog(PlaybackDialog.LYRICS) }) {
             val providers by viewModel.lyricsProviders.collectAsStateWithLifecycle()
             pluralStringResource(
@@ -271,6 +287,16 @@ private fun SettingsListScope.shortsPlayerSection(
     switch(PlaybackIndex.shortsBackgroundPlay, viewModel.shortsBackgroundPlay, viewModel::setShortsBackgroundPlay)
     switch(PlaybackIndex.shortsPip, viewModel.shortsPip, viewModel::setShortsPip)
     switch(PlaybackIndex.shortsContinueIntoFeed, viewModel.shortsContinueIntoFeed, viewModel::setShortsContinueIntoFeed)
+}
+
+@Composable
+private fun lyricsTimingLabel(delayMs: Int): String {
+    val seconds = String.format(Locale.getDefault(), "%.1f", abs(delayMs) / MS_PER_SECOND)
+    return when {
+        delayMs < 0 -> stringResource(R.string.lyrics_timing_earlier, seconds)
+        delayMs > 0 -> stringResource(R.string.lyrics_timing_later, seconds)
+        else -> stringResource(R.string.lyrics_timing_on_time)
+    }
 }
 
 @Composable

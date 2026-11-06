@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -73,6 +74,7 @@ fun SettingsSliderRow(
     summary: String? = null,
     enabled: Boolean = true,
     titleBadge: Boolean = false,
+    centered: Boolean = false,
 ) {
     var draft by remember(value) { mutableFloatStateOf(value) }
     SettingsControlRowFrame(shape = shape, modifier = modifier) {
@@ -87,14 +89,26 @@ fun SettingsSliderRow(
                 modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
             )
         }
-        Slider(
-            value = draft,
-            onValueChange = { draft = it },
-            onValueChangeFinished = { onValueCommitted(draft) },
-            valueRange = valueRange,
-            steps = steps,
-            enabled = enabled,
-        )
+        if (centered) {
+            Slider(
+                value = draft,
+                onValueChange = { draft = it },
+                onValueChangeFinished = { onValueCommitted(draft) },
+                valueRange = valueRange,
+                steps = steps,
+                enabled = enabled,
+                track = { SliderDefaults.CenteredTrack(it, enabled = enabled) },
+            )
+        } else {
+            Slider(
+                value = draft,
+                onValueChange = { draft = it },
+                onValueChangeFinished = { onValueCommitted(draft) },
+                valueRange = valueRange,
+                steps = steps,
+                enabled = enabled,
+            )
+        }
     }
 }
 
