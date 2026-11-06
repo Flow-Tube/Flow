@@ -10,7 +10,9 @@ import io.github.aedev.flow.sync2.crypto.encodePayload
 import io.github.aedev.flow.sync2.crypto.memberId
 import io.github.aedev.flow.sync2.crypto.open
 import io.github.aedev.flow.sync2.crypto.pairingAad
+import io.github.aedev.flow.sync2.crypto.pairingCommit
 import io.github.aedev.flow.sync2.crypto.pairingKeys
+import io.github.aedev.flow.sync2.crypto.pairingProof
 import io.github.aedev.flow.sync2.crypto.pairingSlot
 import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.crypto.seal
@@ -49,6 +51,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.selects.select
 import kotlinx.serialization.SerializationException
+import java.security.MessageDigest
 
 /** Sealed pairing messages over a pipe, numbered from 0 in each direction. */
 internal class Channel(
@@ -77,26 +80,30 @@ internal class Channel(
     }
 
     companion object {
-        /** The side that showed [offer], once the scanner's key arrived. Returns the six digits too. */
-        fun shower(
+        /** The side that showed [offer], once the scanner's key arrived: reveals its own. Returns the six digits too. */
+        suspend fun shower(
             pipe: Pipe,
             offer: Offer,
             scanner: ByteArray,
         ): Pair<Channel, String> {
+            pipe.send(offer.reveal())
             val keys = pairingKeys(offer.secret, scanner, offer.token, offer.public, scanner)
             return Channel(pipe, offer.token, keys.showerKey, keys.scannerKey) to keys.sas
         }
 
-        /** The side that read [code]: sends its key first. */
+        /** The side that read [code]: sends its key first, and takes the shower's only if the code committed to it. */
         suspend fun scanner(
             pipe: Pipe,
             code: Code,
         ): Pair<Channel, String> {
             val secret = SyncCrypto.randomBytes(KEY_SIZE)
             val public = agreementPublicKey(secret)
-            val keys = pairingKeys(secret, code.showerKey, code.token, code.showerKey, public)
-            pipe.sendKey(public)
-            return Channel(pipe, code.token, keys.scannerKey, keys.showerKey) to keys.sas
+            val (token, commitment) = code.token to code.commitment
+            pipe.send(public + pairingProof(token, public))
+            val shower = pipe.receive()
+            if (shower.size != KEY_SIZE || !MessageDigest.isEqual(pairingCommit(shower), commitment)) throw LinkedException.Declined()
+            val keys = pairingKeys(secret, shower, token, shower, public)
+            return Channel(pipe, token, keys.scannerKey, keys.showerKey) to keys.sas
         }
     }
 }
@@ -122,8 +129,9 @@ suspend fun addDevice(
     try {
         val (pipe, key) =
             coroutineScope {
-                val viaMailbox = mailbox?.let { MailboxPipe(it, slot, shower = true) }?.let { pipe -> async { pipe to pipe.receiveKey() } }
-                val viaLan = offer.listening?.let { listening -> async { listening.accept() } }
+                val viaMailbox =
+                    mailbox?.let { MailboxPipe(it, slot, shower = true) }?.let { pipe -> async { pipe to pipe.awaitScanner(offer.token) } }
+                val viaLan = offer.listening?.let { listening -> async { listening.accept(offer.token) } }
                 if (viaMailbox == null && viaLan == null) throw LinkedException.LanUnreachable()
                 select<Pair<Pipe, ByteArray>> {
                     if (viaMailbox != null) viaMailbox.onAwait { it }
@@ -391,7 +399,7 @@ suspend fun answerShown(
 ): Welcomed {
     val listening = offer.listening ?: throw LinkedException.LanUnreachable()
     try {
-        val (pipe, key) = listening.accept()
+        val (pipe, key) = listening.accept(offer.token)
         val (channel, sas) = Channel.shower(pipe, offer, key)
         return newSide(channel, sas, device, meta, port, confirm) {
             pipe.awaitClosed()

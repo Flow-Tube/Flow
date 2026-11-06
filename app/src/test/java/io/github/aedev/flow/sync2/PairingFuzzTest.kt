@@ -5,6 +5,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.encodePayload
 import io.github.aedev.flow.sync2.crypto.pairingAad
+import io.github.aedev.flow.sync2.crypto.pairingCommit
 import io.github.aedev.flow.sync2.crypto.recoverySecret
 import io.github.aedev.flow.sync2.crypto.recoveryWords
 import io.github.aedev.flow.sync2.crypto.seal
@@ -35,7 +36,7 @@ class PairingFuzzTest {
         QrCode(
             v = if (nextBoolean()) 2 else nextInt(),
             t = base64OrText(),
-            e = base64OrText(),
+            c = base64OrText(),
             r = listOf("m", "n", text(2)).random(this),
             d = text(),
             s =
@@ -56,8 +57,8 @@ class PairingFuzzTest {
             assertEquals(qr, code.qr)
             val token = runCatching { code.token }.getOrNull()
             assertArrayEquals(runCatching { SyncBytes.b64urlDecode(qr.t) }.getOrNull()?.takeIf { it.size == 16 }, token)
-            val key = runCatching { code.showerKey }.getOrNull()
-            assertArrayEquals(runCatching { SyncBytes.b64urlDecode(qr.e) }.getOrNull()?.takeIf { it.size == 32 }, key)
+            val commitment = runCatching { code.commitment }.getOrNull()
+            assertArrayEquals(runCatching { SyncBytes.b64urlDecode(qr.c) }.getOrNull()?.takeIf { it.size == 32 }, commitment)
         }
 
     @Test
@@ -67,7 +68,7 @@ class PairingFuzzTest {
             refusedCleanly<LinkedException.Unexpected> {
                 val code = readCode(text)
                 refusedCleanly<LinkedException.Unexpected> { code.token }
-                refusedCleanly<LinkedException.Unexpected> { code.showerKey }
+                refusedCleanly<LinkedException.Unexpected> { code.commitment }
             }
         }
     }
@@ -77,7 +78,7 @@ class PairingFuzzTest {
         val offer = newOffer(StoreLocation("webdav", "https://dav.example/flow"), "Desk", null)
         val code = readCode(offer.qr) as Code.Member
         assertArrayEquals(offer.token, code.token)
-        assertArrayEquals(offer.public, code.showerKey)
+        assertArrayEquals(pairingCommit(offer.public), code.commitment)
         assertEquals("https://dav.example/flow", code.storeUrl)
     }
 
@@ -107,10 +108,6 @@ class PairingFuzzTest {
         override suspend fun send(bytes: ByteArray) = Unit
 
         override suspend fun receive() = bytes
-
-        override suspend fun sendKey(key: ByteArray) = Unit
-
-        override suspend fun receiveKey() = bytes
     }
 
     private val token = ByteArray(16) { 4 }
