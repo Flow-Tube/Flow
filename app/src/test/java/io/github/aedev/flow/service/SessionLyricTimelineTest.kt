@@ -7,6 +7,11 @@ import io.github.aedev.flow.data.lyrics.WordTimestamp
 import org.junit.Test
 
 class SessionLyricTimelineTest {
+    private fun timeline(
+        entries: List<LyricsEntry>,
+        offsetMs: Long,
+    ) = SessionLyricTimeline(entries, offsetMs) { line, count -> "$line (x$count)" }
+
     private val entries =
         listOf(
             LyricsEntry(5_000L, "First line"),
@@ -35,24 +40,36 @@ class SessionLyricTimelineTest {
 
     @Test
     fun `a negative delay shows a line early and a positive one shows it late`() {
-        val early = SessionLyricTimeline(entries, 800L)
-        val late = SessionLyricTimeline(entries, -800L)
+        val early = timeline(entries, 800L)
+        val late = timeline(entries, -800L)
 
         assertThat(early.lineAt(4_200L)).isEqualTo("First line")
         assertThat(early.nextChangeAfter(4_200L)).isEqualTo(9_200L)
-        assertThat(late.lineAt(5_500L)).isNull()
+        assertThat(late.lineAt(5_500L)).isEqualTo("♪♪")
         assertThat(late.lineAt(5_800L)).isEqualTo("First line")
         assertThat(late.nextChangeAfter(5_800L)).isEqualTo(10_800L)
     }
 
     @Test
-    fun `no line before the first one starts`() {
-        assertThat(SessionLyricTimeline(entries, 0L).lineAt(4_999L)).isNull()
+    fun `no line before the first one starts after a short intro`() {
+        val timeline = timeline(listOf(LyricsEntry(4_000L, "First line")), 0L)
+
+        assertThat(timeline.lineAt(3_999L)).isNull()
+        assertThat(timeline.nextChangeAfter(0L)).isEqualTo(4_000L)
+    }
+
+    @Test
+    fun `music notes play through a long intro`() {
+        val timeline = timeline(entries, 0L)
+
+        assertThat(timeline.lineAt(0L)).isEqualTo("♪")
+        assertThat(timeline.lineAt(3_000L)).isEqualTo("♪♪")
+        assertThat(timeline.nextChangeAfter(3_000L)).isEqualTo(5_000L)
     }
 
     @Test
     fun `a line lasts until the next and skips background vocals`() {
-        val timeline = SessionLyricTimeline(entries, 0L)
+        val timeline = timeline(entries, 0L)
 
         assertThat(timeline.lineAt(5_000L)).isEqualTo("First line")
         assertThat(timeline.lineAt(9_999L)).isEqualTo("First line")
@@ -60,31 +77,99 @@ class SessionLyricTimelineTest {
     }
 
     @Test
-    fun `a blank or symbol line shows the song title again`() {
-        val timeline = SessionLyricTimeline(entries, 0L)
+    fun `blank and symbol lines become one break of music notes that repeat`() {
+        val marked = listOf(LyricsEntry(0L, "Sung"), LyricsEntry(1_000L, ""), LyricsEntry(5_000L, "♪"), LyricsEntry(12_000L, "Next"))
+        val timeline = timeline(marked, 0L)
 
-        assertThat(timeline.lineAt(21_000L)).isNull()
-        assertThat(timeline.lineAt(31_000L)).isNull()
+        assertThat(timeline.lineAt(1_000L)).isEqualTo("♪")
+        assertThat(timeline.lineAt(4_000L)).isEqualTo("♪♪")
+        assertThat(timeline.lineAt(7_000L)).isEqualTo("♪♪♪")
+        assertThat(timeline.lineAt(10_000L)).isEqualTo("♪")
+        assertThat(timeline.nextChangeAfter(10_000L)).isEqualTo(12_000L)
+        assertThat(timeline.lineAt(12_000L)).isEqualTo("Next")
+    }
+
+    @Test
+    fun `a long silence the lyrics do not mark is a break after the line is sung`() {
+        val timeline = timeline(listOf(LyricsEntry(0L, "Twenty characters ok"), LyricsEntry(10_000L, "Next")), 0L)
+
+        assertThat(timeline.lineAt(1_999L)).isEqualTo("Twenty characters ok")
+        assertThat(timeline.nextChangeAfter(0L)).isEqualTo(2_000L)
+        assertThat(timeline.lineAt(2_000L)).isEqualTo("♪")
+    }
+
+    @Test
+    fun `a short silence keeps the line`() {
+        val timeline = timeline(listOf(LyricsEntry(0L, "Twenty characters ok"), LyricsEntry(6_999L, "Next")), 0L)
+
+        assertThat(timeline.lineAt(6_998L)).isEqualTo("Twenty characters ok")
+    }
+
+    @Test
+    fun `timed words decide when a line ends`() {
+        val words = listOf(WordTimestamp("Long", 0L, 6_000L), WordTimestamp("note", 6_000L, 8_000L))
+        val timeline = timeline(listOf(LyricsEntry(0L, "Long note", words = words), LyricsEntry(14_000L, "Next")), 0L)
+
+        assertThat(timeline.lineAt(7_999L)).isEqualTo("Long note")
+        assertThat(timeline.lineAt(8_000L)).isEqualTo("♪")
+    }
+
+    @Test
+    fun `a repeated line says how many times it has been sung`() {
+        val repeated =
+            listOf(
+                LyricsEntry(0L, "Hold on"),
+                LyricsEntry(2_000L, "hold on "),
+                LyricsEntry(4_000L, "Hold on"),
+                LyricsEntry(6_000L, "Let go"),
+                LyricsEntry(8_000L, "Hold on"),
+            )
+        val timeline = timeline(repeated, 0L)
+
+        assertThat(timeline.lineAt(0L)).isEqualTo("Hold on")
+        assertThat(timeline.lineAt(2_000L)).isEqualTo("hold on (x2)")
+        assertThat(timeline.lineAt(4_000L)).isEqualTo("Hold on (x3)")
+        assertThat(timeline.lineAt(6_000L)).isEqualTo("Let go")
+        assertThat(timeline.lineAt(8_000L)).isEqualTo("Hold on")
+    }
+
+    @Test
+    fun `a repeated long line marks only its last part`() {
+        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(6_000L, longLine), LyricsEntry(12_000L, "Next")), 0L)
+        val second = timeline.nextChangeAfter(6_000L)!!
+
+        assertThat(timeline.lineAt(6_000L)).isEqualTo("You can turn me on with")
+        assertThat(timeline.lineAt(second)).isEqualTo("just a touch, baby (x2)")
     }
 
     @Test
     fun `the offset moves lines earlier and the wait is in player time`() {
-        val timeline = SessionLyricTimeline(entries, 1_000L)
+        val timeline = timeline(entries, 1_000L)
 
         assertThat(timeline.lineAt(4_000L)).isEqualTo("First line")
         assertThat(timeline.nextChangeAfter(4_000L)).isEqualTo(9_000L)
     }
 
     @Test
-    fun `nothing follows the last line`() {
-        assertThat(SessionLyricTimeline(entries, 0L).nextChangeAfter(41_000L)).isNull()
+    fun `music notes keep going after the last line`() {
+        val timeline = timeline(entries, 0L)
+
+        assertThat(timeline.lineAt(40_899L)).isEqualTo("Last line")
+        assertThat(timeline.lineAt(40_900L)).isEqualTo("♪")
+        assertThat(timeline.nextChangeAfter(41_000L)).isEqualTo(43_900L)
+    }
+
+    @Test
+    fun `no lyrics means no change`() {
+        assertThat(timeline(emptyList(), 0L).lineAt(0L)).isNull()
+        assertThat(timeline(emptyList(), 0L).nextChangeAfter(0L)).isNull()
     }
 
     private val longLine = "You can turn me on with just a touch, baby"
 
     @Test
     fun `a line that fits stays whole`() {
-        val timeline = SessionLyricTimeline(listOf(LyricsEntry(0L, "I'm running out of time"), LyricsEntry(5_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, "I'm running out of time"), LyricsEntry(5_000L, "Next")), 0L)
 
         assertThat(timeline.lineAt(4_999L)).isEqualTo("I'm running out of time")
         assertThat(timeline.nextChangeAfter(0L)).isEqualTo(5_000L)
@@ -92,7 +177,7 @@ class SessionLyricTimelineTest {
 
     @Test
     fun `a long line is shown in balanced parts that cut no word`() {
-        val timeline = SessionLyricTimeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(6_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(6_000L, "Next")), 0L)
         val second = timeline.nextChangeAfter(0L)!!
 
         assertThat(timeline.lineAt(0L)).isEqualTo("You can turn me on with")
@@ -103,21 +188,21 @@ class SessionLyricTimelineTest {
     @Test
     fun `the second part starts when its word is sung if the words are timed`() {
         val words = longLine.split(" ").mapIndexed { index, word -> WordTimestamp(word, 200L + index * 300L, 500L + index * 300L) }
-        val timeline = SessionLyricTimeline(listOf(LyricsEntry(100L, longLine, words = words), LyricsEntry(6_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(100L, longLine, words = words), LyricsEntry(6_000L, "Next")), 0L)
 
         assertThat(timeline.nextChangeAfter(100L)).isEqualTo(words[6].startTime)
     }
 
     @Test
     fun `a long gap after a line does not stretch its parts`() {
-        val timeline = SessionLyricTimeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(60_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(60_000L, "Next")), 0L)
 
         assertThat(timeline.nextChangeAfter(0L)!!).isLessThan(longLine.length * 100L)
     }
 
     @Test
     fun `a line sung too fast to read in parts stays whole`() {
-        val timeline = SessionLyricTimeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(1_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(1_000L, "Next")), 0L)
 
         assertThat(timeline.lineAt(0L)).isEqualTo(longLine)
         assertThat(timeline.nextChangeAfter(0L)).isEqualTo(1_000L)
@@ -126,7 +211,7 @@ class SessionLyricTimelineTest {
     @Test
     fun `a very long line goes into more parts and loses no text`() {
         val text = "Live vicariously through me, write my life like it's a movie, like it's a movie"
-        val timeline = SessionLyricTimeline(listOf(LyricsEntry(0L, text), LyricsEntry(10_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, text), LyricsEntry(10_000L, "Next")), 0L)
         val parts = mutableListOf(timeline.lineAt(0L)!!)
         var at = timeline.nextChangeAfter(0L)!!
         while (at < 10_000L) {
@@ -142,7 +227,7 @@ class SessionLyricTimelineTest {
     @Test
     fun `wide characters count for more and a line without spaces still splits`() {
         val text = "君の名前を何度も呼んでいるこの夜の中で"
-        val timeline = SessionLyricTimeline(listOf(LyricsEntry(0L, text), LyricsEntry(6_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, text), LyricsEntry(6_000L, "Next")), 0L)
         val second = timeline.nextChangeAfter(0L)!!
 
         assertThat(second).isLessThan(6_000L)
@@ -152,8 +237,8 @@ class SessionLyricTimelineTest {
     @Test
     fun `the offset moves the parts too`() {
         val entries = listOf(LyricsEntry(5_000L, longLine), LyricsEntry(11_000L, "Next"))
-        val plain = SessionLyricTimeline(entries, 0L).nextChangeAfter(5_000L)!!
+        val plain = timeline(entries, 0L).nextChangeAfter(5_000L)!!
 
-        assertThat(SessionLyricTimeline(entries, 1_000L).nextChangeAfter(4_000L)).isEqualTo(plain - 1_000L)
+        assertThat(timeline(entries, 1_000L).nextChangeAfter(4_000L)).isEqualTo(plain - 1_000L)
     }
 }
