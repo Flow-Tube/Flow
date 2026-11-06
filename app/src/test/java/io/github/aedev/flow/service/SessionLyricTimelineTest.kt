@@ -16,6 +16,13 @@ class SessionLyricTimelineTest {
         )
 
     @Test
+    fun `the artist line keeps the song name in view`() {
+        assertThat(sessionLyricArtist("The Feels", "TWICE")).isEqualTo("The Feels - TWICE")
+        assertThat(sessionLyricArtist("The Feels", null)).isEqualTo("The Feels")
+        assertThat(sessionLyricArtist("The Feels", "")).isEqualTo("The Feels")
+    }
+
+    @Test
     fun `no line before the first one starts`() {
         assertThat(SessionLyricTimeline(entries, 0L).lineAt(4_999L)).isNull()
     }

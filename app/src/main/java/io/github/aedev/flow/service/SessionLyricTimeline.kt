@@ -27,3 +27,9 @@ internal class SessionLyricTimeline(
         return lines.firstOrNull { it.time > lyricTime }?.let { it.time - offsetMs }
     }
 }
+
+/** The artist line shown under a lyric, which keeps the song's name in view. */
+internal fun sessionLyricArtist(
+    title: CharSequence?,
+    artist: CharSequence?,
+): String = listOfNotNull(title, artist).filter { it.isNotBlank() }.joinToString(" - ")

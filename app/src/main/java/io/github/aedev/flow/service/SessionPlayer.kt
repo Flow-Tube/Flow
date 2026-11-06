@@ -38,7 +38,7 @@ internal class SessionPlayer(
             PlaybackTarget.followed.value != null && requester()?.connectionHints?.getBoolean(APP_CONTROLLER_HINT) == false
         }
 
-    /** Shows [line] as the display title; the song's own title stays for anything that reads it. */
+    /** Reports [line] as the title: HyperOS's shade and lock screen read only the title and artist keys. */
     fun setLyricLine(line: String?) {
         if (lyricLine == line) return
         lyricLine = line
@@ -60,7 +60,12 @@ internal class SessionPlayer(
     private fun State.withLyricLine(): State {
         val line = lyricLine ?: return this
         if (playlist.isEmpty()) return this
-        val metadata = currentMetadata.buildUpon().setDisplayTitle(line).build()
+        val metadata =
+            currentMetadata
+                .buildUpon()
+                .setTitle(line)
+                .setArtist(sessionLyricArtist(currentMetadata.title, currentMetadata.artist))
+                .build()
         return buildUpon().setPlaylist(timeline, currentTracks, metadata).build()
     }
 

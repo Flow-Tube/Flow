@@ -2035,8 +2035,6 @@ class Media3MusicService : MediaLibraryService() {
 
     @OptIn(UnstableApi::class)
     private inner class CustomNotificationProvider : DefaultMediaNotificationProvider(this@Media3MusicService) {
-        override fun getNotificationContentTitle(metadata: MediaMetadata): CharSequence? = metadata.displayTitle ?: metadata.title
-
         override fun getMediaButtons(
             session: MediaSession,
             playerCommands: Player.Commands,

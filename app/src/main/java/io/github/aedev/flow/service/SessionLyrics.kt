@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Keeps the music session's display title on the current lyric line. It waits for each next line
+ * Keeps the music session's title on the current lyric line. It waits for each next line
  * rather than polling, and stops with playback or, unless a car is showing it, with the screen.
  * Main thread only.
  */
