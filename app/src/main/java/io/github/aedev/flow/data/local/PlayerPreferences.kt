@@ -167,6 +167,7 @@ class PlayerPreferences(
         val LYRICS_SHOW_ROMANIZATION = booleanPreferencesKey("lyrics_show_romanization")
         val LYRICS_ON_LOCK_SCREEN = booleanPreferencesKey("lyrics_on_lock_screen")
         val LYRICS_ON_LOCK_SCREEN_DELAY_MS = intPreferencesKey("lyrics_on_lock_screen_delay_ms")
+        val LYRICS_SPONSORBLOCK_TIMING = booleanPreferencesKey("lyrics_sponsorblock_timing")
         val LYRICS_AUTO_ROMANIZE = booleanPreferencesKey("lyrics_auto_romanize")
         val LYRICS_KEEP_SCREEN_ON = booleanPreferencesKey("lyrics_keep_screen_on")
         val LYRICS_BLUR_OTHER_LINES = booleanPreferencesKey("lyrics_blur_other_lines")
@@ -3923,6 +3924,14 @@ class PlayerPreferences(
 
     suspend fun setLyricsOnLockScreenDelayMs(delayMs: Int) {
         context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ON_LOCK_SCREEN_DELAY_MS] = delayMs }
+    }
+
+    /** Whether lyrics skip a music video's non-music parts. Each song played is looked up on SponsorBlock while on. */
+    val lyricsSponsorBlockTiming: Flow<Boolean> =
+        context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_SPONSORBLOCK_TIMING] ?: false }
+
+    suspend fun setLyricsSponsorBlockTiming(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_SPONSORBLOCK_TIMING] = enabled }
     }
 
     /** Whether lyrics in other scripts get a Latin-script line made on the device when the source has none. */

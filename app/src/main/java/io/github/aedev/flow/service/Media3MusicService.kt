@@ -283,6 +283,9 @@ class Media3MusicService : MediaLibraryService() {
     @Inject
     lateinit var localLyrics: LocalLyricsReader
 
+    @Inject
+    lateinit var videoLyricsTiming: io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
+
     private var sessionLyrics: SessionLyrics? = null
 
     @OptIn(UnstableApi::class)
@@ -1430,6 +1433,7 @@ class Media3MusicService : MediaLibraryService() {
                     localLyrics,
                     prefs.lyricsOnLockScreen,
                     prefs.lyricsOnLockScreenDelayMs,
+                    videoLyricsTiming,
                 )
         }
 

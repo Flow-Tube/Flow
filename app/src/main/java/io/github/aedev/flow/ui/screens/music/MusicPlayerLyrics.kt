@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
 import io.github.aedev.flow.data.lyrics.LyricsUtils
+import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.lyrics.ShownLyrics
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
@@ -21,12 +22,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val MILLIS_PER_SECOND = 1000L
 
 /**
  * The music player's lyrics: fetching for each track, refreshing, browsing other sources, manual
@@ -40,8 +44,10 @@ internal class MusicPlayerLyrics(
     private val playerPreferences: PlayerPreferences,
     private val localLyrics: LocalLyricsReader,
     private val downloadedTrackPath: suspend (videoId: String) -> String?,
+    private val videoTiming: MusicVideoLyricsTiming,
 ) {
     private var lyricsJob: kotlinx.coroutines.Job? = null
+    private var videoTimingJob: Job? = null
 
     init {
         scope.launch {
@@ -148,6 +154,7 @@ internal class MusicPlayerLyrics(
                                 lyricsProviderName = providerName,
                             )
                         }
+                        if (isSynced) followVideoTiming(videoId, entries, targetDuration)
                     } else {
                         uiState.update { it.copy(isLyricsLoading = false) }
                     }
@@ -156,6 +163,28 @@ internal class MusicPlayerLyrics(
                 } catch (e: Exception) {
                     android.util.Log.e("MusicPlayerViewModel", "Lyrics fetch failed", e)
                     uiState.update { it.copy(isLyricsLoading = false) }
+                }
+            }
+    }
+
+    /**
+     * Lyrics show straight away, then move once the lookup answers. Follows the setting so switching
+     * it applies to the song playing, and the next song's lyrics end this.
+     */
+    private fun followVideoTiming(
+        videoId: String,
+        entries: List<LyricsEntry>,
+        durationSeconds: Int,
+    ) {
+        videoTimingJob?.cancel()
+        videoTimingJob =
+            scope.launch {
+                videoTiming.enabled.distinctUntilChanged().collectLatest { enabled ->
+                    val fitted = if (enabled) videoTiming.lookUpAndFit(videoId, entries, durationSeconds) else entries
+                    uiState.update { state ->
+                        val current = state.currentTrack?.videoId
+                        if (current == null || current == videoId) state.copy(syncedLyrics = fitted) else state
+                    }
                 }
             }
     }
@@ -193,6 +222,7 @@ internal class MusicPlayerLyrics(
     }
 
     private fun beginLoading() {
+        videoTimingJob?.cancel()
         uiState.update {
             it.copy(
                 isLyricsLoading = true,
@@ -332,6 +362,10 @@ internal class MusicPlayerLyrics(
                     lyricsSyncOffsetMs = 0L,
                 )
             }
+            videoTimingJob?.cancel()
+            if (candidate.synced) {
+                followVideoTiming(track.videoId, candidate.entries, (uiState.value.duration / MILLIS_PER_SECOND).toInt())
+            }
         }
     }
 
@@ -352,6 +386,7 @@ internal class MusicPlayerLyrics(
                         .map { line -> LyricsEntry(0L, line) }
                 }
             if (entries.isEmpty()) return@launch
+            videoTimingJob?.cancel()
             val synced = lyricsHelper.entriesAreSynced(entries)
             lyricsHelper.applyManualLyrics(track.videoId, entries)
             val plainText = entries.joinToString("\n") { it.text }
