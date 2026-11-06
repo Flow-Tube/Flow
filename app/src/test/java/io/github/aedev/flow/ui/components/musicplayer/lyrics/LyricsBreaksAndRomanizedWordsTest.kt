@@ -19,12 +19,38 @@ class LyricsBreaksAndRomanizedWordsTest {
     }
 
     @Test
-    fun `an unmarked gap between line-synced lines gets no break row`() {
-        val lines = buildLines(null, listOf(LyricsEntry(10_000L, "Sung"), LyricsEntry(69_000L, "After")))
+    fun `a long silence after a line-synced line gets a break row once a slow singer would be done`() {
+        val line = LyricsEntry(84_730L, "x".repeat(40))
+        val lines = buildLines(null, listOf(line, LyricsEntry(153_400L, "After the solo")))
+
+        val solo = buildMergedLyricsList(lines).filterIsInstance<LyricsListItem.Indicator>().last()
+
+        assertThat(solo.gapStartMs to solo.gapEndMs).isEqualTo(94_730L to 153_400L)
+    }
+
+    @Test
+    fun `a line-synced gap under the limit gets no break row`() {
+        val lines = buildLines(null, listOf(LyricsEntry(10_000L, "A short line"), LyricsEntry(24_000L, "Next")))
 
         val breaks = buildMergedLyricsList(lines).filterIsInstance<LyricsListItem.Indicator>()
 
         assertThat(breaks.map { it.gapStartMs }).containsExactly(0L)
+    }
+
+    @Test
+    fun `a line-synced line stops being active when its break starts`() {
+        val lines = listOf(LyricsEntry(10_000L, "x".repeat(40)), LyricsEntry(80_000L, "Next"), LyricsEntry(90_000L, "Last"))
+
+        assertThat(findActiveLineIndices(lines, 15_000L)).containsExactly(0)
+        assertThat(findActiveLineIndices(lines, 30_000L)).isEmpty()
+        assertThat(findActiveLineIndices(lines, 80_500L)).containsExactly(1)
+    }
+
+    @Test
+    fun `the last line stays active to the end of the song`() {
+        val lines = listOf(LyricsEntry(10_000L, "One"), LyricsEntry(20_000L, "Two"), LyricsEntry(30_000L, "Last"))
+
+        assertThat(findActiveLineIndices(lines, 200_000L)).containsExactly(2)
     }
 
     @Test
