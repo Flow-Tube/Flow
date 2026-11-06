@@ -3,14 +3,12 @@ package io.github.aedev.flow.sync2
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.aedev.flow.sync.crypto.SyncBytes
-import io.github.aedev.flow.sync.transport.WsServer
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.linking.Code
 import io.github.aedev.flow.sync2.linking.DeviceMeta
-import io.github.aedev.flow.sync2.linking.LanEndpoint
 import io.github.aedev.flow.sync2.linking.Listening
 import io.github.aedev.flow.sync2.linking.StoreLocation
 import io.github.aedev.flow.sync2.linking.addDevice
@@ -18,6 +16,7 @@ import io.github.aedev.flow.sync2.linking.addScanned
 import io.github.aedev.flow.sync2.linking.answerShown
 import io.github.aedev.flow.sync2.linking.createLanGroup
 import io.github.aedev.flow.sync2.linking.join
+import io.github.aedev.flow.sync2.linking.listenOn
 import io.github.aedev.flow.sync2.linking.newOffer
 import io.github.aedev.flow.sync2.linking.readCode
 import io.github.aedev.flow.sync2.store.GroupStore
@@ -50,10 +49,7 @@ class LanGroupTest {
 
     private fun TestScope.device(): Device = emptyDb().let { Device(newMember(), it, heldStore(it)) }
 
-    private suspend fun loopback(): Listening {
-        val server = WsServer("/flow-sync/2/pair")
-        return Listening(server, listOf(LanEndpoint("127.0.0.1", server.start())))
-    }
+    private suspend fun loopback(): Listening = listenOn(listOf("127.0.0.1"))
 
     private suspend fun TestScope.created(): Device = device().also { createLanGroup(it.db, it.local, it.keys, meta, LINK) }
 

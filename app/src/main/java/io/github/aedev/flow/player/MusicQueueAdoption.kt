@@ -16,6 +16,7 @@ internal fun adoptedQueue(items: List<MediaItem>): List<MusicTrack> =
                 videoId = item.mediaId,
                 title = metadata.title?.toString().orEmpty(),
                 artist = metadata.artist?.toString().orEmpty(),
+                album = metadata.albumTitle?.toString().orEmpty(),
                 thumbnailUrl = metadata.webArtworkUrl.orEmpty(),
                 duration = ((metadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt(),
             )

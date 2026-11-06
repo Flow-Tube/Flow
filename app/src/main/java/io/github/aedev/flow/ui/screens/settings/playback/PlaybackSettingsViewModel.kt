@@ -133,6 +133,7 @@ class PlaybackSettingsViewModel
         val musicSideSwipes = preferences.musicSideSwipes.asState(false)
         val lyricsOnLockScreen = preferences.lyricsOnLockScreen.asState(false)
         val lyricsOnLockScreenDelayMs = preferences.lyricsOnLockScreenDelayMs.asState(0)
+        val lyricsSponsorBlockTiming = preferences.lyricsSponsorBlockTiming.asState(false)
         val normalizeVolume = preferences.videoVolumeNormalizationEnabled.asState(DEFAULT_VIDEO_VOLUME_NORMALIZATION)
         val lyricsProviders =
             combine(preferences.lyricsProviderOrder, preferences.allLyricsProviderEnabledStates()) { order, enabled ->
@@ -287,6 +288,8 @@ class PlaybackSettingsViewModel
         fun setLyricsOnLockScreen(value: Boolean) = write { preferences.setLyricsOnLockScreen(value) }
 
         fun setLyricsOnLockScreenDelayMs(delayMs: Int) = write { preferences.setLyricsOnLockScreenDelayMs(delayMs) }
+
+        fun setLyricsSponsorBlockTiming(value: Boolean) = write { preferences.setLyricsSponsorBlockTiming(value) }
 
         fun setNormalizeVolume(value: Boolean) = write { preferences.setVideoVolumeNormalizationEnabled(value) }
 

@@ -155,6 +155,8 @@
     <string name="lyrics_on_lock_screen_summary">Shows the current line as the song title, also to other apps</string>
     <string name="lyrics_on_lock_screen_timing">Lock screen lyrics timing</string>
     <string name="lyrics_on_lock_screen_timing_summary">Move lines earlier if they feel late</string>
+    <string name="lyrics_sponsorblock_timing">Fit lyrics to music videos</string>
+    <string name="lyrics_sponsorblock_timing_summary">Uses SponsorBlock to skip parts with no music</string>
     <string name="lyrics_timing_on_time">No change</string>
     <string name="lyrics_timing_earlier">%1$s s earlier</string>
     <string name="lyrics_timing_later">%1$s s later</string>
@@ -1055,7 +1057,7 @@
     <string name="lyrics_provider_lrclib_desc">Line sync · open database</string>
     <string name="lyrics_provider_unison_desc">Community lyrics · small catalogue</string>
     <string name="lyrics_provider_youtube_captions_desc">Line sync · the video\'s captions</string>
-    <string name="lyrics_provider_youtube_music_desc">Plain text · the Lyrics tab</string>
+    <string name="lyrics_provider_youtube_music_desc">Line sync · the Lyrics tab</string>
     <!-- Theme Names & Descriptions -->
     <string name="theme_name_system_default">System Default</string>
     <string name="theme_desc_system_default">Follows your device between light and dark.</string>
@@ -1689,7 +1691,6 @@
         <item quantity="one">Every %1$d min</item>
         <item quantity="other">Every %1$d min</item>
     </plurals>
-    <string name="daily_average_label">Daily Average</string>
     <string name="stats_today">Today</string>
     <string name="stats_last_7_days">Last 7 days</string>
     <string name="frequency_dialog_title">Frequency</string>
@@ -2774,11 +2775,11 @@
     <string name="linked_join_admin_body">No camera? Type the server address and admin token, then accept on a linked device</string>
     <string name="linked_join_admin_ask">Ask to join</string>
     <string name="linked_asked">Waiting for a linked device to accept…</string>
-    <string name="linked_join_request">%1$s wants to join</string>
+    <string name="linked_join_request">A device calling itself %1$s wants to join</string>
     <string name="linked_accept">Accept</string>
     <string name="linked_decline">Decline</string>
     <string name="linked_join_notification_title">A device wants to join</string>
-    <string name="linked_join_notification_text">%1$s asked to join your linked devices. Open Linked devices to accept or decline.</string>
+    <string name="linked_join_notification_text">A device calling itself %1$s asked to join your linked devices. Accept only if you started this on that device.</string>
     <string name="linked_join_title">Join a group</string>
     <string name="linked_join_body">Scan or paste the code another linked device shows</string>
     <string name="linked_restore_title">Restore with recovery words</string>
@@ -2878,7 +2879,7 @@
     <string name="linked_contest_body">Two devices in this group removed each other, and this device can\'t tell which one you still trust. Syncing is paused and nothing was deleted. Keep the device you still have. Your other devices will ask too.</string>
     <string name="linked_contest_keep">Keep %1$s</string>
     <string name="linked_contest_removes">Removes %1$s</string>
-    <string name="linked_error_declined">The verification codes weren\'t confirmed.</string>
+    <string name="linked_error_declined">The codes were different, so nothing was shared. Start again with a new code. If this happens again, someone may be interfering, so stop and check your server or network.</string>
     <string name="linked_error_join_declined">A linked device declined the request to join.</string>
     <string name="linked_error_timed_out">The other device didn\'t answer in time.</string>
     <string name="linked_error_wrong_words">These aren\'t 24 valid recovery words.</string>
@@ -4275,7 +4276,7 @@
     <string name="settings_keywords_wellbeing">screen time, digital wellbeing, sleep, bedtime, break, watch time, usage</string>
     <string name="settings_sleep_window_summary">Sleep window: %1$s</string>
     <string name="settings_notification_permission_needed">Allow notifications to get reminders</string>
-    <string name="settings_watch_time_week_total">%1$s this week</string>
+    <string name="settings_watch_time_average_and_week">Daily average %1$s · %2$s this week</string>
     <string name="settings_section_this_device">This device</string>
     <string name="settings_section_report">Report</string>
     <string name="settings_diagnostics_model">Model</string>

@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.notification.ReminderManager
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.flowOn
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,27 +35,14 @@ class WellbeingViewModel
         private val videoStats: VideoStatsRecorder,
         private val musicBrain: MusicBrainEngine,
     ) : SettingsViewModel() {
-        /**
-         * Measured once per visit. The recap ledgers' real watching time is used once they cover the
-         * whole week; until then the history estimate (last position on the last-watched day) stands in.
-         */
+        /** Measured once per visit, and again at midnight while the page stays open so the week ends on the new today. */
         val summary =
             flow {
-                val today = LocalDate.now()
-                val video = runCatching { videoStats.snapshot() }.getOrNull()
-                val ledger =
-                    video?.let {
-                        val music = runCatching { musicBrain.listeningStats() }.getOrDefault(MusicStatsStorage.SerializableStats())
-                        val days = RecapAggregates.dailyTime(it, music, today.minusDays((WEEK_DAYS - 1).toLong()), today)
-                        summarizeLedgerTime(days, RecapAggregates.videoLedgerStart(it), today)
-                    }
-                emit(
-                    ledger ?: summarizeWatchTime(
-                        viewHistory.getAllHistory().first().map { WatchRecord(it.timestamp, it.position) },
-                        today,
-                        ZoneId.systemDefault(),
-                    ),
-                )
+                while (true) {
+                    val now = ZonedDateTime.now()
+                    emit(measureWeek(now.toLocalDate(), now.zone))
+                    delay(millisUntilNextDay(now))
+                }
             }.flowOn(Dispatchers.Default)
                 .asState(null)
 
@@ -85,6 +74,28 @@ class WellbeingViewModel
         fun setBreakEnabled(enabled: Boolean) = write { localData.setBreakReminder(enabled) }
 
         fun setBreakMinutes(minutes: Int) = write { localData.setBreakFrequency(minutes) }
+
+        /**
+         * The recap ledgers' real watching time is used once they cover the whole week; until then the
+         * history estimate (last position on the last-watched day) stands in.
+         */
+        private suspend fun measureWeek(
+            today: LocalDate,
+            zone: ZoneId,
+        ): WatchTimeSummary {
+            val video = runCatching { videoStats.snapshot() }.getOrNull()
+            val ledger =
+                video?.let {
+                    val music = runCatching { musicBrain.listeningStats() }.getOrDefault(MusicStatsStorage.SerializableStats())
+                    val days = RecapAggregates.dailyTime(it, music, today.minusDays((WEEK_DAYS - 1).toLong()), today)
+                    summarizeLedgerTime(days, RecapAggregates.videoLedgerStart(it), today)
+                }
+            return ledger ?: summarizeWatchTime(
+                viewHistory.getAllHistory().first().map { WatchRecord(it.timestamp, it.position) },
+                today,
+                zone,
+            )
+        }
 
         private fun timeOf(
             hour: Flow<Int>,

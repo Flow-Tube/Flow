@@ -343,6 +343,7 @@ private class EqSections(
                             EqBassBoostSlider(
                                 value = state.bassBoost,
                                 onValueChange = viewModel::setBassBoost,
+                                enabled = state.enabled,
                                 modifier = Modifier.padding(PanelPadding),
                             )
                         }
@@ -351,6 +352,7 @@ private class EqSections(
                             supportingText = stringResource(R.string.eq_spatial_sound_summary),
                             checked = spatialOn,
                             onCheckedChange = { on -> viewModel.setSpatialSound(if (on) EqSpatialSound.MEDIUM else EqSpatialSound.OFF) },
+                            enabled = state.enabled,
                             shape = flowRowGroupShape(bassRow + 1, rows),
                         )
                         if (spatialOn) {
@@ -364,6 +366,7 @@ private class EqSections(
                                         ),
                                     selected = state.spatialSound,
                                     onSelected = viewModel::setSpatialSound,
+                                    enabled = state.enabled,
                                     modifier = Modifier.padding(PanelPadding),
                                 )
                             }

@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.lerp
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.ui.theme.SPONSOR_BLOCK_SEGMENT_ALPHA
@@ -17,12 +18,13 @@ import io.github.aedev.flow.ui.theme.defaultSponsorBlockColor
 import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val SponsorPointWidth = 3.dp
+private val CommentMarkDiameter = 3.dp
 
 internal val RestTrackHeight = 5.dp
 internal val ActiveTrackHeight = 10.dp
 
 /**
- * Paints the track: base, buffered, progress, chapter gaps and SponsorBlock segments.
+ * Paints the track: base, buffered, progress, chapter gaps, SponsorBlock segments and comment marks.
  *
  * Shared by both shapes so their appearance cannot drift apart — the earlier version drew the same
  * thing twice, once in a sibling Canvas and once for the locked variant.
@@ -33,6 +35,7 @@ internal fun DrawScope.drawSeekTrack(
     chapters: List<StreamSegment>,
     sponsorSegments: List<SponsorBlockSegment>,
     sponsorColors: Map<String, Color>,
+    commentMarks: List<Float>,
     duration: Long,
     bufferedValue: Float,
     colors: SeekTrackColors,
@@ -176,6 +179,32 @@ internal fun DrawScope.drawSeekTrack(
                     size = Size(innerWidth, trackHeightPx),
                 )
             }
+        }
+    }
+
+    // Outside the clip: a comment often points at a chapter start, and the gap there would cut the dot.
+    drawCommentMarks(commentMarks, centerY = trackTop + trackHeightPx / 2f, color = colors.mark)
+}
+
+/**
+ * One dot per mark, the same size whatever the track is doing.
+ *
+ * The marks arrive merged by share of the bar, which still leaves room for two dots to overlap on a
+ * narrow phone bar, so one that would touch the dot before it is left out here where the width is known.
+ */
+private fun DrawScope.drawCommentMarks(
+    marks: List<Float>,
+    centerY: Float,
+    color: Color,
+) {
+    val radius = CommentMarkDiameter.toPx() / 2f
+    val maxX = (size.width - radius).coerceAtLeast(radius)
+    var lastX = Float.NEGATIVE_INFINITY
+    marks.fastForEach { mark ->
+        val x = (mark * size.width).coerceIn(radius, maxX)
+        if (x - lastX > radius * 2f) {
+            drawCircle(color = color, radius = radius, center = Offset(x, centerY))
+            lastX = x
         }
     }
 }

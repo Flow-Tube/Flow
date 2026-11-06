@@ -1,11 +1,11 @@
 package io.github.aedev.flow.data.lyrics
 
-import android.util.Log
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import java.net.URLEncoder
 
 /**
@@ -54,8 +54,8 @@ class LyricsPlusProvider(
     ): Result<List<LyricsEntry>> =
         withContext(Dispatchers.IO) {
             runCatching {
-                fetchLyricsPlus(title, artist, duration, album)
-                    ?: throw IllegalStateException("LyricsPlus lyrics unavailable")
+                fetchLyricsPlus(title, LyricsMatching.cleanArtist(artist), duration, album)
+                    ?: throw LyricsNotFoundException("LyricsPlus lyrics unavailable")
             }
         }
 
@@ -67,22 +67,17 @@ class LyricsPlusProvider(
     ): List<LyricsEntry>? {
         if (title.isBlank() || artist.isBlank()) return null
 
-        return try {
-            val url =
-                buildString {
-                    append(LYRICS_PLUS_BASE_URL)
-                    append("/v2/lyrics/get")
-                    append("?title=${title.urlEncoded()}")
-                    append("&artist=${artist.urlEncoded()}")
-                    if (duration > 0) append("&duration=$duration")
-                    if (!album.isNullOrBlank()) append("&album=${album.urlEncoded()}")
-                }
-            val body = executeGet(url) ?: return null
-            convertLyricsPlus(gson.fromJson(body, LyricsPlusResponse::class.java))
-        } catch (e: Exception) {
-            Log.d(TAG, "LyricsPlus failed: ${e.message}")
-            null
-        }
+        val url =
+            buildString {
+                append(LYRICS_PLUS_BASE_URL)
+                append("/v2/lyrics/get")
+                append("?title=${title.urlEncoded()}")
+                append("&artist=${artist.urlEncoded()}")
+                if (duration > 0) append("&duration=$duration")
+                if (!album.isNullOrBlank()) append("&album=${album.urlEncoded()}")
+            }
+        val body = executeGet(url) ?: return null
+        return convertLyricsPlus(gson.fromJson(body, LyricsPlusResponse::class.java))
     }
 
     private fun convertLyricsPlus(response: LyricsPlusResponse?): List<LyricsEntry>? {
@@ -153,7 +148,8 @@ class LyricsPlusProvider(
                 .build()
 
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return null
+            if (response.code == 404) return null
+            if (!response.isSuccessful) throw IOException("LyricsPlus returned ${response.code}")
             return response.body?.string()?.takeIf { it.isNotBlank() }
         }
     }
@@ -161,7 +157,6 @@ class LyricsPlusProvider(
     private fun String.urlEncoded(): String = URLEncoder.encode(this, "UTF-8")
 
     companion object {
-        private const val TAG = "LyricsPlusProvider"
         private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
         // The other public mirrors (atomix.one, prjktla.my.id, lyricsplus-seven.vercel.app) were

@@ -13,20 +13,25 @@ import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
 import io.github.aedev.flow.data.lyrics.LyricsUtils
+import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.lyrics.ShownLyrics
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.utils.NetworkState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val MILLIS_PER_SECOND = 1000L
 
 /**
  * The music player's lyrics: fetching for each track, refreshing, browsing other sources, manual
@@ -40,8 +45,12 @@ internal class MusicPlayerLyrics(
     private val playerPreferences: PlayerPreferences,
     private val localLyrics: LocalLyricsReader,
     private val downloadedTrackPath: suspend (videoId: String) -> String?,
+    private val videoTiming: MusicVideoLyricsTiming,
 ) {
     private var lyricsJob: kotlinx.coroutines.Job? = null
+    private var videoTimingJob: Job? = null
+    private var shownAnswer: List<LyricsEntry>? = null
+    private var syncOffsetSave: Job? = null
 
     init {
         scope.launch {
@@ -109,13 +118,14 @@ internal class MusicPlayerLyrics(
         album: String? = null,
     ) {
         lyricsJob?.cancel()
+        browseLyricsJob?.cancel()
         if (LocalMediaIds.isLocal(videoId)) {
             lyricsJob = scope.launch { loadDeviceLyrics(videoId) }
             return
         }
         lyricsJob =
             scope.launch {
-                beginLoading()
+                beginLoading(lyricsHelper.syncOffset(videoId) ?: 0L)
 
                 val cleanArtist = cleanName(artist)
                 val cleanTitle = cleanName(title)
@@ -131,23 +141,7 @@ internal class MusicPlayerLyrics(
                         }
 
                     if (result != null) {
-                        val (entries, providerName) = result
-                        val hasWords = entries.any { it.words != null }
-                        val isSynced = lyricsHelper.entriesAreSynced(entries)
-                        android.util.Log.d(
-                            "MusicPlayerViewModel",
-                            "Got ${entries.size} lyrics lines from $providerName (word-sync=$hasWords, synced=$isSynced)",
-                        )
-
-                        val plainText = entries.joinToString("\n") { it.text }
-                        uiState.update {
-                            it.copy(
-                                isLyricsLoading = false,
-                                lyrics = plainText.takeIf { it.isNotBlank() },
-                                syncedLyrics = if (isSynced) entries else emptyList(),
-                                lyricsProviderName = providerName,
-                            )
-                        }
+                        showLyrics(videoId, result, targetDuration)
                     } else {
                         uiState.update { it.copy(isLyricsLoading = false) }
                     }
@@ -160,6 +154,63 @@ internal class MusicPlayerLyrics(
             }
     }
 
+    private fun showLyrics(
+        videoId: String,
+        result: Pair<List<LyricsEntry>, String>,
+        durationSeconds: Int,
+    ) {
+        val (entries, providerName) = result
+        val hasWords = entries.any { it.words != null }
+        val isSynced = lyricsHelper.entriesAreSynced(entries)
+        android.util.Log.d(
+            "MusicPlayerViewModel",
+            "Got ${entries.size} lyrics lines from $providerName (word-sync=$hasWords, synced=$isSynced)",
+        )
+
+        // A run delivers its final answer twice; a repeat must not undo the timing already fitted.
+        val isRepeat = entries == shownAnswer
+        shownAnswer = entries
+        val plainText = entries.joinToString("\n") { it.text }
+        uiState.update {
+            it.copy(
+                isLyricsLoading = false,
+                lyrics = plainText.takeIf { it.isNotBlank() },
+                syncedLyrics =
+                    when {
+                        isRepeat -> it.syncedLyrics
+                        isSynced -> entries
+                        else -> emptyList()
+                    },
+                lyricsProviderName = providerName,
+            )
+        }
+        if (!isRepeat) {
+            if (isSynced) followVideoTiming(videoId, entries, durationSeconds) else videoTimingJob?.cancel()
+        }
+    }
+
+    /**
+     * Lyrics show straight away, then move once the lookup answers. Follows the setting so switching
+     * it applies to the song playing, and the next song's lyrics end this.
+     */
+    private fun followVideoTiming(
+        videoId: String,
+        entries: List<LyricsEntry>,
+        durationSeconds: Int,
+    ) {
+        videoTimingJob?.cancel()
+        videoTimingJob =
+            scope.launch {
+                videoTiming.enabled.distinctUntilChanged().collectLatest { enabled ->
+                    val fitted = if (enabled) videoTiming.lookUpAndFit(videoId, entries, durationSeconds) else entries
+                    uiState.update { state ->
+                        val current = state.currentTrack?.videoId
+                        if (current == null || current == videoId) state.copy(syncedLyrics = fitted) else state
+                    }
+                }
+            }
+    }
+
     private suspend fun providerLyrics(
         videoId: String,
         title: String,
@@ -168,7 +219,7 @@ internal class MusicPlayerLyrics(
         album: String?,
     ): Pair<List<LyricsEntry>, String>? =
         try {
-            lyricsHelper.getLyrics(videoId, title, artist, duration, album)
+            lyricsHelper.getLyrics(videoId, title, artist, duration, album, onAnswer = { showLyrics(videoId, it, duration) })
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -192,14 +243,16 @@ internal class MusicPlayerLyrics(
         return entries.takeIf { it.isNotEmpty() }?.let { it to context.getString(R.string.lyrics_source_embedded) }
     }
 
-    private fun beginLoading() {
+    private fun beginLoading(syncOffsetMs: Long) {
+        videoTimingJob?.cancel()
+        shownAnswer = null
         uiState.update {
             it.copy(
                 isLyricsLoading = true,
                 lyrics = null,
                 syncedLyrics = emptyList(),
                 lyricsProviderName = "",
-                lyricsSyncOffsetMs = 0L,
+                lyricsSyncOffsetMs = syncOffsetMs,
                 lyricsCandidates = emptyList(),
             )
         }
@@ -207,7 +260,8 @@ internal class MusicPlayerLyrics(
 
     /** A device song only ever reads its own `.lrc` or embedded lyrics; no provider is asked. */
     private suspend fun loadDeviceLyrics(videoId: String) {
-        beginLoading()
+        val savedOffsetMs = lyricsHelper.syncOffset(videoId)
+        beginLoading(savedOffsetMs ?: 0L)
         val found =
             try {
                 localLyrics.read(videoId)
@@ -233,7 +287,7 @@ internal class MusicPlayerLyrics(
                     context.getString(
                         if (found.source == LocalLyricsSource.FILE) R.string.lyrics_source_local_file else R.string.lyrics_source_embedded,
                     ),
-                lyricsSyncOffsetMs = if (synced) lrcOffsetMs(found.text) else 0L,
+                lyricsSyncOffsetMs = if (synced) savedOffsetMs ?: lrcOffsetMs(found.text) else 0L,
             )
         }
     }
@@ -260,6 +314,8 @@ internal class MusicPlayerLyrics(
         )
     }
 
+    private fun isCurrent(track: MusicTrack): Boolean = uiState.value.currentTrack?.videoId == track.videoId
+
     fun refresh() {
         val track = uiState.value.currentTrack ?: return
         scope.launch {
@@ -268,6 +324,7 @@ internal class MusicPlayerLyrics(
             } catch (e: Exception) {
                 android.util.Log.w("MusicPlayerViewModel", "forceRefresh failed: ${e.message}")
             }
+            if (!isCurrent(track)) return@launch
             fetch(
                 videoId = track.videoId,
                 artist = track.artist,
@@ -295,7 +352,7 @@ internal class MusicPlayerLyrics(
                         duration = track.duration,
                         album = track.album,
                     ) { candidate ->
-                        if (isActive) {
+                        if (isActive && isCurrent(track)) {
                             uiState.update { it.copy(lyricsCandidates = it.lyricsCandidates + candidate) }
                         }
                     }
@@ -321,22 +378,29 @@ internal class MusicPlayerLyrics(
 
     fun applyCandidate(candidate: LyricsCandidate) {
         val track = uiState.value.currentTrack ?: return
+        lyricsJob?.cancel()
         scope.launch {
             lyricsHelper.applyManualLyrics(track.videoId, candidate.entries)
+            if (!isCurrent(track)) return@launch
             val plainText = candidate.entries.joinToString("\n") { it.text }
             uiState.update {
                 it.copy(
+                    isLyricsLoading = false,
                     lyrics = plainText.takeIf { text -> text.isNotBlank() },
                     syncedLyrics = if (candidate.synced) candidate.entries else emptyList(),
                     lyricsProviderName = candidate.providerName,
-                    lyricsSyncOffsetMs = 0L,
                 )
+            }
+            videoTimingJob?.cancel()
+            if (candidate.synced) {
+                followVideoTiming(track.videoId, candidate.entries, (uiState.value.duration / MILLIS_PER_SECOND).toInt())
             }
         }
     }
 
     fun applyEdited(text: String) {
         val track = uiState.value.currentTrack ?: return
+        lyricsJob?.cancel()
         scope.launch {
             val parsed =
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
@@ -352,11 +416,14 @@ internal class MusicPlayerLyrics(
                         .map { line -> LyricsEntry(0L, line) }
                 }
             if (entries.isEmpty()) return@launch
+            videoTimingJob?.cancel()
             val synced = lyricsHelper.entriesAreSynced(entries)
             lyricsHelper.applyManualLyrics(track.videoId, entries)
+            if (!isCurrent(track)) return@launch
             val plainText = entries.joinToString("\n") { it.text }
             uiState.update {
                 it.copy(
+                    isLyricsLoading = false,
                     lyrics = plainText.takeIf { t -> t.isNotBlank() },
                     syncedLyrics = if (synced) entries else emptyList(),
                     lyricsProviderName = context.getString(io.github.aedev.flow.R.string.lyrics_source_edited),
@@ -369,13 +436,29 @@ internal class MusicPlayerLyrics(
         uiState.update {
             it.copy(lyricsSyncOffsetMs = (it.lyricsSyncOffsetMs + deltaMs).coerceIn(-30_000L, 30_000L))
         }
+        val state = uiState.value
+        val videoId = state.currentTrack?.videoId ?: return
+        syncOffsetSave?.cancel()
+        syncOffsetSave =
+            scope.launch {
+                delay(SYNC_OFFSET_SAVE_DELAY_MS)
+                lyricsHelper.saveSyncOffset(videoId, state.lyricsSyncOffsetMs)
+            }
     }
 
     fun resetSyncOffset() {
         uiState.update { it.copy(lyricsSyncOffsetMs = 0L) }
+        val videoId = uiState.value.currentTrack?.videoId ?: return
+        syncOffsetSave?.cancel()
+        scope.launch { lyricsHelper.clearSyncOffset(videoId) }
     }
 
     fun setTextAlign(align: String) {
         scope.launch { playerPreferences.setLyricsTextAlign(align) }
+    }
+
+    private companion object {
+        // A nudge is several quick taps; only where they end is worth writing.
+        const val SYNC_OFFSET_SAVE_DELAY_MS = 300L
     }
 }

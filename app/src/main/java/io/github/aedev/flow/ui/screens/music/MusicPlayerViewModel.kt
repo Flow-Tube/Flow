@@ -16,6 +16,7 @@ import io.github.aedev.flow.data.localmedia.LocalLyricsReader
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsHelper
+import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.music.DownloadManager
 import io.github.aedev.flow.data.music.PlaylistRepository
 import io.github.aedev.flow.data.music.YouTubeMusicService
@@ -60,6 +61,7 @@ class MusicPlayerViewModel
         private val lyricsHelper: LyricsHelper,
         private val artistLookup: MusicArtistLookup,
         localLyrics: LocalLyricsReader,
+        videoLyricsTiming: MusicVideoLyricsTiming,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(MusicPlayerUiState())
         val uiState: StateFlow<MusicPlayerUiState> = _uiState.asStateFlow()
@@ -92,6 +94,7 @@ class MusicPlayerViewModel
                 playerPreferences,
                 localLyrics,
                 downloadManager::getDownloadedTrackPath,
+                videoLyricsTiming,
             )
 
         init {

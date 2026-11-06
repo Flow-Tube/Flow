@@ -5157,4 +5157,20 @@
     <string name="download_already_running">هذا الفيديو قيد التنزيل بالفعل</string>
     <string name="download_replaces_existing">يستبدل النسخة التي نزّلتها بالفعل</string>
     <string name="notification_download_other_audio_track">لم يكن المسار الصوتي الخاص بك متاحاً. تم حفظ %1$s بدلًا منه</string>
+    <string name="lyrics_background">الخلفية</string>
+    <string name="lyrics_background_solid">لون موحّد</string>
+    <string name="lyrics_background_solid_detail">لون واحد من الغلاف</string>
+    <string name="lyrics_background_colorful">متعدد الألوان</string>
+    <string name="lyrics_background_colorful_detail">ألوان هادئة من الغلاف</string>
+    <string name="lyrics_background_moving">متحرّك</string>
+    <string name="lyrics_background_moving_detail">ألوان هادئة تتغير تدريجيًا أثناء تشغيل الأغنية</string>
+    <string name="lyrics_on_lock_screen">كلمات الأغنية على شاشة القفل</string>
+    <string name="lyrics_on_lock_screen_summary">‍يعرض السطر الحالي بدلًا من عنوان الأغنية، بما في ذلك في التطبيقات الأخرى</string>
+    <string name="lyrics_on_lock_screen_timing">توقيت كلمات الأغنية على شاشة القفل</string>
+    <string name="lyrics_on_lock_screen_timing_summary">تقديم توقيت الأسطر إذا ظهرت متأخرة</string>
+    <string name="lyrics_timing_on_time">بلا تغيير</string>
+    <string name="lyrics_timing_earlier">متقدم %1$s ثانية</string>
+    <string name="lyrics_timing_later">متأخر %1$s ثانية</string>
+    <string name="sb_jump">اقفز</string>
+    <string name="sb_skip_notice_title">إظهار رسالة التخطي</string>
 </resources>

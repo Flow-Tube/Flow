@@ -4,6 +4,8 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.music.model.musicArtistKey
 import io.github.aedev.flow.data.music.model.musicBaseTitle
 import io.github.aedev.flow.data.music.model.musicTitleKey
+import io.github.aedev.flow.innertube.models.SongItem
+import io.github.aedev.flow.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
 import kotlinx.serialization.Serializable
 
 /** What the artwork service answers: the matched song and, when its album has one, the loop. */
@@ -72,6 +74,25 @@ internal object AnimatedArtworkLookup {
         return musicTitleKey(name, artists) == musicTitleKey(track.title, artists) &&
             musicArtistKey(artist).contains(musicArtistKey(artist(track)))
     }
+
+    fun songSearch(track: MusicTrack): String = "${musicBaseTitle(track.title)} ${artist(track).removeSuffix(TOPIC_SUFFIX).trim()}"
+
+    /**
+     * [track] as the first real song row in [rows] that is the same song by the same artist. Video
+     * rows are left out: only a song row's album is the one the song was released on.
+     */
+    fun albumVersion(
+        track: MusicTrack,
+        rows: List<SongItem>,
+    ): MusicTrack? =
+        rows
+            .firstOrNull { row ->
+                row.musicVideoType == MUSIC_VIDEO_TYPE_ATV &&
+                    row.album?.name?.isNotBlank() == true &&
+                    accepts(track, ArtworkAnswer(row.title, row.artists.joinToString { it.name }))
+            }?.let { row ->
+                track.copy(title = row.title, album = row.album?.name.orEmpty(), duration = row.duration ?: 0)
+            }
 
     private const val TOPIC_SUFFIX = " - Topic"
 }
