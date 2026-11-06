@@ -42,6 +42,7 @@ class MusicPlayerLyricsTest {
     private val helper =
         mockk<LyricsHelper>(relaxed = true) {
             every { entriesAreSynced(any()) } answers { firstArg<List<*>>().size >= 2 }
+            coEvery { syncOffset(any()) } returns null
         }
     private val preferences =
         mockk<PlayerPreferences> {
@@ -242,5 +243,103 @@ class MusicPlayerLyricsTest {
 
             assertThat(state.value.syncedLyrics.map { it.time }).containsExactly(11_000L, 30_000L).inOrder()
             coVerify(exactly = 1) { timing.lookUpAndFit(any(), any(), any()) }
+        }
+
+    @Test
+    fun `a song's saved offset comes back on load and a pick keeps it`() =
+        runTest {
+            answerEarlyThenSwap()
+            coEvery { helper.syncOffset("dQw4w9WgXcQ") } returns -500L
+            val track = mockk<MusicTrack>(relaxed = true)
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = track))
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.fetch(videoId = "dQw4w9WgXcQ", artist = "Artist", title = "Song")
+            advanceTimeBy(1_000)
+
+            assertThat(state.value.lyricsSyncOffsetMs).isEqualTo(-500L)
+
+            lyrics.applyCandidate(LyricsCandidate("LrcLib", lineSynced, synced = true))
+            advanceTimeBy(100)
+
+            assertThat(state.value.lyricsSyncOffsetMs).isEqualTo(-500L)
+        }
+
+    @Test
+    fun `quick nudges save once and reset clears the saved offset`() =
+        runTest {
+            val track = mockk<MusicTrack> { every { videoId } returns "v" }
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = track))
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.adjustSyncOffset(100L)
+            lyrics.adjustSyncOffset(100L)
+            advanceTimeBy(1_000)
+
+            coVerify(exactly = 1) { helper.saveSyncOffset("v", any()) }
+            coVerify { helper.saveSyncOffset("v", 200L) }
+
+            lyrics.resetSyncOffset()
+            advanceTimeBy(1_000)
+
+            assertThat(state.value.lyricsSyncOffsetMs).isEqualTo(0L)
+            coVerify { helper.clearSyncOffset("v") }
+        }
+
+    private fun track(id: String) = mockk<MusicTrack>(relaxed = true) { every { videoId } returns id }
+
+    @Test
+    fun `a new song ends the source browse and a late candidate is dropped`() =
+        runTest {
+            mockkObject(NetworkState)
+            every { NetworkState.isOnline(any()) } returns true
+            coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) } returns null
+            val candidate = LyricsCandidate("LrcLib", lineSynced, synced = true)
+            coEvery { helper.getAllLyrics(any(), any(), any(), any(), any(), any()) } coAnswers {
+                delay(1_000)
+                arg<suspend (LyricsCandidate) -> Unit>(5)(candidate)
+            }
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = track("a")))
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.browseCandidates()
+            advanceTimeBy(500)
+            state.value = state.value.copy(currentTrack = track("b"))
+            lyrics.fetch(videoId = "b", artist = "Artist", title = "Song")
+            advanceTimeBy(2_000)
+
+            assertThat(state.value.lyricsCandidates).isEmpty()
+            assertThat(state.value.isBrowsingLyrics).isFalse()
+        }
+
+    @Test
+    fun `a pick that lands after the song changed does not show on the new song`() =
+        runTest {
+            coEvery { helper.applyManualLyrics(any(), any(), any()) } coAnswers { delay(1_000) }
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = track("a")))
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.applyCandidate(LyricsCandidate("LrcLib", lineSynced, synced = true))
+            advanceTimeBy(500)
+            state.value = state.value.copy(currentTrack = track("b"))
+            advanceTimeBy(1_000)
+
+            coVerify { helper.applyManualLyrics("a", lineSynced, any()) }
+            assertThat(state.value.syncedLyrics).isEmpty()
+        }
+
+    @Test
+    fun `a refresh that ends after the song changed does not fetch the old song`() =
+        runTest {
+            coEvery { helper.forceRefresh(any(), any()) } coAnswers { delay(1_000) }
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = track("a")))
+            val lyrics = MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
+
+            lyrics.refresh()
+            advanceTimeBy(500)
+            state.value = state.value.copy(currentTrack = track("b"))
+            advanceTimeBy(1_000)
+
+            coVerify(exactly = 0) { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) }
         }
 }

@@ -111,6 +111,28 @@ class LyricsCacheManagerTest {
             LyricsCacheManager.clearUnverifiedOnce(blocked) { false }
         }
 
+    @Test
+    fun `a sync offset outlives the lyrics and goes only when cleared`() =
+        runTest {
+            LyricsCacheManager.saveLyrics(context, "v", found)
+            LyricsCacheManager.saveSyncOffset(context, "v", -750L)
+
+            LyricsCacheManager.evictLyrics(context, "v")
+            LyricsCacheManager.saveLyrics(context, "v", picked)
+
+            assertThat(LyricsCacheManager.syncOffset(context, "v")).isEqualTo(-750L)
+
+            LyricsCacheManager.clearSyncOffset(context, "v")
+
+            assertThat(LyricsCacheManager.syncOffset(context, "v")).isNull()
+        }
+
+    @Test
+    fun `a song never nudged has no sync offset`() =
+        runTest {
+            assertThat(LyricsCacheManager.syncOffset(context, "v")).isNull()
+        }
+
     private companion object {
         const val DAY_MS = 24 * 60 * 60 * 1000L
     }

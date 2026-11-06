@@ -20,6 +20,7 @@ import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.utils.NetworkState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -49,6 +50,7 @@ internal class MusicPlayerLyrics(
     private var lyricsJob: kotlinx.coroutines.Job? = null
     private var videoTimingJob: Job? = null
     private var shownAnswer: List<LyricsEntry>? = null
+    private var syncOffsetSave: Job? = null
 
     init {
         scope.launch {
@@ -123,7 +125,7 @@ internal class MusicPlayerLyrics(
         }
         lyricsJob =
             scope.launch {
-                beginLoading()
+                beginLoading(lyricsHelper.syncOffset(videoId) ?: 0L)
 
                 val cleanArtist = cleanName(artist)
                 val cleanTitle = cleanName(title)
@@ -241,7 +243,7 @@ internal class MusicPlayerLyrics(
         return entries.takeIf { it.isNotEmpty() }?.let { it to context.getString(R.string.lyrics_source_embedded) }
     }
 
-    private fun beginLoading() {
+    private fun beginLoading(syncOffsetMs: Long) {
         videoTimingJob?.cancel()
         shownAnswer = null
         uiState.update {
@@ -250,7 +252,7 @@ internal class MusicPlayerLyrics(
                 lyrics = null,
                 syncedLyrics = emptyList(),
                 lyricsProviderName = "",
-                lyricsSyncOffsetMs = 0L,
+                lyricsSyncOffsetMs = syncOffsetMs,
                 lyricsCandidates = emptyList(),
             )
         }
@@ -258,7 +260,8 @@ internal class MusicPlayerLyrics(
 
     /** A device song only ever reads its own `.lrc` or embedded lyrics; no provider is asked. */
     private suspend fun loadDeviceLyrics(videoId: String) {
-        beginLoading()
+        val savedOffsetMs = lyricsHelper.syncOffset(videoId)
+        beginLoading(savedOffsetMs ?: 0L)
         val found =
             try {
                 localLyrics.read(videoId)
@@ -284,7 +287,7 @@ internal class MusicPlayerLyrics(
                     context.getString(
                         if (found.source == LocalLyricsSource.FILE) R.string.lyrics_source_local_file else R.string.lyrics_source_embedded,
                     ),
-                lyricsSyncOffsetMs = if (synced) lrcOffsetMs(found.text) else 0L,
+                lyricsSyncOffsetMs = if (synced) savedOffsetMs ?: lrcOffsetMs(found.text) else 0L,
             )
         }
     }
@@ -386,7 +389,6 @@ internal class MusicPlayerLyrics(
                     lyrics = plainText.takeIf { text -> text.isNotBlank() },
                     syncedLyrics = if (candidate.synced) candidate.entries else emptyList(),
                     lyricsProviderName = candidate.providerName,
-                    lyricsSyncOffsetMs = 0L,
                 )
             }
             videoTimingJob?.cancel()
@@ -434,13 +436,29 @@ internal class MusicPlayerLyrics(
         uiState.update {
             it.copy(lyricsSyncOffsetMs = (it.lyricsSyncOffsetMs + deltaMs).coerceIn(-30_000L, 30_000L))
         }
+        val state = uiState.value
+        val videoId = state.currentTrack?.videoId ?: return
+        syncOffsetSave?.cancel()
+        syncOffsetSave =
+            scope.launch {
+                delay(SYNC_OFFSET_SAVE_DELAY_MS)
+                lyricsHelper.saveSyncOffset(videoId, state.lyricsSyncOffsetMs)
+            }
     }
 
     fun resetSyncOffset() {
         uiState.update { it.copy(lyricsSyncOffsetMs = 0L) }
+        val videoId = uiState.value.currentTrack?.videoId ?: return
+        syncOffsetSave?.cancel()
+        scope.launch { lyricsHelper.clearSyncOffset(videoId) }
     }
 
     fun setTextAlign(align: String) {
         scope.launch { playerPreferences.setLyricsTextAlign(align) }
+    }
+
+    private companion object {
+        // A nudge is several quick taps; only where they end is worth writing.
+        const val SYNC_OFFSET_SAVE_DELAY_MS = 300L
     }
 }

@@ -116,33 +116,35 @@ internal class SessionLyrics(
         if (title.isNullOrBlank() || artist.isNullOrBlank()) return
         val durationSeconds = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt()
         val showsLines = isEnabled
-        var lastAnswer: List<LyricsEntry>? = null
-        val show: suspend (Pair<List<LyricsEntry>, String>) -> Unit = { answer ->
-            if (answer.first != lastAnswer) {
-                val synced = answer.first.takeIf(lyricsHelper::entriesAreSynced).orEmpty()
-                val fitted =
-                    if (showsLines && synced.isNotEmpty()) {
-                        withContext(Dispatchers.IO) { videoTiming.fit(videoId, synced, durationSeconds) }
-                    } else {
-                        synced
-                    }
-                fetched = Fetched(videoId, fitted, offsetMs = 0L)
-                rebuild()
-                lastAnswer = answer.first
-            }
-        }
         loadGuarded {
+            val offsetMs = lyricsHelper.syncOffset(videoId) ?: 0L
+            var lastAnswer: List<LyricsEntry>? = null
+            val show: suspend (Pair<List<LyricsEntry>, String>) -> Unit = { answer ->
+                if (answer.first != lastAnswer) {
+                    val synced = answer.first.takeIf(lyricsHelper::entriesAreSynced).orEmpty()
+                    val fitted =
+                        if (showsLines && synced.isNotEmpty()) {
+                            withContext(Dispatchers.IO) { videoTiming.fit(videoId, synced, durationSeconds) }
+                        } else {
+                            synced
+                        }
+                    fetched = Fetched(videoId, fitted, offsetMs)
+                    rebuild()
+                    lastAnswer = answer.first
+                }
+            }
             lyricsHelper.getLyrics(videoId, title, artist, durationSeconds, null, onAnswer = show)?.let { show(it) }
         }
     }
 
     private fun loadDeviceLyrics(videoId: String) {
         loadGuarded {
+            val savedOffsetMs = lyricsHelper.syncOffset(videoId)
             val read =
                 withContext(Dispatchers.IO) {
                     val text = localLyrics.read(videoId)?.text ?: return@withContext null
                     val entries = LyricsUtils.parseLyrics(text).takeIf(lyricsHelper::entriesAreSynced).orEmpty()
-                    Fetched(videoId, entries, lrcOffsetMs(text))
+                    Fetched(videoId, entries, savedOffsetMs ?: lrcOffsetMs(text))
                 }
             if (read != null) {
                 fetched = read

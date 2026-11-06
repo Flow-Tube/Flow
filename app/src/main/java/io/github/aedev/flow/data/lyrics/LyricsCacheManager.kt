@@ -12,6 +12,7 @@ object LyricsCacheManager {
     private const val TAG = "LyricsCacheManager"
     private const val LYRICS_DIR = "lyrics"
     private const val MANUAL_SUFFIX = ".manual"
+    private const val SYNC_OFFSET_SUFFIX = ".offset"
     private const val UNVERIFIED_MARKER = ".unverified-expired"
     private const val WEEK_MS = 7 * 24 * 60 * 60 * 1000L
     private val lock = Any()
@@ -145,6 +146,43 @@ object LyricsCacheManager {
                 }
             }
         }
+    }
+
+    /** Kept apart from the lyrics, so a nudge outlives a better answer, another source or Refresh. */
+    suspend fun syncOffset(
+        context: Context,
+        videoId: String,
+    ): Long? =
+        withContext(Dispatchers.IO) {
+            synchronized(lock) {
+                runCatching {
+                    sidecar(context, videoId, SYNC_OFFSET_SUFFIX)
+                        .takeIf { it.exists() }
+                        ?.readText()
+                        ?.trim()
+                        ?.toLongOrNull()
+                }.getOrNull()
+            }
+        }
+
+    suspend fun saveSyncOffset(
+        context: Context,
+        videoId: String,
+        offsetMs: Long,
+    ) {
+        withContext(Dispatchers.IO) {
+            synchronized(lock) {
+                runCatching { sidecar(context, videoId, SYNC_OFFSET_SUFFIX).writeText(offsetMs.toString()) }
+                    .onFailure { Log.e(TAG, "Failed to save the sync offset for $videoId: ${it.message}") }
+            }
+        }
+    }
+
+    suspend fun clearSyncOffset(
+        context: Context,
+        videoId: String,
+    ) {
+        withContext(Dispatchers.IO) { synchronized(lock) { sidecar(context, videoId, SYNC_OFFSET_SUFFIX).delete() } }
     }
 
     /** Saved lyrics without word sync look for an upgrade at most this often, going by the file's modified time. */

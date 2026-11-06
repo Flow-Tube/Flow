@@ -320,6 +320,16 @@ class LyricsHelper
 
         fun entriesAreSynced(entries: List<LyricsEntry>): Boolean = LyricsChecks.entriesAreSynced(entries)
 
+        /** The offset the user chose for this song, or null if they never nudged it. */
+        suspend fun syncOffset(videoId: String): Long? = LyricsCacheManager.syncOffset(context, videoId)
+
+        suspend fun saveSyncOffset(
+            videoId: String,
+            offsetMs: Long,
+        ) = LyricsCacheManager.saveSyncOffset(context, videoId, offsetMs)
+
+        suspend fun clearSyncOffset(videoId: String) = LyricsCacheManager.clearSyncOffset(context, videoId)
+
         fun clearCache(videoId: String? = null) {
             if (videoId != null) cache.remove(videoId) else cache.clear()
         }
