@@ -11,6 +11,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.localmedia.lrcOffsetMs
@@ -262,7 +263,14 @@ internal class SessionLyrics(
         val source = fetched?.takeIf { it.videoId == videoId }
         val entries = onScreen?.entries?.takeIf { it.isNotEmpty() } ?: source?.entries.orEmpty()
         val songOffsetMs = onScreen?.syncOffsetMs ?: source?.offsetMs ?: 0L
-        timeline = if (entries.isEmpty()) null else SessionLyricTimeline(entries, songOffsetMs - delayMs)
+        timeline =
+            if (entries.isEmpty()) {
+                null
+            } else {
+                SessionLyricTimeline(entries, songOffsetMs - delayMs) { line, count ->
+                    context.getString(R.string.session_lyric_repeated, line, count)
+                }
+            }
         update()
     }
 

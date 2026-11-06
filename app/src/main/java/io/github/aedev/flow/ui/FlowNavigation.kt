@@ -22,6 +22,7 @@ import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
 import io.github.aedev.flow.ui.components.musicplayer.sheet.MusicPlayerSheetState
+import io.github.aedev.flow.ui.components.settings.LocalNewSettings
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
@@ -43,6 +44,7 @@ import io.github.aedev.flow.ui.screens.recap.RecapScreen
 import io.github.aedev.flow.ui.screens.recap.story.RecapStoryScreen
 import io.github.aedev.flow.ui.screens.search.SearchScreen
 import io.github.aedev.flow.ui.screens.settings.SettingsHost
+import io.github.aedev.flow.ui.screens.settings.rememberNewSettings
 import io.github.aedev.flow.ui.screens.shorts.ShortsScreen
 import io.github.aedev.flow.ui.screens.subscriptions.SubscriptionsScreen
 import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
@@ -273,7 +275,9 @@ fun NavGraphBuilder.flowAppGraph(
 
     composable(EQUALIZER_ROUTE) {
         currentRoute.value = EQUALIZER_ROUTE
-        EqualizerScreen(onBack = { navController.popBackStack() })
+        CompositionLocalProvider(LocalNewSettings provides rememberNewSettings()) {
+            EqualizerScreen(onBack = { navController.popBackStack() })
+        }
     }
 
     composable("categories") {
