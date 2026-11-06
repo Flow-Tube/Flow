@@ -25,7 +25,9 @@ import io.github.aedev.flow.sync2.crypto.openBlob
 import io.github.aedev.flow.sync2.crypto.openChain
 import io.github.aedev.flow.sync2.crypto.paddedSize
 import io.github.aedev.flow.sync2.crypto.pairingAad
+import io.github.aedev.flow.sync2.crypto.pairingCommit
 import io.github.aedev.flow.sync2.crypto.pairingKeys
+import io.github.aedev.flow.sync2.crypto.pairingProof
 import io.github.aedev.flow.sync2.crypto.pairingSlot
 import io.github.aedev.flow.sync2.crypto.purposeKey
 import io.github.aedev.flow.sync2.crypto.recoveryKeys
@@ -36,6 +38,7 @@ import io.github.aedev.flow.sync2.crypto.sealWithSalt
 import io.github.aedev.flow.sync2.crypto.unwrapEpochKey
 import io.github.aedev.flow.sync2.crypto.verify
 import io.github.aedev.flow.sync2.crypto.wrapEpochKeyWithEphemeral
+import io.github.aedev.flow.sync2.linking.scannerKey
 import io.github.aedev.flow.sync2.roster.checkSender
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.roster.replayRoster
@@ -273,6 +276,12 @@ class VectorsTest {
         assertEquals(a.sas, b.sas)
         assertArrayEquals(shower, agreementPublicKey(v["showerSecret"].bytes))
         assertArrayEquals(v["slot"].bytes, pairingSlot(token))
+        assertArrayEquals(v["commit"].bytes, pairingCommit(shower))
+        assertArrayEquals(v["proof"].bytes, pairingProof(token, scanner))
+        assertArrayEquals(v["scannerFirst"].bytes, scanner + v["proof"].bytes)
+        assertArrayEquals(scanner, scannerKey(v["scannerFirst"].bytes, token))
+        assertFalse(v["commit"].bytes.contentEquals(pairingCommit(v["refused"]["showerPublic"].bytes)))
+        assertNull(scannerKey(scanner + v["refused"]["proof"].bytes, token))
         val m = v["message"]
         assertArrayEquals(m["aad"].bytes, pairingAad(token, 0))
         val content = decodePayload(open(a.scannerKey, m["aad"].bytes, m["box"].bytes))

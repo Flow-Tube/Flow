@@ -4,6 +4,13 @@
   "scannerSecret": "3274a86f4aad7932a7600af2b83fc1084800506f3ae0913e8dc4a9e7ebc071fa",
   "scannerPublic": "326a910b3918f3ae2622ca6d8aee0e869ad50a3a5b4f6d2da5f92736696b3e29",
   "token": "0bc62d99c2d29e8390af6256ea522cae",
+  "commit": "d428efa6534b547c629c320afcf727b90b9aa2bee40f89e045cac1cb0ad10220",
+  "proof": "c104990776cf03bb02ec9346b457ea24",
+  "scannerFirst": "326a910b3918f3ae2622ca6d8aee0e869ad50a3a5b4f6d2da5f92736696b3e29c104990776cf03bb02ec9346b457ea24",
+  "refused": {
+    "showerPublic": "6c108c92e15c00913f485173b36a57b45d3e6bbd93fcdf969eb6daf42fae1d74",
+    "proof": "aa4e043420136f0b7046676bc2a9d679"
+  },
   "showerKey": "166e59467fff3faede65d00c8b5dfa5412ac7519a592b5f4e64e2108f7c58ead",
   "scannerKey": "fa94e5db513629853b1c8ec90ff0c6f3f32ee82cb0f5e177bb0738dde7653aa9",
   "sas": "665622",

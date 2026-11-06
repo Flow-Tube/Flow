@@ -178,6 +178,27 @@ class JoinRequestTest {
         }
 
     @Test
+    fun a_server_answer_with_the_key_itself_is_refused() =
+        runTest {
+            val error =
+                withContext(Dispatchers.Default) {
+                    coroutineScope {
+                        val asking =
+                            async { runCatching { askToJoin(ServerStore.connect(server.url, newMember(), null, null), "admin", "TV") } }
+                        var listed = member().joinRequests()
+                        while (listed.isEmpty()) {
+                            delay(50)
+                            listed = member().joinRequests()
+                        }
+                        val qr = newOffer(StoreLocation("server", "memory"), "Desktop A", null).qr
+                        member().answerJoin(listed.single().id, qr.replace("\"c\":", "\"e\":"))
+                        asking.await().exceptionOrNull()
+                    }
+                }
+            assertTrue("$error", error is LinkedException.Unexpected)
+        }
+
+    @Test
     fun a_declined_request_stops_the_asking_device() =
         runTest {
             val error =

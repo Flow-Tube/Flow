@@ -26,7 +26,7 @@ data class StoreLocation(
 data class QrCode(
     val v: Int,
     val t: String,
-    val e: String,
+    val c: String,
     val r: String,
     val d: String,
     val s: StoreLocation? = null,

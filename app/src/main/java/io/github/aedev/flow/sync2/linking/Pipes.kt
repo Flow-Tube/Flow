@@ -5,17 +5,25 @@ import io.github.aedev.flow.sync.transport.LanAddress
 import io.github.aedev.flow.sync.transport.SyncConnection
 import io.github.aedev.flow.sync.transport.WsClient
 import io.github.aedev.flow.sync.transport.WsServer
+import io.github.aedev.flow.sync2.crypto.pairingProof
 import io.github.aedev.flow.sync2.data.LanAddressRow
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.lan.MAX_LAN_FRAME
 import io.github.aedev.flow.sync2.store.Mailbox
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import okhttp3.OkHttpClient
+import java.security.MessageDigest
 import java.util.Locale
 
 private const val PAIR_PATH = "/flow-sync/2/pair"
@@ -23,6 +31,13 @@ private const val CONNECT_TIMEOUT_MS = 3_000L
 private const val CLOSE_WAIT_MS = 5_000L
 private const val POLL_INTERVAL_MS = 2_000L
 internal const val SLOT_LIFETIME_MS = 180_000L
+
+/** How long a connection has to send its first message before it is dropped. */
+private const val FIRST_MESSAGE_MS = 5_000L
+
+/** Connections waited on at once, and as many more left unserved until one ends; any further ones are closed. */
+private const val WAITING_CONNECTIONS = 8
+private const val PROOF_SIZE = 16
 
 /** Addresses a code lists, best first, as many as FLOW-SYNC/1 codes carry. */
 private const val LAN_ADDRESSES = 3
@@ -37,21 +52,25 @@ data class LanEndpoint(
 
 /**
  * How pairing messages travel (spec/protocol.md, Channel): through a store's mailbox, or over a LAN
- * WebSocket. Either way the scanner's ephemeral key goes first, in the clear.
+ * WebSocket. Either way the scanner's key goes first and the shower's second, in the clear.
  */
 internal interface Pipe {
     suspend fun send(bytes: ByteArray)
 
     suspend fun receive(): ByteArray
-
-    /** The scanner's first step: its ephemeral public key. */
-    suspend fun sendKey(key: ByteArray)
-
-    /** The shower's first step: the scanner's key, which it needs to open anything. */
-    suspend fun receiveKey(): ByteArray
 }
 
-/** A slot of a store's pairing mailbox. The scanner's key is the prefix of its first message. */
+/** The scanner's key from its first message, or null when the message doesn't prove it read the code. */
+internal fun scannerKey(
+    first: ByteArray,
+    token: ByteArray,
+): ByteArray? {
+    if (first.size != KEY_SIZE + PROOF_SIZE) return null
+    val key = first.copyOfRange(0, KEY_SIZE)
+    return key.takeIf { MessageDigest.isEqual(first.copyOfRange(KEY_SIZE, first.size), pairingProof(token, it)) }
+}
+
+/** A slot of a store's pairing mailbox: one file per message, numbered from 0 in each direction. */
 internal class MailboxPipe(
     private val mailbox: Mailbox,
     private val slot: String,
@@ -61,8 +80,7 @@ internal class MailboxPipe(
     private val receiveDirection = if (shower) 'b' else 'a'
     private var sent = 0L
     private var received = 0L
-    private var prefix = ByteArray(0)
-    private var pending: ByteArray? = null
+    private var waited = 0L
 
     private fun name(
         direction: Char,
@@ -70,18 +88,13 @@ internal class MailboxPipe(
     ) = "%c-%016x.p".format(Locale.ROOT, direction, seq)
 
     override suspend fun send(bytes: ByteArray) {
-        mailbox.putMessage(slot, name(sendDirection, sent), prefix + bytes)
-        prefix = ByteArray(0)
+        mailbox.putMessage(slot, name(sendDirection, sent), bytes)
         sent++
     }
 
     override suspend fun receive(): ByteArray {
-        pending?.let {
-            pending = null
-            return it
-        }
         val name = name(receiveDirection, received)
-        var waited = 0L
+        waited = 0L
         while (true) {
             mailbox.getMessage(slot, name)?.let {
                 received++
@@ -93,19 +106,15 @@ internal class MailboxPipe(
         }
     }
 
-    override suspend fun sendKey(key: ByteArray) {
-        prefix = key
-    }
-
-    override suspend fun receiveKey(): ByteArray {
-        val first = receive()
-        if (first.size <= KEY_SIZE) throw LinkedException.Unexpected()
-        pending = first.copyOfRange(KEY_SIZE, first.size)
-        return first.copyOfRange(0, KEY_SIZE)
+    /** The shower's first step. A wrong proof ends this path but not the code, so it goes quiet and the LAN stays open. */
+    suspend fun awaitScanner(token: ByteArray): ByteArray {
+        scannerKey(receive(), token)?.let { return it }
+        delay(SLOT_LIFETIME_MS - waited)
+        throw LinkedException.TimedOut()
     }
 }
 
-/** A WebSocket to the other device on the same network, at [host]. The scanner's key is its own first frame. */
+/** A WebSocket to the other device on the same network, at [host]: one frame per message. */
 internal class LanPipe(
     private val connection: SyncConnection,
     val host: String?,
@@ -120,10 +129,6 @@ internal class LanPipe(
             throw LinkedException.TimedOut()
         }
 
-    override suspend fun sendKey(key: ByteArray) = send(key)
-
-    override suspend fun receiveKey(): ByteArray = receive().takeIf { it.size == KEY_SIZE } ?: throw LinkedException.Unexpected()
-
     fun close() = connection.close()
 
     /** Waits for the other side to close, so a last message isn't lost when this side stops serving. */
@@ -135,19 +140,45 @@ internal class LanPipe(
 /** Where this device listens while it shows a code. */
 class Listening internal constructor(
     private val server: WsServer,
+    private val connections: ReceiveChannel<SyncConnection>,
     val addresses: List<LanEndpoint>,
 ) {
-    /** Waits for one scanner and reads its key; other connections stay unanswered. */
-    internal suspend fun accept(): Pair<LanPipe, ByteArray> {
-        val connection =
-            try {
-                withTimeout(SLOT_LIFETIME_MS) { server.awaitConnection() }
-            } catch (_: TimeoutCancellationException) {
-                throw LinkedException.TimedOut()
+    /**
+     * Waits on connections at once, each with a few seconds to prove it read the code, so a silent
+     * one can't hold up the real scanner. The first to prove it wins and every other is dropped.
+     */
+    internal suspend fun accept(token: ByteArray): Pair<LanPipe, ByteArray> =
+        try {
+            withTimeout(SLOT_LIFETIME_MS) {
+                coroutineScope {
+                    val winner = CompletableDeferred<Pair<SyncConnection, ByteArray>>()
+                    val waiting = Semaphore(WAITING_CONNECTIONS)
+                    val serving =
+                        launch {
+                            for (connection in connections) {
+                                waiting.acquire()
+                                launch {
+                                    var won = false
+                                    try {
+                                        val first = withTimeoutOrNull(FIRST_MESSAGE_MS) { connection.receive() }
+                                        won = first?.let { scannerKey(it, token) }?.let { winner.complete(connection to it) } == true
+                                    } finally {
+                                        if (!won) connection.close()
+                                        waiting.release()
+                                    }
+                                }
+                            }
+                        }
+                    val (connection, key) = winner.await()
+                    serving.cancel()
+                    LanPipe(connection, connection.remoteHost?.let(LocalNetworkAddress::urlHost)) to key
+                }
             }
-        val pipe = LanPipe(connection, connection.remoteHost?.let(LocalNetworkAddress::urlHost))
-        return pipe to pipe.receiveKey()
-    }
+        } catch (_: TimeoutCancellationException) {
+            throw LinkedException.TimedOut()
+        } finally {
+            connections.cancel()
+        }
 
     fun stop() = server.stop()
 }
@@ -160,10 +191,18 @@ suspend fun listen(): Listening? {
             .map { it.ip }
             .filter(LocalNetworkAddress::isLocal)
             .take(LAN_ADDRESSES)
-    if (addresses.isEmpty()) return null
-    val server = WsServer(PAIR_PATH, MAX_LAN_FRAME)
+    return if (addresses.isEmpty()) null else listenOn(addresses)
+}
+
+/** Listens on every interface and lists [addresses] as where to reach this device. */
+internal suspend fun listenOn(addresses: List<String>): Listening {
+    val connections = Channel<SyncConnection>(WAITING_CONNECTIONS, onUndeliveredElement = { it.close() })
+    val server =
+        WsServer(PAIR_PATH, MAX_LAN_FRAME) { connection ->
+            if (connections.trySend(connection).isFailure) connection.close()
+        }
     val port = server.start()
-    return Listening(server, addresses.map { LanEndpoint(it, port) })
+    return Listening(server, connections, addresses.map { LanEndpoint(it, port) })
 }
 
 /** Dials the addresses a code lists, in order, each for a few seconds. */
