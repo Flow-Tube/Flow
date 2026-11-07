@@ -12,6 +12,7 @@ import io.github.aedev.flow.player.BackgroundPlaybackPolicy
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.PictureInPictureHelper
+import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 
 private const val TAG = "PipModeHandler"
 
@@ -21,14 +22,17 @@ private const val TAG = "PipModeHandler"
 @Composable
 private fun PipBroadcastReceiverEffect(
     context: Context,
+    onNext: () -> Unit,
     onBackground: () -> Unit,
 ) {
+    val currentOnNext by rememberUpdatedState(onNext)
     val currentOnBackground by rememberUpdatedState(onBackground)
     DisposableEffect(Unit) {
         val receiver =
             PictureInPictureHelper.createPipActionReceiver(
                 onPlay = { EnhancedPlayerManager.getInstance().play() },
                 onPause = { EnhancedPlayerManager.getInstance().pause() },
+                onNext = { currentOnNext() },
                 onClose = {
                     GlobalPlayerState.requestDismiss()
                     EnhancedPlayerManager.getInstance().stop()
@@ -63,9 +67,11 @@ private fun PipParamsUpdateEffect(
     autoPipEnabled: Boolean,
     isBackgroundPlaybackMode: Boolean,
     videoAspectRatio: Float,
+    hasNext: Boolean,
     activity: Activity?,
 ) {
-    LaunchedEffect(isPlaying, autoPipEnabled, isBackgroundPlaybackMode, videoAspectRatio) {
+    LaunchedEffect(isPlaying, autoPipEnabled, isBackgroundPlaybackMode, videoAspectRatio, hasNext) {
+        PictureInPictureHelper.setVideoHasNext(hasNext)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && activity != null) {
             val autoEnterEnabled =
                 BackgroundPlaybackPolicy.shouldEnterAutoPip(
@@ -85,6 +91,7 @@ private fun PipParamsUpdateEffect(
 
     DisposableEffect(activity) {
         onDispose {
+            PictureInPictureHelper.setVideoHasNext(false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && activity != null) {
                 PictureInPictureHelper.updatePipParams(
                     activity = activity,
@@ -131,10 +138,19 @@ internal fun SetupPipEffects(
     isBackgroundPlaybackMode: Boolean,
     videoAspectRatio: Float,
     pipPreferences: PipPreferences,
-    onListenInBackground: () -> Unit,
+    hasNext: Boolean,
+    playerViewModel: VideoPlayerViewModel,
 ) {
     // Register broadcast receiver
-    PipBroadcastReceiverEffect(context, onListenInBackground)
+    PipBroadcastReceiverEffect(
+        context = context,
+        onNext = { playerViewModel.playNext() },
+        // A PiP window can't be sent back; finishing closes it and onDestroy keeps the background audio.
+        onBackground = {
+            playerViewModel.startBackgroundPlayback()
+            activity?.finish()
+        },
+    )
 
     // Update PiP params
     PipParamsUpdateEffect(
@@ -142,6 +158,7 @@ internal fun SetupPipEffects(
         autoPipEnabled = pipPreferences.autoPipEnabled,
         isBackgroundPlaybackMode = isBackgroundPlaybackMode,
         videoAspectRatio = videoAspectRatio,
+        hasNext = hasNext,
         activity = activity,
     )
 }
