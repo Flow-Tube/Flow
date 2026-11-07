@@ -42,6 +42,7 @@ import io.github.aedev.flow.ui.components.music.common.MusicNowPlayingOverlay
 import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
 import io.github.aedev.flow.ui.components.shared.DownloadedBadge
 import io.github.aedev.flow.ui.components.shared.titleMarquee
+import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
 
 /**
  * The single grid card for anything that is not a single track — albums, playlists, artists,
@@ -116,7 +117,7 @@ fun MusicCollectionCard(
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = textAlign,
             maxLines = 1,
-            overflow = TextOverflow.Clip,
+            overflow = titleMarqueeOverflow(),
             modifier = Modifier.titleMarquee(),
         )
 
