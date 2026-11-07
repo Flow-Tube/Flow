@@ -30,6 +30,26 @@ class EqualizerAudioProcessorTest {
     }
 
     @Test
+    fun `each spatial strength is clearly wider than the one below`() {
+        fun width(sound: EqSpatialSound): Double {
+            val samples = ShortArray(19_200) { i -> if (i % 2 == 0) sine(1_000.0, 9_600, channels = 1)[i / 2] else 0 }
+            val output = processor(spec = spatial(sound)).run(samples).takeLast(4_000)
+            val left = output.filterIndexed { i, _ -> i % 2 == 0 }.map { it.toDouble() }
+            val right = output.filterIndexed { i, _ -> i % 2 == 1 }.map { it.toDouble() }
+            val side = left.zip(right) { l, r -> (l - r) / 2 }.sumOf { it * it }
+            val mid = left.zip(right) { l, r -> (l + r) / 2 }.sumOf { it * it }
+            return side / mid
+        }
+
+        val low = width(EqSpatialSound.LOW)
+        val medium = width(EqSpatialSound.MEDIUM)
+        val high = width(EqSpatialSound.HIGH)
+
+        assertThat(medium).isGreaterThan(low * 1.3)
+        assertThat(high).isGreaterThan(medium * 1.3)
+    }
+
+    @Test
     fun `spatial sound leaves surround streams alone`() {
         val samples = sine(1_000.0, 2_000, channels = 6)
 

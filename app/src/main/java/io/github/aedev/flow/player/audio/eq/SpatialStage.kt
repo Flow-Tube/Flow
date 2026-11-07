@@ -7,8 +7,10 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * Widens a stereo image: more of the side signal, then a little of each channel, delayed and dulled
- * the way the far ear hears it, fed into the other. Android's Spatializer leaves stereo alone by
+ * Widens a stereo image: more of the side signal, then a little of each channel, delayed like an
+ * early reflection and dulled the way the far ear hears it, fed into the other. A delay this long
+ * reads as space, where a sub-millisecond one arrives in phase and narrows the low end instead.
+ * Android's Spatializer leaves stereo alone by
  * default, Virtualizer depends on the device and Media3's channel mixer has no delay or filter, so
  * this runs in the player's own chain. Off is an exact pass-through, and every change glides.
  */
@@ -98,18 +100,18 @@ internal class SpatialStage(
     }
 
     private companion object {
-        const val CROSSFEED_DELAY_SECONDS = 0.0003
-        const val CROSSFEED_CUTOFF_HZ = 700.0
+        const val CROSSFEED_DELAY_SECONDS = 0.015
+        const val CROSSFEED_CUTOFF_HZ = 2_700.0
 
         /** Side energy of typical music relative to its mid; the level keeps that music about as loud. */
-        const val TYPICAL_SIDE_ENERGY = 0.25
+        const val TYPICAL_SIDE_ENERGY = 0.16
 
         fun widthOf(sound: EqSpatialSound): Double =
             when (sound) {
                 EqSpatialSound.OFF -> 1.0
-                EqSpatialSound.LOW -> 1.25
-                EqSpatialSound.MEDIUM -> 1.5
-                EqSpatialSound.HIGH -> 1.8
+                EqSpatialSound.LOW -> 1.5
+                EqSpatialSound.MEDIUM -> 2.0
+                EqSpatialSound.HIGH -> 2.5
             }
 
         fun crossfeedOf(sound: EqSpatialSound): Double =
