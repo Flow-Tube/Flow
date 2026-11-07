@@ -233,7 +233,7 @@ internal fun LinkedSetup(
 
         Setup.RESTORE_SERVER -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var words by rememberSaveable { mutableStateOf("") }
+            var words by remember { mutableStateOf("") }
             SyncStepHeader(icon = Icons.Outlined.Key, title = stringResource(R.string.linked_restore_title))
             ServerField(url) { url = it }
             WordsField(words) { words = it }
@@ -247,7 +247,7 @@ internal fun LinkedSetup(
         }
 
         Setup.RESTORE_WEBDAV -> {
-            var words by rememberSaveable { mutableStateOf("") }
+            var words by remember { mutableStateOf("") }
             WebDavForm(
                 busy,
                 stringResource(
