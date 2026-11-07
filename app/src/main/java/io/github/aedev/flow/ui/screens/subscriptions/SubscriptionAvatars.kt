@@ -38,6 +38,7 @@ import io.github.aedev.flow.ui.components.shared.ChannelGroupBadge
 import io.github.aedev.flow.ui.components.shared.flowArtistShape
 import io.github.aedev.flow.ui.components.shared.focusLift
 import io.github.aedev.flow.ui.components.shared.titleMarquee
+import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
 
 private val AvatarItemWidth = 64.dp
 private val AvatarSize = 56.dp
@@ -102,7 +103,7 @@ internal fun ChannelAvatarItem(
             text = channel.name,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
-            overflow = TextOverflow.Clip,
+            overflow = titleMarqueeOverflow(),
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.titleMarquee(),

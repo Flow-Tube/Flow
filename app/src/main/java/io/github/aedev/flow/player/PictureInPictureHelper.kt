@@ -86,6 +86,15 @@ object PictureInPictureHelper {
         shortsNavigation = navigation
     }
 
+    /** Published by the video player so every way into PiP shows Next as it stands right now. */
+    @Volatile
+    var videoHasNext: Boolean = false
+        private set
+
+    internal fun setVideoHasNext(hasNext: Boolean) {
+        videoHasNext = hasNext
+    }
+
     @Volatile
     var currentVideoAspectRatio: Float = DEFAULT_VIDEO_ASPECT_RATIO
         private set
@@ -302,7 +311,9 @@ object PictureInPictureHelper {
         val aspectRatio = Rational((safeAspectRatio * 1_000).roundToInt(), 1_000)
 
         val maxActions = (context as? Activity)?.maxNumPictureInPictureActions ?: Int.MAX_VALUE
-        val actions = pipActionSpecs(isPlaying, navigation, maxActions, offerBackground).map { createRemoteAction(context, it) }
+        val actions =
+            pipActionSpecs(isPlaying, navigation, maxActions, offerBackground, videoHasNext)
+                .map { createRemoteAction(context, it) }
 
         val builder =
             PictureInPictureParams

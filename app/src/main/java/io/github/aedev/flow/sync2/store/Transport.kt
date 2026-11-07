@@ -14,7 +14,7 @@ internal const val MAX_RESPONSE = 16L * 1024 * 1024
 /** Reads a body of at most [limit] bytes, failing as soon as more arrive. */
 internal fun ResponseBody.bytesUpTo(limit: Long): ByteArray {
     val source = source()
-    if (source.request(limit + 1)) throw StoreException.Malformed()
+    if (source.request(limit + 1)) throw StoreException.TooLarge()
     return source.readByteArray()
 }
 

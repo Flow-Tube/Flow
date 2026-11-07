@@ -11,6 +11,10 @@ import java.util.concurrent.ConcurrentHashMap
 private val DID = Regex("[0-9a-f]{32}")
 private val LOG_NAME = Regex("([0-9a-f]{16})\\.o")
 
+/** How many files and bytes of `roster/` one read takes. Far above a real group's: a roster holds at most 4,096 small entries. */
+private const val ROSTER_FILES = 16_384
+private const val ROSTER_BYTES = 64L * 1024 * 1024
+
 /**
  * The store layout (spec/store.md) on plain files. Roster appends aren't linearized, so competing
  * entries both stay and every device picks the same winner; [me] deletes only its own paths.
@@ -19,13 +23,28 @@ class FileLayout(
     private val files: FileStore,
     private val me: String,
 ) : Remote {
-    private suspend fun entry(path: String): Entry? =
-        files.get(path)?.let { runCatching { parseEntry(Json.parseToJsonElement(it.decodeToString())) }.getOrNull() }
+    private fun entry(bytes: ByteArray): Entry? = runCatching { parseEntry(Json.parseToJsonElement(bytes.decodeToString())) }.getOrNull()
 
-    suspend fun rosterPaths(): List<String> = files.list("roster").filter { it.endsWith(".r") }.map { "roster/$it" }
+    suspend fun rosterPaths(): List<String> =
+        files
+            .list("roster")
+            .filter { it.endsWith(".r") }
+            .map { "roster/$it" }
+            .sorted()
 
-    /** Every roster entry stored, fork candidates included. */
-    private suspend fun entries(): List<Entry> = rosterPaths().mapNotNull { entry(it) }
+    /** Every roster entry stored, fork candidates included. All of them stay in memory, so past the limits nothing is answered. */
+    private suspend fun entries(): List<Entry> {
+        val paths = rosterPaths()
+        if (paths.size > ROSTER_FILES) throw StoreException.Malformed()
+        var bytes = 0L
+        return paths.mapNotNull { path ->
+            oneItem { files.get(path) }?.let { file ->
+                bytes += file.size
+                if (bytes > ROSTER_BYTES) throw StoreException.Malformed()
+                entry(file)
+            }
+        }
+    }
 
     @Volatile
     private var pins: Set<String> = emptySet()
@@ -74,10 +93,23 @@ class FileLayout(
         if (path.startsWith("dev/$me/")) files.delete(path)
     }
 
-    /** Copies the roster entries [local] doesn't hold, fork candidates included, so it resolves forks as every device does. */
+    /**
+     * Copies the roster entries [local] doesn't hold, fork candidates included, so it resolves forks as every device does.
+     * One file at a time, lowest `seq` first, keeping only what counts: anything else is read again next time, up to the limits.
+     */
     suspend fun pullRoster(local: LocalStore) {
         val held = local.entries().map { StorePaths.roster(it.seq, entryHash(it)) }.toSet()
-        local.addEntries(rosterPaths().filter { it !in held }.mapNotNull { entry(it) })
+        val fresh = rosterPaths().filter { it !in held }.take(ROSTER_FILES)
+        if (fresh.isEmpty()) return
+        val valid = local.validEntries()
+        var bytes = 0L
+        for (path in fresh) {
+            if (bytes > ROSTER_BYTES) return
+            val file = oneItem { files.get(path) } ?: continue
+            bytes += file.size
+            val entry = entry(file) ?: continue
+            if (valid.admit(entry) != null) local.addEntries(listOf(entry))
+        }
     }
 
     /**
@@ -95,7 +127,14 @@ class FileLayout(
             var seq = tips[did]?.plus(1) ?: oldest(did) ?: continue
             while (true) {
                 val path = StorePaths.log(did, seq)
-                val bytes = files.get(path) ?: break
+                val bytes =
+                    try {
+                        files.get(path)
+                    } catch (e: StoreException) {
+                        if (!e.stopsOnlyItsItem) throw e
+                        whole = false
+                        break
+                    } ?: break
                 // A store that answers every path, with an error page say, would otherwise never end the log.
                 if (!check.admits(path, bytes)) {
                     whole = false

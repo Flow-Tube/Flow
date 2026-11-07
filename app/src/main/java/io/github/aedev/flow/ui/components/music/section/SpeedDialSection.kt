@@ -46,6 +46,7 @@ import io.github.aedev.flow.ui.components.shared.DownloadedBadge
 import io.github.aedev.flow.ui.components.shared.flowGridCellWidth
 import io.github.aedev.flow.ui.components.shared.flowGridColumns
 import io.github.aedev.flow.ui.components.shared.titleMarquee
+import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
 import io.github.aedev.flow.ui.theme.Dimensions
 
 private val SpeedDialRowHeight = 64.dp
@@ -160,7 +161,7 @@ private fun SpeedDialTile(
                 style = MaterialTheme.typography.labelLargeEmphasized,
                 color = titleColor,
                 maxLines = 1,
-                overflow = TextOverflow.Clip,
+                overflow = titleMarqueeOverflow(),
                 modifier = Modifier.titleMarquee(),
             )
             Text(
