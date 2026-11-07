@@ -131,7 +131,16 @@ internal fun InlineLyricsPanel(
     }
     val romanizations = romanized?.takeIf { it.first === lines }?.second.orEmpty()
     val presentation =
-        remember(lines, accentColor, backdropColor, baseTextSize, textAlign, display.showTranslation, romanizations) {
+        remember(
+            lines,
+            accentColor,
+            backdropColor,
+            baseTextSize,
+            textAlign,
+            display.showTranslation,
+            romanizations,
+            display.romanizationOnly,
+        ) {
             lyricsPresentation(
                 lines = lines,
                 accent = accentColor,
@@ -140,6 +149,7 @@ internal fun InlineLyricsPanel(
                 userAlign = textAlign,
                 showTranslation = display.showTranslation,
                 romanizations = romanizations,
+                romanizationOnly = display.romanizationOnly,
             )
         }
     LaunchedEffect(lines) { state.reset() }

@@ -3,6 +3,13 @@ package io.github.aedev.flow.ui.components.musicplayer.lyrics
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.WordTimestamp
 
+/** A wordless stretch shorter than this gets no instrumental break row. */
+private const val MIN_BREAK_MS = 4000L
+
+/** Between line-synced lines, a gap this long is what it takes to suspect a solo. */
+private const val MIN_UNMARKED_GAP_MS = 15_000L
+private const val SLOW_MS_PER_CHARACTER = 250L
+
 internal sealed class LyricsListItem {
     data class Line(
         val index: Int,
@@ -37,7 +44,7 @@ internal fun buildLines(
     syncedLyrics: List<LyricsEntry>,
 ): List<LyricsEntry> {
     if (syncedLyrics.isNotEmpty() && entriesLookSynced(syncedLyrics)) {
-        return listOf(LyricsEntry(time = 0L, text = "")) + syncedLyrics.sorted()
+        return listOf(LyricsEntry(time = 0L, text = "")) + withoutShortBreaks(syncedLyrics.sorted())
     }
 
     val plainSource =
@@ -55,6 +62,16 @@ internal fun buildLines(
     }
 }
 
+/**
+ * A blank line only stays when it opens a break long enough to get a row. The list follows the
+ * active line's row, so a blank line with none would send it back to the top while it is active.
+ */
+private fun withoutShortBreaks(lines: List<LyricsEntry>): List<LyricsEntry> =
+    lines.filterIndexed { index, line ->
+        val next = lines.getOrNull(index + 1)
+        line.text.isNotBlank() || (next != null && next.time - line.time > MIN_BREAK_MS)
+    }
+
 internal fun entriesLookSynced(entries: List<LyricsEntry>): Boolean {
     if (entries.size < 2) return false
     val main = entries.filter { !it.isBackground }
@@ -69,6 +86,22 @@ internal fun entriesLookSynced(entries: List<LyricsEntry>): Boolean {
     return distinctTimedLines >= (list.size * 0.5).toInt().coerceAtLeast(2)
 }
 
+/**
+ * When [line]'s words stop, or null when nothing says they stop before [nextStart]. Line-synced
+ * lyrics give no line an end, so a line followed by a long silence is taken to last as long as a
+ * very slow singer would need: Hua Main holds a 40-character line for 14 s before a 55 s solo.
+ */
+private fun wordsEndBefore(
+    line: LyricsEntry,
+    nextStart: Long,
+): Long? =
+    when {
+        !line.words.isNullOrEmpty() -> line.words.last().endTime
+        line.text.isBlank() -> line.time
+        line.isBackground || nextStart == Long.MAX_VALUE || nextStart - line.time < MIN_UNMARKED_GAP_MS -> null
+        else -> minOf(line.time + line.text.length * SLOW_MS_PER_CHARACTER, nextStart)
+    }
+
 internal fun buildMergedLyricsList(lines: List<LyricsEntry>): List<LyricsListItem> {
     val result = mutableListOf<LyricsListItem>()
     lines.forEachIndexed { index, entry ->
@@ -77,13 +110,8 @@ internal fun buildMergedLyricsList(lines: List<LyricsEntry>): List<LyricsListIte
         }
         if (index < lines.lastIndex) {
             val nextStart = lines[index + 1].time
-            val currentEnd =
-                when {
-                    !entry.words.isNullOrEmpty() -> entry.words.last().endTime
-                    entry.text.isBlank() -> entry.time
-                    else -> null
-                }
-            if (currentEnd != null && currentEnd < nextStart && nextStart - currentEnd > 4000L) {
+            val currentEnd = wordsEndBefore(entry, nextStart)
+            if (currentEnd != null && currentEnd < nextStart && nextStart - currentEnd > MIN_BREAK_MS) {
                 result.add(LyricsListItem.Indicator(index, currentEnd, nextStart))
             }
         }
@@ -111,16 +139,13 @@ internal fun findActiveLineIndices(
     for (index in lines.indices) {
         val line = lines[index]
         if (line.time > position) break
-        val lineEndMs =
-            if (!line.words.isNullOrEmpty()) {
-                line.words.last().endTime
-            } else {
-                (index + 1 until lines.size)
-                    .asSequence()
-                    .map { lines[it].time }
-                    .firstOrNull { it > line.time }
-                    ?: Long.MAX_VALUE
-            }
+        val nextStart =
+            (index + 1 until lines.size)
+                .asSequence()
+                .map { lines[it].time }
+                .firstOrNull { it > line.time }
+                ?: Long.MAX_VALUE
+        val lineEndMs = if (line.text.isBlank()) nextStart else wordsEndBefore(line, nextStart) ?: nextStart
         if (position <= lineEndMs) active.add(index)
     }
 

@@ -142,6 +142,8 @@
     <string name="lyrics_auto_romanize">Romanize on this device</string>
     <string name="lyrics_auto_romanize_summary">When the lyrics source has no romanization</string>
     <string name="lyrics_auto_romanize_japanese">Not available for Japanese yet</string>
+    <string name="lyrics_romanization_only">Romanization only</string>
+    <string name="lyrics_romanization_only_summary">Replace the original script with Latin letters</string>
     <string name="lyrics_background">Background</string>
     <string name="lyrics_background_solid">Solid</string>
     <string name="lyrics_background_solid_detail">One color from the cover</string>

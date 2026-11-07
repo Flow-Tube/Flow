@@ -167,6 +167,7 @@ internal fun LyricsLine(
     displayedCurrentLineIndex: Int,
     showTranslation: Boolean,
     romanization: String?,
+    romanizationOnly: Boolean,
     motionEnabled: Boolean,
     blurOtherLines: Boolean,
     onSizeChanged: (Int) -> Unit,
@@ -247,6 +248,7 @@ internal fun LyricsLine(
                 displayedCurrentLineIndex = displayedCurrentLineIndex,
                 showTranslation = showTranslation,
                 romanization = romanization,
+                romanizationOnly = romanizationOnly,
                 motionEnabled = motionEnabled,
             )
         }
@@ -280,6 +282,7 @@ private fun LyricBody(
     displayedCurrentLineIndex: Int,
     showTranslation: Boolean,
     romanization: String?,
+    romanizationOnly: Boolean,
     motionEnabled: Boolean,
 ) {
     val lineDistance = abs(index - displayedCurrentLineIndex)
@@ -321,7 +324,9 @@ private fun LyricBody(
         val accent = look.accent
         val lineAlpha = if (item.isBackground) focusedAlpha else animatedAlpha
         val lineColor = look.ink(lineAlpha)
-        val mainText = if (item.isBackground) item.text.removePrefix("(").removeSuffix(")") else item.text
+        val romanizedMain = romanization?.takeIf { romanizationOnly }
+        val shownText = romanizedMain ?: item.text
+        val mainText = if (item.isBackground) shownText.removePrefix("(").removeSuffix(")") else shownText
         val translation = item.translation?.takeIf { showTranslation && it.isNotBlank() }
         val textSize =
             remember(
@@ -343,7 +348,8 @@ private fun LyricBody(
             )
         val words =
             remember(item, mainText, nextLineTimeMs) {
-                val given = item.words?.takeIf { it.isNotEmpty() }
+                val source = item.words?.takeIf { it.isNotEmpty() }
+                val given = if (romanizedMain != null) source?.let { romanizedWordTimings(mainText, it) } else source
                 if (given != null) {
                     splitTrailingHyphenWord(sanitizeWordTimestamps(given)).first
                 } else {
@@ -381,7 +387,7 @@ private fun LyricBody(
                 fontWeight = FontWeight.SemiBold,
                 fontStyle = FontStyle.Normal,
             )
-        if (romanization != null) {
+        if (romanization != null && romanizedMain == null) {
             Text(
                 text = romanization,
                 color = secondaryColor,

@@ -49,6 +49,7 @@ class MusicPlayerLyricsTest {
             every { lyricsShowTranslation } returns flowOf(false)
             every { lyricsShowRomanization } returns flowOf(false)
             every { lyricsAutoRomanize } returns flowOf(false)
+            every { lyricsRomanizationOnly } returns flowOf(false)
             every { lyricsKeepScreenOn } returns flowOf(false)
             every { lyricsBlurOtherLines } returns flowOf(true)
             every { lyricsBackground } returns flowOf(LyricsBackgroundStyle.SOLID)

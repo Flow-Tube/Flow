@@ -35,6 +35,7 @@ data class MusicPlayerUiState(
     val lyricsShowTranslation: Boolean = true,
     val lyricsShowRomanization: Boolean = true,
     val lyricsAutoRomanize: Boolean = false,
+    val lyricsRomanizationOnly: Boolean = false,
     val lyricsKeepScreenOn: Boolean = false,
     val lyricsBlurOtherLines: Boolean = true,
     val lyricsBackground: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,

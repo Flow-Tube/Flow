@@ -136,6 +136,7 @@ internal fun LyricsListRow(
                     displayedCurrentLineIndex = state.deferredCurrentLineIndex,
                     showTranslation = presentation.showTranslation,
                     romanization = presentation.romanizations.getOrNull(index),
+                    romanizationOnly = presentation.romanizationOnly,
                     motionEnabled = motionEnabled,
                     blurOtherLines = blurOtherLines,
                     onSizeChanged = onHeight,

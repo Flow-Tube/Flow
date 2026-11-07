@@ -169,6 +169,7 @@ class PlayerPreferences(
         val LYRICS_ON_LOCK_SCREEN_DELAY_MS = intPreferencesKey("lyrics_on_lock_screen_delay_ms")
         val LYRICS_SPONSORBLOCK_TIMING = booleanPreferencesKey("lyrics_sponsorblock_timing")
         val LYRICS_AUTO_ROMANIZE = booleanPreferencesKey("lyrics_auto_romanize")
+        val LYRICS_ROMANIZATION_ONLY = booleanPreferencesKey("lyrics_romanization_only")
         val LYRICS_KEEP_SCREEN_ON = booleanPreferencesKey("lyrics_keep_screen_on")
         val LYRICS_BLUR_OTHER_LINES = booleanPreferencesKey("lyrics_blur_other_lines")
         val LYRICS_BACKGROUND = stringPreferencesKey("lyrics_background")
@@ -3940,6 +3941,14 @@ class PlayerPreferences(
 
     suspend fun setLyricsAutoRomanize(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { it[Keys.LYRICS_AUTO_ROMANIZE] = enabled }
+    }
+
+    /** Whether a line's Latin-script version takes the place of the original instead of sitting under it. */
+    val lyricsRomanizationOnly: Flow<Boolean> =
+        context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_ROMANIZATION_ONLY] ?: false }
+
+    suspend fun setLyricsRomanizationOnly(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ROMANIZATION_ONLY] = enabled }
     }
 
     val lyricsKeepScreenOn: Flow<Boolean> =

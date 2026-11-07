@@ -134,6 +134,43 @@ class SessionLyricTimelineTest {
     }
 
     @Test
+    fun `a line sung again with more words after it counts as a repeat`() {
+        val kamli =
+            listOf(
+                LyricsEntry(18_880L, "तद मैं कमली कहलावांगी"),
+                LyricsEntry(25_010L, "तद मैं कमली कहलावांगी (माहिया माहिया)"),
+                LyricsEntry(51_080L, "मेरे माहिया सनम जानम"),
+            )
+        val timeline = timeline(kamli, 0L)
+
+        assertThat(timeline.lineAt(19_000L)).isEqualTo("तद मैं कमली कहलावांगी")
+        assertThat(timeline.lineAt(25_100L)).isEqualTo("तद मैं कमली कहलावांगी (x2)")
+        assertThat(timeline.lineAt(27_500L)).isEqualTo("(माहिया माहिया)")
+    }
+
+    @Test
+    fun `a line that differs only by a vowel sign is not a repeat`() {
+        val timeline = timeline(listOf(LyricsEntry(1_000L, "कमल"), LyricsEntry(2_000L, "कमली"), LyricsEntry(3_000L, "end")), 0L)
+
+        assertThat(timeline.lineAt(2_100L)).isEqualTo("कमली")
+    }
+
+    @Test
+    fun `punctuation does not hide a repeat`() {
+        val timeline = timeline(listOf(LyricsEntry(1_000L, "Hold on,"), LyricsEntry(2_000L, "hold on!"), LyricsEntry(3_000L, "end")), 0L)
+
+        assertThat(timeline.lineAt(2_100L)).isEqualTo("hold on! (x2)")
+    }
+
+    @Test
+    fun `a blank line ends a run of repeats`() {
+        val lines =
+            listOf(LyricsEntry(1_000L, "Hold on"), LyricsEntry(2_000L, ""), LyricsEntry(9_000L, "Hold on"), LyricsEntry(9_900L, "end"))
+
+        assertThat(timeline(lines, 0L).lineAt(9_100L)).isEqualTo("Hold on")
+    }
+
+    @Test
     fun `a repeated long line marks only its last part`() {
         val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(6_000L, longLine), LyricsEntry(12_000L, "Next")), 0L)
         val second = timeline.nextChangeAfter(6_000L)!!

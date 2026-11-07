@@ -600,6 +600,8 @@ class MusicPlayerViewModel
 
         fun setLyricsAutoRomanize(enabled: Boolean) = lyrics.setAutoRomanize(enabled)
 
+        fun setLyricsRomanizationOnly(enabled: Boolean) = lyrics.setRomanizationOnly(enabled)
+
         fun setLyricsKeepScreenOn(enabled: Boolean) = lyrics.setKeepScreenOn(enabled)
 
         fun setLyricsBlurOtherLines(enabled: Boolean) = lyrics.setBlurOtherLines(enabled)
