@@ -4,14 +4,18 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.Tracks
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.PlayerMessage
-import kotlin.math.abs
+import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 
 /**
  * Blends the end of a song into the next one (#1675). Media3 plays one item at a time, so the last
@@ -28,22 +32,30 @@ import kotlin.math.abs
  * the fade shortens to what is left of the song. A tail that cannot line up before
  * [CrossfadePolicy.latestHandOffMs] is dropped and the song ends as it does without crossfade.
  *
- * A song the user skips away from has no tail waiting, so one is built from where the song stopped. It
- * is heard a moment after the next song is chosen, then the two fade as usual; only while the settings
- * ask for it.
+ * A song the user skips away from has no tail waiting, so one is built from where the song is. A skip
+ * from inside the app ([skipTo]) can wait for it: the session goes on playing the old song while the
+ * tail starts muted, and changes song once the tail is playing, so the old song never goes quiet. This
+ * runs with crossfade off too, as a [CrossfadePolicy.SKIP_BLEND_MS] overlap. A skip from the notification
+ * or a headset has already changed the song by the time it gets here, so it only gets a tail while the
+ * settings ask for a fade, and the next song stays muted until the tail plays. Either way the fade runs
+ * once both are playing.
  *
  * Every step is driven by the players: [PlayerMessage]s at a position, their listeners for readiness,
- * seeks, skips and pauses. The only timed loops run while a song is changing hands: [ALIGN_STEP_MS]
- * checks for a few seconds, then [FADE_STEP_MS] volume steps for the fade. Positions are compared
- * through [PositionAnchor], since a player reports them in coarse steps.
+ * seeks, skips and pauses. The only timed loops run while a song is changing hands: [TailAligner]'s
+ * checks for a few seconds, then [FADE_STEP_MS] volume steps for the fade.
  */
 internal class MusicCrossfader(
     private val session: ExoPlayer,
-    private val buildTail: () -> ExoPlayer,
+    private val buildTail: (skipOverlapMs: Long?) -> ExoPlayer,
     private val moment: (settings: CrossfadePolicy.Settings) -> CrossfadePolicy.Moment,
     private val onSessionScaleChanged: () -> Unit,
 ) {
-    private enum class Stage { IDLE, PREPARED, WAITING_FOR_TAIL, ALIGNING, SKIP_STARTING, FADING }
+    private enum class Stage { IDLE, PREPARED, WAITING_FOR_TAIL, ALIGNING, SKIP_STARTING, WAITING_FOR_NEXT_SONG, FADING }
+
+    private data class SkipTarget(
+        val index: Int,
+        val mediaId: String,
+    )
 
     private val handler = Handler(Looper.getMainLooper())
     private var stage = Stage.IDLE
@@ -53,23 +65,26 @@ internal class MusicCrossfader(
     private var prepareMessage: PlayerMessage? = null
     private var alignMessage: PlayerMessage? = null
     private var mediaId: String? = null
-    private var latestHandOffMs = 0L
     private var fadeBeganAtMs = 0L
     private var fadeClockMs = 1L
-    private var tailRetries = 0
+    private var fadeProgress = 0f
     private var skipPressedAtMs = 0L
     private var skipFade = false
+
+    /** Where a skip goes once the tail plays; the session stays on the old song until then. */
+    private var heldTarget: SkipTarget? = null
     private var skipLeadMs = DEFAULT_SKIP_LEAD_MS
     private var tailGain = 1f
     private var handingOff = false
-    private var sessionAnchor = PositionAnchor()
-    private var tailAnchor = PositionAnchor()
-    private var alignedReadings = 0
-    private var learnedThisAlign = false
-
-    // A started player is heard a moment after play(), which differs by device (about 300 ms on HyperOS),
-    // so the tail starts ahead by what the last one turned out to need.
-    private var headStartMs = CrossfadePolicy.DEFAULT_HEAD_START_MS
+    private val aligner =
+        TailAligner(
+            session = session,
+            handler = handler,
+            tail = { tail },
+            onTailStarted = { stage = Stage.ALIGNING },
+            onAligned = ::handOff,
+            onGaveUp = ::abort,
+        )
 
     /** What the session player's own volume is multiplied by: below 1 only while the next song fades in. */
     var sessionScale = 1f
@@ -96,6 +111,10 @@ internal class MusicCrossfader(
                 val left = oldPosition.mediaItem
                 val changedSong = left != null && left.mediaId != newPosition.mediaItem?.mediaId
                 val byHand = reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_REMOVE
+                if (heldTarget != null && (changedSong || byHand)) {
+                    abort("the player moved while a skip waited for its tail")
+                    return
+                }
                 if (changedSong && byHand && beginSkipFade(left, oldPosition.positionMs)) return
                 if (reason != Player.DISCONTINUITY_REASON_SEEK) return
                 if (stage != Stage.IDLE) abort("a seek")
@@ -113,7 +132,15 @@ internal class MusicCrossfader(
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY && stage == Stage.IDLE) schedule()
                 // Closing the player stops it without a pause, and the old song must stop with it.
-                if (skipFade && (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED)) abort("the player stopped")
+                if (skipFade && (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED)) {
+                    // A failed player's recovery goes back to its song, so a seek here would only be undone.
+                    if (playbackState == Player.STATE_IDLE) heldTarget = null
+                    abort("the player stopped")
+                }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) nextSongPlaying()
             }
 
             override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
@@ -136,18 +163,8 @@ internal class MusicCrossfader(
     private val tailListener =
         object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_READY && stage == Stage.WAITING_FOR_TAIL) startWhenLinedUp()
-            }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (!isPlaying || stage != Stage.SKIP_STARTING) return
-                val waited = SystemClock.elapsedRealtime() - skipPressedAtMs
-                skipLeadMs = CrossfadePolicy.learnedHeadStartMs(skipLeadMs, skipLeadMs - waited)
-                Log.d(TAG, "skipped $mediaId, its tail played after ${waited}ms, fading over ${fadeClockMs}ms")
-                handler.removeCallbacks(skipTimeoutStep)
-                stage = Stage.FADING
-                fadeBeganAtMs = SystemClock.elapsedRealtime()
-                handler.post(fadeStep)
+                if (playbackState == Player.STATE_READY && stage == Stage.WAITING_FOR_TAIL) lineUp()
+                if (playbackState == Player.STATE_ENDED && stage == Stage.WAITING_FOR_NEXT_SONG) finish()
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -155,10 +172,18 @@ internal class MusicCrossfader(
             }
         }
 
-    private val alignStep = Runnable { align() }
+    // A started player is heard a moment after it reports playing, and only this says the audio has begun.
+    @OptIn(UnstableApi::class)
+    private val skipTailListener =
+        object : AnalyticsListener {
+            override fun onAudioPositionAdvancing(
+                eventTime: AnalyticsListener.EventTime,
+                playoutStartSystemTimeMs: Long,
+            ) = skipTailPlaying()
+        }
+
     private val fadeStep = Runnable { fade() }
-    private val startTailStep = Runnable { startTail() }
-    private val skipTimeoutStep = Runnable { if (stage == Stage.SKIP_STARTING) abort("the tail took too long after a skip") }
+    private val skipTimeoutStep = Runnable { if (stage == Stage.SKIP_STARTING) skipTailOutOfTime() }
 
     fun attach() = session.addListener(listener)
 
@@ -170,39 +195,200 @@ internal class MusicCrossfader(
 
     fun release() {
         session.removeListener(listener)
+        heldTarget = null
         abort(null)
     }
 
-    /** The song was changed by hand: the old one returns on a tail from where it was and fades under the new one. */
+    /** Next or Previous from inside the app, which plays the song at [index] (still [mediaId]) whatever else happens. */
+    fun skipTo(
+        index: Int,
+        mediaId: String,
+    ) {
+        val target = SkipTarget(index, mediaId)
+        val left = session.currentMediaItem
+        val resumeAt =
+            left?.takeIf { heldTarget == null && session.isPlaying }?.let { skipResumeAt(it, session.currentPosition) }
+        val press = CrossfadePolicy.onSkipPress(skipPhase(), session.currentMediaItemIndex == index, resumeAt != null)
+        Log.d(TAG, "skip to $mediaId: $press")
+        when (press) {
+            CrossfadePolicy.SkipPress.START_TAIL -> holdSkip(target, requireNotNull(left), requireNotNull(resumeAt))
+            CrossfadePolicy.SkipPress.MOVE_TARGET -> heldTarget = target
+            CrossfadePolicy.SkipPress.BACK_TO_PLAYING_SONG -> stayOnPlayingSong()
+            CrossfadePolicy.SkipPress.SEEK_UNDER_TAIL -> seekUnderTail(target)
+            CrossfadePolicy.SkipPress.PLAIN -> skipPlainly(target)
+        }
+    }
+
+    private fun holdSkip(
+        target: SkipTarget,
+        left: MediaItem,
+        resumeAt: Long,
+    ) {
+        val gain = session.volume
+        abort(null)
+        heldTarget = target
+        startSkipTail(left, resumeAt, gain, tailVolume = 0f)
+    }
+
+    private fun stayOnPlayingSong() {
+        heldTarget = null
+        abort("the skip came back to the song still playing")
+        schedule()
+    }
+
+    private fun skipPlainly(target: SkipTarget) {
+        abort(null)
+        indexOf(target)?.let(::seekSession)
+        session.play()
+        schedule()
+    }
+
+    private fun skipPhase(): CrossfadePolicy.SkipPhase {
+        val tailCarriesOldSong = stage == Stage.SKIP_STARTING || stage == Stage.WAITING_FOR_NEXT_SONG || stage == Stage.FADING
+        return when {
+            heldTarget != null -> CrossfadePolicy.SkipPhase.HOLDING
+            tailCarriesOldSong -> CrossfadePolicy.SkipPhase.UNDER_TAIL
+            else -> CrossfadePolicy.SkipPhase.NONE
+        }
+    }
+
+    private fun skipResumeAt(
+        left: MediaItem,
+        positionMs: Long,
+    ): Long? {
+        if (!session.playWhenReady || moment(settings).showsVideo) return null
+        return CrossfadePolicy.skipResumeMs(positionMs, skipLeadMs, left.mediaMetadata.durationMs, session.playerError != null)
+    }
+
+    /** The song has already changed by hand: the old one returns on a tail from where it was and fades under the new one. */
     private fun beginSkipFade(
         left: MediaItem,
         positionMs: Long,
     ): Boolean {
-        if (settings.seconds <= 0 || !settings.onManualSkip || !session.playWhenReady || moment(settings).showsVideo) return false
-        val durationMs = left.mediaMetadata.durationMs
-        val failed = session.playerError != null
-        val resumeAt = CrossfadePolicy.skipResumeMs(positionMs, skipLeadMs, durationMs, failed) ?: return false
+        if (!settings.fadesOnSkip) return false
+        val resumeAt = skipResumeAt(left, positionMs) ?: return false
         val gain = session.volume
         abort(null)
-        skipFade = true
-        skipPressedAtMs = SystemClock.elapsedRealtime()
-        mediaId = left.mediaId
-        tailGain = gain
-        fadeClockMs = CrossfadePolicy.fadeClockMs(settings.seconds, resumeAt, durationMs ?: 0L, session.playbackParameters.speed)
         sessionScale = 0f
         onSessionScaleChanged()
+        startSkipTail(left, resumeAt, gain, tailVolume = gain)
+        return true
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun startSkipTail(
+        item: MediaItem,
+        resumeAt: Long,
+        gain: Float,
+        tailVolume: Float,
+    ) {
+        skipFade = true
+        skipPressedAtMs = SystemClock.elapsedRealtime()
+        mediaId = item.mediaId
+        tailGain = gain
+        val durationMs = item.mediaMetadata.durationMs ?: 0L
+        fadeClockMs = CrossfadePolicy.skipClockMs(settings, resumeAt, durationMs, session.playbackParameters.speed)
         tail =
-            buildTail().apply {
-                volume = gain
+            buildTail(fadeClockMs).apply {
+                volume = tailVolume
                 playbackParameters = session.playbackParameters
                 addListener(tailListener)
-                setMediaItem(left, resumeAt)
+                addAnalyticsListener(skipTailListener)
+                if (CrossfadePolicy.tailStartsAtSyncPoint(settings, heldTarget != null)) startAtSyncPoint(resumeAt)
+                setMediaItem(item, resumeAt)
                 playWhenReady = true
                 prepare()
             }
         stage = Stage.SKIP_STARTING
         handler.postDelayed(skipTimeoutStep, SKIP_START_TIMEOUT_MS)
-        return true
+    }
+
+    /**
+     * Starting between sync points decodes from the one before first, about 500 ms the skip would wait.
+     * A start position ignores seek parameters, so the seek comes as soon as the tail knows its tracks.
+     */
+    private fun ExoPlayer.startAtSyncPoint(positionMs: Long) {
+        setSeekParameters(SeekParameters.CLOSEST_SYNC)
+        addListener(
+            object : Player.Listener {
+                override fun onTracksChanged(tracks: Tracks) {
+                    if (tracks.isEmpty) return
+                    removeListener(this)
+                    seekTo(positionMs)
+                }
+            },
+        )
+    }
+
+    private fun skipTailOutOfTime() {
+        if (tail?.isPlaying == true) {
+            skipTailPlaying()
+        } else {
+            abort("the tail took too long after a skip")
+            schedule()
+        }
+    }
+
+    private fun skipTailPlaying() {
+        if (stage != Stage.SKIP_STARTING) return
+        val waited = SystemClock.elapsedRealtime() - skipPressedAtMs
+        skipLeadMs = CrossfadePolicy.learnedHeadStartMs(skipLeadMs, skipLeadMs - waited)
+        val apart = (tail?.currentPosition ?: 0L) - session.currentPosition
+        Log.d(TAG, "skipped $mediaId, its tail played after ${waited}ms, ${apart}ms from the session, fading over ${fadeClockMs}ms")
+        handler.removeCallbacks(skipTimeoutStep)
+        val target = heldTarget
+        heldTarget = null
+        if (target != null) {
+            val index = indexOf(target)
+            if (index == null) {
+                abort("the skipped-to song left the queue")
+                return
+            }
+            tail?.volume = tailGain
+            sessionScale = 0f
+            onSessionScaleChanged()
+            seekSession(index)
+        }
+        if (session.isPlaying) startFade() else stage = Stage.WAITING_FOR_NEXT_SONG
+    }
+
+    /** The next song has started: a tail already playing fades it in, and one still starting has [SKIP_START_TIMEOUT_MS] to. */
+    private fun nextSongPlaying() {
+        if (heldTarget == null && stage == Stage.WAITING_FOR_NEXT_SONG) startFade()
+    }
+
+    /** A tail already carries the old song, so only the song under it changes, and the fade waits for that one. */
+    private fun seekUnderTail(target: SkipTarget) {
+        val index = indexOf(target) ?: return
+        if (stage == Stage.FADING) {
+            fadeProgress = ((SystemClock.elapsedRealtime() - fadeBeganAtMs).toFloat() / fadeClockMs).coerceIn(0f, 1f)
+            handler.removeCallbacks(fadeStep)
+            stage = Stage.WAITING_FOR_NEXT_SONG
+        }
+        skipFade = true
+        seekSession(index)
+    }
+
+    private fun startFade() {
+        handler.removeCallbacks(skipTimeoutStep)
+        stage = Stage.FADING
+        fadeBeganAtMs = CrossfadePolicy.fadeBeganAtMs(SystemClock.elapsedRealtime(), fadeProgress, fadeClockMs)
+        handler.post(fadeStep)
+    }
+
+    private fun indexOf(target: SkipTarget): Int? {
+        val count = session.mediaItemCount
+        if (target.index < count && session.getMediaItemAt(target.index).mediaId == target.mediaId) return target.index
+        return (0 until count).firstOrNull { session.getMediaItemAt(it).mediaId == target.mediaId }
+    }
+
+    private fun seekSession(index: Int) {
+        handingOff = true
+        try {
+            session.seekTo(index, 0L)
+        } finally {
+            handingOff = false
+        }
     }
 
     private fun schedule() {
@@ -218,8 +404,7 @@ internal class MusicCrossfader(
         val prepareAt = alignAt - CrossfadePolicy.PREPARE_LEAD_MS
         val index = session.currentMediaItemIndex
         mediaId = item.mediaId
-        latestHandOffMs = CrossfadePolicy.latestHandOffMs(now.durationMs, now.speed)
-        tailRetries = 0
+        aligner.reset(CrossfadePolicy.latestHandOffMs(now.durationMs, now.speed))
         if (position >= prepareAt) {
             prepare(item.mediaId, alignAt)
         } else {
@@ -235,11 +420,11 @@ internal class MusicCrossfader(
         val item = session.currentMediaItem?.takeIf { it.mediaId == id } ?: return
         tail?.release()
         tail =
-            buildTail().apply {
+            buildTail(null).apply {
                 volume = 0f
                 playbackParameters = session.playbackParameters
                 addListener(tailListener)
-                setMediaItem(item, alignAt + headStartMs)
+                setMediaItem(item, alignAt + aligner.headStartMs)
                 playWhenReady = false
                 prepare()
             }
@@ -252,90 +437,12 @@ internal class MusicCrossfader(
             abort(null)
             return
         }
-        if (player.playbackState == Player.STATE_READY) startWhenLinedUp() else stage = Stage.WAITING_FOR_TAIL
+        if (player.playbackState == Player.STATE_READY) lineUp() else stage = Stage.WAITING_FOR_TAIL
     }
 
-    /** Starts a buffered tail at the moment it will be heard level with the session player. */
-    private fun startWhenLinedUp() {
-        val player = tail ?: return
-        val sessionMs = session.currentPosition
-        if (sessionMs >= latestHandOffMs) {
-            abort("the tail was not buffered in time")
-            return
-        }
-        val aheadByMs = player.currentPosition - sessionMs
+    private fun lineUp() {
         stage = Stage.WAITING_FOR_TAIL
-        when {
-            aheadByMs >= headStartMs -> {
-                handler.removeCallbacks(startTailStep)
-                val waitMs = ((aheadByMs - headStartMs) / session.playbackParameters.speed.coerceAtLeast(0.1f)).toLong()
-                handler.postDelayed(startTailStep, waitMs)
-            }
-
-            tailRetries < MAX_TAIL_RETRIES -> {
-                // Buffering took longer than the lead it was given, so the session player went past it.
-                tailRetries++
-                player.seekTo(sessionMs + CrossfadePolicy.LATE_READY_LEAD_MS + headStartMs)
-            }
-
-            else -> {
-                abort("the tail kept falling behind")
-            }
-        }
-    }
-
-    private fun startTail() {
-        val player = tail ?: return
-        player.play()
-        sessionAnchor = PositionAnchor()
-        tailAnchor = PositionAnchor()
-        alignedReadings = 0
-        learnedThisAlign = false
-        stage = Stage.ALIGNING
-        handler.post(alignStep)
-    }
-
-    private fun align() {
-        val player = tail ?: return
-        if (stage != Stage.ALIGNING) return
-        val now = SystemClock.elapsedRealtime()
-        val baseSpeed = session.playbackParameters.speed
-        val sessionMs = sessionAnchor.estimate(session.currentPosition, now, baseSpeed)
-        val remaining = latestHandOffMs - sessionMs
-        if (!player.isPlaying) {
-            if (remaining <= 0) abort("the tail did not start") else handler.postDelayed(alignStep, ALIGN_STEP_MS)
-            return
-        }
-        val tailMs = tailAnchor.estimate(player.currentPosition, now, player.playbackParameters.speed)
-        if (!sessionAnchor.anchored || !tailAnchor.anchored) {
-            if (remaining <= 0) abort("the positions never moved") else handler.postDelayed(alignStep, ALIGN_STEP_MS)
-            return
-        }
-        val delta = tailMs - sessionMs
-        if (!learnedThisAlign) {
-            learnedThisAlign = true
-            headStartMs = CrossfadePolicy.learnedHeadStartMs(headStartMs, delta)
-        }
-        alignedReadings = if (CrossfadePolicy.isAligned(delta)) alignedReadings + 1 else 0
-        when {
-            alignedReadings >= ALIGNED_READINGS -> {
-                handOff(delta)
-            }
-
-            remaining <= 0 && abs(delta) <= CrossfadePolicy.LATE_ALIGNED_WITHIN_MS -> {
-                handOff(delta)
-            }
-
-            remaining <= 0 -> {
-                abort("the tail stayed ${delta}ms apart")
-            }
-
-            else -> {
-                val speed = CrossfadePolicy.nudgedSpeed(baseSpeed, delta)
-                if (abs(speed - player.playbackParameters.speed) >= SPEED_STEP) player.setPlaybackSpeed(speed)
-                handler.postDelayed(alignStep, ALIGN_STEP_MS)
-            }
-        }
+        aligner.startWhenLinedUp()
     }
 
     private fun handOff(deltaMs: Long) {
@@ -383,20 +490,24 @@ internal class MusicCrossfader(
 
     private fun abort(reason: String?) {
         if (reason != null) Log.d(TAG, "crossfade dropped: $reason")
+        val held = heldTarget
+        heldTarget = null
         skipFade = false
         cancelMessages()
         releaseTail()
         stage = Stage.IDLE
         restoreScale()
+        // The press still counts, it only lost its fade.
+        held?.let(::indexOf)?.let(::seekSession)
     }
 
     private fun releaseTail() {
-        handler.removeCallbacks(alignStep)
+        aligner.cancel()
         handler.removeCallbacks(fadeStep)
-        handler.removeCallbacks(startTailStep)
         handler.removeCallbacks(skipTimeoutStep)
         tail?.release()
         tail = null
+        fadeProgress = 0f
     }
 
     private fun restoreScale() {
@@ -426,11 +537,7 @@ internal class MusicCrossfader(
 
     private companion object {
         const val TAG = "MusicCrossfader"
-        const val ALIGN_STEP_MS = 10L
-        const val ALIGNED_READINGS = 2
-        const val SPEED_STEP = 0.005f
         const val FADE_STEP_MS = 20L
-        const val MAX_TAIL_RETRIES = 2
         const val DEFAULT_SKIP_LEAD_MS = 400L
         const val SKIP_START_TIMEOUT_MS = 1_500L
     }

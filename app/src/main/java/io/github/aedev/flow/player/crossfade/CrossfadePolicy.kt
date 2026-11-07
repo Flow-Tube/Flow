@@ -23,6 +23,9 @@ internal object CrossfadePolicy {
     /** A fade shorter than this is not worth it; closer to the end, the song just ends. */
     private const val MIN_FADE_MS = 2_000L
 
+    /** With no fade asked for, a skip overlaps the two songs this long: it hides the change without sounding like a fade. */
+    const val SKIP_BLEND_MS = 250L
+
     /** A song skipped sooner than this was barely heard, so there is nothing to fade out. */
     private const val MIN_SKIP_PLAYED_MS = 1_000L
 
@@ -54,7 +57,45 @@ internal object CrossfadePolicy {
         val curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
         val onAutoAdvance: Boolean = true,
         val onManualSkip: Boolean = false,
-    )
+    ) {
+        val fadesOnSkip: Boolean get() = seconds > 0 && onManualSkip
+    }
+
+    /** Where an in-app skip finds the outgoing song. */
+    enum class SkipPhase {
+        /** Nothing carries it but the session. */
+        NONE,
+
+        /** The session still plays it while its tail starts, muted, and the skip waits for that. */
+        HOLDING,
+
+        /** A tail has it, or is about to, and the session has moved on. */
+        UNDER_TAIL,
+    }
+
+    enum class SkipPress { START_TAIL, PLAIN, MOVE_TARGET, BACK_TO_PLAYING_SONG, SEEK_UNDER_TAIL }
+
+    /**
+     * What another press does. Only the first press of a run builds a tail: later ones just change
+     * where the session goes, so no press is lost and no second tail starts.
+     */
+    fun onSkipPress(
+        phase: SkipPhase,
+        targetIsPlayingSong: Boolean,
+        canStartTail: Boolean,
+    ): SkipPress =
+        when (phase) {
+            SkipPhase.NONE -> if (canStartTail) SkipPress.START_TAIL else SkipPress.PLAIN
+            SkipPhase.HOLDING -> if (targetIsPlayingSong) SkipPress.BACK_TO_PLAYING_SONG else SkipPress.MOVE_TARGET
+            SkipPhase.UNDER_TAIL -> SkipPress.SEEK_UNDER_TAIL
+        }
+
+    /** When a fade began, for it to go on from [progress]; the next song may have kept it waiting. */
+    fun fadeBeganAtMs(
+        nowMs: Long,
+        progress: Float,
+        fadeClockMs: Long,
+    ): Long = nowMs - (progress * fadeClockMs).toLong()
 
     /** The facts one decision needs; the service reads them from the player and the queue. */
     data class Moment(
@@ -132,6 +173,28 @@ internal object CrossfadePolicy {
         val leftOnClock = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong()
         return minOf(fadeSeconds.coerceIn(0, MAX_SECONDS) * 1_000L, leftOnClock).coerceAtLeast(1L)
     }
+
+    /** How long a skip overlaps the two songs on the clock: the chosen fade, or just [SKIP_BLEND_MS] without one. */
+    fun skipClockMs(
+        settings: Settings,
+        positionMs: Long,
+        durationMs: Long,
+        speed: Float,
+    ): Long {
+        val chosen = fadeClockMs(settings.seconds, positionMs, durationMs, speed)
+        if (settings.fadesOnSkip) return chosen
+        val leftOnClock = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong()
+        return minOf(SKIP_BLEND_MS, leftOnClock).coerceAtLeast(1L)
+    }
+
+    /**
+     * A tail heard for moments, or after the song has already gone quiet, starts sooner from a sync point
+     * at the cost of a small jump. One carrying a whole fade straight on from the session starts exactly.
+     */
+    fun tailStartsAtSyncPoint(
+        settings: Settings,
+        sessionStillPlaysSong: Boolean,
+    ): Boolean = !settings.fadesOnSkip || !sessionStillPlaysSong
 
     /** The outgoing song's gain [progress] of the way through the fade. */
     fun fadeOutGain(

@@ -50,7 +50,7 @@ internal fun musicBarSwipeCommit(
                     if (music == MiniBarSwipeAction.NEXT) {
                         EnhancedMusicPlayerManager.playNext()
                     } else {
-                        EnhancedMusicPlayerManager.playFromQueue(index - 1)
+                        EnhancedMusicPlayerManager.playPreviousTrack()
                     }
                 }
             }

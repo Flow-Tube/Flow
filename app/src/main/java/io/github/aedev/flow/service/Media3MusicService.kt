@@ -123,6 +123,9 @@ class Media3MusicService : MediaLibraryService() {
         private const val ACTION_TOGGLE_SHUFFLE = "ACTION_TOGGLE_SHUFFLE"
         private const val ACTION_TOGGLE_REPEAT = "ACTION_TOGGLE_REPEAT"
         private const val ACTION_STOP = "ACTION_STOP"
+        private const val ACTION_SKIP_TO = "ACTION_SKIP_TO"
+        private const val EXTRA_SKIP_INDEX = "index"
+        private const val EXTRA_SKIP_MEDIA_ID = "mediaId"
 
         private const val MAX_RETRY_PER_SONG = 5
         private const val BASE_RETRY_DELAY_MS = 3000L
@@ -141,6 +144,7 @@ class Media3MusicService : MediaLibraryService() {
         private val CommandToggleShuffle = SessionCommand(ACTION_TOGGLE_SHUFFLE, Bundle.EMPTY)
         private val CommandToggleRepeat = SessionCommand(ACTION_TOGGLE_REPEAT, Bundle.EMPTY)
         private val CommandStop = SessionCommand(ACTION_STOP, Bundle.EMPTY)
+        private val CommandSkipTo = SessionCommand(ACTION_SKIP_TO, Bundle.EMPTY)
 
         const val ACTION_TOGGLE_LIKE = "ACTION_TOGGLE_LIKE"
         private val CommandToggleLike = SessionCommand(ACTION_TOGGLE_LIKE, Bundle.EMPTY)
@@ -160,6 +164,20 @@ class Media3MusicService : MediaLibraryService() {
          */
         fun requestStop(controller: MediaController): ListenableFuture<SessionResult> =
             controller.sendCustomCommand(CommandStop, Bundle.EMPTY)
+
+        /** An in-app skip, which the service holds back until the old song's tail plays. */
+        fun requestSkip(
+            controller: MediaController,
+            index: Int,
+            mediaId: String,
+        ): ListenableFuture<SessionResult> =
+            controller.sendCustomCommand(
+                CommandSkipTo,
+                Bundle().apply {
+                    putInt(EXTRA_SKIP_INDEX, index)
+                    putString(EXTRA_SKIP_MEDIA_ID, mediaId)
+                },
+            )
     }
 
     private lateinit var mediaLibrarySession: MediaLibrarySession
@@ -381,14 +399,14 @@ class Media3MusicService : MediaLibraryService() {
     }
 
     /** The player that plays the outgoing song's last seconds during a crossfade; see [MusicCrossfader]. */
-    private fun buildCrossfadeTail(): ExoPlayer {
+    private fun buildCrossfadeTail(skipOverlapMs: Long?): ExoPlayer {
         val tailEqualizer = EqualizerAudioProcessor().apply { setSpec(equalizerRepository.processingSpec.value) }
         return ExoPlayer
             .Builder(this)
             .setMediaSourceFactory(musicSourceFactory)
             .setRenderersFactory(musicRenderers(tailEqualizer))
             .setAudioAttributes(musicAudioAttributes, false)
-            .setLoadControl(LoadControlFactory.forMusic())
+            .setLoadControl(skipOverlapMs?.let(LoadControlFactory::forSkipTail) ?: LoadControlFactory.forMusic())
             .build()
             .also { tail ->
                 tail.trackSelectionParameters =
@@ -603,9 +621,10 @@ class Media3MusicService : MediaLibraryService() {
                         val videoId = item.mediaId
                         if (!videoId.isNullOrBlank() && !LocalMediaIds.isLocal(videoId)) {
                             // Desktop radio semantics: only a genuinely NEW queue seeds a
-                            // fresh radio. In-app skips also arrive as PLAYLIST_CHANGED
-                            // (playTrack rebuilds the playlist), so the discriminator is
-                            // whether the queue CONTENTS changed — never the current track.
+                            // fresh radio. Queue taps and skips that had to rebuild also arrive
+                            // as PLAYLIST_CHANGED (playTrack rebuilds the playlist), so the
+                            // discriminator is whether the queue CONTENTS changed — never the
+                            // current track.
                             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED && !versionSwap) {
                                 onQueueContextChanged(videoId)
                             } else {
@@ -1971,6 +1990,7 @@ class Media3MusicService : MediaLibraryService() {
                     .add(CommandToggleRepeat)
                     .add(CommandToggleLike)
                     .add(CommandStop)
+                    .add(CommandSkipTo)
                     .build()
             return MediaSession.ConnectionResult
                 .AcceptedResultBuilder(session)
@@ -2037,6 +2057,11 @@ class Media3MusicService : MediaLibraryService() {
                         else -> Player.REPEAT_MODE_OFF
                     }
                 player.repeatMode = newMode
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+            if (customCommand.customAction == ACTION_SKIP_TO) {
+                crossfader?.skipTo(args.getInt(EXTRA_SKIP_INDEX), args.getString(EXTRA_SKIP_MEDIA_ID).orEmpty())
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
 

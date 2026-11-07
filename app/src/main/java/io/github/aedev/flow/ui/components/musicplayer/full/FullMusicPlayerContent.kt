@@ -132,14 +132,8 @@ internal fun FullMusicPlayerContent(
     LaunchedEffect(track.videoId) {
         // A song swapped for its video keeps the song's related list rather than fetching another.
         viewModel.fetchRelatedContent(videoSwitch.listenId(track.videoId))
-        val managerTrack = EnhancedMusicPlayerManager.currentTrack.value
-        val isManagerPlaying = EnhancedMusicPlayerManager.isPlaying()
-
-        if (managerTrack?.videoId == track.videoId && (isManagerPlaying || managerTrack != null)) {
-            viewModel.ensureLyricsLoaded(track)
-        } else {
-            viewModel.loadAndPlayTrack(track)
-        }
+        // [track] comes from the manager a frame late, so a different song here only means a newer one was chosen.
+        if (EnhancedMusicPlayerManager.currentTrack.value?.videoId == track.videoId) viewModel.ensureLyricsLoaded(track)
     }
 
     if (isPlayerSheetExpanded) {

@@ -176,10 +176,123 @@ class CrossfadePolicyTest {
     }
 
     @Test
-    fun `by default a song fades when it ends and Next stays immediate`() {
+    fun `by default a song fades when it ends and Next does not`() {
         val defaults = CrossfadePolicy.Settings()
 
         assertThat(defaults.onAutoAdvance).isTrue()
         assertThat(defaults.onManualSkip).isFalse()
+        assertThat(defaults.fadesOnSkip).isFalse()
+    }
+
+    @Test
+    fun `a skip holds for a fade only when fading is on and asked for on a skip`() {
+        assertThat(CrossfadePolicy.Settings(seconds = 6, onManualSkip = true).fadesOnSkip).isTrue()
+        assertThat(CrossfadePolicy.Settings(seconds = 0, onManualSkip = true).fadesOnSkip).isFalse()
+        assertThat(CrossfadePolicy.Settings(seconds = 6, onManualSkip = false).fadesOnSkip).isFalse()
+    }
+
+    @Test
+    fun `the first press holds the skip for a new tail, or skips plainly when no tail can start`() {
+        val press = { canStart: Boolean -> CrossfadePolicy.onSkipPress(CrossfadePolicy.SkipPhase.NONE, false, canStart) }
+
+        assertThat(press(true)).isEqualTo(CrossfadePolicy.SkipPress.START_TAIL)
+        assertThat(press(false)).isEqualTo(CrossfadePolicy.SkipPress.PLAIN)
+    }
+
+    @Test
+    fun `a press while the tail starts moves the target and builds nothing`() {
+        assertThat(CrossfadePolicy.onSkipPress(CrossfadePolicy.SkipPhase.HOLDING, targetIsPlayingSong = false, canStartTail = true))
+            .isEqualTo(CrossfadePolicy.SkipPress.MOVE_TARGET)
+    }
+
+    @Test
+    fun `Next then Previous during the hold stays on the song that never stopped`() {
+        assertThat(CrossfadePolicy.onSkipPress(CrossfadePolicy.SkipPhase.HOLDING, targetIsPlayingSong = true, canStartTail = false))
+            .isEqualTo(CrossfadePolicy.SkipPress.BACK_TO_PLAYING_SONG)
+    }
+
+    @Test
+    fun `a press once a tail carries the old song only moves the session under it`() {
+        listOf(true, false).forEach { canStart ->
+            assertThat(CrossfadePolicy.onSkipPress(CrossfadePolicy.SkipPhase.UNDER_TAIL, false, canStart))
+                .isEqualTo(CrossfadePolicy.SkipPress.SEEK_UNDER_TAIL)
+        }
+    }
+
+    @Test
+    fun `a run of presses builds one tail and ends on the last song pressed`() {
+        var tails = 0
+        var phase = CrossfadePolicy.SkipPhase.NONE
+        var target = -1
+        var sessionAt = 0
+
+        fun press(next: Int) {
+            when (CrossfadePolicy.onSkipPress(phase, next == sessionAt, canStartTail = true)) {
+                CrossfadePolicy.SkipPress.START_TAIL -> {
+                    tails++
+                    phase = CrossfadePolicy.SkipPhase.HOLDING
+                    target = next
+                }
+
+                CrossfadePolicy.SkipPress.MOVE_TARGET -> {
+                    target = next
+                }
+
+                CrossfadePolicy.SkipPress.SEEK_UNDER_TAIL -> {
+                    sessionAt = next
+                }
+
+                else -> {
+                    error("not part of this run")
+                }
+            }
+        }
+
+        press(1)
+        press(2)
+        press(3)
+        assertThat(sessionAt).isEqualTo(0)
+
+        sessionAt = target
+        phase = CrossfadePolicy.SkipPhase.UNDER_TAIL
+        press(4)
+        press(5)
+
+        assertThat(sessionAt).isEqualTo(5)
+        assertThat(tails).isEqualTo(1)
+    }
+
+    @Test
+    fun `a skip overlaps for the chosen fade, or just a moment without one`() {
+        val fading = CrossfadePolicy.Settings(seconds = 6, onManualSkip = true)
+        val clock = { settings: CrossfadePolicy.Settings, position: Long ->
+            CrossfadePolicy.skipClockMs(settings, position, durationMs = 200_000L, speed = 1f)
+        }
+
+        assertThat(clock(fading, 30_000L)).isEqualTo(6_000L)
+        assertThat(clock(CrossfadePolicy.Settings(), 30_000L)).isEqualTo(CrossfadePolicy.SKIP_BLEND_MS)
+        assertThat(clock(fading.copy(onManualSkip = false), 30_000L)).isEqualTo(CrossfadePolicy.SKIP_BLEND_MS)
+        assertThat(clock(CrossfadePolicy.Settings(), 199_900L)).isEqualTo(100L)
+    }
+
+    @Test
+    fun `only a tail carrying a whole fade straight on from the session starts exactly`() {
+        val fading = CrossfadePolicy.Settings(seconds = 6, onManualSkip = true)
+
+        assertThat(CrossfadePolicy.tailStartsAtSyncPoint(fading, sessionStillPlaysSong = true)).isFalse()
+        assertThat(CrossfadePolicy.tailStartsAtSyncPoint(fading, sessionStillPlaysSong = false)).isTrue()
+        assertThat(CrossfadePolicy.tailStartsAtSyncPoint(CrossfadePolicy.Settings(), sessionStillPlaysSong = true)).isTrue()
+    }
+
+    @Test
+    fun `a fade kept waiting by the next song goes on from where it was`() {
+        assertThat(CrossfadePolicy.fadeBeganAtMs(nowMs = 10_000L, progress = 0f, fadeClockMs = 6_000L)).isEqualTo(10_000L)
+        assertThat(CrossfadePolicy.fadeBeganAtMs(nowMs = 10_000L, progress = 0.5f, fadeClockMs = 6_000L)).isEqualTo(7_000L)
+    }
+
+    @Test
+    fun `the lead moves half way to how long the tail took to be heard`() {
+        val waited = 700L
+        assertThat(CrossfadePolicy.learnedHeadStartMs(headStartMs = 400L, deltaMs = 400L - waited)).isEqualTo(550L)
     }
 }
