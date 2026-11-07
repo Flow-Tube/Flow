@@ -87,7 +87,7 @@ internal fun PlayerTrackHeader(
     title: String,
     artist: String,
     onArtistClick: () -> Unit,
-    animateTitle: Boolean,
+    animateTrackText: Boolean,
     showLibraryActions: Boolean,
     isLiked: Boolean,
     isDownloaded: Boolean,
@@ -115,16 +115,7 @@ internal fun PlayerTrackHeader(
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier =
-                        if (animateTitle) {
-                            Modifier.basicMarquee(
-                                iterations = 1,
-                                initialDelayMillis = 3000,
-                                velocity = 30.dp,
-                            )
-                        } else {
-                            Modifier
-                        },
+                    modifier = Modifier.trackTextMarquee(animateTrackText),
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -140,7 +131,7 @@ internal fun PlayerTrackHeader(
                     fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable(onClick = onArtistClick),
+                    modifier = Modifier.clickable(onClick = onArtistClick).trackTextMarquee(animateTrackText),
                 )
             }
         }
@@ -157,6 +148,17 @@ internal fun PlayerTrackHeader(
         }
     }
 }
+
+private fun Modifier.trackTextMarquee(enabled: Boolean): Modifier =
+    if (enabled) {
+        basicMarquee(
+            iterations = 1,
+            initialDelayMillis = 3000,
+            velocity = 30.dp,
+        )
+    } else {
+        this
+    }
 
 @Composable
 internal fun PlayerActionRow(
