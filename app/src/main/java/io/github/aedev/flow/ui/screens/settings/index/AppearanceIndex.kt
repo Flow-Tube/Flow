@@ -107,6 +107,15 @@ internal object AppearanceIndex {
             destination = page,
         )
 
+    val skeletonGradient =
+        SettingEntry(
+            key = "appearance.skeleton_gradient",
+            title = R.string.settings_skeleton_gradient_title,
+            summary = R.string.settings_skeleton_gradient_summary,
+            keywords = R.string.settings_skeleton_gradient_keywords,
+            section = R.string.settings_section_style,
+            destination = page,
+        )
     val highlightNewSettings =
         SettingEntry(
             key = "appearance.highlight_new_settings",
@@ -128,6 +137,7 @@ internal object AppearanceIndex {
         listOf(
             appIcon,
             interfaceMode,
+            skeletonGradient,
             highlightNewSettings,
             highlightNewSettingsDays,
             homeViewMode,

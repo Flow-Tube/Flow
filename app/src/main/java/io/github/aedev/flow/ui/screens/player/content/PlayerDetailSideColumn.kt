@@ -64,6 +64,7 @@ internal fun PlayerDetailSideColumn(
     queueCard: (@Composable () -> Unit)? = null,
 ) {
     val commentsUiState = rememberPlayerCommentsUiState(viewModel)
+    val showsRelatedSkeleton = rememberRelatedSkeleton(video, uiState, screenState)
     val scope = rememberCoroutineScope()
     val playerPreferences = prefs.preferences
     val closeSheet = { screenState.closeSheet() }
@@ -244,11 +245,15 @@ internal fun PlayerDetailSideColumn(
                                             LiveChatPreview(onClick = { screenState.showLiveChatPanel = true })
                                         }
                                     }
-                                    relatedVideosContent(
-                                        relatedVideos = uiState.relatedVideos,
-                                        onVideoClick = onVideoClick,
-                                        cardStyle = relatedCardStyle,
-                                    )
+                                    if (showsRelatedSkeleton) {
+                                        relatedVideosSkeleton(video.thumbnailUrl, relatedCardStyle)
+                                    } else {
+                                        relatedVideosContent(
+                                            relatedVideos = uiState.relatedVideos,
+                                            onVideoClick = onVideoClick,
+                                            cardStyle = relatedCardStyle,
+                                        )
+                                    }
                                 }
                             }
                         }
