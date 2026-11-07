@@ -2,12 +2,14 @@ package io.github.aedev.flow.ui.screens.sync.linked
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -36,24 +38,57 @@ class LinkedSetupTest {
     private val created = ArrayList<List<String>>()
     private val reset = ArrayList<List<String>>()
 
-    private fun show() =
-        rule.setContent {
-            var error by remember { mutableStateOf<LinkedError?>(null) }
-            LinkedSetup(
-                hostOnly = false,
-                busy = false,
-                error = error,
-                onCreate = { _, _ -> error = LinkedError.SERVER_HAS_GROUP },
-                onResetAndCreate = { url, token -> reset += listOf(url, token) },
-                onCreateOnWebDav = { url, user, password -> created += listOf(url, user, password) },
-                onCreateOnNetwork = {},
-                onEnterCode = { _, _ -> },
-                onJoinWithAdmin = { _, _ -> },
-                onShowCode = {},
-                onRestore = { _, _ -> },
-                onRestoreFromWebDav = { _, _, _, _ -> },
-            )
-        }
+    private fun show() = rule.setContent { Content() }
+
+    @Composable
+    private fun Content() {
+        var error by remember { mutableStateOf<LinkedError?>(null) }
+        LinkedSetup(
+            hostOnly = false,
+            busy = false,
+            error = error,
+            onCreate = { _, _ -> error = LinkedError.SERVER_HAS_GROUP },
+            onResetAndCreate = { url, token -> reset += listOf(url, token) },
+            onCreateOnWebDav = { url, user, password -> created += listOf(url, user, password) },
+            onCreateOnNetwork = {},
+            onEnterCode = { _, _ -> },
+            onJoinWithAdmin = { _, _ -> },
+            onShowCode = {},
+            onRestore = { _, _ -> },
+            onRestoreFromWebDav = { _, _, _, _ -> },
+        )
+    }
+
+    @Test
+    fun an_admin_token_is_not_kept_in_saved_state_but_the_address_is() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { Content() }
+        rule.onNodeWithText(text(R.string.linked_create_title)).performClick()
+        rule.onNodeWithText(text(R.string.linked_where_server)).performClick()
+        rule.onNodeWithText(text(R.string.linked_server_url)).performTextInput("https://sync.example.org")
+        rule.onNodeWithText(text(R.string.linked_admin_token)).performTextInput("admin")
+        rule.onNodeWithText(text(R.string.linked_create)).assertIsEnabled()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithText("https://sync.example.org").assertExists()
+        rule.onNodeWithText(text(R.string.linked_create)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun a_join_s_admin_token_is_not_kept_in_saved_state_but_the_address_is() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { Content() }
+        rule.onNodeWithText(text(R.string.linked_join_admin_title)).performClick()
+        rule.onNodeWithText(text(R.string.linked_server_url)).performTextInput("https://sync.example.org")
+        rule.onNodeWithText(text(R.string.linked_admin_token)).performTextInput("admin")
+        rule.onNodeWithText(text(R.string.linked_join_admin_ask)).assertIsEnabled()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithText("https://sync.example.org").assertExists()
+        rule.onNodeWithText(text(R.string.linked_join_admin_ask)).assertIsNotEnabled()
+    }
 
     @Test
     fun a_new_group_can_live_on_a_server_in_a_webdav_folder_or_on_this_network() {
