@@ -717,7 +717,7 @@
     <string name="settings_view_analytics">View Analytics</string>
     <!-- Deep Flow Mode -->
     <string name="deep_flow_mode_title">Deep Flow Mode</string>
-    <string name="deep_flow_mode_subtitle">Pause learning while you browse</string>
+    <string name="deep_flow_mode_subtitle">Pause learning and search history</string>
     <string name="deep_flow_learning_paused">LEARNING PAUSED</string>
     <string name="deep_flow_expires_in">Expires in %s</string>
     <string name="deep_flow_expire_duration_title">Auto-disable after</string>

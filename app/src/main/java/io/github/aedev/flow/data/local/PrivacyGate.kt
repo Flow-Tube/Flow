@@ -28,4 +28,7 @@ class PrivacyGate internal constructor(
 
     /** Listens go to scrobbling services unless Deep Flow is on and the user kept them private. */
     suspend fun allowsScrobbling(): Boolean = !deepFlowActive() || scrobbleDuringDeepFlow()
+
+    /** Searches stay out of history during Deep Flow, whatever the watch history switch says. */
+    suspend fun allowsSearchHistory(): Boolean = !deepFlowActive()
 }
