@@ -7,12 +7,14 @@ import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.writeSnapshot
+import io.github.aedev.flow.sync2.linking.rotateEpoch
 import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.store.ChangeList
 import io.github.aedev.flow.sync2.store.FileLayout
 import io.github.aedev.flow.sync2.store.FileStore
 import io.github.aedev.flow.sync2.store.GroupStore
+import io.github.aedev.flow.sync2.store.KeyName
 import io.github.aedev.flow.sync2.store.MAX_OBJECT_SIZE
 import io.github.aedev.flow.sync2.store.Mailbox
 import io.github.aedev.flow.sync2.store.Remote
@@ -86,7 +88,7 @@ class OneBadItemTest {
             val files = Files().apply { publish(g) }
             val bad = "roster/0000000000000000-0000000000000000.r"
             files.held[bad] = ByteArray(8)
-            files.failing[bad] = StoreException.Malformed()
+            files.failing[bad] = StoreException.TooLarge()
             val local = heldStore(g.deviceDb())
 
             GroupStore(local, FileLayout(files, me(g))).download(me(g), 0, objects = false)
@@ -188,7 +190,7 @@ class OneBadItemTest {
         ChangeList by real,
         Mailbox by real {
         override suspend fun getObject(path: String): ByteArray? {
-            if (path == refused) throw StoreException.Malformed()
+            if (path == refused) throw StoreException.TooLarge()
             return real.getObject(path)
         }
     }
@@ -230,5 +232,140 @@ class OneBadItemTest {
 
             taken.forEach { (path, bytes) -> g.store.put(path, bytes) }
             assertNotNull(Session.open(db, g.store, g.b).startReading("other-link"))
+        }
+
+    /** The Flow server, where reading a path or a key's name in [failing] throws what it names. */
+    private class FailingServer(
+        private val real: MemoryStore,
+    ) : Remote,
+        ChangeList by real,
+        Mailbox by real {
+        val failing = HashMap<String, StoreException>()
+
+        override suspend fun getObject(path: String): ByteArray? {
+            failing[path]?.let { throw it }
+            return real.getObject(path)
+        }
+
+        override suspend fun key(
+            epoch: Int,
+            kc: String,
+            name: String,
+        ): ByteArray? {
+            failing[name]?.let { throw it }
+            return real.key(epoch, kc, name)
+        }
+    }
+
+    private val notAboutTheItem = listOf(302, 401, 407, 408, 429, 500, 503)
+    private val aboutTheItem = listOf(400, 403, 410, 451)
+
+    private fun refused(status: Int) = StoreException.Refused(status, "test")
+
+    private suspend fun TestScope.chainBoxOf(g: LinkedGroup): KeyName {
+        rotateEpoch(Session.open(g.deviceDb(), g.store, g.a), g.a)
+        return g.store.keys.keys
+            .first { it.name == "chain" }
+    }
+
+    @Test
+    fun a_status_not_about_an_object_fails_the_sync_and_the_next_read_gets_it() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val bad = batchFromA(g)
+            for (status in notAboutTheItem) {
+                val stop = refused(status)
+                val server = FailingServer(g.store).apply { failing[bad] = stop }
+                val local = heldStore(g.deviceDb())
+                assertEquals(
+                    "$status",
+                    stop,
+                    runCatching { GroupStore(local, server).download(me(g), 0, objects = true) }.exceptionOrNull(),
+                )
+                server.failing.clear()
+                GroupStore(local, server).download(me(g), 0, objects = true)
+                assertNotNull("$status", local.getObject(bad))
+            }
+        }
+
+    @Test
+    fun a_status_not_about_a_chain_box_fails_the_sync_and_the_next_read_gets_it() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val box = chainBoxOf(g)
+            for (status in notAboutTheItem) {
+                val stop = refused(status)
+                val server = FailingServer(g.store).apply { failing["chain"] = stop }
+                val local = heldStore(g.deviceDb())
+                assertEquals(
+                    "$status",
+                    stop,
+                    runCatching { GroupStore(local, server).download(me(g), 0, objects = false) }.exceptionOrNull(),
+                )
+                server.failing.clear()
+                GroupStore(local, server).download(me(g), 0, objects = false)
+                assertNotNull("$status", local.key(box.epoch, box.kc, box.name))
+            }
+        }
+
+    @Test
+    fun a_status_not_about_a_roster_file_fails_the_sync_and_the_next_read_gets_it() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val last = g.store.roster.last()
+            val path = StorePaths.roster(last.seq, entryHash(last))
+            for (status in notAboutTheItem) {
+                val stop = refused(status)
+                val files = Files().apply { publish(g) }
+                files.failing[path] = stop
+                val local = heldStore(g.deviceDb())
+                val store = GroupStore(local, FileLayout(files, me(g)))
+                assertEquals("$status", stop, runCatching { store.download(me(g), 0, objects = false) }.exceptionOrNull())
+                files.failing.clear()
+                store.download(me(g), 0, objects = false)
+                assertEquals("$status", g.store.roster.size, local.entries().size)
+            }
+        }
+
+    @Test
+    fun a_status_not_about_a_log_file_fails_the_sync_and_the_next_read_gets_it() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val bad = batchFromA(g)
+            for (status in notAboutTheItem) {
+                val stop = refused(status)
+                val files = Files().apply { publish(g) }
+                files.tagged = "same-$status"
+                files.held[bad] = checkNotNull(g.store.objects[bad]).second
+                files.failing[bad] = stop
+                val local = heldStore(g.deviceDb())
+                val store = GroupStore(local, FileLayout(files, me(g)))
+                assertEquals("$status", stop, runCatching { store.download(me(g), 0, objects = true) }.exceptionOrNull())
+                files.failing.clear()
+                store.download(me(g), 0, objects = true)
+                assertNotNull("$status", local.getObject(bad))
+            }
+        }
+
+    @Test
+    fun an_object_a_chain_box_or_a_roster_file_refused_for_itself_stops_only_itself() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val bad = batchFromA(g)
+            chainBoxOf(g)
+            val last = g.store.roster.last()
+            for (stop in aboutTheItem.map(::refused) + StoreException.TooLarge()) {
+                val server = FailingServer(g.store).apply { failing[bad] = stop }
+                server.failing["chain"] = stop
+                val local = heldStore(g.deviceDb())
+                GroupStore(local, server).download(me(g), 0, objects = true)
+                assertNull(local.getObject(bad))
+
+                val files = Files().apply { publish(g) }
+                files.failing[StorePaths.roster(last.seq, entryHash(last))] = stop
+                val held = heldStore(g.deviceDb())
+                GroupStore(held, FileLayout(files, me(g))).download(me(g), 0, objects = false)
+                assertEquals(g.store.roster.size - 1, held.entries().size)
+            }
         }
 }
