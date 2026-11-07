@@ -242,7 +242,8 @@ class LanLimitsTest {
                 while (true) {
                     origin.accept().use {
                         it.getInputStream().read(ByteArray(4096))
-                        val answer = "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:${target.localPort}/elsewhere\r\nContent-Length: 0\r\n\r\n"
+                        val location = "http://127.0.0.1:${target.localPort}/elsewhere"
+                        val answer = "HTTP/1.1 302 Found\r\nLocation: $location\r\nContent-Length: 0\r\n\r\n"
                         it.getOutputStream().write(answer.toByteArray())
                     }
                 }
