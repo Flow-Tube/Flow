@@ -1,10 +1,12 @@
 package io.github.aedev.flow.ui.components.shared
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -56,7 +58,8 @@ internal fun themeSkeletonGradient(): SkeletonGradient {
 /**
  * Placeholders in [content] take their gradient from the colours of [thumbnailUrl]. Hue comes from
  * the picture and tone from the app's surface, so a loud thumbnail can't make the page glare. They
- * stay neutral until the picture has been read, so the theme's accent never flashes first.
+ * show the theme's gradient until the picture has been read, which on a slow connection can be the
+ * whole time the page loads, and ease across once it has.
  */
 @Composable
 fun ThumbnailSkeletonGradient(
@@ -70,26 +73,31 @@ fun ThumbnailSkeletonGradient(
             cacheOnly = LocalThumbnailQuality.current == ThumbnailQuality.OFF,
         )
     val scheme = MaterialTheme.colorScheme
+    val theme = themeSkeletonGradient()
     val dark = scheme.surface.tone() < MID_TONE
-    val gradient =
-        remember(palette.base, palette.accent, dark, scheme.surfaceContainerHigh, scheme.surfaceContainerHighest) {
+    val target =
+        remember(palette.base, palette.accent, dark, theme) {
             if (palette.accent == scheme.primary && palette.base == scheme.surface) {
-                return@remember SkeletonGradient(
-                    dimStart = scheme.surfaceContainerHigh,
-                    dimEnd = scheme.surfaceContainerHigh,
-                    brightStart = scheme.surfaceContainerHighest,
-                    brightEnd = scheme.surfaceContainerHighest,
+                theme
+            } else {
+                val towardsSurface = if (dark) PULSE_TONE_STEP else -PULSE_TONE_STEP
+                val startTone = if (dark) START_TONE_DARK else START_TONE_LIGHT
+                val endTone = if (dark) END_TONE_DARK else END_TONE_LIGHT
+                SkeletonGradient(
+                    dimStart = palette.base.withTone(startTone),
+                    dimEnd = palette.accent.withTone(endTone),
+                    brightStart = palette.base.withTone(startTone + towardsSurface),
+                    brightEnd = palette.accent.withTone(endTone + towardsSurface),
                 )
             }
-            val towardsSurface = if (dark) PULSE_TONE_STEP else -PULSE_TONE_STEP
-            val startTone = if (dark) START_TONE_DARK else START_TONE_LIGHT
-            val endTone = if (dark) END_TONE_DARK else END_TONE_LIGHT
-            SkeletonGradient(
-                dimStart = palette.base.withTone(startTone),
-                dimEnd = palette.accent.withTone(endTone),
-                brightStart = palette.base.withTone(startTone + towardsSurface),
-                brightEnd = palette.accent.withTone(endTone + towardsSurface),
-            )
         }
-    CompositionLocalProvider(LocalSkeletonGradient provides gradient, content = content)
+    val spec = MaterialTheme.motionScheme.slowEffectsSpec<Color>()
+    val dimStart by animateColorAsState(target.dimStart, spec, label = "skeletonDimStart")
+    val dimEnd by animateColorAsState(target.dimEnd, spec, label = "skeletonDimEnd")
+    val brightStart by animateColorAsState(target.brightStart, spec, label = "skeletonBrightStart")
+    val brightEnd by animateColorAsState(target.brightEnd, spec, label = "skeletonBrightEnd")
+    CompositionLocalProvider(
+        LocalSkeletonGradient provides SkeletonGradient(dimStart, dimEnd, brightStart, brightEnd),
+        content = content,
+    )
 }

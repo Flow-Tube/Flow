@@ -48,7 +48,14 @@ data class HomePage(
         val items: List<YTItem>,
     ) {
         companion object {
-            fun fromMusicCarouselShelfRenderer(renderer: MusicCarouselShelfRenderer): Section? {
+            /**
+             * [includeSongRows] keeps a shelf's list rows, which is how a chip's Quick picks arrives. The
+             * normal home composes its own Quick picks, so it asks only for the two-row cards.
+             */
+            fun fromMusicCarouselShelfRenderer(
+                renderer: MusicCarouselShelfRenderer,
+                includeSongRows: Boolean = false,
+            ): Section? {
                 return Section(
                     title =
                         renderer.header
@@ -73,10 +80,11 @@ data class HomePage(
                             ?.browseEndpoint,
                     items =
                         renderer.contents
-                            .mapNotNull {
-                                it.musicTwoRowItemRenderer
-                            }.mapNotNull {
-                                fromMusicTwoRowItemRenderer(it)
+                            .mapNotNull { content ->
+                                content.musicTwoRowItemRenderer?.let(::fromMusicTwoRowItemRenderer)
+                                    ?: content.musicResponsiveListItemRenderer
+                                        ?.takeIf { includeSongRows }
+                                        ?.let(RelatedPage::fromMusicResponsiveListItemRenderer)
                             }.ifEmpty {
                                 return null
                             },

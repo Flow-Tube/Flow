@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.ContentType
 import io.github.aedev.flow.data.local.Duration
+import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchFilter
 import io.github.aedev.flow.data.local.SearchHistoryRepository
 import io.github.aedev.flow.data.local.SortType
@@ -38,6 +39,14 @@ class SearchViewModelTest {
     private val context: Context = mockk(relaxed = true)
     private val history: SearchHistoryRepository = mockk(relaxed = true)
 
+    private var deepFlow = false
+    private val privacyGate =
+        PrivacyGate(
+            deepFlowActive = { deepFlow },
+            watchHistoryPaused = { false },
+            scrobbleDuringDeepFlow = { false },
+        )
+
     private fun viewModel() =
         SearchViewModel(
             context,
@@ -49,6 +58,7 @@ class SearchViewModelTest {
             mockk(relaxed = true),
             mockk(relaxed = true),
             mockk(relaxed = true),
+            privacyGate,
         )
 
     @Before
@@ -83,6 +93,18 @@ class SearchViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify(exactly = 1) { history.saveSearchQuery("world news", filters = filters) }
+        }
+
+    @Test
+    fun `Deep Flow keeps a submitted search and its filter changes out of history`() =
+        runTest(testDispatcher) {
+            deepFlow = true
+            val viewModel = viewModel()
+            viewModel.submit("world news", SearchFilter.DEFAULT)
+            viewModel.updateFilters(SearchFilter(uploadDate = UploadDate.TODAY))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify(exactly = 0) { history.saveSearchQuery(any(), any(), any(), any()) }
         }
 
     @Test

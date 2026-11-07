@@ -25,19 +25,26 @@ fun encodePayload(content: ByteArray): ByteArray {
     return payload.copyOf(paddedSize(payload.size))
 }
 
-fun decodePayload(payload: ByteArray): ByteArray {
+/** The content of [payload], failing as soon as it inflates past [limit] bytes. */
+fun decodePayload(
+    payload: ByteArray,
+    limit: Int = MAX_INFLATED,
+): ByteArray {
     if (payload.size < 4) reject(ProtocolError.PAYLOAD)
     val length = ByteBuffer.wrap(payload, 0, 4).int
     if (length < 0 || length > payload.size - 4) reject(ProtocolError.PAYLOAD)
     if ((4 + length until payload.size).any { payload[it] != 0.toByte() }) reject(ProtocolError.PAYLOAD)
     return try {
-        inflate(payload.inputStream(4, length))
+        inflate(payload.inputStream(4, length), limit)
     } catch (_: IOException) {
         reject(ProtocolError.PAYLOAD)
     }
 }
 
-private fun inflate(body: InputStream): ByteArray {
+private fun inflate(
+    body: InputStream,
+    limit: Int,
+): ByteArray {
     val out = ByteArrayOutputStream()
     val buffer = ByteArray(8192)
     GZIPInputStream(body).use { input ->
@@ -46,6 +53,7 @@ private fun inflate(body: InputStream): ByteArray {
             if (read < 0) break
             out.write(buffer, 0, read)
             if (out.size() > MAX_INFLATED) reject(ProtocolError.PAYLOAD)
+            if (out.size() > limit) reject(ProtocolError.LENGTH)
         }
     }
     return out.toByteArray()
