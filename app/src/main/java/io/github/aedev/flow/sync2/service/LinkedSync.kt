@@ -230,13 +230,11 @@ class LinkedSync
             if (session.removalPending) {
                 // It needs the store to take the removal; what it read stays for this sync once that's done.
                 if (offline != null) throw offline
-                val finished =
-                    finishRestore(session, device) {
+                session =
+                    finishRestore(session, device, { replacedWords.value = it }) {
                         store.download(me, record.serverCursor, objects = false)
                         Session.open(db, reading, device)
                     }
-                finished.words?.let { replacedWords.value = it }
-                session = finished.session
                 if (session.removalPending) return
             }
             val links = profiles.links(session) ?: return

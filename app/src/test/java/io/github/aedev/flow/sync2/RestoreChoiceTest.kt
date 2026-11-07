@@ -10,6 +10,8 @@ import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.purposeKey
+import io.github.aedev.flow.sync2.crypto.recoveryKeys
+import io.github.aedev.flow.sync2.crypto.recoverySecret
 import io.github.aedev.flow.sync2.crypto.sha256
 import io.github.aedev.flow.sync2.crypto.unwrapEpochKey
 import io.github.aedev.flow.sync2.data.GroupRecord
@@ -104,7 +106,8 @@ class RestoreChoiceTest {
         store: MemoryStore,
         db: LinkedDatabase,
         device: MemberSecrets,
-    ) = finishRestore(Session.open(db, store, device), device) { Session.open(db, store, device) }
+        holdWords: (String) -> Unit = {},
+    ) = finishRestore(Session.open(db, store, device), device, holdWords) { Session.open(db, store, device) }
 
     private fun MemoryStore.objectsOf(device: MemberSecrets) = objects.keys.filter { it.startsWith("dev/${id(device)}/") }
 
@@ -167,10 +170,9 @@ class RestoreChoiceTest {
                     .filterValues { it.role == Role.DEVICE }
                     .keys
             assertEquals(setOf(id(device)), devices)
-            assertNull(finished.words)
-            assertFalse(finished.session.removalPending)
+            assertFalse(finished.removalPending)
             assertNull(db.groups().group()?.keptDevices)
-            assertTrue(id(g.a) in finished.session.pull(setOf(LINK)).batches)
+            assertTrue(id(g.a) in finished.pull(setOf(LINK)).batches)
         }
 
     @Test
@@ -206,7 +208,7 @@ class RestoreChoiceTest {
                     .last()
                     .op,
             )
-            assertFalse(finished.session.removalPending)
+            assertFalse(finished.removalPending)
         }
 
     @Test
@@ -306,7 +308,7 @@ class RestoreChoiceTest {
             val (device, db) = restoredKeeping(g)
             val stopped =
                 runCatching {
-                    finishRestore(Session.open(db, g.store, device), device) { throw IOException("stopped") }
+                    finishRestore(Session.open(db, g.store, device), device, {}) { throw IOException("stopped") }
                 }.exceptionOrNull()
             assertTrue("$stopped", stopped is IOException)
             val entries = g.store.roster.size
@@ -315,7 +317,7 @@ class RestoreChoiceTest {
             val finished = finish(g.store, db, device)
 
             assertEquals(entries, g.store.roster.size)
-            assertFalse(finished.session.removalPending)
+            assertFalse(finished.removalPending)
         }
 
     @Test
@@ -326,11 +328,44 @@ class RestoreChoiceTest {
             val (device, db) = restoredKeeping(g)
             replaceRecovery(Session.open(dbA, g.store, g.a), g.a)
 
-            val finished = finish(g.store, db, device)
+            var words: String? = null
+            finish(g.store, db, device) { words = it }
 
-            assertNotNull(finished.words)
+            assertNotNull(words)
             assertEquals(false, db.groups().group()?.recoverySaved)
             assertFalse(g.store.head().recoveryDue)
+        }
+
+    @Test
+    fun new_words_are_held_and_marked_unsaved_when_the_next_read_of_the_roster_fails() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (device, db) = restoredKeeping(g)
+            db.groups().setRecoverySaved(true)
+            replaceRecovery(Session.open(g.deviceDb(), g.store, g.a), g.a)
+
+            var words: String? = null
+            val stopped =
+                runCatching {
+                    finishRestore(Session.open(db, g.store, device), device, { words = it }) { throw IOException("stopped") }
+                }.exceptionOrNull()
+
+            assertTrue("$stopped", stopped is IOException)
+            assertEquals(
+                Op.REMOVE,
+                g.store.roster
+                    .last()
+                    .op,
+            )
+            val next = recoveryKeys(checkNotNull(recoverySecret(checkNotNull(words))))
+            assertEquals(
+                Role.RECOVERY,
+                g.store
+                    .head()
+                    .members[id(next)]
+                    ?.role,
+            )
+            assertEquals(false, db.groups().group()?.recoverySaved)
         }
 
     @Test
@@ -345,7 +380,7 @@ class RestoreChoiceTest {
             assertTrue(id(g.b) in older.head().members)
 
             val (device, db) = restoredKeeping(g, store = older)
-            val session = finish(older, db, device).session
+            val session = finish(older, db, device)
             session.push(export, LINK)
 
             val epoch = session.state.epoch
@@ -399,6 +434,25 @@ class RestoreChoiceTest {
             assertEquals(Op.REMOVE, roster.maxBy { it.seq }.op)
             assertEquals(listOf(id(first)), roster.maxBy { it.seq }.remove)
             assertNull(db.groups().group()?.keptDevices)
+        }
+
+    @Test
+    fun the_sync_hands_on_words_its_removal_had_to_make() =
+        runTest {
+            val first = newMember()
+            val dbFirst = emptyDb()
+            val (words, _) = createWebDavGroup(dbFirst, dav.store(), first, RESTORED, LINK)
+            val device = newMember()
+            val db = emptyDb()
+            restoreWebDavGroup(db, dav.store(), words, device, RESTORED, keep = emptySet())
+            val storeFirst = GroupStore(heldStore(dbFirst), FileLayout(dav.store(), id(first)))
+            storeFirst.download(id(first), 0, objects = false)
+            replaceRecovery(Session.open(dbFirst, storeFirst, first), first)
+
+            val sync = sync(db, device)
+            assertNull(sync.syncNow().error)
+
+            assertNotNull(sync.replacedWords.value)
         }
 
     @Test

@@ -109,28 +109,26 @@ internal fun Session.unchosenDevices(): List<String> {
         .sorted()
 }
 
-/** Where a restore's last step left things: the session to go on with, and new words to show when the removal had to replace them. */
-class FinishedRestore(
-    val session: Session,
-    val words: String?,
-)
-
 /**
  * Signs out the devices the user didn't choose (spec/protocol.md, Recovery, step 6), having read every log without
  * writing, so that nothing is sealed under a key they hold. [reread] opens the roster again from the store. A removal
  * that lost a fork stays due for the next sync, and so does one that dies on the way: it starts over from the roster.
+ * New words the removal had to make go to [holdWords] before the roster is read again, which can fail. Returns the
+ * session to go on with.
  */
 suspend fun finishRestore(
     session: Session,
     device: MemberSecrets,
+    holdWords: (String) -> Unit,
     reread: suspend () -> Session,
-): FinishedRestore {
+): Session {
     var current = session
-    var words: String? = null
     val unchosen = current.unchosenDevices()
     if (unchosen.isNotEmpty()) {
-        words = removeDevices(current, device, unchosen, current.readablePositions())
-        if (words != null) current.db.groups().setRecoverySaved(false)
+        removeDevices(current, device, unchosen, current.readablePositions())?.let { words ->
+            holdWords(words)
+            current.db.groups().setRecoverySaved(false)
+        }
         current.db.snapshots().snapshotSoon()
         current = reread()
     }
@@ -138,7 +136,7 @@ suspend fun finishRestore(
         current.db.groups().forgetRestoreKeep()
         current = reread()
     }
-    return FinishedRestore(current, words)
+    return current
 }
 
 /**
