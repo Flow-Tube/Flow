@@ -78,6 +78,7 @@ class LocalDataManager
             private val SYSTEM_LIGHT_THEME_MODE = stringPreferencesKey("system_light_theme_mode")
             private val SYSTEM_DARK_THEME_MODE = stringPreferencesKey("system_dark_theme_mode")
             private val SYSTEM_DARK_THEME_VARIANT = stringPreferencesKey("system_dark_theme_variant")
+            private val SKELETON_GRADIENT = booleanPreferencesKey("skeleton_gradient")
 
             val AUTO_BACKUP_LAST_RUN =
                 androidx.datastore.preferences.core
@@ -138,6 +139,12 @@ class LocalDataManager
             context.dataStore.edit { prefs ->
                 prefs[THEME_MODE] = mode.canonicalFamily().name
             }
+        }
+
+        val skeletonGradient: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[SKELETON_GRADIENT] ?: false }
+
+        suspend fun setSkeletonGradient(enabled: Boolean) {
+            context.dataStore.edit { prefs -> prefs[SKELETON_GRADIENT] = enabled }
         }
 
         val themeVariant: Flow<ThemeVariant> =

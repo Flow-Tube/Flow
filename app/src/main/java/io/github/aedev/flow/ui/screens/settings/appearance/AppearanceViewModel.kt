@@ -34,7 +34,7 @@ class AppearanceViewModel
         private val preferences: PlayerPreferences,
         private val uiModePreferences: AppUiModePreferences,
         private val appIconController: AppIconController,
-        localDataManager: LocalDataManager,
+        private val localDataManager: LocalDataManager,
         fontPreferences: AppFontPreferences,
     ) : SettingsViewModel() {
         val themeMode = localDataManager.themeMode.asState(ThemeMode.SYSTEM)
@@ -89,8 +89,11 @@ class AppearanceViewModel
                 _appIcon.value = suffix
             }
 
+        val skeletonGradient = localDataManager.skeletonGradient.asState(false)
         val newSettingsHighlight = preferences.newSettingsHighlight.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT)
         val newSettingsDays = preferences.newSettingsHighlightDays.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS)
+
+        fun setSkeletonGradient(enabled: Boolean) = write { localDataManager.setSkeletonGradient(enabled) }
 
         fun setNewSettingsHighlight(enabled: Boolean) = write { preferences.setNewSettingsHighlight(enabled) }
 

@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.AppShortcut
 import androidx.compose.material.icons.outlined.FiberNew
+import androidx.compose.material.icons.outlined.Gradient
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.TextFields
@@ -144,6 +145,12 @@ internal fun AppearanceScreen(
                 icon = Icons.Outlined.Tv,
                 showChevron = false,
                 onClick = { showInterfaceDialog = true },
+            )
+            switch(
+                AppearanceIndex.skeletonGradient,
+                viewModel.skeletonGradient,
+                viewModel::setSkeletonGradient,
+                icon = Icons.Outlined.Gradient,
             )
             switch(
                 AppearanceIndex.highlightNewSettings,

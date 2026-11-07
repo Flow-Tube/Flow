@@ -34,6 +34,8 @@ import io.github.aedev.flow.ui.screens.player.content.VideoInfoContent
 import io.github.aedev.flow.ui.screens.player.content.relatedListUsesGrid
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosContent
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosGridContent
+import io.github.aedev.flow.ui.screens.player.content.relatedVideosSkeleton
+import io.github.aedev.flow.ui.screens.player.content.rememberRelatedSkeleton
 import io.github.aedev.flow.ui.screens.player.state.PlayerLayoutMode
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
@@ -90,6 +92,7 @@ internal fun EnhancedVideoPlayerScreen(
     val relatedCardStyle = prefs.relatedCardStyle
     val isInPipMode by GlobalPlayerState.isInPipMode.collectAsStateWithLifecycle()
     val playerState by EnhancedPlayerManager.getInstance().playerState.collectAsStateWithLifecycle()
+    val showsRelatedSkeleton = rememberRelatedSkeleton(video, uiState, screenState)
     Box(
         modifier =
             Modifier
@@ -228,7 +231,9 @@ internal fun EnhancedVideoPlayerScreen(
                             )
                         }
                         if (showRelatedVideos) {
-                            if (relatedListUsesGrid(isMediumLayout, relatedCardStyle, relatedLayout)) {
+                            if (showsRelatedSkeleton) {
+                                relatedVideosSkeleton(video.thumbnailUrl, relatedCardStyle)
+                            } else if (relatedListUsesGrid(isMediumLayout, relatedCardStyle, relatedLayout)) {
                                 relatedVideosGridContent(
                                     relatedVideos = uiState.relatedVideos,
                                     layout = relatedLayout,
