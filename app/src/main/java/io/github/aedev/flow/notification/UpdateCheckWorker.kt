@@ -80,6 +80,8 @@ class UpdateCheckWorker(
                 Log.d(TAG, "Update notifications are off, skipping update check")
                 return@withContext Result.success()
             }
+            // Announcing marks the version as told, so it must not happen while the notification can't show.
+            if (!NotificationHelper.hasNotificationPermission(applicationContext)) return@withContext Result.success()
             val updates = EntryPointAccessors.fromApplication(applicationContext, UpdateEntryPoint::class.java).updateRepository()
             val release = updates.releaseToAnnounce(UpdateAnnouncement.NOTIFICATION)
             if (release != null) NotificationHelper.showUpdateNotification(applicationContext, release)
