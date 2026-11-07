@@ -79,6 +79,7 @@ class LocalDataManager
             private val SYSTEM_DARK_THEME_MODE = stringPreferencesKey("system_dark_theme_mode")
             private val SYSTEM_DARK_THEME_VARIANT = stringPreferencesKey("system_dark_theme_variant")
             private val SKELETON_GRADIENT = booleanPreferencesKey("skeleton_gradient")
+            private val MARQUEE_ENABLED = booleanPreferencesKey("marquee_enabled")
 
             val AUTO_BACKUP_LAST_RUN =
                 androidx.datastore.preferences.core
@@ -142,6 +143,12 @@ class LocalDataManager
         }
 
         val skeletonGradient: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[SKELETON_GRADIENT] ?: false }
+
+        val marqueeEnabled: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[MARQUEE_ENABLED] ?: true }
+
+        suspend fun setMarqueeEnabled(enabled: Boolean) {
+            context.dataStore.edit { prefs -> prefs[MARQUEE_ENABLED] = enabled }
+        }
 
         suspend fun setSkeletonGradient(enabled: Boolean) {
             context.dataStore.edit { prefs -> prefs[SKELETON_GRADIENT] = enabled }

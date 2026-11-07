@@ -39,6 +39,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.player.RepeatMode
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerMainActionButtons
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerSecondaryActions
+import io.github.aedev.flow.ui.components.shared.LocalMarqueeEnabled
 
 internal val PlayerHorizontalPadding = 28.dp
 
@@ -149,10 +150,13 @@ internal fun PlayerTrackHeader(
     }
 }
 
+/** Keeps looping so a long name can be read in full. The caller stops it whenever nobody can see it. */
+@Composable
 private fun Modifier.trackTextMarquee(enabled: Boolean): Modifier =
-    if (enabled) {
+    if (enabled && LocalMarqueeEnabled.current) {
         basicMarquee(
-            iterations = 1,
+            iterations = Int.MAX_VALUE,
+            repeatDelayMillis = 10_000,
             initialDelayMillis = 3000,
             velocity = 30.dp,
         )
