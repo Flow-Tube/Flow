@@ -27,6 +27,9 @@ val GroupRecord.webDavUrl: String? get() = storeUrl.takeIf { it.startsWith(WEBDA
 /** The Flow server the group lives on, or null for a group on WebDAV or on its devices alone. */
 val GroupRecord.serverUrl: String? get() = storeUrl.takeIf { it != LAN_STORE && webDavUrl == null }
 
+/** The devices a restore keeps, or null when no restore is unfinished. */
+val GroupRecord.keptDevices: Set<String>? get() = restoreKeep?.split(',')?.filterTo(HashSet()) { it.isNotEmpty() }
+
 /** A roster entry the user kept between sides of a contested roster. It never leaves this device. */
 @Entity(tableName = "roster_pin")
 data class RosterPinRow(
@@ -58,6 +61,8 @@ data class GroupRecord(
     val recoveryNoticeAt: Long? = null,
     /** The device that set the recovery key left: nothing is written until it is replaced. */
     @ColumnInfo(defaultValue = "0") val recoveryDue: Boolean = false,
+    /** The devices a restore keeps, comma-separated, until it has signed out the rest (spec/protocol.md, Recovery). */
+    val restoreKeep: String? = null,
     @PrimaryKey val id: Int = 1,
 )
 
@@ -117,6 +122,9 @@ interface GroupDao {
 
     @Query("UPDATE group_record SET recoveryDue = :due WHERE id = 1")
     suspend fun setRecoveryDue(due: Boolean)
+
+    @Query("UPDATE group_record SET restoreKeep = NULL WHERE id = 1")
+    suspend fun forgetRestoreKeep()
 
     @Query("UPDATE group_record SET recoverySaved = :saved WHERE id = 1")
     suspend fun setRecoverySaved(saved: Boolean)

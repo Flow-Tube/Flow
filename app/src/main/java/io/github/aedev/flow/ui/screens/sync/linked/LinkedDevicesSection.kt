@@ -119,6 +119,9 @@ internal fun LinkedDevicesSection(
                 onShowCode = viewModel::showCode,
                 onRestore = viewModel::restore,
                 onRestoreFromWebDav = viewModel::restoreFromWebDav,
+                restoreDevices = state.restoreDevices,
+                onConfirmRestore = viewModel::confirmRestore,
+                onCancelRestore = viewModel::cancelRestore,
             )
         }
     }

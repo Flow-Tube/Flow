@@ -24,6 +24,7 @@ import io.github.aedev.flow.sync2.lan.LanSync
 import io.github.aedev.flow.sync2.lan.lanPort
 import io.github.aedev.flow.sync2.linking.Code
 import io.github.aedev.flow.sync2.linking.DeviceMeta
+import io.github.aedev.flow.sync2.linking.RestoreDevice
 import io.github.aedev.flow.sync2.linking.StoreLocation
 import io.github.aedev.flow.sync2.linking.addDevice
 import io.github.aedev.flow.sync2.linking.addScanned
@@ -36,6 +37,8 @@ import io.github.aedev.flow.sync2.linking.deviceNames
 import io.github.aedev.flow.sync2.linking.join
 import io.github.aedev.flow.sync2.linking.listen
 import io.github.aedev.flow.sync2.linking.newOffer
+import io.github.aedev.flow.sync2.linking.previewServerRestore
+import io.github.aedev.flow.sync2.linking.previewWebDavRestore
 import io.github.aedev.flow.sync2.linking.readCode
 import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.linking.renameDevice
@@ -134,8 +137,12 @@ class LinkedActions
         private suspend fun linked(): GroupRecord = db.groups().group() ?: throw LinkedException.NotLinked()
 
         /** Fresh device keys for a group this device is about to create, join or restore (spec/crypto.md, Device keys). */
-        private suspend fun newMembership(): MemberSecrets {
+        private suspend fun checkNotLinked() {
             if (db.groups().group() != null) throw LinkedException.AlreadyLinked()
+        }
+
+        private suspend fun newMembership(): MemberSecrets {
+            checkNotLinked()
             return keys.fresh()
         }
 
@@ -211,20 +218,42 @@ class LinkedActions
                 linkedNow()
             }
 
-        /** Restores the group with the recovery words and returns the new words to show once. */
+        /** The devices of the group the recovery words open, for the user to choose from. Writes nothing. */
+        suspend fun previewRestore(
+            url: String,
+            words: String,
+        ): List<RestoreDevice> {
+            checkNotLinked()
+            return previewServerRestore(url.trim(), words)
+        }
+
+        /** The devices of the group in a WebDAV folder that the recovery words open. Writes nothing. */
+        suspend fun previewRestoreFromWebDav(
+            url: String,
+            user: String,
+            password: String,
+            words: String,
+        ): List<RestoreDevice> {
+            checkNotLinked()
+            return previewWebDavRestore(WebDavStore.connect(url.trim(), user, password), words)
+        }
+
+        /** Restores the group with the recovery words, keeping the devices in [keep], and returns the new words to show once. */
         suspend fun restore(
             url: String,
             words: String,
-        ): String = restoreGroup(db, url.trim(), words, newMembership(), meta()).also { linkedNow() }
+            keep: Set<String>,
+        ): String = restoreGroup(db, url.trim(), words, newMembership(), meta(), keep).also { linkedNow() }
 
-        /** Restores the group from a WebDAV folder with the recovery words and returns the new words to show once. */
+        /** Restores the group from a WebDAV folder with the recovery words, keeping the devices in [keep], and returns the new words to show once. */
         suspend fun restoreFromWebDav(
             url: String,
             user: String,
             password: String,
             words: String,
+            keep: Set<String>,
         ): String {
-            val restored = restoreWebDavGroup(db, WebDavStore.connect(url.trim(), user, password), words, newMembership(), meta())
+            val restored = restoreWebDavGroup(db, WebDavStore.connect(url.trim(), user, password), words, newMembership(), meta(), keep)
             credentials.save(WebDavLogin(user, password))
             return restored.also { linkedNow() }
         }
@@ -265,7 +294,10 @@ class LinkedActions
         /** The devices yet to read the login this device sent, or null with no change under way. */
         suspend fun loginWaiting(): List<String>? = loginWaiting(db, SyncBytes.toHex(keys.load().did))
 
-        suspend fun confirmRecoverySaved() = db.groups().setRecoverySaved(true)
+        suspend fun confirmRecoverySaved() {
+            db.groups().setRecoverySaved(true)
+            sync.replacedWords.value = null
+        }
 
         suspend fun rename(
             id: String,
@@ -328,6 +360,8 @@ class LinkedActions
         suspend fun forget() = reset.forget()
 
         val syncing: StateFlow<Boolean> = sync.syncing
+
+        val replacedWords: StateFlow<String?> = sync.replacedWords
 
         fun syncNow() = LinkedSyncWorker.syncSoon(context, announce = true)
 
