@@ -169,4 +169,21 @@ sealed class StoreException(
     class InstanceChanged : StoreException("This is not the server instance this device paired with")
 
     class Malformed : StoreException("The server sent an invalid response")
+
+    /** Whether this read failed for the one item asked for, over its limit or refused, so the rest of the sync can go on (spec/store.md, Untrusted input). */
+    val stopsOnlyItsItem: Boolean
+        get() =
+            when (this) {
+                is Malformed -> true
+                is Refused -> !rateLimited
+                else -> false
+            }
 }
+
+/** What [read] answers, or null when it failed for that one item. */
+internal suspend fun <T> oneItem(read: suspend () -> T?): T? =
+    try {
+        read()
+    } catch (e: StoreException) {
+        if (e.stopsOnlyItsItem) null else throw e
+    }

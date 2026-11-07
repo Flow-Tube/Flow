@@ -353,10 +353,14 @@ class Session private constructor(
                 .maxByOrNull { it.manifest.merged() }
         val tips = newest?.manifest?.vv.orEmpty()
         val records =
-            newest?.let {
-                val parsed = verified(store.getObject(StorePaths.log(it.did, it.seq)) ?: return null, it.did, it.seq)
-                mapOf(it.did to snapshotBatches(it.did, parsed.header.epoch, it.manifest))
-            } ?: emptyMap()
+            try {
+                newest?.let {
+                    val parsed = verified(store.getObject(StorePaths.log(it.did, it.seq)) ?: return null, it.did, it.seq)
+                    mapOf(it.did to snapshotBatches(it.did, parsed.header.epoch, it.manifest))
+                } ?: emptyMap()
+            } catch (_: ProtocolException) {
+                return null
+            }
         db.profiles().saveReads(
             positions
                 .filter { it.did != me }
