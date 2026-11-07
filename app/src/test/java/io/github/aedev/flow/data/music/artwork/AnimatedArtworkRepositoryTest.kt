@@ -45,6 +45,8 @@ class AnimatedArtworkRepositoryTest {
     private var answer: (Map<String, String>) -> ArtworkAnswer = { ArtworkAnswer("Anti-Hero", "Taylor Swift", loop) }
     private val searches = mutableListOf<String>()
     private var searchAnswer: (String) -> List<SongItem> = { emptyList() }
+    private val catalogSearches = mutableListOf<Pair<String, String>>()
+    private var catalogAnswer: (String) -> List<CatalogSong> = { emptyList() }
     private var clock = 0L
     private val cache = MemoryCache()
     private val repository =
@@ -56,6 +58,10 @@ class AnimatedArtworkRepositoryTest {
             searchSongs = { query ->
                 searches += query
                 searchAnswer(query)
+            },
+            searchCatalog = { term, country ->
+                catalogSearches += term to country
+                catalogAnswer(term)
             },
             cache = cache,
             storefront = { "US" },
@@ -177,6 +183,126 @@ class AnimatedArtworkRepositoryTest {
         assertThat(decodeCachedLoop("42|$loop")).isNull()
         assertThat(decodeCachedLoop("42|")).isNull()
     }
+
+    @Test
+    fun `a miss from before releases were searched is asked again, but a saved loop is kept`() {
+        assertThat(decodeCachedLoop("42||")).isNull()
+        assertThat(decodeCachedLoop("42|$loop|")).isEqualTo(CachedLoop(AnimatedLoop(loop, null), 42L))
+    }
+
+    private val huaMain =
+        MusicTrack(
+            videoId = "h",
+            title = "Hua Main",
+            artist = "Raghav Chaitanya",
+            thumbnailUrl = "",
+            duration = 278,
+            album = "Animal- Hindi",
+            artists = listOf(MusicArtist("Raghav Chaitanya", "rc")),
+        )
+
+    private fun release(
+        id: Long,
+        album: String,
+        tracks: Int,
+    ) = CatalogSong("Hua Main", "Raghav Chaitanya & Pritam", id, album, "Pritam", tracks)
+
+    @Test
+    fun `a song whose album has no loop finds the loop on its other release`() =
+        runTest {
+            catalogAnswer = {
+                listOf(
+                    release(1727144163, "ANIMAL (Deluxe Edition Album)", 18),
+                    release(1718278225, "ANIMAL (Original Motion Picture Soundtrack)", 9),
+                )
+            }
+            answer = { params ->
+                when (params["id"]) {
+                    null -> ArtworkAnswer("Hua Main", "Raghav Chaitanya & Pritam", albumId = "1727144163")
+                    "1718278225" -> ArtworkAnswer("ANIMAL", "Various", loop, tallLoop, "1718278225")
+                    else -> ArtworkAnswer("ANIMAL (Deluxe Edition Album)", "Various", albumId = params["id"])
+                }
+            }
+
+            assertThat(repository.loopFor(huaMain)).isEqualTo(AnimatedLoop(loop, tallLoop))
+
+            assertThat(catalogSearches.single()).isEqualTo("Hua Main Raghav Chaitanya" to "us")
+            assertThat(requests.mapNotNull { it["id"] }).containsExactly("1718278225")
+            assertThat(requests.last()["storefront"]).isEqualTo("us")
+        }
+
+    @Test
+    fun `a recommended row with one artist string and no album still finds the loop`() =
+        runTest {
+            val recommended = huaMain.copy(artist = "Raghav Chaitanya, Pritam, Manoj Muntashir", album = "", artists = emptyList())
+            searchAnswer = {
+                listOf(
+                    SongItem(
+                        id = "65-VQkyE72I",
+                        title = "Hua Main",
+                        artists = listOf(Artist("Raghav Chaitanya", "rc")),
+                        album = Album("Animal- Hindi", "a"),
+                        duration = 278,
+                        thumbnail = "",
+                        musicVideoType = MUSIC_VIDEO_TYPE_ATV,
+                    ),
+                )
+            }
+            catalogAnswer = { listOf(release(1718278225, "ANIMAL (Original Motion Picture Soundtrack)", 9)) }
+            answer = { params ->
+                if (params["id"] == "1718278225") {
+                    ArtworkAnswer("ANIMAL", "Various", loop, tallLoop, "1718278225")
+                } else {
+                    ArtworkAnswer("Hua Main", "Pritam, Raghav Chaitanya & Manoj Muntashir", albumId = "1727144163")
+                }
+            }
+
+            assertThat(repository.loopFor(recommended)).isEqualTo(AnimatedLoop(loop, tallLoop))
+
+            assertThat(requests.first()["a"]).isEqualTo("Raghav Chaitanya")
+            assertThat(catalogSearches.single().first).isEqualTo("Hua Main Raghav Chaitanya")
+        }
+
+    @Test
+    fun `a search row's Unknown Album is not asked about as an album`() =
+        runTest {
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift", loop) }
+
+            repository.loopFor(antiHero.copy(album = "Unknown Album"))
+
+            assertThat(requests.single()).doesNotContainKey("al")
+            assertThat(cache.entries.keys.single()).endsWith("|anti hero")
+        }
+
+    @Test
+    fun `a song with a loop never searches for other releases`() =
+        runTest {
+            repository.loopFor(antiHero)
+
+            assertThat(catalogSearches).isEmpty()
+        }
+
+    @Test
+    fun `a failed release search is not saved as a miss`() =
+        runTest {
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift") }
+            catalogAnswer = { throw IOException("refused") }
+
+            runCatching { repository.loopFor(antiHero) }
+
+            assertThat(cache.entries).isEmpty()
+        }
+
+    @Test
+    fun `no release with a loop is saved as a miss and not asked about again`() =
+        runTest {
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift") }
+
+            assertThat(repository.loopFor(antiHero)).isNull()
+            repository.loopFor(antiHero)
+
+            assertThat(catalogSearches).hasSize(1)
+        }
 
     private val besharamRangVideo =
         MusicTrack(

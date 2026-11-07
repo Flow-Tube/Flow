@@ -25,11 +25,14 @@ import javax.inject.Singleton
  * song's title, artist, album and length, and needs no account. Each album is asked about once;
  * the answer, loop or none, is kept for days, as the service asks of its clients. A row with no
  * album, usually a music video, is asked about again under its song version's album on a miss.
+ * Apple often has several releases of a song and the service can land on one with no loop, so a
+ * remaining miss looks the song up in Apple's public search and asks about its other releases.
  */
 @Singleton
 class AnimatedArtworkRepository internal constructor(
     private val fetch: suspend (Map<String, String>) -> ArtworkAnswer,
     private val searchSongs: suspend (String) -> List<SongItem>,
+    private val searchCatalog: suspend (String, String) -> List<CatalogSong>,
     private val cache: AnimatedArtworkCache,
     private val storefront: suspend () -> String,
     private val now: () -> Long,
@@ -50,6 +53,7 @@ class AnimatedArtworkRepository internal constructor(
                     .filterIsInstance<SongItem>()
             }
         },
+        searchCatalog = ArtworkService::searchCatalog,
         cache = DataStoreAnimatedArtworkCache(context),
         storefront = { preferences.trendingRegion.first() },
         now = System::currentTimeMillis,
@@ -57,20 +61,25 @@ class AnimatedArtworkRepository internal constructor(
 
     private val lock = Mutex()
 
-    /** The HLS loops for [track]'s album, or null when it has none. Throws when the service could not answer. */
-    internal suspend fun loopFor(track: MusicTrack): AnimatedLoop? =
+    /** The HLS loops for [row]'s album, or null when it has none. Throws when the service could not answer. */
+    internal suspend fun loopFor(row: MusicTrack): AnimatedLoop? =
         lock.withLock {
+            val track = AnimatedArtworkLookup.withKnownAlbum(row)
             val key = AnimatedArtworkLookup.key(track)
             cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return@withLock it.loop }
-            val loop = ask(track) ?: askAlbumVersion(track)
+            val asked = mutableSetOf<String>()
+            val loop = lookUp(track, asked)
             cache.put(key, CachedLoop(loop, now()))
             loop
         }
 
-    /** Drops [track]'s answer, for a loop that no longer plays. */
-    suspend fun forget(track: MusicTrack) = cache.remove(AnimatedArtworkLookup.key(track))
+    /** Drops [row]'s answer, for a loop that no longer plays. */
+    suspend fun forget(row: MusicTrack) = cache.remove(AnimatedArtworkLookup.key(AnimatedArtworkLookup.withKnownAlbum(row)))
 
-    private suspend fun ask(track: MusicTrack): AnimatedLoop? {
+    private suspend fun ask(
+        track: MusicTrack,
+        asked: MutableSet<String>,
+    ): AnimatedLoop? {
         val country = storefront().lowercase()
         for (query in AnimatedArtworkLookup.queries(track)) {
             val params =
@@ -83,16 +92,38 @@ class AnimatedArtworkRepository internal constructor(
                 }
             val answer = fetch(params)
             if (AnimatedArtworkLookup.accepts(track, answer)) {
-                return AnimatedLoop(answer.animated, answer.animatedVertical).takeIf { it.square != null || it.tall != null }
+                answer.albumId?.let(asked::add)
+                return answer.loop()
             }
         }
         return null
     }
 
-    private suspend fun askAlbumVersion(track: MusicTrack): AnimatedLoop? {
+    private suspend fun lookUp(
+        track: MusicTrack,
+        asked: MutableSet<String>,
+    ): AnimatedLoop? {
+        ask(track, asked)?.let { return it }
+        val version = albumVersion(track)
+        version?.let { ask(it, asked) }?.let { return it }
+        return askOtherReleases(version ?: track, asked)
+    }
+
+    private suspend fun albumVersion(track: MusicTrack): MusicTrack? {
         if (track.album.isNotBlank()) return null
-        val version = AnimatedArtworkLookup.albumVersion(track, searchSongs(AnimatedArtworkLookup.songSearch(track))) ?: return null
-        return ask(version)
+        return AnimatedArtworkLookup.albumVersion(track, searchSongs(AnimatedArtworkLookup.songSearch(track)))
+    }
+
+    private suspend fun askOtherReleases(
+        track: MusicTrack,
+        asked: Set<String>,
+    ): AnimatedLoop? {
+        val country = storefront().lowercase()
+        val songs = searchCatalog(AnimatedArtworkLookup.songSearch(track), country)
+        for (albumId in AnimatedArtworkLookup.otherReleases(track, songs, asked)) {
+            fetch(mapOf("id" to albumId, "storefront" to country)).loop()?.let { return it }
+        }
+        return null
     }
 
     private fun ttlFor(answer: CachedLoop): Long = if (answer.loop != null) FOUND_TTL_MS else MISSING_TTL_MS
@@ -105,20 +136,35 @@ class AnimatedArtworkRepository internal constructor(
 
 private object ArtworkService {
     private const val ENDPOINT = "https://artwork.boidu.dev/"
+    private const val CATALOG_SEARCH = "https://itunes.apple.com/search"
+    private const val CATALOG_RESULTS = "25"
     private val http = ProxyAwareClient()
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun fetch(params: Map<String, String>): ArtworkAnswer =
+    suspend fun fetch(params: Map<String, String>): ArtworkAnswer = json.decodeFromString(ArtworkAnswer.serializer(), get(ENDPOINT, params))
+
+    suspend fun searchCatalog(
+        term: String,
+        country: String,
+    ): List<CatalogSong> {
+        val params = mapOf("term" to term, "entity" to "song", "country" to country, "limit" to CATALOG_RESULTS)
+        return json.decodeFromString(CatalogSearch.serializer(), get(CATALOG_SEARCH, params)).results
+    }
+
+    private suspend fun get(
+        endpoint: String,
+        params: Map<String, String>,
+    ): String =
         withContext(PerformanceDispatcher.networkIO) {
             val url =
-                ENDPOINT
+                endpoint
                     .toHttpUrl()
                     .newBuilder()
                     .apply { params.forEach { (name, value) -> addQueryParameter(name, value) } }
                     .build()
             http.get().newCall(Request.Builder().url(url).build()).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Artwork service answered ${response.code}")
-                json.decodeFromString(ArtworkAnswer.serializer(), response.body.string())
+                if (!response.isSuccessful) throw IOException("$endpoint answered ${response.code}")
+                response.body.string()
             }
         }
 }

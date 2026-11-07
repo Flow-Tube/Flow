@@ -114,4 +114,84 @@ class AnimatedArtworkLookupTest {
             ),
         ).isTrue()
     }
+
+    private val huaMain =
+        MusicTrack(
+            videoId = "h",
+            title = "Hua Main",
+            artist = "Raghav Chaitanya",
+            thumbnailUrl = "",
+            duration = 278,
+            album = "Animal- Hindi",
+            artists = listOf(MusicArtist("Raghav Chaitanya", "rc")),
+        )
+
+    private fun release(
+        id: Long,
+        album: String,
+        tracks: Int = 10,
+        title: String = "Hua Main",
+        artist: String = "Raghav Chaitanya & Pritam",
+        albumArtist: String = "Pritam",
+    ) = CatalogSong(title, artist, id, album, albumArtist, tracks)
+
+    @Test
+    fun `other releases skip the album already asked and put full albums before singles`() {
+        val ids =
+            AnimatedArtworkLookup.otherReleases(
+                huaMain,
+                listOf(
+                    release(1, "Hua Main (From \"ANIMAL\") - Single", tracks = 1),
+                    release(2, "ANIMAL (Deluxe Edition Album)", tracks = 18),
+                    release(3, "ANIMAL (Original Motion Picture Soundtrack)", tracks = 9),
+                ),
+                asked = setOf("2"),
+            )
+
+        assertThat(ids).containsExactly("3", "1").inOrder()
+    }
+
+    @Test
+    fun `other releases leave out compilations, remixes and other songs`() {
+        val ids =
+            AnimatedArtworkLookup.otherReleases(
+                huaMain,
+                listOf(
+                    release(1, "Vanga Vibes"),
+                    release(2, "Animal Hits", albumArtist = "Various Artists"),
+                    release(3, "Hua Main (Lofi Flip) - Single"),
+                    release(4, "ANIMAL", title = "Satranga"),
+                    release(5, "ANIMAL", artist = "Someone Else"),
+                ),
+                asked = emptySet(),
+            )
+
+        assertThat(ids).isEmpty()
+    }
+
+    @Test
+    fun `other releases ask about at most two albums, once each`() {
+        val ids =
+            AnimatedArtworkLookup.otherReleases(
+                huaMain,
+                listOf(release(1, "ANIMAL"), release(1, "ANIMAL"), release(2, "ANIMAL Deluxe"), release(3, "ANIMAL Volume 3")),
+                asked = emptySet(),
+            )
+
+        assertThat(ids).containsExactly("1", "2").inOrder()
+    }
+
+    @Test
+    fun `a remix keeps its own remix releases`() {
+        val remix = huaMain.copy(title = "Hua Main (Lofi Flip)", album = "")
+
+        val ids =
+            AnimatedArtworkLookup.otherReleases(
+                remix,
+                listOf(release(1, "Hua Main (Lofi Flip) - Single", title = "Hua Main (Lofi Flip)")),
+                emptySet(),
+            )
+
+        assertThat(ids).containsExactly("1")
+    }
 }
