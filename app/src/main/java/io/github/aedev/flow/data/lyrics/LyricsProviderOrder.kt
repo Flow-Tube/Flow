@@ -17,6 +17,8 @@ internal object LyricsProviderOrder {
             "Paxsenix",
             "LrcLib",
             UnisonLyricsProvider.NAME,
+            NetEaseLyricsProvider.NAME,
+            AmllLyricsProvider.NAME,
             "YouTubeSubtitle",
         )
 

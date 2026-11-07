@@ -21,6 +21,8 @@ class LyricsProviderRegistry(
                     PaxsenixLyricsProvider(client),
                     LrcLibLyricsProvider(client),
                     UnisonLyricsProvider(client),
+                    NetEaseLyricsProvider(client),
+                    AmllLyricsProvider(client),
                     YouTubeSubtitleLyricsProvider(),
                 )
             return LyricsProviderRegistry(providers.associateBy { it.name })

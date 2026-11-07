@@ -199,6 +199,8 @@ project-operated proxy or relay in between.
   `suggestqueries-clients6.youtube.com`. Content, metadata, thumbnails, search suggestions.
 - `api.pipepipe.dev`: remote signature helper, used only as a fallback when both local decoders
   fail on a given video.
+- `music.163.com` and `api.amll.dev`: the last lyrics providers, asked only when the others have no
+  lyrics for a song, and only when the user opens lyrics.
 - Lyrics providers, tried in order until one answers, and only when the user opens lyrics:
   `lrclib.net`, `lyrics.kugou.com`, `mobileservice.kugou.com`, `api-lyrics.simpmusic.org`,
   `lyrics-api.boidu.dev`, `lyrics.paxsenix.org`, the `lyricsplus` mirrors,

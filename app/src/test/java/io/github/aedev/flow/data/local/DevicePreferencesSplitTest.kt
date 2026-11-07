@@ -25,7 +25,7 @@ class DevicePreferencesSplitTest {
         val device = keyNames("DeviceKeys")
 
         assertThat(device).hasSize(105)
-        assertThat(profile).hasSize(222)
+        assertThat(profile).hasSize(224)
         assertThat(device.toSet()).hasSize(device.size)
         assertThat(profile.toSet()).hasSize(profile.size)
         assertThat(device.intersect(profile.toSet())).isEmpty()
