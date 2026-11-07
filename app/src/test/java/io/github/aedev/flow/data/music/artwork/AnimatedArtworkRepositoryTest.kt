@@ -264,6 +264,17 @@ class AnimatedArtworkRepositoryTest {
         }
 
     @Test
+    fun `a search row's Unknown Album is not asked about as an album`() =
+        runTest {
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift", loop) }
+
+            repository.loopFor(antiHero.copy(album = "Unknown Album"))
+
+            assertThat(requests.single()).doesNotContainKey("al")
+            assertThat(cache.entries.keys.single()).endsWith("|anti hero")
+        }
+
+    @Test
     fun `a song with a loop never searches for other releases`() =
         runTest {
             repository.loopFor(antiHero)

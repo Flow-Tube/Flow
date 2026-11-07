@@ -61,9 +61,10 @@ class AnimatedArtworkRepository internal constructor(
 
     private val lock = Mutex()
 
-    /** The HLS loops for [track]'s album, or null when it has none. Throws when the service could not answer. */
-    internal suspend fun loopFor(track: MusicTrack): AnimatedLoop? =
+    /** The HLS loops for [row]'s album, or null when it has none. Throws when the service could not answer. */
+    internal suspend fun loopFor(row: MusicTrack): AnimatedLoop? =
         lock.withLock {
+            val track = AnimatedArtworkLookup.withKnownAlbum(row)
             val key = AnimatedArtworkLookup.key(track)
             cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return@withLock it.loop }
             val asked = mutableSetOf<String>()
@@ -72,8 +73,8 @@ class AnimatedArtworkRepository internal constructor(
             loop
         }
 
-    /** Drops [track]'s answer, for a loop that no longer plays. */
-    suspend fun forget(track: MusicTrack) = cache.remove(AnimatedArtworkLookup.key(track))
+    /** Drops [row]'s answer, for a loop that no longer plays. */
+    suspend fun forget(row: MusicTrack) = cache.remove(AnimatedArtworkLookup.key(AnimatedArtworkLookup.withKnownAlbum(row)))
 
     private suspend fun ask(
         track: MusicTrack,

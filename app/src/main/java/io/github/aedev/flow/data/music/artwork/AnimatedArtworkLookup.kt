@@ -68,6 +68,10 @@ internal object AnimatedArtworkLookup {
         val artist: String,
     )
 
+    /** [track] without the "Unknown Album" that search rows with no album carry, so it isn't asked about as an album. */
+    fun withKnownAlbum(track: MusicTrack): MusicTrack =
+        if (track.album.equals(UNKNOWN_ALBUM, ignoreCase = true)) track.copy(album = "") else track
+
     /** Recommendations and search rows name every artist in one string, so its first name stands for the row. */
     fun artist(track: MusicTrack): String = credited(track).first()
 
@@ -158,6 +162,7 @@ internal object AnimatedArtworkLookup {
             .toSet()
 
     private const val TOPIC_SUFFIX = " - Topic"
+    private const val UNKNOWN_ALBUM = "Unknown Album"
     private val ARTIST_SEPARATOR = Regex("""\s*[,&]\s*""")
     private const val VARIOUS_ARTISTS = "Various Artists"
     private const val SINGLE_SUFFIX = "- Single"
