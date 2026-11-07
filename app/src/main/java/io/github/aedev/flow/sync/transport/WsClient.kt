@@ -38,6 +38,8 @@ class WsClient(
                     .writeTimeout(15, TimeUnit.SECONDS)
                     .connectTimeout(4, TimeUnit.SECONDS) // AP-isolation / firewall → fail fast
                     .pingInterval(20, TimeUnit.SECONDS)
+                    .followRedirects(false)
+                    .followSslRedirects(false)
                     .apply { if (limited) addInterceptor(MessageLimit(maxMessage)) }
                     .build()
             val incoming = Channel<ByteArray>(if (limited) QUEUED_MESSAGES else Channel.UNLIMITED)
