@@ -3288,7 +3288,7 @@
     <string name="eq_imported_badge">تم الاستيراد</string>
     <string name="eq_settings_section">الصوت</string>
     <string name="eq_settings_summary">استيراد الإعدادات المسبقة والنطاقات وAutoEQ</string>
-    <string name="eq_settings_keywords">المعادل الصوتي، eq، الجهير، الحدة، autoeq، المضخّم الأوّلي، الصوت</string>
+    <string name="eq_settings_keywords">موازن الصوت، المعادل الصوتي، تعزيز الجهير، الصوت الحاد، الضبط التلقائي للمعادل الصوتي، التضخيم المسبق، الصوت</string>
     <string name="eq_reset_done">تمت إعادة ضبط المنحنى</string>
     <string name="eq_bands">النطاقات الترددية</string>
     <string name="eq_remove_band">إزالة النطاق الترددي</string>
@@ -5199,4 +5199,8 @@
     <string name="linked_leave_stops_others">أنشأ هذا الجهاز كلمات الاسترداد الحالية، لذا ستتوقف أجهزتك الأخرى عن إرسال التغييرات حتى تنشئ كلمات جديدة على أحدها.</string>
     <string name="linked_remove_also">أضاف %1$s هذه الأجهزة. حدّد أي جهاز لا تتعرف عليه لإزالته أيضًا.</string>
     <string name="settings_watch_time_average_and_week">المتوسط اليومي %1$s · %2$s هذا الأسبوع</string>
+    <string name="lyrics_romanization_only">الرومنة فقط</string>
+    <string name="lyrics_romanization_only_summary">استبدل النص الأصلي بالحروف اللاتينية</string>
+    <string name="eq_spatial_sound_keywords">الصوت المكاني، الصوت المحيطي، الصوت ثلاثي الأبعاد، الصوت الاستريو</string>
+    <string name="session_lyric_repeated">%1$s (x%2$d)</string>
 </resources>

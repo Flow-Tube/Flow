@@ -116,6 +116,15 @@ internal object AppearanceIndex {
             section = R.string.settings_section_style,
             destination = page,
         )
+    val marquee =
+        SettingEntry(
+            key = "appearance.marquee",
+            title = R.string.settings_marquee_title,
+            summary = R.string.settings_marquee_summary,
+            keywords = R.string.settings_marquee_keywords,
+            section = R.string.settings_section_style,
+            destination = page,
+        )
     val highlightNewSettings =
         SettingEntry(
             key = "appearance.highlight_new_settings",
@@ -138,6 +147,7 @@ internal object AppearanceIndex {
             appIcon,
             interfaceMode,
             skeletonGradient,
+            marquee,
             highlightNewSettings,
             highlightNewSettingsDays,
             homeViewMode,

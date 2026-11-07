@@ -285,7 +285,7 @@ internal fun FullMusicPlayerContent(
                                     }
                                 }
                             },
-                            animateTrackText = isPlayerSheetExpanded,
+                            animateTrackText = isPlayerSheetExpanded && uiState.isPlaying && !showLyricsSheet && !queueCoversArtwork,
                             showLibraryActions = !LocalMediaIds.isLocal(uiState.currentTrack?.videoId),
                             isLiked = uiState.isLiked,
                             isDownloaded = uiState.downloadedTrackIds.contains(uiState.currentTrack?.videoId),
