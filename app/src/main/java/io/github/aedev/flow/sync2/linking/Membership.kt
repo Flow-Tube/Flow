@@ -24,6 +24,7 @@ import io.github.aedev.flow.sync2.roster.memberSubject
 import io.github.aedev.flow.sync2.roster.recoveryMember
 import io.github.aedev.flow.sync2.roster.sealDeviceMeta
 import io.github.aedev.flow.sync2.store.Appended
+import io.github.aedev.flow.sync2.store.StreamPosition
 
 /** A fresh epoch key, wrapped to every member after a change, with the previous key chained. */
 class NewEpoch(
@@ -61,19 +62,24 @@ suspend fun appendChecked(
     if (session.store.appendRoster(session.state.head, entry, wraps, chain) != Appended.Done) reject(ProtocolError.ROSTER_CHAIN)
 }
 
-/** Removes [removed] and starts a new epoch it never receives. The store also refuses it at once. */
+/**
+ * Removes [removed] and starts a new epoch it never receives. The store also refuses it at once.
+ * Each log's `cut` is what this device saved reading it, unless a caller that saves nothing yet gives [read].
+ */
 suspend fun removeDevices(
     session: Session,
     device: MemberSecrets,
     removed: List<String>,
+    read: Map<String, StreamPosition>? = null,
 ): String? {
     val state = session.state
     val positions =
-        session.db
-            .groups()
-            .streams()
-            .associateBy { it.did }
-    val cut = removed.mapNotNull { did -> positions[did]?.let { did to Cut(it.seq, it.hash) } }.toMap()
+        read?.mapValues { (_, at) -> Cut(at.seq, SyncBytes.toHex(at.hash)) }
+            ?: session.db
+                .groups()
+                .streams()
+                .associate { it.did to Cut(it.seq, it.hash) }
+    val cut = removed.mapNotNull { did -> positions[did]?.takeIf { it.seq > 0 }?.let { did to it } }.toMap()
     val replacing = installerGone(state.members, removed)
     val secret = SyncCrypto.randomBytes(32)
     val next = recoveryKeys(secret)

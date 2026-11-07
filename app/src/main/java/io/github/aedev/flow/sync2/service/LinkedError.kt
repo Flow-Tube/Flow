@@ -28,6 +28,7 @@ enum class LinkedError(
     ROLLED_BACK(retryable = true),
     RECOVERY_DUE(retryable = false),
     ROSTER_CHANGED(retryable = true),
+    RESTORE_UNFINISHED(retryable = true),
     GROUP_OUTDATED,
     DECLINED,
     TIMED_OUT,
@@ -106,6 +107,10 @@ fun Throwable.linkedError(): LinkedError =
 
         is LinkedException.RecoveryDue -> {
             LinkedError.RECOVERY_DUE
+        }
+
+        is LinkedException.RestoreUnfinished -> {
+            LinkedError.RESTORE_UNFINISHED
         }
 
         is LinkedException.RosterRolledBack -> {

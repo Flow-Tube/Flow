@@ -27,6 +27,7 @@ internal fun LinkedError.message(): String =
             LinkedError.RECOVERY_DUE -> R.string.linked_error_recovery_due
             LinkedError.ROLLED_BACK -> R.string.linked_error_rolled_back
             LinkedError.ROSTER_CHANGED -> R.string.linked_error_roster_changed
+            LinkedError.RESTORE_UNFINISHED -> R.string.linked_error_restore_unfinished
             LinkedError.GROUP_OUTDATED -> R.string.linked_error_group_outdated
             LinkedError.DECLINED -> R.string.linked_error_declined
             LinkedError.TIMED_OUT -> R.string.linked_error_timed_out

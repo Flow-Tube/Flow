@@ -10,6 +10,8 @@ sealed class LinkedException(
 
     class RecoveryDue : LinkedException("The recovery key has to be replaced before anything is written")
 
+    class RestoreUnfinished : LinkedException("A restore has to sign out the devices the user didn't choose before anything is written")
+
     class RemovalUnconfirmed : LinkedException("The roster that leaves this device out replaces entries it had applied")
 
     class Contested : LinkedException("Two sides of the roster removed each other")

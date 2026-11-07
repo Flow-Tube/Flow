@@ -32,6 +32,7 @@ import io.github.aedev.flow.sync2.engine.isDue
 import io.github.aedev.flow.sync2.engine.writeSnapshot
 import io.github.aedev.flow.sync2.linking.DeviceMeta
 import io.github.aedev.flow.sync2.linking.deviceNames
+import io.github.aedev.flow.sync2.linking.finishRestore
 import io.github.aedev.flow.sync2.linking.rotateEpoch
 import io.github.aedev.flow.sync2.store.FileLayout
 import io.github.aedev.flow.sync2.store.GroupStore
@@ -95,6 +96,9 @@ class LinkedSync
         private val arrivals = MutableSharedFlow<Received>(extraBufferCapacity = 16)
 
         val lastSync: StateFlow<LastSync?> = last.asStateFlow()
+
+        /** New recovery words a restore's removal had to make, to show once. */
+        val replacedWords = MutableStateFlow<String?>(null)
 
         val syncing: StateFlow<Boolean> = active.asStateFlow()
 
@@ -223,6 +227,18 @@ class LinkedSync
                 }
             val reading = if (offline == null) store else GroupStore(local, null)
             var session = Session.open(db, reading, device)
+            if (session.removalPending) {
+                // It needs the store to take the removal; what it read stays for this sync once that's done.
+                if (offline != null) throw offline
+                // A read that isn't finished doesn't remove: the next sync goes on from what it holds (spec/protocol.md, Recovery, step 6).
+                if (store.cutShort) throw LinkedException.RestoreUnfinished()
+                session =
+                    finishRestore(session, device, { replacedWords.value = it }) {
+                        store.download(me, record.serverCursor, objects = false)
+                        Session.open(db, reading, device)
+                    }
+                if (session.removalPending) return
+            }
             val links = profiles.links(session) ?: return
             // A device left: start the epoch it never receives before writing anything, then read the roster back (spec/protocol.md, Leaving).
             if (session.state.rotate && !session.state.recoveryDue && offline == null) {

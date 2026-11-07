@@ -2798,6 +2798,9 @@
     <string name="linked_recovery_words_field">Recovery words</string>
     <string name="linked_create">Create</string>
     <string name="linked_restore">Restore</string>
+    <string name="linked_restore_choose_title">Which devices do you still have?</string>
+    <string name="linked_restore_choose_body">Restoring signs out every device you don\'t tick. Tick one only if you have it with you, not just because its name looks right. If you still have a working device, go back and link this one from it instead.</string>
+    <string name="linked_restore_unknown_device">Unknown device (%1$s)</string>
     <string name="linked_back">Back</string>
     <string name="linked_scan_member_code">Scan the code on a linked device</string>
     <string name="linked_server">Server</string>
@@ -2826,6 +2829,7 @@
     <string name="linked_recovery_notice_not_mine">It wasn\'t me</string>
     <string name="linked_recovery_due_title">Make new recovery words</string>
     <string name="linked_recovery_due_body">The device that set your recovery key has left the group. Until you make new words on one of your devices, this one receives changes but doesn\'t send any.</string>
+    <string name="linked_error_restore_unfinished">The restore isn\'t finished yet. Flow will finish it on the next sync.</string>
     <string name="linked_error_recovery_due">Make new recovery words first. The device that set them has left the group.</string>
     <string name="linked_leave_stops_others">This device set your current recovery words, so your other devices will stop sending changes until you make new words on one of them.</string>
     <string name="linked_remove_also">%1$s added these devices. Tick any you don\'t recognise to remove them too.</string>
