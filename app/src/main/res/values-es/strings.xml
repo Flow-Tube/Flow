@@ -4757,4 +4757,17 @@
     <string name="settings_music_normal_speed_summary">Los vídeos musicales empiezan a 1x</string>
     <string name="settings_speed_per_channel_title">Recordar la velocidad por canal</string>
     <string name="settings_speed_per_channel_summary">Cada canal empieza a la velocidad que elegiste por última vez</string>
+    <string name="lyrics_background">Segundo plano</string>
+    <string name="lyrics_background_solid_detail">Un color de la portada</string>
+    <string name="lyrics_background_colorful">Colorido</string>
+    <string name="lyrics_background_colorful_detail">Colores suaves de la portada</string>
+    <string name="lyrics_background_moving">En movimiento</string>
+    <string name="lyrics_background_moving_detail">Colores suaves que se desplazan mientras suena la canción</string>
+    <string name="lyrics_on_lock_screen">Letras en la pantalla de bloqueo</string>
+    <string name="lyrics_on_lock_screen_summary">Muestra la línea actual como título de la canción, incluso en otras aplicaciones</string>
+    <string name="lyrics_on_lock_screen_timing">Sincronización de la letra en la pantalla de bloqueo</string>
+    <string name="lyrics_on_lock_screen_timing_summary">Adelanta las líneas si parecen ir con retraso</string>
+    <string name="lyrics_sponsorblock_timing">Ajustar la letra a los vídeos musicales</string>
+    <string name="lyrics_sponsorblock_timing_summary">Utiliza SponsorBlock para saltar partes sin música</string>
+    <string name="comments_load_more">Cargar más comentarios</string>
 </resources>
