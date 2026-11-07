@@ -15,19 +15,40 @@ internal data class CachedLoop(
 
 private const val SEPARATOR = "|"
 
-internal fun CachedLoop.encoded(): String = listOf(atMs.toString(), loop?.square.orEmpty(), loop?.tall.orEmpty()).joinToString(SEPARATOR)
+internal fun CachedLoop.encoded(): String =
+    if (loop != null) {
+        listOf(atMs.toString(), loop.square.orEmpty(), loop.tall.orEmpty()).joinToString(SEPARATOR)
+    } else {
+        listOf(atMs.toString(), MISS_AFTER_RELEASE_SEARCH).joinToString(SEPARATOR)
+    }
 
-/** Entries from before tall loops have no third part. They read as a miss, so the album is asked once more. */
+/**
+ * Older formats read as nothing saved, so the album is asked once more: entries from before tall
+ * loops, and misses from before a song's other releases were searched.
+ */
 internal fun decodeCachedLoop(stored: String): CachedLoop? {
     val parts = stored.split(SEPARATOR)
-    if (parts.size != ENCODED_PARTS) return null
     val atMs = parts[0].toLongOrNull() ?: return null
-    val square = parts[1].ifEmpty { null }
-    val tall = parts[2].ifEmpty { null }
-    return CachedLoop(if (square == null && tall == null) null else AnimatedLoop(square, tall), atMs)
+    return when {
+        parts.size == MISS_PARTS && parts[1] == MISS_AFTER_RELEASE_SEARCH -> {
+            CachedLoop(null, atMs)
+        }
+
+        parts.size == LOOP_PARTS -> {
+            val square = parts[1].ifEmpty { null }
+            val tall = parts[2].ifEmpty { null }
+            if (square == null && tall == null) null else CachedLoop(AnimatedLoop(square, tall), atMs)
+        }
+
+        else -> {
+            null
+        }
+    }
 }
 
-private const val ENCODED_PARTS = 3
+private const val LOOP_PARTS = 3
+private const val MISS_PARTS = 2
+private const val MISS_AFTER_RELEASE_SEARCH = "miss"
 
 internal interface AnimatedArtworkCache {
     suspend fun get(key: String): CachedLoop?
