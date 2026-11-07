@@ -67,7 +67,7 @@ class AnimatedArtworkRepository internal constructor(
             val key = AnimatedArtworkLookup.key(track)
             cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return@withLock it.loop }
             val asked = mutableSetOf<String>()
-            val loop = ask(track, asked) ?: askAlbumVersion(track, asked) ?: askOtherReleases(track, asked)
+            val loop = lookUp(track, asked)
             cache.put(key, CachedLoop(loop, now()))
             loop
         }
@@ -98,13 +98,19 @@ class AnimatedArtworkRepository internal constructor(
         return null
     }
 
-    private suspend fun askAlbumVersion(
+    private suspend fun lookUp(
         track: MusicTrack,
         asked: MutableSet<String>,
     ): AnimatedLoop? {
+        ask(track, asked)?.let { return it }
+        val version = albumVersion(track)
+        version?.let { ask(it, asked) }?.let { return it }
+        return askOtherReleases(version ?: track, asked)
+    }
+
+    private suspend fun albumVersion(track: MusicTrack): MusicTrack? {
         if (track.album.isNotBlank()) return null
-        val version = AnimatedArtworkLookup.albumVersion(track, searchSongs(AnimatedArtworkLookup.songSearch(track))) ?: return null
-        return ask(version, asked)
+        return AnimatedArtworkLookup.albumVersion(track, searchSongs(AnimatedArtworkLookup.songSearch(track)))
     }
 
     private suspend fun askOtherReleases(

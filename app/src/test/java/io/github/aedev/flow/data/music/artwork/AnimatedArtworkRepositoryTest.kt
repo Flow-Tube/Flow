@@ -232,6 +232,38 @@ class AnimatedArtworkRepositoryTest {
         }
 
     @Test
+    fun `a recommended row with one artist string and no album still finds the loop`() =
+        runTest {
+            val recommended = huaMain.copy(artist = "Raghav Chaitanya, Pritam, Manoj Muntashir", album = "", artists = emptyList())
+            searchAnswer = {
+                listOf(
+                    SongItem(
+                        id = "65-VQkyE72I",
+                        title = "Hua Main",
+                        artists = listOf(Artist("Raghav Chaitanya", "rc")),
+                        album = Album("Animal- Hindi", "a"),
+                        duration = 278,
+                        thumbnail = "",
+                        musicVideoType = MUSIC_VIDEO_TYPE_ATV,
+                    ),
+                )
+            }
+            catalogAnswer = { listOf(release(1718278225, "ANIMAL (Original Motion Picture Soundtrack)", 9)) }
+            answer = { params ->
+                if (params["id"] == "1718278225") {
+                    ArtworkAnswer("ANIMAL", "Various", loop, tallLoop, "1718278225")
+                } else {
+                    ArtworkAnswer("Hua Main", "Pritam, Raghav Chaitanya & Manoj Muntashir", albumId = "1727144163")
+                }
+            }
+
+            assertThat(repository.loopFor(recommended)).isEqualTo(AnimatedLoop(loop, tallLoop))
+
+            assertThat(requests.first()["a"]).isEqualTo("Raghav Chaitanya")
+            assertThat(catalogSearches.single().first).isEqualTo("Hua Main Raghav Chaitanya")
+        }
+
+    @Test
     fun `a song with a loop never searches for other releases`() =
         runTest {
             repository.loopFor(antiHero)

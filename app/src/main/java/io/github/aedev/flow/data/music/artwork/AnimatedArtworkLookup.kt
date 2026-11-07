@@ -68,7 +68,18 @@ internal object AnimatedArtworkLookup {
         val artist: String,
     )
 
-    fun artist(track: MusicTrack): String = track.artists.firstOrNull()?.name ?: track.artist
+    /** Recommendations and search rows name every artist in one string, so its first name stands for the row. */
+    fun artist(track: MusicTrack): String = credited(track).first()
+
+    private fun credited(track: MusicTrack): List<String> =
+        track.artists
+            .map { it.name }
+            .ifEmpty {
+                track.artist
+                    .split(ARTIST_SEPARATOR)
+                    .map(String::trim)
+                    .filter(String::isNotEmpty)
+            }.ifEmpty { listOf(track.artist) }
 
     /** The song as titled, then without brackets or featured artists, each asked for once. */
     fun queries(track: MusicTrack): List<Query> {
@@ -90,7 +101,7 @@ internal object AnimatedArtworkLookup {
     ): Boolean {
         val name = answer.name ?: return false
         val artist = answer.artist ?: return false
-        val artists = track.artists.map { it.name }.ifEmpty { listOf(track.artist) }
+        val artists = credited(track)
         return musicTitleKey(name, artists) == musicTitleKey(track.title, artists) &&
             musicArtistKey(artist).contains(musicArtistKey(artist(track)))
     }
@@ -147,6 +158,7 @@ internal object AnimatedArtworkLookup {
             .toSet()
 
     private const val TOPIC_SUFFIX = " - Topic"
+    private val ARTIST_SEPARATOR = Regex("""\s*[,&]\s*""")
     private const val VARIOUS_ARTISTS = "Various Artists"
     private const val SINGLE_SUFFIX = "- Single"
     private const val MAX_OTHER_RELEASES = 2
