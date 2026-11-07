@@ -202,7 +202,10 @@ project-operated proxy or relay in between.
 - Lyrics providers, tried in order until one answers, and only when the user opens lyrics:
   `lrclib.net`, `lyrics.kugou.com`, `mobileservice.kugou.com`, `api-lyrics.simpmusic.org`,
   `lyrics-api.boidu.dev`, `lyrics.paxsenix.org`, the `lyricsplus` mirrors,
-  `lyrics-api.binimum.org`, `amp-api.music.apple.com`, `beta.music.apple.com`.
+  `lyrics-api.binimum.org`, `amp-api.music.apple.com`, `beta.music.apple.com`, `lrc.red`,
+  `unison.boidu.dev`.
+- `artwork.boidu.dev` and `itunes.apple.com`: animated album covers, only if the user turns them on.
+  They receive the song's title, artist, album and length, and the chosen region.
 - `amp.shazam.com`: song recognition, only on an explicit user request, and it receives an audio
   fingerprint rather than the recording.
 - `sponsor.ajay.app` and `dearrow-thumb.ajay.app`: SponsorBlock and DeArrow, only if the user turns
