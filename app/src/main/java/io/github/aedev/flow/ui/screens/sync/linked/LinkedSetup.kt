@@ -145,7 +145,7 @@ internal fun LinkedSetup(
 
         Setup.CREATE_SERVER -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var token by rememberSaveable { mutableStateOf("") }
+            var token by remember { mutableStateOf("") }
             if (error == LinkedError.SERVER_HAS_GROUP) {
                 ServerHasGroup(busy, onJoin = { setup = join }, onReset = { onResetAndCreate(url, token) })
             } else {
@@ -208,7 +208,7 @@ internal fun LinkedSetup(
 
         Setup.JOIN_ADMIN -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var token by rememberSaveable { mutableStateOf("") }
+            var token by remember { mutableStateOf("") }
             SyncStepHeader(icon = Icons.Outlined.Dns, title = stringResource(R.string.linked_join_admin_title))
             ServerField(url) { url = it }
             AdminTokenField(token) { token = it }
