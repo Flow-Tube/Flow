@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -22,7 +21,6 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.recommendation.music.MusicTimeBucket
 import io.github.aedev.flow.innertube.pages.HomePage
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
-import io.github.aedev.flow.ui.components.music.item.MusicTrackItem
 import io.github.aedev.flow.ui.components.music.sheet.MusicCollectionActionItem
 import io.github.aedev.flow.ui.components.music.sheet.toCollectionActionItem
 import io.github.aedev.flow.ui.components.shared.FlowFeedProgress
@@ -52,6 +50,8 @@ fun LazyListScope.musicHomeFeed(
     onTrackMenu: (MusicTrack) -> Unit,
     onCollectionMenu: (MusicCollectionActionItem) -> Unit,
     onLoadMore: () -> Unit,
+    onChipRetry: () -> Unit,
+    onChipLoadMore: () -> Unit,
 ) {
     val downloaded = uiState.downloadedTrackIds
 
@@ -77,13 +77,18 @@ fun LazyListScope.musicHomeFeed(
         item(key = "home_chips") {
             MusicHomeChipRow(
                 chips = uiState.homeChips,
-                selectedChipTitle = uiState.selectedHomeChip?.title,
+                selectedChipTitle = uiState.homeChipPage?.chip?.title,
                 onChipToggle = onChipToggle,
             )
         }
     }
 
-    if (uiState.selectedFilter == null) yourLibrary(library, onArtistClick)
+    uiState.homeChipPage?.let { page ->
+        musicHomeChipPage(page, downloaded, onSongClick, onAlbumClick, onTrackMenu, ::trackCollectionMenu, onChipRetry, onChipLoadMore)
+        return
+    }
+
+    yourLibrary(library, onArtistClick)
 
     if (shown(MusicHomeShelf.LISTEN_AGAIN) && uiState.listenAgain.isNotEmpty()) {
         item(key = "listen_again") {
@@ -96,23 +101,6 @@ fun LazyListScope.musicHomeFeed(
                 onTrackMenu = onTrackMenu,
             )
         }
-    }
-
-    if (uiState.selectedFilter != null) {
-        if (uiState.isSearching) {
-            item(key = "filter_loading") { FlowFeedProgress() }
-        } else {
-            items(uiState.allSongs.distinctBy { it.videoId }, key = { "filtered:${it.videoId}" }) { track ->
-                MusicTrackItem(
-                    track = track,
-                    isDownloaded = downloaded.contains(track.videoId),
-                    onClick = { onSongClick(track, uiState.allSongs, uiState.selectedFilter) },
-                    onLongClick = { onTrackMenu(track) },
-                    onMenuClick = { onTrackMenu(track) },
-                )
-            }
-        }
-        return
     }
 
     if (shown(MusicHomeShelf.ON_REPEAT) && uiState.onRepeatTracks.isNotEmpty()) {

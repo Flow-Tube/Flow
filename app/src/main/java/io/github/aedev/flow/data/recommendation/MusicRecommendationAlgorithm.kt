@@ -171,6 +171,12 @@ class MusicRecommendationAlgorithm
                 return@withContext emptyList<MusicSection>() to null
             }
 
+        /** One chip's own page. Throws on failure so the caller can offer a retry. */
+        suspend fun loadHomeChipPage(endpoint: io.github.aedev.flow.innertube.models.BrowseEndpoint): Pair<List<MusicSection>, String?> {
+            val homePage = youTube.home(browseId = endpoint.browseId, params = endpoint.params).getOrThrow()
+            return parseHomeSections(homePage) to homePage.continuation
+        }
+
         private suspend fun fetchAndCacheHome(): Pair<List<MusicSection>, String?> {
             try {
                 val homePage = youTube.home().getOrNull()
