@@ -4825,4 +4825,15 @@
     <string name="crossfade_curve_gentle">Gentile</string>
     <string name="crossfade_curve_gentle_detail">Più delicata al centro della dissolvenza</string>
     <string name="crossfade_curve_hold">Mantieni</string>
+    <string name="lyrics_background">Sfondo</string>
+    <string name="lyrics_background_solid">Solido</string>
+    <string name="lyrics_background_solid_detail">Un colore dalla copertina</string>
+    <string name="lyrics_background_colorful">Colorato</string>
+    <string name="lyrics_background_colorful_detail">Colori tenui dalla copertina</string>
+    <string name="lyrics_background_moving">Dinamico</string>
+    <string name="lyrics_background_moving_detail">Colori tenui che virano durante la riproduzione del brano</string>
+    <string name="lyrics_on_lock_screen">Testi sulla schermata di blocco</string>
+    <string name="lyrics_on_lock_screen_summary">Mostra la riga corrente come titolo del brano, anche alle altre app</string>
+    <string name="lyrics_on_lock_screen_timing">Sincronizzazione dei testi nella schermata di blocco</string>
+    <string name="lyrics_on_lock_screen_timing_summary">Anticipa le righe se sembrano in ritardo</string>
 </resources>
