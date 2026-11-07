@@ -113,6 +113,11 @@ private fun breaks(lines: List<LyricsEntry>): List<LyricBreak> {
     }
 }
 
+/** Case and punctuation don't make a line another line, but vowel signs do: कमल isn't कमली. */
+private fun repeatKey(text: String): String = text.lowercase().replace(NotPartOfAWord, " ").trim()
+
+private val NotPartOfAWord = Regex("[^\\p{L}\\p{M}\\p{N}]+")
+
 /** How many times in a row the line at [index] has been sung, counting itself. */
 private fun repeatCount(
     lines: List<LyricsEntry>,
@@ -120,21 +125,28 @@ private fun repeatCount(
 ): Int {
     val text = lines[index].text.trim()
     if (!text.isSung) return 1
+    val key = repeatKey(text)
     var first = index
-    while (first > 0 && lines[first - 1].text.trim().equals(text, ignoreCase = true)) first--
+    while (first > 0 && repeatKey(lines[first - 1].text) == key) first--
     return index - first + 1
 }
 
+/**
+ * The parts of the lines in order, with their repeats counted. A part can repeat what was just
+ * shown without its whole line doing so: "Kamli" followed by "Kamli (Mahiya)" shows "Kamli" twice.
+ */
 private fun pieces(
     lines: List<LyricsEntry>,
     repeatedLine: (line: String, count: Int) -> String,
-): List<LyricPiece> =
-    lines.flatMapIndexed { index, line ->
+): List<LyricPiece> {
+    var previousKey = ""
+    var previousCount = 1
+    return lines.flatMapIndexed { index, line ->
         val text = line.text.trim()
         val spokenMs = lines.getOrNull(index + 1)?.time?.minus(line.time) ?: Long.MAX_VALUE
         val spanMs = minOf(spokenMs, text.length * MAX_MS_PER_CHARACTER)
         val parts = splitToFit(text, (spanMs / MIN_PIECE_MS).toInt().coerceIn(1, MAX_PIECES))
-        val count = repeatCount(lines, index)
+        val lineCount = repeatCount(lines, index)
         var consumed = 0
         parts.mapIndexed { partIndex, part ->
             val start = text.indexOf(part, consumed).coerceAtLeast(consumed)
@@ -145,9 +157,19 @@ private fun pieces(
                 } else {
                     wordStartAt(line, start) ?: (line.time + spanMs * start / text.length.coerceAtLeast(1))
                 }
-            LyricPiece(if (count > 1 && partIndex == parts.lastIndex) repeatedLine(part, count) else part, timeMs)
+            val key = repeatKey(part)
+            val count =
+                when {
+                    partIndex == parts.lastIndex && lineCount > 1 -> lineCount
+                    part.isSung && key == previousKey -> previousCount + 1
+                    else -> 1
+                }
+            previousKey = key
+            previousCount = count
+            LyricPiece(if (count > 1) repeatedLine(part, count) else part, timeMs)
         }
     }
+}
 
 /** Halves [text] at the break nearest its middle until every part fits or [maxParts] is reached. */
 private fun splitToFit(
