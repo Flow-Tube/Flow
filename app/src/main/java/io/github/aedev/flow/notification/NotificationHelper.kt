@@ -20,6 +20,7 @@ import coil3.request.allowHardware
 import coil3.size.Precision
 import coil3.size.Scale
 import coil3.toBitmap
+import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.MainActivity
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.AppDatabase
@@ -47,6 +48,7 @@ object NotificationHelper {
     const val CHANNEL_GENERAL = "general_channel"
     const val CHANNEL_REMINDERS = "reminders_channel"
     const val CHANNEL_UPDATES = "updates_channel"
+    const val CHANNEL_NEW_VERSION = "new_version_channel"
     const val EXTRA_OPEN_UPDATE = "io.github.aedev.flow.extra.OPEN_UPDATE"
     const val EXTRA_OPEN_LINKED = "io.github.aedev.flow.extra.OPEN_LINKED"
     private const val NOTIFICATION_JOIN_REQUEST = 9998
@@ -208,6 +210,19 @@ object NotificationHelper {
                     description = context.getString(R.string.notification_channel_updates_description)
                     setShowBadge(true)
                 }
+
+            if (newVersionChannel(BuildConfig.UPDATE_CHANNEL, updatesChannelBlocked = false) == CHANNEL_NEW_VERSION) {
+                notificationManager.createNotificationChannel(
+                    NotificationChannel(
+                        CHANNEL_NEW_VERSION,
+                        context.getString(R.string.notification_channel_new_version),
+                        NotificationManager.IMPORTANCE_DEFAULT,
+                    ).apply {
+                        description = context.getString(R.string.notification_channel_new_version_description)
+                        setShowBadge(true)
+                    },
+                )
+            }
 
             val importsChannel =
                 NotificationChannel(
@@ -741,17 +756,22 @@ object NotificationHelper {
 
         val notification =
             NotificationCompat
-                .Builder(context, CHANNEL_UPDATES)
+                .Builder(context, newVersionChannel(context))
                 .setSmallIcon(R.drawable.ic_notification_logo)
                 .setContentTitle(context.getString(R.string.notification_update_available, release.version))
                 .setContentText(context.getString(R.string.notification_tap_to_update))
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(NotificationCompat.CATEGORY_STATUS)
                 .build()
 
         NotificationManagerCompat.from(context).notify(9999, notification)
+    }
+
+    private fun newVersionChannel(context: Context): String {
+        val manager = NotificationManagerCompat.from(context)
+        val updatesBlocked = manager.getNotificationChannel(CHANNEL_UPDATES)?.importance == NotificationManager.IMPORTANCE_NONE
+        return newVersionChannel(BuildConfig.UPDATE_CHANNEL, updatesBlocked)
     }
 
     /** A device asked to join this device's linked group with the admin token; the tap opens Linked devices. */

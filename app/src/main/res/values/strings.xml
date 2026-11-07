@@ -3812,6 +3812,8 @@
     <string name="notification_channel_general">General</string>
     <string name="notification_channel_reminders">Reminders</string>
     <string name="notification_channel_updates">App Updates</string>
+    <string name="notification_channel_new_version">New versions</string>
+    <string name="notification_channel_new_version_description">Tells you when a new version of Flow is out</string>
     <string name="notification_channel_imports">Data Import</string>
     <!-- Localization follow-up: errors and import screens (#738) -->
     <string name="error_no_internet_found">No internet connection found</string>
