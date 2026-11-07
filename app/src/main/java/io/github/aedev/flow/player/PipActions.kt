@@ -55,3 +55,9 @@ internal fun pipActionSpecs(
         PipActionSpec(PipControl.NEXT, enabled = navigation.hasNext),
     )
 }
+
+/**
+ * The video and Shorts receivers both hear every action. While Shorts owns the window its Next is
+ * for the reel, and a video kept composed behind it must not skip too.
+ */
+internal fun videoHandlesPipNext(shortsNavigation: PipQueueNavigation?): Boolean = shortsNavigation == null

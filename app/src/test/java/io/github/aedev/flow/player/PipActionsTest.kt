@@ -65,6 +65,12 @@ class PipActionsTest {
     }
 
     @Test
+    fun `next goes to the video unless Shorts owns the window`() {
+        assertEquals(true, videoHandlesPipNext(shortsNavigation = null))
+        assertEquals(false, videoHandlesPipNext(PipQueueNavigation(hasPrevious = true, hasNext = true)))
+    }
+
+    @Test
     fun `a window with room for one button keeps only play or pause`() {
         val specs = pipActionSpecs(isPlaying = false, navigation = null, maxActions = 1, offerBackground = true)
 

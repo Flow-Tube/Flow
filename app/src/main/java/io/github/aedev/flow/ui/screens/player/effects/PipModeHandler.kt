@@ -12,6 +12,7 @@ import io.github.aedev.flow.player.BackgroundPlaybackPolicy
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.PictureInPictureHelper
+import io.github.aedev.flow.player.videoHandlesPipNext
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 
 private const val TAG = "PipModeHandler"
@@ -32,7 +33,7 @@ private fun PipBroadcastReceiverEffect(
             PictureInPictureHelper.createPipActionReceiver(
                 onPlay = { EnhancedPlayerManager.getInstance().play() },
                 onPause = { EnhancedPlayerManager.getInstance().pause() },
-                onNext = { currentOnNext() },
+                onNext = { if (videoHandlesPipNext(PictureInPictureHelper.shortsNavigation)) currentOnNext() },
                 onClose = {
                     GlobalPlayerState.requestDismiss()
                     EnhancedPlayerManager.getInstance().stop()
@@ -71,7 +72,10 @@ private fun PipParamsUpdateEffect(
     activity: Activity?,
 ) {
     LaunchedEffect(isPlaying, autoPipEnabled, isBackgroundPlaybackMode, videoAspectRatio, hasNext) {
+        val nextChanged = PictureInPictureHelper.videoHasNext != hasNext
         PictureInPictureHelper.setVideoHasNext(hasNext)
+        // Related videos landing for a video behind Shorts must not overwrite the Shorts window's buttons.
+        if (nextChanged && !videoHandlesPipNext(PictureInPictureHelper.shortsNavigation)) return@LaunchedEffect
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && activity != null) {
             val autoEnterEnabled =
                 BackgroundPlaybackPolicy.shouldEnterAutoPip(
