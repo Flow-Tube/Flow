@@ -175,6 +175,8 @@ private val ProviderLabels =
         "Paxsenix" to ProviderLabel(R.string.lyrics_provider_paxsenix, R.string.lyrics_provider_paxsenix_desc),
         "LrcLib" to ProviderLabel(R.string.lyrics_provider_lrclib, R.string.lyrics_provider_lrclib_desc),
         "Unison" to ProviderLabel(R.string.lyrics_provider_unison, R.string.lyrics_provider_unison_desc),
+        "NetEase" to ProviderLabel(R.string.lyrics_provider_netease, R.string.lyrics_provider_netease_desc),
+        "AMLL" to ProviderLabel(R.string.lyrics_provider_amll, R.string.lyrics_provider_amll_desc),
         "YouTubeSubtitle" to ProviderLabel(R.string.lyrics_provider_youtube_captions, R.string.lyrics_provider_youtube_captions_desc),
         "YouTube" to ProviderLabel(R.string.lyrics_provider_youtube_music, R.string.lyrics_provider_youtube_music_desc),
     )

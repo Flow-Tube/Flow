@@ -30,7 +30,18 @@ class LyricsProviderOrderTest {
                 "YouTube",
             )
 
-        assertThat(LyricsProviderOrder.resolve(saved.joinToString(","))).isEqualTo(saved)
+        assertThat(LyricsProviderOrder.resolve(saved.joinToString(",")).filter { it in saved }).isEqualTo(saved)
+    }
+
+    @Test
+    fun `an order saved before NetEase and AMLL existed gets them right after Unison`() {
+        val saved = listOf("LrcLib", "Unison", "YouTube")
+
+        val order = LyricsProviderOrder.resolve(saved.joinToString(","))
+
+        assertThat(order.subList(order.indexOf("Unison"), order.indexOf("Unison") + 3))
+            .containsExactly("Unison", "NetEase", "AMLL")
+            .inOrder()
     }
 
     @Test

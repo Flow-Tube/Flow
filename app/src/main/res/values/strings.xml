@@ -1048,6 +1048,8 @@
     <string name="lyrics_provider_kugou">KuGou</string>
     <string name="lyrics_provider_paxsenix">Apple Music (Paxsenix)</string>
     <string name="lyrics_provider_unison">Unison</string>
+    <string name="lyrics_provider_netease">NetEase</string>
+    <string name="lyrics_provider_amll">AMLL</string>
     <string name="lyrics_provider_youtube_captions">YouTube captions</string>
     <string name="lyrics_provider_youtube_music">YouTube Music</string>
     <string name="lyrics_provider_better_lyrics_desc">Word sync · Apple Music lyrics</string>
@@ -1058,6 +1060,8 @@
     <string name="lyrics_provider_paxsenix_desc">Word sync</string>
     <string name="lyrics_provider_lrclib_desc">Line sync · open database</string>
     <string name="lyrics_provider_unison_desc">Community lyrics · small catalogue</string>
+    <string name="lyrics_provider_netease_desc">Line sync · large catalogue</string>
+    <string name="lyrics_provider_amll_desc">Word sync · community lyrics</string>
     <string name="lyrics_provider_youtube_captions_desc">Line sync · the video\'s captions</string>
     <string name="lyrics_provider_youtube_music_desc">Line sync · the Lyrics tab</string>
     <!-- Theme Names & Descriptions -->

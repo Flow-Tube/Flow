@@ -183,6 +183,8 @@ class PlayerPreferences(
         val LYRICS_PROVIDER_ENABLED_YOUTUBESUBTITLE = booleanPreferencesKey("lyrics_provider_enabled_youtubesubtitle")
         val LYRICS_PROVIDER_ENABLED_LRCRED = booleanPreferencesKey("lyrics_provider_enabled_lrcred")
         val LYRICS_PROVIDER_ENABLED_UNISON = booleanPreferencesKey("lyrics_provider_enabled_unison")
+        val LYRICS_PROVIDER_ENABLED_NETEASE = booleanPreferencesKey("lyrics_provider_enabled_netease")
+        val LYRICS_PROVIDER_ENABLED_AMLL = booleanPreferencesKey("lyrics_provider_enabled_amll")
         val CONTINUE_WATCHING_ENABLED = booleanPreferencesKey("continue_watching_enabled")
         val SHOW_RELATED_VIDEOS = booleanPreferencesKey("show_related_videos")
         val HOME_VIEW_MODE = stringPreferencesKey("home_view_mode")
@@ -3863,6 +3865,8 @@ class PlayerPreferences(
             "YouTubeSubtitle" to Keys.LYRICS_PROVIDER_ENABLED_YOUTUBESUBTITLE,
             "LrcRed" to Keys.LYRICS_PROVIDER_ENABLED_LRCRED,
             "Unison" to Keys.LYRICS_PROVIDER_ENABLED_UNISON,
+            "NetEase" to Keys.LYRICS_PROVIDER_ENABLED_NETEASE,
+            "AMLL" to Keys.LYRICS_PROVIDER_ENABLED_AMLL,
         )
 
     fun isLyricsProviderEnabled(providerName: String): Flow<Boolean> =

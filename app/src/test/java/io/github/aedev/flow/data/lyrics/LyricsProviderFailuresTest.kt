@@ -38,6 +38,8 @@ class LyricsProviderFailuresTest {
         listOf(
             ::BetterLyricsProvider,
             ::LrcRedLyricsProvider,
+            ::NetEaseLyricsProvider,
+            ::AmllLyricsProvider,
             ::LyricsPlusProvider,
             ::SimpMusicLyricsProvider,
             ::KuGouLyricsProvider,
