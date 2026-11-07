@@ -136,20 +136,33 @@ class GroupStore(
         return true
     }
 
-    /** Sends the server this device's own objects held after [heldCursor]; returns how far it got. */
+    /**
+     * Sends the server this device's own objects held after [heldCursor], in order. The first one it refuses
+     * ends the upload: skipping it would leave a gap other devices wait at.
+     */
     suspend fun upload(
         me: String,
         heldCursor: Long,
-    ): Long {
-        val server = server ?: return heldCursor
+    ): Uploaded {
+        val server = server ?: return Uploaded(heldCursor, null)
         var next = heldCursor
         while (true) {
             val (changed, after) = local.changes(next)
-            if (changed.isEmpty()) return next
+            if (changed.isEmpty()) return Uploaded(next, null)
             for (change in changed.filter { it.path.startsWith("dev/$me/") }) {
-                local.getObject(change.path)?.let { server.putObject(change.path, it) }
+                try {
+                    local.getObject(change.path)?.let { server.putObject(change.path, it) }
+                } catch (e: StoreException.Refused) {
+                    return Uploaded(next, e)
+                }
             }
             next = after
         }
     }
 }
+
+/** How far an upload got, and the refusal that ended it early. */
+class Uploaded(
+    val cursor: Long,
+    val refused: StoreException.Refused?,
+)
