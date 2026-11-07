@@ -63,8 +63,13 @@ class GroupStore(
         bytes: ByteArray,
     ) = local.putObject(path, bytes)
 
-    override suspend fun getObject(path: String): ByteArray? =
-        local.getObject(path) ?: (server as? FileLayout)?.blob(path)?.takeIf { namesBlob(path, it) }?.also { local.putObject(path, it) }
+    override suspend fun getObject(path: String): ByteArray? = local.getObject(path) ?: blobFromFiles(path)
+
+    /** A snapshot blob a file store holds and this device doesn't yet. */
+    private suspend fun blobFromFiles(path: String): ByteArray? {
+        val files = server as? FileLayout ?: return null
+        return oneItem { files.blob(path) }?.takeIf { namesBlob(path, it) }?.also { local.putObject(path, it) }
+    }
 
     // The server first: a delete it refuses leaves the object held, so a later collection tries again.
     override suspend fun deleteObject(path: String) {
@@ -100,7 +105,7 @@ class GroupStore(
         }
         val resolved = local.resolved()
         for ((epoch, kc, name) in keyNames(resolved.chain, resolved.standing, me)) {
-            if (local.key(epoch, kc, name) == null) server.key(epoch, kc, name)?.let { local.putKey(epoch, kc, name, it) }
+            if (local.key(epoch, kc, name) == null) oneItem { server.key(epoch, kc, name) }?.let { local.putKey(epoch, kc, name, it) }
         }
         if (!objects) return cursor
         if (server is FileLayout) {
@@ -130,7 +135,12 @@ class GroupStore(
         check: ObjectCheck,
     ): Boolean {
         if (local.getObject(path) != null) return true
-        val bytes = server.getObject(path) ?: return true
+        val bytes =
+            try {
+                server.getObject(path) ?: return true
+            } catch (e: StoreException) {
+                if (e.stopsOnlyItsItem) return false else throw e
+            }
         if (!check.admits(path, bytes)) return false
         local.putObject(path, bytes)
         return true

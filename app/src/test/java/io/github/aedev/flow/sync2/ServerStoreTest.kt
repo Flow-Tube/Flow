@@ -169,8 +169,8 @@ class ServerStoreTest {
                 }
             }
             assertEquals(object4MiB, store().getObject("fits")?.size)
-            assertTrue(runCatching { store().getObject("big") }.exceptionOrNull() is StoreException.Malformed)
-            assertTrue(runCatching { store().changes(0) }.exceptionOrNull() is StoreException.Malformed)
+            assertTrue(runCatching { store().getObject("big") }.exceptionOrNull() is StoreException.TooLarge)
+            assertTrue(runCatching { store().changes(0) }.exceptionOrNull() is StoreException.TooLarge)
         }
 
     @Test
