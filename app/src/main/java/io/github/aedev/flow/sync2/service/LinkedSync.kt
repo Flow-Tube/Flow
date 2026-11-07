@@ -230,6 +230,8 @@ class LinkedSync
             if (session.removalPending) {
                 // It needs the store to take the removal; what it read stays for this sync once that's done.
                 if (offline != null) throw offline
+                // A read that isn't finished doesn't remove: the next sync goes on from what it holds (spec/protocol.md, Recovery, step 6).
+                if (store.cutShort) throw LinkedException.RestoreUnfinished()
                 session =
                     finishRestore(session, device, { replacedWords.value = it }) {
                         store.download(me, record.serverCursor, objects = false)

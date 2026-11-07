@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
+import io.github.aedev.flow.sync2.changes.batchContent
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.purposeKey
@@ -42,15 +43,23 @@ import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.buildEntry
 import io.github.aedev.flow.sync2.roster.memberSubject
+import io.github.aedev.flow.sync2.service.LinkedError
 import io.github.aedev.flow.sync2.service.LinkedProfiles
 import io.github.aedev.flow.sync2.service.LinkedReset
 import io.github.aedev.flow.sync2.service.LinkedSync
 import io.github.aedev.flow.sync2.service.SyncIndicator
+import io.github.aedev.flow.sync2.store.ChangeList
+import io.github.aedev.flow.sync2.store.ChangedObject
 import io.github.aedev.flow.sync2.store.FileLayout
 import io.github.aedev.flow.sync2.store.GroupStore
 import io.github.aedev.flow.sync2.store.KeyName
 import io.github.aedev.flow.sync2.store.LocalStore
+import io.github.aedev.flow.sync2.store.MAX_OBJECT_SIZE
+import io.github.aedev.flow.sync2.store.Mailbox
 import io.github.aedev.flow.sync2.store.ObjectType
+import io.github.aedev.flow.sync2.store.ReadBudget
+import io.github.aedev.flow.sync2.store.Remote
+import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StoreLogin
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.kcName
@@ -58,6 +67,7 @@ import io.github.aedev.flow.sync2.store.parseObject
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -471,5 +481,337 @@ class RestoreChoiceTest {
             assertNotNull(result.error)
             assertEquals(emptySet<String>(), db.groups().group()?.keptDevices)
             assertTrue(local.rosterAfter(-1).none { it.op == Op.REMOVE })
+        }
+
+    /** The store one object to a page, so a read can stop between objects. Asking for a path in [failing] throws what it names. */
+    private class OnePerPage(
+        private val store: MemoryStore,
+    ) : Remote,
+        ChangeList by store,
+        Mailbox by store {
+        val asked = ArrayList<String>()
+        val failing = HashMap<String, StoreException>()
+
+        override suspend fun changes(cursor: Long): Pair<List<ChangedObject>, Long> {
+            val page = store.changes(cursor).first.take(1)
+            return page to (page.firstOrNull()?.let { store.objects.getValue(it.path).first } ?: cursor)
+        }
+
+        override suspend fun getObject(path: String): ByteArray? {
+            failing[path]?.let { throw it }
+            asked += path
+            return store.getObject(path)
+        }
+    }
+
+    /** A store whose cursor always moves on: each page names one more object, which it doesn't have. */
+    private class EndlessPages(
+        store: MemoryStore,
+    ) : Remote,
+        ChangeList by store,
+        Mailbox by store {
+        private var pages = 0L
+
+        override suspend fun changes(cursor: Long): Pair<List<ChangedObject>, Long> {
+            check(++pages < 10_000) { "the pages never ended" }
+            return listOf(ChangedObject(StorePaths.log("00".repeat(16), pages), 1)) to pages
+        }
+    }
+
+    private fun syncOn(
+        db: LinkedDatabase,
+        device: MemberSecrets,
+        server: Remote,
+        budget: () -> ReadBudget = ::ReadBudget,
+    ): LinkedSync {
+        val local = heldStore(db)
+        return spyk(sync(db, device, local)) { coEvery { groupStore(any(), any()) } coAnswers { GroupStore(local, server, budget) } }
+    }
+
+    private suspend fun Session.wrote(count: Int): List<String> {
+        repeat(
+            count,
+        ) { write(ObjectType.CHANGES, batchContent(SyncCollection.WATCH_HISTORY, "00".repeat(32), LINK, export.values.single().lines)) }
+        return (1..count).map { StorePaths.log(me, it.toLong()) }
+    }
+
+    private suspend fun TestScope.wrote(
+        g: LinkedGroup,
+        member: MemberSecrets,
+        count: Int,
+    ) = Session.open(g.deviceDb(), g.store, member).wrote(count)
+
+    private fun copyOf(store: MemoryStore) =
+        MemoryStore().also {
+            it.roster += store.roster
+            it.keys += store.keys
+            it.objects += store.objects
+        }
+
+    private suspend fun assertStillPending(
+        store: MemoryStore,
+        db: LinkedDatabase,
+        device: MemberSecrets,
+        entries: Int,
+    ) {
+        assertEquals("nothing was added to the roster", entries, store.roster.size)
+        assertEquals("nothing was sealed", emptyList<String>(), store.objectsOf(device))
+        assertNotNull("the choice is still saved", db.groups().group()?.keptDevices)
+        assertEquals("no place was saved in the logs", 0, db.groups().streams().size)
+    }
+
+    @Test
+    fun a_read_the_connection_stopped_goes_on_at_the_next_sync_and_cuts_as_one_read_would() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val paths = wrote(g, g.a, 3)
+            wrote(g, g.b, 2)
+            val whole = copyOf(g.store)
+            val (device, db) = restoredKeeping(g)
+            val entries = g.store.roster.size
+            val server = OnePerPage(g.store).apply { failing[paths[1]] = StoreException.Network(IOException("dropped")) }
+            val sync = syncOn(db, device, server)
+
+            assertEquals(LinkedError.UNREACHABLE, sync.syncNow().error)
+            assertStillPending(g.store, db, device, entries)
+            val asked = server.asked.toList()
+
+            server.failing.clear()
+            assertNull(sync.syncNow().error)
+
+            assertEquals("what it held isn't asked for again", emptyList<String>(), server.asked.drop(asked.size).filter { it in asked })
+            val (other, otherDb) = restoredKeeping(g, store = whole)
+            assertNull(syncOn(otherDb, other, whole).syncNow().error)
+            assertEquals(
+                whole.roster.last().cut,
+                g.store.roster
+                    .last()
+                    .cut,
+            )
+            assertEquals(
+                setOf(id(g.a), id(g.b)),
+                g.store.roster
+                    .last()
+                    .cut
+                    ?.keys,
+            )
+            assertEquals(
+                3L,
+                g.store.roster
+                    .last()
+                    .cut
+                    ?.getValue(id(g.a))
+                    ?.seq,
+            )
+        }
+
+    @Test
+    fun a_log_that_stops_at_an_object_the_store_lacks_ends_there_and_the_removal_goes_ahead() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val paths = wrote(g, g.a, 3)
+            val first =
+                g.store.objects
+                    .getValue(paths[0])
+                    .second
+            g.store.take(paths[1])
+            val (device, db) = restoredKeeping(g)
+
+            assertNull(syncOn(db, device, g.store).syncNow().error)
+
+            val last = g.store.roster.last()
+            assertEquals(Op.REMOVE, last.op)
+            assertEquals(1L, last.cut?.getValue(id(g.a))?.seq)
+            assertEquals(SyncBytes.toHex(sha256(first)), last.cut?.getValue(id(g.a))?.hash)
+            assertNull(db.groups().group()?.keptDevices)
+        }
+
+    @Test
+    fun a_log_that_stops_at_a_bad_copy_ends_there_and_the_removal_goes_ahead() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val paths = wrote(g, g.a, 3)
+            g.store.take(paths[1])
+            g.store.put(paths[1], ByteArray(512))
+            val (device, db) = restoredKeeping(g)
+
+            assertNull(syncOn(db, device, g.store).syncNow().error)
+
+            assertEquals(
+                Op.REMOVE,
+                g.store.roster
+                    .last()
+                    .op,
+            )
+            assertEquals(
+                1L,
+                g.store.roster
+                    .last()
+                    .cut
+                    ?.getValue(id(g.a))
+                    ?.seq,
+            )
+        }
+
+    @Test
+    fun an_object_a_server_answers_over_the_size_limit_holds_the_removal_until_it_has_it_right() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val paths = wrote(g, g.a, 3)
+            val (device, db) = restoredKeeping(g)
+            val entries = g.store.roster.size
+            val server = OnePerPage(g.store).apply { failing[paths[1]] = StoreException.Malformed() }
+            val sync = syncOn(db, device, server)
+
+            assertNotNull(sync.syncNow().error)
+            assertStillPending(g.store, db, device, entries)
+
+            server.failing.clear()
+            assertNull(sync.syncNow().error)
+
+            assertEquals(
+                3L,
+                g.store.roster
+                    .last()
+                    .cut
+                    ?.getValue(id(g.a))
+                    ?.seq,
+            )
+        }
+
+    @Test
+    fun an_object_a_file_store_holds_over_the_size_limit_holds_the_removal_until_it_has_it_right() =
+        runTest {
+            val first = newMember()
+            val dbFirst = emptyDb()
+            val (words, _) = createWebDavGroup(dbFirst, dav.store(), first, RESTORED, LINK)
+            val storeFirst = GroupStore(heldStore(dbFirst), FileLayout(dav.store(), id(first)))
+            storeFirst.download(id(first), 0, objects = false)
+            val paths = Session.open(dbFirst, storeFirst, first).wrote(3)
+            storeFirst.upload(id(first), 0)
+            val genuine = checkNotNull(dav.files["flow/${paths[1]}"])
+            dav.files["flow/${paths[1]}"] = ByteArray(MAX_OBJECT_SIZE + 1)
+            val device = newMember()
+            val db = emptyDb()
+            restoreWebDavGroup(db, dav.store(), words, device, RESTORED, keep = emptySet())
+            val sync = sync(db, device)
+            val roster = FileLayout(dav.store(), id(device))
+
+            assertNotNull(sync.syncNow().error)
+            assertTrue(roster.rosterView().none { it.op == Op.REMOVE })
+            assertEquals(emptySet<String>(), db.groups().group()?.keptDevices)
+            assertTrue(dav.files.keys.none { it.startsWith("flow/dev/${id(device)}/") })
+
+            dav.files["flow/${paths[1]}"] = genuine
+            assertNull(sync.syncNow().error)
+
+            val removal = roster.rosterView().maxBy { it.seq }
+            assertEquals(Op.REMOVE, removal.op)
+            assertEquals(3L, removal.cut?.getValue(id(first))?.seq)
+            assertEquals(SyncBytes.toHex(sha256(checkNotNull(dav.files["flow/${paths[2]}"]))), removal.cut?.getValue(id(first))?.hash)
+        }
+
+    @Test
+    fun a_store_whose_pages_never_end_holds_the_restore_but_each_sync_ends() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (device, db) = restoredKeeping(g)
+            val entries = g.store.roster.size
+            val sync = syncOn(db, device, EndlessPages(g.store))
+
+            repeat(2) {
+                assertEquals(LinkedError.RESTORE_UNFINISHED, sync.syncNow().error)
+                assertStillPending(g.store, db, device, entries)
+            }
+        }
+
+    @Test
+    fun a_read_stopped_on_its_limit_removes_nothing_goes_on_and_cuts_as_one_read_would() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            wrote(g, g.a, 3)
+            wrote(g, g.b, 2)
+            val whole = copyOf(g.store)
+            val (device, db) = restoredKeeping(g)
+            val entries = g.store.roster.size
+            val server = OnePerPage(g.store)
+            val sync = syncOn(db, device, server) { ReadBudget(requests = 2) }
+
+            repeat(2) {
+                assertEquals(LinkedError.RESTORE_UNFINISHED, sync.syncNow().error)
+                assertStillPending(g.store, db, device, entries)
+            }
+            assertNull(sync.syncNow().error)
+
+            assertEquals("each object was asked for once", server.asked.distinct(), server.asked)
+            val (other, otherDb) = restoredKeeping(g, store = whole)
+            assertNull(syncOn(otherDb, other, whole).syncNow().error)
+            val cut =
+                g.store.roster
+                    .last()
+                    .cut
+            assertEquals(
+                Op.REMOVE,
+                g.store.roster
+                    .last()
+                    .op,
+            )
+            assertEquals(whole.roster.last().cut, cut)
+            assertEquals(mapOf(id(g.a) to 3L, id(g.b) to 2L), cut?.mapValues { it.value.seq })
+            assertNull(db.groups().group()?.keptDevices)
+        }
+
+    @Test
+    fun a_read_of_a_file_store_stopped_on_its_limit_goes_on_at_the_next_sync() =
+        runTest {
+            val first = newMember()
+            val dbFirst = emptyDb()
+            val (words, _) = createWebDavGroup(dbFirst, dav.store(), first, RESTORED, LINK)
+            val storeFirst = GroupStore(heldStore(dbFirst), FileLayout(dav.store(), id(first)))
+            storeFirst.download(id(first), 0, objects = false)
+            val paths = Session.open(dbFirst, storeFirst, first).wrote(3)
+            storeFirst.upload(id(first), 0)
+            val device = newMember()
+            val db = emptyDb()
+            restoreWebDavGroup(db, dav.store(), words, device, RESTORED, keep = emptySet())
+            val roster = FileLayout(dav.store(), id(device))
+            val sync = syncOn(db, device, roster) { ReadBudget(requests = 2) }
+
+            assertEquals(LinkedError.RESTORE_UNFINISHED, sync.syncNow().error)
+            assertTrue(roster.rosterView().none { it.op == Op.REMOVE })
+            assertEquals(emptySet<String>(), db.groups().group()?.keptDevices)
+            assertTrue(dav.files.keys.none { it.startsWith("flow/dev/${id(device)}/") })
+
+            assertNull(sync.syncNow().error)
+
+            val removal = roster.rosterView().maxBy { it.seq }
+            assertEquals(Op.REMOVE, removal.op)
+            assertEquals(3L, removal.cut?.getValue(id(first))?.seq)
+            assertEquals(SyncBytes.toHex(sha256(checkNotNull(dav.files["flow/${paths[2]}"]))), removal.cut?.getValue(id(first))?.hash)
+        }
+
+    @Test
+    fun a_sync_with_no_restore_under_way_just_goes_on_from_where_its_read_stopped() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val paths = wrote(g, g.a, 3)
+            val db = g.deviceDb()
+            val sync = syncOn(db, g.b, OnePerPage(g.store)) { ReadBudget(requests = 2) }
+
+            assertNull(sync.syncNow().error)
+            assertEquals(
+                g.store.objects
+                    .getValue(paths[1])
+                    .first,
+                db.groups().group()?.serverCursor,
+            )
+
+            assertNull(sync.syncNow().error)
+            assertEquals(
+                g.store.objects
+                    .getValue(paths[2])
+                    .first,
+                db.groups().group()?.serverCursor,
+            )
         }
 }
