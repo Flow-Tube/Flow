@@ -32,6 +32,7 @@ import io.github.aedev.flow.ui.components.music.common.MusicNowPlayingOverlay
 import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
 import io.github.aedev.flow.ui.components.shared.DownloadedBadge
 import io.github.aedev.flow.ui.components.shared.titleMarquee
+import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
 
 val MusicHeroCaptionHeight = 60.dp
 
@@ -115,7 +116,7 @@ fun MusicHeroCard(
                 style = MaterialTheme.typography.titleMediumEmphasized,
                 color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Clip,
+                overflow = titleMarqueeOverflow(),
                 modifier = Modifier.titleMarquee(),
             )
             if (!subtitle.isNullOrBlank()) {

@@ -67,9 +67,16 @@ internal object PlayerStatsFormatter {
             PlayerStatLine(R.string.stats_volume, volume(snapshot)),
             PlayerStatLine(R.string.stats_bandwidth, bandwidth(snapshot.bandwidthBitsPerSecond)),
             PlayerStatLine(R.string.stats_buffered, String.format(Locale.US, "%.1f s", snapshot.bufferedMs / MS_PER_SECOND)),
-            PlayerStatLine(R.string.stats_viewport, "${snapshot.viewportWidth}x${snapshot.viewportHeight}"),
+            PlayerStatLine(R.string.stats_viewport, viewport(snapshot)),
             PlayerStatLine(R.string.stats_dropped_frames, "${snapshot.droppedFrames} / ${snapshot.renderedFrames}"),
         )
+
+    private fun viewport(snapshot: PlayerStatsSnapshot): String =
+        if (snapshot.viewportWidth > 0 && snapshot.viewportHeight > 0) {
+            "${snapshot.viewportWidth}x${snapshot.viewportHeight}"
+        } else {
+            UNKNOWN
+        }
 
     private fun videoId(snapshot: PlayerStatsSnapshot): String =
         listOfNotNull(snapshot.videoId, "[${snapshot.kind}]", snapshot.client).joinToString(" ")

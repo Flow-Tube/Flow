@@ -55,8 +55,10 @@ internal fun ShortsPipActionEffect(
         if (target != pagerState.targetPage) scope.launch { pagerState.animateScrollToPage(target) }
     }
 
-    // The settled reel starts playing on its own, so the window follows it with a pause button.
-    LaunchedEffect(pagerState.settledPage, navigation) {
+    // The settled reel starts playing on its own, so the window follows it with a pause button. Setting
+    // the params again once the window opens matters too: the Android 17 PiP menu can grey the skip
+    // buttons the wrong way round from the params the window entered with, until they are set again.
+    LaunchedEffect(pagerState.settledPage, navigation, isInPip) {
         PictureInPictureHelper.setShortsNavigation(navigation)
         if (inPip) restateWindow(isPlaying = true)
     }
