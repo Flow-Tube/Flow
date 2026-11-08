@@ -17,6 +17,7 @@ import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.localmedia.lrcOffsetMs
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
+import io.github.aedev.flow.data.lyrics.LyricsLoadPolicy
 import io.github.aedev.flow.data.lyrics.LyricsUtils
 import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.lyrics.ShownLyrics
@@ -28,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -45,6 +47,7 @@ internal class SessionLyrics(
     private val localLyrics: LocalLyricsReader,
     lockScreenSetting: Flow<Boolean>,
     delaySetting: Flow<Int>,
+    private val onDemandSetting: Flow<Boolean>,
     private val videoTiming: MusicVideoLyricsTiming,
     private val isSavingData: suspend () -> Boolean,
 ) {
@@ -108,7 +111,10 @@ internal class SessionLyrics(
         }
     }
 
-    /** Warms the lyrics cache for the player screen, and keeps the same lyrics for the session. */
+    /**
+     * Warms the lyrics cache for the player screen, and keeps the same lyrics for the session. When lyrics load
+     * only on demand, nothing is looked up here unless lock screen lyrics are on.
+     */
     fun load(item: MediaItem) {
         val videoId = item.mediaId
         if (videoId.isBlank()) return
@@ -122,6 +128,7 @@ internal class SessionLyrics(
         val durationSeconds = ((item.mediaMetadata.durationMs ?: 0L) / MILLIS_PER_SECOND).toInt()
         val showsLines = isEnabled
         loadGuarded {
+            if (!LyricsLoadPolicy.serviceMayFetch(onDemandSetting.first(), showsLines)) return@loadGuarded
             val offsetMs = lyricsHelper.syncOffset(videoId) ?: 0L
             var lastAnswer: List<LyricsEntry>? = null
             val show: suspend (Pair<List<LyricsEntry>, String>) -> Unit = { answer ->

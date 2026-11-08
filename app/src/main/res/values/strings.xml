@@ -159,6 +159,9 @@
     <string name="lyrics_on_lock_screen_timing_summary">Move lines earlier if they feel late</string>
     <string name="lyrics_sponsorblock_timing">Fit lyrics to music videos</string>
     <string name="lyrics_sponsorblock_timing_summary">Uses SponsorBlock to skip parts with no music</string>
+    <string name="lyrics_on_demand">Load lyrics only when opened</string>
+    <string name="lyrics_on_demand_summary">Looks them up when you open the player or its lyrics</string>
+    <string name="settings_keywords_lyrics_on_demand">privacy, network, background, data</string>
     <string name="lyrics_timing_on_time">No change</string>
     <string name="lyrics_timing_earlier">%1$s s earlier</string>
     <string name="lyrics_timing_later">%1$s s later</string>

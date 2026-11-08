@@ -28,6 +28,7 @@ import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackGesturesIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackIndex
+import io.github.aedev.flow.ui.screens.settings.index.PlaybackLyricsIndex
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -189,10 +190,10 @@ internal fun SettingsListScope.playbackSections(
         switch(PlaybackIndex.resumeFromHeadphones, viewModel.resumeFromHeadphones, viewModel::setResumeFromHeadphones)
         switch(PlaybackIndex.musicSideSwipes, viewModel.musicSideSwipes, viewModel::setMusicSideSwipes)
         switch(PlaybackIndex.musicVideoSwitch, viewModel.musicVideoSwitch, viewModel::setMusicVideoSwitch)
-        switch(PlaybackIndex.lyricsOnLockScreen, viewModel.lyricsOnLockScreen, viewModel::setLyricsOnLockScreen)
+        switch(PlaybackLyricsIndex.lyricsOnLockScreen, viewModel.lyricsOnLockScreen, viewModel::setLyricsOnLockScreen)
         if (state.lyricsOnLockScreen) {
             slider(
-                entry = PlaybackIndex.lyricsOnLockScreenTiming,
+                entry = PlaybackLyricsIndex.lyricsOnLockScreenTiming,
                 value = state.lyricsOnLockScreenDelayMs.toFloat(),
                 onValueCommitted = { viewModel.setLyricsOnLockScreenDelayMs(SessionLyricDelay.snap(it)) },
                 valueRange = -SessionLyricDelay.MAX_MS.toFloat()..SessionLyricDelay.MAX_MS.toFloat(),
@@ -201,8 +202,9 @@ internal fun SettingsListScope.playbackSections(
                 centered = true,
             )
         }
-        switch(PlaybackIndex.lyricsSponsorBlockTiming, viewModel.lyricsSponsorBlockTiming, viewModel::setLyricsSponsorBlockTiming)
-        choice(PlaybackIndex.lyricsProviders, onClick = { openDialog(PlaybackDialog.LYRICS) }) {
+        switch(PlaybackLyricsIndex.lyricsSponsorBlockTiming, viewModel.lyricsSponsorBlockTiming, viewModel::setLyricsSponsorBlockTiming)
+        switch(PlaybackLyricsIndex.lyricsOnDemand, viewModel.lyricsOnDemand, viewModel::setLyricsOnDemand)
+        choice(PlaybackLyricsIndex.lyricsProviders, onClick = { openDialog(PlaybackDialog.LYRICS) }) {
             val providers by viewModel.lyricsProviders.collectAsStateWithLifecycle()
             pluralStringResource(
                 R.plurals.lyrics_providers_enabled,
