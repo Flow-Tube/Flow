@@ -115,11 +115,14 @@ class FileLayout(
     /**
      * Copies every other sender's log objects after the last one [local] holds, reading the next `seq`
      * until there is none, or a file that isn't that object (spec/store.md, WebDAV). A sender never read starts at its oldest object.
-     * When the store tags folders, nothing is read while the tag stays the same.
+     * When the store tags folders, nothing is read while the tag stays the same. False when [budget] ended the read.
      */
-    suspend fun pullLogs(local: LocalStore) {
+    suspend fun pullLogs(
+        local: LocalStore,
+        budget: ReadBudget = ReadBudget(),
+    ): Boolean {
         val tag = files.tag("dev")
-        if (tag != null && tags[files.location] == tag) return
+        if (tag != null && tags[files.location] == tag) return true
         val check = ObjectCheck(me, local.resolved().chain)
         val tips = local.logTips()
         var whole = true
@@ -141,10 +144,12 @@ class FileLayout(
                     break
                 }
                 local.putObject(path, bytes)
+                if (!budget.take(1)) return false
                 seq++
             }
         }
         if (whole) tag?.let { tags[files.location] = it }
+        return true
     }
 
     /** The oldest log object of [did] still stored, from its first shard only. */

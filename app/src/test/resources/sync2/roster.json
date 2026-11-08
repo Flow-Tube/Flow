@@ -2461,6 +2461,183 @@
         }
       ],
       "error": "roster-op"
+    },
+    {
+      "name": "restore-then-remove-the-other-devices",
+      "steps": [
+        {
+          "v": 2,
+          "group": "669a44456c08e4a12e4ceb3538860317",
+          "seq": 9,
+          "prev": "18eb362b0fb928a0f35b684a8cbfae6f0073cfcd3ba0c5c6dbd7af74343f3224",
+          "op": "restore",
+          "signer": "6e1946f855d4d7de61c0d3e3e4491cae",
+          "add": [
+            {
+              "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+              "sig": "RsTU5IjEf1rjeyLp-09xbUp-OfjjWUqwFdO04YajNZ0",
+              "kem": "GXeu_UDlHVNWxtd9eoaDmQgIMjNwiRnINQ5z03xH_18",
+              "role": "device"
+            }
+          ],
+          "epoch": {
+            "n": 5,
+            "kc": "t3FcIp-eA9A7wQzAGmAeZWCCb-9ut5XU7Je9TSgOfIw",
+            "to": [
+              "6e1946f855d4d7de61c0d3e3e4491cae",
+              "addf195306ed8f3c4d02642d8b6ebd6a",
+              "b2d4dcb5ace60ab7f499b462f715ffcd",
+              "d8576f2de42861ceb8030cc722b4c669"
+            ]
+          },
+          "sigs": {
+            "6e1946f855d4d7de61c0d3e3e4491cae": "Lm4m-c5647BTraOvYQVk2d0qp9ZxtzKW9Bw641HKINIwoHTBYuQaozDUCnRQOnJ1UpOhz_bwekpYHzHQR1RwBA",
+            "b2d4dcb5ace60ab7f499b462f715ffcd": "Zwr3xThm5PExuX3A0fZnlZDIqNE5fgPh0DdkE_JqwkrBNvtC5oe6nAB6vL-ygIfvscB5TFW-0ODysKoQ_4ozCw"
+          }
+        },
+        {
+          "v": 2,
+          "group": "669a44456c08e4a12e4ceb3538860317",
+          "seq": 10,
+          "prev": "bf22756ef83c16e04ae4b185b694786f4811f7fffad8a7434ca53a9b8b9f4b93",
+          "op": "recovery",
+          "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "remove": [
+            "6e1946f855d4d7de61c0d3e3e4491cae"
+          ],
+          "add": [
+            {
+              "did": "2b4bc2fbe53e4adaad7b3c9270a335f5",
+              "sig": "7Ia_W6iMAVlxUYngARu37l8gwiFhc9zFF4mkxPi5jEQ",
+              "kem": "K4o73nvvMWnnFXK8heU7G_VEa7kvVeQ0wyD3NDeYSRg",
+              "role": "recovery"
+            }
+          ],
+          "epoch": {
+            "n": 6,
+            "kc": "7DcLcYbUbnlQRas76vQS4ZiStJRHmCWrzzg5IMMIC5Q",
+            "to": [
+              "2b4bc2fbe53e4adaad7b3c9270a335f5",
+              "addf195306ed8f3c4d02642d8b6ebd6a",
+              "b2d4dcb5ace60ab7f499b462f715ffcd",
+              "d8576f2de42861ceb8030cc722b4c669"
+            ]
+          },
+          "sigs": {
+            "b2d4dcb5ace60ab7f499b462f715ffcd": "qokhQg4drEVSAzq1KcDMGGiHRLLrNWIgXYOcf7XLG64oONWy-DqsVzA-rHgpnJbNIsuNCjvCZSbhT48QZhrlBw",
+            "2b4bc2fbe53e4adaad7b3c9270a335f5": "4HQMdWtGKO9nhB8gKV2wGL7pYshoS6xPHvRDlaixOUruzkq3HrkL15PGPn9NG1ooy4aFdui-1TIt9wCJsUzbCg"
+          }
+        },
+        {
+          "v": 2,
+          "group": "669a44456c08e4a12e4ceb3538860317",
+          "seq": 11,
+          "prev": "3222ecd63ebba6fdf0cd66addd7e342fc84f22cde1b1b82f3307191ebb45aeb1",
+          "op": "remove",
+          "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "remove": [
+            "addf195306ed8f3c4d02642d8b6ebd6a",
+            "d8576f2de42861ceb8030cc722b4c669"
+          ],
+          "cut": {
+            "d8576f2de42861ceb8030cc722b4c669": {
+              "seq": 1,
+              "hash": "c26f8df94d53d79f589e6bd279730004666d0e2d177ee7730a41d9047b7d4229"
+            }
+          },
+          "epoch": {
+            "n": 7,
+            "kc": "XYPM-00Tr4D-k5DLBkOxpZwRiwzqY1Dd8U9UdcG-4X8",
+            "to": [
+              "2b4bc2fbe53e4adaad7b3c9270a335f5",
+              "b2d4dcb5ace60ab7f499b462f715ffcd"
+            ]
+          },
+          "sigs": {
+            "b2d4dcb5ace60ab7f499b462f715ffcd": "DGiqV7M-bAVYPifm3ki0VNuR1JY5D6KHXsGTjiu153Qkn6hzKWcHavoSQhSVkvBOPnkNZE_VlXHoposU25iqBg"
+          }
+        }
+      ],
+      "state": {
+        "seq": 11,
+        "head": "7be6485aba52772a2d633177680fb8bb2546df68fe8307250e110e8d55e9b506",
+        "epoch": 7,
+        "rotate": false,
+        "recoveryDue": false,
+        "members": [
+          {
+            "did": "2b4bc2fbe53e4adaad7b3c9270a335f5",
+            "role": "recovery",
+            "used": false,
+            "installer": "b2d4dcb5ace60ab7f499b462f715ffcd"
+          },
+          {
+            "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+            "role": "device",
+            "used": false
+          }
+        ],
+        "senders": [
+          {
+            "did": "1edce5f29fbda5bba7ada194b0a578c6",
+            "role": "device",
+            "since": 3,
+            "until": 3,
+            "cut": {
+              "seq": 1,
+              "hash": "301bf18e9cce13b93870928117aecd06ff793354402b03810bff6476e123865b"
+            }
+          },
+          {
+            "did": "2b4bc2fbe53e4adaad7b3c9270a335f5",
+            "role": "recovery",
+            "since": 6
+          },
+          {
+            "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+            "role": "recovery",
+            "since": 3,
+            "until": 5
+          },
+          {
+            "did": "894e311b2b2058e3bcc2ef3bde8ec864",
+            "role": "device",
+            "since": 0,
+            "until": 0,
+            "cut": {
+              "seq": 2,
+              "hash": "4d4573758bd47b198e4305475ff362af7b9806c157caff61d657837e94134ffe"
+            }
+          },
+          {
+            "did": "ab6095990ebaaf36d4c49e86fc3a65c3",
+            "role": "recovery",
+            "since": 0,
+            "until": 2
+          },
+          {
+            "did": "addf195306ed8f3c4d02642d8b6ebd6a",
+            "role": "device",
+            "since": 2,
+            "until": 6
+          },
+          {
+            "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+            "role": "device",
+            "since": 5
+          },
+          {
+            "did": "d8576f2de42861ceb8030cc722b4c669",
+            "role": "device",
+            "since": 0,
+            "until": 6,
+            "cut": {
+              "seq": 1,
+              "hash": "c26f8df94d53d79f589e6bd279730004666d0e2d177ee7730a41d9047b7d4229"
+            }
+          }
+        ]
+      }
     }
   ],
   "geneses": [

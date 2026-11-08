@@ -562,6 +562,60 @@
         "6e1946f855d4d7de61c0d3e3e4491cae": "4aPE0cvXlKz8NZR0T2W6e2_mF1q57W3xCPWOsLDnm0_9tTnsjTltq4cbrR6M8mKwqoObdlHLQV2iuQUk2tFXDQ"
       }
     },
+    "restoredKeepsNone": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 5,
+      "prev": "2d558a93916b6e84b40709e5d8c6c2ab8767619970ce6658feef10698f0ef97e",
+      "op": "remove",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "remove": [
+        "894e311b2b2058e3bcc2ef3bde8ec864",
+        "addf195306ed8f3c4d02642d8b6ebd6a",
+        "d8576f2de42861ceb8030cc722b4c669"
+      ],
+      "cut": {
+        "d8576f2de42861ceb8030cc722b4c669": {
+          "seq": 1,
+          "hash": "c26f8df94d53d79f589e6bd279730004666d0e2d177ee7730a41d9047b7d4229"
+        }
+      },
+      "epoch": {
+        "n": 3,
+        "kc": "OEuCk5x1sPm47KRWu-suMstQN8LQYHwkQLh-3rwUzTc",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "b2d4dcb5ace60ab7f499b462f715ffcd"
+        ]
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "B1jqw4xYJPAhu0AKQDycIriDFQmDoRfkjJecMl6NGfZLj_sfeAouRcCYWtWZtahEZg-NXtICW7th_-46HrnjCQ"
+      }
+    },
+    "restoredKeepsA": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 5,
+      "prev": "2d558a93916b6e84b40709e5d8c6c2ab8767619970ce6658feef10698f0ef97e",
+      "op": "remove",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "remove": [
+        "894e311b2b2058e3bcc2ef3bde8ec864",
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "epoch": {
+        "n": 3,
+        "kc": "U5UZ6k_DWcTW-28X3oFfc6ACWFdLf3I7fodW9kCNzvQ",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "E0ikYKN_DPFTwztMiuuVCadgrppNgTUXY2XFVZqy4zevXjcMS1mM-oU0sdSXOB8JYT8_2dvCsSzmB6H3Cj3dBw"
+      }
+    },
     "aRotate": {
       "v": 2,
       "group": "669a44456c08e4a12e4ceb3538860317",
@@ -1062,6 +1116,125 @@
         ],
         "standing": [],
         "extendsApplied": true
+      }
+    },
+    {
+      "name": "restore-signs-out-a-device-whose-removal-it-never-read",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "restore",
+        "restored",
+        "restoredKeepsNone"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "restore",
+          "restored",
+          "restoredKeepsNone"
+        ],
+        "standing": [],
+        "extendsApplied": false
+      }
+    },
+    {
+      "name": "restore-signing-out-a-device-on-a-linear-store",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "restore",
+        "restored",
+        "restoredKeepsNone"
+      ],
+      "pins": [],
+      "linear": true,
+      "expect": {
+        "outcome": "rewritten"
+      }
+    },
+    {
+      "name": "restore-keeping-the-device-that-removed-another",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "restore",
+        "restored",
+        "restoredKeepsA"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRemovesC"
+        ],
+        "standing": [
+          "restore",
+          "restored",
+          "restoredKeepsA"
+        ],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "restore-signing-out-the-device-that-replaced-its-words",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "replaceWords",
+        "restore",
+        "restored",
+        "restoredKeepsNone"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "contested",
+        "contested": [
+          "replaceWords",
+          "restore",
+          "restored",
+          "restoredKeepsNone"
+        ],
+        "sides": [
+          "replaceWords",
+          "restoredKeepsNone"
+        ]
       }
     },
     {

@@ -7,6 +7,7 @@ import io.github.aedev.flow.sync2.crypto.verify
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.Op
+import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.ServerStore
 import io.github.aedev.flow.sync2.store.StoreException
@@ -171,6 +172,21 @@ class ServerStoreTest {
             assertEquals(object4MiB, store().getObject("fits")?.size)
             assertTrue(runCatching { store().getObject("big") }.exceptionOrNull() is StoreException.TooLarge)
             assertTrue(runCatching { store().changes(0) }.exceptionOrNull() is StoreException.TooLarge)
+        }
+
+    @Test
+    fun a_roster_past_its_limit_is_refused() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val entry = canonicalEntry(g.store.roster.first())
+            var pages = 0
+            serve {
+                val page = ++pages
+                val entries = (1..1000).map { entry.replaceFirst(Regex("\"seq\":\\d+"), "\"seq\":${(page - 1) * 1000 + it}") }
+                respondJson(200, if (page > 10) """{"entries":[]}""" else """{"entries":$entries}""")
+            }
+            val error = runCatching { store().rosterView() }.exceptionOrNull()
+            assertTrue("$error", error is StoreException.Malformed)
         }
 
     @Test

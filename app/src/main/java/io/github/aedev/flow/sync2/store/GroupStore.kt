@@ -11,7 +11,12 @@ import io.github.aedev.flow.sync2.roster.entryHash
 class GroupStore(
     val local: LocalStore,
     val server: Remote?,
+    private val newBudget: () -> ReadBudget = ::ReadBudget,
 ) : ChangeList {
+    /** A read of objects stopped on its [ReadBudget], short of the end. The next one goes on from where it got to. */
+    var cutShort = false
+        private set
+
     override suspend fun rosterAfter(after: Long): List<Entry> = local.rosterAfter(after)
 
     /** What the shared store answers, which decides, or what this device holds when it has none. */
@@ -87,8 +92,8 @@ class GroupStore(
 
     /**
      * Copies what the server holds that this device doesn't: roster entries, this device's wraps and
-     * the chain boxes, and, with [objects], the objects after [cursor]. Returns the next cursor, which
-     * stays before the first page holding an object this device couldn't keep, so that page is read again.
+     * the chain boxes, and, with [objects], the objects after [cursor], up to its [ReadBudget]. Returns the next
+     * cursor, which stays before the first page holding an object this device couldn't keep, so that page is read again.
      */
     suspend fun download(
         me: String,
@@ -109,11 +114,12 @@ class GroupStore(
         }
         if (!objects) return cursor
         if (server is FileLayout) {
-            server.pullLogs(local)
+            cutShort = !server.pullLogs(local, newBudget())
             return cursor
         }
         if (server !is ChangeList) return cursor
         val check = ObjectCheck(me, resolved.chain)
+        val budget = newBudget()
         var next = cursor
         var unkept: Long? = null
         while (true) {
@@ -126,6 +132,10 @@ class GroupStore(
             // A cursor that doesn't move would hand out the same page forever.
             if (changed.isEmpty() || after <= next) return unkept ?: next
             next = after
+            if (!budget.take(changed.size)) {
+                cutShort = true
+                return unkept ?: next
+            }
         }
     }
 

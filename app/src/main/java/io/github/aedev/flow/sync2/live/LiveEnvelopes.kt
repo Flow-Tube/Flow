@@ -29,7 +29,7 @@ internal fun Session.sealLive(
 ): ByteArray {
     val epoch = state.epoch
     val header = Header(ObjectType.LIVE, group, epoch, device.did, seq, ZERO_HASH)
-    val key = purposeKey(currentKey(), group, epoch, Purpose.LIVE)
+    val key = purposeKey(sealingKey(), group, epoch, Purpose.LIVE)
     return sealObject(header, key, encodePayload(LiveMessage.encode(message)), device.sigSeed)
 }
 

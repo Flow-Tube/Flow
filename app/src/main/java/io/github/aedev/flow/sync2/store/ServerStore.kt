@@ -8,6 +8,7 @@ import io.github.aedev.flow.sync2.crypto.sign
 import io.github.aedev.flow.sync2.crypto.tag
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.roster.Entry
+import io.github.aedev.flow.sync2.roster.MAX_ROSTER_ENTRIES
 import io.github.aedev.flow.sync2.roster.entryJson
 import io.github.aedev.flow.sync2.roster.parseEntry
 import kotlinx.coroutines.Dispatchers
@@ -336,7 +337,7 @@ class ServerStore private constructor(
             ?.map(::parseEntry)
             ?: throw StoreException.Malformed()
 
-    /** The whole roster, page by page. A page that doesn't advance ends the read. */
+    /** The whole roster, page by page. A page that doesn't advance, or one past a roster's limit, ends the read. */
     override suspend fun rosterView(): List<Entry> {
         val entries = ArrayList<Entry>()
         var after = -1L
@@ -346,6 +347,7 @@ class ServerStore private constructor(
             if (last <= after) throw StoreException.Malformed()
             after = last
             entries += page
+            if (entries.size > MAX_ROSTER_ENTRIES) throw StoreException.Malformed()
         }
     }
 

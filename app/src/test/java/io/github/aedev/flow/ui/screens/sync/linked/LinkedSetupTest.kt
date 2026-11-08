@@ -7,16 +7,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.aedev.flow.R
+import io.github.aedev.flow.sync2.linking.RestoreDevice
 import io.github.aedev.flow.sync2.service.LinkedError
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -38,10 +42,12 @@ class LinkedSetupTest {
     private val created = ArrayList<List<String>>()
     private val reset = ArrayList<List<String>>()
 
-    private fun show() = rule.setContent { Content() }
+    private val kept = ArrayList<Set<String>>()
+
+    private fun show(restoreDevices: List<RestoreDevice>? = null) = rule.setContent { Content(restoreDevices) }
 
     @Composable
-    private fun Content() {
+    private fun Content(restoreDevices: List<RestoreDevice>? = null) {
         var error by remember { mutableStateOf<LinkedError?>(null) }
         LinkedSetup(
             hostOnly = false,
@@ -56,6 +62,9 @@ class LinkedSetupTest {
             onShowCode = {},
             onRestore = { _, _ -> },
             onRestoreFromWebDav = { _, _, _, _ -> },
+            restoreDevices = restoreDevices,
+            onConfirmRestore = { kept += it },
+            onCancelRestore = {},
         )
     }
 
@@ -120,6 +129,24 @@ class LinkedSetupTest {
         rule.onNodeWithText(text(R.string.linked_restore_title)).performClick()
         rule.onNodeWithText(text(R.string.linked_where_webdav)).assertExists()
         rule.onNodeWithText(text(R.string.linked_create_lan_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun a_restore_keeps_no_device_unless_it_is_ticked() {
+        val devices = listOf(RestoreDevice("aa".repeat(16), "Phone", "android"), RestoreDevice("bb".repeat(16), "", "android"))
+        show(devices)
+        rule.onNodeWithText(text(R.string.linked_restore_choose_body)).assertExists()
+        rule.onNodeWithText(context.getString(R.string.linked_restore_unknown_device, "bbbbbbbb")).assertExists()
+        rule.onNodeWithText(text(R.string.linked_restore)).performClick()
+        assertEquals(listOf(emptySet<String>()), kept)
+    }
+
+    @Test
+    fun a_ticked_device_is_kept() {
+        show(listOf(RestoreDevice("aa".repeat(16), "Phone", "android")))
+        rule.onAllNodes(isToggleable())[0].performSemanticsAction(SemanticsActions.OnClick)
+        rule.onNodeWithText(text(R.string.linked_restore)).performClick()
+        assertEquals(listOf(setOf("aa".repeat(16))), kept)
     }
 
     @Test

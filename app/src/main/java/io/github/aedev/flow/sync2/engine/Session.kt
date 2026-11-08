@@ -14,7 +14,6 @@ import io.github.aedev.flow.sync2.crypto.Purpose
 import io.github.aedev.flow.sync2.crypto.checkEpochKey
 import io.github.aedev.flow.sync2.crypto.decodePayload
 import io.github.aedev.flow.sync2.crypto.encodePayload
-import io.github.aedev.flow.sync2.crypto.openChain
 import io.github.aedev.flow.sync2.crypto.purposeKey
 import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.crypto.sha256
@@ -57,7 +56,6 @@ import io.github.aedev.flow.sync2.store.sealObject
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.security.MessageDigest
-import java.util.TreeMap
 
 /** What a log object carries, once checked and opened. */
 internal sealed interface Content {
@@ -121,7 +119,7 @@ class Session private constructor(
 ) {
     internal val me = SyncBytes.toHex(device.did)
     private val commitments = HashMap<Int, ByteArray>()
-    private val keys = TreeMap<Int, ByteArray>()
+    private val keys = EpochKeys(store, group, commitments)
 
     /** The `kc` of each entry that lost a fork and stands, by the epoch it starts. */
     private val standing = standing.mapNotNull { it.epoch }.groupBy({ it.n }, { it.kc })
@@ -135,7 +133,16 @@ class Session private constructor(
     var record = record
         private set
 
-    internal fun currentKey(): ByteArray = keys.getValue(state.epoch)
+    internal fun currentKey(): ByteArray = keys.held(state.epoch)
+
+    /** A restore hasn't signed out the devices the user didn't choose yet, so they hold this key (spec/protocol.md, Recovery). */
+    val removalPending: Boolean get() = record.restoreKeep != null
+
+    /** The current key for sealing anything other devices will read. */
+    internal fun sealingKey(): ByteArray {
+        if (removalPending) throw LinkedException.RestoreUnfinished()
+        return currentKey()
+    }
 
     init {
         for (entry in entries) {
@@ -233,41 +240,13 @@ class Session private constructor(
     ): ByteArray {
         val kc = kcName(commitment)
         val wrap = store.key(epoch, kc, me) ?: reject(ProtocolError.KEY_COMMITMENT)
-        return forgettingIfBad(epoch, kc, me) {
+        return keys.forgettingIfBad(epoch, kc, me) {
             unwrapEpochKey(device.kemSecret, group, epoch, device.did, wrap).also { checkEpochKey(it, group, epoch, commitment) }
         }
     }
 
-    /** A wrap or chain box that fails its checks isn't kept: it may be fine next time the store is asked. */
-    private suspend fun <T> forgettingIfBad(
-        epoch: Int,
-        kc: String,
-        name: String,
-        open: () -> T,
-    ): T =
-        try {
-            open()
-        } catch (e: ProtocolException) {
-            store.forgetKey(epoch, kc, name)
-            throw e
-        }
-
     /** The key of [epoch], walking the history chain back from the oldest key this device holds. */
-    internal suspend fun epochKey(epoch: Int): ByteArray {
-        while (epoch !in keys) {
-            val (known, key) = keys.firstEntry() ?: reject(ProtocolError.KEY_COMMITMENT)
-            if (known <= epoch) reject(ProtocolError.KEY_COMMITMENT)
-            val knownCommitment = commitments[known] ?: reject(ProtocolError.KEY_COMMITMENT)
-            val kc = kcName(knownCommitment)
-            val chain = store.key(known, kc, "chain") ?: reject(ProtocolError.KEY_COMMITMENT)
-            val below = commitments[known - 1] ?: reject(ProtocolError.KEY_COMMITMENT)
-            keys[known - 1] =
-                forgettingIfBad(known, kc, "chain") {
-                    openChain(key, group, known, chain).also { checkEpochKey(it, group, known - 1, below) }
-                }
-        }
-        return keys.getValue(epoch)
-    }
+    internal suspend fun epochKey(epoch: Int): ByteArray = keys.key(epoch)
 
     /**
      * Opens something sealed under [epoch] with the chain's key, or else with the key of an entry that
@@ -301,7 +280,7 @@ class Session private constructor(
         val seq = record.ownSeq + 1
         val epoch = state.epoch
         val header = Header(type, group, epoch, device.did, seq, SyncBytes.fromHex(record.ownPrev))
-        val key = purposeKey(keys.getValue(epoch), group, epoch, type.purpose)
+        val key = purposeKey(sealingKey(), group, epoch, type.purpose)
         val sealed = sealObject(header, key, encodePayload(content), device.sigSeed)
         store.putObject(StorePaths.log(me, seq), sealed)
         record = record.copy(ownSeq = seq, ownPrev = SyncBytes.toHex(sha256(sealed)))
@@ -371,6 +350,9 @@ class Session private constructor(
         )
         return records
     }
+
+    /** How far every other device's log can be read now, with nothing saved. */
+    internal suspend fun readablePositions(): Map<String, StreamPosition> = read(links = null).positions
 
     /** Batches of [links] only, or every batch when [links] is null. */
     private suspend fun read(links: Set<String?>?): Pulled {
