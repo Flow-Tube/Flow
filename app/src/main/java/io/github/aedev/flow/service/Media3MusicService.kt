@@ -271,6 +271,7 @@ class Media3MusicService : MediaLibraryService() {
     lateinit var videoSwitch: MusicVideoSwitch
 
     private val prefs by lazy { PlayerPreferences(this) }
+    private val lockScreenPlayer by lazy { LockScreenPlayerLauncher(this) }
 
     @Inject
     lateinit var widgetContentSync: dagger.Lazy<io.github.aedev.flow.widget.core.refresh.WidgetContentSync>
@@ -380,6 +381,7 @@ class Media3MusicService : MediaLibraryService() {
         // the moment it changes, so a restart or a new song keeps it.
         lifecycleScope.launch { player.repeatMode = prefs.musicRepeatMode.first() }
         videoSwitch.attach(lifecycleScope, prefs.musicVideoSwitch)
+        lockScreenPlayer.attach(lifecycleScope, prefs.lockScreenPlayer)
 
         lifecycleScope.launch {
             prefs.playDuringCalls
@@ -1497,6 +1499,7 @@ class Media3MusicService : MediaLibraryService() {
 
     override fun onDestroy() {
         MusicServiceState.isRunning = false
+        lockScreenPlayer.release()
         sessionLyrics?.release()
         // Flush the in-flight listen session before the player goes away.
         finalizeListenSession()
@@ -1552,6 +1555,7 @@ class Media3MusicService : MediaLibraryService() {
     }
 
     private fun updateLocks(isPlaybackActive: Boolean) {
+        lockScreenPlayer.setPlaying(isPlaybackActive)
         lockReleaseJob?.cancel()
         lockReleaseJob = null
 
