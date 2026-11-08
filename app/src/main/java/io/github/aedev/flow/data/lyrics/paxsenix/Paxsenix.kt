@@ -172,7 +172,7 @@ class Paxsenix(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Search error: ${e.message}")
+            Log.w(TAG, "Search error: ${e.message}")
             emptyList()
         }
     }
@@ -238,7 +238,7 @@ class Paxsenix(
             try {
                 gson.fromJson(body, AppleMusicSearchResponse::class.java)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse Apple Music search response: ${e.message}")
+                Log.w(TAG, "Failed to parse Apple Music search response: ${e.message}")
                 return emptyList()
             }
 
@@ -441,7 +441,7 @@ class Paxsenix(
                 if (wordBlock != null) "$mainLine\n<$wordBlock>" else mainLine
             }
         } catch (e: Exception) {
-            Log.e(TAG, "TTML conversion failed: ${e.message}")
+            Log.w(TAG, "TTML conversion failed: ${e.message}")
             ""
         }
     }
@@ -487,7 +487,7 @@ class Paxsenix(
                     cachedToken = token
                     token
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error fetching Apple Music token: ${e.message}")
+                    Log.w(TAG, "Error fetching Apple Music token: ${e.message}")
                     null
                 }
             }
