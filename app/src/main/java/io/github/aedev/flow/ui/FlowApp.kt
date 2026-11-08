@@ -52,7 +52,6 @@ import io.github.aedev.flow.ui.components.layout.topbar.ProvideFlowGlobalActions
 import io.github.aedev.flow.ui.components.music.common.ProvideMusicPlaybackState
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.rememberMusicMenus
-import io.github.aedev.flow.ui.components.musicplayer.common.canTurnLight
 import io.github.aedev.flow.ui.components.musicplayer.sheet.rememberMusicPlayerSheetState
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
@@ -118,10 +117,6 @@ fun FlowApp(
     val isCategoriesNavigationEnabled by preferences.categoriesNavigationEnabled.collectAsState(initial = false)
     val isDownloadsNavigationEnabled by preferences.downloadsNavigationEnabled.collectAsState(initial = false)
     val disableShortsPlayer by preferences.effectiveDisableShortsPlayer.collectAsState(initial = false)
-    val musicPlayerBackgroundStyle by preferences.musicPlayerBackgroundStyle.collectAsState(
-        initial = io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle.BLUR_GRADIENT,
-    )
-    val musicPlayerFollowLightTheme by preferences.musicPlayerFollowLightTheme.collectAsState(initial = false)
     val navTabOrder by preferences.navTabOrder.collectAsState(initial = io.github.aedev.flow.data.local.DEFAULT_NAV_TAB_ORDER)
     val defaultNavTabIndex by preferences.defaultNavTabIndex.collectAsState(initial = 0)
     val subscriptionRefreshOnStartup by preferences.subscriptionRefreshOnStartup.collectAsState(initial = false)
@@ -295,56 +290,17 @@ fun FlowApp(
             }
         val playOn = LocalPlayOn.current
         LaunchedEffect(playOn, onMusicStarted) { playOn?.musicStarted?.collect { onMusicStarted() } }
-        var handledMusicPlayerRequest by remember { mutableIntStateOf(0) }
-
-        LaunchedEffect(activeVideo?.id) {
-            if (activeVideo != null) {
-                suppressMusicMiniAfterVideo = true
-            }
-        }
-
-        LaunchedEffect(currentMusicTrack?.videoId) {
-            if (currentMusicTrack == null) {
-                suppressMusicMiniAfterVideo = false
-            }
-        }
-
-        LaunchedEffect(currentRoute.value) {
-            if (currentRoute.value == "musicPlayer") {
-                suppressMusicMiniAfterVideo = false
-            }
-        }
-
-        val isRestoredMusicQueue by EnhancedMusicPlayerManager.isRestoredQueue.collectAsStateWithLifecycle()
-        val hidesRestoredMusic = hidesRestoredMusicMiniPlayer(showRestoredMusicMiniPlayer, isRestoredMusicQueue)
-        LaunchedEffect(currentMusicTrack, showRestoredMusicMiniPlayer, hidesRestoredMusic) {
-            if (currentMusicTrack != null &&
-                showRestoredMusicMiniPlayer != null &&
-                !hidesRestoredMusic &&
-                musicPlayerSheetState.isDismissed
-            ) {
-                musicPlayerSheetState.collapse()
-            } else if (currentMusicTrack == null) {
-                musicPlayerSheetState.dismiss()
-            }
-        }
-
-        LaunchedEffect(hidesRestoredMusic) {
-            if (hidesRestoredMusic && !musicPlayerSheetState.isExpanded) {
-                musicPlayerSheetState.dismiss()
-            }
-        }
-
-        LaunchedEffect(openMusicPlayerRequest, currentMusicTrack?.videoId) {
-            if (openMusicPlayerRequest > handledMusicPlayerRequest && currentMusicTrack != null) {
-                handledMusicPlayerRequest = openMusicPlayerRequest
-                suppressMusicMiniAfterVideo = false
-                if (playerVisible) {
-                    playerSheetState.collapse()
-                }
-                musicPlayerSheetState.expand()
-            }
-        }
+        FlowMusicSheetEffects(
+            musicPlayerSheetState = musicPlayerSheetState,
+            currentMusicTrack = currentMusicTrack,
+            activeVideoId = activeVideo?.id,
+            currentRoute = currentRoute.value,
+            showRestoredMusicMiniPlayer = showRestoredMusicMiniPlayer,
+            openMusicPlayerRequest = openMusicPlayerRequest,
+            suppressMusicMiniAfterVideo = { suppressMusicMiniAfterVideo = it },
+            playerVisible = { playerVisible },
+            collapseVideoPlayer = { playerSheetState.collapse() },
+        )
 
         ApplyStatusBarStyle(
             themeMode = currentTheme,
@@ -352,10 +308,8 @@ fun FlowApp(
             systemLightThemeMode = systemLightThemeMode,
             systemDarkThemeMode = systemDarkThemeMode,
             isFullscreen = false,
-            isMusicPlayerImmersive = currentMusicTrack != null && musicPlayerSheetState.isImmersive,
-            musicPlayerFollowsTheme =
-                musicPlayerBackgroundStyle == io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle.DEFAULT ||
-                    (musicPlayerFollowLightTheme && musicPlayerBackgroundStyle.canTurnLight),
+            preferences = preferences,
+            musicPlayer = musicPlayerSheetState.takeIf { currentMusicTrack != null },
             isShortsPlayer = isShortsPlayerRoute,
             videoPlayerExpanded = playerVisible && playerSheetState.currentValue == PlayerSheetValue.Expanded,
             heroUnderStatusBar =

@@ -75,6 +75,7 @@ internal fun FullMusicPlayerContent(
     sleepTimerButton: Boolean,
     // The transport, seek bar, like and download and the action row draw with this scheme.
     controlScheme: ColorScheme = MaterialTheme.colorScheme,
+    onLyricsShownChange: (Boolean) -> Unit = {},
     viewModel: MusicPlayerViewModel = sharedMusicPlayerViewModel(),
     videoSwitch: MusicVideoSwitchViewModel = hiltViewModel(),
 ) {
@@ -126,6 +127,10 @@ internal fun FullMusicPlayerContent(
     }
 
     var showLyricsSheet by remember { mutableStateOf(false) }
+    DisposableEffect(showLyricsSheet) {
+        onLyricsShownChange(showLyricsSheet)
+        onDispose { onLyricsShownChange(false) }
+    }
 
     FullPlayerSheets(sheets, uiState.currentTrack, isPlayerSheetExpanded)
 

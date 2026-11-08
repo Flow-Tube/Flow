@@ -53,6 +53,10 @@ class MusicPlayerSheetState internal constructor(
     /** Flips only when the morph crosses the midpoint; safe to read in composition. */
     val isImmersive: Boolean by derivedStateOf { expansionFraction.value > 0.5f }
 
+    /** Whether the lyrics page covers the expanded player. It paints a dark artwork backdrop on every theme. */
+    var isLyricsShown: Boolean by mutableStateOf(false)
+        internal set
+
     /** Raw morph progress; avoid reading in composition — prefer draw/layout-phase lambdas. */
     val progress: Float get() = expansionFraction.value
 
