@@ -169,4 +169,27 @@ sealed class StoreException(
     class InstanceChanged : StoreException("This is not the server instance this device paired with")
 
     class Malformed : StoreException("The server sent an invalid response")
+
+    /** An answer past the size it may have (spec/store.md, Untrusted input). */
+    class TooLarge : StoreException("The server sent more than an answer may hold")
+
+    /** Whether this read failed for the one item asked for, not because the store is out of reach, wants a login or asks for time (spec/store.md, Untrusted input). */
+    val stopsOnlyItsItem: Boolean
+        get() =
+            when (this) {
+                is TooLarge -> true
+                is Refused -> status in 400..499 && status !in NOT_ABOUT_THE_ITEM
+                else -> false
+            }
 }
+
+/** 4xx answers that say something about the store or this device rather than the item asked for. */
+private val NOT_ABOUT_THE_ITEM = setOf(401, 407, 408, 429)
+
+/** What [read] answers, or null when it failed for that one item. */
+internal suspend fun <T> oneItem(read: suspend () -> T?): T? =
+    try {
+        read()
+    } catch (e: StoreException) {
+        if (e.stopsOnlyItsItem) null else throw e
+    }

@@ -717,7 +717,7 @@
     <string name="settings_view_analytics">View Analytics</string>
     <!-- Deep Flow Mode -->
     <string name="deep_flow_mode_title">Deep Flow Mode</string>
-    <string name="deep_flow_mode_subtitle">Pause learning while you browse</string>
+    <string name="deep_flow_mode_subtitle">Pause learning and search history</string>
     <string name="deep_flow_learning_paused">LEARNING PAUSED</string>
     <string name="deep_flow_expires_in">Expires in %s</string>
     <string name="deep_flow_expire_duration_title">Auto-disable after</string>
@@ -4039,6 +4039,8 @@
     <string name="removed_from_queue">Removed from queue</string>
     <string name="queue_after_this_template">%1$s after this</string>
     <string name="reorder_queue_item">Reorder queue item</string>
+    <string name="music_chip_load_failed">Couldn\'t load %1$s</string>
+    <string name="music_chip_empty">Nothing here right now</string>
     <string name="music_search_no_results">No results for \"%1$s\"</string>
     <plurals name="chapters_count_template">
         <item quantity="one">%1$d chapter</item>
@@ -4099,6 +4101,9 @@
     <string name="settings_skeleton_gradient_title">Gradient loading placeholders</string>
     <string name="settings_skeleton_gradient_summary">Tint placeholders with your theme or the video\'s colors</string>
     <string name="settings_skeleton_gradient_keywords">gradient, loading screen, skeleton, shimmer</string>
+    <string name="settings_marquee_title">Scrolling text</string>
+    <string name="settings_marquee_summary">Scroll long titles and names. Turn off on slower devices</string>
+    <string name="settings_marquee_keywords">marquee, scrolling title, artist name, low end, performance</string>
     <string name="settings_highlight_new_title">Highlight new settings</string>
     <string name="settings_highlight_new_summary">Mark settings added in an update with a dot</string>
     <string name="settings_highlight_new_days_title">Keep the dot for</string>

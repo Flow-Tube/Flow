@@ -157,7 +157,7 @@ internal fun LinkedSetup(
 
         Setup.CREATE_SERVER -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var token by rememberSaveable { mutableStateOf("") }
+            var token by remember { mutableStateOf("") }
             if (error == LinkedError.SERVER_HAS_GROUP) {
                 ServerHasGroup(busy, onJoin = { setup = join }, onReset = { onResetAndCreate(url, token) })
             } else {
@@ -220,7 +220,7 @@ internal fun LinkedSetup(
 
         Setup.JOIN_ADMIN -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var token by rememberSaveable { mutableStateOf("") }
+            var token by remember { mutableStateOf("") }
             SyncStepHeader(icon = Icons.Outlined.Dns, title = stringResource(R.string.linked_join_admin_title))
             ServerField(url) { url = it }
             AdminTokenField(token) { token = it }
@@ -245,7 +245,7 @@ internal fun LinkedSetup(
 
         Setup.RESTORE_SERVER -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var words by rememberSaveable { mutableStateOf("") }
+            var words by remember { mutableStateOf("") }
             SyncStepHeader(icon = Icons.Outlined.Key, title = stringResource(R.string.linked_restore_title))
             ServerField(url) { url = it }
             WordsField(words) { words = it }
@@ -259,7 +259,7 @@ internal fun LinkedSetup(
         }
 
         Setup.RESTORE_WEBDAV -> {
-            var words by rememberSaveable { mutableStateOf("") }
+            var words by remember { mutableStateOf("") }
             WebDavForm(
                 busy,
                 stringResource(

@@ -27,6 +27,7 @@ import io.github.aedev.flow.sync2.linking.join
 import io.github.aedev.flow.sync2.linking.listenOn
 import io.github.aedev.flow.sync2.linking.newOffer
 import io.github.aedev.flow.sync2.linking.readCode
+import io.github.aedev.flow.sync2.store.Mailbox
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -42,6 +43,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import java.util.concurrent.ConcurrentHashMap
 
 /** Pairing over a loopback WebSocket (spec/protocol.md, Channel), on real time: sockets don't follow a test clock. */
 @RunWith(AndroidJUnit4::class)
@@ -106,6 +108,18 @@ class LanPairingTest {
             )
             assertEquals(listOf(LanAddressRow(added, "127.0.0.1", 4002)), memberDb.lan().addresses())
         }
+
+    /** The store's mailbox, handing each message out once, so a shower that started over could only serve someone else. */
+    private class OnceMailbox(
+        private val store: MemoryStore,
+    ) : Mailbox by store {
+        private val handedOut = ConcurrentHashMap.newKeySet<String>()
+
+        override suspend fun getMessage(
+            slot: String,
+            name: String,
+        ): ByteArray? = store.getMessage(slot, name)?.takeIf { handedOut.add(name) }
+    }
 
     private fun firstMessage(
         offer: Offer,
@@ -184,16 +198,16 @@ class LanPairingTest {
             val slot = SyncBytes.toHex(pairingSlot(offer.token))
             withContext(Dispatchers.Default) {
                 coroutineScope {
-                    val added = async { runCatching { addDevice(session, g.store, offer, g.a, LINK) { true } } }
+                    val added = async { runCatching { addDevice(session, OnceMailbox(g.store), offer, g.a, LINK) { true } } }
                     val first = MailboxPipe(g.store, slot, shower = false)
                     while (runCatching { first.send(firstMessage(offer, 8)) }.isFailure) delay(50)
                     assertArrayEquals(offer.public, first.receive())
-                    val second = connected(offer, firstMessage(offer, 9))
-                    assertNull(second?.next())
+                    val second = checkNotNull(connected(offer, firstMessage(offer, 9)))
+                    assertNull(second.next())
                     first.send(ByteArray(100))
-                    assertNull("the code is finished", second?.next())
+                    assertNull("the code is finished", second.next())
                     assertTrue(added.await().isFailure)
-                    second?.close()
+                    second.close()
                 }
             }
         }

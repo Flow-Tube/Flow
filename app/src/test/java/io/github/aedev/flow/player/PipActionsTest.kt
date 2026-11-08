@@ -36,10 +36,38 @@ class PipActionsTest {
     }
 
     @Test
-    fun `a video offers listening in the background before play or pause`() {
-        val specs = pipActionSpecs(isPlaying = true, navigation = null, maxActions = 3, offerBackground = true)
+    fun `a video window has listen in the background, play or pause, then next`() {
+        val specs = pipActionSpecs(isPlaying = true, navigation = null, maxActions = 3, offerBackground = true, videoHasNext = true)
+
+        assertEquals(
+            listOf(
+                PipActionSpec(PipControl.BACKGROUND),
+                PipActionSpec(PipControl.PAUSE),
+                PipActionSpec(PipControl.NEXT),
+            ),
+            specs,
+        )
+    }
+
+    @Test
+    fun `a video with nothing to play next greys the button and keeps the layout`() {
+        val specs = pipActionSpecs(isPlaying = false, navigation = null, maxActions = 3, offerBackground = true, videoHasNext = false)
+
+        assertEquals(listOf(PipControl.BACKGROUND, PipControl.PLAY, PipControl.NEXT), specs.map { it.control })
+        assertEquals(listOf(true, true, false), specs.map { it.enabled })
+    }
+
+    @Test
+    fun `a video window with room for two buttons drops next first`() {
+        val specs = pipActionSpecs(isPlaying = true, navigation = null, maxActions = 2, offerBackground = true, videoHasNext = true)
 
         assertEquals(listOf(PipControl.BACKGROUND, PipControl.PAUSE), specs.map { it.control })
+    }
+
+    @Test
+    fun `next goes to the video unless Shorts owns the window`() {
+        assertEquals(true, videoHandlesPipNext(shortsNavigation = null))
+        assertEquals(false, videoHandlesPipNext(PipQueueNavigation(hasPrevious = true, hasNext = true)))
     }
 
     @Test
@@ -57,8 +85,10 @@ class PipActionsTest {
                 navigation = PipQueueNavigation(hasPrevious = true, hasNext = true),
                 maxActions = 3,
                 offerBackground = true,
+                videoHasNext = false,
             )
 
         assertEquals(listOf(PipControl.PREVIOUS, PipControl.PAUSE, PipControl.NEXT), specs.map { it.control })
+        assertEquals(listOf(true, true, true), specs.map { it.enabled })
     }
 }

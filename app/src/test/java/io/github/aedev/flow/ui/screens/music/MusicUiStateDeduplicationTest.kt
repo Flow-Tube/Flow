@@ -3,11 +3,32 @@ package io.github.aedev.flow.ui.screens.music
 import io.github.aedev.flow.data.music.model.MusicPlaylist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.recommendation.MusicSection
+import io.github.aedev.flow.innertube.pages.HomePage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 
 class MusicUiStateDeduplicationTest {
+    @Test
+    fun `a chip page's shelves keep each song once`() {
+        val page =
+            MusicHomeChipPage(
+                chip = HomePage.Chip("Energize", null, null),
+                sections = listOf(MusicSection(title = "Quick picks", tracks = listOf(track("song"), track("song")))),
+            )
+
+        val result = MusicUiState(homeChipPage = page).withUniqueLazyContent().homeChipPage
+
+        assertEquals(
+            listOf("song"),
+            result
+                ?.sections
+                ?.single()
+                ?.tracks
+                ?.map(MusicTrack::videoId),
+        )
+    }
+
     @Test
     fun `music state normalizes keyed tracks collections and nested sections`() {
         val state =

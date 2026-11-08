@@ -85,7 +85,7 @@ fun Throwable.linkedError(): LinkedError =
             if (error == ProtocolError.ROSTER_GROUP) LinkedError.GROUP_OUTDATED else LinkedError.PROTOCOL
         }
 
-        is StoreException.Malformed -> {
+        is StoreException.Malformed, is StoreException.TooLarge -> {
             LinkedError.PROTOCOL
         }
 

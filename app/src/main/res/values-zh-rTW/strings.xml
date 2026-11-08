@@ -632,7 +632,7 @@
     <string name="settings_analyzing_interactions">正在分析你的互動...</string>
     <string name="settings_view_analytics">查看分析資料</string>
     <string name="deep_flow_mode_title">Deep Flow 模式</string>
-    <string name="deep_flow_mode_subtitle">瀏覽時暫停學習</string>
+    <string name="deep_flow_mode_subtitle">暫停學習和搜尋記錄</string>
     <string name="deep_flow_learning_paused">已暫停學習</string>
     <string name="deep_flow_expires_in">將於 %s 後結束</string>
     <string name="deep_flow_expire_duration_title">Deep Flow 停用計時器</string>
@@ -4658,4 +4658,20 @@
     <string name="linked_remove_also">%1$s 新增了以下裝置。若有不認得的裝置，請勾選以一併移除。</string>
     <string name="settings_watch_time_average_and_week">每日平均 %1$s · 本週 %2$s</string>
     <string name="session_lyric_repeated">%1$s（x%2$d）</string>
+    <string name="lyrics_romanization_only">僅顯示羅馬拼音</string>
+    <string name="lyrics_romanization_only_summary">以拉丁字母取代原文</string>
+    <string name="lyrics_provider_netease">NetEase</string>
+    <string name="lyrics_provider_amll">AMLL</string>
+    <string name="lyrics_provider_netease_desc">逐行同步 · 曲庫龐大</string>
+    <string name="lyrics_provider_amll_desc">逐字同步 · 社群歌詞</string>
+    <string name="notification_channel_new_version">新版本</string>
+    <string name="notification_channel_new_version_description">有新版 Flow 推出時通知你</string>
+    <string name="music_chip_load_failed">無法載入「%1$s」</string>
+    <string name="music_chip_empty">目前沒有內容</string>
+    <string name="settings_skeleton_gradient_title">漸層載入預留畫面</string>
+    <string name="settings_skeleton_gradient_summary">以你的主題色或影片的顏色為預留畫面上色</string>
+    <string name="settings_skeleton_gradient_keywords">漸層、載入畫面、骨架、閃爍</string>
+    <string name="settings_marquee_title">捲動文字</string>
+    <string name="settings_marquee_summary">捲動顯示過長的標題和名稱。在較慢的裝置上請關閉</string>
+    <string name="settings_marquee_keywords">跑馬燈、捲動標題、藝人名稱、低階、效能</string>
 </resources>

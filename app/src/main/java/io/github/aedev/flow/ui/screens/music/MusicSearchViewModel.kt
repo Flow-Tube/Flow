@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchHistoryItem
 import io.github.aedev.flow.data.local.SearchHistoryRepository
 import io.github.aedev.flow.data.local.SearchHistoryScope
@@ -38,6 +39,7 @@ class MusicSearchViewModel
     constructor(
         private val downloadManager: DownloadManager,
         private val searchHistory: SearchHistoryRepository,
+        private val privacyGate: PrivacyGate,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
         private val _query = MutableStateFlow("")
@@ -124,7 +126,11 @@ class MusicSearchViewModel
             if (q.isBlank()) return
 
             _query.value = q
-            viewModelScope.launch { searchHistory.saveSearchQuery(q.trim(), type, SearchHistoryScope.MUSIC) }
+            viewModelScope.launch {
+                if (privacyGate.allowsSearchHistory()) {
+                    searchHistory.saveSearchQuery(q.trim(), type, SearchHistoryScope.MUSIC)
+                }
+            }
             _uiState.update { it.copy(isLoading = true, isSearching = true, activeFilter = null, error = null, isMoreLoading = false) }
             resultsJob?.cancel()
             resultsJob = viewModelScope.launch(PerformanceDispatcher.networkIO) { loadSummary(q) }

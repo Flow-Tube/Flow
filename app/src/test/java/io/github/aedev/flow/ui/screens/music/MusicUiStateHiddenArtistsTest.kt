@@ -5,12 +5,38 @@ import io.github.aedev.flow.data.music.model.MusicItemType
 import io.github.aedev.flow.data.music.model.MusicPlaylist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.recommendation.MusicSection
+import io.github.aedev.flow.innertube.pages.HomePage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MusicUiStateHiddenArtistsTest {
+    @Test
+    fun `hidden artist is removed from a chip page and an emptied shelf goes with them`() {
+        val page =
+            MusicHomeChipPage(
+                chip = HomePage.Chip("Energize", null, null),
+                sections =
+                    listOf(
+                        MusicSection(title = "Quick picks", tracks = listOf(track("a", artist = "Bad Artist"), track("b"))),
+                        MusicSection(title = "Bad only", tracks = listOf(track("c", artist = "Bad Artist"))),
+                    ),
+            )
+
+        val result = MusicUiState(homeChipPage = page).withHiddenArtists(setOf("bad artist")).homeChipPage
+
+        assertEquals(listOf("Quick picks"), result?.sections?.map { it.title })
+        assertEquals(
+            listOf("b"),
+            result
+                ?.sections
+                ?.single()
+                ?.tracks
+                ?.map(MusicTrack::videoId),
+        )
+    }
+
     @Test
     fun `hidden artist is removed from every shelf and section`() {
         val state =
