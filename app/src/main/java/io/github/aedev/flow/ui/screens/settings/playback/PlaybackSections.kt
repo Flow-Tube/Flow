@@ -28,6 +28,7 @@ import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackGesturesIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackIndex
+import io.github.aedev.flow.ui.screens.settings.index.PlaybackShortsIndex
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -267,9 +268,9 @@ private fun SettingsListScope.shortsPlayerSection(
     state: PlaybackStructure,
     openDialog: (PlaybackDialog) -> Unit,
 ) = group(key = "playback.shorts", header = R.string.settings_section_shorts_player) {
-    row(PlaybackIndex.disableShortsPlayer.key) { shape ->
+    row(PlaybackShortsIndex.disableShortsPlayer.key) { shape ->
         FlowSwitchRow(
-            title = stringResource(PlaybackIndex.disableShortsPlayer.title),
+            title = stringResource(PlaybackShortsIndex.disableShortsPlayer.title),
             supportingText = stringResource(R.string.content_settings_disable_shorts_player_subtitle),
             checked = state.disableShortsPlayer || !state.shortsContent,
             onCheckedChange = viewModel::setDisableShortsPlayer,
@@ -278,19 +279,19 @@ private fun SettingsListScope.shortsPlayerSection(
         )
     }
     switch(
-        PlaybackIndex.shortsPlayerPrompt,
+        PlaybackShortsIndex.shortsPlayerPrompt,
         viewModel.shortsPlayerPrompt,
         viewModel::setShortsPlayerPrompt,
         enabled = state.shortsContent && !state.disableShortsPlayer,
     )
-    choice(PlaybackIndex.shortsPlaybackMode, onClick = { openDialog(PlaybackDialog.SHORTS_MODE) }) {
+    choice(PlaybackShortsIndex.shortsPlaybackMode, onClick = { openDialog(PlaybackDialog.SHORTS_MODE) }) {
         val mode by viewModel.shortsPlaybackMode.collectAsStateWithLifecycle()
         val seconds by viewModel.shortsAutoScrollSeconds.collectAsStateWithLifecycle()
         shortsModeLabel(mode, seconds)
     }
-    switch(PlaybackIndex.shortsBackgroundPlay, viewModel.shortsBackgroundPlay, viewModel::setShortsBackgroundPlay)
-    switch(PlaybackIndex.shortsPip, viewModel.shortsPip, viewModel::setShortsPip)
-    switch(PlaybackIndex.shortsContinueIntoFeed, viewModel.shortsContinueIntoFeed, viewModel::setShortsContinueIntoFeed)
+    switch(PlaybackShortsIndex.shortsBackgroundPlay, viewModel.shortsBackgroundPlay, viewModel::setShortsBackgroundPlay)
+    switch(PlaybackShortsIndex.shortsPip, viewModel.shortsPip, viewModel::setShortsPip)
+    switch(PlaybackShortsIndex.shortsContinueIntoFeed, viewModel.shortsContinueIntoFeed, viewModel::setShortsContinueIntoFeed)
 }
 
 @Composable
