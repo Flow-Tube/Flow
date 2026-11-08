@@ -35,6 +35,23 @@ import io.github.aedev.flow.ui.components.musicplayer.common.readableAccentOn
 private val SegmentFullRadius = 21.dp
 private val SegmentEdgeRadius = 8.dp
 
+/** The first, inner and last segments of a player button group: round at the group's ends only. */
+internal val PlayerSegmentLeadingShape =
+    RoundedCornerShape(
+        topStart = SegmentFullRadius,
+        bottomStart = SegmentFullRadius,
+        topEnd = SegmentEdgeRadius,
+        bottomEnd = SegmentEdgeRadius,
+    )
+internal val PlayerSegmentInnerShape = RoundedCornerShape(SegmentEdgeRadius)
+internal val PlayerSegmentTrailingShape =
+    RoundedCornerShape(
+        topStart = SegmentEdgeRadius,
+        bottomStart = SegmentEdgeRadius,
+        topEnd = SegmentFullRadius,
+        bottomEnd = SegmentFullRadius,
+    )
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlayerSecondaryActions(
@@ -50,13 +67,6 @@ fun PlayerSecondaryActions(
     sleepTimerActive: Boolean = false,
     onSleepTimerClick: (() -> Unit)? = null,
 ) {
-    val trailingShape =
-        RoundedCornerShape(
-            topStart = SegmentEdgeRadius,
-            bottomStart = SegmentEdgeRadius,
-            topEnd = SegmentFullRadius,
-            bottomEnd = SegmentFullRadius,
-        )
     Row(
         modifier =
             modifier
@@ -71,13 +81,7 @@ fun PlayerSecondaryActions(
             checkedContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
             icon = Icons.Outlined.Lyrics,
             contentDescription = stringResource(R.string.lyrics),
-            uncheckedShape =
-                RoundedCornerShape(
-                    topStart = SegmentFullRadius,
-                    bottomStart = SegmentFullRadius,
-                    topEnd = SegmentEdgeRadius,
-                    bottomEnd = SegmentEdgeRadius,
-                ),
+            uncheckedShape = PlayerSegmentLeadingShape,
             onClick = onLyricsClick,
         )
         PlayerToggleButton(
@@ -86,7 +90,7 @@ fun PlayerSecondaryActions(
             checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             icon = Icons.Rounded.Shuffle,
             contentDescription = stringResource(R.string.shuffle),
-            uncheckedShape = RoundedCornerShape(SegmentEdgeRadius),
+            uncheckedShape = PlayerSegmentInnerShape,
             onClick = onShuffleClick,
         )
         PlayerToggleButton(
@@ -99,7 +103,7 @@ fun PlayerSecondaryActions(
                     else -> Icons.Rounded.Repeat
                 },
             contentDescription = stringResource(R.string.repeat),
-            uncheckedShape = RoundedCornerShape(SegmentEdgeRadius),
+            uncheckedShape = PlayerSegmentInnerShape,
             onClick = onRepeatClick,
         )
         PlayerToggleButton(
@@ -108,7 +112,7 @@ fun PlayerSecondaryActions(
             checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             icon = Icons.Outlined.QueueMusic,
             contentDescription = stringResource(R.string.playlist_queue),
-            uncheckedShape = if (onSleepTimerClick == null) trailingShape else RoundedCornerShape(SegmentEdgeRadius),
+            uncheckedShape = if (onSleepTimerClick == null) PlayerSegmentTrailingShape else PlayerSegmentInnerShape,
             onClick = onQueueClick,
         )
         if (onSleepTimerClick != null) {
@@ -118,7 +122,7 @@ fun PlayerSecondaryActions(
                 checkedContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 icon = if (sleepTimerActive) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
                 contentDescription = stringResource(R.string.sleep_timer),
-                uncheckedShape = trailingShape,
+                uncheckedShape = PlayerSegmentTrailingShape,
                 onClick = onSleepTimerClick,
             )
         }
@@ -127,7 +131,7 @@ fun PlayerSecondaryActions(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun RowScope.PlayerToggleButton(
+internal fun RowScope.PlayerToggleButton(
     checked: Boolean,
     checkedContainerColor: Color,
     checkedContentColor: Color,
