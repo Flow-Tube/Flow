@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Flow</string>
-    <string name="subscriptions_search_placeholder">Abunəliklərdə axtar…</string>
+    <string name="subscriptions_search_placeholder">Abunəlikləri axtar…</string>
     <string name="subscriptions_sort_label">Kanalları çeşidlə</string>
     <string name="subscriptions_sort_default">Standart</string>
     <string name="subscriptions_sort_name">Ad (A–Z)</string>
@@ -99,7 +99,7 @@
     <string name="like">Bəyən</string>
     <string name="shuffle">Qarışıq</string>
     <string name="previous">Əvvəlki</string>
-    <string name="pause">Pauza</string>
+    <string name="pause">Fasilə</string>
     <string name="resume">Davam et</string>
     <string name="play">Oynat</string>
     <string name="next">Növbəti</string>
@@ -489,8 +489,8 @@
     <string name="appearance_subtitle">Flow təcrübənizi fərdiləşdirin</string>
     <string name="appearance_current_theme">CARİ TEMA</string>
     <string name="appearance_category_all">Hamısı</string>
-    <string name="appearance_category_light">Açıq</string>
-    <string name="appearance_category_dark">Tünd</string>
+    <string name="appearance_category_light">İşıqlı</string>
+    <string name="appearance_category_dark">Qaranlıq</string>
     <string name="appearance_category_custom">Xüsusi</string>
     <string name="appearance_category_special">Xüsusi</string>
     <string name="appearance_applied_toast">Tətbiq edildi: %1$s</string>
@@ -538,10 +538,10 @@
     <string name="appearance_role_surface_container_high">Yüksək Səth Konteyneri</string>
     <string name="appearance_role_surface_container_highest">Ən Yüksək Səth Konteyneri</string>
     <string name="appearance_variant_title">Tema tərzi</string>
-    <string name="appearance_variant_light">Açıq</string>
-    <string name="appearance_variant_dark">Tünd</string>
+    <string name="appearance_variant_light">İşıqlı</string>
+    <string name="appearance_variant_dark">Qaranlıq</string>
     <string name="appearance_variant_amoled">AMOLED</string>
-    <string name="appearance_system_dark_surface">Tünd rejim tərzi</string>
+    <string name="appearance_system_dark_surface">Qaranlıq rejim tərzi</string>
     <string name="appearance_color_hue">Ton</string>
     <string name="appearance_color_saturation">Doygunluq</string>
     <string name="appearance_color_brightness">Parlaqlıq</string>
@@ -549,16 +549,16 @@
     <string name="appearance_navigate_back">Geri qayıt</string>
     <string name="appearance_selected">Seçilib</string>
     <string name="appearance_system_defaults_title">Sistem Standart Temaları</string>
-    <string name="appearance_system_defaults_subtitle">Cihazınız açıq və tünd rejim arasında keçid etdikdə hansı temanın istifadə olunacağını seçin.</string>
-    <string name="appearance_system_light_theme">Açıq rejim teması</string>
-    <string name="appearance_system_dark_theme">Tünd rejim teması</string>
+    <string name="appearance_system_defaults_subtitle">Cihazınız işıqlı və qaranlıq rejim arasında keçid etdikdə hansı temanın istifadə olunacağını seçin.</string>
+    <string name="appearance_system_light_theme">İşıqlı rejim teması</string>
+    <string name="appearance_system_dark_theme">Qaranlıq rejim teması</string>
     <string name="app_icon_picker_subtitle">Başlatıcı ikonu tərzi seçin. Dəyişiklik dərhal qüvvəyə minəcək və başlatıcı qısaca yenilənəcək.</string>
-    <string name="app_icon_picker_warning">İkonun dəyişdirilməsi Flow-u qısa müddətə ana ekranınızdan silə bilər. Lazım gələrsə, tətbiq menyusundan onu yenidən əlavə edin.</string>
+    <string name="app_icon_picker_warning">İkonun dəyişdirilməsi Flow-u qısa müddətə əsas ekranınızdan silə bilər. Lazım gələrsə, tətbiq menyusundan onu yenidən əlavə edin.</string>
     <string name="app_icon_apply_toast">İkon yeniləndi - başlatıcınız yenilənəcək</string>
     <string name="icon_name_flow_red">Flow Qırmızı</string>
-    <string name="icon_name_flow_light">Flow Açıq</string>
+    <string name="icon_name_flow_light">Flow İşıqlı</string>
     <string name="icon_name_flow_play">Flow Oynat</string>
-    <string name="icon_name_amoled">AMOLED Tünd</string>
+    <string name="icon_name_amoled">AMOLED Qarası</string>
     <string name="icon_name_monochrome">Monoxrom</string>
     <string name="icon_name_ghost">Xəyal</string>
     <string name="icon_name_dynamic">Material You</string>
@@ -593,13 +593,13 @@
     <string name="style_slim">Ultra İncə</string>
     <string name="player_appearance_gestures_header">Jestlər</string>
     <string name="player_appearance_swipe_gestures_title">Parlaqlıq və Səs Jestləri</string>
-    <string name="player_appearance_swipe_gestures_subtitle">Tam ekranda parlaqlıq və səsi tənzimləmək üçün sol/sağ kənarını sürüşdürün</string>
-    <string name="player_appearance_brightness_gesture_title">Parlaqlıq Jesiti</string>
-    <string name="player_appearance_brightness_gesture_subtitle">Parlaqlığı tənzimləmək üçün tam ekranda sol kənarını sürüşdürün</string>
+    <string name="player_appearance_swipe_gestures_subtitle">Tam ekranda parlaqlıq və səsi tənzimləmək üçün sol/sağ kənarı sürüşdürün</string>
+    <string name="player_appearance_brightness_gesture_title">Parlaqlıq Jesti</string>
+    <string name="player_appearance_brightness_gesture_subtitle">Parlaqlığı tənzimləmək üçün tam ekranda sol kənarı sürüşdürün</string>
     <string name="player_appearance_remember_brightness_title">Parlaqlığı Yadda Saxla</string>
     <string name="player_appearance_remember_brightness_subtitle">Növbəti video üçün son parlaqlıq səviyyənizi qoruyun</string>
-    <string name="player_appearance_volume_gesture_title">Səs Jesiti</string>
-    <string name="player_appearance_volume_gesture_subtitle">Səsi tənzimləmək üçün tam ekranda sağ kənarını sürüşdürün</string>
+    <string name="player_appearance_volume_gesture_title">Səs Jesti</string>
+    <string name="player_appearance_volume_gesture_subtitle">Səsi tənzimləmək üçün tam ekranda sağ kənarı sürüşdürün</string>
     <string name="player_appearance_controls_while_loading_title">Yüklənərkən İdarəetmələr</string>
     <string name="player_appearance_controls_while_loading_subtitle">Video yüklənib qurtarana qədər idarəetmə elementlərini göstər</string>
     <string name="player_appearance_long_press_speed_title">Uzun basma zamanı oynatma sürəti</string>
@@ -634,7 +634,7 @@
     <string name="lyrics_provider_simpmusic">SimpMusic</string>
     <string name="lyrics_provider_lyrics_plus">LyricsPlus</string>
     <string name="theme_name_system_default">Sistem Standartı</string>
-    <string name="theme_desc_system_default">Açıq və tünd rejim arasında cihazınızı izləyir.</string>
+    <string name="theme_desc_system_default">İşıqlı və qaranlıq rejim arasında cihazınızı izləyir.</string>
     <string name="theme_name_material_you">Material You</string>
     <string name="theme_desc_material_you">Android 12 və daha yenilərində divar kağızınızdan götürülən rənglər.</string>
     <string name="theme_name_pure_light">Saf Açıq</string>
@@ -733,7 +733,7 @@
     <string name="content_settings_video_card_actions_subtitle">Lentinizi tənzimləmək üçün kartlar üzərində bəyən və bəyənmə düymələri</string>
     <string name="content_settings_video_card_mark_watched_title">Video kartı izlənildi kimi işarələ düyməsi</string>
     <string name="content_settings_video_card_mark_watched_subtitle">Videoları izlənildi kimi işarələmək üçün kartlar üzərində göz düyməsi</string>
-    <string name="content_settings_show_app_logo_title">Tətbiq loqo ikonunu göstər</string>
+    <string name="content_settings_show_app_logo_title">Tətbiq loqo simvolunu göstər</string>
     <string name="content_settings_show_app_logo_subtitle">Əsas səhifənin yuxarı çubuğunda Flow loqosunu göstər</string>
     <string name="content_settings_header_content_components">Məzmun Komponentləri</string>
     <string name="content_settings_restored_music_mini_player_title">Bərpa edilmiş musiqi mini oynadıcısını göstər</string>
@@ -837,7 +837,7 @@
     <string name="player_settings_queue_autoplay_subtitle">İzləmə siyahısındakı və ya Sonra izlə siyahısındakı növbəti videonu oynat</string>
     <string name="player_settings_autoplay_countdown_title">Avtomatik oynatma gecikməsi</string>
     <string name="player_settings_autoplay_countdown_none">Yoxdur (dərhal keç)</string>
-    <string name="player_settings_autoplay_countdown_dialog_body">Növbəti video başlamazdan əvvəl geri sayım. Çalışarkən təkrar oynada, ləğv edə və ya irəli atıla bilərsiniz.</string>
+    <string name="player_settings_autoplay_countdown_dialog_body">Növbəti video başlamazdan əvvəl geri sayım. İcra olunarkən təkrar oynada, ləğv edə və ya irəli atıla bilərsiniz.</string>
     <string name="autoplay_countdown_up_next">Növbəti</string>
     <string name="autoplay_countdown_next_video">Növbəti video</string>
     <string name="autoplay_countdown_cancel">Ləğv et</string>
@@ -850,14 +850,14 @@
     <string name="player_settings_rytd_title">YouTube Bəyənməmələrini Geri Qaytar</string>
     <string name="player_settings_rytd_subtitle">Return YouTube Dislike mənbəsindən bəyənməmə saylarını göstər</string>
     <string name="player_settings_custom_speeds_title">Xüsusi Oynatma Sürətləri</string>
-    <string name="player_settings_custom_speeds_subtitle">Oynadıcı üçün öz sürət əvvəlcədən təyinatlarınızı qurun</string>
+    <string name="player_settings_custom_speeds_subtitle">Oynadıcı üçün özəl sürət ilkin təyinatlarınızı qurun</string>
     <string name="player_settings_custom_speeds_header">Sürət Əvvəlcədən Təyinatları</string>
     <string name="player_settings_custom_speeds_add_hint">məs. 1.35</string>
     <string name="player_settings_custom_speeds_input_error">0.1 və 10.0 arasında etibarlı sürət daxil edin</string>
     <string name="player_settings_custom_speeds_empty">Əvvəlcədən təyinat əlavə olunmayıb. Aşağıdan birini əlavə edin.</string>
     <string name="player_settings_custom_speeds_add">Əvvəlcədən təyinat əlavə et</string>
     <string name="player_settings_custom_speeds_remove">Sil</string>
-    <string name="player_settings_speed_slider_title">Sürət Sürgüsü Rejimi</string>
+    <string name="player_settings_speed_slider_title">Sürət Sürüşdürücü Rejimi</string>
     <string name="player_settings_speed_slider_subtitle">İstənilən oynatma sürətini təyin etmək üçün fasiləsiz sürgü istifadə edin</string>
     <string name="speed_slider_decrease">Sürəti azalt</string>
     <string name="speed_slider_increase">Sürəti artır</string>
@@ -892,7 +892,7 @@
     <string name="sb_user_id_dialog_title">SponsorBlock İstifadəçi ID</string>
     <string name="sb_user_id_dialog_body">Öz ID-nizi daxil edin və ya yaratmaq üçün boş buraxın. O, hissə təqdimatlarınızı əlaqələndirir.</string>
     <string name="sb_user_id_hint">İstifadəçi ID (UUID)</string>
-    <string name="sb_color_picker_title">Hissə Vurğu Rəngi</string>
+    <string name="sb_color_picker_title">Bölüm Vurğu Rəngi</string>
     <string name="sb_color_reset">Standarta sıfırla</string>
     <string name="sb_category_sponsor">Sponsor</string>
     <string name="sb_category_intro">Giriş / Fasilə</string>
@@ -993,7 +993,7 @@
     <string name="share_short_template">Bu Shorts videosuna baxın: https://youtu.be/%1$s</string>
     <string name="speed_2x">2x Sürət</string>
     <string name="cd_liked">Bəyənilib</string>
-    <string name="cd_pause">Pauza</string>
+    <string name="cd_pause">Dayandır</string>
     <string name="cd_play">Oynat</string>
     <string name="cd_more_options">Digər Seçimlər</string>
     <string name="shorts_original_sound">Orijinal Səs - %1$s</string>
@@ -1890,8 +1890,8 @@
     <string name="widget_quick_actions_description">Flow-da axtarış edin və yükləmələrə, tarixçəyə və ya tanımaya keçin</string>
     <string name="widget_recognize_label">Musiqini tanı</string>
     <string name="widget_recognize_description">Bir toxunuşla ətrafınızda səslənən mahnını müəyyənləşdirin</string>
-    <string name="widget_turntable_label">Vinil səsləndirici</string>
-    <string name="widget_turntable_description">Fırlanan valf kimi musiqiniz</string>
+    <string name="widget_turntable_label">Dönən Disk</string>
+    <string name="widget_turntable_description">Fırlanan val kimi musiqiniz</string>
     <string name="widget_recently_played_label">İzləməyə davam et</string>
     <string name="widget_recently_played_description">Videolara qaldığınız yerdən davam edin</string>
     <string name="widget_downloads_label">Yükləmələr</string>
@@ -1900,7 +1900,7 @@
     <string name="widget_downloads">Yükləmələr</string>
     <string name="widget_nothing_playing">Heç nə oynadılmır</string>
     <string name="widget_play">Oynat</string>
-    <string name="widget_pause">Pauza</string>
+    <string name="widget_pause">Fasilə</string>
     <string name="widget_next">Növbəti trek</string>
     <string name="widget_previous">Əvvəlki trek</string>
     <string name="widget_like">Bəyən</string>
@@ -2129,7 +2129,7 @@
     <string name="lyrics_keep_screen_on_summary">Mahnı sözləri göstərildiyi və musiqi oynadıldığı müddətcə</string>
     <string name="player_appearance_artwork_control_colors_title">İdarəetmə elementlərində üzlük rəngləri</string>
     <string name="player_appearance_artwork_control_colors_subtitle">Düymələri və axtarış çubuğunu üzlük rənginə uyğun rənglə</string>
-    <string name="player_appearance_follow_light_theme_title">Açıq tema rejimində açıq rəng</string>
+    <string name="player_appearance_follow_light_theme_title">İşıqlı tema rejimində açıq rəng</string>
     <string name="player_appearance_follow_light_theme_subtitle">Üzlük fonları açıq rəngə çevrilir</string>
     <string name="player_appearance_sleep_timer_button_title">Yuxu taymeri düyməsi</string>
     <string name="player_appearance_sleep_timer_button_subtitle">Onu növbə düyməsinin yanında göstər</string>
@@ -2365,7 +2365,7 @@
         <item quantity="other">Bu, %d bildirişi silir. Bunu geri qaytara bilməzsiniz.</item>
     </plurals>
     <string name="notifications_clear_confirm">Hamısını təmizlə</string>
-    <string name="deep_flow_scrobble_title">Dərin Flow zamanı skrobl et</string>
+    <string name="deep_flow_scrobble_title">Dərin Flow zamanı analiz et</string>
     <string name="taste_learning_paused">Dərin Flow aktivdir, öyrənmə dayandırılıb</string>
     <string name="deep_flow_scrobble_subtitle">Dinlənilənləri Last.fm, Libre.fm və ListenBrainz-ə göndərməyə davam et</string>
     <string name="deep_flow_on_search_title">Axtarışda göstər</string>
@@ -2407,7 +2407,7 @@
     <string name="style_thick">Qalın</string>
     <string name="style_compact">Yığcam</string>
     <string name="style_wavy">Dalğalı</string>
-    <string name="player_appearance_seek_gesture_title">İrəlilətmə Jesiti</string>
+    <string name="player_appearance_seek_gesture_title">İrəlilətmə Jesti</string>
     <string name="player_appearance_seek_gesture_subtitle">İrəlilətmək üçün videoda yana doğru sürüşdürün</string>
     <string name="mini_player_show">Mini oynadıcını göstər</string>
     <string name="mini_bar_swipe_left">Sola sürüşdür</string>
@@ -2421,7 +2421,7 @@
     <string name="mini_bar_nothing_previous">bundan əvvəl heç nə yoxdur</string>
     <string name="player_appearance_idle_progress_title">Gizli İdarəetmələrlə İrəliləyiş Çubuğu</string>
     <string name="player_appearance_idle_progress_subtitle">İncə çubuğun portret rejimində yerləşdiyi yer</string>
-    <string name="player_appearance_idle_progress_on_video">Video üzərində</string>
+    <string name="player_appearance_idle_progress_on_video">Videoda</string>
     <string name="player_appearance_idle_progress_below">Aşağıda</string>
     <string name="player_appearance_idle_progress_off">Qapalı</string>
     <string name="player_appearance_scrub_preview_title">Sürüşdürmə Önizləməsi</string>
@@ -2429,7 +2429,7 @@
     <string name="player_appearance_scrub_preview_strip">Kino lent</string>
     <string name="player_appearance_scrub_preview_frame">Tək kadr</string>
     <string name="player_appearance_frame_step_title">Kadr Addım Düymələri</string>
-    <string name="player_appearance_frame_step_subtitle">Pauza zamanı bir addım geri və irəli oxlarını göstər</string>
+    <string name="player_appearance_frame_step_subtitle">Fasilə zamanı bir addım geri və irəli oxlarını göstər</string>
     <plurals name="lyrics_providers_enabled">
         <item quantity="one">%1$d / %2$d provayder aktivdir</item>
         <item quantity="other">%1$d / %2$d provayder aktivdir</item>
@@ -2531,11 +2531,11 @@
         <item quantity="one">%1$d saniyə</item>
         <item quantity="other">%1$d saniyə</item>
     </plurals>
-    <string name="player_settings_start_paused">Videolara pauzada başla</string>
+    <string name="player_settings_start_paused">Videolara fasilədə başla</string>
     <string name="player_settings_start_paused_subtitle">Siz oynata basana qədər videonu oynatmadan aç</string>
     <string name="player_settings_open_fullscreen">Videoları tam ekranda aç</string>
     <string name="player_settings_open_fullscreen_subtitle">Açdığınız video tam ekranda başlayır</string>
-    <string name="player_settings_tilt_fullscreen">Tam ekran üçün əy</string>
+    <string name="player_settings_tilt_fullscreen">Tam ekran üçün çevir</string>
     <string name="player_settings_tilt_fullscreen_subtitle">Hətta fırlanma kilidli olsa belə, tam ekran üçün yana çevirin</string>
     <plurals name="player_settings_autoplay_countdown_seconds_template">
         <item quantity="one">%1$d saniyə</item>
@@ -2580,7 +2580,7 @@
     <string name="player_settings_seek_zone_edge_to_edge_desc">Ekran kənarlarına çatan üç hissəyə bölünmə, beləliklə orada toxunuşlar da sayılır.</string>
     <string name="player_settings_seek_zone_back">−%1$d san</string>
     <string name="player_settings_seek_zone_forward">+%1$d san</string>
-    <string name="player_settings_seek_zone_play_pause">Oynat / pauza</string>
+    <string name="player_settings_seek_zone_play_pause">Oynat / fasilə et</string>
     <string name="buffer_long_memory_note">Yaddaş azaldıqda uzun buferlər vaxtından əvvəl dayanır.</string>
     <string name="cache_size_1gb">1 GB</string>
     <string name="cache_size_2gb">2 GB</string>
@@ -2841,7 +2841,7 @@
     <string name="settings_music_side_swipes_summary">Sürət üçün sol tərəfi, səs üçün sağ tərəfi sürüşdürün</string>
     <string name="music_watch_video_desc">Musiqi videosunu video oynadıcıda aç</string>
     <string name="player_appearance_animated_artwork_title">Animasiyalı albom şəkli</string>
-    <string name="player_appearance_animated_artwork_subtitle">Albümün animasiyalı şəkli varsa, onu dövrəyə sal</string>
+    <string name="player_appearance_animated_artwork_subtitle">Albomun animasiyalı şəkli varsa, onu dövrəyə sal</string>
     <string name="player_appearance_animated_artwork_wifi_title">Yalnız Wi-Fi-da animasiyalı albom şəkli</string>
     <string name="player_appearance_animated_artwork_wifi_subtitle">Mobil internetdə şəkli hərəkətsiz saxla</string>
     <string name="music_content_language_title">Məzmun dili</string>
@@ -2906,7 +2906,7 @@
     <string name="equalizer">Ekvalayzer</string>
     <string name="action_save_preset">Hazır ayarı saxla</string>
     <string name="label_preset_name">Hazır ayar adı</string>
-    <string name="eq_preset_flat">Düz (Flat)</string>
+    <string name="eq_preset_flat">Düz</string>
     <string name="eq_preset_acoustic">Akustik</string>
     <string name="eq_preset_bass_boost">Bass gücləndirmə</string>
     <string name="eq_preset_classical">Klassik</string>
@@ -2925,8 +2925,8 @@
     <string name="eq_save_as">Fərqli saxla</string>
     <string name="eq_revert">Geri qaytar</string>
     <string name="eq_compare">Ekvalayzersiz eşitmək üçün basılı saxlayın</string>
-    <string name="eq_presets">Hazır ayarlar</string>
-    <string name="eq_your_presets">Sizin hazır ayarlarınız</string>
+    <string name="eq_presets">İlkin təyinetmələr</string>
+    <string name="eq_your_presets">Sizin ilkin təyinetmələriniz</string>
     <string name="eq_built_in">Daxili</string>
     <string name="eq_import_file">Fayl idxal et</string>
     <string name="eq_import_file_desc">AutoEQ və ya EqualizerAPO mətni</string>
@@ -2950,7 +2950,7 @@
     <string name="eq_type_low_pass">Aşağı keçirən (Low pass)</string>
     <string name="eq_type_high_pass">Yuxarı keçirən (High pass)</string>
     <string name="eq_frequency">Tezlik</string>
-    <string name="eq_gain">Qazanc (Gain)</string>
+    <string name="eq_gain">Qazanc</string>
     <string name="eq_q">Q</string>
     <string name="eq_frequency_range">20 - 20,000 Hz</string>
     <string name="eq_gain_range">−24 - +24 dB</string>
@@ -2991,7 +2991,7 @@
         <item quantity="other">%d zolaq</item>
     </plurals>
     <string name="eq_settings_section">Səs</string>
-    <string name="eq_settings_summary">Hazır ayarlar, zolaqlar və AutoEQ idxalı</string>
+    <string name="eq_settings_summary">İlkin təyinetmələr, zolaqlar və AutoEQ idxalı</string>
     <string name="eq_settings_keywords">tarazlaşdırıcı, eq, bass gücləndirmə, titrəmə, autoeq, preamp, səs</string>
     <string name="eq_reset_done">Əyri sıfırlandı</string>
     <string name="filter_artists">Sənətçilər</string>
@@ -3439,7 +3439,7 @@
     <string name="topic_score_prefix">Bal</string>
     <string name="discord_presence_title">Discord Rich Presence</string>
     <string name="discord_presence_enable">Oynatma fəaliyyətini paylaş</string>
-    <string name="discord_presence_enable_description">Pauza və arxa fonda oynatma zamanı qoşulu qalır</string>
+    <string name="discord_presence_enable_description">Fasilə və fonda oynatma zamanı qoşulu qalır</string>
     <string name="discord_presence_off">Qapat</string>
     <string name="discord_presence_not_connected">Qoşulmayıb</string>
     <string name="discord_presence_ready">Əlaqələndirilib və hazırdır</string>
@@ -3513,7 +3513,7 @@
     <string name="tv_guide_key_media">Media düymələri</string>
     <string name="tv_guide_dpad">Fokus vurğulamasını sətirlər, şəbəkələr, düymələr və menyular üzrə hərəkət etdirin.</string>
     <string name="tv_guide_ok">Fokuslanmış elementi açın, seçim edin və ya əməliyyatı təsdiqləyin.</string>
-    <string name="tv_guide_back">Aktiv paneli bağlayın, əvvəlki ekrana qayıdın və ya çıxmazdan əvvəl Ana səhifəyə doğru hərəkət edin.</string>
+    <string name="tv_guide_back">Aktiv paneli bağlayın, əvvəlki ekrana qayıdın və ya çıxmazdan əvvəl Əsas səhifəyə doğru hərəkət edin.</string>
     <string name="tv_guide_left_edge">Naviqasiya relsini açmaq üçün məzmun sərhədindən sola hərəkət edin.</string>
     <string name="tv_guide_rail">Təyinat yeri seçmək üçün Yuxarı və Aşağı, onu açmaq üçün OK, məzmuna qayıtmaq üçün Sağ düyməsindən istifadə edin.</string>
     <string name="tv_guide_search_field">Axtarış sahəsində istənilən dildə yazmaq üçün TV klaviaturasını açın.</string>
@@ -3524,8 +3524,8 @@
     <string name="tv_guide_player_seek">Geri və ya irəli sarın; axtarış çubuğu gözlənilən mövqeyi göstərir.</string>
     <string name="tv_guide_player_hold">Sürətləndirmək üçün Sol və ya Sağ düyməsini basıb saxlayın, sonra təsdiqləmək üçün buraxın.</string>
     <string name="tv_guide_player_up">İdarəetmələri göstərin və Növbəti sətirə fokuslanın.</string>
-    <string name="tv_guide_player_down">Nəql idarəetmələrini göstərin və Oynat/Pauza üzərində fokuslanın.</string>
-    <string name="tv_guide_player_media">Oynat, Pauza, Əvvəlki, Növbəti, Geri sarma, İrəli sarma və Subtitrlər düymələri birbaşa işləyir.</string>
+    <string name="tv_guide_player_down">Köçürmə idarəetmələrini göstər və Oynat/Fasilə üzərində fokuslan.</string>
+    <string name="tv_guide_player_media">Oynat, Fasilə, Əvvəlki, Növbəti, Geri sarma, İrəli sarma və Subtitrlər düymələri birbaşa işləyir.</string>
     <string name="tv_guide_player_back">Əvvəlcə paneli və ya idarəetmələri bağlayın; oynadıcıdan çıxmaq üçün yenidən basın.</string>
     <string name="widget_on_repeat_label">Təkrar</string>
     <string name="widget_on_repeat">Təkrar</string>
@@ -3567,11 +3567,11 @@
     <string name="widget_week_title">Son 7 gün</string>
     <string name="widget_week_top_artist">Bu ayın ən yaxşı sənətçisi</string>
     <string name="settings_widgets_title">Vidjetlər</string>
-    <string name="settings_widgets_summary">Flow-u ana ekranınıza yerləşdirin</string>
-    <string name="settings_widgets_add_header">Ana ekrana əlavə et</string>
-    <string name="settings_widgets_footer">Yerləşdirmək üçün birinə toxunun və ya ana ekranınızı basıb saxlayın.</string>
-    <string name="settings_widgets_unsupported">Başlatıcınız tətbiqlər üçün vidjetlər əlavə edə bilmir. Birini əlavə etmək üçün ana ekranınızı basıb saxlayın.</string>
-    <string name="settings_keywords_widgets">ana ekran, başlatıcı, vidjet, indi oynadılır, vinil səsləndirici</string>
+    <string name="settings_widgets_summary">Flow-u əsas ekranınıza yerləşdirin</string>
+    <string name="settings_widgets_add_header">Əsas ekrana əlavə et</string>
+    <string name="settings_widgets_footer">Yerləşdirmək üçün birinə toxunun və ya əsas ekranınızı basıb saxlayın.</string>
+    <string name="settings_widgets_unsupported">Başlatıcınız tətbiqlər üçün vidjetlər əlavə edə bilmir. Birini əlavə etmək üçün əsas ekranınızı basıb saxlayın.</string>
+    <string name="settings_keywords_widgets">əsas ekran, başlatıcı, vidjet, indi oynadılır, disk səsləndirici</string>
     <string name="crash_title">Flow gözlənilmədən bağlandı</string>
     <string name="crash_subtitle">Bu hesabat paylaşana qədər cihazınızda qalır.</string>
     <string name="crash_summary_error">Xəta</string>
@@ -3832,7 +3832,7 @@
     <string name="settings_network_summary">Uzaqdakı trafika üçün proksi</string>
     <string name="settings_wellbeing_summary">İzləmə vaxtı və fasilə xatırlatmaları</string>
     <string name="settings_about_summary">Versiya, lisenziya və linklər</string>
-    <string name="settings_theme_summary">Palitra və açıq və ya tünd tərzi</string>
+    <string name="settings_theme_summary">Palitra və işıqlı və ya qaranlıq tərzi</string>
     <string name="settings_font_title">Şrift</string>
     <string name="settings_font_summary">Flow daxilində istifadə olunan şrift növü</string>
     <string name="settings_keywords_font">şrift növü, mətn, hərflər, ttf, otf</string>
@@ -3854,7 +3854,7 @@
     <string name="settings_navigation_bar_summary">Vərəqlər, onların sırası və varsayılan vərəq</string>
     <string name="settings_player_appearance_summary">Axtarış çubuğu, arxa fonlar və mini oynadıcı</string>
     <string name="settings_custom_theme_summary">Öz mövzularınızı yaradın, idxal edin və paylaşın</string>
-    <string name="settings_section_style">Tərz</string>
+    <string name="settings_section_style">Üslub</string>
     <string name="settings_section_layout">Tərtibat</string>
     <string name="settings_section_video_cards">Video kartları</string>
     <string name="settings_section_more">Daha çox</string>
@@ -3863,12 +3863,12 @@
     <string name="settings_section_tabs">Vərəqlər</string>
     <string name="settings_section_tab_order">Sıra və varsayılan vərəq</string>
     <string name="settings_theme_follow_system">Sistemi izlə</string>
-    <string name="settings_theme_follow_system_summary">Cihazınızın açıq və ya tünd rejiminə uyğunlaşdırın</string>
+    <string name="settings_theme_follow_system_summary">Cihazınızın işıqlı və ya qaranlıq rejiminə uyğunlaşdırın</string>
     <string name="settings_theme_palettes">Palitralar</string>
     <string name="settings_theme_edit_custom">Xüsusi mövzunu redaktə et</string>
-    <string name="settings_keywords_theme">tünd rejim, gecə rejimi, açıq rejim, rənglər, palitra, vurğu</string>
-    <string name="settings_keywords_style">tünd rejim, gecə rejimi, açıq rejim, amoled, təmiz qara, oled</string>
-    <string name="settings_keywords_app_icon">başlatıcı, ana ekran işarəsi, loqo</string>
+    <string name="settings_keywords_theme">qaranlıq rejim, gecə rejimi, işıqlı rejim, rənglər, palitra, vurğu</string>
+    <string name="settings_keywords_style">qaranlıq rejim, gecə rejimi, işıqlı rejim, amoled, təmiz qara, oled</string>
+    <string name="settings_keywords_app_icon">başlatıcı, əsas ekran işarəsi, loqo</string>
     <string name="settings_keywords_interface_mode">tv, televiziya, leanback, planşet tərtibatı</string>
     <string name="settings_keywords_nav_bar">alt panel, vərəqlər, naviqasiya relsi</string>
     <string name="settings_apply">Tətbiq et</string>
@@ -3897,7 +3897,7 @@
     <string name="settings_section_pip">Pəncərədə pəncərə və mini oynadıcı</string>
     <string name="settings_section_language_captions">Dil və subtitrlər</string>
     <string name="settings_section_watch_page">İzləmə səhifəsi</string>
-    <string name="settings_section_shorts_player">Qısa video oynadıcısı</string>
+    <string name="settings_section_shorts_player">Shorts oynadıcısı</string>
     <string name="settings_section_music">Musiqi</string>
     <string name="settings_section_advanced">Qabaqcıl</string>
     <string name="settings_keywords_autoplay">növbəti video, növbədə, fasiləsiz oynatma</string>
@@ -4088,7 +4088,7 @@
     <string name="settings_custom_theme_import_failed">Həmin faylda etibarlı mövzu yoxdur</string>
     <string name="settings_custom_theme_limit">%1$d-ə qədər mövzu saxlaya bilərsiniz</string>
     <string name="settings_custom_theme_exported">Mövzu ixrac edildi</string>
-    <string name="settings_custom_theme_card_description">Öz açıq, tünd və AMOLED palitranız</string>
+    <string name="settings_custom_theme_card_description">Öz işıqlı, qaranlıq və AMOLED palitranız</string>
     <string name="settings_custom_theme_more">Daha çox seçim</string>
     <string name="settings_custom_theme_copy_name">%1$s surəti</string>
     <string name="settings_theme_roles_accents">Vurğular</string>
@@ -4164,15 +4164,15 @@
     <string name="taste_reset_music">Musiqi profilini sıfırla</string>
     <string name="taste_reset_video_body">Flow videolarınızdan və axtarışlarınızdan öyrəndiklərini unudur. Tarixçə, bəyənilənlər, oxutma siyahıları və gizlədilmiş elementlər qalır və Ana səhifə hələ də onlardan istifadə edir.</string>
     <string name="taste_reset_music_title">Musiqi profili sıfırlansın?</string>
-    <string name="taste_reset_music_body">Bu, Flow-un musiqinizdən öyrəndiklərini təmizləyir və sıfırdan yenidən başlayır. Xülasəniz (recap) qalır.</string>
+    <string name="taste_reset_music_body">Bu, Flow-un musiqinizdən öyrəndiklərini təmizləyir və sıfırdan yenidən başlayır. Xülasəniz qalır.</string>
     <string name="taste_trait_now">İndi %1$s</string>
     <string name="taste_reset_done">Profil sıfırlandı</string>
     <string name="diagnostics_engine_header">Mühərrik təfərrüatları</string>
     <string name="diagnostics_engine_queries_none">Hələ ki yoxdur</string>
     <string name="taste_starter_searches">Başlanğıc axtarışları</string>
     <string name="taste_starter_searches_detail">%1$s. Flow nə izlədiyinizi öyrənənə qədər istifadə olunur.</string>
-    <string name="recap_title">Flow Xülasəsi (Recap)</string>
-    <string name="recap_summary">Ay-ay izlədikləriniz və dinlədikləriniz</string>
+    <string name="recap_title">Flow Xülasəsi</string>
+    <string name="recap_summary">Aylıq izlədikləriniz və dinlədikləriniz</string>
     <string name="recap_keywords">bükülmüş, statistika, statistika, xülasə, ilin icmalı, baxış müddəti, dinləmə müddəti, ən çox izlənilən, ən yaxşı sənətçilər</string>
     <string name="recap_period_month">Ay</string>
     <string name="recap_period_year">İl</string>
@@ -4309,7 +4309,7 @@
     <string name="recap_story_previous">Əvvəlki</string>
     <string name="recap_story_page">Səhifə %1$d / %2$d</string>
     <string name="recap_story_made_with">Flow ilə hazırlanıb</string>
-    <string name="recap_story_pause">Pauza</string>
+    <string name="recap_story_pause">Fasilə</string>
     <string name="recap_story_play">Oynat</string>
     <string name="recap_summary_top_channel">Ən yaxşı kanal</string>
     <string name="recap_summary_top_artist">Ən yaxşı sənətçi</string>
@@ -4479,7 +4479,7 @@
         <item quantity="one">%d sənətçi</item>
         <item quantity="other">%d sənətçi</item>
     </plurals>
-    <string name="scrobbling_title">Skrobblinq (Scrobbling)</string>
+    <string name="scrobbling_title">Scrobbling</string>
     <string name="scrobbling_summary">Dinlədiklərinizi Last.fm, Libre.fm və ya ListenBrainz-ə göndərin</string>
     <string name="settings_keywords_scrobbling">skrobbl scrobbling last.fm lastfm libre.fm librefm listenbrainz</string>
     <string name="scrobbling_lastfm">Last.fm</string>
@@ -4521,7 +4521,7 @@
     <string name="scrobbling_secret">Paylaşılan sirr (secret)</string>
     <string name="scrobbling_show_secret">Göstər</string>
     <string name="scrobbling_hide_secret">Gizlət</string>
-    <string name="scrobbling_send_likes">Bəyənilmiş mahnıları sev (Love)</string>
+    <string name="scrobbling_send_likes">Bəyənilmiş mahnıları ürəklə</string>
     <string name="scrobbling_send_likes_summary">Bəyənilmələr Last.fm və Libre.fm-də sevimlilər kimi görünür</string>
     <string name="scrobbling_import">Ən yaxşı sənətçilərinizi idxal edin</string>
     <string name="scrobbling_import_summary">Ən çox dinlədiyiniz sənətçilərinizi sevimlilərinizə əlavə edir</string>
@@ -4538,7 +4538,7 @@
     <string name="music_home_lastfm_discover">Last.fm ilə kəşf et</string>
     <string name="music_home_lastfm_discover_subtitle">Təkrarınızdan Last.fm dinləyiciləri tərəfindən seçilib</string>
     <string name="keyboard_shortcuts_player">Oynadıcı</string>
-    <string name="keyboard_shortcut_play_pause">Oynat və ya pauza</string>
+    <string name="keyboard_shortcut_play_pause">Oynat və ya fasilə et</string>
     <string name="keyboard_shortcut_seek_back">Geri</string>
     <string name="keyboard_shortcut_seek_forward">İrəli</string>
     <string name="keyboard_shortcut_volume_up">Səsi artır</string>
@@ -4692,10 +4692,10 @@
         <item quantity="other">%d gün</item>
     </plurals>
     <string name="new_badge_label">Yeni</string>
-    <string name="settings_crossfade_title">Krossfeyd (Crossfade)</string>
+    <string name="settings_crossfade_title">Çarpaz soldurma</string>
     <string name="settings_crossfade_summary">Mahnının sonunu növbəti mahnı ilə qarışdır</string>
     <string name="settings_crossfade_albums_title">Albomları fasiləsiz saxla</string>
-    <string name="settings_crossfade_albums_summary">Eyni albomun trekləri arasında krossfeyd yoxdur</string>
+    <string name="settings_crossfade_albums_summary">Eyni albomun trekləri arasında soldurma yoxdur</string>
     <string name="settings_crossfade_auto_title">Mahnı bitərkən sönükləş</string>
     <string name="settings_crossfade_auto_summary">Növbəti mahnıya öz-özünə qarış</string>
     <string name="settings_crossfade_skip_title">Ötürərkən sönükləş</string>
