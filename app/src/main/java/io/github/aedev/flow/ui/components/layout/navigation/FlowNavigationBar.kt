@@ -1,15 +1,10 @@
 package io.github.aedev.flow.ui.components.layout.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
@@ -30,7 +25,7 @@ private const val MAX_BAR_TABS = 5
 
 /**
  * The bottom navigation bar. Material allows at most five destinations in a bar, so a sixth and
- * seventh enabled tab move behind a "More" item; the rail has room for all of them.
+ * seventh enabled tab move behind a "More" item.
  */
 @Composable
 internal fun FlowNavigationBar(
@@ -41,8 +36,7 @@ internal fun FlowNavigationBar(
 ) {
     val horizontalItems = LocalWindowSizeClass.current.isMediumWidth
     val iconPosition = if (horizontalItems) NavigationItemIconPosition.Start else NavigationItemIconPosition.Top
-    val barTabs = if (tabs.size <= MAX_BAR_TABS) tabs else tabs.take(MAX_BAR_TABS - 1)
-    val overflowTabs = tabs.drop(barTabs.size)
+    val (barTabs, overflowTabs) = splitTabsForOverflow(tabs, MAX_BAR_TABS)
 
     ShortNavigationBar(
         modifier = modifier,
@@ -89,34 +83,12 @@ private fun OverflowItem(
             label = { Text(text = stringResource(R.string.nav_more)) },
             iconPosition = iconPosition,
         )
-        DropdownMenuPopup(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 1)) {
-                tabs.forEachIndexed { index, tab ->
-                    DropdownMenuItem(
-                        selected = tab == selectedTab,
-                        onClick = {
-                            expanded = false
-                            onTabSelected(tab)
-                        },
-                        text = { Text(text = stringResource(tab.labelRes)) },
-                        shapes = MenuDefaults.itemShape(index = index, count = tabs.size),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = tab.icon(selected = false),
-                                contentDescription = null,
-                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                            )
-                        },
-                        selectedLeadingIcon = {
-                            Icon(
-                                imageVector = tab.icon(selected = true),
-                                contentDescription = null,
-                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                            )
-                        },
-                    )
-                }
-            }
-        }
+        FlowTabOverflowMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            tabs = tabs,
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
+        )
     }
 }
