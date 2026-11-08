@@ -250,7 +250,7 @@ internal fun MiniPlayerContent(
                 isPlaying = playerState.isPlaying,
                 isBuffering = playerState.isBuffering && animationsEnabled,
                 onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
                     EnhancedMusicPlayerManager.togglePlayPause()
                 },
             )

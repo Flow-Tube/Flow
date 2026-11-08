@@ -24,7 +24,7 @@ import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.dlna.DlnaCastManager
 import io.github.aedev.flow.ui.components.layout.flowWindowAdaptiveInfo
-import io.github.aedev.flow.ui.components.shared.PlayerHaptics
+import io.github.aedev.flow.ui.components.shared.AppHaptics
 import io.github.aedev.flow.ui.components.videoplayer.DraggablePlayerLayout
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerSheetValue
@@ -446,7 +446,7 @@ fun VideoPlayerHost(
             isFullscreenShown = fullscreenShown,
         )
 
-    PlayerHaptics(enabled = prefs.hapticsEnabled) {
+    AppHaptics(enabled = prefs.hapticsEnabled) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val mediaSheetHeights =
                 rememberMediaSheetHeights(

@@ -40,10 +40,10 @@ import io.github.aedev.flow.ui.components.music.sheet.MusicMenuSheets
 import io.github.aedev.flow.ui.components.music.sheet.MusicMenus
 import io.github.aedev.flow.ui.components.musicplayer.sheet.MusicPlayerSheetState
 import io.github.aedev.flow.ui.components.musicplayer.sheet.UnifiedMusicPlayerSheet
+import io.github.aedev.flow.ui.components.shared.AppHaptics
 import io.github.aedev.flow.ui.components.shared.LocalMediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarBounds
 import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
-import io.github.aedev.flow.ui.components.shared.PlayerHaptics
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsHost
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.components.videoplayer.BackgroundQueueTransport
@@ -313,7 +313,7 @@ internal fun FlowPlayerOverlays(
 
         val track = currentMusicTrack
         if (showMusicSheet && track != null) {
-            PlayerHaptics(enabled = playerHaptics) {
+            AppHaptics(enabled = playerHaptics) {
                 UnifiedMusicPlayerSheet(
                     state = musicPlayerSheetState,
                     containerWidth = containerWidth,
