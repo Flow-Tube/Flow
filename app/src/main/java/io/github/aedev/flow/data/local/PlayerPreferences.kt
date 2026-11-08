@@ -94,6 +94,7 @@ class PlayerPreferences(
         val VIDEO_LOOP_ENABLED = booleanPreferencesKey("video_loop_enabled")
         val VIDEO_AMBIENT_MODE_ENABLED = booleanPreferencesKey("video_ambient_mode_enabled")
         val PREFERRED_SUBTITLE_LANGUAGE = stringPreferencesKey("preferred_subtitle_language")
+        val TRANSCRIPT_LANGUAGE = stringPreferencesKey("transcript_language")
         val SUBTITLE_FONT_SIZE = floatPreferencesKey("subtitle_font_size")
         val SUBTITLE_TEXT_COLOR = intPreferencesKey("subtitle_text_color")
         val SUBTITLE_BACKGROUND_COLOR = intPreferencesKey("subtitle_background_color")
@@ -2327,6 +2328,23 @@ class PlayerPreferences(
     suspend fun setPreferredSubtitleLanguage(language: String) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.PREFERRED_SUBTITLE_LANGUAGE] = language
+        }
+    }
+
+    /**
+     * Base language of the transcript track picked last, or
+     * [CaptionTrackResolver.NO_PREFERRED_LANGUAGE]. Kept apart from the subtitle language, which
+     * also decides which caption tracks load and when captions turn on.
+     */
+    val transcriptLanguage: Flow<String> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.TRANSCRIPT_LANGUAGE] ?: CaptionTrackResolver.NO_PREFERRED_LANGUAGE
+            }.distinctUntilChanged()
+
+    suspend fun setTranscriptLanguage(language: String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.TRANSCRIPT_LANGUAGE] = language
         }
     }
 

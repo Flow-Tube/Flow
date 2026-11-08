@@ -89,6 +89,7 @@ internal fun VideoPlayerDialogs(
         showShortsPlayerPrompt = prefs.showShortsPlayerPrompt,
         viewModel = playerViewModel,
         playerState = playerState,
+        prefs = prefs,
         commentsUiState = commentsUiState,
         commentsEnabled = prefs.commentsEnabled,
         onLoadMoreComments = { videoId -> playerViewModel.loadMoreComments(videoId) },

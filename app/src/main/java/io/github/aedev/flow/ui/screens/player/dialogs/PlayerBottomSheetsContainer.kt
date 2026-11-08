@@ -28,9 +28,10 @@ import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
+import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.hasTranscriptTrack
 import io.github.aedev.flow.ui.screens.player.state.rememberPlayerCommentsTimedFollow
-import io.github.aedev.flow.ui.screens.player.state.transcriptTrackUrl
 import io.github.aedev.flow.ui.screens.player.state.visibleComments
 
 @Composable
@@ -43,6 +44,7 @@ internal fun PlayerBottomSheetsContainer(
     showShortsPlayerPrompt: Boolean,
     viewModel: VideoPlayerViewModel,
     playerState: EnhancedPlayerState,
+    prefs: VideoPlayerPreferencesState,
     commentsUiState: PlayerCommentsUiState,
     commentsEnabled: Boolean = true,
     onLoadMoreComments: (videoId: String) -> Unit = {},
@@ -119,7 +121,7 @@ internal fun PlayerBottomSheetsContainer(
             asSidePanel = false,
             expandedHeight = mediaSheetExpandedHeight,
             onDismiss = { screenState.closeSheet() },
-            hasTranscriptTrack = transcriptTrackUrl(playerState, screenState) != null,
+            hasTranscriptTrack = hasTranscriptTrack(playerState),
             onChaptersClick = { screenState.open(PlayerSheet.Chapters) },
             onTranscriptClick = { screenState.open(PlayerSheet.Transcript) },
             onChannelClick = { channelId ->
@@ -135,8 +137,8 @@ internal fun PlayerBottomSheetsContainer(
         PlayerTranscriptSheetHost(
             viewModel = viewModel,
             screenState = screenState,
-            trackUrl = transcriptTrackUrl(playerState, screenState),
-            tracks = playerState.availableSubtitles,
+            playerState = playerState,
+            prefs = prefs,
             chapters = uiState.chapters,
             artworkUrl = video.thumbnailUrl,
             asSidePanel = false,
