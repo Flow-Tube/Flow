@@ -42,6 +42,13 @@ class PlayerStatsFormatterTest {
     }
 
     @Test
+    fun `a viewport the player could not measure reads as unknown`() {
+        val unmeasured = full.copy(viewportWidth = -1, viewportHeight = -1)
+
+        assertThat(value(unmeasured, R.string.stats_viewport)).isEqualTo("-")
+    }
+
+    @Test
     fun `a slow connection reads in kbps`() {
         assertThat(value(full.copy(bandwidthBitsPerSecond = 640_000L), R.string.stats_bandwidth)).isEqualTo("640 kbps")
     }

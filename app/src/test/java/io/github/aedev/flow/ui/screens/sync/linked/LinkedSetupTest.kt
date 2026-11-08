@@ -60,6 +60,37 @@ class LinkedSetupTest {
     }
 
     @Test
+    fun an_admin_token_is_not_kept_in_saved_state_but_the_address_is() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { Content() }
+        rule.onNodeWithText(text(R.string.linked_create_title)).performClick()
+        rule.onNodeWithText(text(R.string.linked_where_server)).performClick()
+        rule.onNodeWithText(text(R.string.linked_server_url)).performTextInput("https://sync.example.org")
+        rule.onNodeWithText(text(R.string.linked_admin_token)).performTextInput("admin")
+        rule.onNodeWithText(text(R.string.linked_create)).assertIsEnabled()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithText("https://sync.example.org").assertExists()
+        rule.onNodeWithText(text(R.string.linked_create)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun a_join_s_admin_token_is_not_kept_in_saved_state_but_the_address_is() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { Content() }
+        rule.onNodeWithText(text(R.string.linked_join_admin_title)).performClick()
+        rule.onNodeWithText(text(R.string.linked_server_url)).performTextInput("https://sync.example.org")
+        rule.onNodeWithText(text(R.string.linked_admin_token)).performTextInput("admin")
+        rule.onNodeWithText(text(R.string.linked_join_admin_ask)).assertIsEnabled()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithText("https://sync.example.org").assertExists()
+        rule.onNodeWithText(text(R.string.linked_join_admin_ask)).assertIsNotEnabled()
+    }
+
+    @Test
     fun a_new_group_can_live_on_a_server_in_a_webdav_folder_or_on_this_network() {
         show()
         rule.onNodeWithText(text(R.string.linked_create_title)).performClick()

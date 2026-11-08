@@ -4035,6 +4035,8 @@
     <string name="removed_from_queue">Removed from queue</string>
     <string name="queue_after_this_template">%1$s after this</string>
     <string name="reorder_queue_item">Reorder queue item</string>
+    <string name="music_chip_load_failed">Couldn\'t load %1$s</string>
+    <string name="music_chip_empty">Nothing here right now</string>
     <string name="music_search_no_results">No results for \"%1$s\"</string>
     <plurals name="chapters_count_template">
         <item quantity="one">%1$d chapter</item>
