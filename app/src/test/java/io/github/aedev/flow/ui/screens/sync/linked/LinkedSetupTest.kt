@@ -139,4 +139,41 @@ class LinkedSetupTest {
         rule.onNodeWithText(text(R.string.linked_reset_server_confirm)).performClick()
         assertEquals(listOf(listOf("https://sync.example.org", "admin")), reset)
     }
+
+    @Test
+    fun recovery_words_for_a_server_are_not_kept_in_saved_state_but_the_address_is() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { Content() }
+        rule.onNodeWithText(text(R.string.linked_restore_title)).performClick()
+        rule.onNodeWithText(text(R.string.linked_where_server)).performClick()
+        rule.onNodeWithText(text(R.string.linked_server_url)).performTextInput("https://sync.example.org")
+        rule.onNodeWithText(text(R.string.linked_recovery_words_field)).performTextInput("typed words")
+        rule.onNodeWithText(text(R.string.linked_restore)).assertIsEnabled()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithText("https://sync.example.org").assertExists()
+        rule.onNodeWithText("typed words").assertDoesNotExist()
+        rule.onNodeWithText(text(R.string.linked_restore)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun recovery_words_for_a_webdav_folder_are_not_kept_in_saved_state_but_the_address_is() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { Content() }
+        rule.onNodeWithText(text(R.string.linked_restore_title)).performClick()
+        rule.onNodeWithText(text(R.string.linked_where_webdav)).performClick()
+        rule.onNodeWithText(text(R.string.linked_webdav_url)).performTextInput("https://cloud.example.org/dav/flow/")
+        rule.onNodeWithText(text(R.string.linked_webdav_user)).performTextInput("me")
+        rule.onNodeWithText(text(R.string.linked_webdav_password)).performTextInput("secret")
+        rule.onNodeWithText(text(R.string.linked_recovery_words_field)).performTextInput("typed words")
+        rule.onNodeWithText(text(R.string.linked_restore)).assertIsEnabled()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithText("https://cloud.example.org/dav/flow/").assertExists()
+        rule.onNodeWithText("typed words").assertDoesNotExist()
+        rule.onNodeWithText(text(R.string.linked_webdav_password)).performTextInput("secret")
+        rule.onNodeWithText(text(R.string.linked_restore)).assertIsNotEnabled()
+    }
 }
