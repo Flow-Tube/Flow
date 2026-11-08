@@ -174,6 +174,8 @@ internal fun PlaybackDialogs(
                 selected = curve,
                 onSelect = viewModel::setCrossfadeCurve,
                 onDismiss = onDismiss,
+                dismissOnSelect = false,
+                footer = { CrossfadeCurveChart(curve = curve, modifier = Modifier.padding(top = SliderTopPadding)) },
             )
         }
     }
