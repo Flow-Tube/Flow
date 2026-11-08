@@ -270,6 +270,9 @@ class Media3MusicService : MediaLibraryService() {
     @Inject
     lateinit var videoSwitch: MusicVideoSwitch
 
+    @Inject
+    lateinit var crossfadePause: io.github.aedev.flow.player.crossfade.CrossfadeSessionPause
+
     private val prefs by lazy { PlayerPreferences(this) }
 
     @Inject
@@ -575,7 +578,9 @@ class Media3MusicService : MediaLibraryService() {
         crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
         lifecycleScope.launch {
             combine(
-                combine(prefs.musicCrossfadeEnabled, prefs.musicCrossfadeMs, CrossfadePolicy::chosenFadeMs),
+                combine(prefs.musicCrossfadeEnabled, prefs.musicCrossfadeMs, crossfadePause.paused) { enabled, ms, paused ->
+                    CrossfadePolicy.chosenFadeMs(enabled && !paused, ms)
+                },
                 prefs.musicCrossfadeKeepAlbums,
                 prefs.musicCrossfadeCurve,
                 prefs.musicCrossfadeOnAutoAdvance,

@@ -6,12 +6,16 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.ui.components.music.sheet.CrossfadePauseRow
 import io.github.aedev.flow.ui.components.music.sheet.MusicArtistsSheet
 import io.github.aedev.flow.ui.components.music.sheet.MusicQuickActionsSheet
 import io.github.aedev.flow.ui.components.music.sheet.SaveSongSheet
 import io.github.aedev.flow.ui.components.musicplayer.sheet.AudioSettingsSheet
+import io.github.aedev.flow.ui.screens.music.CrossfadePauseViewModel
 
 /** Which of the full player's own sheets is open. */
 @Stable
@@ -37,11 +41,15 @@ internal fun FullPlayerSheets(
     }
 
     if (state.moreOptions && currentTrack != null) {
+        val crossfade: CrossfadePauseViewModel = hiltViewModel()
+        val crossfadeOn by crossfade.crossfadeOn.collectAsStateWithLifecycle()
+        val crossfadePaused by crossfade.paused.collectAsStateWithLifecycle()
         MusicQuickActionsSheet(
             track = currentTrack,
             onDismiss = { state.moreOptions = false },
             onAudioEffectsClick = { state.audioSettings = true },
             onSleepTimerClick = { state.sleepTimer = true },
+            crossfadePause = if (crossfadeOn) CrossfadePauseRow(crossfadePaused, crossfade::toggle) else null,
         )
     }
 
