@@ -189,6 +189,9 @@ internal fun SettingsListScope.playbackSections(
         switch(PlaybackIndex.resumeFromHeadphones, viewModel.resumeFromHeadphones, viewModel::setResumeFromHeadphones)
         switch(PlaybackIndex.musicSideSwipes, viewModel.musicSideSwipes, viewModel::setMusicSideSwipes)
         switch(PlaybackIndex.musicVideoSwitch, viewModel.musicVideoSwitch, viewModel::setMusicVideoSwitch)
+        entryRow(PlaybackIndex.lockScreenPlayer) { shape ->
+            LockScreenPlayerSwitch(viewModel.lockScreenPlayer, viewModel::setLockScreenPlayer, shape)
+        }
         switch(PlaybackIndex.lyricsOnLockScreen, viewModel.lyricsOnLockScreen, viewModel::setLyricsOnLockScreen)
         if (state.lyricsOnLockScreen) {
             slider(

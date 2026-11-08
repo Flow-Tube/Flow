@@ -490,6 +490,15 @@ internal object PlaybackIndex {
             section = R.string.settings_section_music,
             destination = page,
         )
+    val lockScreenPlayer =
+        SettingEntry(
+            key = "playback.lock_screen_player",
+            title = R.string.settings_lock_screen_player_title,
+            summary = R.string.settings_lock_screen_player_summary,
+            section = R.string.settings_section_music,
+            destination = page,
+            keywords = R.string.settings_keywords_lock_screen_player,
+        )
     val lyricsOnLockScreen =
         SettingEntry(
             key = "playback.lyrics_on_lock_screen",
@@ -587,6 +596,7 @@ internal object PlaybackIndex {
                 resumeFromHeadphones,
                 musicSideSwipes,
                 musicVideoSwitch,
+                lockScreenPlayer,
                 lyricsOnLockScreen,
                 lyricsOnLockScreenTiming,
                 lyricsSponsorBlockTiming,
