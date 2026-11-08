@@ -14,6 +14,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.recommendation.MusicSection
+import io.github.aedev.flow.innertube.pages.HomePage
+import io.github.aedev.flow.ui.screens.music.MusicHomeChipPage
+import io.github.aedev.flow.ui.screens.music.MusicHomeChipStatus
 import io.github.aedev.flow.ui.screens.music.MusicUiState
 import org.junit.Rule
 import org.junit.Test
@@ -66,6 +69,8 @@ class MusicHomeFeedKeyTest {
                     onTrackMenu = {},
                     onCollectionMenu = {},
                     onLoadMore = {},
+                    onChipRetry = {},
+                    onChipLoadMore = {},
                 )
             }
         }
@@ -116,15 +121,23 @@ class MusicHomeFeedKeyTest {
     }
 
     @Test
-    fun aFilteredListRepeatingATrackDoesNotCollide() {
+    fun twoChipShelvesSharingATitleDoNotCollide() {
         val uiState =
             MusicUiState(
-                selectedFilter = "songs",
-                allSongs = listOf(track("dup"), track("dup")),
+                homeChipPage =
+                    MusicHomeChipPage(
+                        chip = HomePage.Chip("Energize", null, null),
+                        status = MusicHomeChipStatus.READY,
+                        sections =
+                            listOf(
+                                section("Power boost", listOf(track("a"))),
+                                section("Power boost", listOf(track("b"))),
+                            ),
+                    ),
             )
 
         composeRule.setContent { Feed(uiState) }
 
-        composeRule.onNodeWithText("Track dup").assertExists()
+        composeRule.onNodeWithText("Power boost").assertExists()
     }
 }

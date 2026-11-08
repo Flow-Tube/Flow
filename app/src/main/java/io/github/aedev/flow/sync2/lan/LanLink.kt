@@ -26,8 +26,10 @@ import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.b64
 import io.github.aedev.flow.sync2.store.MAX_OBJECT_SIZE
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -47,6 +49,12 @@ const val MAX_LAN_CONTENT = MAX_OBJECT_SIZE + 64 * 1024
 
 /** The largest frame a device accepts: that content after gzip, padding, box and `seq`. */
 const val MAX_LAN_FRAME = MAX_OBJECT_SIZE + 256 * 1024L
+
+/** The most a hello's content may hold: a device id, a nonce, a signature and a port. */
+private const val MAX_HELLO_CONTENT = 4 * 1024
+
+/** How long a side waits for each hello message. */
+private const val HELLO_MS = 10_000L
 
 /**
  * A LAN session between two members (spec/live.md, Session), once the hello has checked both: each
@@ -76,8 +84,7 @@ class LanLink internal constructor(
     suspend fun receive(): ByteArray? {
         val frame = connection.receive() ?: return null
         if (frame.size < 8 || ByteBuffer.wrap(frame, 0, 8).long != received) reject(ProtocolError.REPLAY)
-        val content = decodePayload(open(receiveKey, lanFrameAad(received), frame.copyOfRange(8, frame.size)))
-        if (content.size > MAX_LAN_CONTENT) reject(ProtocolError.LENGTH)
+        val content = decodePayload(open(receiveKey, lanFrameAad(received), frame.copyOfRange(8, frame.size)), MAX_LAN_CONTENT)
         received++
         return content
     }
@@ -98,7 +105,7 @@ private fun opened(
     message: Int,
 ): JsonObject {
     if (frame == null || frame.size < 4) throw LinkedException.Unexpected()
-    val content = decodePayload(open(lanKey, lanHelloAad(message), frame.copyOfRange(4, frame.size)))
+    val content = decodePayload(open(lanKey, lanHelloAad(message), frame.copyOfRange(4, frame.size)), MAX_HELLO_CONTENT)
     return runCatching { Json.parseToJsonElement(content.toString(Charsets.UTF_8)).jsonObject }.getOrNull()
         ?: throw LinkedException.Unexpected()
 }
@@ -109,6 +116,14 @@ private fun JsonObject.field(name: String): String = (this[name] as? JsonPrimiti
 private fun JsonObject.nonce(): ByteArray = b64(field("n"), NONCE_SIZE) ?: throw LinkedException.Unexpected()
 
 private fun JsonObject.signature(): ByteArray = b64(field("sig"), SIGNATURE_SIZE) ?: reject(ProtocolError.SIGNATURE)
+
+/** The next hello message, or null once the other side closed. A timeout ends only this connection, unlike the caller's own cancellation. */
+internal suspend fun SyncConnection.receiveHello(): ByteArray? =
+    try {
+        withTimeout(HELLO_MS) { receive() }
+    } catch (_: TimeoutCancellationException) {
+        throw LinkedException.TimedOut()
+    }
 
 /** The signing key of a current device other than this one, or a rejection. */
 private fun Session.memberKey(did: String): ByteArray =
@@ -142,7 +157,7 @@ suspend fun connectLink(
         ),
     )
 
-    val second = opened(connection.receive() ?: throw LinkedException.LanUnreachable(), lanKey, 2)
+    val second = opened(connection.receiveHello() ?: throw LinkedException.LanUnreachable(), lanKey, 2)
     val serverDid = second.field("did")
     val serverKey = session.memberKey(serverDid)
     val server = SyncBytes.fromHex(serverDid)
@@ -182,16 +197,20 @@ suspend fun dialLink(
     return null
 }
 
-/** The accepting side: answers under the epoch the client named, if this device holds its key. */
+/**
+ * The accepting side: answers the hello in [first] under the epoch the client named, if this device holds its key.
+ * [first] is the connection's first frame, read here unless the caller already has it.
+ */
 suspend fun acceptLink(
     connection: SyncConnection,
     session: Session,
+    first: ByteArray? = null,
 ): LanLink {
-    val first = connection.receive() ?: throw LinkedException.Unexpected()
-    if (first.size < 4) throw LinkedException.Unexpected()
-    val epoch = ByteBuffer.wrap(first, 0, 4).int
+    val opening = first ?: connection.receiveHello() ?: throw LinkedException.Unexpected()
+    if (opening.size < 4) throw LinkedException.Unexpected()
+    val epoch = ByteBuffer.wrap(opening, 0, 4).int
     val lanKey = purposeKey(session.epochKey(epoch), session.group, epoch, Purpose.LAN)
-    val hello = opened(first, lanKey, 1)
+    val hello = opened(opening, lanKey, 1)
     val clientDid = hello.field("did")
     val clientKey = session.memberKey(clientDid)
     val client = SyncBytes.fromHex(clientDid)
@@ -209,7 +228,7 @@ suspend fun acceptLink(
         )
     connection.send(hello(epoch, lanKey, 2, second))
 
-    val third = opened(connection.receive(), lanKey, 3)
+    val third = opened(connection.receiveHello(), lanKey, 3)
     val transcript = lanTranscript(LanRole.CLIENT, clientNonce, serverNonce, client, server)
     if (!verify(clientKey, transcript, third.signature())) reject(ProtocolError.SIGNATURE)
     val keys = lanSessionKeys(lanKey, clientNonce, serverNonce, client, server)

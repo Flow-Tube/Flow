@@ -280,11 +280,8 @@ fun VideoPlayerHost(
         isBackgroundPlaybackMode = playerUiState.isBackgroundPlaybackMode,
         videoAspectRatio = videoAspectRatio,
         pipPreferences = pipPreferences,
-        // A PiP window can't be sent back; finishing closes it and onDestroy keeps the background audio.
-        onListenInBackground = {
-            playerViewModel.startBackgroundPlayback()
-            activity.finish()
-        },
+        hasNext = playerState.hasNext || playerUiState.relatedVideos.isNotEmpty(),
+        playerViewModel = playerViewModel,
     )
 
     // A PiP window shows only the video from its first frame and never turns (#1671).

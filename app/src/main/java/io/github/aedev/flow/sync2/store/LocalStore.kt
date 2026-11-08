@@ -4,6 +4,7 @@ import io.github.aedev.flow.sync2.data.HeldDao
 import io.github.aedev.flow.sync2.data.HeldRow
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.ForkResolution
+import io.github.aedev.flow.sync2.roster.ValidEntries
 import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.parseEntry
@@ -57,6 +58,14 @@ class LocalStore(
     suspend fun resolved(): ForkResolution {
         val genesis = held.genesis()?.let { parseEntry(Json.parseToJsonElement(it)) }
         return resolveForks(genesis?.group, entries(), held.rosterPins().toSet(), genesis?.let(::entryHash))
+    }
+
+    /** What decides whether a new entry counts, given what this device holds. */
+    internal suspend fun validEntries(): ValidEntries {
+        val genesis = held.genesis()?.let { parseEntry(Json.parseToJsonElement(it)) }
+        val valid = ValidEntries(genesis?.group, genesis?.let(::entryHash))
+        entries().forEach(valid::admit)
+        return valid
     }
 
     suspend fun addEntries(entries: List<Entry>) =

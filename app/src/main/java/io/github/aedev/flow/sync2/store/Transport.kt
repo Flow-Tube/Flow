@@ -5,6 +5,7 @@ import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
+import java.net.Proxy
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 
@@ -14,7 +15,7 @@ internal const val MAX_RESPONSE = 16L * 1024 * 1024
 /** Reads a body of at most [limit] bytes, failing as soon as more arrive. */
 internal fun ResponseBody.bytesUpTo(limit: Long): ByteArray {
     val source = source()
-    if (source.request(limit + 1)) throw StoreException.Malformed()
+    if (source.request(limit + 1)) throw StoreException.TooLarge()
     return source.readByteArray()
 }
 
@@ -27,7 +28,7 @@ private val LOCAL_ONLY_DNS =
 
 /**
  * The client for a store at [base] (spec/store.md, Transport security): HTTPS anywhere, plain HTTP
- * only to a private address or a `.local` name, and redirects refused.
+ * only to a private address or a `.local` name and never through a proxy, and redirects refused.
  */
 internal fun storeClient(base: HttpUrl): OkHttpClient {
     val builder =
@@ -38,9 +39,12 @@ internal fun storeClient(base: HttpUrl): OkHttpClient {
             .connectTimeout(10, TimeUnit.SECONDS)
             .callTimeout(60, TimeUnit.SECONDS)
     when {
-        base.isHttps || LocalNetworkAddress.isLocal(base.host) -> Unit
+        base.isHttps -> Unit
+        LocalNetworkAddress.isLocal(base.host) -> Unit
         base.host.endsWith(".local", ignoreCase = true) -> builder.dns(LOCAL_ONLY_DNS)
         else -> throw StoreException.Insecure()
     }
+    // A system proxy would see plain traffic, login included, and the checks above wouldn't reach where it connects.
+    if (!base.isHttps) builder.proxy(Proxy.NO_PROXY)
     return builder.build()
 }

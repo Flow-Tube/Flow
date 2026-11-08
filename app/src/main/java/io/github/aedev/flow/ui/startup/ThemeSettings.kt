@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.font.FontFamily
 import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.LocalDataManager
+import io.github.aedev.flow.ui.components.shared.LocalMarqueeEnabled
 import io.github.aedev.flow.ui.components.shared.LocalSkeletonGradientEnabled
 import io.github.aedev.flow.ui.theme.CustomTheme
 import io.github.aedev.flow.ui.theme.FlowFontFamily
@@ -26,6 +27,7 @@ data class ThemeSettings(
     val systemDarkThemeVariant: ThemeVariant = ThemeVariant.DARK,
     val fontFamily: FontFamily = FlowFontFamily,
     val skeletonGradient: Boolean = false,
+    val marqueeEnabled: Boolean = true,
 )
 
 fun LocalDataManager.themeSettings(fonts: AppFontPreferences): Flow<ThemeSettings> =
@@ -34,6 +36,7 @@ fun LocalDataManager.themeSettings(fonts: AppFontPreferences): Flow<ThemeSetting
     }.combine(systemDarkThemeVariant) { settings, darkVariant -> settings.copy(systemDarkThemeVariant = darkVariant) }
         .combine(fonts.fontFamily) { settings, family -> settings.copy(fontFamily = family) }
         .combine(skeletonGradient) { settings, gradient -> settings.copy(skeletonGradient = gradient) }
+        .combine(marqueeEnabled) { settings, marquee -> settings.copy(marqueeEnabled = marquee) }
 
 @Composable
 fun FlowTheme(
@@ -47,5 +50,11 @@ fun FlowTheme(
     systemDarkThemeMode = settings.systemDarkThemeMode,
     systemDarkThemeVariant = settings.systemDarkThemeVariant,
     fontFamily = settings.fontFamily,
-    content = { CompositionLocalProvider(LocalSkeletonGradientEnabled provides settings.skeletonGradient, content = content) },
+    content = {
+        CompositionLocalProvider(
+            LocalSkeletonGradientEnabled provides settings.skeletonGradient,
+            LocalMarqueeEnabled provides settings.marqueeEnabled,
+            content = content,
+        )
+    },
 )

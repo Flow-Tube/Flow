@@ -353,14 +353,7 @@ internal fun LazyListScope.dynamicHome(
                     tracks = section.tracks,
                     keyNamespace = "dynamic_${index}_${section.title}",
                     downloadedTrackIds = downloaded,
-                    onTrackClick = {
-                        val playFrom =
-                            uiState.selectedHomeChip
-                                ?.title
-                                ?.let { chip -> MUSIC_GENRE_SOURCE_PREFIX + chip }
-                                ?: section.title
-                        onSongClick(it, section.tracks, playFrom)
-                    },
+                    onTrackClick = { onSongClick(it, section.tracks, section.title) },
                     onTrackMenu = onTrackMenu,
                     onCollectionClick = { onAlbumClick(it.videoId) },
                     onCollectionMenu = onCollectionMenu,

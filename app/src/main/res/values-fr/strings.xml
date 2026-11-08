@@ -862,7 +862,7 @@
     <string name="channel_search_close">Fermer la recherche</string>
     <string name="channel_search_no_results">Aucun résultat trouvé pour %1$s</string>
     <string name="deep_flow_mode_title">Mode Deep Flow</string>
-    <string name="deep_flow_mode_subtitle">Mettre l\'apprentissage en pause — naviguer sans influencer votre profil</string>
+    <string name="deep_flow_mode_subtitle">Mettre en pause l\'historique d\'apprentissage et de recherche</string>
     <string name="deep_flow_learning_paused">APPRENTISSAGE EN PAUSE</string>
     <string name="deep_flow_expires_in">Se désactive dans %s</string>
     <string name="deep_flow_expire_duration_title">Délai avant désactivation automatique</string>
@@ -4925,4 +4925,20 @@
     <string name="settings_watch_time_average_and_week">Moyenne quotidienne de %1$s · %2$s cette semaine</string>
     <string name="session_lyric_repeated">%1$s (x%2$d)</string>
     <string name="sb_skip_style_full">Complet</string>
+    <string name="lyrics_romanization_only">Romanisation uniquement</string>
+    <string name="lyrics_romanization_only_summary">Remplacer l\'écriture d\'origine par des lettres latines</string>
+    <string name="lyrics_provider_netease">NetEase</string>
+    <string name="lyrics_provider_amll">AMLL</string>
+    <string name="lyrics_provider_netease_desc">Synchronisation des lignes · vaste catalogue</string>
+    <string name="lyrics_provider_amll_desc">Synchronisation des mots · Paroles de la communauté</string>
+    <string name="notification_channel_new_version">Nouvelles versions</string>
+    <string name="notification_channel_new_version_description">Vous informe de la sortie d\'une nouvelle version de Flow</string>
+    <string name="music_chip_load_failed">Impossible de charger %1$s</string>
+    <string name="music_chip_empty">Il n\'y a rien ici pour le moment</string>
+    <string name="settings_skeleton_gradient_title">Espaces réservés pour le chargement des dégradés</string>
+    <string name="settings_skeleton_gradient_summary">Personnalisez les espaces réservés en fonction de votre thème ou des couleurs de la vidéo</string>
+    <string name="settings_skeleton_gradient_keywords">dégradé, écran de chargement, squelette, scintillement</string>
+    <string name="settings_marquee_title">Texte défilant</string>
+    <string name="settings_marquee_summary">Faites défiler les titres et les noms longs. Désactivez cette fonction sur les appareils moins performants.</string>
+    <string name="settings_marquee_keywords">marquee, titre défilant, nom de l\'artiste, graves, prestation</string>
 </resources>

@@ -233,12 +233,15 @@ class LinkedSync
             exchange(session, links, announce)
             if (offline != null) throw offline
             session.collectGarbage(links.mapTo(HashSet<String?>()) { it.link } + null)
-            db.groups().setUploaded(store.upload(me, db.groups().group()?.uploaded ?: 0))
+            val uploaded = store.upload(me, db.groups().group()?.uploaded ?: 0)
+            db.groups().setUploaded(uploaded.cursor)
             // The sync is done; a failed look for devices asking to join only waits for the next one.
             try {
                 server(record, device)?.joinRequests()?.firstOrNull()?.let { NotificationHelper.showJoinRequest(context, it.name) }
             } catch (_: StoreException) {
             }
+            // Everything else in this sync is done; the user still has to hear that the device's changes aren't going out.
+            uploaded.refused?.let { throw it }
         }
 
         /**

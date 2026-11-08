@@ -1875,6 +1875,7 @@ object YouTube {
 
     suspend fun home(
         continuation: String? = null,
+        browseId: String = "FEmusic_home",
         params: String? = null,
     ): Result<HomePage> =
         runCatching {
@@ -1882,7 +1883,7 @@ object YouTube {
                 return@runCatching homeContinuation(continuation).getOrThrow()
             }
 
-            val response = innerTube.browse(WEB_REMIX, browseId = "FEmusic_home", params = params).body<BrowseResponse>()
+            val response = innerTube.browse(WEB_REMIX, browseId = browseId, params = params).body<BrowseResponse>()
             val continuation =
                 response.contents
                     ?.singleColumnBrowseResultsRenderer
@@ -1906,7 +1907,7 @@ object YouTube {
                     ?.contents!!
                     .mapNotNull { it.musicCarouselShelfRenderer }
                     .mapNotNull {
-                        HomePage.Section.fromMusicCarouselShelfRenderer(it)
+                        HomePage.Section.fromMusicCarouselShelfRenderer(it, includeSongRows = params != null)
                     }.toMutableList()
             val chips =
                 sectionListRender.header
