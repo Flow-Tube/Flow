@@ -17,6 +17,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -74,7 +75,7 @@ internal fun LinkedRecoveryWords(
                 .sorted(),
         )
     }
-    var answers by rememberSaveable { mutableStateOf(List(CHECKED_WORDS) { "" }) }
+    var answers by remember { mutableStateOf(List(CHECKED_WORDS) { "" }) }
     val matches = positions.zip(answers).all { (i, answer) -> answer.trim().equals(list[i], ignoreCase = true) }
     val typed = answers.all { it.isNotBlank() }
     SyncStepHeader(icon = Icons.Outlined.Spellcheck, title = stringResource(R.string.linked_check_title))
