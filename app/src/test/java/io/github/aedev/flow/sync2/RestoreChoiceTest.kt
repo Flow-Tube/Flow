@@ -504,6 +504,24 @@ class RestoreChoiceTest {
         }
     }
 
+    /** The store with its chain boxes failing as [stop] says, until it's cleared. */
+    private class ChainBoxFails(
+        private val store: MemoryStore,
+    ) : Remote,
+        ChangeList by store,
+        Mailbox by store {
+        var stop: StoreException? = null
+
+        override suspend fun key(
+            epoch: Int,
+            kc: String,
+            name: String,
+        ): ByteArray? {
+            if (name == "chain") stop?.let { throw it }
+            return store.key(epoch, kc, name)
+        }
+    }
+
     /** A store whose cursor always moves on: each page names one more object, which it doesn't have. */
     private class EndlessPages(
         store: MemoryStore,
@@ -654,13 +672,38 @@ class RestoreChoiceTest {
         }
 
     @Test
-    fun an_object_a_server_answers_over_the_size_limit_holds_the_removal_until_it_has_it_right() =
+    fun a_log_that_stops_at_an_object_a_server_answers_over_the_size_limit_ends_there() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val paths = wrote(g, g.a, 3)
+            val first =
+                g.store.objects
+                    .getValue(paths[0])
+                    .second
+            val (device, db) = restoredKeeping(g)
+            val server = OnePerPage(g.store).apply { failing[paths[1]] = StoreException.TooLarge() }
+
+            assertNull(syncOn(db, device, server).syncNow().error)
+
+            val last = g.store.roster.last()
+            assertEquals(Op.REMOVE, last.op)
+            assertEquals(1L, last.cut?.getValue(id(g.a))?.seq)
+            assertEquals(SyncBytes.toHex(sha256(first)), last.cut?.getValue(id(g.a))?.hash)
+            assertNull(db.groups().group()?.keptDevices)
+        }
+
+    @Test
+    fun a_server_error_on_an_object_holds_the_restore_until_the_store_recovers() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val paths = wrote(g, g.a, 3)
+            val last =
+                g.store.objects
+                    .getValue(paths[2])
+                    .second
             val (device, db) = restoredKeeping(g)
             val entries = g.store.roster.size
-            val server = OnePerPage(g.store).apply { failing[paths[1]] = StoreException.Malformed() }
+            val server = OnePerPage(g.store).apply { failing[paths[1]] = StoreException.Refused(503, "busy") }
             val sync = syncOn(db, device, server)
 
             assertNotNull(sync.syncNow().error)
@@ -669,6 +712,34 @@ class RestoreChoiceTest {
             server.failing.clear()
             assertNull(sync.syncNow().error)
 
+            val removal = g.store.roster.last()
+            assertEquals(Op.REMOVE, removal.op)
+            assertEquals(3L, removal.cut?.getValue(id(g.a))?.seq)
+            assertEquals(SyncBytes.toHex(sha256(last)), removal.cut?.getValue(id(g.a))?.hash)
+        }
+
+    @Test
+    fun a_server_error_on_a_chain_box_holds_the_restore_until_the_store_recovers() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            wrote(g, g.a, 3)
+            val (device, db) = restoredKeeping(g)
+            val entries = g.store.roster.size
+            val server = ChainBoxFails(g.store).apply { stop = StoreException.Refused(503, "busy") }
+            val sync = syncOn(db, device, server)
+
+            assertNotNull(sync.syncNow().error)
+            assertStillPending(g.store, db, device, entries)
+
+            server.stop = null
+            assertNull(sync.syncNow().error)
+
+            assertEquals(
+                Op.REMOVE,
+                g.store.roster
+                    .last()
+                    .op,
+            )
             assertEquals(
                 3L,
                 g.store.roster
@@ -680,7 +751,83 @@ class RestoreChoiceTest {
         }
 
     @Test
-    fun an_object_a_file_store_holds_over_the_size_limit_holds_the_removal_until_it_has_it_right() =
+    fun a_refused_object_ends_its_log_there() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val paths = wrote(g, g.a, 3)
+            val (device, db) = restoredKeeping(g)
+            val server = OnePerPage(g.store).apply { failing[paths[1]] = StoreException.Refused(403, "refused") }
+
+            assertNull(syncOn(db, device, server).syncNow().error)
+
+            assertEquals(
+                Op.REMOVE,
+                g.store.roster
+                    .last()
+                    .op,
+            )
+            assertEquals(
+                1L,
+                g.store.roster
+                    .last()
+                    .cut
+                    ?.getValue(id(g.a))
+                    ?.seq,
+            )
+        }
+
+    @Test
+    fun a_refused_chain_box_or_one_over_the_limit_drops_the_older_log_with_no_cut() =
+        runTest {
+            for (stop in listOf(StoreException.Refused(403, "refused"), StoreException.TooLarge())) {
+                val g = LinkedGroup(this).apply { create() }
+                wrote(g, g.a, 3)
+                val (device, db) = restoredKeeping(g)
+
+                assertNull(syncOn(db, device, ChainBoxFails(g.store).apply { this.stop = stop }).syncNow().error)
+
+                assertEquals(
+                    Op.REMOVE,
+                    g.store.roster
+                        .last()
+                        .op,
+                )
+                assertNull(
+                    g.store.roster
+                        .last()
+                        .cut,
+                )
+            }
+        }
+
+    @Test
+    fun a_snapshot_blob_over_the_limit_with_its_log_collected_drops_the_log_with_no_cut() =
+        runTest {
+            val first = newMember()
+            val dbFirst = emptyDb()
+            val (words, _) = createWebDavGroup(dbFirst, dav.store(), first, RESTORED, LINK)
+            val storeFirst = GroupStore(heldStore(dbFirst), FileLayout(dav.store(), id(first)))
+            storeFirst.download(id(first), 0, objects = false)
+            val session = Session.open(dbFirst, storeFirst, first)
+            session.wrote(2)
+            session.writeSnapshot(export, LINK)
+            storeFirst.upload(id(first), 0)
+            dav.files.remove("flow/${StorePaths.log(id(first), 1)}")
+            val blob = dav.files.keys.first { it.endsWith(".b") }
+            dav.files[blob] = ByteArray(MAX_OBJECT_SIZE + 1)
+            val device = newMember()
+            val db = emptyDb()
+            restoreWebDavGroup(db, dav.store(), words, device, RESTORED, keep = emptySet())
+
+            assertNull(sync(db, device).syncNow().error)
+
+            val removal = FileLayout(dav.store(), id(device)).rosterView().maxBy { it.seq }
+            assertEquals(Op.REMOVE, removal.op)
+            assertNull(removal.cut)
+        }
+
+    @Test
+    fun a_log_that_stops_at_an_object_a_file_store_holds_over_the_size_limit_ends_there() =
         runTest {
             val first = newMember()
             val dbFirst = emptyDb()
@@ -689,26 +836,19 @@ class RestoreChoiceTest {
             storeFirst.download(id(first), 0, objects = false)
             val paths = Session.open(dbFirst, storeFirst, first).wrote(3)
             storeFirst.upload(id(first), 0)
-            val genuine = checkNotNull(dav.files["flow/${paths[1]}"])
+            val firstObject = checkNotNull(dav.files["flow/${paths[0]}"])
             dav.files["flow/${paths[1]}"] = ByteArray(MAX_OBJECT_SIZE + 1)
             val device = newMember()
             val db = emptyDb()
             restoreWebDavGroup(db, dav.store(), words, device, RESTORED, keep = emptySet())
-            val sync = sync(db, device)
-            val roster = FileLayout(dav.store(), id(device))
 
-            assertNotNull(sync.syncNow().error)
-            assertTrue(roster.rosterView().none { it.op == Op.REMOVE })
-            assertEquals(emptySet<String>(), db.groups().group()?.keptDevices)
-            assertTrue(dav.files.keys.none { it.startsWith("flow/dev/${id(device)}/") })
+            assertNull(sync(db, device).syncNow().error)
 
-            dav.files["flow/${paths[1]}"] = genuine
-            assertNull(sync.syncNow().error)
-
-            val removal = roster.rosterView().maxBy { it.seq }
+            val removal = FileLayout(dav.store(), id(device)).rosterView().maxBy { it.seq }
             assertEquals(Op.REMOVE, removal.op)
-            assertEquals(3L, removal.cut?.getValue(id(first))?.seq)
-            assertEquals(SyncBytes.toHex(sha256(checkNotNull(dav.files["flow/${paths[2]}"]))), removal.cut?.getValue(id(first))?.hash)
+            assertEquals(1L, removal.cut?.getValue(id(first))?.seq)
+            assertEquals(SyncBytes.toHex(sha256(firstObject)), removal.cut?.getValue(id(first))?.hash)
+            assertNull(db.groups().group()?.keptDevices)
         }
 
     @Test
