@@ -25,6 +25,7 @@ import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
+import io.github.aedev.flow.ui.screens.settings.index.PlaybackCrossfadeIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackGesturesIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackIndex
 import java.util.Locale
@@ -166,16 +167,16 @@ internal fun SettingsListScope.playbackSections(
     group(key = "playback.music", header = R.string.settings_section_music) {
         switch(PlaybackIndex.endlessRadio, viewModel.endlessRadio, viewModel::setEndlessRadio)
         switch(PlaybackIndex.pauseMusicWhenMuted, viewModel.pauseMusicWhenMuted, viewModel::setPauseMusicWhenMuted)
-        switch(PlaybackIndex.crossfade, viewModel.crossfadeEnabled, viewModel::setCrossfadeEnabled)
+        switch(PlaybackCrossfadeIndex.crossfade, viewModel.crossfadeEnabled, viewModel::setCrossfadeEnabled)
         if (state.crossfadeEnabled) {
-            choice(PlaybackIndex.crossfadeDuration, onClick = { openDialog(PlaybackDialog.CROSSFADE_DURATION) }) {
+            choice(PlaybackCrossfadeIndex.crossfadeDuration, onClick = { openDialog(PlaybackDialog.CROSSFADE_DURATION) }) {
                 val ms by viewModel.crossfadeMs.collectAsStateWithLifecycle()
                 crossfadeDurationLabel(ms.toLong())
             }
-            switch(PlaybackIndex.crossfadeOnAutoAdvance, viewModel.crossfadeOnAutoAdvance, viewModel::setCrossfadeOnAutoAdvance)
-            switch(PlaybackIndex.crossfadeOnManualSkip, viewModel.crossfadeOnManualSkip, viewModel::setCrossfadeOnManualSkip)
-            switch(PlaybackIndex.crossfadeKeepAlbums, viewModel.crossfadeKeepAlbums, viewModel::setCrossfadeKeepAlbums)
-            choice(PlaybackIndex.crossfadeCurve, onClick = { openDialog(PlaybackDialog.CROSSFADE_CURVE) }) {
+            switch(PlaybackCrossfadeIndex.crossfadeOnAutoAdvance, viewModel.crossfadeOnAutoAdvance, viewModel::setCrossfadeOnAutoAdvance)
+            switch(PlaybackCrossfadeIndex.crossfadeOnManualSkip, viewModel.crossfadeOnManualSkip, viewModel::setCrossfadeOnManualSkip)
+            switch(PlaybackCrossfadeIndex.crossfadeKeepAlbums, viewModel.crossfadeKeepAlbums, viewModel::setCrossfadeKeepAlbums)
+            choice(PlaybackCrossfadeIndex.crossfadeCurve, onClick = { openDialog(PlaybackDialog.CROSSFADE_CURVE) }) {
                 val curve by viewModel.crossfadeCurve.collectAsStateWithLifecycle()
                 crossfadeCurveLabel(curve)
             }
