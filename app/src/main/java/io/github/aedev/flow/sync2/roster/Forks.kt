@@ -52,24 +52,45 @@ private class Node(
     fun mayStand() = waiting == 0 && (parent == null || parent.status == Status.STANDS)
 }
 
+/**
+ * The entries that count (spec/protocol.md, Forks): each valid against the chain from genesis to its own `prev`.
+ * Entries go in with lower `seq` first. A null [group] takes any group, and [genesis] pins the only genesis that counts.
+ */
+internal class ValidEntries(
+    private val group: String?,
+    private val genesis: String?,
+) {
+    private val states = HashMap<String, RosterState>()
+
+    /** The state after [entry], or null when it doesn't count or is already in. */
+    fun admit(entry: Entry): RosterState? {
+        val hash = entryHash(entry)
+        if (hash in states || (group != null && entry.group != group)) return null
+        if (entry.op == Op.GENESIS && genesis != null && hash != genesis) return null
+        val parent = if (entry.op == Op.GENESIS) null else states[entry.prev] ?: return null
+        val state =
+            try {
+                applyEntry(parent, entry)
+            } catch (_: ProtocolException) {
+                return null
+            }
+        states[hash] = state
+        return state
+    }
+}
+
 /** Every held entry that is valid against its parent, as a tree. */
 private fun validTree(
     group: String,
     held: List<Entry>,
     genesis: String?,
 ): List<Node> {
+    val valid = ValidEntries(group, genesis)
     val nodes = LinkedHashMap<String, Node>()
     for (entry in held.sortedBy { it.seq }) {
+        val state = valid.admit(entry) ?: continue
         val hash = entryHash(entry)
-        if (hash in nodes || entry.group != group) continue
-        if (entry.op == Op.GENESIS && genesis != null && hash != genesis) continue
-        val parent = if (entry.op == Op.GENESIS) null else nodes[entry.prev] ?: continue
-        val state =
-            try {
-                applyEntry(parent?.state, entry)
-            } catch (_: ProtocolException) {
-                continue
-            }
+        val parent = nodes[entry.prev].takeIf { entry.op != Op.GENESIS }
         val node = Node(entry, hash, state, parent)
         nodes[hash] = node
         parent?.children?.add(node)

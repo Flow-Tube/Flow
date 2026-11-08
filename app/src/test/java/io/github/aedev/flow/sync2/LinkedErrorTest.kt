@@ -25,6 +25,7 @@ class LinkedErrorTest {
         assertEquals(LinkedError.REFUSED, StoreException.Refused(401, "unauthorized").linkedError())
         assertEquals(LinkedError.GROUP_MISSING, StoreException.Refused(503, "unclaimed").linkedError())
         assertEquals(LinkedError.STOPPED, LinkedException.Stopped().linkedError())
+        assertEquals(LinkedError.RESTORE_UNFINISHED, LinkedException.RestoreUnfinished().linkedError())
     }
 
     @Test

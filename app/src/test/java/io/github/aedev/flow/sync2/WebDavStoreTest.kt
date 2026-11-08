@@ -109,8 +109,8 @@ class WebDavStoreTest {
                 }
             }.use { standIn ->
                 val dav = WebDavStore.connect(standIn.url, "u", "p")
-                assertTrue(runCatching { dav.get("dev/x.o") }.exceptionOrNull() is StoreException.Malformed)
-                assertTrue(runCatching { dav.list("dev/") }.exceptionOrNull() is StoreException.Malformed)
+                assertTrue(runCatching { dav.get("dev/x.o") }.exceptionOrNull() is StoreException.TooLarge)
+                assertTrue(runCatching { dav.list("dev/") }.exceptionOrNull() is StoreException.TooLarge)
             }
         }
 
