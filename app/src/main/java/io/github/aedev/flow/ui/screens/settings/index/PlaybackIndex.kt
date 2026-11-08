@@ -423,6 +423,15 @@ internal object PlaybackIndex {
             section = R.string.settings_section_music,
             destination = page,
         )
+    val crossfadeDuration =
+        SettingEntry(
+            key = "playback.crossfade_duration",
+            title = R.string.settings_crossfade_duration_title,
+            keywords = R.string.settings_keywords_crossfade_duration,
+            section = R.string.settings_section_music,
+            destination = page,
+            revealVia = "playback.crossfade",
+        )
     val crossfadeOnAutoAdvance =
         SettingEntry(
             key = "playback.crossfade_auto_advance",
@@ -579,6 +588,7 @@ internal object PlaybackIndex {
                 endlessRadio,
                 pauseMusicWhenMuted,
                 crossfade,
+                crossfadeDuration,
                 crossfadeOnAutoAdvance,
                 crossfadeOnManualSkip,
                 crossfadeKeepAlbums,

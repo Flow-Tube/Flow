@@ -10,7 +10,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.local.SpeedSwipeSide
-import io.github.aedev.flow.player.crossfade.CrossfadePolicy
 import io.github.aedev.flow.service.SessionLyricDelay
 import io.github.aedev.flow.ui.components.equalizer.equalizerSummary
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
@@ -30,7 +29,6 @@ import io.github.aedev.flow.ui.screens.settings.index.PlaybackGesturesIndex
 import io.github.aedev.flow.ui.screens.settings.index.PlaybackIndex
 import java.util.Locale
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 private const val UNLIMITED_TITLE_LINES = 0
 private const val MS_PER_SECOND = 1000f
@@ -168,15 +166,12 @@ internal fun SettingsListScope.playbackSections(
     group(key = "playback.music", header = R.string.settings_section_music) {
         switch(PlaybackIndex.endlessRadio, viewModel.endlessRadio, viewModel::setEndlessRadio)
         switch(PlaybackIndex.pauseMusicWhenMuted, viewModel.pauseMusicWhenMuted, viewModel::setPauseMusicWhenMuted)
-        slider(
-            entry = PlaybackIndex.crossfade,
-            value = state.crossfadeSeconds.toFloat(),
-            onValueCommitted = { viewModel.setCrossfadeSeconds(it.roundToInt()) },
-            valueRange = 0f..CrossfadePolicy.MAX_SECONDS.toFloat(),
-            steps = CrossfadePolicy.MAX_SECONDS - 1,
-            valueLabel = { crossfadeLabel(it.roundToInt()) },
-        )
-        if (state.crossfadeSeconds > 0) {
+        switch(PlaybackIndex.crossfade, viewModel.crossfadeEnabled, viewModel::setCrossfadeEnabled)
+        if (state.crossfadeEnabled) {
+            choice(PlaybackIndex.crossfadeDuration, onClick = { openDialog(PlaybackDialog.CROSSFADE_DURATION) }) {
+                val ms by viewModel.crossfadeMs.collectAsStateWithLifecycle()
+                crossfadeDurationLabel(ms.toLong())
+            }
             switch(PlaybackIndex.crossfadeOnAutoAdvance, viewModel.crossfadeOnAutoAdvance, viewModel::setCrossfadeOnAutoAdvance)
             switch(PlaybackIndex.crossfadeOnManualSkip, viewModel.crossfadeOnManualSkip, viewModel::setCrossfadeOnManualSkip)
             switch(PlaybackIndex.crossfadeKeepAlbums, viewModel.crossfadeKeepAlbums, viewModel::setCrossfadeKeepAlbums)
@@ -299,7 +294,3 @@ private fun lyricsTimingLabel(delayMs: Int): String {
         else -> stringResource(R.string.lyrics_timing_on_time)
     }
 }
-
-@Composable
-private fun crossfadeLabel(seconds: Int): String =
-    if (seconds <= 0) stringResource(R.string.off) else stringResource(R.string.settings_seconds_value, seconds.toString())
