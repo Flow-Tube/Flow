@@ -1067,6 +1067,17 @@
     <string name="lyrics_provider_amll_desc">Word sync · community lyrics</string>
     <string name="lyrics_provider_youtube_captions_desc">Line sync · the video\'s captions</string>
     <string name="lyrics_provider_youtube_music_desc">Line sync · the Lyrics tab</string>
+    <string name="lyrics_provider_better_lyrics_hosts" translatable="false">lyrics-api.boidu.dev</string>
+    <string name="lyrics_provider_lrc_red_hosts" translatable="false">lrc.red</string>
+    <string name="lyrics_provider_lyrics_plus_hosts" translatable="false">lyricsplus.binimum.org</string>
+    <string name="lyrics_provider_simpmusic_hosts" translatable="false">api-lyrics.simpmusic.org</string>
+    <string name="lyrics_provider_kugou_hosts" translatable="false">mobileservice.kugou.com, lyrics.kugou.com</string>
+    <string name="lyrics_provider_paxsenix_hosts" translatable="false">lyrics.paxsenix.org, itunes.apple.com, amp-api.music.apple.com, beta.music.apple.com</string>
+    <string name="lyrics_provider_lrclib_hosts" translatable="false">lrclib.net</string>
+    <string name="lyrics_provider_unison_hosts" translatable="false">unison.boidu.dev</string>
+    <string name="lyrics_provider_netease_hosts" translatable="false">music.163.com</string>
+    <string name="lyrics_provider_amll_hosts" translatable="false">api.amll.dev</string>
+    <string name="lyrics_provider_youtube_hosts" translatable="false">music.youtube.com</string>
     <!-- Theme Names & Descriptions -->
     <string name="theme_name_system_default">System Default</string>
     <string name="theme_desc_system_default">Follows your device between light and dark.</string>
