@@ -4,7 +4,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +23,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.dlna.DlnaCastManager
+import io.github.aedev.flow.ui.components.layout.flowWindowAdaptiveInfo
 import io.github.aedev.flow.ui.components.shared.PlayerHaptics
 import io.github.aedev.flow.ui.components.videoplayer.DraggablePlayerLayout
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
@@ -121,7 +121,7 @@ fun VideoPlayerHost(
     val windowLayoutMode = playerWindowLayoutModeFor(windowSizeClass, isLandscapeWindow)
     val isLargeWindow = windowLayoutMode != PlayerLayoutMode.COMPACT
     val isTwoPaneWindow = windowLayoutMode == PlayerLayoutMode.WIDE
-    val paneScaffoldDirective = calculatePaneScaffoldDirective(currentWindowAdaptiveInfo())
+    val paneScaffoldDirective = calculatePaneScaffoldDirective(flowWindowAdaptiveInfo())
     val detailPaneWidth = if (isTwoPaneWindow) paneScaffoldDirective.supportingPaneReserve() else 0.dp
     val playerLayoutMode =
         playerLayoutModeFor(

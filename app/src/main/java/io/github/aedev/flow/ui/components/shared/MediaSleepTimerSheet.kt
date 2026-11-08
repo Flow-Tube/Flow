@@ -34,8 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -46,6 +44,7 @@ import io.github.aedev.flow.player.SleepTimerManager
 import io.github.aedev.flow.ui.components.shared.FlowBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
 import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
+import io.github.aedev.flow.ui.utils.flowWindowDpSize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -277,10 +276,7 @@ private fun FlowSleepTimerBottomSheet(
 }
 
 @Composable
-private fun wrappedSheetMaxHeight(): Dp {
-    val heightPx = LocalWindowInfo.current.containerSize.height
-    return with(LocalDensity.current) { (heightPx * WRAPPED_SHEET_MAX_HEIGHT_FRACTION).toDp() }
-}
+private fun wrappedSheetMaxHeight(): Dp = flowWindowDpSize().height * WRAPPED_SHEET_MAX_HEIGHT_FRACTION
 
 /** The same header without the drag handle, for the fullscreen side panel that hosts this sheet. */
 @Composable
