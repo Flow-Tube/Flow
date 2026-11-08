@@ -90,10 +90,12 @@ internal fun computeDraggablePlayerGeometry(
     // on anything large, which happened to equal the "small" option — so on a tablet the setting did
     // nothing and every choice gave the same oversized player (#991). A fraction of a tablet is the
     // wrong unit anyway, so the caller supplies an absolute ceiling instead and the preference
-    // scales that.
-    val baseMiniWidth = (screenWidth * miniPlayerScale).coerceAtMost(maxMiniWidthPx)
+    // scales that. A phone sizes from its shorter side, so turning it to landscape keeps the
+    // portrait size instead of covering half the screen (#1845).
+    val sizingSide = if (isLargeWindow) screenWidth else minOf(screenWidth, screenHeight)
+    val baseMiniWidth = (sizingSide * miniPlayerScale).coerceAtMost(maxMiniWidthPx)
     val maxWideFraction = if (isLargeWindow) 0.60f else 1.00f
-    val maxWideWidth = ((screenWidth * maxWideFraction) - (margin * 2f)).coerceAtLeast(baseMiniWidth)
+    val maxWideWidth = ((sizingSide * maxWideFraction) - (margin * 2f)).coerceAtLeast(baseMiniWidth)
     val clampedAspect = playerBoxAspectRatio(videoAspectRatio)
     val miniWidth = miniBoxWidthFor(baseMiniWidth * currentSizeScale, clampedAspect).coerceAtMost(maxWideWidth)
     val miniHeight = miniWidth / clampedAspect
