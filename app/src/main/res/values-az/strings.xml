@@ -97,7 +97,7 @@
     <string name="close">Bağla</string>
     <string name="more_options">Digər seçimlər</string>
     <string name="like">Bəyən</string>
-    <string name="shuffle">Qarışıq</string>
+    <string name="shuffle">Qarışdır</string>
     <string name="previous">Əvvəlki</string>
     <string name="pause">Fasilə</string>
     <string name="resume">Davam et</string>
@@ -1416,12 +1416,12 @@
     <string name="section_vibe_vibes">%1$s Əhval-ruhiyyəsi</string>
     <string name="subtitle_community_playlists">İcma Siyahıları</string>
     <string name="playlist_author_community">İcma Siyahısı</string>
-    <string name="playlist_description_community">İcmamızdan %1$s musiqisinin kuratorluq edilmiş siyahısı</string>
+    <string name="playlist_description_community">İcmamızdan %1$s musiqisinin hazırlanmış siyahısı</string>
     <string name="radio">Radio</string>
     <string name="audio_settings_title">Səs Tənzimləmələri</string>
     <string name="label_preset">Hazır ayar</string>
     <string name="template_bass_boost">Bass Gücləndirmə: %1$ddB</string>
-    <string name="label_tempo_pitch">Temp və Ton</string>
+    <string name="label_tempo_pitch">Temp &amp; Ucalıq</string>
     <string name="action_reset">Sıfırla</string>
     <string name="template_speed">Sürət: %1$d%%</string>
     <string name="template_pitch">Ton: %1$d Yarımton</string>
@@ -1764,7 +1764,7 @@
     <string name="metric_history">Tarixçə</string>
     <string name="metric_history_detail">izləmə istinadları</string>
     <string name="metric_feed_memory">Lent Yaddaşı</string>
-    <string name="metric_feed_memory_detail">bu yaxınlarda göstərilənlər</string>
+    <string name="metric_feed_memory_detail">təzəlikcə göstərilənlər</string>
     <string name="metric_filters">Filtrlər</string>
     <string name="metric_filters_detail">bloklanmış elementlər</string>
     <string name="metric_suppressed">Təcrid olunmuş</string>
@@ -1914,7 +1914,7 @@
     <string name="ui_replay">Yenidən oynat</string>
     <string name="ui_skip_back_10_seconds">10 saniyə geri at</string>
     <string name="ui_skip_forward_10_seconds">10 saniyə irəli at</string>
-    <string name="ui_queued_for_download">Yükləmək üçün növbəyə gözləyir</string>
+    <string name="ui_queued_for_download">Yükləmək üçün növbədədir</string>
     <string name="ui_downloading">Yüklənir</string>
     <string name="ui_in_library">Kitabxanada</string>
     <string name="ui_navigate">Naviqasiya et</string>
@@ -2265,7 +2265,7 @@
     <string name="search_filter_group_features">Xüsusiyyətlər</string>
     <string name="search_filter_group_sort">Çeşidlə</string>
     <string name="search_filter_group_watched">İzlənilib</string>
-    <string name="search_filter_recently_uploaded">Bu yaxınlarda yüklənənlər</string>
+    <string name="search_filter_recently_uploaded">Təzəlikcə yüklənənlər</string>
     <string name="search_filter_watch_any">İzlənilib ya yox</string>
     <string name="search_filter_unwatched">İzlənməyib</string>
     <string name="search_filter_watched">İzlənilib</string>
@@ -3543,7 +3543,7 @@
         <item quantity="other">%d yüklənir</item>
     </plurals>
     <string name="widget_browse_downloads">Yükləmələrə bax</string>
-    <string name="widget_shuffle">Qarışıq</string>
+    <string name="widget_shuffle">Qarışdır</string>
     <string name="widget_identify_song">Mahnını müəyyənləşdir</string>
     <string name="widget_open_music">Musiqini aç</string>
     <string name="widget_config_shortcuts">Qısayollar</string>
@@ -3656,7 +3656,7 @@
     <string name="local_sort_name">Ad</string>
     <string name="local_sort_length">Uzunluq</string>
     <string name="local_sort_size">Ölçü</string>
-    <string name="local_sort_recently_played">Bu yaxınlarda oynadılan</string>
+    <string name="local_sort_recently_played">Təzəlikcə oynadılan</string>
     <string name="local_filter_length_any">İstənilən uzunluq</string>
     <string name="local_filter_length_short">4 dəqiqədən az</string>
     <string name="local_filter_length_medium">4 - 20 dəqiqə</string>
@@ -4363,7 +4363,7 @@
     </plurals>
     <string name="music_sort_collection">Oxutma siyahısı sırası</string>
     <string name="music_sort_album_order">Albom sırası</string>
-    <string name="music_sort_recently_liked">Bu yaxınlarda bəyənilənlər</string>
+    <string name="music_sort_recently_liked">Təzəlikcə bəyənilənlər</string>
     <string name="music_sort_title">Başlıq</string>
     <string name="music_sort_artist">Sənətçi</string>
     <string name="music_sort_album">Albom</string>
@@ -4380,8 +4380,8 @@
         <item quantity="other">%d mahnı yüklənir</item>
     </plurals>
     <plurals name="songs_download_queued">
-        <item quantity="one">%d mahnı yüklənmək üçün növbəyə gözləyir</item>
-        <item quantity="other">%d mahnı yüklənmək üçün növbəyə gözləyir</item>
+        <item quantity="one">%d mahnı yüklənmək üçün növbədə</item>
+        <item quantity="other">%d mahnı yüklənmək üçün növbədə</item>
     </plurals>
     <string name="songs_download_nothing_new">Buradakı hər şey artıq yüklənib və ya əlçatmazdır</string>
     <string name="save_as_playlist">Oxutma siyahısı kimi saxla</string>
@@ -4405,8 +4405,8 @@
     <string name="taste_remembered_clear">Kanal yaddaşını təmizlə</string>
     <string name="home_chip_all">Hamısı</string>
     <string name="home_chip_new_to_you">Sizin üçün yeni</string>
-    <string name="home_chip_recently_uploaded">Bu yaxınlarda yüklənmiş</string>
-    <string name="home_chip_mixes">Miksلər</string>
+    <string name="home_chip_recently_uploaded">Təzəlikcə yüklənmiş</string>
+    <string name="home_chip_mixes">Mikslər</string>
     <string name="home_chip_live">Canlı</string>
     <string name="home_chip_watched">İzlənilib</string>
     <string name="home_theme_science">Elm və texnologiya</string>
