@@ -4717,4 +4717,16 @@
     <string name="linked_restore_choose_body">Bərpa zamanı işarələnməyən hər bir cihazdan hesabı çıxarır. Yalnız yanınızda olan cihazı işarələyin, sadəcə adı düzgün görünür deyə deyil. Hələ də işlək bir cihazınız varsa, geri qayıdın və bunu həmin cihazdan əlaqələndirin.</string>
     <string name="linked_restore_unknown_device">Naməlum cihaz (%1$s)</string>
     <string name="linked_error_restore_unfinished">Bərpa hələ bitməyib. Flow onu növbəti sinxronizasiyada qurtaracaq.</string>
+    <string name="lyrics_on_demand">Yalnız açıldıqda mahnı sözlərin yüklə</string>
+    <string name="lyrics_on_demand_summary">Oynadıcını və ya onun mahnı sözlərini açanda onları axtarır</string>
+    <string name="settings_keywords_lyrics_on_demand">məxfilik, şəbəkə, arxa plan, məlumatlar</string>
+    <string name="player_appearance_more_videos_gesture_title">Daha çox video üçün yuxarı sürüşdür</string>
+    <string name="player_appearance_more_videos_gesture_subtitle">Əlaqəli videoları görmək üçün tam ekranda yuxarı sürüşdür</string>
+    <string name="settings_lock_screen_player_title">Kilid ekranı oynadıcı</string>
+    <string name="settings_lock_screen_player_summary">Musiqi zamanı telefonu kilidlədiyiniz zaman örtüyü və idarəetmələri göstərir</string>
+    <string name="settings_lock_screen_player_permission">Oynadıcının kilid ekranı üzərindən aça bilməsi üçün digər tətbiqlərin üzərindən göstərməyə icazə verin</string>
+    <string name="settings_keywords_lock_screen_player">albom rəsmi, örtük, divar kağızı, klaviatura kilidi, idarəetmələr</string>
+    <string name="lock_screen_player_unlock">Kilidini açmaq üçün yuxarı sürüşdür</string>
+    <string name="more_videos">Daha çox video</string>
+    <string name="close_more_videos">Daha çox videonu bağla</string>
 </resources>
