@@ -56,7 +56,7 @@ class PlayerErrorHandler(
     private val getManualQualityHeight: () -> Int?,
     private val getCurrentVideoStream: () -> VideoStream?,
     private val getCurrentAudioStream: () -> AudioStream?,
-    private val getAvailableAudioStreams: () -> List<AudioStream>,
+    private val getAllAudioStreams: () -> List<AudioStream>,
     private val setCurrentAudioStream: (AudioStream) -> Unit,
     private val setRecoveryState: () -> Unit,
     private val reloadPlaybackManager: () -> Unit,
@@ -403,14 +403,10 @@ class PlayerErrorHandler(
             return true
         }
 
-        if (isAudioError && getCurrentAudioStream()?.getContent() != null) {
-            markStreamFailed(getCurrentAudioStream()!!.getContent())
-            val failedUrls = getFailedStreamUrls()
-            val alternativeAudio =
-                getAvailableAudioStreams()
-                    .filter { !failedUrls.contains(it.getContent()) }
-                    .sortedByDescending { it.averageBitrate }
-                    .firstOrNull()
+        val failedAudio = getCurrentAudioStream()?.takeIf { it.getContent() != null }
+        if (isAudioError && failedAudio != null) {
+            markStreamFailed(failedAudio.getContent())
+            val alternativeAudio = AudioRecoveryPick.pick(getAllAudioStreams(), failedAudio, getFailedStreamUrls())
             if (alternativeAudio != null) {
                 setCurrentAudioStream(alternativeAudio)
                 Log.d(TAG, "Switching to alternative audio: ${alternativeAudio.format?.mimeType}")

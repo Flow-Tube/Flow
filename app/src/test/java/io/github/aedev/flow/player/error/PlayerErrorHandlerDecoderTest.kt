@@ -13,6 +13,7 @@ import org.junit.Test
 import org.schabi.newpipe.extractor.MediaFormat
 import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.AudioTrackType
+import java.util.Locale
 
 @UnstableApi
 class PlayerErrorHandlerDecoderTest {
@@ -20,6 +21,7 @@ class PlayerErrorHandlerDecoderTest {
     private val player = mockk<ExoPlayer>(relaxed = true)
     private val failedUrls = mutableSetOf<String>()
     private var currentAudio: AudioStream? = null
+    private var allAudio: List<AudioStream> = emptyList()
 
     private val handler =
         PlayerErrorHandler(
@@ -41,7 +43,7 @@ class PlayerErrorHandlerDecoderTest {
             getManualQualityHeight = { null },
             getCurrentVideoStream = { null },
             getCurrentAudioStream = { currentAudio },
-            getAvailableAudioStreams = { emptyList() },
+            getAllAudioStreams = { allAudio },
             setCurrentAudioStream = { audio -> currentAudio = audio },
             setRecoveryState = {},
             reloadPlaybackManager = {},
@@ -52,15 +54,23 @@ class PlayerErrorHandlerDecoderTest {
     private fun audioDecoderFailure() =
         PlaybackException("MediaCodecAudioRenderer error", null, PlaybackException.ERROR_CODE_DECODING_FAILED)
 
-    private fun originalAac(): AudioStream =
+    private fun audio(
+        id: String,
+        languageTag: String,
+        trackType: AudioTrackType,
+        format: MediaFormat = MediaFormat.M4A,
+    ): AudioStream =
         AudioStream
             .Builder()
-            .setId("140")
-            .setContent("https://example.invalid/140", true)
-            .setMediaFormat(MediaFormat.M4A)
+            .setId(id)
+            .setContent("https://example.invalid/$id", true)
+            .setMediaFormat(format)
             .setAverageBitrate(129_000)
-            .setAudioTrackType(AudioTrackType.ORIGINAL)
+            .setAudioTrackType(trackType)
+            .setAudioLocale(Locale.forLanguageTag(languageTag))
             .build()
+
+    private fun originalAac(): AudioStream = audio("140-en", "en", AudioTrackType.ORIGINAL)
 
     @Test
     fun `the first decoder failure re-prepares in place and keeps the media`() {
@@ -88,5 +98,34 @@ class PlayerErrorHandlerDecoderTest {
         verify(exactly = 1) { player.prepare() }
         assertThat(failedUrls).isEmpty()
         assertThat(currentAudio).isSameInstanceAs(playing)
+    }
+
+    @Test
+    fun `a repeated audio decoder failure moves to the other codec of the same track`() {
+        val aac = originalAac()
+        val opus = audio("251-en", "en", AudioTrackType.ORIGINAL, MediaFormat.WEBMA_OPUS)
+        val arabicDub = audio("140-ar", "ar", AudioTrackType.DUBBED)
+        currentAudio = aac
+        allAudio = listOf(arabicDub, aac, opus)
+
+        handler.handleError(audioDecoderFailure(), player)
+        handler.handleError(audioDecoderFailure(), player)
+
+        assertThat(failedUrls).containsExactly(aac.getContent())
+        assertThat(currentAudio).isSameInstanceAs(opus)
+        assertThat(events).isEmpty()
+    }
+
+    @Test
+    fun `an audio decoder failure with no other format of the track gives up instead of dubbing`() {
+        val aac = originalAac()
+        currentAudio = aac
+        allAudio = listOf(audio("140-ar", "ar", AudioTrackType.DUBBED), aac)
+
+        handler.handleError(audioDecoderFailure(), player)
+        handler.handleError(audioDecoderFailure(), player)
+
+        assertThat(currentAudio).isSameInstanceAs(aac)
+        assertThat(events).containsExactly("remember", "shutdown", "gave up").inOrder()
     }
 }
