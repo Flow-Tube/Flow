@@ -1,7 +1,6 @@
 package io.github.aedev.flow.ui.screens.player
 
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
@@ -570,18 +569,15 @@ fun VideoPlayerHost(
             )
         }
 
-        BackHandler(enabled = sidePanelState.visible, onBack = sidePanelState.close)
-
-        if (sidePanelState.visible) {
-            FullscreenSidePanel(
-                session = stageSession,
-                panelState = sidePanelState,
-                commentsUiState = commentsUiState,
-                videoAspectRatio = videoAspectRatio,
-                rememberSubtitleLanguage = rememberSubtitleLanguage,
-                onNavigateToChannel = onNavigateToChannel,
-            )
-        }
+        FullscreenPanels(
+            session = stageSession,
+            sidePanelState = sidePanelState,
+            canUseFullscreenSidePanel = canUseFullscreenSidePanel,
+            commentsUiState = commentsUiState,
+            videoAspectRatio = videoAspectRatio,
+            rememberSubtitleLanguage = rememberSubtitleLanguage,
+            onNavigateToChannel = onNavigateToChannel,
+        )
 
         VideoPlayerDialogs(
             session = stageSession,
