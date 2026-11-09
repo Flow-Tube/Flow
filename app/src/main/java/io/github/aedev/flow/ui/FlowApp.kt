@@ -423,7 +423,14 @@ fun FlowApp(
             tabs = navigationTabs,
             selectedTab = selectedTab,
             onTabSelected = { tab ->
-                val action = tabTapAction(tab, currentTab, selectedTab, searchIsTab = FlowTab.Search in currentNavigationTabs)
+                val action =
+                    tabTapAction(
+                        tab,
+                        currentTab,
+                        selectedTab,
+                        searchIsTab = FlowTab.Search in currentNavigationTabs,
+                        startTab = defaultTab,
+                    )
                 if (action == TabTap.SCROLL_TO_TOP) {
                     TabScrollEventBus.emitScrollToTop(tab.route)
                 } else {
