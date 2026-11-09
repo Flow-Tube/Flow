@@ -592,7 +592,7 @@
     <string name="theme_desc_espresso">Marrones café intensos y cálidos.</string>
     <string name="theme_name_gunmetal">Bronce</string>
     <string name="theme_desc_gunmetal">Grises industriales con un matiz metálico frío.</string>
-    <string name="content_settings_header_display">Mostrar</string>
+    <string name="content_settings_header_display">Visualización</string>
     <string name="content_settings_header_home_layout">Diseño de inicio</string>
     <string name="content_settings_title">Ajustes de Contenido</string>
     <string name="content_settings_home_layout_subtitle">Elija cómo se muestran los videos en la pantalla de inicio</string>
@@ -2845,7 +2845,7 @@
     <string name="quality_badge_height_template">%1$dp</string>
     <string name="duration_under_3">Menos de 3 min</string>
     <string name="duration_3_20">3 a 20 min</string>
-    <string name="channel_about_handle">Handle</string>
+    <string name="channel_about_handle">Alias</string>
     <string name="channel_about_joined">Se unió</string>
     <string name="channel_about_country">País</string>
     <string name="channel_about_videos">Vídeos</string>
@@ -3978,7 +3978,7 @@
     <string name="settings_network_title">Red</string>
     <string name="settings_wellbeing_title">Bienestar</string>
     <string name="settings_group_look">Aspecto y diseño</string>
-    <string name="settings_group_watching">Visualización</string>
+    <string name="settings_group_watching">Viendo</string>
     <string name="settings_group_data">Tus datos</string>
     <string name="settings_group_system">Sistema</string>
     <string name="settings_language_region_summary">Idioma de la aplicación, idioma del contenido y país</string>
@@ -4921,4 +4921,8 @@
     <string name="keyboard_shortcut_faster">Más rápido</string>
     <string name="keyboard_shortcut_slower">Más lento</string>
     <string name="session_lyric_repeated">%1$s (x%2$d)</string>
+    <string name="linked_restore_choose_title">¿Qué dispositivos sigues teniendo?</string>
+    <string name="linked_restore_choose_body">Restaurar cerrará la sesión en todos los dispositivos que no marques. Marca uno solo si lo tienes contigo, no solo porque su nombre parezca correcto. Si aún tienes un dispositivo que funciona, vuelve atrás y vincula este desde él.</string>
+    <string name="linked_restore_unknown_device">Dispositivo desconocido (%1$s)</string>
+    <string name="linked_error_restore_unfinished">La restauración aún no ha terminado. Flow la completará en la próxima sincronización.</string>
 </resources>
