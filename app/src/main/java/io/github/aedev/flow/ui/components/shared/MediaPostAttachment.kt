@@ -1,4 +1,4 @@
-package io.github.aedev.flow.ui.components.channel
+package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,18 +36,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.gif.repeatCount
+import coil3.request.ImageRequest
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.renderer.PostAttachment
-import io.github.aedev.flow.ui.components.shared.FullSizeImageDialog
-import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.formatDuration
 import io.github.aedev.flow.utils.formatViewCount
 
 @Composable
-internal fun CommunityPostAttachment(
+fun MediaPostAttachment(
     attachment: PostAttachment,
     onVideoClick: (Video) -> Unit,
     modifier: Modifier = Modifier,
@@ -79,7 +80,7 @@ private fun PostImages(
     // that there is one.
     if (resolved.size == 1) {
         AsyncImage(
-            model = if (compact) resolved.first() else whole.first(),
+            model = rememberPostImageRequest(if (compact) resolved.first() else whole.first()),
             contentDescription = stringResource(R.string.community_post_image_content_description),
             modifier =
                 modifier
@@ -106,7 +107,7 @@ private fun PostImages(
             pageSpacing = 8.dp,
         ) { page ->
             AsyncImage(
-                model = resolved[page],
+                model = rememberPostImageRequest(resolved[page]),
                 contentDescription = stringResource(R.string.community_post_image_content_description),
                 modifier =
                     Modifier
@@ -258,6 +259,21 @@ private fun PostSharedVideo(
         }
     }
 }
+
+/** GIF posts loop a few times and stop: the feed stays composed under the expanded player, unseen. */
+@Composable
+private fun rememberPostImageRequest(url: String): ImageRequest {
+    val context = LocalPlatformContext.current
+    return remember(context, url) {
+        ImageRequest
+            .Builder(context)
+            .data(url)
+            .repeatCount(GIF_REPEAT_COUNT)
+            .build()
+    }
+}
+
+private const val GIF_REPEAT_COUNT = 2
 
 private const val VIDEO_ASPECT_RATIO = 16f / 9f
 

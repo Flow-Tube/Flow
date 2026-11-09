@@ -86,6 +86,7 @@ class PlaybackSettingsViewModel
 
         val autoPip = preferences.autoPipEnabled.asState(true)
         val continueWatchingMiniPlayer = preferences.miniPlayerContinueWatchingEnabled.asState(true)
+        val minimizeToAudioBar = preferences.minimizeToAudioBar.asState(false)
         val restoreMusicMiniPlayer = preferences.showRestoredMusicMiniPlayer.asState(true)
         val openMusicPlayerOnPlay = preferences.openMusicPlayerOnPlay.asState(false)
 
@@ -244,6 +245,8 @@ class PlaybackSettingsViewModel
         fun setAutoPip(value: Boolean) = write { preferences.setAutoPipEnabled(value) }
 
         fun setContinueWatchingMiniPlayer(value: Boolean) = write { preferences.setMiniPlayerContinueWatchingEnabled(value) }
+
+        fun setMinimizeToAudioBar(value: Boolean) = write { preferences.setMinimizeToAudioBar(value) }
 
         fun setRestoreMusicMiniPlayer(value: Boolean) = write { preferences.setShowRestoredMusicMiniPlayer(value) }
 

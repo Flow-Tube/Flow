@@ -178,7 +178,9 @@ android {
         // because initWith copies release as it stands at this point.
         create("nightly") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".nightly"
+            // PR runs carry the nightly key too, so their own id keeps a test build from installing over a
+            // tester's nightly, which the next nightly would then open with an older schema (#1854).
+            applicationIdSuffix = if (providers.gradleProperty("flow.prBuild").isPresent) ".nightly.pr" else ".nightly"
             versionNameSuffix = "-nightly"
             matchingFallbacks += "release"
             buildConfigField("String", "UPDATE_CHANNEL", "\"nightly\"")
@@ -320,6 +322,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.compose.reorderable)
     implementation(libs.coil.video)
+    implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
     implementation("androidx.palette:palette-ktx:1.0.0")
 

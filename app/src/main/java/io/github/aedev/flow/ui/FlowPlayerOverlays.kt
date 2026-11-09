@@ -29,6 +29,7 @@ import io.github.aedev.flow.data.local.MiniBarSwipeAction
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
+import io.github.aedev.flow.player.BackgroundPlaybackPolicy
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
@@ -72,12 +73,19 @@ internal fun FlowPlayerSessionEffects(
     isInPipMode: Boolean,
     openOrigins: MediaOpenOrigins,
 ) {
-    val activity = LocalContext.current as? ComponentActivity
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
     val playerUiState by playerUiStateResult
     var playerVisible by playerVisibleState
     val currentIsInPipMode by rememberUpdatedState(isInPipMode)
     val enhancedPlayerManager = remember { EnhancedPlayerManager.getInstance() }
     var autoAdvancedInMiniPlayer by remember { mutableStateOf(false) }
+    val minimizeToAudioBar by remember(context) { PlayerPreferences(context).minimizeToAudioBar }
+        .collectAsStateWithLifecycle(initialValue = false)
+
+    LaunchedEffect(playerUiState.isBackgroundPlaybackMode) {
+        GlobalPlayerState.setVideoSoundOnly(playerUiState.isBackgroundPlaybackMode)
+    }
 
     LaunchedEffect(playerSheetState.currentValue, playerSheetState.isDragging) {
         if (!playerSheetState.isDragging) {
@@ -87,10 +95,23 @@ internal fun FlowPlayerSessionEffects(
                 }
 
                 PlayerSheetValue.Collapsed -> {
-                    if (playerUiState.isBackgroundPlaybackMode) {
-                        GlobalPlayerState.hideMiniPlayer()
-                    } else {
-                        GlobalPlayerState.collapseMiniPlayer()
+                    when {
+                        playerUiState.isBackgroundPlaybackMode -> {
+                            GlobalPlayerState.hideMiniPlayer()
+                        }
+
+                        BackgroundPlaybackPolicy.shouldCollapseToAudioBar(
+                            minimizeToAudioBar = minimizeToAudioBar,
+                            isBackgroundPlaybackMode = playerUiState.isBackgroundPlaybackMode,
+                            isRestoredSession = playerUiState.isRestoredSession,
+                            hasVideo = playerUiState.cachedVideo != null,
+                        ) -> {
+                            playerViewModel.startBackgroundPlayback(explicit = false)
+                        }
+
+                        else -> {
+                            GlobalPlayerState.collapseMiniPlayer()
+                        }
                     }
                 }
             }

@@ -4,8 +4,10 @@ import android.content.Context
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -14,6 +16,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -40,6 +43,11 @@ class CipherWebView private constructor(
     private var nextCallId = 0
 
     @Volatile private var pendingCall: Pair<Int, CancellableContinuation<String>>? = null
+
+    private val initFinished = AtomicBoolean(false)
+
+    @Volatile var isDestroyed: Boolean = false
+        private set
 
     @Volatile var nFunctionAvailable: Boolean = false
         private set
@@ -83,6 +91,26 @@ class CipherWebView private constructor(
                     return super.onConsoleMessage(m)
                 }
             }
+
+        // Unhandled, a renderer crash or the system reclaiming it for memory kills the whole app.
+        webView.webViewClient =
+            object : WebViewClient() {
+                override fun onRenderProcessGone(
+                    view: WebView,
+                    detail: RenderProcessGoneDetail,
+                ): Boolean {
+                    Log.w(TAG, "Cipher renderer gone (crashed=${detail.didCrash()}), dropping this WebView")
+                    release(rendererAlive = false)
+                    val error = CipherException("Cipher WebView renderer gone")
+                    finishInit(Result.failure(error))
+                    pendingCall?.let { (id, _) -> takePendingCall(id)?.resumeWithException(error) }
+                    return true
+                }
+            }
+    }
+
+    private fun finishInit(result: Result<CipherWebView>) {
+        if (initFinished.compareAndSet(false, true)) initContinuation.resumeWith(result)
     }
 
     private fun loadPlayerJsFromFile() {
@@ -322,13 +350,13 @@ function discoverAndInit() {
     @JavascriptInterface
     fun onPlayerJsLoaded() {
         Log.d(TAG, "Player.js loaded: sig=$sigFunctionAvailable, n=$nFunctionAvailable, nFunc=$discoveredNFuncName")
-        initContinuation.resume(this)
+        finishInit(Result.success(this))
     }
 
     @JavascriptInterface
     fun onPlayerJsError(error: String) {
         Log.e(TAG, "Player.js load FAILED: $error")
-        initContinuation.resumeWithException(CipherException("Player JS load failed: $error"))
+        finishInit(Result.failure(CipherException("Player JS load failed: $error")))
     }
 
     suspend fun transformN(nValue: String): String {
@@ -350,6 +378,10 @@ function discoverAndInit() {
             withTimeoutOrNull(CALL_TIMEOUT_MS) {
                 withContext(Dispatchers.Main) {
                     suspendCancellableCoroutine { cont ->
+                        if (isDestroyed) {
+                            cont.resumeWithException(CipherException("$function called on a destroyed CipherWebView"))
+                            return@suspendCancellableCoroutine
+                        }
                         pendingCall = id to cont
                         webView.evaluateJavascript("$function($id, '${escapeJsString(argument)}')", null)
                     }
@@ -383,10 +415,19 @@ function discoverAndInit() {
 
     fun close() {
         Log.d(TAG, "Closing CipherWebView...")
-        webView.clearHistory()
-        webView.clearCache(true)
-        webView.loadUrl("about:blank")
-        webView.onPause()
+        release(rendererAlive = true)
+    }
+
+    private fun release(rendererAlive: Boolean) {
+        if (isDestroyed) return
+        isDestroyed = true
+        // Once its renderer is gone a WebView may only be destroyed, never loaded or cleared.
+        if (rendererAlive) {
+            webView.clearHistory()
+            webView.clearCache(true)
+            webView.loadUrl("about:blank")
+            webView.onPause()
+        }
         webView.removeAllViews()
         webView.destroy()
     }

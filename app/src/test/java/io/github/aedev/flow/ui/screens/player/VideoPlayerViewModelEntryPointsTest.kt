@@ -334,6 +334,23 @@ class VideoPlayerViewModelEntryPointsTest {
         }
 
     @Test
+    fun `a collapse to the audio bar plays sound only without asking to outlive the app`() =
+        runTest {
+            val viewModel = newViewModel()
+            val video = video("vid_a")
+            viewModel.playLocalVideo(video, "content://media/1")
+            advanceUntilIdle()
+
+            viewModel.startBackgroundPlayback(explicit = false)
+
+            val background = viewModel.uiState.value
+            assertThat(background.isBackgroundPlaybackMode).isTrue()
+            verify(exactly = 1) { harness.playerManager.continueVideoPlaybackInBackground() }
+            verify(exactly = 0) { GlobalPlayerState.setExplicitBackgroundPlaybackActive(true) }
+            assertThat(GlobalPlayerState.isExplicitBackgroundPlaybackActive.value).isFalse()
+        }
+
+    @Test
     fun `startBackgroundPlayback without any current video is a no-op`() =
         runTest {
             val viewModel = newViewModel()

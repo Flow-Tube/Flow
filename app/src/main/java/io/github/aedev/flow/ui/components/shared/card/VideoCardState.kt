@@ -25,6 +25,7 @@ import io.github.aedev.flow.data.repository.OriginalTitleRepository
 import io.github.aedev.flow.ui.components.LocalDeArrow
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
 import io.github.aedev.flow.ui.components.rememberDeArrowResult
+import io.github.aedev.flow.ui.components.shared.LocalArtworkColors
 import io.github.aedev.flow.ui.components.shared.LocalThumbnailQuality
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
@@ -165,6 +166,7 @@ fun ProvideVideoCardState(
     val thumbnailQualities by thumbnailQualitiesFlow.collectAsStateWithLifecycle(null)
     val isWifi = rememberIsOnWifi()
     val thumbnailQuality = thumbnailQualities?.let { (wifi, cellular) -> ThumbnailQuality.effective(isWifi, wifi, cellular) }
+    val artworkColors by playerPreferences.videoArtworkColors.collectAsStateWithLifecycle(true)
 
     val progressFlow =
         remember(context) {
@@ -182,6 +184,7 @@ fun ProvideVideoCardState(
         LocalVideoWatchProgress provides progressStore,
         LocalVideoCardActions provides actions,
         LocalThumbnailQuality provides thumbnailQuality,
+        LocalArtworkColors provides artworkColors,
         LocalOriginalTitles provides originalTitles,
         LocalDeArrow provides deArrow,
         content = content,

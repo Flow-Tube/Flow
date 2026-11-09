@@ -721,7 +721,7 @@
     <string name="stats_disclaimer">Le statistiche si basano sulla cronologia delle visualizzazioni in questa app. L\'utilizzo effettivo potrebbe variare.</string>
     <string name="tools_to_manage_time">Strumenti per gestire il tuo utilizzo</string>
     <string name="up_next">A SEGUIRE</string>
-    <string name="deep_flow_mode_subtitle">Sospendi l\'apprendimento mentre navighi</string>
+    <string name="deep_flow_mode_subtitle">Sospendi l\'apprendimento e la cronologia di ricerca</string>
     <string name="deep_flow_mode_title">Modalità Deep Flow</string>
     <string name="deep_flow_learning_paused">APPRENDIMENTO SOSPESO</string>
     <string name="deep_flow_expires_in">Scade tra %s</string>
@@ -2686,7 +2686,7 @@
         <item quantity="other">Questa operazione rimuove %d notifiche. Non può essere annullata.</item>
     </plurals>
     <string name="player_appearance_haptics_title">Vibrazione</string>
-    <string name="player_appearance_haptics_subtitle">Vibra leggermente ai tocchi e i gesti sul player</string>
+    <string name="player_appearance_haptics_subtitle">Vibra leggermente ai tocchi e ai gesti</string>
     <string name="player_appearance_gesture_overlay_title">Stile overlay dei gesti</string>
     <string name="gesture_overlay_style_circular">Circolare</string>
     <string name="gesture_overlay_style_vertical">Verticale</string>
@@ -4836,4 +4836,22 @@
     <string name="lyrics_on_lock_screen_summary">Mostra la riga corrente come titolo del brano, anche alle altre app</string>
     <string name="lyrics_on_lock_screen_timing">Sincronizzazione dei testi nella schermata di blocco</string>
     <string name="lyrics_on_lock_screen_timing_summary">Anticipa le righe se sembrano in ritardo</string>
+    <string name="lyrics_romanization_only">Solo romanizzazione</string>
+    <string name="lyrics_romanization_only_summary">Sostituisci il testo originale con lettere latine</string>
+    <string name="lyrics_sponsorblock_timing">Adatta i testi ai video musicali</string>
+    <string name="lyrics_sponsorblock_timing_summary">Utilizza SponsorBlock per saltare le parti senza musica</string>
+    <string name="lyrics_on_demand">Carica i testi solo se aperti</string>
+    <string name="settings_keywords_lyrics_on_demand">privacy, rete, background, dati</string>
+    <string name="lyrics_timing_on_time">Nessuna modifica</string>
+    <string name="lyrics_timing_earlier">%1$s s prima</string>
+    <string name="lyrics_timing_later">%1$s s dopo</string>
+    <string name="comments_load_more">Carica altri commenti</string>
+    <string name="comments_timed_follow">Segui il video</string>
+    <string name="download_already_running">Questo video è già in corso di download</string>
+    <string name="download_replaces_existing">Sostituisci la copia che hai già scaricato</string>
+    <string name="notification_download_other_audio_track">La traccia audio non era disponibile. Al suo posto è stata salvata %1$s</string>
+    <string name="player_appearance_more_videos_gesture_title">Scorri verso l\'alto per altri video</string>
+    <string name="player_appearance_more_videos_gesture_subtitle">Scorri verso l\'alto in modalità a schermo intero per vedere i video correlati</string>
+    <string name="lyrics_provider_netease">NetEase</string>
+    <string name="lyrics_provider_amll">AMLL</string>
 </resources>

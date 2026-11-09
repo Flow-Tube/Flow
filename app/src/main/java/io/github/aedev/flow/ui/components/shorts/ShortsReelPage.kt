@@ -51,6 +51,7 @@ import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.shorts.ShortsPlayerPool
 import io.github.aedev.flow.player.toDisplayAspectRatioOrNull
+import io.github.aedev.flow.ui.components.shared.MediaBufferingIndicator
 import io.github.aedev.flow.ui.components.shared.MediaSeekBar
 import io.github.aedev.flow.ui.components.shared.sharedSubscriptionBellViewModel
 import io.github.aedev.flow.ui.components.shared.toggleHapticType
@@ -281,7 +282,7 @@ internal fun ShortsReelPage(
                     .padding(top = ShortsOverlayDefaults.AutoScrollBadgeTopPadding, end = AutoScrollBadgeEndPadding),
         )
 
-        ShortsBufferingIndicator(
+        MediaBufferingIndicator(
             visible = pageState.isBuffering,
             modifier = Modifier.align(Alignment.Center),
         )

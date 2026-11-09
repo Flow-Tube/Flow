@@ -77,6 +77,10 @@ class CommentUiTest {
                     onSeekMs = onSeekMs,
                     onLoadReplies = {},
                     onLoadMoreReplies = {},
+                    isRepliesVisible = false,
+                    onToggleReplies = {},
+                    isExpanded = false,
+                    onExpand = {},
                 )
             }
         }

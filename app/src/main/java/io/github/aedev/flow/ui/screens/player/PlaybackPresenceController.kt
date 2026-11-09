@@ -116,7 +116,8 @@ internal class PlaybackPresenceController(
         uiState.update { it.copy(resumedInMiniPlayer = false) }
     }
 
-    fun startBackgroundPlayback() {
+    /** @param explicit the Background button: playback then outlives leaving the app whatever the Background play setting says. */
+    fun startBackgroundPlayback(explicit: Boolean = true) {
         val state = uiState.value
         val video = state.cachedVideo ?: GlobalPlayerState.currentVideo.value ?: return
         playerManager.startBackgroundService(
@@ -125,7 +126,7 @@ internal class PlaybackPresenceController(
             channel = video.channelName,
             thumbnail = video.thumbnailUrl,
         )
-        GlobalPlayerState.setExplicitBackgroundPlaybackActive(true)
+        if (explicit) GlobalPlayerState.setExplicitBackgroundPlaybackActive(true)
         playerManager.continueVideoPlaybackInBackground()
         uiState.update {
             it.copy(

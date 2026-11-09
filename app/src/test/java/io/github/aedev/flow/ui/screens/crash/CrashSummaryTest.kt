@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.utils.FlowCrashReportFormatter
 import io.github.aedev.flow.utils.FlowCrashReportSnapshot
 import org.junit.Test
+import java.net.URLDecoder
 import java.time.LocalDateTime
 
 class CrashSummaryTest {
@@ -96,6 +97,73 @@ class CrashSummaryTest {
         assertThat(
             summary.issueUrl(),
         ).contains("title=%5BBug%5D%3A%20TransactionTooLargeException%20in%20PendingTransactionActions.java%3A146")
+    }
+
+    @Test
+    fun `a crash Android wraps twice is named and logged by its innermost cause (1871)`() {
+        val wrapped =
+            FlowCrashReportFormatter.build(
+                FlowCrashReportSnapshot(
+                    timestampMs = 0,
+                    threadName = "main",
+                    threadId = 2,
+                    exceptionClass = "java.lang.RuntimeException",
+                    exceptionMessage = "java.lang.reflect.InvocationTargetException",
+                    stackTrace =
+                        """
+                        java.lang.RuntimeException: java.lang.reflect.InvocationTargetException
+                        	at com.android.internal.os.RuntimeInit${'$'}MethodAndArgsCaller.run(RuntimeInit.java:588)
+                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1103)
+                        Caused by: java.lang.reflect.InvocationTargetException
+                        	at java.lang.reflect.Method.invoke(Native Method)
+                        	at com.android.internal.os.RuntimeInit${'$'}MethodAndArgsCaller.run(RuntimeInit.java:578)
+                        	... 1 more
+                        Caused by: androidx.compose.material3.internal.AnchoredDraggableUninitializedException: offset NaN, anchors {Hidden=0.0}
+                        	at androidx.compose.material3.AppBarKt${'$'}${'$'}ExternalSyntheticLambda12.invoke(r8-map-id-6b62:135)
+                        	at androidx.compose.material3.AppBarKt${'$'}${'$'}ExternalSyntheticLambda12.invoke(r8-map-id-6b62:114)
+                        	at androidx.compose.ui.layout.Placeable${'$'}PlacementScope.place(r8-map-id-6b62:20)
+                        	at io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueueItemKt.QueueRow(r8-map-id-6b62:79)
+                        	at androidx.compose.ui.node.LayoutNode.place(r8-map-id-6b62:40)
+                        	... 30 more
+                        """.trimIndent(),
+                    deviceInfo = "  Model: SM-A137F\n  Manufacturer: samsung",
+                    memoryInfo = "",
+                    breadcrumbs = emptyList(),
+                ),
+            )
+        val summary = parseCrashSummary(wrapped)
+        val logs = URLDecoder.decode(summary.issueUrl().substringAfter("&logs="), Charsets.UTF_8.name())
+
+        assertThat(summary.headline).isEqualTo("AnchoredDraggableUninitializedException")
+        assertThat(summary.location).isEqualTo("r8-map-id-6b62:79")
+        assertThat(logs).contains("Caused by: androidx.compose.material3.internal.AnchoredDraggableUninitializedException: offset NaN")
+        assertThat(logs).contains("PlaylistQueueItemKt.QueueRow")
+        assertThat(logs).doesNotContain("Method.invoke")
+    }
+
+    @Test
+    fun `a long outer trace never pushes the cause out of the logs field`() {
+        val outer = (1..40).joinToString("\n") { "\tat some.Outer.frame$it(Outer.kt:$it)" }
+        val report =
+            FlowCrashReportFormatter.build(
+                FlowCrashReportSnapshot(
+                    timestampMs = 0,
+                    threadName = "main",
+                    threadId = 2,
+                    exceptionClass = "java.lang.RuntimeException",
+                    exceptionMessage = "x".repeat(2_000),
+                    stackTrace =
+                        "java.lang.RuntimeException: boom\n$outer\n" +
+                            "Caused by: java.io.IOException: disk\n\tat some.Inner.read(Inner.kt:1)",
+                    deviceInfo = "",
+                    memoryInfo = "",
+                    breadcrumbs = emptyList(),
+                ),
+            )
+        val logs = URLDecoder.decode(parseCrashSummary(report).issueUrl().substringAfter("&logs="), Charsets.UTF_8.name())
+
+        assertThat(logs.length).isAtMost(1_500)
+        assertThat(logs).endsWith("Caused by: java.io.IOException: disk\nat some.Inner.read(Inner.kt:1)")
     }
 
     @Test

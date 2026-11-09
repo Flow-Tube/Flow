@@ -237,6 +237,50 @@ class PlayerScreenStateTest {
     }
 
     @Test
+    fun `resetForNewVideo starts the comments at the top with every thread closed`() {
+        val state = PlayerScreenState()
+        val listState = state.commentsListState
+        state.commentThreads.toggleReplies("a")
+        state.commentThreads.expandText("b")
+
+        state.resetForNewVideo()
+
+        assertThat(state.commentsListState).isNotSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isFalse()
+        assertThat(state.commentThreads.isTextExpanded("b")).isFalse()
+    }
+
+    @Test
+    fun `closing the comments keeps their place and threads`() {
+        val state = PlayerScreenState()
+        val listState = state.commentsListState
+        state.open(PlayerSheet.Comments())
+        state.commentThreads.toggleReplies("a")
+
+        state.dismissMediaSheets()
+        state.isFullscreen = true
+
+        assertThat(state.commentsListState).isSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isTrue()
+    }
+
+    @Test
+    fun `changing the sort resets the comments place and picking the same sort keeps it`() {
+        val state = PlayerScreenState()
+        val listState = state.commentsListState
+        state.commentThreads.toggleReplies("a")
+
+        state.changeCommentSort(CommentSortFilter.TOP)
+        assertThat(state.commentsListState).isSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isTrue()
+
+        state.changeCommentSort(CommentSortFilter.NEWEST)
+        assertThat(state.commentSortFilter).isEqualTo(CommentSortFilter.NEWEST)
+        assertThat(state.commentsListState).isNotSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isFalse()
+    }
+
+    @Test
     fun `dismissMediaSheets closes the open sheet and leaves the side column toggle alone`() {
         val state = PlayerScreenState().apply { dirtyEverything() }
         val dirty = state.snapshot()

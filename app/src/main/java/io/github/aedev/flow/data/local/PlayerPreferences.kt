@@ -138,6 +138,7 @@ class PlayerPreferences(
         val MUSIC_PLAYER_BACKGROUND_STYLE = stringPreferencesKey("music_player_background_style")
         val HIDE_MUSIC_PLAYER_ARTWORK = booleanPreferencesKey("hide_music_player_artwork")
         val MUSIC_ARTWORK_CONTROL_COLORS = booleanPreferencesKey("music_artwork_control_colors")
+        val VIDEO_ARTWORK_COLORS = booleanPreferencesKey("video_artwork_colors")
         val MUSIC_PLAIN_CONTROL_COLORS = stringPreferencesKey("music_plain_control_colors")
         val MUSIC_SLEEP_TIMER_BUTTON = booleanPreferencesKey("music_sleep_timer_button")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
@@ -260,6 +261,7 @@ class PlayerPreferences(
         val MINI_PLAYER_SHOW_SKIP_CONTROLS = booleanPreferencesKey("mini_player_show_skip_controls")
         val MINI_PLAYER_SHOW_NEXT_PREV_CONTROLS = booleanPreferencesKey("mini_player_show_next_prev_controls")
         val MINI_PLAYER_CONTINUE_WATCHING_ENABLED = booleanPreferencesKey("mini_player_continue_watching_enabled")
+        val MINIMIZE_TO_AUDIO_BAR = booleanPreferencesKey("minimize_to_audio_bar")
         val SHOW_RESTORED_MUSIC_MINI_PLAYER = booleanPreferencesKey("show_restored_music_mini_player")
         val OPEN_MUSIC_PLAYER_ON_PLAY = booleanPreferencesKey("open_music_player_on_play")
 
@@ -493,6 +495,7 @@ class PlayerPreferences(
         val PORTRAIT_IDLE_PROGRESS_BAR = device(stringPreferencesKey("portrait_idle_progress_bar"))
         val FULLSCREEN_SEEKBAR_PADDING_MODE = device(stringPreferencesKey("fullscreen_seekbar_padding_mode"))
         val FULLSCREEN_SEEKBAR_CUSTOM_PADDING_DP = device(intPreferencesKey("fullscreen_seekbar_custom_padding_dp"))
+        val FULLSCREEN_SIDE_PANEL_WIDTH = device(stringPreferencesKey("fullscreen_side_panel_width"))
         val FRAME_STEP_BUTTONS_ENABLED = device(booleanPreferencesKey("frame_step_buttons_enabled"))
 
         // Mini Player Customizations
@@ -1011,6 +1014,17 @@ class PlayerPreferences(
     suspend fun setMusicArtworkControlColors(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MUSIC_ARTWORK_CONTROL_COLORS] = enabled
+        }
+    }
+
+    /** Whether the video description, comments, chapters and transcript sheets take the thumbnail's colors. */
+    val videoArtworkColors: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.VIDEO_ARTWORK_COLORS] ?: true }
+
+    suspend fun setVideoArtworkColors(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.VIDEO_ARTWORK_COLORS] = enabled
         }
     }
 
@@ -2288,6 +2302,20 @@ class PlayerPreferences(
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.FULLSCREEN_SEEKBAR_CUSTOM_PADDING_DP] =
                 paddingDp.coerceIn(0, MAX_FULLSCREEN_SEEKBAR_PADDING_DP)
+        }
+    }
+
+    val fullscreenSidePanelWidth: Flow<FullscreenSidePanelWidth> =
+        context.devicePreferencesDataStore.data
+            .map { preferences ->
+                preferences[DeviceKeys.FULLSCREEN_SIDE_PANEL_WIDTH]
+                    ?.let { stored -> runCatching { FullscreenSidePanelWidth.valueOf(stored) }.getOrNull() }
+                    ?: FullscreenSidePanelWidth.DEFAULT
+            }
+
+    suspend fun setFullscreenSidePanelWidth(width: FullscreenSidePanelWidth) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.FULLSCREEN_SIDE_PANEL_WIDTH] = width.name
         }
     }
 
@@ -4139,6 +4167,18 @@ class PlayerPreferences(
         }
     }
 
+    val minimizeToAudioBar: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.MINIMIZE_TO_AUDIO_BAR] ?: false
+            }
+
+    suspend fun setMinimizeToAudioBar(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINIMIZE_TO_AUDIO_BAR] = enabled
+        }
+    }
+
     val showRestoredMusicMiniPlayer: Flow<Boolean> =
         context.playerPreferencesDataStore.data
             .map { preferences ->
@@ -4663,6 +4703,16 @@ enum class SpeedSwipeSide {
 /** How much one step of a speed swipe changes the speed by. */
 val SPEED_SWIPE_STEPS = listOf(0.05f, 0.1f, 0.25f)
 const val DEFAULT_SPEED_SWIPE_STEP = 0.1f
+
+/** How much of a landscape fullscreen player the side panel takes, as a share of the window width. */
+enum class FullscreenSidePanelWidth(
+    val fraction: Float,
+) {
+    NARROW(0.25f),
+    SMALL(0.33f),
+    DEFAULT(0.42f),
+    WIDE(0.5f),
+}
 
 /**
  * How much of the player's width each double-tap seek side takes. [reachesEdges] lets taps count right

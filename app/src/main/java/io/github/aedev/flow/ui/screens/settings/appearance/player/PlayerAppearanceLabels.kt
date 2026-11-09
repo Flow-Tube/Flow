@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance.player
 
 import androidx.annotation.StringRes
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.local.SeekbarPaddingMode
@@ -57,6 +58,15 @@ internal fun seekbarModeLabel(mode: SeekbarPaddingMode): Int =
         SeekbarPaddingMode.SPACED -> R.string.player_portrait_seekbar_width_spaced
         SeekbarPaddingMode.DEFAULT -> R.string.player_fullscreen_seekbar_width_default
         SeekbarPaddingMode.CUSTOM -> R.string.player_fullscreen_seekbar_width_custom
+    }
+
+@StringRes
+internal fun sidePanelWidthLabel(width: FullscreenSidePanelWidth): Int =
+    when (width) {
+        FullscreenSidePanelWidth.NARROW -> R.string.player_side_panel_width_narrow
+        FullscreenSidePanelWidth.SMALL -> R.string.player_side_panel_width_small
+        FullscreenSidePanelWidth.DEFAULT -> R.string.player_side_panel_width_default
+        FullscreenSidePanelWidth.WIDE -> R.string.player_side_panel_width_wide
     }
 
 @StringRes
