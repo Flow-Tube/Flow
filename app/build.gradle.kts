@@ -322,6 +322,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.compose.reorderable)
     implementation(libs.coil.video)
+    implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
     implementation("androidx.palette:palette-ktx:1.0.0")
 

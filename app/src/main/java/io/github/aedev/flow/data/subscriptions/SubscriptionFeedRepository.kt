@@ -339,6 +339,12 @@ class SubscriptionFeedRepository
         suspend fun cachedVideo(videoId: String): Video? =
             withContext(PerformanceDispatcher.diskIO) { cacheDao.getSubscriptionFeedRow(videoId)?.toVideo() }
 
+        /** Each followed channel's newest cached upload time, for ordering channels by activity. */
+        suspend fun latestUploadByChannel(): Map<String, Long> =
+            withContext(PerformanceDispatcher.diskIO) {
+                cacheDao.subscriptionLatestUploads().associate { it.channelId to it.latestUploadAt }
+            }
+
         /** Writes back metadata the on-demand player lookup resolved for already-cached rows. */
         suspend fun updateEnrichedMetadata(videos: Collection<Video>) {
             if (videos.isEmpty()) return

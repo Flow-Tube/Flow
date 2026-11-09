@@ -44,6 +44,7 @@ import io.github.aedev.flow.ui.components.search.SearchFilterDialog
 import io.github.aedev.flow.ui.components.search.SearchSuggestionsPanel
 import io.github.aedev.flow.ui.components.search.SearchTopBar
 import io.github.aedev.flow.ui.components.search.SearchTopBarActions
+import io.github.aedev.flow.ui.components.shared.MediaPostCommentsSheet
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 
@@ -185,6 +186,10 @@ fun SearchScreen(
                 dismissKeyboard = state::stopTyping,
             )
         }
+        MediaPostCommentsSheet(
+            loader = viewModel.postComments,
+            onAuthorClick = { channelId -> onChannelClick(Channel(channelId, "", "", 0)) },
+        )
     }
 
     if (showFilters) {

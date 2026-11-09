@@ -64,13 +64,13 @@ import io.github.aedev.flow.ui.components.channel.ChannelReadingPane
 import io.github.aedev.flow.ui.components.channel.ChannelRow
 import io.github.aedev.flow.ui.components.channel.ChannelTabItems
 import io.github.aedev.flow.ui.components.channel.ChannelTabRow
-import io.github.aedev.flow.ui.components.channel.CommunityPostCard
 import io.github.aedev.flow.ui.components.channel.PostsPaneMaxWidth
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
 import io.github.aedev.flow.ui.components.shared.FeedShelfActions
 import io.github.aedev.flow.ui.components.shared.FeedShelfSections
 import io.github.aedev.flow.ui.components.shared.FeedShelfSlots
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.MediaPostCard
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -367,7 +367,7 @@ internal fun ChannelContent(
                         slots =
                             FeedShelfSlots(
                                 post = { post, compact ->
-                                    CommunityPostCard(
+                                    MediaPostCard(
                                         post = post,
                                         onAuthorClick = { onChannelClick(header.id) },
                                         onCommentsClick = { onCommunityPostComments(post) },

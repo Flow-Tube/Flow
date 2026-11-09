@@ -18,6 +18,7 @@ import io.github.aedev.flow.data.model.Playlist
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.paging.SearchResultItem
 import io.github.aedev.flow.data.paging.SearchShelfKind
+import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.PlaylistCard
 import io.github.aedev.flow.ui.components.PlaylistCardLayout
@@ -42,6 +43,7 @@ data class SearchResultActions(
     val onSubscribeToggle: (Channel) -> Unit = {},
     val isNotifying: (String) -> Boolean = { false },
     val onNotificationChange: (Channel, Boolean) -> Unit = { _, _ -> },
+    val onPostClick: (CommunityPost) -> Unit = {},
 )
 
 @Composable
@@ -120,6 +122,7 @@ fun SearchResults(
                         onVideoClick = actions.onVideoClick,
                         onShortsClick = actions.onShortsClick,
                         onChannelClick = { actions.onChannelClick(Channel(it, "", "", 0)) },
+                        onPostClick = actions.onPostClick,
                     )
                 }
 
