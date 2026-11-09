@@ -448,7 +448,7 @@ internal class MusicCrossfader(
     private fun handOff(deltaMs: Long) {
         val player = tail ?: return
         fadeClockMs =
-            CrossfadePolicy.fadeClockMs(settings.seconds, session.currentPosition, session.duration, session.playbackParameters.speed)
+            CrossfadePolicy.fadeClockMs(settings.fadeMs, session.currentPosition, session.duration, session.playbackParameters.speed)
         tailGain = session.volume
         player.volume = tailGain
         player.setPlaybackSpeed(session.playbackParameters.speed)

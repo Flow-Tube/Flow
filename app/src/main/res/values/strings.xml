@@ -4200,10 +4200,15 @@
     <string name="crossfade_curve_s_curve">Smooth</string>
     <string name="crossfade_curve_s_curve_detail">Starts and ends slowly, changes in the middle</string>
     <string name="crossfade_curve_hold">Hold</string>
-    <string name="crossfade_curve_hold_detail">Keeps the current song up, then changes late</string>
+    <string name="crossfade_curve_hold_detail">Keeps the current song up while the next comes in</string>
     <string name="crossfade_curve_gentle">Gentle</string>
-    <string name="crossfade_curve_gentle_detail">Softer in the middle of the fade</string>
+    <string name="crossfade_curve_gentle_detail">The current song leaves early, the next comes in steadily</string>
     <string name="settings_keywords_crossfade">fade, transition, blend, gapless, mix</string>
+    <string name="settings_crossfade_duration_title">Fade length</string>
+    <string name="settings_keywords_crossfade_duration">duration, seconds, milliseconds, crossfade</string>
+    <string name="settings_milliseconds_value">%1$s ms</string>
+    <string name="crossfade_chart_outgoing">Current song</string>
+    <string name="crossfade_chart_incoming">Next song</string>
     <string name="settings_quality_tab_video">Video</string>
     <string name="settings_quality_tab_shorts">Shorts</string>
     <string name="settings_quality_tab_music">Music</string>

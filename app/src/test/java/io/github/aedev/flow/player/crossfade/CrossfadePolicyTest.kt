@@ -7,7 +7,7 @@ import org.junit.Test
 class CrossfadePolicyTest {
     private val song =
         CrossfadePolicy.Moment(
-            fadeSeconds = 6,
+            fadeMs = 6_000L,
             playing = true,
             hasNext = true,
             repeatsOne = false,
@@ -27,13 +27,13 @@ class CrossfadePolicyTest {
     @Test
     fun `the fade keeps its clock length at other speeds`() {
         assertThat(CrossfadePolicy.fadeStartMs(song.copy(speed = 1.5f))).isEqualTo(191_000L)
-        assertThat(CrossfadePolicy.fadeMediaMs(20, 1f)).isEqualTo(CrossfadePolicy.MAX_SECONDS * 1_000L)
+        assertThat(CrossfadePolicy.fadeMediaMs(20_000L, 1f)).isEqualTo(CrossfadePolicy.MAX_MS)
     }
 
     @Test
     fun `no fade when off, paused, last, repeating one, a video, the sleep timer's last song or too short`() {
         listOf(
-            song.copy(fadeSeconds = 0),
+            song.copy(fadeMs = 0L),
             song.copy(playing = false),
             song.copy(hasNext = false),
             song.copy(repeatsOne = true),
@@ -114,11 +114,11 @@ class CrossfadePolicyTest {
     }
 
     @Test
-    fun `the fade lasts the chosen seconds, or what is left of the song on the clock`() {
-        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 170_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(6_000L)
-        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 181_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(4_000L)
-        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 181_000L, durationMs = 185_000L, speed = 2f)).isEqualTo(2_000L)
-        assertThat(CrossfadePolicy.fadeClockMs(6, positionMs = 185_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(1L)
+    fun `the fade lasts the chosen length, or what is left of the song on the clock`() {
+        assertThat(CrossfadePolicy.fadeClockMs(6_000L, positionMs = 170_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(6_000L)
+        assertThat(CrossfadePolicy.fadeClockMs(6_000L, positionMs = 181_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(4_000L)
+        assertThat(CrossfadePolicy.fadeClockMs(6_000L, positionMs = 181_000L, durationMs = 185_000L, speed = 2f)).isEqualTo(2_000L)
+        assertThat(CrossfadePolicy.fadeClockMs(6_000L, positionMs = 185_000L, durationMs = 185_000L, speed = 1f)).isEqualTo(1L)
     }
 
     @Test
@@ -132,24 +132,36 @@ class CrossfadePolicyTest {
     }
 
     @Test
-    fun `equal-power curves keep the loudness, and gentle dips in the middle`() {
-        listOf(CrossfadeCurve.EQUAL_POWER, CrossfadeCurve.S_CURVE, CrossfadeCurve.HOLD).forEach { curve ->
-            listOf(0.2f, 0.5f, 0.8f).forEach { p ->
-                val out = CrossfadePolicy.fadeOutGain(p, curve)
-                val inn = CrossfadePolicy.fadeInGain(p, curve)
-                assertThat(out * out + inn * inn).isWithin(1e-5f).of(1f)
-            }
+    fun `equal power keeps the loudness all through the fade`() {
+        listOf(0.2f, 0.5f, 0.8f).forEach { p ->
+            val out = CrossfadePolicy.fadeOutGain(p, CrossfadeCurve.EQUAL_POWER)
+            val inn = CrossfadePolicy.fadeInGain(p, CrossfadeCurve.EQUAL_POWER)
+            assertThat(out * out + inn * inn).isWithin(1e-5f).of(1f)
         }
-        val out = CrossfadePolicy.fadeOutGain(0.5f, CrossfadeCurve.GENTLE)
-        val inn = CrossfadePolicy.fadeInGain(0.5f, CrossfadeCurve.GENTLE)
-        assertThat(out + inn).isWithin(1e-5f).of(1f)
-        assertThat(out * out + inn * inn).isLessThan(0.9f)
     }
 
     @Test
-    fun `hold keeps the outgoing song up longer than equal power`() {
-        assertThat(CrossfadePolicy.fadeOutGain(0.5f, CrossfadeCurve.HOLD))
-            .isGreaterThan(CrossfadePolicy.fadeOutGain(0.5f, CrossfadeCurve.EQUAL_POWER))
+    fun `halfway through, each curve gives the gains it is named for`() {
+        val half = { curve: CrossfadeCurve -> CrossfadePolicy.fadeOutGain(0.5f, curve) to CrossfadePolicy.fadeInGain(0.5f, curve) }
+
+        assertThat(half(CrossfadeCurve.HOLD).first).isWithin(1e-5f).of(0.875f)
+        assertThat(half(CrossfadeCurve.HOLD).second).isWithin(1e-4f).of(0.7071f)
+        assertThat(half(CrossfadeCurve.GENTLE).first).isWithin(1e-5f).of(0.25f)
+        assertThat(half(CrossfadeCurve.GENTLE).second).isWithin(1e-4f).of(0.7071f)
+        assertThat(half(CrossfadeCurve.S_CURVE).first).isWithin(1e-5f).of(0.5f)
+        assertThat(half(CrossfadeCurve.S_CURVE).second).isWithin(1e-5f).of(0.5f)
+    }
+
+    @Test
+    fun `every curve only ever lowers the outgoing song and raises the incoming one`() {
+        CrossfadeCurve.entries.forEach { curve ->
+            (1..20).forEach { step ->
+                val before = (step - 1) / 20f
+                val after = step / 20f
+                assertThat(CrossfadePolicy.fadeOutGain(after, curve)).isAtMost(CrossfadePolicy.fadeOutGain(before, curve))
+                assertThat(CrossfadePolicy.fadeInGain(after, curve)).isAtLeast(CrossfadePolicy.fadeInGain(before, curve))
+            }
+        }
     }
 
     @Test
@@ -176,19 +188,35 @@ class CrossfadePolicyTest {
     }
 
     @Test
-    fun `by default a song fades when it ends and Next does not`() {
+    fun `by default a song fades when it ends and when you skip, once a length is chosen`() {
         val defaults = CrossfadePolicy.Settings()
 
         assertThat(defaults.onAutoAdvance).isTrue()
-        assertThat(defaults.onManualSkip).isFalse()
+        assertThat(defaults.onManualSkip).isTrue()
         assertThat(defaults.fadesOnSkip).isFalse()
+        assertThat(defaults.copy(fadeMs = 3_000L).fadesOnSkip).isTrue()
+    }
+
+    @Test
+    fun `the switch decides whether the chosen length plays`() {
+        assertThat(CrossfadePolicy.chosenFadeMs(enabled = true, chosenMs = 750)).isEqualTo(750L)
+        assertThat(CrossfadePolicy.chosenFadeMs(enabled = false, chosenMs = 750)).isEqualTo(0L)
+        assertThat(CrossfadePolicy.chosenFadeMs(enabled = true, chosenMs = 60_000)).isEqualTo(CrossfadePolicy.MAX_MS)
+        assertThat(CrossfadePolicy.chosenFadeMs(enabled = true, chosenMs = 0)).isEqualTo(250L)
+    }
+
+    @Test
+    fun `settings offer short blends, then every whole second up to the longest`() {
+        assertThat(CrossfadePolicy.DURATIONS_MS.take(4)).containsExactly(250L, 500L, 750L, 1_000L).inOrder()
+        assertThat(CrossfadePolicy.DURATIONS_MS.last()).isEqualTo(CrossfadePolicy.MAX_MS)
+        assertThat(CrossfadePolicy.DURATIONS_MS).hasSize(15)
     }
 
     @Test
     fun `a skip holds for a fade only when fading is on and asked for on a skip`() {
-        assertThat(CrossfadePolicy.Settings(seconds = 6, onManualSkip = true).fadesOnSkip).isTrue()
-        assertThat(CrossfadePolicy.Settings(seconds = 0, onManualSkip = true).fadesOnSkip).isFalse()
-        assertThat(CrossfadePolicy.Settings(seconds = 6, onManualSkip = false).fadesOnSkip).isFalse()
+        assertThat(CrossfadePolicy.Settings(fadeMs = 6_000L, onManualSkip = true).fadesOnSkip).isTrue()
+        assertThat(CrossfadePolicy.Settings(fadeMs = 0L, onManualSkip = true).fadesOnSkip).isFalse()
+        assertThat(CrossfadePolicy.Settings(fadeMs = 6_000L, onManualSkip = false).fadesOnSkip).isFalse()
     }
 
     @Test
@@ -264,7 +292,7 @@ class CrossfadePolicyTest {
 
     @Test
     fun `a skip overlaps for the chosen fade, or just a moment without one`() {
-        val fading = CrossfadePolicy.Settings(seconds = 6, onManualSkip = true)
+        val fading = CrossfadePolicy.Settings(fadeMs = 6_000L, onManualSkip = true)
         val clock = { settings: CrossfadePolicy.Settings, position: Long ->
             CrossfadePolicy.skipClockMs(settings, position, durationMs = 200_000L, speed = 1f)
         }
@@ -277,7 +305,7 @@ class CrossfadePolicyTest {
 
     @Test
     fun `only a tail carrying a whole fade straight on from the session starts exactly`() {
-        val fading = CrossfadePolicy.Settings(seconds = 6, onManualSkip = true)
+        val fading = CrossfadePolicy.Settings(fadeMs = 6_000L, onManualSkip = true)
 
         assertThat(CrossfadePolicy.tailStartsAtSyncPoint(fading, sessionStillPlaysSong = true)).isFalse()
         assertThat(CrossfadePolicy.tailStartsAtSyncPoint(fading, sessionStillPlaysSong = false)).isTrue()
