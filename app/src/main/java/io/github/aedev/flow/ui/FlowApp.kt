@@ -205,7 +205,7 @@ fun FlowApp(
     val navScrollState =
         rememberFlowNavigationScrollState(
             hideOnScroll = bottomNavHideOnScroll && !usesNavigationRail,
-            routeKey = currentRoute.value,
+            routeKey = currentEntry?.id ?: currentRoute.value,
             locked = currentRoute.value == SHORTS_ROUTE_KEY,
         )
 
