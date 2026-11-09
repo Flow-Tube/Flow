@@ -81,7 +81,8 @@ private fun PipParamsUpdateEffect(
                 BackgroundPlaybackPolicy.shouldEnterAutoPip(
                     autoPipEnabled = autoPipEnabled,
                     isVideoPlaying = isPlaying,
-                    explicitBackgroundPlaybackActive = isBackgroundPlaybackMode,
+                    explicitBackgroundPlaybackActive = GlobalPlayerState.isExplicitBackgroundPlaybackActive.value,
+                    soundOnlyBackground = isBackgroundPlaybackMode,
                 )
             PictureInPictureHelper.updatePipParams(
                 activity = activity,

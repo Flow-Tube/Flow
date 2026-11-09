@@ -1327,6 +1327,8 @@
     <string name="continue_watching_title">Continue Watching</string>
     <string name="player_settings_mini_player_continue_watching_title">Continue Watching Mini Player</string>
     <string name="player_settings_mini_player_continue_watching_subtitle">Automatically pop up the last watched video</string>
+    <string name="player_settings_minimize_to_audio_bar_title">Minimize to audio bar</string>
+    <string name="player_settings_minimize_to_audio_bar_subtitle">Collapsed videos keep playing as sound only</string>
     <string name="player_mini_player_continue_watching_label">Continue watching</string>
     <!-- Player Settings -->
     <string name="player_settings_title">Player Settings</string>
