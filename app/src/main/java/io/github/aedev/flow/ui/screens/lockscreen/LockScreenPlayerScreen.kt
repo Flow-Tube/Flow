@@ -1,10 +1,5 @@
 package io.github.aedev.flow.ui.screens.lockscreen
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.text.format.DateFormat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -32,20 +27,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,9 +54,6 @@ import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerSegmentTrai
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerToggleButton
 import io.github.aedev.flow.ui.components.musicplayer.full.PlayerBackground
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackControls
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private val UnlockDistance = 96.dp
 private val ActionGroupHeight = 42.dp
@@ -110,7 +99,6 @@ internal fun LockScreenPlayerScreen(
                         ).safeDrawingPadding()
                         .padding(horizontal = 24.dp, vertical = 16.dp),
             ) {
-                LockScreenClock(Modifier.align(Alignment.CenterHorizontally))
                 Spacer(Modifier.weight(1f))
                 TrackText(song)
                 lyrics?.takeIf { it.videoId == song.videoId && it.lines.isNotEmpty() }?.let { shown ->
@@ -237,39 +225,6 @@ private fun PreciseProgressWhileShown() {
         EnhancedMusicPlayerManager.acquirePreciseProgress()
         onStopOrDispose { EnhancedMusicPlayerManager.releasePreciseProgress() }
     }
-}
-
-/** Moves once a minute on the system's time tick, and only while the screen shows it. */
-@Composable
-private fun LockScreenClock(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    var now by remember { mutableStateOf(LocalTime.now()) }
-    LifecycleStartEffect(Unit) {
-        now = LocalTime.now()
-        val ticks =
-            object : BroadcastReceiver() {
-                override fun onReceive(
-                    context: Context,
-                    intent: Intent,
-                ) {
-                    now = LocalTime.now()
-                }
-            }
-        val filter =
-            IntentFilter(Intent.ACTION_TIME_TICK).apply {
-                addAction(Intent.ACTION_TIME_CHANGED)
-                addAction(Intent.ACTION_TIMEZONE_CHANGED)
-            }
-        ContextCompat.registerReceiver(context, ticks, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-        onStopOrDispose { context.unregisterReceiver(ticks) }
-    }
-    val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), if (DateFormat.is24HourFormat(context)) "Hm" else "hm")
-    Text(
-        text = now.format(DateTimeFormatter.ofPattern(pattern)),
-        style = MaterialTheme.typography.displayMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier,
-    )
 }
 
 /** The player's coarse position ticks once a second; a new second re-reads the lyric line, so a seek shows soon. */
