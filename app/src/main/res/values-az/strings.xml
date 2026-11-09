@@ -2394,7 +2394,7 @@
     <string name="icon_name_expressive_pill">Həb</string>
     <string name="player_background_style_immersive">Dərinləşdirilmiş Üzlük</string>
     <string name="player_appearance_haptics_title">Vibrasiya</string>
-    <string name="player_appearance_haptics_subtitle">Oynadıcı toxunuşları və jestləri zamanı yüngülcə titrət</string>
+    <string name="player_appearance_haptics_subtitle">Toxunuşlar və jestlər zamanı yüngülcə titrət</string>
     <string name="player_appearance_gesture_overlay_title">Jest üstqatı tərzi</string>
     <string name="player_appearance_gesture_overlay_subtitle">Sürüşdürərkən səs və parlaqlığın necə göründüyü</string>
     <string name="gesture_overlay_style_circular">Dairəvi</string>
