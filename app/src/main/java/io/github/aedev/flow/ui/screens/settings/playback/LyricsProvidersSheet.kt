@@ -147,6 +147,13 @@ internal fun LyricsProvidersSheet(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
+                                ProviderHosts[provider.name]?.let {
+                                    Text(
+                                        text = stringResource(it),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                             FlowSwitch(
                                 checked = provider.enabled,
@@ -179,4 +186,21 @@ private val ProviderLabels =
         "AMLL" to ProviderLabel(R.string.lyrics_provider_amll, R.string.lyrics_provider_amll_desc),
         "YouTubeSubtitle" to ProviderLabel(R.string.lyrics_provider_youtube_captions, R.string.lyrics_provider_youtube_captions_desc),
         "YouTube" to ProviderLabel(R.string.lyrics_provider_youtube_music, R.string.lyrics_provider_youtube_music_desc),
+    )
+
+/** Every server each provider contacts, so people with a DNS filter know what to allow (#1860). */
+private val ProviderHosts =
+    mapOf(
+        "BetterLyrics" to R.string.lyrics_provider_better_lyrics_hosts,
+        "LrcRed" to R.string.lyrics_provider_lrc_red_hosts,
+        "LyricsPlus" to R.string.lyrics_provider_lyrics_plus_hosts,
+        "SimpMusic" to R.string.lyrics_provider_simpmusic_hosts,
+        "KuGou" to R.string.lyrics_provider_kugou_hosts,
+        "Paxsenix" to R.string.lyrics_provider_paxsenix_hosts,
+        "LrcLib" to R.string.lyrics_provider_lrclib_hosts,
+        "Unison" to R.string.lyrics_provider_unison_hosts,
+        "NetEase" to R.string.lyrics_provider_netease_hosts,
+        "AMLL" to R.string.lyrics_provider_amll_hosts,
+        "YouTubeSubtitle" to R.string.lyrics_provider_youtube_hosts,
+        "YouTube" to R.string.lyrics_provider_youtube_hosts,
     )

@@ -1453,6 +1453,7 @@ class Media3MusicService : MediaLibraryService() {
                     localLyrics,
                     prefs.lyricsOnLockScreen,
                     prefs.lyricsOnLockScreenDelayMs,
+                    prefs.lyricsOnDemand,
                     videoLyricsTiming,
                     isSavingData = { NetworkState.isDataSaverOn(this) || prefs.bufferProfile.first() == BufferProfile.DATASAVER },
                 )
