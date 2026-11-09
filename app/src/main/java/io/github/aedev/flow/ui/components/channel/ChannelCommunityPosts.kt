@@ -21,6 +21,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.ui.components.shared.FlowFeedProgress
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
+import io.github.aedev.flow.ui.components.shared.MediaPostCard
 import io.github.aedev.flow.ui.screens.channel.ChannelRequestErrorState
 
 @Composable
@@ -91,7 +92,7 @@ internal fun ChannelCommunityPosts(
                     items = posts,
                     key = CommunityPost::id,
                 ) { post ->
-                    CommunityPostCard(
+                    MediaPostCard(
                         post = post,
                         onAuthorClick = onAuthorClick,
                         onCommentsClick = { onCommentsClick(post) },

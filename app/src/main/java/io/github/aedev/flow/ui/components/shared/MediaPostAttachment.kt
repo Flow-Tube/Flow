@@ -1,4 +1,4 @@
-package io.github.aedev.flow.ui.components.channel
+package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,15 +39,13 @@ import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.renderer.PostAttachment
-import io.github.aedev.flow.ui.components.shared.FullSizeImageDialog
-import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.formatDuration
 import io.github.aedev.flow.utils.formatViewCount
 
 @Composable
-internal fun CommunityPostAttachment(
+fun MediaPostAttachment(
     attachment: PostAttachment,
     onVideoClick: (Video) -> Unit,
     modifier: Modifier = Modifier,
