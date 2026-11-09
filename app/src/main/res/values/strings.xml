@@ -1732,10 +1732,16 @@
     <string name="daily_limit_music_title">Count music too</string>
     <string name="daily_limit_music_subtitle">Music counts toward the limit and pauses with it</string>
     <string name="daily_limit_footer">Counts the time videos play, Shorts, picture-in-picture and background play included. Nothing pauses while Android Auto is connected.</string>
+    <string name="daily_limit_reached_title">Time\'s up</string>
+    <string name="daily_limit_reached_body">You reached your daily limit, so playback is paused.</string>
     <string name="daily_limit_wait_title">Change your limit?</string>
     <string name="daily_limit_wait_body">Your limit already ran out today, so changing it takes a short wait.</string>
     <string name="daily_limit_wait_confirm">Change</string>
     <string name="daily_limit_wait_countdown">Wait %1$d s</string>
+    <string name="times_up_body">You watched %1$s today. Your daily limit is %2$s.</string>
+    <string name="times_up_keep_watching">Keep watching</string>
+    <string name="times_up_keep_watching_wait">Keep watching in %1$d s</string>
+    <string name="times_up_keep_watching_note">Keep watching adds 15 minutes.</string>
     <string name="sleep_window">Sleep window:</string>
     <string name="frequency_description">How often to remind you</string>
     <string name="tools_subtitle">Set reminders to balance your viewing habits</string>
