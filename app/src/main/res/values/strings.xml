@@ -669,6 +669,7 @@
     <string name="tab_posts">Posts</string>
     <string name="community_posts_empty">No community posts found</string>
     <string name="community_posts_load_failed">Couldn\'t load community posts</string>
+    <string name="subscription_posts_empty">No posts in the last 30 days</string>
     <string name="channel_search_failed">Couldn\'t search this channel</string>
     <string name="community_post_image_content_description">Community post image</string>
     <string name="share_community_post">Share community post</string>
