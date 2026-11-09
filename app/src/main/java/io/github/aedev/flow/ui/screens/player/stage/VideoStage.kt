@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
@@ -20,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.player.EnhancedPlayerManager
+import io.github.aedev.flow.ui.components.shared.MediaBufferingIndicator
 import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.components.videoplayer.MINI_PLAYER_CORNER_RADIUS_DP
 import io.github.aedev.flow.ui.components.videoplayer.VideoPlayerSurface
@@ -256,6 +258,14 @@ internal fun VideoStage(
                 rememberSubtitleLanguage = rememberSubtitleLanguage,
                 onSbSubmitClick = onSbSubmitClick,
                 onCastClick = onCastClick,
+            )
+        }
+
+        // The controls carry their own spinner in the play slot; the touch lock hides it with them.
+        if (expandedSurfacesMounted && !isMinimized && !localIsInPipMode) {
+            MediaBufferingIndicator(
+                visible = playerState.isBuffering && (!screenState.showControls || screenState.isTouchLocked),
+                modifier = Modifier.align(Alignment.Center),
             )
         }
 
