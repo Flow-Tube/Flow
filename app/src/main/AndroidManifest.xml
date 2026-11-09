@@ -292,6 +292,14 @@
         <receiver
             android:name=".widget.core.action.WidgetPlaybackReceiver"
             android:exported="false" />
+        <!-- Opened by the music service over the lock screen while the setting is on (#1859). -->
+        <activity
+            android:name=".ui.screens.lockscreen.LockScreenPlayerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="${applicationId}.lockscreen"
+            android:theme="@style/Theme.Flow" />
         <activity
             android:name=".widget.config.WidgetConfigActivity"
             android:exported="true"

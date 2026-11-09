@@ -29,14 +29,21 @@ internal class MusicPlayerAppearance(
     val controlScheme: ColorScheme,
 )
 
-/** Read once per player host from the user's player settings and the artwork at [thumbnailUrl]. */
+/**
+ * Read once per player host from the user's player settings and the artwork at [thumbnailUrl].
+ * [style] replaces the chosen background style for a surface that always draws one look.
+ */
 @Composable
-internal fun rememberMusicPlayerAppearance(thumbnailUrl: String?): MusicPlayerAppearance {
+internal fun rememberMusicPlayerAppearance(
+    thumbnailUrl: String?,
+    style: MusicPlayerBackgroundStyle? = null,
+): MusicPlayerAppearance {
     val context = LocalContext.current
     val playerPreferences = remember { PlayerPreferences(context) }
-    val backgroundStyle by playerPreferences.musicPlayerBackgroundStyle.collectAsState(
+    val chosenStyle by playerPreferences.musicPlayerBackgroundStyle.collectAsState(
         initial = MusicPlayerBackgroundStyle.BLUR_GRADIENT,
     )
+    val backgroundStyle = style ?: chosenStyle
     val hideArtwork by playerPreferences.hideMusicPlayerArtwork.collectAsState(initial = false)
     val sleepTimerButton by playerPreferences.musicSleepTimerButton.collectAsState(initial = false)
     val followLightTheme by playerPreferences.musicPlayerFollowLightTheme.collectAsState(initial = false)

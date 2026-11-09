@@ -351,53 +351,6 @@ internal object PlaybackIndex {
             section = R.string.settings_section_watch_page,
             destination = page,
         )
-    val disableShortsPlayer =
-        SettingEntry(
-            key = "playback.disable_shorts_player",
-            title = R.string.content_settings_disable_shorts_player_title,
-            summary = R.string.content_settings_disable_shorts_player_subtitle,
-            section = R.string.settings_section_shorts_player,
-            destination = page,
-        )
-    val shortsPlayerPrompt =
-        SettingEntry(
-            key = "playback.shorts_player_prompt",
-            title = R.string.content_settings_shorts_player_prompt_title,
-            summary = R.string.content_settings_shorts_player_prompt_subtitle,
-            section = R.string.settings_section_shorts_player,
-            destination = page,
-        )
-    val shortsPlaybackMode =
-        SettingEntry(
-            key = "playback.shorts_playback_mode",
-            title = R.string.player_settings_shorts_playback_mode_title,
-            section = R.string.settings_section_shorts_player,
-            destination = page,
-        )
-    val shortsBackgroundPlay =
-        SettingEntry(
-            key = "playback.shorts_background_play",
-            title = R.string.player_settings_shorts_background_play,
-            summary = R.string.player_settings_shorts_background_play_subtitle,
-            section = R.string.settings_section_shorts_player,
-            destination = page,
-        )
-    val shortsPip =
-        SettingEntry(
-            key = "playback.shorts_pip",
-            title = R.string.player_settings_shorts_pip,
-            summary = R.string.player_settings_shorts_pip_subtitle,
-            section = R.string.settings_section_shorts_player,
-            destination = page,
-        )
-    val shortsContinueIntoFeed =
-        SettingEntry(
-            key = "playback.shorts_continue_into_feed",
-            title = R.string.player_settings_shorts_continue_into_feed,
-            summary = R.string.player_settings_shorts_continue_into_feed_subtitle,
-            section = R.string.settings_section_shorts_player,
-            destination = page,
-        )
     val endlessRadio =
         SettingEntry(
             key = "playback.endless_radio",
@@ -445,6 +398,15 @@ internal object PlaybackIndex {
             summary = R.string.settings_music_video_switch_summary,
             section = R.string.settings_section_music,
             destination = page,
+        )
+    val lockScreenPlayer =
+        SettingEntry(
+            key = "playback.lock_screen_player",
+            title = R.string.settings_lock_screen_player_title,
+            summary = R.string.settings_lock_screen_player_summary,
+            section = R.string.settings_section_music,
+            destination = page,
+            keywords = R.string.settings_keywords_lock_screen_player,
         )
 
     val all =
@@ -494,12 +456,9 @@ internal object PlaybackIndex {
                 comments,
                 commentsPreview,
                 liveChat,
-                disableShortsPlayer,
-                shortsPlayerPrompt,
-                shortsPlaybackMode,
-                shortsBackgroundPlay,
-                shortsPip,
-                shortsContinueIntoFeed,
+            ) +
+            PlaybackShortsIndex.all +
+            listOf(
                 endlessRadio,
                 pauseMusicWhenMuted,
             ) +
@@ -509,6 +468,7 @@ internal object PlaybackIndex {
                 resumeFromHeadphones,
                 musicSideSwipes,
                 musicVideoSwitch,
+                lockScreenPlayer,
             ) +
             PlaybackLyricsIndex.all
 }

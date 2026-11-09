@@ -499,6 +499,7 @@ class PlayerPreferences(
         // Remember playback speed
         val PAUSE_MUSIC_WHEN_MUTED = device(booleanPreferencesKey("pause_music_when_muted"))
         val MUSIC_SIDE_SWIPES = device(booleanPreferencesKey("music_side_swipes"))
+        val LOCK_SCREEN_PLAYER = device(booleanPreferencesKey("lock_screen_player"))
         val ANIMATED_ARTWORK_WIFI_ONLY = device(booleanPreferencesKey("animated_artwork_wifi_only"))
         val AUTO_DOWNLOAD_LIKED_MUSIC = device(booleanPreferencesKey("auto_download_liked_music"))
 
@@ -2585,6 +2586,18 @@ class PlayerPreferences(
     suspend fun setMusicSideSwipes(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.MUSIC_SIDE_SWIPES] = enabled
+        }
+    }
+
+    /** Whether a player with the cover and controls opens over the lock screen when the screen turns off during music. */
+    val lockScreenPlayer: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.LOCK_SCREEN_PLAYER] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setLockScreenPlayer(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.LOCK_SCREEN_PLAYER] = enabled
         }
     }
 

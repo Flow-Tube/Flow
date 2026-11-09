@@ -2269,6 +2269,11 @@
     <string name="music_endless_radio_desc">Add similar songs when the queue ends</string>
     <string name="settings_music_video_switch_title">Song and video switch</string>
     <string name="settings_music_video_switch_summary">Switch between a song and its music video in the player</string>
+    <string name="settings_lock_screen_player_title">Lock screen player</string>
+    <string name="settings_lock_screen_player_summary">Shows the cover and controls when you lock the phone during music</string>
+    <string name="settings_lock_screen_player_permission">Allow Display over other apps so the player can open over the lock screen</string>
+    <string name="settings_keywords_lock_screen_player">album art, cover, wallpaper, keyguard, controls</string>
+    <string name="lock_screen_player_unlock">Swipe up to unlock</string>
     <string name="music_player_mode_song">Song</string>
     <string name="music_player_mode_video">Video</string>
     <string name="music_video_unavailable">This song has no music video</string>

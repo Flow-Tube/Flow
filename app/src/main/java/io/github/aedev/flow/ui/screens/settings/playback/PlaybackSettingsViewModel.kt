@@ -134,6 +134,7 @@ class PlaybackSettingsViewModel
 
         val resumeFromHeadphones = preferences.resumeFromHeadphones.asState(true)
         val musicSideSwipes = preferences.musicSideSwipes.asState(false)
+        val lockScreenPlayer = preferences.lockScreenPlayer.asState(false)
         val lyricsOnLockScreen = preferences.lyricsOnLockScreen.asState(false)
         val lyricsOnLockScreenDelayMs = preferences.lyricsOnLockScreenDelayMs.asState(0)
         val lyricsSponsorBlockTiming = preferences.lyricsSponsorBlockTiming.asState(false)
@@ -286,6 +287,8 @@ class PlaybackSettingsViewModel
         fun setMusicResume(value: Boolean) = write { preferences.setMusicResumeLongTracks(value) }
 
         fun setMusicSideSwipes(value: Boolean) = write { preferences.setMusicSideSwipes(value) }
+
+        fun setLockScreenPlayer(value: Boolean) = write { preferences.setLockScreenPlayer(value) }
 
         fun setLyricsOnLockScreen(value: Boolean) = write { preferences.setLyricsOnLockScreen(value) }
 
