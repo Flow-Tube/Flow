@@ -53,7 +53,9 @@ fun FlowCommentsList(
     contentPadding: PaddingValues = PaddingValues(bottom = 32.dp),
     tint: MediaArtworkTint? = null,
     timedFollow: CommentsTimedFollow? = null,
+    threadState: CommentThreadState? = null,
 ) {
+    val threads = threadState ?: rememberCommentThreadState(selectedFilter)
     val latestOnLoadMore by rememberUpdatedState(onLoadMore)
     val timed = selectedFilter == CommentSortFilter.TIMED
     val uniqueComments =
@@ -122,6 +124,10 @@ fun FlowCommentsList(
                         onLoadMoreReplies = onLoadMoreReplies,
                         onAuthorClick = onAuthorClick,
                         onAvatarClick = onAvatarClick,
+                        isRepliesVisible = threads.isRepliesOpen(comment.id),
+                        onToggleReplies = { threads.toggleReplies(comment.id) },
+                        isExpanded = threads.isTextExpanded(comment.id),
+                        onExpand = { threads.expandText(comment.id) },
                     )
                 }
             }
