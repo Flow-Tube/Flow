@@ -132,6 +132,7 @@ internal fun SettingsListScope.playbackSections(
             }
         }
         switch(PlaybackGesturesIndex.seekGesture, viewModel.seekGesture, viewModel::setSeekGesture)
+        switch(PlaybackGesturesIndex.moreVideosGesture, viewModel.moreVideosGesture, viewModel::setMoreVideosGesture)
         switch(PlaybackGesturesIndex.controlsWhileLoading, viewModel.controlsWhileLoading, viewModel::setControlsWhileLoading)
     }
     group(key = "playback.buttons", header = R.string.settings_section_player_buttons) {

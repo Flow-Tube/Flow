@@ -45,7 +45,7 @@ class SessionLyricTimelineTest {
 
         assertThat(early.lineAt(4_200L)).isEqualTo("First line")
         assertThat(early.nextChangeAfter(4_200L)).isEqualTo(9_200L)
-        assertThat(late.lineAt(5_500L)).isEqualTo("♪♪")
+        assertThat(late.lineAt(5_500L)).isEqualTo("♪")
         assertThat(late.lineAt(5_800L)).isEqualTo("First line")
         assertThat(late.nextChangeAfter(5_800L)).isEqualTo(10_800L)
     }
@@ -59,11 +59,12 @@ class SessionLyricTimelineTest {
     }
 
     @Test
-    fun `music notes play through a long intro`() {
+    fun `one music note stays through a long intro`() {
         val timeline = timeline(entries, 0L)
 
         assertThat(timeline.lineAt(0L)).isEqualTo("♪")
-        assertThat(timeline.lineAt(3_000L)).isEqualTo("♪♪")
+        assertThat(timeline.nextChangeAfter(0L)).isEqualTo(5_000L)
+        assertThat(timeline.lineAt(3_000L)).isEqualTo("♪")
         assertThat(timeline.nextChangeAfter(3_000L)).isEqualTo(5_000L)
     }
 
@@ -77,14 +78,13 @@ class SessionLyricTimelineTest {
     }
 
     @Test
-    fun `blank and symbol lines become one break of music notes that repeat`() {
+    fun `blank and symbol lines become one break with one music note`() {
         val marked = listOf(LyricsEntry(0L, "Sung"), LyricsEntry(1_000L, ""), LyricsEntry(5_000L, "♪"), LyricsEntry(12_000L, "Next"))
         val timeline = timeline(marked, 0L)
 
         assertThat(timeline.lineAt(1_000L)).isEqualTo("♪")
-        assertThat(timeline.lineAt(4_000L)).isEqualTo("♪♪")
-        assertThat(timeline.lineAt(7_000L)).isEqualTo("♪♪♪")
-        assertThat(timeline.lineAt(10_000L)).isEqualTo("♪")
+        assertThat(timeline.nextChangeAfter(1_000L)).isEqualTo(12_000L)
+        assertThat(timeline.lineAt(7_000L)).isEqualTo("♪")
         assertThat(timeline.nextChangeAfter(10_000L)).isEqualTo(12_000L)
         assertThat(timeline.lineAt(12_000L)).isEqualTo("Next")
     }
@@ -188,12 +188,13 @@ class SessionLyricTimelineTest {
     }
 
     @Test
-    fun `music notes keep going after the last line`() {
+    fun `one music note stays after the last line`() {
         val timeline = timeline(entries, 0L)
 
         assertThat(timeline.lineAt(40_899L)).isEqualTo("Last line")
         assertThat(timeline.lineAt(40_900L)).isEqualTo("♪")
-        assertThat(timeline.nextChangeAfter(41_000L)).isEqualTo(43_900L)
+        assertThat(timeline.lineAt(60_000L)).isEqualTo("♪")
+        assertThat(timeline.nextChangeAfter(41_000L)).isNull()
     }
 
     @Test
@@ -239,10 +240,10 @@ class SessionLyricTimelineTest {
 
     @Test
     fun `a line sung too fast to read in parts stays whole`() {
-        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(1_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(2_900L, "Next")), 0L)
 
         assertThat(timeline.lineAt(0L)).isEqualTo(longLine)
-        assertThat(timeline.nextChangeAfter(0L)).isEqualTo(1_000L)
+        assertThat(timeline.nextChangeAfter(0L)).isEqualTo(2_900L)
     }
 
     @Test
@@ -250,13 +251,16 @@ class SessionLyricTimelineTest {
         val text = "Live vicariously through me, write my life like it's a movie, like it's a movie"
         val timeline = timeline(listOf(LyricsEntry(0L, text), LyricsEntry(10_000L, "Next")), 0L)
         val parts = mutableListOf(timeline.lineAt(0L)!!)
+        val starts = mutableListOf(0L)
         var at = timeline.nextChangeAfter(0L)!!
         while (at < 10_000L) {
             parts += timeline.lineAt(at)!!
+            starts += at
             at = timeline.nextChangeAfter(at)!!
         }
 
         assertThat(parts.size).isGreaterThan(2)
+        starts.zipWithNext { start, next -> assertThat(next - start).isAtLeast(1_500L) }
         assertThat(parts.joinToString(" ")).isEqualTo(text)
         parts.forEach { assertThat(it.length).isAtMost(24) }
     }

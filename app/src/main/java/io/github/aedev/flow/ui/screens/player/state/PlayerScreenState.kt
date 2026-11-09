@@ -75,6 +75,9 @@ class PlayerScreenState {
     var zoomIndicatorSequence by mutableIntStateOf(0)
     var exitDragOffsetY by mutableFloatStateOf(0f)
 
+    // How far a swipe up has pulled the more videos row in before it commits to opening.
+    var moreVideosDragY by mutableFloatStateOf(0f)
+
     // Speed Control
     var isSpeedBoostActive by mutableStateOf(false)
     var normalSpeed by mutableFloatStateOf(1.0f)
@@ -112,6 +115,7 @@ class PlayerScreenState {
         showZoomIndicator = false
         zoomIndicatorSequence = 0
         exitDragOffsetY = 0f
+        moreVideosDragY = 0f
     }
 
     internal fun open(sheet: PlayerSheet) {
