@@ -8,12 +8,13 @@ import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientStatusBarGl
 import io.github.aedev.flow.ui.components.videoplayer.motion.collapsingGroundAlpha
 import io.github.aedev.flow.ui.screens.player.state.PlayerLayoutMode
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
+import io.github.aedev.flow.ui.utils.rememberPowerSaveMode
 
 /**
  * The player's ambient light: the one frame every surface reads, and whether the page around the
  * player glows. [glow] holds only while the sheet is at rest open and stays on through a collapse,
  * so the glow fades out with the page instead of vanishing under the finger. [immersive] lights
- * the whole page instead of the band under the player.
+ * the whole page instead of the band under the player. Both pause in battery saver.
  */
 @Immutable
 internal class PlayerAmbient(
@@ -31,8 +32,11 @@ internal fun rememberPlayerAmbient(
     layoutMode: PlayerLayoutMode,
 ): PlayerAmbient {
     val frames = remember { AmbientFrameHolder() }
+    // Listened to only while the glow is wanted at all.
+    val powerSaving = prefs.ambientGlowEnabled && rememberPowerSaveMode()
     val glow =
         prefs.ambientGlowEnabled &&
+            !powerSaving &&
             expandedSurfacesMounted &&
             !isInPipMode &&
             !isFullscreenShown &&
