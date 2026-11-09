@@ -8,15 +8,18 @@ import kotlin.math.roundToInt
 private const val MAX_LINE_WIDTH = 24.0
 private const val WIDE_CHARACTER_WEIGHT = 1.75
 private const val MAX_PIECES = 4
-private const val MIN_PIECE_MS = 700L
 
-/** A slow singer's pace, so a line followed by a long gap doesn't stretch its parts across the gap. */
+/** Android's media card fades both text lines for about 770 ms on every change, so a part has to outlast that. */
+private const val MIN_PIECE_MS = 1_500L
+
+/** A slow singer's pace, so a line followed by a long gap doesn't stretch its parts across the gap. A wide character counts as more. */
 private const val MAX_MS_PER_CHARACTER = 100L
 
 /** Lyrics often leave a solo unmarked, so a silence this long after a line's words counts as a break too. */
 private const val MIN_BREAK_MS = 5_000L
-private const val BREAK_FRAME_MS = 3_000L
-private val BreakFrames = listOf("♪", "♪♪", "♪♪♪")
+
+/** One note for the whole break: every change to the title replays the media card's fade on both text lines. */
+private const val BREAK_NOTE = "♪"
 
 /** The steps of the setting that lets people move lock screen lines if they feel late or early. */
 internal object SessionLyricDelay {
@@ -40,12 +43,10 @@ internal class SessionLyricTimeline(
     private val pieces = pieces(lines, repeatedLine)
     private val breaks = breaks(lines)
 
-    /** The text sung at [positionMs], music notes during a break, or null just before the first line. */
+    /** The text sung at [positionMs], a music note during a break, or null just before the first line. */
     fun lineAt(positionMs: Long): String? {
         val lyricTime = positionMs + offsetMs
-        breakAt(lyricTime)?.let { current ->
-            return BreakFrames[((lyricTime - current.startMs) / BREAK_FRAME_MS % BreakFrames.size).toInt()]
-        }
+        if (breakAt(lyricTime) != null) return BREAK_NOTE
         return pieces.lastOrNull { it.timeMs <= lyricTime }?.text?.takeIf { it.isSung }
     }
 
@@ -55,8 +56,7 @@ internal class SessionLyricTimeline(
         val current = breakAt(lyricTime)
         val next =
             if (current != null) {
-                val frames = (lyricTime - current.startMs) / BREAK_FRAME_MS + 1
-                minOf(current.startMs + frames * BREAK_FRAME_MS, current.endMs)
+                current.endMs.takeIf { it != Long.MAX_VALUE }
             } else {
                 listOfNotNull(
                     pieces.firstOrNull { it.timeMs > lyricTime }?.timeMs,
@@ -144,7 +144,7 @@ private fun pieces(
     return lines.flatMapIndexed { index, line ->
         val text = line.text.trim()
         val spokenMs = lines.getOrNull(index + 1)?.time?.minus(line.time) ?: Long.MAX_VALUE
-        val spanMs = minOf(spokenMs, text.length * MAX_MS_PER_CHARACTER)
+        val spanMs = minOf(spokenMs, (lineWidth(text) * MAX_MS_PER_CHARACTER).toLong())
         val parts = splitToFit(text, (spanMs / MIN_PIECE_MS).toInt().coerceIn(1, MAX_PIECES))
         val lineCount = repeatCount(lines, index)
         var consumed = 0
