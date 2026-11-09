@@ -20,10 +20,12 @@ import io.github.aedev.flow.ui.components.shared.ShimmerBone
 
 private val TitleLineHeight = 16.dp
 private val MetaLineHeight = 12.dp
+private val DenseTextTopPadding = 6.dp
+private val DenseTextBottomPadding = 8.dp
 
 /**
- * A loading placeholder shaped exactly like [MediaVideoCard] with the same [layout], widths, shapes
- * and paddings, so the real card lands where its skeleton was.
+ * A loading placeholder shaped exactly like [MediaVideoCard] with the same [layout], [density],
+ * widths, shapes and paddings, so the real card lands where its skeleton was.
  */
 @Composable
 fun VideoCardSkeleton(
@@ -34,7 +36,7 @@ fun VideoCardSkeleton(
     density: VideoCardDensity = VideoCardDensity.Regular,
 ) {
     when (layout) {
-        VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, density.inset, modifier)
+        VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, density, modifier)
         VideoCardLayout.Row -> RowSkeleton(thumbnailWidth, density.inset, modifier)
     }
 }
@@ -42,25 +44,35 @@ fun VideoCardSkeleton(
 @Composable
 private fun StackedSkeleton(
     useInternalPadding: Boolean,
-    inset: Dp,
+    density: VideoCardDensity,
     modifier: Modifier,
 ) {
+    val dense = density == VideoCardDensity.Dense
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .then(if (useInternalPadding) Modifier.padding(horizontal = inset) else Modifier),
+                .then(if (useInternalPadding) Modifier.padding(horizontal = density.inset) else Modifier),
     ) {
         ShimmerBone(
             modifier = Modifier.fillMaxWidth().aspectRatio(MediaThumbnailDefaults.VideoAspectRatio),
-            shape = MaterialTheme.shapes.large,
+            shape = if (dense) MaterialTheme.shapes.medium else MaterialTheme.shapes.large,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(VideoCardDefaults.Inset),
-            horizontalArrangement = Arrangement.spacedBy(VideoCardDefaults.Inset),
-        ) {
-            ShimmerBone(modifier = Modifier.size(VideoCardDefaults.AvatarSize), shape = CircleShape, delayMillis = 80)
-            TextLines(modifier = Modifier.weight(1f))
+        if (dense) {
+            TextLines(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = DenseTextTopPadding, bottom = DenseTextBottomPadding),
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(VideoCardDefaults.Inset),
+                horizontalArrangement = Arrangement.spacedBy(VideoCardDefaults.Inset),
+            ) {
+                ShimmerBone(modifier = Modifier.size(VideoCardDefaults.AvatarSize), shape = CircleShape, delayMillis = 80)
+                TextLines(modifier = Modifier.weight(1f))
+            }
         }
     }
 }
