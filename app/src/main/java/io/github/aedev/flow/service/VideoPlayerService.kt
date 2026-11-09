@@ -139,10 +139,7 @@ class VideoPlayerService : MediaSessionService() {
         startId: Int,
     ): Int {
         val startResult = super.onStartCommand(intent, flags, startId)
-        FlowCrashHandler.recordPhase(
-            "video-service",
-            "onStartCommand action=${intent?.action} startId=$startId",
-        )
+        FlowCrashHandler.recordPhase("video-service", "onStartCommand action=${intent?.action}")
         serviceLog("onStartCommand action=${intent?.action}")
 
         when (intent?.action) {
