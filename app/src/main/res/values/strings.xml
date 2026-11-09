@@ -1425,6 +1425,8 @@
     <string name="player_settings_ambient_mode_subtitle">Fills black bars with the video\'s colors</string>
     <string name="player_settings_ambient_glow">Ambient glow</string>
     <string name="player_settings_ambient_glow_subtitle">The video\'s colors glow around the player</string>
+    <string name="player_settings_immersive_glow">Immersive glow</string>
+    <string name="player_settings_immersive_glow_subtitle">Light the whole watch page</string>
     <string name="player_settings_sponsorblock_video">SponsorBlock for this video</string>
     <string name="loop_video">Loop video</string>
     <string name="player_settings_sponsorblock">SponsorBlock</string>
