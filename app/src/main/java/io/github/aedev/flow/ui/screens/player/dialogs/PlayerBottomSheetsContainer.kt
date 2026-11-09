@@ -98,6 +98,8 @@ internal fun PlayerBottomSheetsContainer(
             collapsedHeight = mediaSheetCollapsedHeight,
             onSheetProgressChange = onMediaSheetProgressChange,
             onDismiss = { screenState.closeSheet() },
+            listState = screenState.commentsListState,
+            threadState = screenState.commentThreads,
         )
     }
 

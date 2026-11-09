@@ -109,7 +109,7 @@ fun PlayerCommentsUiState.selectCommentSort(
     screenState: PlayerScreenState,
     viewModel: VideoPlayerViewModel,
 ) {
-    screenState.commentSortFilter = filter
+    screenState.changeCommentSort(filter)
     if (filter == CommentSortFilter.TIMED) {
         viewModel.selectTimedComments(videoId, timedCommentOrders(sortOptions))
         return

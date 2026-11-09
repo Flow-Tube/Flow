@@ -336,6 +336,8 @@ internal fun PlayerCommentsPanelHost(
         onLoadMore = { viewModel.loadMoreComments(videoId) },
         onClose = onClose,
         modifier = modifier,
+        listState = screenState.commentsListState,
+        threadState = screenState.commentThreads,
     )
 }
 

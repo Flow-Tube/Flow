@@ -26,6 +26,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.distinctByNonBlankKey
+import kotlinx.coroutines.flow.drop
 
 @Composable
 fun FlowCommentsList(
@@ -57,6 +59,10 @@ fun FlowCommentsList(
 ) {
     val threads = threadState ?: rememberCommentThreadState(selectedFilter)
     val latestOnLoadMore by rememberUpdatedState(onLoadMore)
+    val currentFilter by rememberUpdatedState(selectedFilter)
+    LaunchedEffect(listState) {
+        snapshotFlow { currentFilter }.drop(1).collect { listState.scrollToItem(0) }
+    }
     val timed = selectedFilter == CommentSortFilter.TIMED
     val uniqueComments =
         remember(comments) {
