@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.components.musicplayer.sheet
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -63,6 +64,9 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.max
 import kotlin.math.roundToInt
+
+// The share of its own height the mini bar sinks while fading out when swiped away.
+private const val MINI_BAR_FADE_DISTANCE = 0.6f
 
 private val SheetDefaultSpring =
     spring<Float>(
@@ -202,9 +206,10 @@ internal fun UnifiedMusicPlayerSheet(
     val cardShape = remember(geometry) { MusicSheetDynamicShape(geometry::cornerRadiusPx) }
 
     val miniAppear = remember { Animatable(0f) }
+    val appearSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
     LaunchedEffect(Unit) {
         if (miniAppear.value < 1f) {
-            miniAppear.animateTo(1f, tween(260))
+            miniAppear.animateTo(1f, appearSpec)
         }
     }
 
@@ -251,7 +256,9 @@ internal fun UnifiedMusicPlayerSheet(
 
     val cardShadowElevation by remember(state) {
         derivedStateOf {
-            if (isDragging || state.expansionFraction.isRunning || state.expansionFraction.value > 0.18f) {
+            // A shadow drawn while the bar fades out would be cut at the bar's edges.
+            val sinking = state.translationY.value > collapsedTargetYState.value + 1f
+            if (isDragging || sinking || state.expansionFraction.isRunning || state.expansionFraction.value > 0.18f) {
                 0.dp
             } else {
                 6.dp
@@ -313,8 +320,11 @@ internal fun UnifiedMusicPlayerSheet(
                             val appearScale = lerp(0.985f, 1f, miniAppear.value)
                             scaleX = appearScale
                             scaleY = overshootScaleY.value * appearScale
+                            // Gone before it has sunk to the navigation bar's labels, so it never
+                            // sits see-through over them (#1856).
                             val pulledDown = state.translationY.value - collapsedTargetYState.value
-                            alpha = miniAppear.value * (1f - (pulledDown / (miniHeightPx * 2f)).coerceIn(0f, 1f))
+                            val leaving = (pulledDown / (miniHeightPx * MINI_BAR_FADE_DISTANCE)).coerceIn(0f, 1f)
+                            alpha = miniAppear.value * (1f - FastOutSlowInEasing.transform(leaving))
                             transformOrigin = TransformOrigin(0.5f, 1f)
                         }.layout { measurable, constraints ->
                             val targetHeightPx = geometry.cardHeightPx().roundToInt().coerceAtLeast(0)
@@ -451,6 +461,7 @@ internal fun UnifiedMusicPlayerSheet(
                             hideArtwork = appearance.hideArtwork,
                             sleepTimerButton = appearance.sleepTimerButton,
                             controlScheme = controlScheme,
+                            onLyricsShownChange = { state.isLyricsShown = it },
                         )
                     }
                 }

@@ -10,7 +10,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.lyrics.LyricsChecks.hasReasonableTimestamps
 import io.github.aedev.flow.data.lyrics.LyricsChecks.hasWordSync
-import io.github.aedev.flow.data.lyrics.LyricsChecks.isAuthFailure
 import io.github.aedev.flow.data.lyrics.LyricsChecks.normalizeEntries
 import io.github.aedev.flow.data.lyrics.LyricsChecks.stripWordTimings
 import io.github.aedev.flow.di.MetadataClient
@@ -56,7 +55,6 @@ class LyricsHelper
         companion object {
             private const val TAG = "LyricsHelper"
             private const val PER_PROVIDER_TIMEOUT_MS = 8_000L
-            private const val PROVIDER_COOLDOWN_MS = 10 * 60 * 1000L
 
             private const val MEMORY_CACHE_SIZE = 32
             private const val MEMORY_CACHE_NAME = "MemoryCache"
@@ -278,15 +276,19 @@ class LyricsHelper
                     null
                 }
             if (result == null) {
-                Log.w(TAG, "${provider.name} timed out")
+                if (provider.restsAfterTimeout) {
+                    rest(provider, LyricsChecks.BUSY_REST_MS, "timed out")
+                } else {
+                    Log.w(TAG, "${provider.name} timed out")
+                }
                 return LyricsReply.Failed
             }
             val found =
                 result.getOrElse { error ->
                     if (error is LyricsNotFoundException) return LyricsReply.Miss
-                    if (isAuthFailure(error.message)) {
-                        providerCooldowns[provider.name] = System.currentTimeMillis() + PROVIDER_COOLDOWN_MS
-                        Log.w(TAG, "${provider.name} auth failure (${error.message}), cooling down for 10 min")
+                    val restMs = LyricsChecks.restAfter(error)
+                    if (restMs != null) {
+                        rest(provider, restMs, error.message)
                     } else {
                         Log.w(TAG, "${provider.name} failed: ${error.message}")
                     }
@@ -303,6 +305,15 @@ class LyricsHelper
                 hasWordSync(entries) -> LyricsReply.Found(LyricsKind.WORD, entries)
                 else -> LyricsReply.Found(LyricsKind.LINE, stripWordTimings(entries))
             }
+        }
+
+        private fun rest(
+            provider: LyricsProvider,
+            restMs: Long,
+            reason: String?,
+        ) {
+            providerCooldowns[provider.name] = System.currentTimeMillis() + restMs
+            Log.w(TAG, "${provider.name} skipped for ${restMs / 1000} s: $reason")
         }
 
         /**

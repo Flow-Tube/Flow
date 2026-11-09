@@ -105,10 +105,10 @@ class WebDavGroupTest {
         runTest {
             val (words, _) = createWebDavGroup(emptyDb(), dav.store(), newMember(), meta, LINK)
             val db = emptyDb()
-            val newWords = restoreWebDavGroup(db, dav.store(), words, newMember(), meta)
+            val newWords = restoreWebDavGroup(db, dav.store(), words, newMember(), meta, emptySet())
             assertNotNull(db.groups().group()?.webDavUrl)
             assertFalse(newWords == words)
-            val error = runCatching { restoreWebDavGroup(emptyDb(), dav.store(), words, newMember(), meta) }.exceptionOrNull()
+            val error = runCatching { restoreWebDavGroup(emptyDb(), dav.store(), words, newMember(), meta, emptySet()) }.exceptionOrNull()
             assertTrue("used words don't restore twice: $error", error is LinkedException.RecoveryUsed)
         }
 }

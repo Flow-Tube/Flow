@@ -28,6 +28,7 @@ enum class LinkedError(
     ROLLED_BACK(retryable = true),
     RECOVERY_DUE(retryable = false),
     ROSTER_CHANGED(retryable = true),
+    RESTORE_UNFINISHED(retryable = true),
     GROUP_OUTDATED,
     DECLINED,
     TIMED_OUT,
@@ -84,7 +85,7 @@ fun Throwable.linkedError(): LinkedError =
             if (error == ProtocolError.ROSTER_GROUP) LinkedError.GROUP_OUTDATED else LinkedError.PROTOCOL
         }
 
-        is StoreException.Malformed -> {
+        is StoreException.Malformed, is StoreException.TooLarge -> {
             LinkedError.PROTOCOL
         }
 
@@ -106,6 +107,10 @@ fun Throwable.linkedError(): LinkedError =
 
         is LinkedException.RecoveryDue -> {
             LinkedError.RECOVERY_DUE
+        }
+
+        is LinkedException.RestoreUnfinished -> {
+            LinkedError.RESTORE_UNFINISHED
         }
 
         is LinkedException.RosterRolledBack -> {

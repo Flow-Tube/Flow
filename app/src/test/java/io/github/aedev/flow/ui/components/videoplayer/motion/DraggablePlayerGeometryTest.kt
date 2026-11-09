@@ -6,20 +6,24 @@ import org.junit.Test
 
 class DraggablePlayerGeometryTest {
     private fun phone(
+        screenWidth: Float = 1080f,
+        screenHeight: Float = 2400f,
+        isLargeWindow: Boolean = false,
+        miniPlayerScale: Float = 0.45f,
         currentSizeScale: Float = 1f,
         corner: MiniPlayerCorner = MiniPlayerCorner.BottomRight,
         isShrinkingToCorner: Boolean = false,
         videoAspectRatio: Float = 16f / 9f,
     ) = computeDraggablePlayerGeometry(
-        screenWidth = 1080f,
-        screenHeight = 2400f,
+        screenWidth = screenWidth,
+        screenHeight = screenHeight,
         statusBarHeight = 80f,
         margin = 24f,
         bottomNavPad = 200f,
         topBarPad = 168f,
-        isLargeWindow = false,
+        isLargeWindow = isLargeWindow,
         isTwoPaneWindow = false,
-        miniPlayerScale = 0.45f,
+        miniPlayerScale = miniPlayerScale,
         videoAspectRatio = videoAspectRatio,
         currentSizeScale = currentSizeScale,
         corner = corner,
@@ -41,6 +45,31 @@ class DraggablePlayerGeometryTest {
         assertThat(g.targetMiniX).isEqualTo(g.maxX)
         assertThat(g.targetMiniY).isEqualTo(g.maxY)
         assertThat(g.isWideMode).isFalse()
+    }
+
+    @Test
+    fun `a landscape phone keeps the portrait mini player size`() {
+        listOf(0.35f, 0.45f, 0.55f).forEach { scale ->
+            val portrait = phone(miniPlayerScale = scale)
+            val landscape = phone(screenWidth = 2400f, screenHeight = 1080f, miniPlayerScale = scale)
+            assertThat(landscape.baseMiniWidth).isWithin(0.01f).of(portrait.baseMiniWidth)
+            assertThat(landscape.miniWidth).isWithin(0.01f).of(portrait.miniWidth)
+            assertThat(landscape.miniHeight).isWithin(0.01f).of(portrait.miniHeight)
+        }
+    }
+
+    @Test
+    fun `wide mode on a landscape phone is capped by the shorter side`() {
+        val g = phone(screenWidth = 2400f, screenHeight = 1080f, currentSizeScale = 3f)
+        assertThat(g.maxWideWidth).isWithin(0.01f).of(1080f - 48f)
+        assertThat(g.miniWidth).isWithin(0.01f).of(1080f - 48f)
+    }
+
+    @Test
+    fun `a large window still sizes from its width`() {
+        val g = phone(screenWidth = 2400f, screenHeight = 1080f, isLargeWindow = true)
+        assertThat(g.baseMiniWidth).isWithin(0.01f).of(2400f * 0.45f)
+        assertThat(g.maxWideWidth).isWithin(0.01f).of(2400f * 0.60f - 48f)
     }
 
     @Test

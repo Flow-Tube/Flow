@@ -13,11 +13,14 @@ import androidx.compose.ui.test.WindowSize
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.utils.ProvideWindowSizeClass
 import org.junit.Rule
 import org.junit.Test
@@ -34,6 +37,7 @@ class FlowNavigationChromeTest {
     @get:Rule
     val rule = createComposeRule()
 
+    private val context = ApplicationProvider.getApplicationContext<Application>()
     private var reportedRailWidth: Dp = 0.dp
     private var reportedBarHeight: Dp = 0.dp
 
@@ -41,6 +45,7 @@ class FlowNavigationChromeTest {
         width: Int,
         height: Int,
         railVisible: Boolean = true,
+        tabs: List<FlowTab> = FlowTab.entries.take(5),
     ) {
         rule.setContent {
             DeviceConfigurationOverride(
@@ -49,7 +54,7 @@ class FlowNavigationChromeTest {
                 ProvideWindowSizeClass {
                     MaterialTheme {
                         FlowNavigationChrome(
-                            tabs = FlowTab.entries.take(5),
+                            tabs = tabs,
                             selectedTab = FlowTab.Home,
                             onTabSelected = {},
                             barVisible = true,
@@ -78,6 +83,28 @@ class FlowNavigationChromeTest {
 
         rule.onNodeWithTag(FLOW_NAV_RAIL_TAG).assertIsDisplayed()
         rule.onNodeWithTag(FLOW_NAV_BAR_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a landscape phone navigates from the rail`() {
+        setChrome(width = 891, height = 411)
+
+        rule.onNodeWithTag(FLOW_NAV_RAIL_TAG).assertIsDisplayed()
+        rule.onNodeWithTag(FLOW_NAV_BAR_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a rail too short for every tab moves the rest behind More`() {
+        setChrome(width = 891, height = 411, tabs = FlowTab.entries.toList())
+
+        rule.onNodeWithText(context.getString(R.string.nav_more)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a tall rail shows every tab`() {
+        setChrome(width = 1280, height = 800, tabs = FlowTab.entries.toList())
+
+        rule.onNodeWithText(context.getString(R.string.nav_more)).assertDoesNotExist()
     }
 
     @Test

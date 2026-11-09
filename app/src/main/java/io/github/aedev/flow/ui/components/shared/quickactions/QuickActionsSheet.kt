@@ -30,14 +30,21 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -149,6 +156,23 @@ fun QuickActionsSheet(
     }
 }
 
+/** The keys a focused item takes as a click, which a remote's OK sends. */
+private val OK_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Spacebar)
+
+/**
+ * Holding OK on an item opens its menu, and the key's repeats and release then click whatever took focus
+ * there. So OK counts only from a press that starts in the menu.
+ */
+@Composable
+private fun Modifier.ignoreHeldOk(): Modifier {
+    var pressedHere by remember { mutableStateOf(false) }
+    return onPreviewKeyEvent { event ->
+        if (event.key !in OK_KEYS) return@onPreviewKeyEvent false
+        if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) pressedHere = true
+        !pressedHere
+    }
+}
+
 /** A presenter has no hide animation of its own to wait for, so every way out closes at once. */
 @Composable
 private fun PresentedQuickActionsSheet(
@@ -165,6 +189,7 @@ private fun PresentedQuickActionsSheet(
         Column(
             modifier =
                 Modifier
+                    .ignoreHeldOk()
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
                     .padding(bottom = QuickActionsDefaults.BottomPadding),

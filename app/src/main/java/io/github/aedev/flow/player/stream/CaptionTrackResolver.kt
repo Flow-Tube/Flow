@@ -135,7 +135,7 @@ object CaptionTrackResolver {
         return ranked.firstOrNull()
     }
 
-    private fun baseLanguage(tag: String): String =
+    fun baseLanguage(tag: String): String =
         tag
             .substringBefore('-')
             .substringBefore('_')
