@@ -46,8 +46,17 @@ internal object CrossfadePolicy {
     /** The nudge closes the gap over about this long; a fixed horizon keeps it from overshooting. */
     private const val NUDGE_HORIZON_MS = 700f
 
-    /** Whatever a song needs left to play besides the fade, so a fade never starts before it can line up. */
-    private const val MIN_REST_MS = PREPARE_LEAD_MS + ALIGN_WINDOW_MS
+    /** A song this close to its end has too little left to fade out, so only the next song fades in. */
+    private const val MIN_FADE_THROUGH_MS = 300L
+
+    /** With no old song to blend with, the next one still comes in over this long instead of at full volume. */
+    const val QUICK_FADE_IN_MS = 400L
+
+    /** A lined-up tail takes over no sooner than this before the fade, so a short fade still ends with the song. */
+    private const val HAND_OFF_EARLY_MS = 500L
+
+    /** How long a muted song eases out before the player leaves it, so it doesn't stop mid-word. */
+    const val EASE_OUT_MS = 150L
 
     /** What the user chose in settings; [fadeMs] of 0 is off. */
     data class Settings(
@@ -122,15 +131,40 @@ internal object CrossfadePolicy {
         speed: Float,
     ): Long = (fadeMs.coerceIn(0L, MAX_MS) * speed.coerceAtLeast(0.1f)).toLong()
 
-    /** The position the fade starts at, or null when this song should end as it does today. */
+    /**
+     * The position the fade starts at, or null when this song should end as it does today. With Repeat one
+     * on, the song fades into its own start.
+     */
     fun fadeStartMs(moment: Moment): Long? {
-        if (moment.fadeMs <= 0 || !moment.playing || !moment.hasNext || moment.repeatsOne) return null
+        if (moment.fadeMs <= 0 || !moment.playing || !(moment.hasNext || moment.repeatsOne)) return null
         if (moment.showsVideo || moment.pausesAtEndOfSong) return null
-        if (moment.keepAlbumsGapless && moment.nextIsSameAlbum) return null
+        if (!moment.repeatsOne && moment.keepAlbumsGapless && moment.nextIsSameAlbum) return null
         if (moment.durationMs <= 0) return null
         val fadeMs = fadeMediaMs(moment.fadeMs, moment.speed)
-        if (moment.durationMs < fadeMs + MIN_REST_MS) return null
+        if (moment.durationMs < fadeMs + (MIN_FADE_THROUGH_MS * moment.speed).toLong()) return null
         return moment.durationMs - fadeMs
+    }
+
+    /** How a song that no tail can carry still fades: wait [holdMs], fade the session's own song over [outMs]. */
+    data class FadeThrough(
+        val holdMs: Long,
+        val outMs: Long,
+    )
+
+    /**
+     * The fade a song gets when its tail isn't ready or can't line up in time: the session player fades its
+     * own song out over what is left of the fade, and the next song comes in over [QUICK_FADE_IN_MS].
+     */
+    fun fadeThrough(
+        positionMs: Long,
+        durationMs: Long,
+        speed: Float,
+        fadeMs: Long,
+    ): FadeThrough {
+        val leftOnClock = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong().coerceAtLeast(0L)
+        if (leftOnClock < MIN_FADE_THROUGH_MS) return FadeThrough(holdMs = leftOnClock, outMs = 0L)
+        val outMs = minOf(fadeMs.coerceIn(0L, MAX_MS), leftOnClock)
+        return FadeThrough(holdMs = leftOnClock - outMs, outMs = outMs)
     }
 
     /**
@@ -148,11 +182,18 @@ internal object CrossfadePolicy {
         return resumeAt.takeIf { it + MIN_FADE_MS <= durationMs }
     }
 
-    /** The last position a song can change hands at and still have a fade worth hearing. */
+    /** The last position a song can change hands at and still have a fade worth hearing, or all of a shorter one. */
     fun latestHandOffMs(
         durationMs: Long,
         speed: Float,
-    ): Long = durationMs - (MIN_FADE_MS * speed).toLong()
+        fadeMs: Long,
+    ): Long = durationMs - (minOf(MIN_FADE_MS, fadeMs.coerceAtLeast(1L)) * speed).toLong()
+
+    /** The first position a lined-up tail may take the song over at: just before the fade, never seconds early. */
+    fun earliestHandOffMs(
+        fadeStartMs: Long,
+        speed: Float,
+    ): Long = fadeStartMs - (HAND_OFF_EARLY_MS * speed).toLong()
 
     /**
      * The position the tail starts lining up at: the usual one before [fadeStartMs], or later when a
@@ -163,10 +204,24 @@ internal object CrossfadePolicy {
         positionMs: Long,
         durationMs: Long,
         speed: Float,
+        fadeMs: Long,
     ): Long? {
         val start = maxOf(fadeStartMs - ALIGN_WINDOW_MS, positionMs + LATE_READY_LEAD_MS)
-        return start.takeIf { it + MIN_LINE_UP_MS <= latestHandOffMs(durationMs, speed) }
+        return start.takeIf { it + MIN_LINE_UP_MS <= latestHandOffMs(durationMs, speed, fadeMs) }
     }
+
+    /** How long the outgoing song fades on the clock once a tail has it: until the song ends, so it never stops early. */
+    fun fadeOutClockMs(
+        positionMs: Long,
+        durationMs: Long,
+        speed: Float,
+    ): Long = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong().coerceAtLeast(1L)
+
+    /** How far through its own fade a song is, [elapsedMs] after its clock started; 0 while it hasn't. */
+    fun progress(
+        elapsedMs: Long?,
+        clockMs: Long,
+    ): Float = if (elapsedMs == null) 0f else (elapsedMs.toFloat() / clockMs.coerceAtLeast(1L)).coerceIn(0f, 1f)
 
     /** How long a fade lasts on the clock: the chosen length, or what is left of the song after a late seek. */
     fun fadeClockMs(

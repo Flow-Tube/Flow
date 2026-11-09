@@ -31,17 +31,73 @@ class CrossfadePolicyTest {
     }
 
     @Test
-    fun `no fade when off, paused, last, repeating one, a video, the sleep timer's last song or too short`() {
+    fun `no fade when off, paused, last, a video, the sleep timer's last song or shorter than the fade`() {
         listOf(
             song.copy(fadeMs = 0L),
             song.copy(playing = false),
             song.copy(hasNext = false),
-            song.copy(repeatsOne = true),
             song.copy(showsVideo = true),
             song.copy(pausesAtEndOfSong = true),
             song.copy(durationMs = 0L),
-            song.copy(durationMs = 15_000L),
+            song.copy(durationMs = 6_200L),
         ).forEach { assertThat(CrossfadePolicy.fadeStartMs(it)).isNull() }
+    }
+
+    @Test
+    fun `a short song still fades, and Repeat one fades a song into its own start`() {
+        assertThat(CrossfadePolicy.fadeStartMs(song.copy(durationMs = 15_000L))).isEqualTo(9_000L)
+        assertThat(CrossfadePolicy.fadeStartMs(song.copy(durationMs = 6_300L))).isEqualTo(300L)
+        assertThat(CrossfadePolicy.fadeStartMs(song.copy(repeatsOne = true, hasNext = false))).isEqualTo(194_000L)
+        assertThat(CrossfadePolicy.fadeStartMs(song.copy(repeatsOne = true, nextIsSameAlbum = true))).isEqualTo(194_000L)
+    }
+
+    @Test
+    fun `a song with too little time for a tail fades through on the session player`() {
+        val song = { duration: Long -> song.copy(fadeMs = 3_000L, durationMs = duration) }
+        val align = { s: CrossfadePolicy.Moment, position: Long ->
+            CrossfadePolicy.alignStartMs(CrossfadePolicy.fadeStartMs(s)!!, position, s.durationMs, s.speed, s.fadeMs)
+        }
+
+        assertThat(align(song(7_500L), 0L)).isEqualTo(1_500L)
+        assertThat(align(song(4_000L), 0L)).isNull()
+    }
+
+    @Test
+    fun `a fade-through waits for the fade point, then fades what is left`() {
+        assertThat(CrossfadePolicy.fadeThrough(positionMs = 190_000L, durationMs = 200_000L, speed = 1f, fadeMs = 3_000L))
+            .isEqualTo(CrossfadePolicy.FadeThrough(holdMs = 7_000L, outMs = 3_000L))
+        assertThat(CrossfadePolicy.fadeThrough(positionMs = 198_000L, durationMs = 200_000L, speed = 1f, fadeMs = 3_000L))
+            .isEqualTo(CrossfadePolicy.FadeThrough(holdMs = 0L, outMs = 2_000L))
+        assertThat(CrossfadePolicy.fadeThrough(positionMs = 198_000L, durationMs = 200_000L, speed = 2f, fadeMs = 3_000L))
+            .isEqualTo(CrossfadePolicy.FadeThrough(holdMs = 0L, outMs = 1_000L))
+    }
+
+    @Test
+    fun `a song already at its end has nothing to fade out, only the next song fades in`() {
+        assertThat(CrossfadePolicy.fadeThrough(positionMs = 199_900L, durationMs = 200_000L, speed = 1f, fadeMs = 3_000L))
+            .isEqualTo(CrossfadePolicy.FadeThrough(holdMs = 100L, outMs = 0L))
+        assertThat(CrossfadePolicy.QUICK_FADE_IN_MS).isEqualTo(400L)
+    }
+
+    @Test
+    fun `a lined-up tail takes over just before the fade, and a short fade can still hand off at its start`() {
+        assertThat(CrossfadePolicy.earliestHandOffMs(fadeStartMs = 194_000L, speed = 1f)).isEqualTo(193_500L)
+        assertThat(CrossfadePolicy.latestHandOffMs(durationMs = 200_000L, speed = 1f, fadeMs = 6_000L)).isEqualTo(198_000L)
+        assertThat(CrossfadePolicy.latestHandOffMs(durationMs = 200_000L, speed = 1f, fadeMs = 250L)).isEqualTo(199_750L)
+    }
+
+    @Test
+    fun `once a tail has it, the old song fades until it ends`() {
+        assertThat(CrossfadePolicy.fadeOutClockMs(positionMs = 196_500L, durationMs = 200_000L, speed = 1f)).isEqualTo(3_500L)
+        assertThat(CrossfadePolicy.fadeOutClockMs(positionMs = 196_500L, durationMs = 200_000L, speed = 2f)).isEqualTo(1_750L)
+        assertThat(CrossfadePolicy.fadeOutClockMs(positionMs = 200_000L, durationMs = 200_000L, speed = 1f)).isEqualTo(1L)
+    }
+
+    @Test
+    fun `each song's progress runs on its own clock, and a clock that hasn't started is at 0`() {
+        assertThat(CrossfadePolicy.progress(elapsedMs = null, clockMs = 3_000L)).isEqualTo(0f)
+        assertThat(CrossfadePolicy.progress(elapsedMs = 1_500L, clockMs = 3_000L)).isWithin(1e-6f).of(0.5f)
+        assertThat(CrossfadePolicy.progress(elapsedMs = 9_000L, clockMs = 3_000L)).isEqualTo(1f)
     }
 
     @Test
@@ -95,22 +151,26 @@ class CrossfadePolicyTest {
 
     @Test
     fun `with time to spare the tail lines up at the usual point`() {
-        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 100_000L, durationMs = 185_000L, speed = 1f))
-            .isEqualTo(176_000L)
+        assertThat(
+            CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 100_000L, durationMs = 185_000L, speed = 1f, fadeMs = 6_000L),
+        ).isEqualTo(176_000L)
     }
 
     @Test
     fun `after a seek close to the end the tail gets a moment to buffer first`() {
-        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 175_000L, durationMs = 185_000L, speed = 1f))
-            .isEqualTo(176_500L)
-        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 167_000L, positionMs = 166_000L, durationMs = 173_000L, speed = 1f))
-            .isEqualTo(167_500L)
+        assertThat(
+            CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 175_000L, durationMs = 185_000L, speed = 1f, fadeMs = 6_000L),
+        ).isEqualTo(176_500L)
+        assertThat(
+            CrossfadePolicy.alignStartMs(fadeStartMs = 167_000L, positionMs = 166_000L, durationMs = 173_000L, speed = 1f, fadeMs = 6_000L),
+        ).isEqualTo(167_500L)
     }
 
     @Test
     fun `a seek too close to the end leaves the song to end by itself`() {
-        assertThat(CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 181_400L, durationMs = 185_000L, speed = 1f))
-            .isNull()
+        assertThat(
+            CrossfadePolicy.alignStartMs(fadeStartMs = 179_000L, positionMs = 181_400L, durationMs = 185_000L, speed = 1f, fadeMs = 6_000L),
+        ).isNull()
     }
 
     @Test

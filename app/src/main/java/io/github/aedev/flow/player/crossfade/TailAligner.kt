@@ -8,7 +8,8 @@ import kotlin.math.abs
 /**
  * Lines a muted, buffered tail up with the session player before a song changes hands: starts it at
  * the moment it will be heard level, then nudges its speed until the two positions match. Positions
- * are compared through [PositionAnchor], since a player reports them in coarse steps.
+ * are compared through [PositionAnchor], since a player reports them in coarse steps. A tail lined up early
+ * keeps being nudged until the earliest hand-off, so a short fade still ends with the song.
  */
 internal class TailAligner(
     private val session: Player,
@@ -18,6 +19,7 @@ internal class TailAligner(
     private val onAligned: (deltaMs: Long) -> Unit,
     private val onGaveUp: (reason: String) -> Unit,
 ) {
+    private var earliestHandOffMs = 0L
     private var latestHandOffMs = 0L
     private var tailRetries = 0
     private var sessionAnchor = PositionAnchor()
@@ -33,7 +35,11 @@ internal class TailAligner(
     private val alignStep = Runnable { align() }
     private val startTailStep = Runnable { startTail() }
 
-    fun reset(latestHandOffMs: Long) {
+    fun reset(
+        earliestHandOffMs: Long,
+        latestHandOffMs: Long,
+    ) {
+        this.earliestHandOffMs = earliestHandOffMs
         this.latestHandOffMs = latestHandOffMs
         tailRetries = 0
     }
@@ -104,7 +110,7 @@ internal class TailAligner(
         }
         alignedReadings = if (CrossfadePolicy.isAligned(delta)) alignedReadings + 1 else 0
         when {
-            alignedReadings >= ALIGNED_READINGS -> {
+            alignedReadings >= ALIGNED_READINGS && sessionMs >= earliestHandOffMs -> {
                 onAligned(delta)
             }
 

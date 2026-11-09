@@ -4209,6 +4209,9 @@
     <string name="settings_milliseconds_value">%1$s ms</string>
     <string name="crossfade_chart_outgoing">Current song</string>
     <string name="crossfade_chart_incoming">Next song</string>
+    <string name="crossfade_pause">Pause crossfade</string>
+    <string name="crossfade_pause_desc">Until Flow restarts</string>
+    <string name="crossfade_resume">Resume crossfade</string>
     <string name="settings_quality_tab_video">Video</string>
     <string name="settings_quality_tab_shorts">Shorts</string>
     <string name="settings_quality_tab_music">Music</string>
