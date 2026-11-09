@@ -5,6 +5,7 @@ import androidx.navigation.NavController
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.ui.components.layout.navigation.DOWNLOADS_ROUTE
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
+import io.github.aedev.flow.ui.screens.search.SEARCH_ROUTE_PATTERN
 import java.net.URI
 import java.net.URLEncoder
 
@@ -16,6 +17,7 @@ internal fun flowTabForDestination(
     when (route) {
         null -> null
         SHORTS_ROUTE_PATTERN -> FlowTab.Shorts.takeIf { ShortsQueueSource.decode(shortsSourceArg) == ShortsQueueSource.Feed }
+        SEARCH_ROUTE_PATTERN -> FlowTab.Search
         else -> FlowTab.entries.firstOrNull { it.route == route }
     }
 

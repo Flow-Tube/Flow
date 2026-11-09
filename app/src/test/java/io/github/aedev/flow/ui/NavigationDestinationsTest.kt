@@ -207,4 +207,12 @@ class NavigationDestinationsTest {
         assertFalse(navigationBarShown(FlowTab.Search, "search", onSearch = false, onInnerPages = true))
         assertTrue(navigationBarShown(FlowTab.Search, "search", onSearch = true, onInnerPages = false))
     }
+
+    @Test
+    fun everySearchPageIsTheSearchTab() {
+        assertEquals(
+            FlowTab.Search,
+            flowTabForDestination(io.github.aedev.flow.ui.screens.search.SEARCH_ROUTE_PATTERN, shortsSourceArg = null),
+        )
+    }
 }
