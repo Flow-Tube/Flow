@@ -5,10 +5,20 @@ object BackgroundPlaybackPolicy {
         autoPipEnabled: Boolean,
         isVideoPlaying: Boolean,
         explicitBackgroundPlaybackActive: Boolean,
+        soundOnlyBackground: Boolean,
     ): Boolean =
         autoPipEnabled &&
             isVideoPlaying &&
-            !explicitBackgroundPlaybackActive
+            !explicitBackgroundPlaybackActive &&
+            !soundOnlyBackground
+
+    /** A restored session keeps its video mini player, since nothing is playing yet (#1513). */
+    fun shouldCollapseToAudioBar(
+        minimizeToAudioBar: Boolean,
+        isBackgroundPlaybackMode: Boolean,
+        isRestoredSession: Boolean,
+        hasVideo: Boolean,
+    ): Boolean = minimizeToAudioBar && hasVideo && !isBackgroundPlaybackMode && !isRestoredSession
 
     fun shouldKeepPlaybackInBackground(
         backgroundPlaybackPreferenceEnabled: Boolean,

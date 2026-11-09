@@ -259,6 +259,7 @@ class PlayerPreferences(
         val MINI_PLAYER_SHOW_SKIP_CONTROLS = booleanPreferencesKey("mini_player_show_skip_controls")
         val MINI_PLAYER_SHOW_NEXT_PREV_CONTROLS = booleanPreferencesKey("mini_player_show_next_prev_controls")
         val MINI_PLAYER_CONTINUE_WATCHING_ENABLED = booleanPreferencesKey("mini_player_continue_watching_enabled")
+        val MINIMIZE_TO_AUDIO_BAR = booleanPreferencesKey("minimize_to_audio_bar")
         val SHOW_RESTORED_MUSIC_MINI_PLAYER = booleanPreferencesKey("show_restored_music_mini_player")
         val OPEN_MUSIC_PLAYER_ON_PLAY = booleanPreferencesKey("open_music_player_on_play")
 
@@ -4123,6 +4124,18 @@ class PlayerPreferences(
     suspend fun setMiniPlayerContinueWatchingEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MINI_PLAYER_CONTINUE_WATCHING_ENABLED] = enabled
+        }
+    }
+
+    val minimizeToAudioBar: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.MINIMIZE_TO_AUDIO_BAR] ?: false
+            }
+
+    suspend fun setMinimizeToAudioBar(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINIMIZE_TO_AUDIO_BAR] = enabled
         }
     }
 

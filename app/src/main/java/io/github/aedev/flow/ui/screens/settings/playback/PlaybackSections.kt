@@ -150,6 +150,7 @@ internal fun SettingsListScope.playbackSections(
     group(key = "playback.pip", header = R.string.settings_section_pip) {
         switch(PlaybackIndex.autoPip, viewModel.autoPip, viewModel::setAutoPip)
         switch(PlaybackIndex.continueWatchingMiniPlayer, viewModel.continueWatchingMiniPlayer, viewModel::setContinueWatchingMiniPlayer)
+        switch(PlaybackIndex.minimizeToAudioBar, viewModel.minimizeToAudioBar, viewModel::setMinimizeToAudioBar)
         switch(PlaybackIndex.restoreMusicMiniPlayer, viewModel.restoreMusicMiniPlayer, viewModel::setRestoreMusicMiniPlayer)
         switch(PlaybackIndex.openMusicPlayerOnPlay, viewModel.openMusicPlayerOnPlay, viewModel::setOpenMusicPlayerOnPlay)
     }

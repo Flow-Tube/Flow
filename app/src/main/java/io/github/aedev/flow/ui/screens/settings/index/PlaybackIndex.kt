@@ -263,6 +263,14 @@ internal object PlaybackIndex {
             section = R.string.settings_section_pip,
             destination = page,
         )
+    val minimizeToAudioBar =
+        SettingEntry(
+            key = "playback.minimize_to_audio_bar",
+            title = R.string.player_settings_minimize_to_audio_bar_title,
+            summary = R.string.player_settings_minimize_to_audio_bar_subtitle,
+            section = R.string.settings_section_pip,
+            destination = page,
+        )
     val restoreMusicMiniPlayer =
         SettingEntry(
             key = "playback.restore_music_mini_player",
@@ -445,6 +453,7 @@ internal object PlaybackIndex {
                 nextPrevButtons,
                 autoPip,
                 continueWatchingMiniPlayer,
+                minimizeToAudioBar,
                 restoreMusicMiniPlayer,
                 openMusicPlayerOnPlay,
                 audioLanguage,

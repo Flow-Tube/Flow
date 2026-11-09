@@ -457,6 +457,7 @@ class MainActivity : ComponentActivity() {
                 autoPipEnabled = lifecyclePlaybackPreferences.settings.autoPipEnabled,
                 isVideoPlaying = isVideoPlaying,
                 explicitBackgroundPlaybackActive = explicitBackgroundPlaybackActive,
+                soundOnlyBackground = GlobalPlayerState.isVideoSoundOnly.value,
             )
         if (shouldEnterAutoPip && !isMusicPlaying) {
             if (PictureInPictureHelper.systemEntersPipOnLeave()) {
