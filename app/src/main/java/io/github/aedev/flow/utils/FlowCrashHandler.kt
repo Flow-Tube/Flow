@@ -93,16 +93,15 @@ class FlowCrashHandler private constructor(
             phase: String,
             detail: String,
         ) {
-            breadcrumbs.addLast(
+            val runtime = Runtime.getRuntime()
+            val entry =
                 FlowCrashBreadcrumb(
                     timestampMs = System.currentTimeMillis(),
                     phase = phase.take(48),
                     detail = detail.take(240),
-                ),
-            )
-            while (breadcrumbs.size > MAX_BREADCRUMBS) {
-                breadcrumbs.pollFirst()
-            }
+                    heapMb = (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024,
+                )
+            synchronized(breadcrumbs) { breadcrumbs.record(entry, MAX_BREADCRUMBS) }
         }
     }
 
