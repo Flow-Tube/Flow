@@ -58,6 +58,8 @@ fun Modifier.videoPlayerControls(
     longPressPlaybackSpeed: Float = 2.0f,
     onExitFullscreen: ((releaseOffsetPx: Float, releaseVelocityPx: Float) -> Unit)? = null,
     onExitFullscreenDrag: (offsetPx: Float) -> Unit = {},
+    onMoreVideos: (() -> Unit)? = null,
+    onMoreVideosDrag: (offsetPx: Float) -> Unit = {},
     isSeekForwardActive: Boolean = false,
     isSeekBackActive: Boolean = false,
     onTapWindowChange: (Boolean) -> Unit = {},
@@ -98,6 +100,8 @@ fun Modifier.videoPlayerControls(
     val onSeekAccumulateState = rememberUpdatedState(onSeekAccumulate)
     val onExitFullscreenState = rememberUpdatedState(onExitFullscreen)
     val onExitFullscreenDragState = rememberUpdatedState(onExitFullscreenDrag)
+    val onMoreVideosState = rememberUpdatedState(onMoreVideos)
+    val onMoreVideosDragState = rememberUpdatedState(onMoreVideosDrag)
     val isSeekForwardActiveState = rememberUpdatedState(isSeekForwardActive)
     val isSeekBackActiveState = rememberUpdatedState(isSeekBackActive)
     val onTapWindowChangeState = rememberUpdatedState(onTapWindowChange)
@@ -172,6 +176,8 @@ fun Modifier.videoPlayerControls(
             sideEdgeIgnorePx = sideEdgeIgnorePxState,
             onExitFullscreen = onExitFullscreenState,
             onExitFullscreenDrag = onExitFullscreenDragState,
+            onMoreVideos = onMoreVideosState,
+            onMoreVideosDrag = onMoreVideosDragState,
             haptics = haptics,
             lastBrightnessApplied = lastBrightnessApplied,
             lastBrightnessAppliedAt = lastBrightnessAppliedAt,

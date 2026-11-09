@@ -3489,6 +3489,8 @@
     <string name="recognition_clear_history">Clear history?</string>
     <string name="recognition_clear_history_body">This removes all recognized songs. This cannot be undone.</string>
     <string name="close_popup_player">Close popup player</string>
+    <string name="more_videos">More videos</string>
+    <string name="close_more_videos">Close more videos</string>
     <!-- Discord Rich Presence -->
     <string name="discord_presence_title">Discord Rich Presence</string>
     <string name="discord_presence_enable">Share playback activity</string>

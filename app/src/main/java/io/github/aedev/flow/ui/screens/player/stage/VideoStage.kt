@@ -28,6 +28,7 @@ import io.github.aedev.flow.ui.components.videoplayer.gesture.videoPlayerZoom
 import io.github.aedev.flow.ui.components.videoplayer.placedWhen
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.Media3SubtitleOverlay
 import io.github.aedev.flow.ui.screens.player.saveChosenPlaybackSpeed
+import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 
 /**
  * The player's video slot: the surface itself, the gesture and zoom transforms wrapped around it,
@@ -131,6 +132,16 @@ internal fun VideoStage(
                         screenState.isFullscreenPortrait = false
                     },
                     onExitFullscreenDrag = { offsetPx -> screenState.exitDragOffsetY = offsetPx },
+                    onMoreVideos =
+                        if (canUseFullscreenSidePanel) {
+                            {
+                                screenState.showControls = false
+                                screenState.open(PlayerSheet.MoreVideos)
+                            }
+                        } else {
+                            null
+                        },
+                    onMoreVideosDrag = { offsetPx -> screenState.moreVideosDragY = offsetPx },
                     isSeekForwardActive = screenState.showSeekForwardAnimation,
                     isSeekBackActive = screenState.showSeekBackAnimation,
                     onTapWindowChange = { screenState.isTapWindowOpen = it },

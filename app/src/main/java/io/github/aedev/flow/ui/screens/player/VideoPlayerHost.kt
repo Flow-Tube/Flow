@@ -572,6 +572,7 @@ fun VideoPlayerHost(
         FullscreenPanels(
             session = stageSession,
             sidePanelState = sidePanelState,
+            canUseFullscreenSidePanel = canUseFullscreenSidePanel,
             commentsUiState = commentsUiState,
             videoAspectRatio = videoAspectRatio,
             rememberSubtitleLanguage = rememberSubtitleLanguage,
