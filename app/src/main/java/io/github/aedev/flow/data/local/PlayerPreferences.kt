@@ -137,6 +137,7 @@ class PlayerPreferences(
         val MUSIC_PLAYER_BACKGROUND_STYLE = stringPreferencesKey("music_player_background_style")
         val HIDE_MUSIC_PLAYER_ARTWORK = booleanPreferencesKey("hide_music_player_artwork")
         val MUSIC_ARTWORK_CONTROL_COLORS = booleanPreferencesKey("music_artwork_control_colors")
+        val VIDEO_ARTWORK_COLORS = booleanPreferencesKey("video_artwork_colors")
         val MUSIC_PLAIN_CONTROL_COLORS = stringPreferencesKey("music_plain_control_colors")
         val MUSIC_SLEEP_TIMER_BUTTON = booleanPreferencesKey("music_sleep_timer_button")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
@@ -1010,6 +1011,17 @@ class PlayerPreferences(
     suspend fun setMusicArtworkControlColors(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MUSIC_ARTWORK_CONTROL_COLORS] = enabled
+        }
+    }
+
+    /** Whether the video description, comments, chapters and transcript sheets take the thumbnail's colors. */
+    val videoArtworkColors: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.VIDEO_ARTWORK_COLORS] ?: true }
+
+    suspend fun setVideoArtworkColors(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.VIDEO_ARTWORK_COLORS] = enabled
         }
     }
 
