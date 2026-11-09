@@ -32,6 +32,7 @@ import io.github.aedev.flow.ui.screens.player.dialogs.PlayerLiveChatColumn
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerQueueSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSettingsSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSleepTimerSheetHost
+import io.github.aedev.flow.ui.screens.player.dialogs.PlayerTranscriptSheetHost
 import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
@@ -50,6 +51,7 @@ internal class FullscreenSidePanelState(
     val showSettings: Boolean,
     val showChapters: Boolean,
     val showDescription: Boolean,
+    val showTranscript: Boolean,
     val showLiveChat: Boolean,
     val showComments: Boolean,
     val showSleepTimer: Boolean,
@@ -78,6 +80,7 @@ internal fun rememberFullscreenSidePanelState(
     // The drawer hosted every other sheet but this one, and the bottom sheet is suppressed wherever
     // a drawer exists — so opening the description in fullscreen drew nothing at all.
     val showDescriptionSidePanel = screenState.activeSheet == PlayerSheet.Description
+    val showTranscriptSidePanel = screenState.activeSheet == PlayerSheet.Transcript
     val showLiveChatSidePanel =
         screenState.activeSheet == PlayerSheet.LiveChat(fullscreen = true) && playerUiState.isLiveChatAvailable
     val showCommentsSidePanel =
@@ -87,7 +90,7 @@ internal fun rememberFullscreenSidePanelState(
     val fullscreenSidePanelVisible =
         canUseFullscreenSidePanel &&
             (
-                showSettingsSurface || showChaptersSidePanel || showDescriptionSidePanel ||
+                showSettingsSurface || showChaptersSidePanel || showDescriptionSidePanel || showTranscriptSidePanel ||
                     showLiveChatSidePanel || showCommentsSidePanel || showSleepTimerSidePanel || showQueueSidePanel
             )
     val fullscreenDrawerWidth = minOf(maxWidth * 0.42f, 420.dp)
@@ -182,6 +185,7 @@ internal fun rememberFullscreenSidePanelState(
         showSettings = showSettingsSurface,
         showChapters = showChaptersSidePanel,
         showDescription = showDescriptionSidePanel,
+        showTranscript = showTranscriptSidePanel,
         showLiveChat = showLiveChatSidePanel,
         showComments = showCommentsSidePanel,
         showSleepTimer = showSleepTimerSidePanel,
@@ -264,6 +268,18 @@ internal fun BoxScope.FullscreenSidePanel(
                 onChaptersClick = { screenState.open(PlayerSheet.Chapters) },
                 onTranscriptClick = { screenState.open(PlayerSheet.Transcript) },
                 onChannelClick = onNavigateToChannel,
+            )
+        } else if (panelState.showTranscript) {
+            PlayerTranscriptSheetHost(
+                viewModel = playerViewModel,
+                screenState = screenState,
+                playerState = playerState,
+                prefs = prefs,
+                chapters = playerUiState.chapters,
+                artworkUrl = video.thumbnailUrl,
+                asSidePanel = true,
+                expandedHeight = panelState.panelHeight,
+                onDismiss = closeFullscreenSidePanel,
             )
         } else if (panelState.showSleepTimer) {
             PlayerSleepTimerSheetHost(
