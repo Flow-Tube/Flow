@@ -30,6 +30,11 @@ import io.github.aedev.flow.player.DEFAULT_VIDEO_ASPECT_RATIO
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** Latest smoothed frame. */
@@ -59,7 +64,18 @@ fun rememberAmbientFrame(
     },
 ): AmbientFrameState {
     val holder = remember { AmbientFrameHolder() }
-    AmbientFrameCaptureEffect(playerView, active, holder, isPlayingProvider)
+    val currentIsPlayingProvider by rememberUpdatedState(isPlayingProvider)
+    // A pooled Shorts player has no observable playing state to wait on, so it is asked on a timer.
+    val isPlaying =
+        remember {
+            flow {
+                while (true) {
+                    emit(currentIsPlayingProvider())
+                    delay(IDLE_MS)
+                }
+            }
+        }
+    AmbientFrameCaptureEffect(playerView, active, holder, isPlaying)
     return holder.state
 }
 
@@ -70,14 +86,11 @@ fun AmbientFrameCaptureEffect(
     playerView: PlayerView,
     active: Boolean,
     holder: AmbientFrameHolder,
-    isPlayingProvider: () -> Boolean = {
-        EnhancedPlayerManager.getInstance().getPlayer()?.isPlaying == true
-    },
+    isPlaying: Flow<Boolean> = mainPlayerIsPlaying(),
 ) {
-    val currentIsPlayingProvider by rememberUpdatedState(isPlayingProvider)
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(active, playerView, lifecycleOwner, holder) {
+    LaunchedEffect(active, playerView, lifecycleOwner, holder, isPlaying) {
         if (!active) {
             holder.state = AmbientFrameState()
             return@LaunchedEffect
@@ -94,12 +107,22 @@ fun AmbientFrameCaptureEffect(
                 // walks toward them on its own clock. Both run on Main, so the shared target
                 // buffers need no synchronisation — the heavy work inside each hops to Default
                 // and is joined before anything is published.
-                launch { pipeline.runCapture(playerView, currentIsPlayingProvider) }
+                launch { pipeline.runCapture(playerView, isPlaying) }
                 launch { pipeline.runSmoothing { holder.state = it } }
             }
         }
     }
 }
+
+@Composable
+private fun mainPlayerIsPlaying(): Flow<Boolean> =
+    remember {
+        EnhancedPlayerManager
+            .getInstance()
+            .playerState
+            .map { it.isPlaying }
+            .distinctUntilChanged()
+    }
 
 private const val AMBIENT_EDGE_ALPHA = 0.82f
 private const val AMBIENT_EDGE_KNEE = 0.30f

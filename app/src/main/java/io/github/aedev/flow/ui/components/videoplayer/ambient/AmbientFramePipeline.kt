@@ -14,8 +14,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -34,7 +37,9 @@ private const val DECIMATION = 3
 
 private const val CAPTURE_MS_ASYNC = 900L
 private const val CAPTURE_MS_BLOCKING = 1800L
-private const val IDLE_MS = 1500L
+
+/** How often a surface that is not ready yet is checked again, and how often a polled player is asked. */
+internal const val IDLE_MS = 1500L
 
 /**
  * Temporal smoothing. One exponential filter over the pixel buffer replaces what used to be three
@@ -58,7 +63,6 @@ private const val IDLE_MS = 1500L
  * reintroduces the hazard. If cuts feel soft, lower tau globally instead.
  */
 private const val SMOOTH_TICK_MS = 60L
-private const val SMOOTH_IDLE_TICK_MS = 200L
 private const val SMOOTH_TAU_MS = 600f
 
 /** Once every channel is within this of its target (linear units) the filter stops emitting. */
@@ -152,15 +156,22 @@ internal class AmbientPipeline(
     private var supported = true
     private var consecutiveFailures = 0
 
+    /**
+     * Signalled whenever there is something new to publish. Conflated: the smoothing loop only
+     * needs to know that it should look, not how many times it was told.
+     */
+    private val wake = Channel<Unit>(Channel.CONFLATED)
+
     suspend fun runCapture(
         playerView: PlayerView,
-        isPlaying: () -> Boolean,
+        isPlaying: Flow<Boolean>,
     ) {
         while (currentCoroutineContext().isActive && supported) {
+            // Suspends while paused instead of polling, so a paused video costs nothing here.
+            isPlaying.first { it }
             val surface = playerView.videoSurfaceView
-            val playing = isPlaying()
             var cadence = IDLE_MS
-            if (playing && surface != null && surface.width > 0 && surface.height > 0) {
+            if (surface != null && surface.width > 0 && surface.height > 0) {
                 val base = if (surface is TextureView) CAPTURE_MS_BLOCKING else CAPTURE_MS_ASYNC
                 when (captureSurface(surface, sample, handler)) {
                     CAPTURE_OK -> {
@@ -172,6 +183,7 @@ internal class AmbientPipeline(
                         if (accepted) {
                             stagingGrid.copyInto(targetGrid)
                             hasTarget = true
+                            wake.trySend(Unit)
                         }
                     }
 
@@ -213,7 +225,7 @@ internal class AmbientPipeline(
         var last = SystemClock.elapsedRealtime()
         while (currentCoroutineContext().isActive) {
             if (!hasTarget) {
-                delay(SMOOTH_IDLE_TICK_MS)
+                wake.receive()
                 last = SystemClock.elapsedRealtime()
                 continue
             }
@@ -235,7 +247,8 @@ internal class AmbientPipeline(
                 emit(publish())
                 delay(SMOOTH_TICK_MS)
             } else {
-                delay(SMOOTH_IDLE_TICK_MS)
+                // Converged: nothing changes until capture sets a new target.
+                wake.receive()
                 last = SystemClock.elapsedRealtime()
             }
         }
