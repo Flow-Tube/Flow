@@ -4706,7 +4706,7 @@
     <string name="crossfade_curve_s_curve">Hamar</string>
     <string name="crossfade_curve_s_curve_detail">Yavaş başlayır və bitir, ortada dəyişir</string>
     <string name="crossfade_curve_hold">Saxla</string>
-    <string name="crossfade_curve_hold_detail">Cari mahnını yüksək saxlayır, sonra gec dəyişir</string>
+    <string name="crossfade_curve_hold_detail">Növbəti daxil olana qədər cari mahnı səslənməyə davam edir</string>
     <string name="crossfade_curve_gentle">Yumşaq</string>
     <string name="crossfade_curve_gentle_detail">Sönükləşmənin ortasında daha yumşaqdır</string>
     <string name="settings_keywords_crossfade">feyd, keçid, qarışdır, fasiləsiz, miks</string>
