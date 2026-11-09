@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.search
 
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -88,6 +89,12 @@ class SearchScreenState(
 
     fun stopTyping() {
         isTyping = false
+    }
+
+    /** Puts [query], the search this page shows, back in the field and closes the suggestions. */
+    fun returnTo(query: String) {
+        textFieldState.setTextAndPlaceCursorAtEnd(query)
+        onSubmit(query)
     }
 
     fun deleteHistoryItem(item: SearchHistoryItem) {
