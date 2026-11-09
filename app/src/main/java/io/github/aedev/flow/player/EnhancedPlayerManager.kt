@@ -692,7 +692,13 @@ class EnhancedPlayerManager private constructor() {
                 getCurrentVideoStream = { currentVideoStream },
                 getCurrentAudioStream = { currentAudioStream },
                 getAllAudioStreams = { castAudioStreams },
-                setCurrentAudioStream = { audio -> currentAudioStream = audio },
+                setCurrentAudioStream = { audio ->
+                    currentAudioStream = audio
+                    _playerState.value =
+                        _playerState.value.copy(
+                            currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, audio),
+                        )
+                },
                 setRecoveryState = { errorHandler?.setRecovery() },
                 reloadPlaybackManager = { reloadPlaybackManager() },
             )
