@@ -41,14 +41,14 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-private enum class Reminder { BEDTIME, BREAK }
+private enum class Reminder { BEDTIME, BREAK, DAILY_LIMIT }
 
-private enum class WellbeingDialog { BEDTIME_START, BEDTIME_END, BREAK_FREQUENCY }
+private enum class WellbeingDialog { BEDTIME_START, BEDTIME_END, BREAK_FREQUENCY, DAILY_LIMIT_MINUTES }
 
 private val BreakFrequencies = listOf(5, 10, 15, 20, 30, 45, 60, 90, 120)
 private const val MINUTES_PER_DAY = 24 * 60
 
-/** Watch time over the last week, and the bedtime and break reminders that help keep it in check. */
+/** Watch time over the last week, and the reminders and daily limit that help keep it in check. */
 @Composable
 internal fun WellbeingScreen(
     onBack: (() -> Unit)?,
@@ -62,6 +62,8 @@ internal fun WellbeingScreen(
     val bedtimeStart by viewModel.bedtimeStart.collectAsStateWithLifecycle()
     val bedtimeEnd by viewModel.bedtimeEnd.collectAsStateWithLifecycle()
     val breakMinutes by viewModel.breakMinutes.collectAsStateWithLifecycle()
+    val dailyLimit by viewModel.dailyLimit.collectAsStateWithLifecycle()
+    val pendingLimit by viewModel.pendingLimit.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<WellbeingDialog?>(null) }
     var pending by rememberSaveable { mutableStateOf<Reminder?>(null) }
     val scope = rememberCoroutineScope()
@@ -72,6 +74,7 @@ internal fun WellbeingScreen(
         when (reminder) {
             Reminder.BEDTIME -> viewModel.setBedtimeEnabled(true)
             Reminder.BREAK -> viewModel.setBreakEnabled(true)
+            Reminder.DAILY_LIMIT -> viewModel.changeDailyLimit(dailyLimit.copy(enabled = true))
         }
 
     val notificationPermission =
@@ -79,9 +82,19 @@ internal fun WellbeingScreen(
             val reminder = pending
             pending = null
             when {
-                reminder == null -> Unit
-                granted -> enable(reminder)
-                else -> scope.launch { snackbarHostState.showSnackbar(permissionMessage) }
+                reminder == null -> {
+                    Unit
+                }
+
+                granted -> {
+                    enable(reminder)
+                }
+
+                else -> {
+                    // The limit still pauses without notifications; only its warning needs them.
+                    if (reminder == Reminder.DAILY_LIMIT) enable(reminder)
+                    scope.launch { snackbarHostState.showSnackbar(permissionMessage) }
+                }
             }
         }
 
@@ -105,6 +118,10 @@ internal fun WellbeingScreen(
 
             reminder == Reminder.BEDTIME -> {
                 viewModel.setBedtimeEnabled(false)
+            }
+
+            reminder == Reminder.DAILY_LIMIT -> {
+                viewModel.changeDailyLimit(dailyLimit.copy(enabled = false))
             }
 
             else -> {
@@ -152,6 +169,16 @@ internal fun WellbeingScreen(
                 }
             }
         }
+        dailyLimitGroup(
+            settings = dailyLimit,
+            onEnabledChange = { toggle(Reminder.DAILY_LIMIT, it) },
+            onPickMinutes = { dialog = WellbeingDialog.DAILY_LIMIT_MINUTES },
+            onChange = viewModel::changeDailyLimit,
+        )
+    }
+
+    pendingLimit?.let { pending ->
+        DailyLimitWaitDialog(pending, onConfirm = viewModel::confirmPendingLimit, onDismiss = viewModel::dismissPendingLimit)
     }
 
     when (dialog) {
@@ -182,6 +209,14 @@ internal fun WellbeingScreen(
                 options = BreakFrequencies.map { FlowChoice(it, pluralStringResource(R.plurals.every_minutes_template, it, it)) },
                 selected = breakMinutes,
                 onSelect = viewModel::setBreakMinutes,
+                onDismiss = { dialog = null },
+            )
+        }
+
+        WellbeingDialog.DAILY_LIMIT_MINUTES -> {
+            DailyLimitMinutesDialog(
+                selected = dailyLimit.minutes,
+                onSelect = { viewModel.changeDailyLimit(dailyLimit.copy(minutes = it)) },
                 onDismiss = { dialog = null },
             )
         }

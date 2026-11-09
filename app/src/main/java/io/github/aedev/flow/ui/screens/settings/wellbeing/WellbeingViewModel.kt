@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.wellbeing
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -10,11 +11,17 @@ import io.github.aedev.flow.data.recommendation.music.MusicBrainEngine
 import io.github.aedev.flow.data.recommendation.music.MusicStatsStorage
 import io.github.aedev.flow.data.stats.RecapAggregates
 import io.github.aedev.flow.data.stats.VideoStatsRecorder
+import io.github.aedev.flow.data.wellbeing.DailyLimitPolicy
+import io.github.aedev.flow.data.wellbeing.DailyLimitSettings
+import io.github.aedev.flow.data.wellbeing.DailyLimitStore
 import io.github.aedev.flow.notification.ReminderManager
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -25,6 +32,12 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
 
+/** A daily limit change held back until [waitEndsAt], an elapsedRealtime. */
+data class PendingLimitChange(
+    val next: DailyLimitSettings,
+    val waitEndsAt: Long,
+)
+
 @HiltViewModel
 class WellbeingViewModel
     @Inject
@@ -34,6 +47,7 @@ class WellbeingViewModel
         private val localData: LocalDataManager,
         private val videoStats: VideoStatsRecorder,
         private val musicBrain: MusicBrainEngine,
+        private val dailyLimitStore: DailyLimitStore,
     ) : SettingsViewModel() {
         /** Measured once per visit, and again at midnight while the page stays open so the week ends on the new today. */
         val summary =
@@ -74,6 +88,35 @@ class WellbeingViewModel
         fun setBreakEnabled(enabled: Boolean) = write { localData.setBreakReminder(enabled) }
 
         fun setBreakMinutes(minutes: Int) = write { localData.setBreakFrequency(minutes) }
+
+        val dailyLimit = dailyLimitStore.settings.asState(DailyLimitSettings())
+
+        private val _pendingLimit = MutableStateFlow<PendingLimitChange?>(null)
+
+        /** A change that loosens a limit already used up today, waiting out its pause before it can be applied. */
+        val pendingLimit: StateFlow<PendingLimitChange?> = _pendingLimit.asStateFlow()
+
+        fun changeDailyLimit(next: DailyLimitSettings) =
+            write {
+                val current = dailyLimitStore.settings.first()
+                val tally = dailyLimitStore.tally.first()
+                if (DailyLimitPolicy.changeNeedsWait(current, next, tally, LocalDate.now().toEpochDay())) {
+                    _pendingLimit.value = PendingLimitChange(next, SystemClock.elapsedRealtime() + DailyLimitPolicy.WAIT_MS)
+                } else {
+                    dailyLimitStore.setSettings(next)
+                }
+            }
+
+        fun confirmPendingLimit() {
+            val pending = _pendingLimit.value ?: return
+            if (SystemClock.elapsedRealtime() < pending.waitEndsAt) return
+            _pendingLimit.value = null
+            write { dailyLimitStore.setSettings(pending.next) }
+        }
+
+        fun dismissPendingLimit() {
+            _pendingLimit.value = null
+        }
 
         /**
          * The recap ledgers' real watching time is used once they cover the whole week; until then the

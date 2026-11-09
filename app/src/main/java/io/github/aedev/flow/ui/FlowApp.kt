@@ -69,6 +69,8 @@ import io.github.aedev.flow.ui.screens.notifications.NotificationViewModel
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
 import io.github.aedev.flow.ui.screens.playon.PlayOnHost
+import io.github.aedev.flow.ui.screens.settings.wellbeing.TIMES_UP_ROUTE
+import io.github.aedev.flow.ui.screens.settings.wellbeing.TimesUpLaunchEffect
 import io.github.aedev.flow.ui.screens.sync.linked.LinkedSyncAlerts
 import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import io.github.aedev.flow.ui.screens.update.UpdateLaunchEffect
@@ -584,6 +586,10 @@ fun FlowApp(
         )
 
         UpdateLaunchEffect(needsOnboarding = needsOnboarding, onOpenUpdate = { navController.navigate(UPDATE_ROUTE) })
+        TimesUpLaunchEffect(enabled = needsOnboarding == false && !isInPipMode) {
+            collapseExpandedPlayers()
+            navController.navigate(TIMES_UP_ROUTE) { launchSingleTop = true }
+        }
 
         DonationPromptHost(
             enabled = needsOnboarding == false && !isInPipMode && !playerVisible,

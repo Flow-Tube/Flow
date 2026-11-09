@@ -11,6 +11,7 @@ import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Playlist
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.profile.StoreScope
+import io.github.aedev.flow.data.wellbeing.DailyLimitStore
 import io.github.aedev.flow.ui.theme.CustomTheme
 import io.github.aedev.flow.ui.theme.ThemeMode
 import io.github.aedev.flow.ui.theme.ThemeVariant
@@ -547,7 +548,8 @@ class LocalDataManager
                     name == "system_light_theme_mode" || name == "system_dark_theme_mode" ||
                     name == "system_dark_theme_variant" ||
                     name == "bedtime_reminder" || name == "break_reminder" ||
-                    name.startsWith("bedtime_") || name == "break_frequency"
+                    name.startsWith("bedtime_") || name == "break_frequency" ||
+                    name in DailyLimitStore.SETTING_NAMES
                 ) {
                     when (value) {
                         is String -> strings[name] = value
@@ -615,7 +617,7 @@ class LocalDataManager
                 }
                 backup.strings["custom_theme_id"]?.let { prefs[ACTIVE_CUSTOM_THEME] = it }
                 backup.booleans.forEach { (k, v) ->
-                    if (k == "bedtime_reminder" || k == "break_reminder") {
+                    if (k == "bedtime_reminder" || k == "break_reminder" || k in DailyLimitStore.SETTING_NAMES) {
                         prefs[
                             androidx.datastore.preferences.core
                                 .booleanPreferencesKey(k),
@@ -623,7 +625,7 @@ class LocalDataManager
                     }
                 }
                 backup.ints.forEach { (k, v) ->
-                    if (k.startsWith("bedtime_") || k == "break_frequency") {
+                    if (k.startsWith("bedtime_") || k == "break_frequency" || k in DailyLimitStore.SETTING_NAMES) {
                         prefs[
                             androidx.datastore.preferences.core
                                 .intPreferencesKey(k),

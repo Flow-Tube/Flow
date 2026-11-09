@@ -51,6 +51,8 @@ import io.github.aedev.flow.ui.screens.search.SearchScreen
 import io.github.aedev.flow.ui.screens.search.searchRoute
 import io.github.aedev.flow.ui.screens.settings.SettingsHost
 import io.github.aedev.flow.ui.screens.settings.rememberNewSettings
+import io.github.aedev.flow.ui.screens.settings.wellbeing.TIMES_UP_ROUTE
+import io.github.aedev.flow.ui.screens.settings.wellbeing.TimesUpScreen
 import io.github.aedev.flow.ui.screens.shorts.ShortsScreen
 import io.github.aedev.flow.ui.screens.subscriptions.SubscriptionsScreen
 import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
@@ -120,6 +122,11 @@ fun NavGraphBuilder.flowAppGraph(
     composable(UPDATE_ROUTE) {
         currentRoute.value = UPDATE_ROUTE
         UpdateScreen(onClose = { navController.popBackStack() })
+    }
+
+    composable(TIMES_UP_ROUTE) {
+        currentRoute.value = TIMES_UP_ROUTE
+        TimesUpScreen(onClose = { navController.popBackStack() })
     }
 
     // Notifications Screen

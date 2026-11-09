@@ -29,5 +29,21 @@ internal object WellbeingIndex {
     val breakFrequency =
         entry("break_frequency", R.string.reminder_frequency, R.string.frequency_description, revealVia = "wellbeing.break")
 
-    val all = listOf(bedtime, bedtimeStart, bedtimeEnd, breaks, breakFrequency)
+    val dailyLimit = entry("daily_limit", R.string.daily_limit_title, R.string.daily_limit_subtitle)
+    val dailyLimitTime =
+        entry(
+            "daily_limit_time",
+            R.string.daily_limit_time_title,
+            R.string.daily_limit_time_description,
+            revealVia = "wellbeing.daily_limit",
+        )
+    val dailyLimitMusic =
+        entry(
+            "daily_limit_music",
+            R.string.daily_limit_music_title,
+            R.string.daily_limit_music_subtitle,
+            revealVia = "wellbeing.daily_limit",
+        )
+
+    val all = listOf(bedtime, bedtimeStart, bedtimeEnd, breaks, breakFrequency, dailyLimit, dailyLimitTime, dailyLimitMusic)
 }

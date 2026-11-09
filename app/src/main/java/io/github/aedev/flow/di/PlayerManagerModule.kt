@@ -15,6 +15,7 @@ import io.github.aedev.flow.player.FeedExclusionsSource
 import io.github.aedev.flow.player.LocalCaptionSource
 import io.github.aedev.flow.player.LocalCaptions
 import io.github.aedev.flow.player.LocalCopySource
+import io.github.aedev.flow.player.shorts.ShortsPlayerPool
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Qualifier
@@ -56,6 +57,9 @@ object PlayerManagerModule {
                 }
             it.feedExclusionsSource = FeedExclusionsSource { neuroEngine.get().feedExclusions() }
         }
+
+    @Provides
+    fun provideShortsPlayerPool(): ShortsPlayerPool = ShortsPlayerPool.getInstance()
 
     @Provides
     @NetworkIoDispatcher
