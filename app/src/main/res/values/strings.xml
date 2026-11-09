@@ -4877,6 +4877,20 @@
     <string name="keyboard_shortcut_faster">Faster</string>
     <string name="keyboard_shortcut_slower">Slower</string>
     <string name="session_lyric_repeated">%1$s (x%2$d)</string>
+    <string name="settings_security_title">Security</string>
+    <string name="settings_security_summary">App lock</string>
+    <string name="settings_keywords_security">app lock, privacy, password, PIN, pattern, fingerprint, face, biometric, recent apps</string>
+    <string name="app_lock_title">App lock</string>
+    <string name="app_lock_summary">Ask for your phone\'s unlock to open Flow</string>
+    <string name="app_lock_needs_screen_lock">Set a screen lock on your phone first</string>
+    <string name="app_lock_footer">Music, the media controls and picture-in-picture keep working while Flow is locked.</string>
+    <string name="app_lock_after_title">Lock after</string>
+    <string name="app_lock_after_description">How long Flow can be off the screen before it asks again</string>
+    <string name="app_lock_after_immediately">Immediately</string>
+    <plurals name="app_lock_after_minutes">
+        <item quantity="one">After %1$d minute</item>
+        <item quantity="other">After %1$d minutes</item>
+    </plurals>
     <string name="app_lock_prompt_title">Unlock Flow</string>
     <string name="app_lock_screen_title">Flow is locked</string>
     <string name="app_lock_screen_body">Use your fingerprint, face or screen lock to open it</string>
