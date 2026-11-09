@@ -5,6 +5,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
+import io.github.aedev.flow.applock.AppLockSettings
+import io.github.aedev.flow.applock.DEFAULT_APP_LOCK_DELAY_MINUTES
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.playlist.PlaylistListOrder
 import io.github.aedev.flow.data.profile.StoreScope
@@ -67,10 +69,18 @@ val DEFAULT_NAV_TAB_ORDER = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 private const val MAX_UNPLAYABLE_VIDEO_IDS = 1_000
 
 /**
- * Preferences that never leave the device in a backup: the proxy password, and SponsorBlock's
- * submission id, which is a private identity for the user's votes and segments.
+ * Preferences that never leave the device in a backup: the proxy password, SponsorBlock's
+ * submission id, which is a private identity for the user's votes and segments, and the app lock,
+ * which a restored backup must not be able to turn on or off.
  */
-private val BackupExcludedKeys = setOf("proxy_password", "sb_user_id")
+private val BackupExcludedKeys =
+    setOf(
+        "proxy_password",
+        "sb_user_id",
+        "app_lock_enabled",
+        "app_lock_delay_minutes",
+        "app_lock_hide_in_recents",
+    )
 
 private val ReminderJson = Json { ignoreUnknownKeys = true }
 
@@ -456,6 +466,7 @@ class PlayerPreferences(
         val REMEMBERED_BRIGHTNESS_LEVEL = device(floatPreferencesKey("remembered_brightness_level"))
         val VOLUME_SWIPE_GESTURES_ENABLED = device(booleanPreferencesKey("volume_swipe_gestures_enabled"))
         val SEEK_SWIPE_GESTURES_ENABLED = device(booleanPreferencesKey("seek_swipe_gestures_enabled"))
+        val MORE_VIDEOS_SWIPE_ENABLED = device(booleanPreferencesKey("more_videos_swipe_enabled"))
         val DOUBLE_TAP_SEEK_SECONDS = device(intPreferencesKey("double_tap_seek_seconds"))
         val DOUBLE_TAP_SEEK_ZONE = device(stringPreferencesKey("double_tap_seek_zone"))
 
@@ -501,6 +512,9 @@ class PlayerPreferences(
         val PAUSE_MUSIC_WHEN_MUTED = device(booleanPreferencesKey("pause_music_when_muted"))
         val MUSIC_SIDE_SWIPES = device(booleanPreferencesKey("music_side_swipes"))
         val LOCK_SCREEN_PLAYER = device(booleanPreferencesKey("lock_screen_player"))
+        val APP_LOCK_ENABLED = device(booleanPreferencesKey("app_lock_enabled"))
+        val APP_LOCK_DELAY_MINUTES = device(intPreferencesKey("app_lock_delay_minutes"))
+        val APP_LOCK_HIDE_IN_RECENTS = device(booleanPreferencesKey("app_lock_hide_in_recents"))
         val ANIMATED_ARTWORK_WIFI_ONLY = device(booleanPreferencesKey("animated_artwork_wifi_only"))
         val AUTO_DOWNLOAD_LIKED_MUSIC = device(booleanPreferencesKey("auto_download_liked_music"))
 
@@ -741,6 +755,16 @@ class PlayerPreferences(
     suspend fun setSeekSwipeGesturesEnabled(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.SEEK_SWIPE_GESTURES_ENABLED] = enabled
+        }
+    }
+
+    val moreVideosSwipeEnabled: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.MORE_VIDEOS_SWIPE_ENABLED] ?: true }
+
+    suspend fun setMoreVideosSwipeEnabled(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.MORE_VIDEOS_SWIPE_ENABLED] = enabled
         }
     }
 
@@ -2614,6 +2638,35 @@ class PlayerPreferences(
         }
     }
 
+    /** The app lock, for the whole device: a profile switch must not be a way past it. */
+    val appLockSettings: Flow<AppLockSettings> =
+        context.devicePreferencesDataStore.data
+            .map { preferences ->
+                AppLockSettings(
+                    enabled = preferences[DeviceKeys.APP_LOCK_ENABLED] ?: false,
+                    delayMinutes = preferences[DeviceKeys.APP_LOCK_DELAY_MINUTES] ?: DEFAULT_APP_LOCK_DELAY_MINUTES,
+                    hideInRecents = preferences[DeviceKeys.APP_LOCK_HIDE_IN_RECENTS] ?: false,
+                )
+            }.distinctUntilChanged()
+
+    suspend fun setAppLockEnabled(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.APP_LOCK_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setAppLockDelayMinutes(minutes: Int) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.APP_LOCK_DELAY_MINUTES] = minutes
+        }
+    }
+
+    suspend fun setAppLockHideInRecents(hide: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.APP_LOCK_HIDE_IN_RECENTS] = hide
+        }
+    }
+
     /** The music player's repeat mode, as Media3's own Player.REPEAT_MODE_* value. */
     val musicRepeatMode: Flow<Int> =
         context.playerPreferencesDataStore.data
@@ -4389,16 +4442,13 @@ private fun SettingsBackup.splitBy(predicate: (String) -> Boolean): Pair<Setting
         )
 
 private fun MutablePreferences.restore(backup: SettingsBackup) {
-    backup.strings.forEach { (k, v) ->
-        if (k !in BackupExcludedKeys) {
-            this[stringPreferencesKey(k)] = v
-        }
-    }
-    backup.booleans.forEach { (k, v) -> this[booleanPreferencesKey(k)] = v }
-    backup.ints.forEach { (k, v) -> this[intPreferencesKey(k)] = v }
-    backup.floats.forEach { (k, v) -> this[floatPreferencesKey(k)] = v }
-    backup.longs.forEach { (k, v) -> this[longPreferencesKey(k)] = v }
-    backup.stringSets.forEach { (k, v) -> this[stringSetPreferencesKey(k)] = v }
+    fun <T> Map<String, T>.restorable() = filterKeys { it !in BackupExcludedKeys }
+    backup.strings.restorable().forEach { (k, v) -> this[stringPreferencesKey(k)] = v }
+    backup.booleans.restorable().forEach { (k, v) -> this[booleanPreferencesKey(k)] = v }
+    backup.ints.restorable().forEach { (k, v) -> this[intPreferencesKey(k)] = v }
+    backup.floats.restorable().forEach { (k, v) -> this[floatPreferencesKey(k)] = v }
+    backup.longs.restorable().forEach { (k, v) -> this[longPreferencesKey(k)] = v }
+    backup.stringSets.restorable().forEach { (k, v) -> this[stringSetPreferencesKey(k)] = v }
 }
 
 const val DEFAULT_NEW_SETTINGS_HIGHLIGHT = false

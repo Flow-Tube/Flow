@@ -70,6 +70,7 @@ class PlaybackSettingsViewModel
         val speedSwipeSide = preferences.speedSwipeSide.asState(SpeedSwipeSide.OFF)
         val speedSwipeStep = preferences.speedSwipeStep.asState(DEFAULT_SPEED_SWIPE_STEP)
         val seekGesture = preferences.seekSwipeGesturesEnabled.asState(true)
+        val moreVideosGesture = preferences.moreVideosSwipeEnabled.asState(true)
         val controlsWhileLoading = preferences.showControlsWhileLoading.asState(overlay.showControlsWhileLoading)
 
         val castButton = preferences.overlayCastEnabled.asState(overlay.castEnabled)
@@ -211,6 +212,8 @@ class PlaybackSettingsViewModel
         fun setVolumeBoost(value: Boolean) = write { preferences.setAllowVolumeBoost(value) }
 
         fun setSeekGesture(value: Boolean) = write { preferences.setSeekSwipeGesturesEnabled(value) }
+
+        fun setMoreVideosGesture(value: Boolean) = write { preferences.setMoreVideosSwipeEnabled(value) }
 
         fun setControlsWhileLoading(value: Boolean) = write { preferences.setShowControlsWhileLoading(value) }
 

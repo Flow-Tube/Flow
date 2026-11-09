@@ -81,6 +81,15 @@ internal object PlaybackGesturesIndex {
             section = R.string.player_appearance_gestures_header,
             destination = page,
         )
+    val moreVideosGesture =
+        SettingEntry(
+            key = "playback.more_videos_gesture",
+            title = R.string.player_appearance_more_videos_gesture_title,
+            summary = R.string.player_appearance_more_videos_gesture_subtitle,
+            keywords = R.string.settings_keywords_gestures,
+            section = R.string.player_appearance_gestures_header,
+            destination = page,
+        )
     val controlsWhileLoading =
         SettingEntry(
             key = "playback.controls_while_loading",
@@ -101,6 +110,7 @@ internal object PlaybackGesturesIndex {
             speedSwipe,
             speedSwipeStep,
             seekGesture,
+            moreVideosGesture,
             controlsWhileLoading,
         )
 }

@@ -49,13 +49,14 @@ internal fun PlayerSheetCollapseSyncEffects(
     LaunchedEffect(screenState.isFullscreen) {
         screenState.dismissMediaSheets()
         screenState.exitDragOffsetY = 0f
+        screenState.moreVideosDragY = 0f
     }
 }
 
 /**
- * Reading comments is interacting with this video, so the autoplay countdown waits until the
- * comments sheet or side panel closes. A countdown that starts while comments are already open
- * stays on screen and only ticks once they close. The hold only applies while the app is in
+ * Reading comments or picking from the more videos row is interacting with this video, so the
+ * autoplay countdown waits until that sheet or panel closes. A countdown that starts while one is
+ * already open stays on screen and only ticks once it closes. The hold only applies while the app is in
  * front: comments left open behind a locked screen, the background or PiP keep composed, and
  * autoplay must still advance there.
  */
@@ -68,8 +69,8 @@ internal fun AutoplayCommentsHoldEffect(
     LaunchedEffect(viewModel, lifecycle) {
         combine(
             lifecycle.currentStateFlow,
-            snapshotFlow { screenState.activeSheet is PlayerSheet.Comments },
-        ) { state, commentsOpen -> commentsOpen && state.isAtLeast(Lifecycle.State.RESUMED) }
+            snapshotFlow { screenState.activeSheet.let { it is PlayerSheet.Comments || it == PlayerSheet.MoreVideos } },
+        ) { state, browsing -> browsing && state.isAtLeast(Lifecycle.State.RESUMED) }
             .collect(viewModel::setAutoplayHold)
     }
     DisposableEffect(viewModel) {

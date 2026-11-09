@@ -31,6 +31,7 @@ import io.github.aedev.flow.ui.screens.settings.profiles.ProfilesScreen
 import io.github.aedev.flow.ui.screens.settings.quality.QualitySettingsScreen
 import io.github.aedev.flow.ui.screens.settings.region.LanguageRegionScreen
 import io.github.aedev.flow.ui.screens.settings.scrobbling.ScrobblingScreen
+import io.github.aedev.flow.ui.screens.settings.security.SecurityScreen
 import io.github.aedev.flow.ui.screens.settings.taste.DiscoverChannelsScreen
 import io.github.aedev.flow.ui.screens.settings.taste.FavouriteArtistsScreen
 import io.github.aedev.flow.ui.screens.settings.taste.HiddenContentScreen
@@ -193,6 +194,10 @@ internal fun SettingsDetail(
 
         SettingsDestination.WELLBEING -> {
             WellbeingScreen(onBack = onBack, highlight = target.highlight)
+        }
+
+        SettingsDestination.SECURITY -> {
+            SecurityScreen(onBack = onBack, highlight = target.highlight)
         }
 
         SettingsDestination.WIDGETS -> {
