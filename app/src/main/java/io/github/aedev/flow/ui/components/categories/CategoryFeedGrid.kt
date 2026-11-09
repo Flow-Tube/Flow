@@ -31,7 +31,6 @@ import io.github.aedev.flow.ui.components.shared.FeedPagingFooter
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
 
@@ -106,6 +105,7 @@ internal fun CategoryPagedGrid(
                         layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
                         onClick = { onVideoClick(video) },
                         thumbnailWidth = plan.listThumbnailWidth,
+                        density = plan.cardDensity,
                     )
                 }
 
@@ -114,7 +114,7 @@ internal fun CategoryPagedGrid(
                         playlist = item.playlist,
                         onClick = { onPlaylistClick(item.playlist.id) },
                         layout = if (plan.isListCard(index)) PlaylistCardLayout.LIST else PlaylistCardLayout.SHELF,
-                        modifier = if (plan.isListCard(index)) Modifier else Modifier.padding(horizontal = VideoCardDefaults.Inset),
+                        modifier = if (plan.isListCard(index)) Modifier else Modifier.padding(horizontal = plan.cardInset),
                     )
                 }
 

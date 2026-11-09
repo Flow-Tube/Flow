@@ -117,6 +117,7 @@ internal fun ChannelSearchResults(
                             showChannel = false,
                             onClick = { onVideoClick(video) },
                             thumbnailWidth = plan.listThumbnailWidth,
+                            density = plan.cardDensity,
                         )
                     }
                     item(key = "bottom_gap", span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(16.dp)) }

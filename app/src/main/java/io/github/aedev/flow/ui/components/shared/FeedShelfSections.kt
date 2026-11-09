@@ -238,6 +238,7 @@ private fun LazyGridScope.shelfSection(
                 item = item,
                 gridCard = columns > 1 && index !in partialRows,
                 rowThumbnailWidth = rowThumbnailWidth,
+                layout = layout,
                 actions = actions,
                 slots = slots,
                 showChannelInfo = showChannelInfo,

@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
+import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 import org.junit.Test
 
 /**
@@ -143,5 +144,50 @@ class FeedGridLayoutTest {
             assertThat(layout.rowWidth.value).isWithin(0.01f).of((width - layout.contentPadding * 2).value)
             assertThat(layout.thumbnailWidth).isEqualTo(layout.cardWidth - VideoCardDefaults.Inset * 2)
         }
+    }
+
+    @Test
+    fun `three columns on a phone make a dense grid with 8 dp to the edge and between thumbnails`() {
+        val layout = feedGridLayoutFor(360.dp, HomeFeedColumns.THREE)
+
+        assertThat(layout.dense).isTrue()
+        assertThat(layout.cardDensity).isEqualTo(VideoCardDensity.Dense)
+        assertThat(layout.cardInset).isEqualTo(4.dp)
+        assertThat(layout.contentPadding).isEqualTo(4.dp)
+        assertThat(layout.cardSpacing).isEqualTo(8.dp)
+        assertThat(layout.thumbnailWidth.value).isWithin(0.01f).of((360f - 4f * 2) / 3 - 4f * 2)
+        assertThat(layout.listContentPadding).isEqualTo(0.dp)
+    }
+
+    @Test
+    fun `two columns on a phone keep the regular spacing`() {
+        val layout = feedGridLayoutFor(360.dp, HomeFeedColumns.TWO)
+
+        assertThat(layout.dense).isFalse()
+        assertThat(layout.cardDensity).isEqualTo(VideoCardDensity.Regular)
+        assertThat(layout.cardInset).isEqualTo(VideoCardDefaults.Inset)
+        assertThat(layout.contentPadding).isEqualTo(0.dp)
+        assertThat(layout.cardSpacing).isEqualTo(12.dp)
+        assertThat(layout.thumbnailWidth).isEqualTo(180.dp - VideoCardDefaults.Inset * 2)
+    }
+
+    @Test
+    fun `an automatic phone grid is one regular column`() {
+        val layout = feedGridLayoutFor(411.dp)
+
+        assertThat(layout.columns).isEqualTo(1)
+        assertThat(layout.dense).isFalse()
+        assertThat(layout.cardInset).isEqualTo(VideoCardDefaults.Inset)
+    }
+
+    @Test
+    fun `three pinned columns past the compact band stay regular`() {
+        val layout = feedGridLayoutFor(600.dp, HomeFeedColumns.THREE)
+
+        assertThat(layout.columns).isEqualTo(3)
+        assertThat(layout.dense).isFalse()
+        assertThat(layout.cardInset).isEqualTo(VideoCardDefaults.Inset)
+        assertThat(layout.contentPadding + VideoCardDefaults.Inset).isEqualTo(16.dp)
+        assertThat(layout.listContentPadding).isEqualTo(layout.contentPadding)
     }
 }
