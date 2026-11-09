@@ -138,6 +138,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_settings_ambient_mode_subtitle,
             R.string.settings_section_video_player,
         )
+    val ambientGlow =
+        entry(
+            "ambient_glow",
+            R.string.player_settings_ambient_glow,
+            R.string.player_settings_ambient_glow_subtitle,
+            R.string.settings_section_video_player,
+        )
     val groupedQuality =
         entry(
             "grouped_quality",
@@ -209,6 +216,7 @@ internal object PlayerAppearanceIndex {
             queueSwipeRight,
             adaptiveSize,
             ambientMode,
+            ambientGlow,
             groupedQuality,
             paidPromotion,
             gestureOverlay,
