@@ -167,6 +167,7 @@ class PlayerPreferences(
         val LYRICS_SHOW_TRANSLATION = booleanPreferencesKey("lyrics_show_translation")
         val LYRICS_SHOW_ROMANIZATION = booleanPreferencesKey("lyrics_show_romanization")
         val LYRICS_ON_LOCK_SCREEN = booleanPreferencesKey("lyrics_on_lock_screen")
+        val LYRICS_ON_DEMAND = booleanPreferencesKey("lyrics_on_demand")
         val LYRICS_ON_LOCK_SCREEN_DELAY_MS = intPreferencesKey("lyrics_on_lock_screen_delay_ms")
         val LYRICS_SPONSORBLOCK_TIMING = booleanPreferencesKey("lyrics_sponsorblock_timing")
         val LYRICS_AUTO_ROMANIZE = booleanPreferencesKey("lyrics_auto_romanize")
@@ -272,6 +273,8 @@ class PlayerPreferences(
         val MUSIC_REPEAT_MODE = intPreferencesKey("music_repeat_mode")
         val MUSIC_RESUME_LONG_TRACKS = booleanPreferencesKey("music_resume_long_tracks")
         val MUSIC_CROSSFADE_SECONDS = intPreferencesKey("music_crossfade_seconds")
+        val MUSIC_CROSSFADE_ENABLED = booleanPreferencesKey("music_crossfade_enabled")
+        val MUSIC_CROSSFADE_MS = intPreferencesKey("music_crossfade_ms")
         val MUSIC_CROSSFADE_KEEP_ALBUMS = booleanPreferencesKey("music_crossfade_keep_albums")
         val MUSIC_CROSSFADE_CURVE = stringPreferencesKey("music_crossfade_curve")
         val MUSIC_CROSSFADE_AUTO_ADVANCE = booleanPreferencesKey("music_crossfade_auto_advance")
@@ -1058,11 +1061,11 @@ class PlayerPreferences(
                     ?: GestureOverlayStyle.CIRCULAR
             }
 
-    val playerHapticsEnabled: Flow<Boolean> =
+    val hapticsEnabled: Flow<Boolean> =
         context.devicePreferencesDataStore.data
             .map { preferences -> preferences[DeviceKeys.PLAYER_HAPTICS_ENABLED] ?: true }
 
-    suspend fun setPlayerHapticsEnabled(enabled: Boolean) {
+    suspend fun setHapticsEnabled(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PLAYER_HAPTICS_ENABLED] = enabled
         }
@@ -2486,15 +2489,31 @@ class PlayerPreferences(
         }
     }
 
-    /** How many seconds a song blends into the next (#1675); 0 is off. */
-    val musicCrossfadeSeconds: Flow<Int> =
+    /** Whether a song blends into the next (#1675). Before the switch, a length above 0 seconds meant on. */
+    val musicCrossfadeEnabled: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_SECONDS] ?: 0 }
-            .distinctUntilChanged()
+            .map { preferences ->
+                preferences[Keys.MUSIC_CROSSFADE_ENABLED] ?: ((preferences[Keys.MUSIC_CROSSFADE_SECONDS] ?: 0) > 0)
+            }.distinctUntilChanged()
 
-    suspend fun setMusicCrossfadeSeconds(seconds: Int) {
+    suspend fun setMusicCrossfadeEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
-            preferences[Keys.MUSIC_CROSSFADE_SECONDS] = seconds
+            preferences[Keys.MUSIC_CROSSFADE_ENABLED] = enabled
+        }
+    }
+
+    /** How long a crossfade lasts, carried over from the length in seconds that settings saved before. */
+    val musicCrossfadeMs: Flow<Int> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.MUSIC_CROSSFADE_MS]
+                    ?: preferences[Keys.MUSIC_CROSSFADE_SECONDS]?.takeIf { it > 0 }?.times(MS_PER_CROSSFADE_SECOND)
+                    ?: DEFAULT_CROSSFADE_MS
+            }.distinctUntilChanged()
+
+    suspend fun setMusicCrossfadeMs(ms: Int) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_CROSSFADE_MS] = ms
         }
     }
 
@@ -2525,7 +2544,7 @@ class PlayerPreferences(
     /** Whether a song blends into the one the user skips to; off keeps Next immediate. */
     val musicCrossfadeOnManualSkip: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_MANUAL_SKIP] ?: false }
+            .map { preferences -> preferences[Keys.MUSIC_CROSSFADE_MANUAL_SKIP] ?: true }
             .distinctUntilChanged()
 
     suspend fun setMusicCrossfadeOnManualSkip(enabled: Boolean) {
@@ -3954,6 +3973,14 @@ class PlayerPreferences(
         context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ON_LOCK_SCREEN] = enabled }
     }
 
+    /** Whether lyrics are looked up only when the player or its lyrics open, or for lock screen lyrics. */
+    val lyricsOnDemand: Flow<Boolean> =
+        context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_ON_DEMAND] ?: false }
+
+    suspend fun setLyricsOnDemand(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ON_DEMAND] = enabled }
+    }
+
     /** How late lock screen lines appear, in milliseconds. Below zero they appear early. */
     val lyricsOnLockScreenDelayMs: Flow<Int> =
         context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_ON_LOCK_SCREEN_DELAY_MS] ?: 0 }
@@ -4399,6 +4426,9 @@ enum class SponsorBlockAction {
         fun fromString(name: String): SponsorBlockAction = entries.find { it.name == name } ?: SKIP
     }
 }
+
+const val DEFAULT_CROSSFADE_MS = 3_000
+private const val MS_PER_CROSSFADE_SECOND = 1_000
 
 /** How the two songs' volumes move during a crossfade, in the order settings list them. */
 enum class CrossfadeCurve {

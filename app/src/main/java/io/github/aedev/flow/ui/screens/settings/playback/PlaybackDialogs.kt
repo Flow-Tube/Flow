@@ -19,6 +19,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.CrossfadeCurve
 import io.github.aedev.flow.data.local.SPEED_SWIPE_STEPS
 import io.github.aedev.flow.data.local.SpeedSwipeSide
+import io.github.aedev.flow.player.crossfade.CrossfadePolicy
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.ui.components.shared.FlowChoice
 import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
@@ -27,6 +28,7 @@ import io.github.aedev.flow.utils.formatMultiplierLabel
 import kotlin.math.roundToInt
 
 private val SliderTopPadding = 8.dp
+private const val MS_PER_SECOND = 1_000L
 
 /** Every single-choice picker Player & playback opens, all on the shared choice dialog. */
 @Composable
@@ -152,6 +154,18 @@ internal fun PlaybackDialogs(
             LyricsProvidersSheet(viewModel = viewModel, onDismiss = onDismiss)
         }
 
+        PlaybackDialog.CROSSFADE_DURATION -> {
+            val ms by viewModel.crossfadeMs.collectAsStateWithLifecycle()
+            FlowChoiceDialog(
+                title = stringResource(R.string.settings_crossfade_duration_title),
+                options = CrossfadePolicy.DURATIONS_MS.map { FlowChoice(it, crossfadeDurationLabel(it)) },
+                selected = ms.toLong(),
+                onSelect = viewModel::setCrossfadeMs,
+                onDismiss = onDismiss,
+                searchable = false,
+            )
+        }
+
         PlaybackDialog.CROSSFADE_CURVE -> {
             val curve by viewModel.crossfadeCurve.collectAsStateWithLifecycle()
             FlowChoiceDialog(
@@ -160,10 +174,20 @@ internal fun PlaybackDialogs(
                 selected = curve,
                 onSelect = viewModel::setCrossfadeCurve,
                 onDismiss = onDismiss,
+                dismissOnSelect = false,
+                footer = { CrossfadeCurveChart(curve = curve, modifier = Modifier.padding(top = SliderTopPadding)) },
             )
         }
     }
 }
+
+@Composable
+internal fun crossfadeDurationLabel(ms: Long): String =
+    if (ms < MS_PER_SECOND) {
+        stringResource(R.string.settings_milliseconds_value, ms.toString())
+    } else {
+        stringResource(R.string.settings_seconds_value, (ms / MS_PER_SECOND).toString())
+    }
 
 @Composable
 internal fun crossfadeCurveLabel(curve: CrossfadeCurve): String =

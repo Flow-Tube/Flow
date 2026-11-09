@@ -423,7 +423,7 @@ class Media3MusicService : MediaLibraryService() {
     private fun crossfadeMoment(settings: CrossfadePolicy.Settings): CrossfadePolicy.Moment {
         val next = player.nextMediaItemIndex.takeIf { it != C.INDEX_UNSET }?.let(player::getMediaItemAt)
         return CrossfadePolicy.Moment(
-            fadeSeconds = settings.seconds,
+            fadeMs = settings.fadeMs,
             playing = player.playWhenReady,
             hasNext = next != null,
             repeatsOne = player.repeatMode == Player.REPEAT_MODE_ONE,
@@ -577,7 +577,7 @@ class Media3MusicService : MediaLibraryService() {
         crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
         lifecycleScope.launch {
             combine(
-                prefs.musicCrossfadeSeconds,
+                combine(prefs.musicCrossfadeEnabled, prefs.musicCrossfadeMs, CrossfadePolicy::chosenFadeMs),
                 prefs.musicCrossfadeKeepAlbums,
                 prefs.musicCrossfadeCurve,
                 prefs.musicCrossfadeOnAutoAdvance,
@@ -585,7 +585,7 @@ class Media3MusicService : MediaLibraryService() {
                 CrossfadePolicy::Settings,
             ).collect { settings ->
                 crossfader?.setSettings(settings)
-                updateOffload { it.copy(crossfade = settings.seconds > 0) }
+                updateOffload { it.copy(crossfade = settings.fadeMs > 0) }
             }
         }
 
@@ -1455,6 +1455,7 @@ class Media3MusicService : MediaLibraryService() {
                     localLyrics,
                     prefs.lyricsOnLockScreen,
                     prefs.lyricsOnLockScreenDelayMs,
+                    prefs.lyricsOnDemand,
                     videoLyricsTiming,
                     isSavingData = { NetworkState.isDataSaverOn(this) || prefs.bufferProfile.first() == BufferProfile.DATASAVER },
                 )

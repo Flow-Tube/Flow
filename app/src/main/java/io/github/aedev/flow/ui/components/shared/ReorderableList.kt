@@ -136,7 +136,7 @@ class ReorderableLazyListState internal constructor(
 
         onMove(draggingIndex, neighborLocalIndex)
         draggingIndex = neighborLocalIndex
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
     }
 
     fun computeEdgeScrollDelta(edgeThresholdPx: Float): Float {

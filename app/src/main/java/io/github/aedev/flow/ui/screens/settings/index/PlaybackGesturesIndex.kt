@@ -81,14 +81,6 @@ internal object PlaybackGesturesIndex {
             section = R.string.player_appearance_gestures_header,
             destination = page,
         )
-    val haptics =
-        SettingEntry(
-            key = "playback.haptics",
-            title = R.string.player_appearance_haptics_title,
-            summary = R.string.player_appearance_haptics_subtitle,
-            section = R.string.player_appearance_gestures_header,
-            destination = page,
-        )
     val controlsWhileLoading =
         SettingEntry(
             key = "playback.controls_while_loading",
@@ -109,7 +101,6 @@ internal object PlaybackGesturesIndex {
             speedSwipe,
             speedSwipeStep,
             seekGesture,
-            haptics,
             controlsWhileLoading,
         )
 }

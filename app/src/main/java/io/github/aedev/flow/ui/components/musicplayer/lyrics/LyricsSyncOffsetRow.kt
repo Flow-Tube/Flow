@@ -114,7 +114,7 @@ internal fun LyricsSyncOffsetRow(
                         .clip(RoundedCornerShape(10.dp))
                         .background(chipContainer)
                         .clickable(enabled = offsetActive) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                             onReset()
                         },
                 contentAlignment = Alignment.Center,
@@ -220,7 +220,7 @@ private fun RowScope.OffsetStepSegment(
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(interactionSource = interactionSource, indication = ripple()) {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                     onAdjust(deltaMs)
                 },
         contentAlignment = Alignment.Center,

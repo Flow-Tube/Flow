@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.localmedia.plainLyricsText
 import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsHelper
+import io.github.aedev.flow.data.lyrics.LyricsLoadPolicy
 import io.github.aedev.flow.data.lyrics.LyricsUtils
 import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.lyrics.ShownLyrics
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -51,6 +53,7 @@ internal class MusicPlayerLyrics(
     private var videoTimingJob: Job? = null
     private var shownAnswer: List<LyricsEntry>? = null
     private var syncOffsetSave: Job? = null
+    private var isPlayerOpen = false
 
     init {
         scope.launch {
@@ -317,6 +320,24 @@ internal class MusicPlayerLyrics(
             duration = track.duration,
             album = track.album,
         )
+    }
+
+    /** A new song in the player. Online lookups wait for the player to open when lyrics load only on demand. */
+    suspend fun onSongChanged(track: MusicTrack) {
+        val local = LocalMediaIds.isLocal(track.videoId)
+        if (!local && !LyricsLoadPolicy.playerMayFetch(playerPreferences.lyricsOnDemand.first(), isPlayerOpen)) return
+        fetch(track.videoId, track.artist, track.title, track.duration, track.album)
+    }
+
+    /** The kept-warm full player saw a new song while it may be closed, so it loads ahead only off demand. */
+    fun warm(track: MusicTrack) {
+        scope.launch { if (!playerPreferences.lyricsOnDemand.first()) ensureLoaded(track) }
+    }
+
+    fun setPlayerOpen(open: Boolean) {
+        isPlayerOpen = open
+        if (!open) return
+        scope.launch { if (playerPreferences.lyricsOnDemand.first()) uiState.value.currentTrack?.let(::ensureLoaded) }
     }
 
     private fun isCurrent(track: MusicTrack): Boolean = uiState.value.currentTrack?.videoId == track.videoId

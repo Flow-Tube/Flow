@@ -71,7 +71,7 @@ fun PlayerProgressSlider(
                 clearSeekPreviewJob?.cancel()
                 seekPreviewPosition = value.coerceIn(0f, sliderEnd)
                 isSeeking = true
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
             }
 
             fun commitSeekPreview() {

@@ -4,12 +4,14 @@ import io.github.aedev.flow.data.local.CrossfadeCurve
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
-import kotlin.math.pow
 import kotlin.math.sin
 
 /** What decides whether, when and how a song blends into the next one (#1675). */
 internal object CrossfadePolicy {
-    const val MAX_SECONDS = 12
+    const val MAX_MS = 12_000L
+
+    /** Every length settings offer: short blends under a second, then whole seconds. */
+    val DURATIONS_MS: List<Long> = listOf(250L, 500L, 750L) + (1..12).map { it * 1_000L }
 
     /** The tail player is built and buffered this long before it has to play. */
     const val PREPARE_LEAD_MS = 8_000L
@@ -41,25 +43,28 @@ internal object CrossfadePolicy {
     /** The furthest the muted tail's speed moves from the session's while it catches up. */
     private const val MAX_NUDGE = 0.15f
 
-    /** The gentle curve's shape: its two gains add up to one, so the middle of the fade dips a little. */
-    private const val GENTLE_POWER = 1.6f
-
     /** The nudge closes the gap over about this long; a fixed horizon keeps it from overshooting. */
     private const val NUDGE_HORIZON_MS = 700f
 
     /** Whatever a song needs left to play besides the fade, so a fade never starts before it can line up. */
     private const val MIN_REST_MS = PREPARE_LEAD_MS + ALIGN_WINDOW_MS
 
-    /** What the user chose in settings; [seconds] of 0 is off. */
+    /** What the user chose in settings; [fadeMs] of 0 is off. */
     data class Settings(
-        val seconds: Int = 0,
+        val fadeMs: Long = 0L,
         val keepAlbumsGapless: Boolean = true,
         val curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
         val onAutoAdvance: Boolean = true,
-        val onManualSkip: Boolean = false,
+        val onManualSkip: Boolean = true,
     ) {
-        val fadesOnSkip: Boolean get() = seconds > 0 && onManualSkip
+        val fadesOnSkip: Boolean get() = fadeMs > 0 && onManualSkip
     }
+
+    /** The fade length the settings resolve to: [chosenMs] while crossfade is on, otherwise 0. */
+    fun chosenFadeMs(
+        enabled: Boolean,
+        chosenMs: Int,
+    ): Long = if (enabled) chosenMs.toLong().coerceIn(DURATIONS_MS.first(), MAX_MS) else 0L
 
     /** Where an in-app skip finds the outgoing song. */
     enum class SkipPhase {
@@ -99,7 +104,7 @@ internal object CrossfadePolicy {
 
     /** The facts one decision needs; the service reads them from the player and the queue. */
     data class Moment(
-        val fadeSeconds: Int,
+        val fadeMs: Long,
         val playing: Boolean,
         val hasNext: Boolean,
         val repeatsOne: Boolean,
@@ -111,19 +116,19 @@ internal object CrossfadePolicy {
         val keepAlbumsGapless: Boolean,
     )
 
-    /** The fade's length in media time: a fade lasts the chosen seconds on the clock at any speed. */
+    /** The fade's length in media time: a fade lasts the chosen length on the clock at any speed. */
     fun fadeMediaMs(
-        fadeSeconds: Int,
+        fadeMs: Long,
         speed: Float,
-    ): Long = (fadeSeconds.coerceIn(0, MAX_SECONDS) * 1_000L * speed.coerceAtLeast(0.1f)).toLong()
+    ): Long = (fadeMs.coerceIn(0L, MAX_MS) * speed.coerceAtLeast(0.1f)).toLong()
 
     /** The position the fade starts at, or null when this song should end as it does today. */
     fun fadeStartMs(moment: Moment): Long? {
-        if (moment.fadeSeconds <= 0 || !moment.playing || !moment.hasNext || moment.repeatsOne) return null
+        if (moment.fadeMs <= 0 || !moment.playing || !moment.hasNext || moment.repeatsOne) return null
         if (moment.showsVideo || moment.pausesAtEndOfSong) return null
         if (moment.keepAlbumsGapless && moment.nextIsSameAlbum) return null
         if (moment.durationMs <= 0) return null
-        val fadeMs = fadeMediaMs(moment.fadeSeconds, moment.speed)
+        val fadeMs = fadeMediaMs(moment.fadeMs, moment.speed)
         if (moment.durationMs < fadeMs + MIN_REST_MS) return null
         return moment.durationMs - fadeMs
     }
@@ -163,15 +168,15 @@ internal object CrossfadePolicy {
         return start.takeIf { it + MIN_LINE_UP_MS <= latestHandOffMs(durationMs, speed) }
     }
 
-    /** How long a fade lasts on the clock: the chosen seconds, or what is left of the song after a late seek. */
+    /** How long a fade lasts on the clock: the chosen length, or what is left of the song after a late seek. */
     fun fadeClockMs(
-        fadeSeconds: Int,
+        fadeMs: Long,
         positionMs: Long,
         durationMs: Long,
         speed: Float,
     ): Long {
         val leftOnClock = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong()
-        return minOf(fadeSeconds.coerceIn(0, MAX_SECONDS) * 1_000L, leftOnClock).coerceAtLeast(1L)
+        return minOf(fadeMs.coerceIn(0L, MAX_MS), leftOnClock).coerceAtLeast(1L)
     }
 
     /** How long a skip overlaps the two songs on the clock: the chosen fade, or just [SKIP_BLEND_MS] without one. */
@@ -181,7 +186,7 @@ internal object CrossfadePolicy {
         durationMs: Long,
         speed: Float,
     ): Long {
-        val chosen = fadeClockMs(settings.seconds, positionMs, durationMs, speed)
+        val chosen = fadeClockMs(settings.fadeMs, positionMs, durationMs, speed)
         if (settings.fadesOnSkip) return chosen
         val leftOnClock = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong()
         return minOf(SKIP_BLEND_MS, leftOnClock).coerceAtLeast(1L)
@@ -196,13 +201,21 @@ internal object CrossfadePolicy {
         sessionStillPlaysSong: Boolean,
     ): Boolean = !settings.fadesOnSkip || !sessionStillPlaysSong
 
-    /** The outgoing song's gain [progress] of the way through the fade. */
+    /**
+     * The outgoing song's gain [progress] of the way through the fade. Equal power and Smooth are pairs;
+     * Hold and Gentle shape only the outgoing song, which leaves later or sooner over a steady incoming one.
+     */
     fun fadeOutGain(
         progress: Float,
         curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
     ): Float {
         val p = progress.coerceIn(0f, 1f)
-        return if (curve == CrossfadeCurve.GENTLE) (1f - p).pow(GENTLE_POWER) else cos(eased(p, curve) * PI / 2).toFloat()
+        return when (curve) {
+            CrossfadeCurve.EQUAL_POWER -> cos(p * PI / 2).toFloat()
+            CrossfadeCurve.S_CURVE -> 1f - smoothstep(p)
+            CrossfadeCurve.HOLD -> 1f - p * p * p
+            CrossfadeCurve.GENTLE -> (1f - p) * (1f - p)
+        }
     }
 
     /** The incoming song's gain [progress] of the way through the fade. */
@@ -211,19 +224,10 @@ internal object CrossfadePolicy {
         curve: CrossfadeCurve = CrossfadeCurve.EQUAL_POWER,
     ): Float {
         val p = progress.coerceIn(0f, 1f)
-        return if (curve == CrossfadeCurve.GENTLE) 1f - (1f - p).pow(GENTLE_POWER) else sin(eased(p, curve) * PI / 2).toFloat()
+        return if (curve == CrossfadeCurve.S_CURVE) smoothstep(p) else sin(p * PI / 2).toFloat()
     }
 
-    /** Equal-power curves differ only in how time passes through them, so all of them keep the blend's loudness. */
-    private fun eased(
-        p: Float,
-        curve: CrossfadeCurve,
-    ): Float =
-        when (curve) {
-            CrossfadeCurve.S_CURVE -> p * p * (3f - 2f * p)
-            CrossfadeCurve.HOLD -> p * p
-            CrossfadeCurve.EQUAL_POWER, CrossfadeCurve.GENTLE -> p
-        }
+    private fun smoothstep(p: Float): Float = p * p * (3f - 2f * p)
 
     /**
      * The muted tail's speed while it lines up: a tail [deltaMs] ahead of the session player slows
