@@ -392,6 +392,17 @@ class PlayerErrorHandler(
                 error.errorCode == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED ||
                 error.message?.contains("AudioRenderer", ignoreCase = true) == true
 
+        if (player != null &&
+            decoderRecovery.onDecoderError(error.errorCode, error.isFormatHandled()) ==
+            VideoDecoderRecoveryPolicy.Decision.REPREPARE
+        ) {
+            Log.w(TAG, "Decoder error — re-preparing in place at ${player.currentPosition}ms")
+            PlayerDiagnostics.logWarning(TAG, "Decoder failed (${error.errorCode}); re-preparing in place")
+            setRecoveryState()
+            player.prepare()
+            return true
+        }
+
         if (isAudioError && getCurrentAudioStream()?.getContent() != null) {
             markStreamFailed(getCurrentAudioStream()!!.getContent())
             val failedUrls = getFailedStreamUrls()
@@ -408,17 +419,6 @@ class PlayerErrorHandler(
                 reloadPlaybackManager()
                 return false
             }
-        }
-
-        if (player != null &&
-            decoderRecovery.onDecoderError(error.errorCode, error.isFormatHandled()) ==
-            VideoDecoderRecoveryPolicy.Decision.REPREPARE
-        ) {
-            Log.w(TAG, "Decoder error — re-preparing in place at ${player.currentPosition}ms")
-            PlayerDiagnostics.logWarning(TAG, "Decoder failed (${error.errorCode}); re-preparing in place")
-            setRecoveryState()
-            player.prepare()
-            return true
         }
 
         Log.e(TAG, "Decoder error — no alternatives available, stopping playback")
