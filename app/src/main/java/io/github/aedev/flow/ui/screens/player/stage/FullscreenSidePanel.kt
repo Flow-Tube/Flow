@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.media3.common.util.UnstableApi
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerChaptersSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerCommentsPanelHost
@@ -72,6 +73,7 @@ internal fun rememberFullscreenSidePanelState(
     canUseFullscreenSidePanel: Boolean,
     maxWidth: Dp,
     maxHeight: Dp,
+    widthPreset: FullscreenSidePanelWidth,
     scope: CoroutineScope,
 ): FullscreenSidePanelState {
     val density = LocalDensity.current
@@ -93,7 +95,7 @@ internal fun rememberFullscreenSidePanelState(
                 showSettingsSurface || showChaptersSidePanel || showDescriptionSidePanel || showTranscriptSidePanel ||
                     showLiveChatSidePanel || showCommentsSidePanel || showSleepTimerSidePanel || showQueueSidePanel
             )
-    val fullscreenDrawerWidth = minOf(maxWidth * 0.42f, 420.dp)
+    val fullscreenDrawerWidth = sidePanelWidth(maxWidth, widthPreset)
     val fullscreenDrawerWidthPx = with(density) { fullscreenDrawerWidth.toPx() }
     val fullscreenDrawerOffsetPx = remember { Animatable(0f) }
 
@@ -175,7 +177,7 @@ internal fun rememberFullscreenSidePanelState(
     val fullscreenSidePanelHeight = maxHeight
     val fullscreenPlayerWidth =
         if (fullscreenSidePanelVisible) {
-            (maxWidth - fullscreenReservedWidth).coerceAtLeast(maxWidth * 0.58f)
+            (maxWidth - fullscreenReservedWidth).coerceAtLeast(sidePanelMinPlayerWidth(maxWidth, widthPreset))
         } else {
             maxWidth
         }
