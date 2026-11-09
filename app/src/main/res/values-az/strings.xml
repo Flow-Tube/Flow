@@ -4729,4 +4729,24 @@
     <string name="lock_screen_player_unlock">Kilidini açmaq üçün yuxarı sürüşdür</string>
     <string name="more_videos">Daha çox video</string>
     <string name="close_more_videos">Daha çox videonu bağla</string>
+    <string name="settings_keywords_haptics">toxunma, toxunma əks-səda, titrəyiş, toxunma</string>
+    <string name="daily_limit_title">Gündəlik limit</string>
+    <string name="daily_limit_subtitle">Hər gün müəyyən vaxtdan sonra videoları dayandır</string>
+    <string name="daily_limit_time_title">Limit</string>
+    <string name="daily_limit_time_description">Hər gün nə qədər çox video oynadıla bilər</string>
+    <string name="daily_limit_music_title">Musiqini də hesabla</string>
+    <string name="daily_limit_music_subtitle">Musiqi sayı da limitə daxil edilir və onunla dayandırılır</string>
+    <string name="daily_limit_footer">Pəncərə daxilində pəncərə və fonda oynatma daxil olmaqla, videoların və Shorts-ların oynatma müddətini hesablayır. Android Auto qoşulu olduqda heç nə fasilə edilmir.</string>
+    <string name="daily_limit_warning_title">Bu günə 5 dəqiqə qalıb</string>
+    <string name="daily_limit_warning_body">Gündəlik limitiniz bitmək üzrədir.</string>
+    <string name="daily_limit_reached_title">Vaxt bitdi</string>
+    <string name="daily_limit_reached_body">Gündəlik limitinizə çatdığınız üçün oynatma dayandırıldı.</string>
+    <string name="daily_limit_wait_title">Limitinizi dəyişdirirsiz?</string>
+    <string name="daily_limit_wait_body">Bugünkü limitiniz artıq bitdiyi üçün onun dəyişdirilməsi qısa vaxt alacaq.</string>
+    <string name="daily_limit_wait_confirm">Dəyişdir</string>
+    <string name="daily_limit_wait_countdown">%1$d s gözlə</string>
+    <string name="times_up_body">Bu gün %1$s izlədiniz. Gündəlik limitiniz %2$s -dir.</string>
+    <string name="times_up_keep_watching">İzləməyə davam et</string>
+    <string name="times_up_keep_watching_wait">%1$d s də izləməyə davam et</string>
+    <string name="times_up_keep_watching_note">Baxmağa davam etsəniz, 15 dəqiqə əlavə edilir.</string>
 </resources>
