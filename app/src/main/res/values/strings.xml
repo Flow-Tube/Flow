@@ -933,7 +933,7 @@
     <string name="player_appearance_hide_music_artwork_title">Hide music player artwork</string>
     <string name="player_appearance_hide_music_artwork_subtitle">Show the app icon on the extracted artwork color instead</string>
     <string name="player_appearance_haptics_title">Vibration</string>
-    <string name="player_appearance_haptics_subtitle">Vibrate lightly on player taps and gestures</string>
+    <string name="player_appearance_haptics_subtitle">Vibrate lightly on taps and gestures</string>
     <string name="player_appearance_gesture_overlay_title">Gesture overlay style</string>
     <string name="player_appearance_gesture_overlay_subtitle">How volume and brightness show while you swipe</string>
     <string name="gesture_overlay_style_circular">Circular</string>
@@ -4161,6 +4161,7 @@
     <string name="settings_keywords_captions">subtitles, cc, closed captions</string>
     <string name="settings_keywords_next_prev">skip, previous video, next video, double tap</string>
     <string name="settings_keywords_gestures">swipe, double tap, touch</string>
+    <string name="settings_keywords_haptics">haptics, haptic feedback, vibrate, touch</string>
     <string name="settings_keywords_tilt_fullscreen">rotate, rotation lock, auto-rotate, landscape, sideways</string>
     <string name="settings_speed_preset_hint">e.g. 1.35</string>
     <string name="settings_speed_preset_add">Add preset</string>

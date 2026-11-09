@@ -1057,11 +1057,11 @@ class PlayerPreferences(
                     ?: GestureOverlayStyle.CIRCULAR
             }
 
-    val playerHapticsEnabled: Flow<Boolean> =
+    val hapticsEnabled: Flow<Boolean> =
         context.devicePreferencesDataStore.data
             .map { preferences -> preferences[DeviceKeys.PLAYER_HAPTICS_ENABLED] ?: true }
 
-    suspend fun setPlayerHapticsEnabled(enabled: Boolean) {
+    suspend fun setHapticsEnabled(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PLAYER_HAPTICS_ENABLED] = enabled
         }
