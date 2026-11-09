@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.NavigationVisibility
 import io.github.aedev.flow.ui.components.layout.navigation.visibleFlowTabs
+import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -185,6 +186,26 @@ class NavigationDestinationsTest {
             TabTap.SWITCH,
             tabTapAction(FlowTab.Music, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false, startTab = FlowTab.Home),
         )
+    }
+
+    @Test
+    fun innerPagesKeepTheBarOnlyWhenAskedFor() {
+        assertTrue(navigationBarShown(null, "channel?url={channelUrl}", onSearch = false, onInnerPages = true))
+        assertTrue(navigationBarShown(null, MUSIC_ARTIST_ROUTE_PATTERN, onSearch = false, onInnerPages = true))
+        assertFalse(navigationBarShown(null, "channel?url={channelUrl}", onSearch = false, onInnerPages = false))
+    }
+
+    @Test
+    fun settingsPlayersAndFullScreenFlowsNeverGetTheBar() {
+        listOf("settings?target={target}", EQUALIZER_ROUTE, UPDATE_ROUTE, MUSIC_PLAYER_ROUTE_PATTERN, "player/{videoId}", "onboarding")
+            .forEach { route -> assertFalse(route, navigationBarShown(null, route, onSearch = true, onInnerPages = true)) }
+    }
+
+    @Test
+    fun tabRootsAndSearchKeepTheirOwnRules() {
+        assertTrue(navigationBarShown(FlowTab.Home, "home", onSearch = false, onInnerPages = false))
+        assertFalse(navigationBarShown(FlowTab.Search, "search", onSearch = false, onInnerPages = true))
+        assertTrue(navigationBarShown(FlowTab.Search, "search", onSearch = true, onInnerPages = false))
     }
 
     @Test

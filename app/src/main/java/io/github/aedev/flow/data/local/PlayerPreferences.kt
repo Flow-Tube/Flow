@@ -167,6 +167,7 @@ class PlayerPreferences(
         val SHORTS_NAVIGATION_ENABLED = booleanPreferencesKey("shorts_navigation_enabled")
         val BOTTOM_NAV_HIDE_ON_SCROLL = booleanPreferencesKey("bottom_nav_hide_on_scroll")
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
+        val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
         val SEARCH_NAV_TAB_ENABLED = booleanPreferencesKey("search_nav_tab_enabled")
         val CATEGORIES_NAV_TAB_ENABLED = booleanPreferencesKey("categories_nav_tab_enabled")
@@ -1405,6 +1406,18 @@ class PlayerPreferences(
             .map { preferences ->
                 preferences[Keys.SEARCH_SHOWS_NAV_BAR] ?: false
             }
+
+    // Channels, playlists and the other pages inside a tab keep the bar only when this is on (#1489).
+    val innerPagesShowNavBar: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.INNER_PAGES_SHOW_NAV_BAR] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setInnerPagesShowNavBar(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.INNER_PAGES_SHOW_NAV_BAR] = enabled
+        }
+    }
 
     suspend fun setSearchShowsNavBar(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->

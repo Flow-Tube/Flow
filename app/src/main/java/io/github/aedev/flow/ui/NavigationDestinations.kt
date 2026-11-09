@@ -130,6 +130,39 @@ internal fun exitTab(
     leaving: FlowTab,
 ): FlowTab = tabs.firstOrNull { it != leaving } ?: FlowTab.Home
 
+/**
+ * The pages inside a tab that keep the bar when the user asks for it: content people browse. Settings,
+ * the players and full-screen flows stay without it.
+ */
+internal val PAGES_WITH_NAVIGATION_BAR: Set<String> =
+    setOf(
+        "channel?url={channelUrl}",
+        "playlist/{playlistId}",
+        "playlists?kind={kind}",
+        MUSIC_ARTIST_ROUTE_PATTERN,
+        "artistItems/{channelId}/{browseId}?params={params}",
+        MUSIC_PLAYLIST_ROUTE_PATTERN,
+        "youtube_browse/{browseId}?params={params}",
+        "moodsAndGenres",
+        "musicSearch?query={query}",
+        "history",
+        DOWNLOADS_ROUTE,
+        "localMedia",
+        "savedShorts",
+        "notes",
+        "notifications",
+        "recognitionHistory",
+        ON_REPEAT_SHUFFLE_ROUTE,
+    )
+
+/** Whether the bar shows on the screen at [route]: every tab's first screen, Search when [onSearch], listed pages when [onInnerPages]. */
+internal fun navigationBarShown(
+    currentTab: FlowTab?,
+    route: String?,
+    onSearch: Boolean,
+    onInnerPages: Boolean,
+): Boolean = currentTab.showsNavigationBar(onSearch) || (onInnerPages && currentTab == null && route in PAGES_WITH_NAVIGATION_BAR)
+
 /** Search is a tab, but it keeps the back-button layout of the other search screens, so no bar unless [onSearch] asks for it. */
 internal fun FlowTab?.showsNavigationBar(onSearch: Boolean = false): Boolean = this != null && (this != FlowTab.Search || onSearch)
 

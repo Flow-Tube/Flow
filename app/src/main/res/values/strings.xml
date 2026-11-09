@@ -1256,6 +1256,8 @@
     <string name="content_settings_navbar_hide_on_scroll_subtitle">Hide the navigation bar while scrolling down</string>
     <string name="content_settings_navbar_show_on_search_title">Show navigation bar on Search</string>
     <string name="content_settings_navbar_show_on_search_subtitle">Keep the bar on the Search screen</string>
+    <string name="content_settings_navbar_show_on_other_pages_title">Show navigation bar on other pages</string>
+    <string name="content_settings_navbar_show_on_other_pages_subtitle">Keep the bar on channels, playlists and other pages</string>
     <string name="content_settings_disable_shorts_player_title">Disable Shorts Player</string>
     <string name="content_settings_disable_shorts_player_subtitle">Play Shorts in the regular video player</string>
     <string name="content_settings_shorts_player_prompt_title">Shorts player suggestion</string>
