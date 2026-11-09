@@ -6,7 +6,6 @@ import androidx.compose.runtime.Stable
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
-import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameHolder
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.effects.AudioSystemInfo
 import io.github.aedev.flow.ui.screens.player.effects.PipPreferences
@@ -38,5 +37,5 @@ internal class VideoPlayerStageSession(
     val pipPreferences: PipPreferences,
     /** Whether the window shows the fullscreen layout yet, which trails the request while it rotates. */
     val isFullscreenShown: Boolean,
-    val ambientFrames: AmbientFrameHolder,
+    val ambient: PlayerAmbient,
 )

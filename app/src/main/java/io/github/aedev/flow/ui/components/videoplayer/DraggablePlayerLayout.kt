@@ -95,6 +95,7 @@ fun DraggablePlayerLayout(
     isTwoPaneWindow: Boolean = false,
     detailPaneWidth: Dp = 0.dp,
     tapToExpand: Boolean = true,
+    statusBarGlow: @Composable (statusBarHeight: Float) -> Unit = {},
     onDismiss: () -> Unit = {},
     onCollapseGesture: (() -> Unit)? = null,
     onFullscreenGesture: (() -> Unit)? = null,
@@ -332,6 +333,7 @@ fun DraggablePlayerLayout(
                 ImmersiveFullscreenBackdrop(thumbnailUrl = thumbnailUrl)
             } else {
                 CollapsingPlayerScrim(state = state, statusBarHeight = statusBarHeight, openRect = openRectProvider)
+                statusBarGlow(statusBarHeight)
                 PortraitFullscreenBackdropFade(state = state, thumbnailUrl = thumbnailUrl)
             }
 

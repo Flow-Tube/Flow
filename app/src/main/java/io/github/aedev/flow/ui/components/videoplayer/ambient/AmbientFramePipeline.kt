@@ -129,6 +129,7 @@ private val LINEAR_TO_SRGB =
  */
 internal class AmbientPipeline(
     private val pixelDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val pageStyle: () -> AmbientPageStyle? = { null },
 ) {
     private val sample = Bitmap.createBitmap(SAMPLE_W, SAMPLE_H, Bitmap.Config.ARGB_8888)
     private val samplePixels = IntArray(SAMPLE_W * SAMPLE_H)
@@ -161,6 +162,14 @@ internal class AmbientPipeline(
      * needs to know that it should look, not how many times it was told.
      */
     private val wake = Channel<Unit>(Channel.CONFLATED)
+    private var restyled = false
+    private val pageRenderer by lazy { AmbientPageRenderer(DISPLAY_W, DISPLAY_H) }
+
+    /** Publishes the current light again, for a page whose style changed while the frame did not. */
+    fun requestPublish() {
+        restyled = true
+        wake.trySend(Unit)
+    }
 
     suspend fun runCapture(
         playerView: PlayerView,
@@ -243,7 +252,7 @@ internal class AmbientPipeline(
             last = now
             val alpha = 1f - exp(-dt.toFloat() / SMOOTH_TAU_MS)
 
-            if (step(currentGrid, targetGrid, alpha)) {
+            if (step(currentGrid, targetGrid, alpha) || restyled) {
                 emit(publish())
                 delay(SMOOTH_TICK_MS)
             } else {
@@ -264,8 +273,16 @@ internal class AmbientPipeline(
      * that one *is* written by the capture loop.
      */
     internal suspend fun publish(): AmbientFrameState {
-        val frame = withContext(pixelDispatcher) { encodeFrame() }
-        return AmbientFrameState(frame = frame, supported = supported)
+        restyled = false
+        val style = pageStyle()
+        val isSupported = supported
+        return withContext(pixelDispatcher) {
+            AmbientFrameState(
+                frame = encodeFrame(),
+                supported = isSupported,
+                page = style?.let { pageRenderer.render(currentGrid, it) },
+            )
+        }
     }
 
     /** Runs on [pixelDispatcher]. */

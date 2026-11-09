@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -42,6 +43,8 @@ data class AmbientFrameState(
     val frame: ImageBitmap? = null,
     /** False once capture has been found permanently impossible, e.g. a protected surface. */
     val supported: Boolean = true,
+    /** The light for the page around the player, while a page has asked for it. */
+    val page: AmbientPageFrame? = null,
 )
 
 /**
@@ -52,6 +55,8 @@ data class AmbientFrameState(
 class AmbientFrameHolder {
     var state by mutableStateOf(AmbientFrameState())
         internal set
+
+    internal var pageStyle by mutableStateOf<AmbientPageStyle?>(null)
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -99,7 +104,7 @@ fun AmbientFrameCaptureEffect(
         // without this the loop kept running a GPU readback every cadence with the screen off,
         // painting a surface nobody could see.
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            val pipeline = AmbientPipeline()
+            val pipeline = AmbientPipeline(pageStyle = { holder.pageStyle })
             // coroutineScope, not a bare launch pair: it suspends until both loops finish, so the
             // pipeline is never abandoned while either loop can still touch its buffers.
             coroutineScope {
@@ -109,6 +114,7 @@ fun AmbientFrameCaptureEffect(
                 // and is joined before anything is published.
                 launch { pipeline.runCapture(playerView, isPlaying) }
                 launch { pipeline.runSmoothing { holder.state = it } }
+                launch { snapshotFlow { holder.pageStyle }.collect { pipeline.requestPublish() } }
             }
         }
     }

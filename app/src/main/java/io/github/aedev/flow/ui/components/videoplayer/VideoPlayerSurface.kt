@@ -63,6 +63,7 @@ fun VideoPlayerSurface(
     cornerRadiusDp: Float = 0f,
     ambientMode: Boolean = false,
     ambientFrames: AmbientFrameHolder? = null,
+    ambientGlow: Boolean = false,
 ) {
     val ambientActive = ambientMode && resizeMode == 0
     val localAmbientFrames = remember { AmbientFrameHolder() }
@@ -180,7 +181,7 @@ fun VideoPlayerSurface(
 
     val currentSurfaceRestoreTrigger = surfaceRestoreTrigger
 
-    AmbientFrameCaptureEffect(playerView, ambientActive, frames)
+    AmbientFrameCaptureEffect(playerView, ambientActive || ambientGlow, frames)
 
     Box(modifier = modifier.fillMaxSize()) {
         if (ambientActive) AmbientBars(frames, ambientVideoAspect)
