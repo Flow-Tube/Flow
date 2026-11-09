@@ -9,13 +9,17 @@ import io.github.aedev.flow.ui.components.settings.SettingsDestination
 internal object DestinationIndex {
     private const val KEY_PREFIX = "dest."
 
-    /** Pages about phone hardware or features TV leaves out: widgets, the navigation bar, local media, notifications. */
+    /**
+     * Pages about phone hardware or features TV leaves out: widgets, the navigation bar, local media,
+     * notifications, and the app lock, which needs a screen lock most TVs don't have.
+     */
     private val notOnTv =
         setOf(
             SettingsDestination.WIDGETS,
             SettingsDestination.NAVIGATION_BAR,
             SettingsDestination.LOCAL_MEDIA,
             SettingsDestination.NOTIFICATIONS,
+            SettingsDestination.SECURITY,
         )
 
     fun entry(destination: SettingsDestination): SettingEntry =
@@ -90,6 +94,7 @@ internal object DestinationIndex {
             SettingsDestination.NOTIFICATIONS -> R.string.settings_item_notifications_subtitle
             SettingsDestination.NETWORK -> R.string.settings_network_summary
             SettingsDestination.WELLBEING -> R.string.settings_wellbeing_summary
+            SettingsDestination.SECURITY -> R.string.settings_security_summary
             SettingsDestination.WIDGETS -> R.string.settings_widgets_summary
             SettingsDestination.ABOUT -> R.string.settings_about_summary
             SettingsDestination.DIAGNOSTICS -> R.string.settings_item_diagnostics_subtitle
