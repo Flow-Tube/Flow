@@ -20,6 +20,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.aedev.flow.applock.AppLock
 import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.data.playlist.PlaylistTransfer
@@ -74,6 +75,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var appFontPreferences: AppFontPreferences
+
+    @Inject
+    lateinit var appLock: AppLock
 
     @Inject
     lateinit var playlistTransfer: dagger.Lazy<PlaylistTransfer>
@@ -200,6 +204,7 @@ class MainActivity : ComponentActivity() {
                 originalTitles = originalTitles,
                 deArrow = deArrow,
                 appIconController = appIconController,
+                appLock = appLock,
                 onUiRoot = { cachedAppUiRoot = it },
             )
         }
@@ -263,6 +268,7 @@ class MainActivity : ComponentActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         videoLifecycleLog("onPictureInPictureModeChanged pip=$isInPictureInPictureMode")
         GlobalPlayerState.setPipMode(isInPictureInPictureMode)
+        appLock.onPictureInPictureChanged(isInPictureInPictureMode)
         pendingAutoPip = false
 
         clearWindowBrightnessOverride()

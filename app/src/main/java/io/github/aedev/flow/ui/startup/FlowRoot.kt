@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.startup
 
 import android.os.Build
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -15,13 +16,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.github.aedev.flow.applock.AppLock
 import io.github.aedev.flow.data.local.AppUiModePreferences
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
@@ -31,8 +35,10 @@ import io.github.aedev.flow.platform.AppIconController
 import io.github.aedev.flow.platform.AppUiMode
 import io.github.aedev.flow.platform.AppUiRoot
 import io.github.aedev.flow.platform.DeviceFormFactorDetector
+import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.ui.FlowApp
 import io.github.aedev.flow.ui.IncomingLinks
+import io.github.aedev.flow.ui.components.applock.AppLockScreen
 import io.github.aedev.flow.ui.components.profiles.ProfileSwitchingOverlay
 import io.github.aedev.flow.ui.components.shared.AppHaptics
 import io.github.aedev.flow.ui.components.shared.ProvideChannelGroupLabels
@@ -60,11 +66,15 @@ internal fun FlowRoot(
     originalTitles: OriginalTitleRepository,
     deArrow: DeArrowRepository,
     appIconController: AppIconController,
+    appLock: AppLock,
     onUiRoot: (AppUiRoot) -> Unit,
 ) {
     // Nothing is composed until the theme is known: the splash covers the wait, and the app
-    // composes once in the right theme instead of twice.
+    // composes once in the right theme instead of twice. The same for the app lock, so nothing
+    // shows for a frame before it.
     val theme = storedTheme.collectAsState().value ?: return
+    val locked = appLock.locked.collectAsState().value ?: return
+    val isInPip by GlobalPlayerState.isInPipMode.collectAsState()
 
     val context = LocalContext.current
     val applicationContext = context.applicationContext
@@ -93,10 +103,13 @@ internal fun FlowRoot(
     if (pendingCrashLog != null) {
         SideEffect { splashController.contentReady = true }
         FlowTheme(theme.copy(fontFamily = FlowFontFamily)) {
-            CrashReportScreen(
-                report = pendingCrashLog!!,
-                onContinue = { pendingCrashLog = null },
-            )
+            Box(Modifier.fillMaxSize()) {
+                CrashReportScreen(
+                    report = pendingCrashLog!!,
+                    onContinue = { pendingCrashLog = null },
+                )
+                if (locked) AppLockScreen(appLock)
+            }
         }
         return
     }
@@ -126,61 +139,66 @@ internal fun FlowRoot(
                                     .fillMaxSize()
                                     .semantics { testTagsAsResourceId = true },
                         ) {
-                            if (appUiRoot == AppUiRoot.MOBILE) PreAndroid9FocusHolder()
-                            // 1. MAIN APP (Home/NavHost)
-                            // This loads *behind* the splash screen immediately.
-                            // By the time splash fades, this is ready.
-                            val deeplinkVideoId by links.videoId
-                            val isDeeplinkShort by links.isShort
-                            val isDeeplinkShared by links.isShared
-                            val openMusicPlayerRequest by links.musicPlayerRequest
-                            val pendingRoute by links.route
-                            val downloadVideoId by links.downloadVideoId
+                            // PiP shows only what is already playing, so the lock waits for the full app.
+                            val showLock = locked && !isInPip
+                            Box(Modifier.fillMaxSize().hiddenBehindLock(showLock)) {
+                                if (appUiRoot == AppUiRoot.MOBILE) PreAndroid9FocusHolder()
+                                // 1. MAIN APP (Home/NavHost)
+                                // This loads *behind* the splash screen immediately.
+                                // By the time splash fades, this is ready.
+                                val deeplinkVideoId by links.videoId
+                                val isDeeplinkShort by links.isShort
+                                val isDeeplinkShared by links.isShared
+                                val openMusicPlayerRequest by links.musicPlayerRequest
+                                val pendingRoute by links.route
+                                val downloadVideoId by links.downloadVideoId
 
-                            ProvideChannelGroupLabels {
-                                // One "Play on" for every player and both shells.
-                                CompositionLocalProvider(LocalPlayOn provides hiltViewModel<PlayOnViewModel>()) {
-                                    if (appUiRoot == AppUiRoot.TV) {
-                                        SideEffect { splashController.contentReady = true }
-                                        TvProfileGate(hasLink = deeplinkVideoId != null) { startSettings ->
-                                            FlowTvApp(
+                                ProvideChannelGroupLabels {
+                                    // One "Play on" for every player and both shells.
+                                    CompositionLocalProvider(LocalPlayOn provides hiltViewModel<PlayOnViewModel>()) {
+                                        if (appUiRoot == AppUiRoot.TV) {
+                                            SideEffect { splashController.contentReady = true }
+                                            TvProfileGate(hasLink = deeplinkVideoId != null) { startSettings ->
+                                                FlowTvApp(
+                                                    deeplinkVideoId = deeplinkVideoId,
+                                                    isShort = isDeeplinkShort,
+                                                    onDeeplinkConsumed = links::consumeVideo,
+                                                    startSettings = startSettings,
+                                                )
+                                            }
+                                        } else {
+                                            FlowApp(
+                                                currentTheme = theme.themeMode,
+                                                themeVariant = theme.themeVariant,
+                                                systemLightThemeMode = theme.systemLightThemeMode,
+                                                systemDarkThemeMode = theme.systemDarkThemeMode,
                                                 deeplinkVideoId = deeplinkVideoId,
                                                 isShort = isDeeplinkShort,
+                                                isSharedLink = isDeeplinkShared,
+                                                openMusicPlayerRequest = openMusicPlayerRequest,
                                                 onDeeplinkConsumed = links::consumeVideo,
-                                                startSettings = startSettings,
+                                                pendingRoute = pendingRoute,
+                                                onPendingRouteConsumed = links::consumeRoute,
+                                                downloadVideoId = downloadVideoId,
+                                                onDownloadConsumed = links::consumeDownload,
+                                                onStartDestinationKnown = { splashController.contentReady = true },
                                             )
                                         }
-                                    } else {
-                                        FlowApp(
-                                            currentTheme = theme.themeMode,
-                                            themeVariant = theme.themeVariant,
-                                            systemLightThemeMode = theme.systemLightThemeMode,
-                                            systemDarkThemeMode = theme.systemDarkThemeMode,
-                                            deeplinkVideoId = deeplinkVideoId,
-                                            isShort = isDeeplinkShort,
-                                            isSharedLink = isDeeplinkShared,
-                                            openMusicPlayerRequest = openMusicPlayerRequest,
-                                            onDeeplinkConsumed = links::consumeVideo,
-                                            pendingRoute = pendingRoute,
-                                            onPendingRouteConsumed = links::consumeRoute,
-                                            downloadVideoId = downloadVideoId,
-                                            onDownloadConsumed = links::consumeDownload,
-                                            onStartDestinationKnown = { splashController.contentReady = true },
-                                        )
                                     }
                                 }
+                                ProfileSwitchingOverlay(
+                                    currentTone = splashTone.name,
+                                    onSplashTone = { name ->
+                                        SplashTone.entries.firstOrNull { it.name == name }?.let {
+                                            splashController.rememberTheme(
+                                                it,
+                                                appIconController.activeSuffix(),
+                                            )
+                                        }
+                                    },
+                                )
                             }
-                            ProfileSwitchingOverlay(
-                                currentTone = splashTone.name,
-                                onSplashTone = { name ->
-                                    SplashTone.entries.firstOrNull { it.name == name }?.let {
-                                        splashController.rememberTheme(
-                                            it,
-                                            appIconController.activeSuffix(),
-                                        )
-                                    }
-                                },
-                            )
+                            if (showLock) AppLockScreen(appLock)
                         }
                     }
                 }
@@ -188,6 +206,16 @@ internal fun FlowRoot(
         }
     }
 }
+
+/** While locked, the app underneath stays composed but can't be read out, focused or reached. */
+private fun Modifier.hiddenBehindLock(hidden: Boolean): Modifier =
+    if (hidden) {
+        clearAndSetSemantics {}
+            .focusProperties { onEnter = { cancelFocusChange() } }
+            .focusGroup()
+    } else {
+        this
+    }
 
 /**
  * Before Android 9, clearing focus makes the platform hand it straight to the first focusable node from the top, so a
