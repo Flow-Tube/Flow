@@ -203,7 +203,7 @@ fun FlowApp(
 
     val navScrollState =
         rememberFlowNavigationScrollState(
-            hideOnScroll = bottomNavHideOnScroll,
+            hideOnScroll = bottomNavHideOnScroll && !usesNavigationRail,
             routeKey = currentRoute.value,
             locked = currentRoute.value == SHORTS_ROUTE_KEY,
         )
@@ -350,7 +350,8 @@ fun FlowApp(
             (playerVisible && playerSheetState.currentValue == PlayerSheetValue.Expanded) ||
                 (isMusicSheetShown && musicPlayerSheetState.isExpanded)
         val showBottomNav = !isInPipMode && currentTab.showsNavigationBar(searchShowsNavBar) && !isPlayerCoveringContent
-        val isBottomNavShown = !usesNavigationRail && showBottomNav && navScrollState.isBarVisible
+        val isBottomNavPresent = !usesNavigationRail && showBottomNav
+        val isBottomNavShown = isBottomNavPresent && navScrollState.isBarVisible
         // The rail is hidden only where content goes truly full screen; the expanded players cover
         // it instead, so opening them never re-lays out the page beneath.
         val currentDestinationRoute = currentEntry?.destination?.route
@@ -364,12 +365,12 @@ fun FlowApp(
         val isMiniBarObscuringContent =
             (isMusicSheetShown && !musicPlayerSheetState.isDismissed && !musicPlayerSheetState.isExpanded) || showVideoBar || showRemoteBar
         val motionScheme = MaterialTheme.motionScheme
-        val barFraction = remember { Animatable(if (isBottomNavShown) 1f else 0f) }
-        LaunchedEffect(isBottomNavShown) {
+        val barFraction = remember { Animatable(if (isBottomNavPresent) 1f else 0f) }
+        LaunchedEffect(isBottomNavPresent) {
             // The same springs as the bar's own slide, so whatever rides on it stays glued to it.
             barFraction.animateTo(
-                targetValue = if (isBottomNavShown) 1f else 0f,
-                animationSpec = if (isBottomNavShown) motionScheme.defaultSpatialSpec() else motionScheme.fastSpatialSpec(),
+                targetValue = if (isBottomNavPresent) 1f else 0f,
+                animationSpec = if (isBottomNavPresent) motionScheme.defaultSpatialSpec() else motionScheme.fastSpatialSpec(),
             )
         }
         val systemBottomState = rememberUpdatedState(with(density) { navBarBottomInset.toDp() })
@@ -411,7 +412,7 @@ fun FlowApp(
                     barShown = barShownState,
                     miniPlayerHeight = miniPlayerHeightState,
                     miniPlayerShown = miniPlayerShownState,
-                    barFraction = { barFraction.value },
+                    barFraction = { barFraction.value * (1f - navScrollState.hiddenFraction) },
                     miniPlayerFraction = { miniPlayerFraction.value },
                     miniPlayerSpanPx = miniPlayerSpanState,
                 )
@@ -427,7 +428,8 @@ fun FlowApp(
                     navController.navigateToTab(tab, defaultStartRoute)
                 }
             },
-            barVisible = showBottomNav && navScrollState.isBarVisible,
+            barVisible = showBottomNav,
+            barScrollState = navScrollState,
             railVisible = isNavigationRailVisible,
             onBarHeightChanged = { navigationBarHeight = it },
             onRailWidthChanged = { navigationRailWidth = it },
