@@ -116,4 +116,34 @@ class NavigationDestinationsTest {
             youtubeChannelRoute("@flow"),
         )
     }
+
+    @Test
+    fun aTabTappedOnSearchOpenedAsAPageLeavesSearchFirst() {
+        FlowTab.entries.filter { it != FlowTab.Search }.forEach { tapped ->
+            assertEquals(TabTap.LEAVE_SEARCH, tabTapAction(tapped, FlowTab.Search, selectedTab = FlowTab.Home, searchIsTab = false))
+        }
+    }
+
+    @Test
+    fun withASearchTabInTheBarSearchSwitchesLikeAnyOtherTab() {
+        assertEquals(TabTap.SWITCH, tabTapAction(FlowTab.Home, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true))
+        assertEquals(TabTap.SCROLL_TO_TOP, tabTapAction(FlowTab.Search, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true))
+    }
+
+    @Test
+    fun theTabAlreadyOnItsFirstScreenScrollsToTheTop() {
+        assertEquals(TabTap.SCROLL_TO_TOP, tabTapAction(FlowTab.Home, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false))
+        assertEquals(TabTap.SCROLL_TO_TOP, tabTapAction(FlowTab.Music, FlowTab.Music, selectedTab = FlowTab.Music, searchIsTab = true))
+    }
+
+    @Test
+    fun theHighlightedTabOnAPageInsideItGoesBackToItsFirstScreen() {
+        assertEquals(TabTap.POP_TO_ROOT, tabTapAction(FlowTab.Home, currentTab = null, selectedTab = FlowTab.Home, searchIsTab = false))
+        assertEquals(TabTap.SWITCH, tabTapAction(FlowTab.Music, currentTab = null, selectedTab = FlowTab.Home, searchIsTab = false))
+    }
+
+    @Test
+    fun anotherTabSwitches() {
+        assertEquals(TabTap.SWITCH, tabTapAction(FlowTab.Music, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false))
+    }
 }
