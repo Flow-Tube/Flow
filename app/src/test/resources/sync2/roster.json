@@ -1272,6 +1272,127 @@
       "error": "roster-signer"
     },
     {
+      "name": "meta-not-base64url",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "rename",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "meta": {
+          "d8576f2de42861ceb8030cc722b4c669": "not base64url!"
+        },
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "Oy_ES7SHj8WtQi7X9DBtHhlHwlcDXH4Zl3TeYHF7W8LEvyeM1LgM4hqWojmpPLRwDreup7E50LeuHelIc3mBAg"
+        }
+      },
+      "error": "roster-format"
+    },
+    {
+      "name": "meta-padded",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "rename",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "meta": {
+          "d8576f2de42861ceb8030cc722b4c669": "AAAA="
+        },
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "A0yJXEP4W-s1DKyRE-w3twbCDU07lQrjX6hnWQQF0Ux0Vak_E1KoogScOuYrbANxlGcd4NaXwcELltT17M6zDg"
+        }
+      },
+      "error": "roster-format"
+    },
+    {
+      "name": "meta-non-ascii",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "rename",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "meta": {
+          "d8576f2de42861ceb8030cc722b4c669": "€"
+        },
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "FgMXNPkt1kLdC1kzQtr9WRQ4HsDNikKp5hi89bd2lRAaSWw4FxyOjc66iPjrdLU7bf2bwFCjHNi3hwqnQD76Dw"
+        }
+      },
+      "error": "roster-format"
+    },
+    {
+      "name": "meta-trailing-newline",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "rename",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "meta": {
+          "d8576f2de42861ceb8030cc722b4c669": "AAAA\n"
+        },
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "FjJSzA0T1ikYvmRHTzh8oVInlW6ARylrSvt5aKgKf0SC5uN4bpTQw6DDCP_JLBX2JduxKm6XITaReSx5WKV0Dw"
+        }
+      },
+      "error": "roster-format"
+    },
+    {
+      "name": "meta-empty-value",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "rename",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "meta": {
+          "d8576f2de42861ceb8030cc722b4c669": ""
+        },
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "YEhIf6kYQQNiLfthHfmlrXoox0wBRm8WfBK62GuYcwYPOVH4zmQ9YpImzcLqhmIPrcykF1fVx465WCnRWgCkAg"
+        }
+      },
+      "error": "roster-format"
+    },
+    {
+      "name": "empty-meta",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "add",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "add": [
+          {
+            "did": "addf195306ed8f3c4d02642d8b6ebd6a",
+            "sig": "Pv9XrxPpjXsHr8QrMZKgC1ZO9Q2cOgBPCr7P22C3MWY",
+            "kem": "bmiQy52XcNEUqT_nj29df8adxbK84jlUCWdacit50FA",
+            "role": "device"
+          }
+        ],
+        "meta": {},
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "22GvNL1vzwVik9qHks7bM5-o6RTNCUrmI6MS3eBQ7vMiHsa4mwPSmbBSiNJnXb03bgrjWE4WZ0IKFEidW6tdAg",
+          "addf195306ed8f3c4d02642d8b6ebd6a": "TqDWI5AItI_yB_WFdVk_J01UThgsJb1iRXANB_HF4rlhcPgTazrXsrZC9Nqq5CyyBHftw2FOVI9gFVpwzbwsBw"
+        }
+      },
+      "error": "roster-format"
+    },
+    {
       "name": "leave-by-non-member",
       "base": 7,
       "entry": {
@@ -1755,6 +1876,180 @@
     }
   ],
   "replacements": [
+    {
+      "name": "meta-with-trailing-bits",
+      "steps": [
+        {
+          "v": 2,
+          "group": "669a44456c08e4a12e4ceb3538860317",
+          "seq": 9,
+          "prev": "18eb362b0fb928a0f35b684a8cbfae6f0073cfcd3ba0c5c6dbd7af74343f3224",
+          "op": "rename",
+          "signer": "d8576f2de42861ceb8030cc722b4c669",
+          "meta": {
+            "d8576f2de42861ceb8030cc722b4c669": "AB"
+          },
+          "sigs": {
+            "d8576f2de42861ceb8030cc722b4c669": "xGqhs0OS1uBZ2EhSpa5oBLl_RG_r6LmK6VyHg4TnFfknqGgHzaL9hhwQ2YBj_LkYIiuM99Zo4PK4eoAHHXFsAQ"
+          }
+        }
+      ],
+      "state": {
+        "seq": 9,
+        "head": "4c0ef6ca2e835eafc55b3a446a7e49f61b9506eb2125557ad3c0a4456ea4e1c2",
+        "epoch": 4,
+        "rotate": false,
+        "recoveryDue": false,
+        "members": [
+          {
+            "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+            "role": "recovery",
+            "used": false,
+            "installer": "addf195306ed8f3c4d02642d8b6ebd6a"
+          },
+          {
+            "did": "addf195306ed8f3c4d02642d8b6ebd6a",
+            "role": "device",
+            "used": false
+          },
+          {
+            "did": "d8576f2de42861ceb8030cc722b4c669",
+            "role": "device",
+            "used": false
+          }
+        ],
+        "senders": [
+          {
+            "did": "1edce5f29fbda5bba7ada194b0a578c6",
+            "role": "device",
+            "since": 3,
+            "until": 3,
+            "cut": {
+              "seq": 1,
+              "hash": "301bf18e9cce13b93870928117aecd06ff793354402b03810bff6476e123865b"
+            }
+          },
+          {
+            "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+            "role": "recovery",
+            "since": 3
+          },
+          {
+            "did": "894e311b2b2058e3bcc2ef3bde8ec864",
+            "role": "device",
+            "since": 0,
+            "until": 0,
+            "cut": {
+              "seq": 2,
+              "hash": "4d4573758bd47b198e4305475ff362af7b9806c157caff61d657837e94134ffe"
+            }
+          },
+          {
+            "did": "ab6095990ebaaf36d4c49e86fc3a65c3",
+            "role": "recovery",
+            "since": 0,
+            "until": 2
+          },
+          {
+            "did": "addf195306ed8f3c4d02642d8b6ebd6a",
+            "role": "device",
+            "since": 2
+          },
+          {
+            "did": "d8576f2de42861ceb8030cc722b4c669",
+            "role": "device",
+            "since": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "meta-of-an-undecodable-length",
+      "steps": [
+        {
+          "v": 2,
+          "group": "669a44456c08e4a12e4ceb3538860317",
+          "seq": 9,
+          "prev": "18eb362b0fb928a0f35b684a8cbfae6f0073cfcd3ba0c5c6dbd7af74343f3224",
+          "op": "rename",
+          "signer": "d8576f2de42861ceb8030cc722b4c669",
+          "meta": {
+            "d8576f2de42861ceb8030cc722b4c669": "A"
+          },
+          "sigs": {
+            "d8576f2de42861ceb8030cc722b4c669": "NxJy_7T86gFZOHmdKkciYUdz-3lQ6GRdD1dJfaYFwGecpOjUW3WuOHDt0bAT9y-akYYvwvdfThEppJ5KFlNpAw"
+          }
+        }
+      ],
+      "state": {
+        "seq": 9,
+        "head": "7993b447f137be0f54e3ec108d0c21beb5687584e9ec626993c2834906048e35",
+        "epoch": 4,
+        "rotate": false,
+        "recoveryDue": false,
+        "members": [
+          {
+            "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+            "role": "recovery",
+            "used": false,
+            "installer": "addf195306ed8f3c4d02642d8b6ebd6a"
+          },
+          {
+            "did": "addf195306ed8f3c4d02642d8b6ebd6a",
+            "role": "device",
+            "used": false
+          },
+          {
+            "did": "d8576f2de42861ceb8030cc722b4c669",
+            "role": "device",
+            "used": false
+          }
+        ],
+        "senders": [
+          {
+            "did": "1edce5f29fbda5bba7ada194b0a578c6",
+            "role": "device",
+            "since": 3,
+            "until": 3,
+            "cut": {
+              "seq": 1,
+              "hash": "301bf18e9cce13b93870928117aecd06ff793354402b03810bff6476e123865b"
+            }
+          },
+          {
+            "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+            "role": "recovery",
+            "since": 3
+          },
+          {
+            "did": "894e311b2b2058e3bcc2ef3bde8ec864",
+            "role": "device",
+            "since": 0,
+            "until": 0,
+            "cut": {
+              "seq": 2,
+              "hash": "4d4573758bd47b198e4305475ff362af7b9806c157caff61d657837e94134ffe"
+            }
+          },
+          {
+            "did": "ab6095990ebaaf36d4c49e86fc3a65c3",
+            "role": "recovery",
+            "since": 0,
+            "until": 2
+          },
+          {
+            "did": "addf195306ed8f3c4d02642d8b6ebd6a",
+            "role": "device",
+            "since": 2
+          },
+          {
+            "did": "d8576f2de42861ceb8030cc722b4c669",
+            "role": "device",
+            "since": 0
+          }
+        ]
+      }
+    },
     {
       "name": "removing-the-device-that-set-the-key-replaces-it",
       "steps": [
