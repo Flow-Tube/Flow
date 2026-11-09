@@ -146,4 +146,12 @@ class NavigationDestinationsTest {
     fun anotherTabSwitches() {
         assertEquals(TabTap.SWITCH, tabTapAction(FlowTab.Music, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false))
     }
+
+    @Test
+    fun everySearchPageIsTheSearchTab() {
+        assertEquals(
+            FlowTab.Search,
+            flowTabForDestination(io.github.aedev.flow.ui.screens.search.SEARCH_ROUTE_PATTERN, shortsSourceArg = null),
+        )
+    }
 }

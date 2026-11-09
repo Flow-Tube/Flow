@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.SearchFilter
 import io.github.aedev.flow.data.local.availableWith
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Playlist
@@ -60,6 +61,7 @@ fun SearchScreen(
     onShortsQueue: (ShortsQueueSource) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNewSearch: ((String, SearchFilter) -> Unit)? = null,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -72,7 +74,7 @@ fun SearchScreen(
     OnTabReselected(FlowTab.Search.route) { gridState.animateScrollToItem(0) }
     var showFilters by rememberSaveable { mutableStateOf(false) }
 
-    val submitWith = rememberSearchSubmitter(viewModel, state, quickActions)
+    val submitWith = rememberSearchSubmitter(viewModel, state, quickActions, onNewSearch)
     val submit: (String) -> Unit = { raw -> submitWith(raw, uiState.filters) }
 
     val voiceSearchLauncher =

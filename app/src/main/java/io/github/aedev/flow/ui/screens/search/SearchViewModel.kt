@@ -3,6 +3,7 @@
 package io.github.aedev.flow.ui.screens.search
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -64,6 +65,7 @@ class SearchViewModel
         private val watchHistoryDao: WatchHistoryDao,
         private val preferences: PlayerPreferences,
         private val privacyGate: PrivacyGate,
+        private val savedState: SavedStateHandle,
     ) : ViewModel() {
         // Signal each distinct submitted query once — typing and filter churn stay silent.
         private var lastSignaledQuery: String? = null
@@ -178,5 +180,23 @@ class SearchViewModel
 
         private fun onHeader(header: SearchHeader) {
             _uiState.update { it.copy(header = header) }
+        }
+
+        // A search page opened for a query runs it once; a recreated process shows it again without
+        // adding it to history a second time.
+        init {
+            savedState.get<String>(SEARCH_QUERY_ARG)?.takeIf(String::isNotBlank)?.let { query ->
+                val filters = searchFilterFromRouteArg(savedState.get<String>(SEARCH_FILTERS_ARG))
+                if (savedState.get<Boolean>(RAN_KEY) == true) {
+                    search(query, filters)
+                } else {
+                    submit(query, filters)
+                    savedState[RAN_KEY] = true
+                }
+            }
+        }
+
+        private companion object {
+            const val RAN_KEY = "search_ran"
         }
     }

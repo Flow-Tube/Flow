@@ -42,7 +42,13 @@ import io.github.aedev.flow.ui.screens.playlists.PlaylistsScreen
 import io.github.aedev.flow.ui.screens.recap.RecapRoutes
 import io.github.aedev.flow.ui.screens.recap.RecapScreen
 import io.github.aedev.flow.ui.screens.recap.story.RecapStoryScreen
+import io.github.aedev.flow.ui.screens.search.MAX_SEARCH_DEPTH
+import io.github.aedev.flow.ui.screens.search.SEARCH_DEPTH_ARG
+import io.github.aedev.flow.ui.screens.search.SEARCH_FILTERS_ARG
+import io.github.aedev.flow.ui.screens.search.SEARCH_QUERY_ARG
+import io.github.aedev.flow.ui.screens.search.SEARCH_ROUTE_PATTERN
 import io.github.aedev.flow.ui.screens.search.SearchScreen
+import io.github.aedev.flow.ui.screens.search.searchRoute
 import io.github.aedev.flow.ui.screens.settings.SettingsHost
 import io.github.aedev.flow.ui.screens.settings.rememberNewSettings
 import io.github.aedev.flow.ui.screens.shorts.ShortsScreen
@@ -248,10 +254,35 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable("search") {
+    composable(
+        route = SEARCH_ROUTE_PATTERN,
+        arguments =
+            listOf(
+                navArgument(SEARCH_QUERY_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(SEARCH_FILTERS_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(SEARCH_DEPTH_ARG) {
+                    type = NavType.IntType
+                    defaultValue = 1
+                },
+            ),
+    ) { entry ->
         currentRoute.value = "search"
+        val depth = entry.arguments?.getInt(SEARCH_DEPTH_ARG) ?: 1
         // Search owns the whole screen, the way YouTube's does.
         SearchScreen(
+            onNewSearch = { query, filters ->
+                navController.navigate(searchRoute(query, filters, minOf(depth + 1, MAX_SEARCH_DEPTH))) {
+                    if (depth >= MAX_SEARCH_DEPTH) popUpTo(entry.destination.id) { inclusive = true }
+                }
+            },
             onVideoClick = { video ->
                 navController.openVideoOrShorts(video, disableShortsPlayer) { playerViewModel.playVideo(it) }
             },
