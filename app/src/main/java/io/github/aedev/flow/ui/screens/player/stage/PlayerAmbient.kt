@@ -12,12 +12,14 @@ import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
 /**
  * The player's ambient light: the one frame every surface reads, and whether the page around the
  * player glows. [glow] holds only while the sheet is at rest open and stays on through a collapse,
- * so the glow fades out with the page instead of vanishing under the finger.
+ * so the glow fades out with the page instead of vanishing under the finger. [immersive] lights
+ * the whole page instead of the band under the player.
  */
 @Immutable
 internal class PlayerAmbient(
     val frames: AmbientFrameHolder,
     val glow: Boolean,
+    val immersive: Boolean,
 )
 
 @Composable
@@ -35,7 +37,8 @@ internal fun rememberPlayerAmbient(
             !isInPipMode &&
             !isFullscreenShown &&
             layoutMode != PlayerLayoutMode.WIDE
-    return remember(frames, glow) { PlayerAmbient(frames, glow) }
+    val immersive = glow && prefs.ambientImmersiveEnabled
+    return remember(frames, glow, immersive) { PlayerAmbient(frames, glow, immersive) }
 }
 
 /** The glow behind the status bar, fading with the ground it covers as the sheet collapses. */

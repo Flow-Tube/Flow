@@ -18,6 +18,13 @@ internal sealed interface AmbientPageStyle {
         override val strip: AmbientGlowTone,
         val page: AmbientGlowTone,
     ) : AmbientPageStyle
+
+    /** [nearFraction]: how much of the page's height one player height takes, where the light keeps the picture's shapes. */
+    data class Immersive(
+        override val strip: AmbientGlowTone,
+        val page: AmbientGlowTone,
+        val nearFraction: Float,
+    ) : AmbientPageStyle
 }
 
 /** The light outside the player: [strip] behind the status bar and [page] below the video. */
@@ -37,9 +44,12 @@ internal class AmbientPageRenderer(
 ) {
     private val linear = ColorSpace.get(ColorSpace.Named.LINEAR_EXTENDED_SRGB)
     private val strips = Array(2) { halfFloatBitmap(gridWidth, 1) }
-    private val pages = Array(2) { halfFloatBitmap(gridWidth, GLOW_PAGE_ROWS) }
-    private val light = FloatArray(gridWidth * GLOW_PAGE_ROWS * 3)
-    private val halves = ShortArray(gridWidth * GLOW_PAGE_ROWS * 4)
+    private val glowPages by lazy { Array(2) { halfFloatBitmap(gridWidth, GLOW_PAGE_ROWS) } }
+    private val immersivePages by lazy { Array(2) { halfFloatBitmap(gridWidth, IMMERSIVE_ROWS) } }
+    private val rows = maxOf(GLOW_PAGE_ROWS, IMMERSIVE_ROWS)
+    private val light = FloatArray(gridWidth * rows * 3)
+    private val halves = ShortArray(gridWidth * rows * 4)
+    private val columns = FloatArray(gridWidth * 3)
     private var index = 0
 
     fun render(
@@ -49,10 +59,18 @@ internal class AmbientPageRenderer(
         index = index xor 1
         glowStripLight(grid, gridWidth, style.strip, light)
         val strip = upload(strips[index], gridWidth)
-        when (style) {
-            is AmbientPageStyle.Glow -> glowPageLight(grid, gridWidth, gridHeight, GLOW_PAGE_ROWS, style.page, light)
-        }
-        val page = upload(pages[index], gridWidth * GLOW_PAGE_ROWS)
+        val page =
+            when (style) {
+                is AmbientPageStyle.Glow -> {
+                    glowPageLight(grid, gridWidth, gridHeight, GLOW_PAGE_ROWS, style.page, light)
+                    upload(glowPages[index], gridWidth * GLOW_PAGE_ROWS)
+                }
+
+                is AmbientPageStyle.Immersive -> {
+                    pageLight(grid, gridWidth, gridHeight, IMMERSIVE_ROWS, style.nearFraction, style.page, light, columns)
+                    upload(immersivePages[index], gridWidth * IMMERSIVE_ROWS)
+                }
+            }
         return AmbientPageFrame(strip.asImageBitmap(), page.asImageBitmap())
     }
 
