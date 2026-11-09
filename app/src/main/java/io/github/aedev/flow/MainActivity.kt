@@ -21,6 +21,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.aedev.flow.applock.AppLock
+import io.github.aedev.flow.applock.hideFromRecentsWhenAsked
 import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.data.playlist.PlaylistTransfer
@@ -174,6 +175,7 @@ class MainActivity : ComponentActivity() {
                 links.openVideo(it)
             }
         }
+        hideFromRecentsWhenAsked(appLock)
 
         // Snapshot lives in the process, not the activity: onUserLeaveHint/onStop read it
         // synchronously and must still see it after a recreation they run inside of (#817).

@@ -1,8 +1,10 @@
 package io.github.aedev.flow.ui.screens.settings.security
 
+import android.os.Build
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +55,8 @@ internal fun SecurityScreen(
     val enabled = settings?.enabled == true
     val delayMinutes = settings?.delayMinutes ?: DEFAULT_APP_LOCK_DELAY_MINUTES
     val lockSummary = if (deviceSecure) null else stringResource(R.string.app_lock_needs_screen_lock)
+    val recentsSummary =
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) stringResource(R.string.app_lock_hide_in_recents_summary_secure) else null
 
     SettingsPage(
         title = stringResource(R.string.settings_security_title),
@@ -79,6 +83,13 @@ internal fun SecurityScreen(
                 choice(SecurityIndex.lockAfter, onClick = { choosingDelay = true }, icon = Icons.Outlined.Timer) {
                     delayLabel(delayMinutes)
                 }
+                switch(
+                    SecurityIndex.hideInRecents,
+                    checked = settings?.hideInRecents == true,
+                    onCheckedChange = viewModel::setHideInRecents,
+                    summary = recentsSummary,
+                    icon = Icons.Outlined.VisibilityOff,
+                )
             }
         }
     }

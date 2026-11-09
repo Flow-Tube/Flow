@@ -4891,6 +4891,9 @@
         <item quantity="one">After %1$d minute</item>
         <item quantity="other">After %1$d minutes</item>
     </plurals>
+    <string name="app_lock_hide_in_recents_title">Hide in recent apps</string>
+    <string name="app_lock_hide_in_recents_summary">Shows a blank preview in recent apps</string>
+    <string name="app_lock_hide_in_recents_summary_secure">Shows a blank preview in recent apps and blocks screenshots</string>
     <string name="app_lock_prompt_title">Unlock Flow</string>
     <string name="app_lock_screen_title">Flow is locked</string>
     <string name="app_lock_screen_body">Use your fingerprint, face or screen lock to open it</string>

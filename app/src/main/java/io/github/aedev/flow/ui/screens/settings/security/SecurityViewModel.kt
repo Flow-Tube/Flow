@@ -22,4 +22,6 @@ class SecurityViewModel
         fun setEnabled(enabled: Boolean) = write { preferences.setAppLockEnabled(enabled) }
 
         fun setDelayMinutes(minutes: Int) = write { preferences.setAppLockDelayMinutes(minutes) }
+
+        fun setHideInRecents(hide: Boolean) = write { preferences.setAppLockHideInRecents(hide) }
     }

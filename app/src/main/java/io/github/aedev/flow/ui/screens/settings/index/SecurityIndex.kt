@@ -24,6 +24,13 @@ internal object SecurityIndex {
 
     val appLock = entry("app_lock", R.string.app_lock_title, R.string.app_lock_summary)
     val lockAfter = entry("lock_after", R.string.app_lock_after_title, R.string.app_lock_after_description, revealVia = "security.app_lock")
+    val hideInRecents =
+        entry(
+            "hide_in_recents",
+            R.string.app_lock_hide_in_recents_title,
+            R.string.app_lock_hide_in_recents_summary,
+            revealVia = "security.app_lock",
+        )
 
-    val all = listOf(appLock, lockAfter)
+    val all = listOf(appLock, lockAfter, hideInRecents)
 }
