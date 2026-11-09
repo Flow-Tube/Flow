@@ -211,7 +211,7 @@ fun MediaPlaybackControls(
             onClick = {
                 lastClicked = PlaybackButtonType.PLAY_PAUSE
                 clickTrigger++
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 onPlayPauseToggle()
             },
             onPressedChange = { isPressed = it },

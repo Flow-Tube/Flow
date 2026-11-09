@@ -1045,6 +1045,50 @@
       "error": "roster-key"
     },
     {
+      "name": "mixed-order-key",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "add",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "add": [
+          {
+            "did": "6897b8ae78f4e31d1857d19cc710c530",
+            "sig": "jqX8f1GFi-6NFSK350izBUek5RJFkLDXyejOqc-iwTE",
+            "kem": "bmiQy52XcNEUqT_nj29df8adxbK84jlUCWdacit50FA",
+            "role": "device"
+          }
+        ],
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "cfc7J2MoV9mkD0eXBIVG07Y5h3cljavwUlhPdc20aYIkQVTXwXf_4t5RxAnqiHOhRoth5B9fAA7jsYGO1-q-AQ",
+          "6897b8ae78f4e31d1857d19cc710c530": "qZHjkrOraxl-bCPXtzYu8YoM1gBFAOjiP7_vmHEci1-Dv22zfElOC_Cpjf_ID7A_hrNJ3pLnzyZy73SYoURIDQ"
+        }
+      },
+      "error": "roster-key"
+    },
+    {
+      "name": "small-order-r",
+      "base": 1,
+      "entry": {
+        "v": 2,
+        "group": "669a44456c08e4a12e4ceb3538860317",
+        "seq": 1,
+        "prev": "c2d714b286d2cc8b4f11911a6024e65e916302ec7a0c1ecbef9db9bdcac76143",
+        "op": "rename",
+        "signer": "d8576f2de42861ceb8030cc722b4c669",
+        "meta": {
+          "d8576f2de42861ceb8030cc722b4c669": "AA"
+        },
+        "sigs": {
+          "d8576f2de42861ceb8030cc722b4c669": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAlGb6FsDbfEQIixXdF8sVRpJW52nc-MG7Xb6LA8ugCw"
+        }
+      },
+      "error": "roster-signature"
+    },
+    {
       "name": "readd-removed-device",
       "base": 4,
       "entry": {

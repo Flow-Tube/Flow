@@ -3174,7 +3174,7 @@
     <string name="linked_cancel">Ləğv et</string>
     <string name="linked_remove">Sil</string>
     <string name="linked_remove_title">%1$s silinsin?</string>
-    <string name="linked_remove_body">O, dərhal yeni heç nə qəbul etməyi dayandırır. Artıq malik olduğu şeylər onda qalır. Bu cihazın hələ qəbul etmədiyi onun etdiyi dəyişikliklər çatmaya bilər.</string>
+    <string name="linked_remove_body">O, dərhal yeni məlumat qəbul etməyi dayandırır. Artıq malik olduğu şeylər onda qalır. Bu cihazın hələ qəbul etmədiyi onun etdiyi dəyişikliklər çatmaya bilər.</string>
     <string name="linked_add_device">Cihaz əlavə et</string>
     <string name="linked_scan_this_code">Bu kodu skan et</string>
     <string name="linked_scan_this_code_body">Digər cihazda Əlaqələndirilmiş cihazları açın və bu kodu skan edin. Əgər digər cihaz serverə qoşula bilmirsə, hər iki cihazı eyni şəbəkədə saxlayın.</string>
@@ -3347,7 +3347,7 @@
     <string name="diagnostics_reset_session_confirm_title">YouTube sessiyası sıfırlansın?</string>
     <string name="diagnostics_reset_session_confirm_body">Flow yeni oynatma identikliyi yaradacaq. Videolar bir dəqiqədən sonra dayanarsa və ya oynamazsa bunu sınayın.\n\nOynatma bir-iki dəqiqə ərzində sərt ola bilər. Saxlanılan məlumatlarınız təsirlənmir.</string>
     <string name="diagnostics_reset_session_done">YouTube sessiyası sıfırlandı. Yenidən cəhd etmək üçün videonu yenidən açın.</string>
-    <string name="diagnostics_profiles_section">Profillər (hata ayıklama)</string>
+    <string name="diagnostics_profiles_section">Profillər (sazlama)</string>
     <string name="diagnostics_profiles_footer">Yalnız sazlanma qurulumları. Keçid tətbiqi yenidən başladır.</string>
     <string name="diagnostics_profile_running">İstifadədədir</string>
     <string name="diagnostics_profile_switch">Bu profilə keç</string>
@@ -4025,7 +4025,7 @@
     <string name="diagnostics_no_home_snapshot">Əvvəlcə qeyd aktiv olaraq Əsas səhifəni açın</string>
     <string name="diagnostics_snapshot_exported">Anlıq görüntü ixrac edildi</string>
     <string name="diagnostics_snapshot_export_failed">Anlıq görüntünü ixrac etmək mümkün olmadı</string>
-    <string name="settings_keywords_diagnostics">qeydlər, qəza, səhv hesabatı, hata ayıklama, dəstək, logcat</string>
+    <string name="settings_keywords_diagnostics">qeydlər, qəza, səhv hesabatı, sazlama, dəstək, logcat</string>
     <string name="settings_keywords_about">versiya, lisenziya, açıq mənbə, github, reddit, əlaqə, dəyişikliklər tarixi</string>
     <string name="settings_changelog_version">Versiya %1$s</string>
     <string name="settings_changelog_installed">Quraşdırılıb</string>
@@ -4713,4 +4713,8 @@
     <string name="settings_keywords_cache">keş ölçüsü, keş limiti, media keşi, yaddaş, disk sahəsi</string>
     <string name="settings_watch_time_average_and_week">Gündəlik orta %1$s · bu həftə %2$s</string>
     <string name="session_lyric_repeated">%1$s (x%2$d)</string>
+    <string name="linked_restore_choose_title">Hələ də hansı cihazlar sizinkidir?</string>
+    <string name="linked_restore_choose_body">Bərpa zamanı işarələnməyən hər bir cihazdan hesabı çıxarır. Yalnız yanınızda olan cihazı işarələyin, sadəcə adı düzgün görünür deyə deyil. Hələ də işlək bir cihazınız varsa, geri qayıdın və bunu həmin cihazdan əlaqələndirin.</string>
+    <string name="linked_restore_unknown_device">Naməlum cihaz (%1$s)</string>
+    <string name="linked_error_restore_unfinished">Bərpa hələ bitməyib. Flow onu növbəti sinxronizasiyada qurtaracaq.</string>
 </resources>

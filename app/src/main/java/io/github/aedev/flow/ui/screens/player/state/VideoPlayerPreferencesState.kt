@@ -32,7 +32,6 @@ internal class VideoPlayerPreferencesState(
     val seekSwipeGesturesEnabled: Boolean,
     val allowVolumeBoost: Boolean,
     val gestureOverlayStyle: GestureOverlayStyle,
-    val hapticsEnabled: Boolean,
     val sbSubmitEnabled: Boolean,
     val sbSkipNoticeEnabled: Boolean,
     val sbSkipButtonStyle: SponsorBlockSkipButtonStyle,
@@ -72,7 +71,6 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val allowVolumeBoost by playerPreferences.allowVolumeBoost.collectAsState(initial = false)
     val gestureOverlayStyle by
         playerPreferences.gestureOverlayStyle.collectAsState(initial = GestureOverlayStyle.CIRCULAR)
-    val hapticsEnabled by playerPreferences.playerHapticsEnabled.collectAsState(initial = true)
     val sbSubmitEnabled by playerPreferences.sbSubmitEnabled.collectAsState(initial = false)
     val sbSkipNoticeEnabled by playerPreferences.sbSkipNoticeEnabled.collectAsState(initial = true)
     val sbSkipButtonStyle by playerPreferences.sbSkipButtonStyle.collectAsState(initial = SponsorBlockSkipButtonStyle.FULL)
@@ -111,7 +109,6 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         seekSwipeGesturesEnabled = seekSwipeGesturesEnabled,
         allowVolumeBoost = allowVolumeBoost,
         gestureOverlayStyle = gestureOverlayStyle,
-        hapticsEnabled = hapticsEnabled,
         sbSubmitEnabled = sbSubmitEnabled,
         sbSkipNoticeEnabled = sbSkipNoticeEnabled,
         sbSkipButtonStyle = sbSkipButtonStyle,
