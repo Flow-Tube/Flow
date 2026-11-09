@@ -86,7 +86,7 @@ class SimpMusicLyrics(
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "SimpMusic fetch failed", e)
+                Log.w(TAG, "SimpMusic fetch failed: ${e.message}")
                 Result.failure(e)
             }
         }

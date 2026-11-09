@@ -13,6 +13,7 @@ class PaxsenixLyricsProvider(
     client: OkHttpClient,
 ) : LyricsProvider {
     override val name = "Paxsenix"
+    override val restsAfterTimeout = true
 
     private val paxsenix = Paxsenix(client)
 
@@ -24,9 +25,8 @@ class PaxsenixLyricsProvider(
         album: String?,
     ): Result<List<LyricsEntry>> =
         withContext(Dispatchers.IO) {
-            runCatching {
-                val lrc = paxsenix.getLyrics(title, LyricsMatching.cleanArtist(artist), duration, album).getOrThrow()
-                LyricsUtils.parseLyrics(lrc)
-            }
+            paxsenix
+                .getLyrics(title, LyricsMatching.cleanArtist(artist), duration, album)
+                .mapCatching { LyricsUtils.parseLyrics(it) }
         }
 }
