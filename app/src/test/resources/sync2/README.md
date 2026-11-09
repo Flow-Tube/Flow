@@ -10,7 +10,7 @@ All byte strings are lowercase hex, except inside roster entries, which use the 
 | `derive.json` | `Derive` and `Hash` ([crypto.md](../crypto.md#labelled-derivation)) |
 | `ed25519.json` | Strict verification: valid, tampered, wrong key, non-canonical `S`, small-order key; every small-order encoding of `R`, canonical or not; `R` and keys with a small-order part under either equation; the [ed25519-speccheck](https://github.com/novifinancial/ed25519-speccheck) set; the eight small-order encodings (`weakKeys`), non-canonical key encodings (`nonCanonicalKeys`) and keys with a small-order part (`mixedOrderKeys`), none of which may enter a roster |
 | `box.json` | Box seal and open with fixed salts; tampered ciphertext, tag, commitment and salt, wrong key, wrong AAD, truncation |
-| `payload.json` | PADMÉ sizes; payload decoding; bad length, non-zero padding, corrupt gzip |
+| `payload.json` | PADMÉ sizes; payload decoding, including another encoder's header bytes and a stored block; bad length, non-zero padding, corrupt gzip, more than one member, a bad or short trailer, any header flag, an empty body, bytes around the member |
 | `keys.json` | Member ids, epoch commitment, purpose keys, HPKE wrap with a fixed ephemeral key, wrong-epoch and wrong-member unwraps, history chain, wrap and chain paths |
 | `recovery.json` | Recovery secret, 24 words and derived keys; words with a bad checksum, 23 words, and a valid 12-word phrase |
 | `envelope.json` | Log objects of each type, including a store login, opened in stream order, a live message, a snapshot blob; truncation, magic, suite, group, unknown sender, signature, tampering, replay, gap, a log read from the middle, wrong `prev`, swapped epoch, `seq` above 2<sup>53</sup> − 1, blob hash |
