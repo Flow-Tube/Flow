@@ -197,6 +197,7 @@ internal fun VideoStage(
                         0f
                     },
                 ambientMode = prefs.ambientModeEnabled && !isMinimized && !localIsInPipMode,
+                ambientFrames = session.ambientFrames,
             )
             if (expandedSurfacesMounted && !localIsInPipMode) {
                 Media3SubtitleOverlay(

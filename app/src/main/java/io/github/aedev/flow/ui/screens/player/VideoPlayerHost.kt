@@ -26,6 +26,7 @@ import io.github.aedev.flow.ui.components.layout.flowWindowAdaptiveInfo
 import io.github.aedev.flow.ui.components.videoplayer.DraggablePlayerLayout
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerSheetValue
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameHolder
 import io.github.aedev.flow.ui.components.videoplayer.isImmersivePlayer
 import io.github.aedev.flow.ui.screens.player.effects.*
 import io.github.aedev.flow.ui.screens.player.stage.*
@@ -442,6 +443,7 @@ fun VideoPlayerHost(
             audioSystemInfo = audioSystemInfo,
             pipPreferences = pipPreferences,
             isFullscreenShown = fullscreenShown,
+            ambientFrames = remember { AmbientFrameHolder() },
         )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {

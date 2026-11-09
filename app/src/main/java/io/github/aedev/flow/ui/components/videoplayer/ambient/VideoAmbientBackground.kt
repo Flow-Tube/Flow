@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,16 @@ data class AmbientFrameState(
     val supported: Boolean = true,
 )
 
+/**
+ * The latest frame of one player, shared by every surface that draws it, so the player's bars and
+ * the page around it read one capture instead of starting a second loop on the same surface.
+ */
+@Stable
+class AmbientFrameHolder {
+    var state by mutableStateOf(AmbientFrameState())
+        internal set
+}
+
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun rememberAmbientFrame(
@@ -47,13 +58,28 @@ fun rememberAmbientFrame(
         EnhancedPlayerManager.getInstance().getPlayer()?.isPlaying == true
     },
 ): AmbientFrameState {
-    var state by remember { mutableStateOf(AmbientFrameState()) }
+    val holder = remember { AmbientFrameHolder() }
+    AmbientFrameCaptureEffect(playerView, active, holder, isPlayingProvider)
+    return holder.state
+}
+
+/** Runs the capture for [playerView] while [active] and publishes each frame into [holder]. */
+@androidx.annotation.OptIn(UnstableApi::class)
+@Composable
+fun AmbientFrameCaptureEffect(
+    playerView: PlayerView,
+    active: Boolean,
+    holder: AmbientFrameHolder,
+    isPlayingProvider: () -> Boolean = {
+        EnhancedPlayerManager.getInstance().getPlayer()?.isPlaying == true
+    },
+) {
     val currentIsPlayingProvider by rememberUpdatedState(isPlayingProvider)
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(active, playerView, lifecycleOwner) {
+    LaunchedEffect(active, playerView, lifecycleOwner, holder) {
         if (!active) {
-            state = AmbientFrameState()
+            holder.state = AmbientFrameState()
             return@LaunchedEffect
         }
         // Gated on STARTED. Background audio keeps the composition alive and the player playing, so
@@ -69,12 +95,10 @@ fun rememberAmbientFrame(
                 // buffers need no synchronisation — the heavy work inside each hops to Default
                 // and is joined before anything is published.
                 launch { pipeline.runCapture(playerView, currentIsPlayingProvider) }
-                launch { pipeline.runSmoothing { state = it } }
+                launch { pipeline.runSmoothing { holder.state = it } }
             }
         }
     }
-
-    return state
 }
 
 private const val AMBIENT_EDGE_ALPHA = 0.82f
