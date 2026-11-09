@@ -67,6 +67,7 @@ fun NavGraphBuilder.flowAppGraph(
     onMusicStarted: () -> Unit = {},
     openDownloads: () -> Unit = {},
     searchExitTab: () -> FlowTab = { FlowTab.Home },
+    searchIsTab: () -> Boolean = { false },
 ) {
     // =============================================
     // ONBOARDING (First-time user experience)
@@ -95,7 +96,8 @@ fun NavGraphBuilder.flowAppGraph(
                 navController.openShortsOrPlayer(source, disableShortsPlayer)
             },
             onSearchClick = {
-                navController.navigate("search")
+                // With a Search tab in the bar, the icon opens that tab, so Search keeps its state like any other tab.
+                if (searchIsTab()) navController.navigateToTab(FlowTab.Search, defaultStartRoute) else navController.navigate("search")
             },
             onOpenSettings = { target -> navController.navigate("settings?target=${target.encode()}") },
             onNavigateToHistory = {

@@ -421,11 +421,19 @@ fun FlowApp(
             tabs = navigationTabs,
             selectedTab = selectedTab,
             onTabSelected = { tab ->
-                if (currentTab == tab) {
+                val action =
+                    tabTapAction(
+                        tab,
+                        currentTab,
+                        selectedTab,
+                        searchIsTab = FlowTab.Search in currentNavigationTabs,
+                        startTab = defaultTab,
+                    )
+                if (action == TabTap.SCROLL_TO_TOP) {
                     TabScrollEventBus.emitScrollToTop(tab.route)
                 } else {
                     currentRoute.value = tab.route
-                    navController.navigateToTab(tab, defaultStartRoute)
+                    navController.tapTab(action, tab, selectedTab, defaultStartRoute)
                 }
             },
             barVisible = showBottomNav,
@@ -516,6 +524,7 @@ fun FlowApp(
                                             onMusicStarted = onMusicStarted,
                                             openDownloads = openDownloads,
                                             searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
+                                            searchIsTab = { FlowTab.Search in currentNavigationTabs },
                                         )
                                     }
                                 }
