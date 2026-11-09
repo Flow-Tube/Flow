@@ -11,6 +11,7 @@ import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Slideshow
 import androidx.compose.material.icons.outlined.UnfoldLess
+import androidx.compose.material.icons.outlined.WebAsset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +38,7 @@ internal fun NavigationBarScreen(
     val shortsContent by viewModel.shortsContent.collectAsStateWithLifecycle()
     val hideOnScroll by viewModel.hideNavOnScroll.collectAsStateWithLifecycle()
     val searchShowsBar by viewModel.searchShowsNavBar.collectAsStateWithLifecycle()
+    val innerPagesShowBar by viewModel.innerPagesShowNavBar.collectAsStateWithLifecycle()
     val order by viewModel.navTabOrder.collectAsStateWithLifecycle()
     val defaultIndex by viewModel.defaultNavTabIndex.collectAsStateWithLifecycle()
 
@@ -66,6 +68,12 @@ internal fun NavigationBarScreen(
             switch(NavigationBarIndex.downloads, visibility.downloads, viewModel::setDownloadsTab, icon = Icons.Outlined.Download)
             switch(NavigationBarIndex.hideOnScroll, hideOnScroll, viewModel::setHideNavOnScroll, icon = Icons.Outlined.UnfoldLess)
             switch(NavigationBarIndex.showOnSearch, searchShowsBar, viewModel::setSearchShowsNavBar, icon = Icons.Outlined.CallToAction)
+            switch(
+                NavigationBarIndex.showOnOtherPages,
+                innerPagesShowBar,
+                viewModel::setInnerPagesShowNavBar,
+                icon = Icons.Outlined.WebAsset,
+            )
         }
         group(
             key = NavigationBarIndex.order.key,

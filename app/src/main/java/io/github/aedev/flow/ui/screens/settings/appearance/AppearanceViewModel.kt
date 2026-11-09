@@ -71,6 +71,7 @@ class AppearanceViewModel
                 .asState(NavigationVisibility())
         val hideNavOnScroll = preferences.bottomNavHideOnScroll.asState(true)
         val searchShowsNavBar = preferences.searchShowsNavBar.asState(false)
+        val innerPagesShowNavBar = preferences.innerPagesShowNavBar.asState(false)
         val navTabOrder = preferences.navTabOrder.asState(DEFAULT_NAV_TAB_ORDER)
         val defaultNavTabIndex = preferences.defaultNavTabIndex.asState(0)
 
@@ -140,6 +141,8 @@ class AppearanceViewModel
         fun setHideNavOnScroll(enabled: Boolean) = write { preferences.setBottomNavHideOnScroll(enabled) }
 
         fun setSearchShowsNavBar(enabled: Boolean) = write { preferences.setSearchShowsNavBar(enabled) }
+
+        fun setInnerPagesShowNavBar(enabled: Boolean) = write { preferences.setInnerPagesShowNavBar(enabled) }
 
         fun setNavTabOrder(order: List<Int>) = write { preferences.setNavTabOrder(order) }
 
