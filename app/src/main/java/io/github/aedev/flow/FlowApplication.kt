@@ -26,6 +26,7 @@ import io.github.aedev.flow.network.VpnStateMonitor
 import io.github.aedev.flow.notification.AutoBackupWorker
 import io.github.aedev.flow.notification.BackgroundCheckScheduler
 import io.github.aedev.flow.notification.BreakReminderTimer
+import io.github.aedev.flow.notification.DailyLimitGuard
 import io.github.aedev.flow.notification.NotificationHelper
 import io.github.aedev.flow.player.PlaybackShutdown
 import io.github.aedev.flow.player.SleepTimerManager
@@ -102,6 +103,9 @@ class FlowApplication :
     lateinit var breakReminderTimer: BreakReminderTimer
 
     @Inject
+    lateinit var dailyLimitGuard: DailyLimitGuard
+
+    @Inject
     lateinit var linkedProfiles: dagger.Lazy<LinkedProfiles>
 
     @Inject
@@ -127,6 +131,7 @@ class FlowApplication :
         appContext = applicationContext
         linkedForeground.install()
         breakReminderTimer.install()
+        dailyLimitGuard.install()
         YouTube.cacheDirectory = cacheDir.resolve("innertube_http_cache")
 
         DiscordPresenceRuntime.initialize(this, okHttpClient)
