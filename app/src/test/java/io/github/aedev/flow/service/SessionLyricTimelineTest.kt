@@ -240,10 +240,10 @@ class SessionLyricTimelineTest {
 
     @Test
     fun `a line sung too fast to read in parts stays whole`() {
-        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(1_000L, "Next")), 0L)
+        val timeline = timeline(listOf(LyricsEntry(0L, longLine), LyricsEntry(2_900L, "Next")), 0L)
 
         assertThat(timeline.lineAt(0L)).isEqualTo(longLine)
-        assertThat(timeline.nextChangeAfter(0L)).isEqualTo(1_000L)
+        assertThat(timeline.nextChangeAfter(0L)).isEqualTo(2_900L)
     }
 
     @Test
@@ -251,13 +251,16 @@ class SessionLyricTimelineTest {
         val text = "Live vicariously through me, write my life like it's a movie, like it's a movie"
         val timeline = timeline(listOf(LyricsEntry(0L, text), LyricsEntry(10_000L, "Next")), 0L)
         val parts = mutableListOf(timeline.lineAt(0L)!!)
+        val starts = mutableListOf(0L)
         var at = timeline.nextChangeAfter(0L)!!
         while (at < 10_000L) {
             parts += timeline.lineAt(at)!!
+            starts += at
             at = timeline.nextChangeAfter(at)!!
         }
 
         assertThat(parts.size).isGreaterThan(2)
+        starts.zipWithNext { start, next -> assertThat(next - start).isAtLeast(1_500L) }
         assertThat(parts.joinToString(" ")).isEqualTo(text)
         parts.forEach { assertThat(it.length).isAtMost(24) }
     }
