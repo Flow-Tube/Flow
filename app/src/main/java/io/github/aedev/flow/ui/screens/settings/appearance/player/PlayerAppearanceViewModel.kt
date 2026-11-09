@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance.player
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aedev.flow.data.local.DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
@@ -48,6 +49,7 @@ class PlayerAppearanceViewModel
         val groupedQualitySelector = preferences.groupedQualitySelectorEnabled.asState(false)
         val paidPromotionLabel = preferences.paidPromotionLabel.asState(false)
         val gestureOverlay = preferences.gestureOverlayStyle.asState(GestureOverlayStyle.CIRCULAR)
+        val fullscreenSidePanelWidth = preferences.fullscreenSidePanelWidth.asState(FullscreenSidePanelWidth.DEFAULT)
         val shortsUiMode = preferences.shortsPlayerUiMode.asState(ShortsPlayerUiMode.DEFAULT)
         val miniPlayerScale = preferences.miniPlayerScale.asState(MiniPlayerSize.NORMAL.scale)
         val miniPlayerSkip = preferences.miniPlayerShowSkipControls.asState(false)
@@ -100,6 +102,8 @@ class PlayerAppearanceViewModel
         fun setPaidPromotionLabel(value: Boolean) = write { preferences.setPaidPromotionLabel(value) }
 
         fun setGestureOverlay(value: GestureOverlayStyle) = write { preferences.setGestureOverlayStyle(value) }
+
+        fun setFullscreenSidePanelWidth(value: FullscreenSidePanelWidth) = write { preferences.setFullscreenSidePanelWidth(value) }
 
         fun setShortsUiMode(value: ShortsPlayerUiMode) = write { preferences.setShortsPlayerUiMode(value) }
 

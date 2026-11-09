@@ -12,6 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
 import io.github.aedev.flow.data.local.MAX_FULLSCREEN_SEEKBAR_PADDING_DP
@@ -124,6 +125,7 @@ internal fun PlayerAppearanceScreen(
             ),
             FlowToggleOption(MusicPlainControlColors.APP_THEME, stringResource(R.string.player_appearance_plain_control_colors_app)),
         )
+    val sidePanelOptions = FullscreenSidePanelWidth.entries.map { FlowToggleOption(it, stringResource(sidePanelWidthLabel(it))) }
     val miniPlayerOptions = MiniPlayerSize.entries.map { FlowToggleOption(it, stringResource(miniPlayerSizeLabel(it))) }
     val portraitSummary = stringResource(R.string.player_fullscreen_seekbar_width_subtitle, portraitPadding)
     val fullscreenSummary = stringResource(R.string.player_fullscreen_seekbar_width_subtitle, fullscreenPadding)
@@ -212,6 +214,12 @@ internal fun PlayerAppearanceScreen(
             switch(PlayerAppearanceIndex.groupedQuality, groupedQuality, viewModel::setGroupedQualitySelector)
             switch(PlayerAppearanceIndex.paidPromotion, paidPromotion, viewModel::setPaidPromotionLabel)
             nav(PlayerAppearanceIndex.gestureOverlay, value = gestureLabel, onClick = { sheet = PreviewSheet.GESTURE })
+            toggleGroup(
+                PlayerAppearanceIndex.sidePanelWidth,
+                sidePanelOptions,
+                viewModel.fullscreenSidePanelWidth,
+                viewModel::setFullscreenSidePanelWidth,
+            )
         }
         group(key = "player_appearance.shorts", header = R.string.content_settings_header_shorts) {
             toggleGroup(PlayerAppearanceIndex.shortsUi, shortsOptions, shortsUi, viewModel::setShortsUiMode)

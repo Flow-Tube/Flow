@@ -494,6 +494,7 @@ class PlayerPreferences(
         val PORTRAIT_IDLE_PROGRESS_BAR = device(stringPreferencesKey("portrait_idle_progress_bar"))
         val FULLSCREEN_SEEKBAR_PADDING_MODE = device(stringPreferencesKey("fullscreen_seekbar_padding_mode"))
         val FULLSCREEN_SEEKBAR_CUSTOM_PADDING_DP = device(intPreferencesKey("fullscreen_seekbar_custom_padding_dp"))
+        val FULLSCREEN_SIDE_PANEL_WIDTH = device(stringPreferencesKey("fullscreen_side_panel_width"))
         val FRAME_STEP_BUTTONS_ENABLED = device(booleanPreferencesKey("frame_step_buttons_enabled"))
 
         // Mini Player Customizations
@@ -2288,6 +2289,20 @@ class PlayerPreferences(
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.FULLSCREEN_SEEKBAR_CUSTOM_PADDING_DP] =
                 paddingDp.coerceIn(0, MAX_FULLSCREEN_SEEKBAR_PADDING_DP)
+        }
+    }
+
+    val fullscreenSidePanelWidth: Flow<FullscreenSidePanelWidth> =
+        context.devicePreferencesDataStore.data
+            .map { preferences ->
+                preferences[DeviceKeys.FULLSCREEN_SIDE_PANEL_WIDTH]
+                    ?.let { stored -> runCatching { FullscreenSidePanelWidth.valueOf(stored) }.getOrNull() }
+                    ?: FullscreenSidePanelWidth.DEFAULT
+            }
+
+    suspend fun setFullscreenSidePanelWidth(width: FullscreenSidePanelWidth) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.FULLSCREEN_SIDE_PANEL_WIDTH] = width.name
         }
     }
 
@@ -4675,6 +4690,16 @@ enum class SpeedSwipeSide {
 /** How much one step of a speed swipe changes the speed by. */
 val SPEED_SWIPE_STEPS = listOf(0.05f, 0.1f, 0.25f)
 const val DEFAULT_SPEED_SWIPE_STEP = 0.1f
+
+/** How much of a landscape fullscreen player the side panel takes, as a share of the window width. */
+enum class FullscreenSidePanelWidth(
+    val fraction: Float,
+) {
+    NARROW(0.25f),
+    SMALL(0.33f),
+    DEFAULT(0.42f),
+    WIDE(0.5f),
+}
 
 /**
  * How much of the player's width each double-tap seek side takes. [reachesEdges] lets taps count right

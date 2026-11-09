@@ -166,6 +166,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_appearance_gesture_overlay_subtitle,
             R.string.settings_section_video_player,
         )
+    val sidePanelWidth =
+        entry(
+            "side_panel_width",
+            R.string.player_side_panel_width_title,
+            R.string.player_side_panel_width_summary,
+            R.string.settings_section_video_player,
+        )
     val shortsUi =
         entry(
             "shorts_ui",
@@ -220,6 +227,7 @@ internal object PlayerAppearanceIndex {
             groupedQuality,
             paidPromotion,
             gestureOverlay,
+            sidePanelWidth,
             shortsUi,
             miniPlayerSize,
             miniPlayerSkip,

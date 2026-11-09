@@ -465,6 +465,7 @@ fun VideoPlayerHost(
                 canUseFullscreenSidePanel = canUseFullscreenSidePanel,
                 maxWidth = maxWidth,
                 maxHeight = maxHeight,
+                widthPreset = prefs.fullscreenSidePanelWidth,
                 scope = scope,
             )
 
