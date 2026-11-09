@@ -11,6 +11,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
 import java.io.IOException
+import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -33,11 +34,14 @@ class WsClient(
             val client =
                 baseClient
                     .newBuilder()
+                    .proxy(Proxy.NO_PROXY) // These connections stay on the local network.
                     .callTimeout(0, TimeUnit.MILLISECONDS)
                     .readTimeout(0, TimeUnit.MILLISECONDS)
                     .writeTimeout(15, TimeUnit.SECONDS)
                     .connectTimeout(4, TimeUnit.SECONDS) // AP-isolation / firewall → fail fast
                     .pingInterval(20, TimeUnit.SECONDS)
+                    .followRedirects(false)
+                    .followSslRedirects(false)
                     .apply { if (limited) addInterceptor(MessageLimit(maxMessage)) }
                     .build()
             val incoming = Channel<ByteArray>(if (limited) QUEUED_MESSAGES else Channel.UNLIMITED)

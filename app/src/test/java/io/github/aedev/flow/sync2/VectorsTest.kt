@@ -131,7 +131,7 @@ class VectorsTest {
             val valid = verify(c["publicKey"].bytes, c["message"].bytes, c["signature"].bytes)
             assertEquals(c["name"].text, c["valid"].jsonPrimitive.boolean, valid)
         }
-        for (key in v["weakKeys"].items + v["nonCanonicalKeys"].items) {
+        for (key in v["weakKeys"].items + v["nonCanonicalKeys"].items + v["mixedOrderKeys"].items) {
             assertFalse(key.text, isValidSigningKey(key.bytes))
         }
     }

@@ -29,22 +29,27 @@ fun encodePayload(content: ByteArray): ByteArray {
     return payload.copyOf(paddedSize(payload.size))
 }
 
-fun decodePayload(payload: ByteArray): ByteArray {
+/** The content of [payload], failing as soon as it inflates past [limit] bytes. */
+fun decodePayload(
+    payload: ByteArray,
+    limit: Int = MAX_INFLATED,
+): ByteArray {
     if (payload.size < 4) reject(ProtocolError.PAYLOAD)
     val length = ByteBuffer.wrap(payload, 0, 4).int
     if (length < 0 || length > payload.size - 4) reject(ProtocolError.PAYLOAD)
     if ((4 + length until payload.size).any { payload[it] != 0.toByte() }) reject(ProtocolError.PAYLOAD)
-    return inflate(payload, 4, length)
+    return inflate(payload, 4, length, limit)
 }
 
 /**
- * The one gzip member at [start], [length] bytes long (spec/crypto.md, Payload). No library reads gzip this strictly,
- * so the fixed header and trailer are read here; inflating and the CRC stay in the library.
+ * The one gzip member at [start], [length] bytes long (spec/crypto.md, Payload), failing past [limit] bytes. No library
+ * reads gzip this strictly, so the fixed header and trailer are read here; inflating and the CRC stay in the library.
  */
 private fun inflate(
     payload: ByteArray,
     start: Int,
     length: Int,
+    limit: Int,
 ): ByteArray {
     if (length < GZIP_HEADER + GZIP_TRAILER) reject(ProtocolError.PAYLOAD)
     if (GZIP_START.indices.any { payload[start + it] != GZIP_START[it] }) reject(ProtocolError.PAYLOAD)
@@ -61,6 +66,7 @@ private fun inflate(
             crc.update(buffer, 0, read)
             out.write(buffer, 0, read)
             if (out.size() > MAX_INFLATED) reject(ProtocolError.PAYLOAD)
+            if (out.size() > limit) reject(ProtocolError.LENGTH)
         }
         if (inflater.remaining != GZIP_TRAILER) reject(ProtocolError.PAYLOAD)
         val trailer = ByteBuffer.wrap(payload, start + length - GZIP_TRAILER, GZIP_TRAILER).order(ByteOrder.LITTLE_ENDIAN)

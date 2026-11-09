@@ -212,7 +212,11 @@ class LanSync
                 val session = open()
                 val lanKey = purposeKey(session.currentKey(), session.group, session.state.epoch, Purpose.LAN)
                 // Outside the socket's scope: closing a link cancels that scope, and the session still has to be noted.
-                val server = WsServer(SESSION_PATH, MAX_LAN_FRAME) { connection -> launch { accept(connection) } }
+                val greeter = LanGreeter { session() }
+                val server =
+                    WsServer(SESSION_PATH, MAX_LAN_FRAME) { connection ->
+                        if (greeter.takes(connection)) launch { accept(connection, greeter) }
+                    }
                 val discovery = LanDiscovery(context)
                 val name = "Flow-" + SyncBytes.toHex(SyncCrypto.randomBytes(2))
                 names += name
@@ -301,8 +305,11 @@ class LanSync
             }
 
         /** A member that dialed this one is remembered where its hello says it listens. */
-        private suspend fun accept(connection: SyncConnection) {
-            val link = meet(connection) ?: return
+        private suspend fun accept(
+            connection: SyncConnection,
+            greeter: LanGreeter,
+        ) {
+            val link = meet(connection, greeter) ?: return
             val host = connection.remoteHost
             val port = link.peerPort
             if (host != null && port != null) remember(link.peer, LocalNetworkAddress.urlHost(host), port)
@@ -318,9 +325,12 @@ class LanSync
         }
 
         /** One session with the member that dialed this device over [connection]. Returns the closed link when it got that far. */
-        private suspend fun meet(connection: SyncConnection): LanLink? =
+        private suspend fun meet(
+            connection: SyncConnection,
+            greeter: LanGreeter,
+        ): LanLink? =
             try {
-                session()?.let { session -> talk(acceptLink(connection, session), session, "LAN session accepted") }
+                greeter.greet(connection)?.let { (link, session) -> talk(link, session, "LAN session accepted") }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

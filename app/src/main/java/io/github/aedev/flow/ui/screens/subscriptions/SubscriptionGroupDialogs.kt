@@ -41,9 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -58,6 +56,7 @@ import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
 import io.github.aedev.flow.ui.components.shared.FlowSearchField
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
+import io.github.aedev.flow.ui.utils.flowWindowDpSize
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -149,8 +148,7 @@ private fun SubscriptionGroupsReorderList(
         return true
     }
 
-    val windowHeightPx = LocalWindowInfo.current.containerSize.height
-    val windowHeight = with(LocalDensity.current) { windowHeightPx.toDp() }
+    val windowHeight = flowWindowDpSize().height
     val moveUpLabel = stringResource(R.string.move_up)
     val moveDownLabel = stringResource(R.string.move_down)
     LazyColumn(

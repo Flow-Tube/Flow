@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.sync.linked
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -24,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,6 +34,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.sync2.device.WebDavLogin
+import io.github.aedev.flow.sync2.linking.RestoreDevice
 import io.github.aedev.flow.sync2.service.LinkedError
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncCard
@@ -74,6 +78,10 @@ internal fun LinkedSetup(
     onShowCode: () -> Unit,
     onRestore: (url: String, words: String) -> Unit,
     onRestoreFromWebDav: (url: String, user: String, password: String, words: String) -> Unit,
+    /** The group's devices once the words open it, while the user chooses which to keep. */
+    restoreDevices: List<RestoreDevice>?,
+    onConfirmRestore: (keep: Set<String>) -> Unit,
+    onCancelRestore: () -> Unit,
 ) {
     var setup by rememberSaveable { mutableStateOf(Setup.CHOOSE) }
     // A WebDAV login entered before scanning; kept in memory only, never in saved state.
@@ -84,6 +92,10 @@ internal fun LinkedSetup(
         SyncCard(containerColor = MaterialTheme.colorScheme.errorContainer) {
             Text(error.message(), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer)
         }
+    }
+    if (restoreDevices != null) {
+        RestoreChoice(restoreDevices, busy, onConfirmRestore, onCancelRestore)
+        return
     }
     when (setup) {
         Setup.CHOOSE -> {
@@ -145,7 +157,7 @@ internal fun LinkedSetup(
 
         Setup.CREATE_SERVER -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var token by rememberSaveable { mutableStateOf("") }
+            var token by remember { mutableStateOf("") }
             if (error == LinkedError.SERVER_HAS_GROUP) {
                 ServerHasGroup(busy, onJoin = { setup = join }, onReset = { onResetAndCreate(url, token) })
             } else {
@@ -208,7 +220,7 @@ internal fun LinkedSetup(
 
         Setup.JOIN_ADMIN -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var token by rememberSaveable { mutableStateOf("") }
+            var token by remember { mutableStateOf("") }
             SyncStepHeader(icon = Icons.Outlined.Dns, title = stringResource(R.string.linked_join_admin_title))
             ServerField(url) { url = it }
             AdminTokenField(token) { token = it }
@@ -233,7 +245,7 @@ internal fun LinkedSetup(
 
         Setup.RESTORE_SERVER -> {
             var url by rememberSaveable { mutableStateOf("") }
-            var words by rememberSaveable { mutableStateOf("") }
+            var words by remember { mutableStateOf("") }
             SyncStepHeader(icon = Icons.Outlined.Key, title = stringResource(R.string.linked_restore_title))
             ServerField(url) { url = it }
             WordsField(words) { words = it }
@@ -247,7 +259,7 @@ internal fun LinkedSetup(
         }
 
         Setup.RESTORE_WEBDAV -> {
-            var words by rememberSaveable { mutableStateOf("") }
+            var words by remember { mutableStateOf("") }
             WebDavForm(
                 busy,
                 stringResource(
@@ -263,6 +275,38 @@ internal fun LinkedSetup(
             }
         }
     }
+}
+
+/** Which of the group's [devices] the user still has; a restore signs out the rest, so none is ticked to begin with. */
+@Composable
+private fun RestoreChoice(
+    devices: List<RestoreDevice>,
+    busy: Boolean,
+    onConfirm: (keep: Set<String>) -> Unit,
+    onBack: () -> Unit,
+) {
+    var keep by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    SyncStepHeader(
+        icon = Icons.Outlined.Key,
+        title = stringResource(R.string.linked_restore_choose_title),
+        body = stringResource(R.string.linked_restore_choose_body),
+    )
+    for (device in devices) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = device.did in keep,
+                onCheckedChange = { keep = if (it) keep + device.did else keep - device.did },
+            )
+            Text(device.name.ifEmpty { stringResource(R.string.linked_restore_unknown_device, device.did.take(8)) })
+        }
+    }
+    SyncActionRow(
+        confirmLabel = stringResource(R.string.linked_restore),
+        onConfirm = { onConfirm(keep.toSet()) },
+        confirmEnabled = !busy,
+        dismissLabel = stringResource(R.string.linked_back),
+        onDismiss = onBack,
+    )
 }
 
 /**

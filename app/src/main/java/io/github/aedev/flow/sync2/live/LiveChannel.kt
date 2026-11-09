@@ -66,10 +66,10 @@ class LiveChannel
             return { transports.update { it - transport } }
         }
 
-        /** Sends [message] to every reachable device; returns its counter, or null when this device isn't linked. */
+        /** Sends [message] to every reachable device; returns its counter, or null when this device isn't linked or a restore is unfinished. */
         suspend fun send(message: LiveMessage): Long? =
             lock.withLock {
-                val session = session() ?: return null
+                val session = session()?.takeUnless { it.removalPending } ?: return null
                 val seq = (db.live().counter(session.me) ?: 0) + 1
                 // Saved before it leaves, so a crash can't make a counter repeat.
                 db.live().setCounter(LiveCounterRow(session.me, seq))

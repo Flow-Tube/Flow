@@ -106,7 +106,7 @@ class BetterLyrics(
                         try {
                             TTMLParser.parseTTMLToLyricsEntries(ttml)
                         } catch (e: Exception) {
-                            Log.e(TAG, "TTML parse failed", e)
+                            Log.w(TAG, "TTML parse failed: ${e.message}")
                             emptyList()
                         }
 
@@ -118,7 +118,7 @@ class BetterLyrics(
                     Result.failure(Exception("Failed to parse BetterLyrics TTML"))
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "BetterLyrics fetch failed", e)
+                Log.w(TAG, "BetterLyrics fetch failed: ${e.message}")
                 Result.failure(e)
             }
         }
