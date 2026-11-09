@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var nowPlayingWidgetPublisher: dagger.Lazy<io.github.aedev.flow.widget.nowplaying.NowPlayingWidgetPublisher>
 
-    private val incomingIntents by lazy { IncomingIntents(this, links, playlistTransfer) }
+    private val incomingIntents by lazy { IncomingIntents(this, links, playlistTransfer, appLock) }
 
     private val splashController = SplashController(this)
 
@@ -167,8 +167,13 @@ class MainActivity : ComponentActivity() {
         // Player setup reads DataStore and opens the media cache index, so it runs off the main
         // thread and settles after the first frame instead of blocking onCreate.
         lifecycleScope.launch { GlobalPlayerState.initializeAsync(applicationContext) }
-        // A video another linked device handed over opens as a tapped link would.
-        lifecycleScope.launch { localPlayback.get().openVideo.collect { links.openVideo(it) } }
+        // A video another linked device handed over opens as a tapped link would, after any unlock.
+        lifecycleScope.launch {
+            localPlayback.get().openVideo.collectLatest {
+                appLock.awaitUnlocked()
+                links.openVideo(it)
+            }
+        }
 
         // Snapshot lives in the process, not the activity: onUserLeaveHint/onStop read it
         // synchronously and must still see it after a recreation they run inside of (#817).
@@ -190,7 +195,7 @@ class MainActivity : ComponentActivity() {
             nowPlayingWidgetPublisher.get().repairStalePlayback()
         }
 
-        incomingIntents.handle(intent, isRestoringState = savedInstanceState != null)
+        incomingIntents.handleWhenUnlocked(intent, isRestoringState = incomingIntents.isRestoring(savedInstanceState))
 
         // Read now, alongside the rest of startup, so the theme is usually known by the first composition.
         val storedTheme = MutableStateFlow<ThemeSettings?>(null)
@@ -250,7 +255,12 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        incomingIntents.handle(intent, isRestoringState = false)
+        incomingIntents.handleWhenUnlocked(intent, isRestoringState = false)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        incomingIntents.saveState(outState)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
