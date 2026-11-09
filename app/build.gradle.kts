@@ -310,6 +310,8 @@ dependencies {
     implementation(libs.androidx.material3.adaptive.navigation)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.biometric.compose)
 
     // --- Layouts ---
     implementation(libs.androidx.constraintlayout.compose)
