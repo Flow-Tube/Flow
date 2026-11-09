@@ -169,6 +169,8 @@
     <string name="lyrics_keep_screen_on_summary">While lyrics are showing and music plays</string>
     <string name="player_appearance_artwork_control_colors_title">Artwork colors on controls</string>
     <string name="player_appearance_artwork_control_colors_subtitle">Tint the buttons and seek bar from the cover</string>
+    <string name="player_appearance_video_artwork_colors_title">Colors from the thumbnail</string>
+    <string name="player_appearance_video_artwork_colors_subtitle">Tint description and comments</string>
     <string name="player_appearance_follow_light_theme_title">Light in light theme</string>
     <string name="player_appearance_follow_light_theme_subtitle">Artwork backgrounds turn light</string>
     <string name="player_appearance_sleep_timer_button_title">Sleep timer button</string>
