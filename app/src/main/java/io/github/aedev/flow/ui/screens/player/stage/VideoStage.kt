@@ -133,7 +133,7 @@ internal fun VideoStage(
                     },
                     onExitFullscreenDrag = { offsetPx -> screenState.exitDragOffsetY = offsetPx },
                     onMoreVideos =
-                        if (canUseFullscreenSidePanel) {
+                        if (canUseFullscreenSidePanel && prefs.moreVideosSwipeEnabled) {
                             {
                                 screenState.showControls = false
                                 screenState.open(PlayerSheet.MoreVideos)

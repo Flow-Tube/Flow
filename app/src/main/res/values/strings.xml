@@ -990,6 +990,8 @@
     <string name="player_appearance_volume_gesture_subtitle">Swipe the right edge in fullscreen to adjust volume</string>
     <string name="player_appearance_seek_gesture_title">Seek Gesture</string>
     <string name="player_appearance_seek_gesture_subtitle">Swipe sideways on the video to seek</string>
+    <string name="player_appearance_more_videos_gesture_title">Swipe up for more videos</string>
+    <string name="player_appearance_more_videos_gesture_subtitle">Swipe up in fullscreen to see related videos</string>
     <string name="player_appearance_controls_while_loading_title">Controls While Loading</string>
     <string name="player_appearance_controls_while_loading_subtitle">Show controls before the video finishes loading</string>
     <string name="player_appearance_long_press_speed_title">Long-press Playback Speed</string>

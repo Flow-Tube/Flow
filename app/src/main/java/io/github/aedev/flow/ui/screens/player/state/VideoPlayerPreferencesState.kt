@@ -30,6 +30,7 @@ internal class VideoPlayerPreferencesState(
     val rememberedBrightnessLevel: Float,
     val volumeSwipeGesturesEnabled: Boolean,
     val seekSwipeGesturesEnabled: Boolean,
+    val moreVideosSwipeEnabled: Boolean,
     val allowVolumeBoost: Boolean,
     val gestureOverlayStyle: GestureOverlayStyle,
     val sbSubmitEnabled: Boolean,
@@ -68,6 +69,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val rememberedBrightnessLevel by playerPreferences.rememberedBrightnessLevel.collectAsState(initial = -1f)
     val volumeSwipeGesturesEnabled by playerPreferences.volumeSwipeGesturesEnabled.collectAsState(initial = true)
     val seekSwipeGesturesEnabled by playerPreferences.seekSwipeGesturesEnabled.collectAsState(initial = true)
+    val moreVideosSwipeEnabled by playerPreferences.moreVideosSwipeEnabled.collectAsState(initial = true)
     val allowVolumeBoost by playerPreferences.allowVolumeBoost.collectAsState(initial = false)
     val gestureOverlayStyle by
         playerPreferences.gestureOverlayStyle.collectAsState(initial = GestureOverlayStyle.CIRCULAR)
@@ -107,6 +109,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         rememberedBrightnessLevel = rememberedBrightnessLevel,
         volumeSwipeGesturesEnabled = volumeSwipeGesturesEnabled,
         seekSwipeGesturesEnabled = seekSwipeGesturesEnabled,
+        moreVideosSwipeEnabled = moreVideosSwipeEnabled,
         allowVolumeBoost = allowVolumeBoost,
         gestureOverlayStyle = gestureOverlayStyle,
         sbSubmitEnabled = sbSubmitEnabled,
