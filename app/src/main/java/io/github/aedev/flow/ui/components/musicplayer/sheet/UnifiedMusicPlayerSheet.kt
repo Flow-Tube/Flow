@@ -451,6 +451,7 @@ internal fun UnifiedMusicPlayerSheet(
                             hideArtwork = appearance.hideArtwork,
                             sleepTimerButton = appearance.sleepTimerButton,
                             controlScheme = controlScheme,
+                            onLyricsShownChange = { state.isLyricsShown = it },
                         )
                     }
                 }
