@@ -221,6 +221,7 @@ internal fun SubscriptionsFeedContent(
                         onClick = { onVideoClick(video) },
                         useInternalPadding = !feedLayout.cardsBleed,
                         thumbnailWidth = plan.listThumbnailWidth,
+                        density = plan.cardDensity,
                     )
                 }
             }

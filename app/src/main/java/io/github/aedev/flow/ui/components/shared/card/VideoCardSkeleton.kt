@@ -31,23 +31,25 @@ fun VideoCardSkeleton(
     layout: VideoCardLayout = VideoCardLayout.Stacked,
     useInternalPadding: Boolean = true,
     thumbnailWidth: Dp = VideoCardDefaults.RowThumbnailWidth,
+    density: VideoCardDensity = VideoCardDensity.Regular,
 ) {
     when (layout) {
-        VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, modifier)
-        VideoCardLayout.Row -> RowSkeleton(thumbnailWidth, modifier)
+        VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, density.inset, modifier)
+        VideoCardLayout.Row -> RowSkeleton(thumbnailWidth, density.inset, modifier)
     }
 }
 
 @Composable
 private fun StackedSkeleton(
     useInternalPadding: Boolean,
+    inset: Dp,
     modifier: Modifier,
 ) {
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .then(if (useInternalPadding) Modifier.padding(horizontal = VideoCardDefaults.Inset) else Modifier),
+                .then(if (useInternalPadding) Modifier.padding(horizontal = inset) else Modifier),
     ) {
         ShimmerBone(
             modifier = Modifier.fillMaxWidth().aspectRatio(MediaThumbnailDefaults.VideoAspectRatio),
@@ -66,13 +68,19 @@ private fun StackedSkeleton(
 @Composable
 private fun RowSkeleton(
     thumbnailWidth: Dp,
+    inset: Dp,
     modifier: Modifier,
 ) {
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(horizontal = VideoCardDefaults.Inset, vertical = VideoCardDefaults.RowVerticalPadding),
+                .padding(
+                    start = inset,
+                    end = VideoCardDefaults.Inset,
+                    top = VideoCardDefaults.RowVerticalPadding,
+                    bottom = VideoCardDefaults.RowVerticalPadding,
+                ),
         horizontalArrangement = Arrangement.spacedBy(VideoCardDefaults.Inset),
     ) {
         ShimmerBone(

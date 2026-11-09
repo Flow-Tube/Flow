@@ -27,7 +27,6 @@ import io.github.aedev.flow.ui.components.shared.FeedPagingFooter
 import io.github.aedev.flow.ui.components.shared.MediaShortCard
 import io.github.aedev.flow.ui.components.shared.ShortCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.dismissKeyboardOnPress
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
@@ -86,6 +85,7 @@ fun SearchResults(
                         layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
                         onClick = { actions.onVideoClick(item.video) },
                         thumbnailWidth = plan.listThumbnailWidth,
+                        density = plan.cardDensity,
                     )
                 }
 
@@ -108,7 +108,7 @@ fun SearchResults(
                         playlist = item.playlist,
                         onClick = { actions.onPlaylistClick(item.playlist) },
                         layout = if (plan.isListCard(index)) PlaylistCardLayout.LIST else PlaylistCardLayout.SHELF,
-                        modifier = if (plan.isListCard(index)) Modifier else Modifier.padding(horizontal = VideoCardDefaults.Inset),
+                        modifier = if (plan.isListCard(index)) Modifier else Modifier.padding(horizontal = plan.cardInset),
                     )
                 }
 

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +27,7 @@ internal fun VideoCardStacked(
     onClick: () -> Unit,
     showChannel: Boolean,
     useInternalPadding: Boolean,
+    density: VideoCardDensity,
     reason: String?,
     whyShown: String?,
     modifier: Modifier = Modifier,
@@ -41,7 +41,7 @@ internal fun VideoCardStacked(
             modifier
                 .fillMaxWidth()
                 .videoCardClickable(state, onClick)
-                .then(if (useInternalPadding) Modifier.padding(horizontal = VideoCardDefaults.Inset) else Modifier),
+                .then(if (useInternalPadding) Modifier.padding(horizontal = density.inset) else Modifier),
     ) {
         VideoCardThumbnail(
             state = state,
