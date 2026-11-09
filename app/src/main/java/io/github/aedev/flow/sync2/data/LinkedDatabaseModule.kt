@@ -2,6 +2,8 @@ package io.github.aedev.flow.sync2.data
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.SQLiteConnection
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,7 +23,12 @@ object LinkedDatabaseModule {
     @Singleton
     fun provideLinkedDatabase(
         @ApplicationContext context: Context,
-    ): LinkedDatabase = Room.databaseBuilder(context, LinkedDatabase::class.java, "linked_devices").build()
+    ): LinkedDatabase =
+        Room
+            .databaseBuilder(context, LinkedDatabase::class.java, "linked_devices")
+            .fallbackToDestructiveMigrationOnDowngrade(true)
+            .addCallback(ForgetHeldOnReset(store(context)))
+            .build()
 
     @Provides
     @Singleton
@@ -38,4 +45,16 @@ object LinkedDatabaseModule {
     ): KeptBatches = KeptBatches(File(store(context), "kept"), db.profiles())
 
     private fun store(context: Context) = ProfileFiles.file(context, StoreScope.DEVICE, "linked_store")
+}
+
+/**
+ * An older build that finds a newer schema starts the database empty (#1854). Linking again makes fresh
+ * keys, so only what the device held of its old group has to go with it.
+ */
+internal class ForgetHeldOnReset(
+    private val root: File,
+) : RoomDatabase.Callback() {
+    override fun onDestructiveMigration(connection: SQLiteConnection) {
+        root.deleteRecursively()
+    }
 }

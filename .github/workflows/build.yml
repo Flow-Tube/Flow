@@ -228,6 +228,7 @@ jobs:
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: >
           ./gradlew :app:assembleGithubNightly :app:assembleFossRelease
+          ${{ github.event_name == 'pull_request' && '-Pflow.prBuild=true' || '' }}
           --build-cache --stacktrace
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
