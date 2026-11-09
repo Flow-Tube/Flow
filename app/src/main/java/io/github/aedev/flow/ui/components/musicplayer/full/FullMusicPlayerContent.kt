@@ -138,7 +138,12 @@ internal fun FullMusicPlayerContent(
         // A song swapped for its video keeps the song's related list rather than fetching another.
         viewModel.fetchRelatedContent(videoSwitch.listenId(track.videoId))
         // [track] comes from the manager a frame late, so a different song here only means a newer one was chosen.
-        if (EnhancedMusicPlayerManager.currentTrack.value?.videoId == track.videoId) viewModel.ensureLyricsLoaded(track)
+        if (EnhancedMusicPlayerManager.currentTrack.value?.videoId == track.videoId) viewModel.warmLyrics(track)
+    }
+
+    DisposableEffect(isPlayerSheetExpanded) {
+        viewModel.setPlayerOpen(isPlayerSheetExpanded)
+        onDispose { viewModel.setPlayerOpen(false) }
     }
 
     if (isPlayerSheetExpanded) {

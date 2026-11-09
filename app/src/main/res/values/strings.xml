@@ -159,6 +159,9 @@
     <string name="lyrics_on_lock_screen_timing_summary">Move lines earlier if they feel late</string>
     <string name="lyrics_sponsorblock_timing">Fit lyrics to music videos</string>
     <string name="lyrics_sponsorblock_timing_summary">Uses SponsorBlock to skip parts with no music</string>
+    <string name="lyrics_on_demand">Load lyrics only when opened</string>
+    <string name="lyrics_on_demand_summary">Looks them up when you open the player or its lyrics</string>
+    <string name="settings_keywords_lyrics_on_demand">privacy, network, background, data</string>
     <string name="lyrics_timing_on_time">No change</string>
     <string name="lyrics_timing_earlier">%1$s s earlier</string>
     <string name="lyrics_timing_later">%1$s s later</string>
@@ -933,7 +936,7 @@
     <string name="player_appearance_hide_music_artwork_title">Hide music player artwork</string>
     <string name="player_appearance_hide_music_artwork_subtitle">Show the app icon on the extracted artwork color instead</string>
     <string name="player_appearance_haptics_title">Vibration</string>
-    <string name="player_appearance_haptics_subtitle">Vibrate lightly on player taps and gestures</string>
+    <string name="player_appearance_haptics_subtitle">Vibrate lightly on taps and gestures</string>
     <string name="player_appearance_gesture_overlay_title">Gesture overlay style</string>
     <string name="player_appearance_gesture_overlay_subtitle">How volume and brightness show while you swipe</string>
     <string name="gesture_overlay_style_circular">Circular</string>
@@ -1064,6 +1067,17 @@
     <string name="lyrics_provider_amll_desc">Word sync · community lyrics</string>
     <string name="lyrics_provider_youtube_captions_desc">Line sync · the video\'s captions</string>
     <string name="lyrics_provider_youtube_music_desc">Line sync · the Lyrics tab</string>
+    <string name="lyrics_provider_better_lyrics_hosts" translatable="false">lyrics-api.boidu.dev</string>
+    <string name="lyrics_provider_lrc_red_hosts" translatable="false">lrc.red</string>
+    <string name="lyrics_provider_lyrics_plus_hosts" translatable="false">lyricsplus.binimum.org</string>
+    <string name="lyrics_provider_simpmusic_hosts" translatable="false">api-lyrics.simpmusic.org</string>
+    <string name="lyrics_provider_kugou_hosts" translatable="false">mobileservice.kugou.com, lyrics.kugou.com</string>
+    <string name="lyrics_provider_paxsenix_hosts" translatable="false">lyrics.paxsenix.org, itunes.apple.com, amp-api.music.apple.com, beta.music.apple.com</string>
+    <string name="lyrics_provider_lrclib_hosts" translatable="false">lrclib.net</string>
+    <string name="lyrics_provider_unison_hosts" translatable="false">unison.boidu.dev</string>
+    <string name="lyrics_provider_netease_hosts" translatable="false">music.163.com</string>
+    <string name="lyrics_provider_amll_hosts" translatable="false">api.amll.dev</string>
+    <string name="lyrics_provider_youtube_hosts" translatable="false">music.youtube.com</string>
     <!-- Theme Names & Descriptions -->
     <string name="theme_name_system_default">System Default</string>
     <string name="theme_desc_system_default">Follows your device between light and dark.</string>
@@ -4161,6 +4175,7 @@
     <string name="settings_keywords_captions">subtitles, cc, closed captions</string>
     <string name="settings_keywords_next_prev">skip, previous video, next video, double tap</string>
     <string name="settings_keywords_gestures">swipe, double tap, touch</string>
+    <string name="settings_keywords_haptics">haptics, haptic feedback, vibrate, touch</string>
     <string name="settings_keywords_tilt_fullscreen">rotate, rotation lock, auto-rotate, landscape, sideways</string>
     <string name="settings_speed_preset_hint">e.g. 1.35</string>
     <string name="settings_speed_preset_add">Add preset</string>

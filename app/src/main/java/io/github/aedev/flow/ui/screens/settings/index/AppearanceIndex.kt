@@ -125,6 +125,15 @@ internal object AppearanceIndex {
             section = R.string.settings_section_style,
             destination = page,
         )
+    val haptics =
+        SettingEntry(
+            key = "appearance.haptics",
+            title = R.string.player_appearance_haptics_title,
+            summary = R.string.player_appearance_haptics_subtitle,
+            keywords = R.string.settings_keywords_haptics,
+            section = R.string.settings_section_style,
+            destination = page,
+        )
     val highlightNewSettings =
         SettingEntry(
             key = "appearance.highlight_new_settings",
@@ -148,6 +157,7 @@ internal object AppearanceIndex {
             interfaceMode,
             skeletonGradient,
             marquee,
+            haptics,
             highlightNewSettings,
             highlightNewSettingsDays,
             homeViewMode,

@@ -325,7 +325,7 @@ internal fun QueueHeader(
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             FilledTonalIconButton(
                 onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                     onShuffleQueue()
                 },
                 modifier = Modifier.size(width = 52.dp, height = 42.dp),

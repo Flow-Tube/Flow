@@ -11,6 +11,7 @@ import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.TextRotationNone
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -159,6 +160,7 @@ internal fun AppearanceScreen(
                 viewModel::setMarqueeEnabled,
                 icon = Icons.Outlined.TextRotationNone,
             )
+            switch(AppearanceIndex.haptics, viewModel.haptics, viewModel::setHaptics, icon = Icons.Outlined.Vibration)
             switch(
                 AppearanceIndex.highlightNewSettings,
                 viewModel.newSettingsHighlight,

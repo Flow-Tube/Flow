@@ -185,13 +185,13 @@ class MusicPlayerViewModel
                     track?.let {
                         if (!isLocalMediaId(it.videoId)) {
                             checkIfFavorite(it.videoId)
-                            fetchLyrics(it.videoId, it.artist, it.title, it.duration, it.album)
+                            lyrics.onSongChanged(it)
                             fetchRelatedContent(it.videoId)
                         } else {
                             favoriteJob?.cancel()
                             _uiState.update { state -> state.copy(isLiked = false) }
                             EnhancedMusicPlayerManager.setLiked(false)
-                            fetchLyrics(it.videoId, it.artist, it.title, it.duration, it.album)
+                            lyrics.onSongChanged(it)
                         }
                     }
                 }
@@ -568,15 +568,11 @@ class MusicPlayerViewModel
 
         fun downloadTrack(track: MusicTrack? = null) = trackActions.downloadTrack(track)
 
-        fun fetchLyrics(
-            videoId: String,
-            artist: String,
-            title: String,
-            duration: Int? = null,
-            album: String? = null,
-        ) = lyrics.fetch(videoId, artist, title, duration, album)
-
         fun ensureLyricsLoaded(track: MusicTrack) = lyrics.ensureLoaded(track)
+
+        fun warmLyrics(track: MusicTrack) = lyrics.warm(track)
+
+        fun setPlayerOpen(open: Boolean) = lyrics.setPlayerOpen(open)
 
         fun refreshLyrics() = lyrics.refresh()
 
