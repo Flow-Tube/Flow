@@ -149,6 +149,9 @@ fun b64(
         .getOrNull()
         ?.takeIf { it.size == size && SyncBytes.b64urlEncode(it) == value }
 
+/** A `meta` value, which is opaque past this: trailing bits and length stay unchecked, so it isn't decoded here (spec/protocol.md, Roster). */
+private val META_VALUE = Regex("[A-Za-z0-9_-]+")
+
 /** The largest integer every implementation reads exactly. */
 private const val MAX_SEQ = (1L shl 53) - 1
 
@@ -194,7 +197,11 @@ private fun wellFormed(entry: Entry): Boolean {
             } ?: true
         ) &&
         (entry.epoch?.let { it.n >= 0 && b64(it.kc, 32) != null && dids(it.to) } ?: true) &&
-        (entry.meta?.all { (did, sealed) -> isHex(did, 16) && sealed.isNotEmpty() } ?: true) &&
+        (
+            entry.meta?.let { meta ->
+                meta.isNotEmpty() && meta.all { (did, sealed) -> isHex(did, 16) && META_VALUE.matches(sealed) }
+            } ?: true
+        ) &&
         entry.sigs.all { (did, signature) -> isHex(did, 16) && b64(signature, 64) != null }
 }
 
