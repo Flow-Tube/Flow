@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.SupportingPaneScaffold
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
@@ -25,6 +24,7 @@ import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
+import io.github.aedev.flow.ui.components.layout.flowWindowAdaptiveInfo
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueueDock
 import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueueDockDefaults
@@ -130,7 +130,7 @@ internal fun EnhancedVideoPlayerScreen(
             // so the video row above the main pane and the scaffold's main pane keep one width.
             val navigator =
                 rememberSupportingPaneScaffoldNavigator(
-                    scaffoldDirective = calculatePaneScaffoldDirective(currentWindowAdaptiveInfo()),
+                    scaffoldDirective = calculatePaneScaffoldDirective(flowWindowAdaptiveInfo()),
                 )
             SupportingPaneScaffold(
                 directive = navigator.scaffoldDirective,
