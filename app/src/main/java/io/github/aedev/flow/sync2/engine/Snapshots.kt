@@ -89,7 +89,7 @@ suspend fun Session.writeSnapshot(
 ) {
     if (state.recoveryDue) return
     val epoch = state.epoch
-    val key = purposeKey(currentKey(), group, epoch, ObjectType.SNAPSHOT.purpose)
+    val key = purposeKey(sealingKey(), group, epoch, ObjectType.SNAPSHOT.purpose)
     val parts =
         exported.flatMap { (collection, wire) ->
             chunks(wire.lines).map { lines ->

@@ -36,7 +36,7 @@ import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
-import io.github.aedev.flow.ui.screens.player.state.transcriptTrackUrl
+import io.github.aedev.flow.ui.screens.player.state.hasTranscriptTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -260,7 +260,7 @@ internal fun BoxScope.FullscreenSidePanel(
                 asSidePanel = true,
                 expandedHeight = panelState.panelHeight,
                 onDismiss = closeFullscreenSidePanel,
-                hasTranscriptTrack = transcriptTrackUrl(playerState, screenState) != null,
+                hasTranscriptTrack = hasTranscriptTrack(playerState),
                 onChaptersClick = { screenState.open(PlayerSheet.Chapters) },
                 onTranscriptClick = { screenState.open(PlayerSheet.Transcript) },
                 onChannelClick = onNavigateToChannel,

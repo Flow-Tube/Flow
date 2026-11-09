@@ -168,15 +168,15 @@ internal fun ShortsSettingsSheet(
                     ShortsSettingsMainPage(
                         settings = settings,
                         onWantMore = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                             sheetState.dismiss(onWantMore)
                         },
                         onNotInterested = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                             sheetState.dismiss(onNotInterested)
                         },
                         onBlockChannel = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                             sheetState.dismiss(onBlockChannel)
                         },
                         onDownload = { sheetState.dismiss(onDownload) },

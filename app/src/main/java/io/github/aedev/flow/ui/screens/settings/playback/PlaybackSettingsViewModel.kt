@@ -69,7 +69,6 @@ class PlaybackSettingsViewModel
         val speedSwipeSide = preferences.speedSwipeSide.asState(SpeedSwipeSide.OFF)
         val speedSwipeStep = preferences.speedSwipeStep.asState(DEFAULT_SPEED_SWIPE_STEP)
         val seekGesture = preferences.seekSwipeGesturesEnabled.asState(true)
-        val haptics = preferences.playerHapticsEnabled.asState(true)
         val controlsWhileLoading = preferences.showControlsWhileLoading.asState(overlay.showControlsWhileLoading)
 
         val castButton = preferences.overlayCastEnabled.asState(overlay.castEnabled)
@@ -134,6 +133,7 @@ class PlaybackSettingsViewModel
         val lyricsOnLockScreen = preferences.lyricsOnLockScreen.asState(false)
         val lyricsOnLockScreenDelayMs = preferences.lyricsOnLockScreenDelayMs.asState(0)
         val lyricsSponsorBlockTiming = preferences.lyricsSponsorBlockTiming.asState(false)
+        val lyricsOnDemand = preferences.lyricsOnDemand.asState(false)
         val normalizeVolume = preferences.videoVolumeNormalizationEnabled.asState(DEFAULT_VIDEO_VOLUME_NORMALIZATION)
         val lyricsProviders =
             combine(preferences.lyricsProviderOrder, preferences.allLyricsProviderEnabledStates()) { order, enabled ->
@@ -206,8 +206,6 @@ class PlaybackSettingsViewModel
         fun setVolumeBoost(value: Boolean) = write { preferences.setAllowVolumeBoost(value) }
 
         fun setSeekGesture(value: Boolean) = write { preferences.setSeekSwipeGesturesEnabled(value) }
-
-        fun setHaptics(value: Boolean) = write { preferences.setPlayerHapticsEnabled(value) }
 
         fun setControlsWhileLoading(value: Boolean) = write { preferences.setShowControlsWhileLoading(value) }
 
@@ -290,6 +288,8 @@ class PlaybackSettingsViewModel
         fun setLyricsOnLockScreenDelayMs(delayMs: Int) = write { preferences.setLyricsOnLockScreenDelayMs(delayMs) }
 
         fun setLyricsSponsorBlockTiming(value: Boolean) = write { preferences.setLyricsSponsorBlockTiming(value) }
+
+        fun setLyricsOnDemand(value: Boolean) = write { preferences.setLyricsOnDemand(value) }
 
         fun setNormalizeVolume(value: Boolean) = write { preferences.setVideoVolumeNormalizationEnabled(value) }
 

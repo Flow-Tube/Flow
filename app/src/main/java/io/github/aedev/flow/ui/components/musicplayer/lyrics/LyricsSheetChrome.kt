@@ -217,7 +217,7 @@ internal fun LyricsBottomBar(
                     .clip(RoundedCornerShape(playCorner))
                     .background(MaterialTheme.colorScheme.primary)
                     .clickable {
-                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
                         onTogglePlayPause()
                     },
             contentAlignment = Alignment.Center,

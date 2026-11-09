@@ -9,10 +9,14 @@ import com.google.gson.Gson
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.data.lyrics.LyricsMatching
 import io.github.aedev.flow.data.lyrics.LyricsNotFoundException
+import io.github.aedev.flow.data.lyrics.LyricsSourceBusyException
 import io.github.aedev.flow.data.lyrics.TTMLParser
 import io.github.aedev.flow.data.lyrics.paxsenix.models.AppleMusicSearchResponse
 import io.github.aedev.flow.data.lyrics.paxsenix.models.LyricsResponse
 import io.github.aedev.flow.data.lyrics.paxsenix.models.SearchResult
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
@@ -73,55 +77,79 @@ class Paxsenix(
         duration: Int,
         album: String? = null,
     ): Result<String> =
-        runCatching {
-            val cleanedTitle = cleanTitle(title)
-            val cleanedArtist = cleanArtist(artist)
-
-            val searchQueries =
-                buildList {
-                    add("$cleanedTitle $cleanedArtist")
-                    add(cleanedTitle)
-                    if (!album.isNullOrBlank()) add("$cleanedTitle $cleanedArtist $album")
-                }
-
-            var allResults: List<Pair<SearchResult, Double>> = emptyList()
-            var couldNotAsk = false
-
-            for (query in searchQueries) {
-                if (allResults.isEmpty()) {
-                    val searchResults = search(query) { couldNotAsk = true }
-                    if (searchResults.isNotEmpty()) {
-                        allResults = scoreAndFilterResults(searchResults, title, artist, duration)
-                    }
-                }
-            }
-
-            if (allResults.isEmpty()) {
-                throw if (couldNotAsk) IOException("Paxsenix search failed") else LyricsNotFoundException("No tracks found on Paxsenix")
-            }
-
-            var bestLyrics: String? = null
-            var bestQuality = 0
-
-            for ((result, _) in allResults.take(10)) {
-                val lrc = fetchLyricsForTrack(result.id) { couldNotAsk = true } ?: continue
-                if (lrc.isEmpty()) continue
-
-                val quality = getQuality(lrc)
-                if (quality > bestQuality) {
-                    bestQuality = quality
-                    bestLyrics = lrc
-                }
-                if (bestQuality == 3) break
-            }
-
-            bestLyrics ?: throw if (couldNotAsk) IOException("Paxsenix lyrics failed") else LyricsNotFoundException()
+        try {
+            Result.success(findLyrics(title, artist, duration, album))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
         }
+
+    private suspend fun findLyrics(
+        title: String,
+        artist: String,
+        duration: Int,
+        album: String?,
+    ): String {
+        val cleanedTitle = cleanTitle(title)
+        val cleanedArtist = cleanArtist(artist)
+
+        val searchQueries =
+            buildList {
+                add("$cleanedTitle $cleanedArtist")
+                add(cleanedTitle)
+                if (!album.isNullOrBlank()) add("$cleanedTitle $cleanedArtist $album")
+            }
+
+        var allResults: List<Pair<SearchResult, Double>> = emptyList()
+        var couldNotAsk = false
+
+        for (query in searchQueries) {
+            if (allResults.isEmpty()) {
+                val searchResults = search(query) { couldNotAsk = true }
+                if (searchResults.isNotEmpty()) {
+                    allResults = scoreAndFilterResults(searchResults, title, artist, duration)
+                }
+            }
+        }
+
+        if (allResults.isEmpty()) {
+            throw if (couldNotAsk) IOException("Paxsenix search failed") else LyricsNotFoundException("No tracks found on Paxsenix")
+        }
+
+        var bestLyrics: String? = null
+        var bestQuality = 0
+        // Every candidate is asked of the same server, so one that is down or busy ends the song.
+        var busy: LyricsSourceBusyException? = null
+
+        for ((result, _) in allResults.take(10)) {
+            currentCoroutineContext().ensureActive()
+            val lrc =
+                try {
+                    fetchLyricsForTrack(result.id) { couldNotAsk = true }
+                } catch (e: LyricsSourceBusyException) {
+                    busy = e
+                    break
+                } ?: continue
+            if (lrc.isEmpty()) continue
+
+            val quality = getQuality(lrc)
+            if (quality > bestQuality) {
+                bestQuality = quality
+                bestLyrics = lrc
+            }
+            if (bestQuality == 3) break
+        }
+
+        return bestLyrics
+            ?: throw (busy ?: if (couldNotAsk) IOException("Paxsenix lyrics failed") else LyricsNotFoundException())
+    }
 
     private suspend fun search(
         query: String,
         onCouldNotAsk: () -> Unit,
     ): List<SearchResult> {
+        currentCoroutineContext().ensureActive()
         // The public iTunes Search needs no token and finds the same Apple Music ids; the token
         // scraped from Apple's web player is the fallback.
         runCatching { searchItunes(query) }
@@ -141,8 +169,10 @@ class Paxsenix(
             } else {
                 results
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Search error: ${e.message}")
+            Log.w(TAG, "Search error: ${e.message}")
             emptyList()
         }
     }
@@ -208,7 +238,7 @@ class Paxsenix(
             try {
                 gson.fromJson(body, AppleMusicSearchResponse::class.java)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse Apple Music search response: ${e.message}")
+                Log.w(TAG, "Failed to parse Apple Music search response: ${e.message}")
                 return emptyList()
             }
 
@@ -304,80 +334,88 @@ class Paxsenix(
             .take(10)
     }
 
+    /** Null when Paxsenix has nothing for [id]; a [LyricsSourceBusyException] when it could not answer. */
     private fun fetchLyricsForTrack(
         id: String,
         onCouldNotAsk: () -> Unit,
     ): String? {
+        val request =
+            Request
+                .Builder()
+                .url("$PAXSENIX_BASE/apple-music/lyrics?id=$id")
+                .header("User-Agent", "Flow/${BuildConfig.VERSION_NAME}")
+                .build()
+        val body =
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (response.code == 404) return null
+                    if (!response.isSuccessful) {
+                        throw LyricsSourceBusyException("busy, HTTP ${response.code}", retryAfterMs(response.header("Retry-After")))
+                    }
+                    response.body.string()
+                }
+            } catch (e: IOException) {
+                throw LyricsSourceBusyException("busy, ${e.message}")
+            }
         return try {
-            val url = "$PAXSENIX_BASE/apple-music/lyrics?id=$id"
-            val request =
-                Request
-                    .Builder()
-                    .url(url)
-                    .header("User-Agent", "Flow/${BuildConfig.VERSION_NAME}")
-                    .build()
+            lyricsFrom(body)
+        } catch (e: Exception) {
+            Log.w(TAG, "Unreadable lyrics for track $id: ${e.message}")
+            onCouldNotAsk()
+            null
+        }
+    }
 
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                if (response.code != 404) onCouldNotAsk()
-                response.close()
-                return null
-            }
-            val body = response.body?.string() ?: return null
-            val lyricsResponse = gson.fromJson(body, LyricsResponse::class.java)
+    private fun lyricsFrom(body: String): String? {
+        val lyricsResponse = gson.fromJson(body, LyricsResponse::class.java)
 
-            if (!lyricsResponse.ttmlContent.isNullOrBlank()) {
-                val lrc = convertTTMLToLRC(lyricsResponse.ttmlContent)
-                if (lrc.isNotEmpty()) return lrc
-            }
+        if (!lyricsResponse.ttmlContent.isNullOrBlank()) {
+            val lrc = convertTTMLToLRC(lyricsResponse.ttmlContent)
+            if (lrc.isNotEmpty()) return lrc
+        }
 
-            if (!lyricsResponse.elrcMultiPerson.isNullOrBlank()) return lyricsResponse.elrcMultiPerson
-            if (!lyricsResponse.elrc.isNullOrBlank()) return lyricsResponse.elrc
-            if (!lyricsResponse.plain.isNullOrBlank()) return lyricsResponse.plain
+        if (!lyricsResponse.elrcMultiPerson.isNullOrBlank()) return lyricsResponse.elrcMultiPerson
+        if (!lyricsResponse.elrc.isNullOrBlank()) return lyricsResponse.elrc
+        if (!lyricsResponse.plain.isNullOrBlank()) return lyricsResponse.plain
 
-            if (lyricsResponse.content.isEmpty()) return null
+        if (lyricsResponse.content.isEmpty()) return null
 
-            val hasWordLevel = lyricsResponse.type == "Syllable"
-            if (!hasWordLevel) {
-                return lyricsResponse.content
-                    .map { line -> line.text.joinToString(" ") { it.text } }
-                    .filter { it.isNotBlank() }
-                    .joinToString("\n")
-            }
+        val hasWordLevel = lyricsResponse.type == "Syllable"
+        if (!hasWordLevel) {
+            return lyricsResponse.content
+                .map { line -> line.text.joinToString(" ") { it.text } }
+                .filter { it.isNotBlank() }
+                .joinToString("\n")
+        }
 
-            buildString {
-                lyricsResponse.content.forEach { line ->
-                    val timeMs = line.timestamp
-                    val minutes = timeMs / 1000 / 60
-                    val seconds = (timeMs / 1000) % 60
-                    val centiseconds = (timeMs % 1000) / 10
+        return buildString {
+            lyricsResponse.content.forEach { line ->
+                val timeMs = line.timestamp
+                val minutes = timeMs / 1000 / 60
+                val seconds = (timeMs / 1000) % 60
+                val centiseconds = (timeMs % 1000) / 10
 
-                    val agent =
-                        when {
-                            line.background -> "{bg}"
-                            line.oppositeTurn -> "{agent:v2}"
-                            else -> "{agent:v1}"
-                        }
+                val agent =
+                    when {
+                        line.background -> "{bg}"
+                        line.oppositeTurn -> "{agent:v2}"
+                        else -> "{agent:v1}"
+                    }
 
-                    val lineText = line.text.joinToString(" ") { it.text }
+                val lineText = line.text.joinToString(" ") { it.text }
 
-                    if (lineText.isNotBlank()) {
-                        appendLine(String.format(Locale.US, "[%02d:%02d.%02d]%s%s", minutes, seconds, centiseconds, agent, lineText))
+                if (lineText.isNotBlank()) {
+                    appendLine(String.format(Locale.US, "[%02d:%02d.%02d]%s%s", minutes, seconds, centiseconds, agent, lineText))
 
-                        if (line.text.isNotEmpty()) {
-                            val wordsData =
-                                line.text.joinToString("|") { word ->
-                                    "${word.text}:${word.timestamp.toDouble() / 1000}:${word.endtime.toDouble() / 1000}"
-                                }
-                            if (wordsData.isNotEmpty()) appendLine("<$wordsData>")
-                        }
+                    if (line.text.isNotEmpty()) {
+                        val wordsData =
+                            line.text.joinToString("|") { word ->
+                                "${word.text}:${word.timestamp.toDouble() / 1000}:${word.endtime.toDouble() / 1000}"
+                            }
+                        if (wordsData.isNotEmpty()) appendLine("<$wordsData>")
                     }
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch lyrics for track $id: ${e.message}")
-            onCouldNotAsk()
-            null
         }
     }
 
@@ -403,7 +441,7 @@ class Paxsenix(
                 if (wordBlock != null) "$mainLine\n<$wordBlock>" else mainLine
             }
         } catch (e: Exception) {
-            Log.e(TAG, "TTML conversion failed: ${e.message}")
+            Log.w(TAG, "TTML conversion failed: ${e.message}")
             ""
         }
     }
@@ -449,7 +487,7 @@ class Paxsenix(
                     cachedToken = token
                     token
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error fetching Apple Music token: ${e.message}")
+                    Log.w(TAG, "Error fetching Apple Music token: ${e.message}")
                     null
                 }
             }
@@ -477,6 +515,13 @@ class Paxsenix(
         private const val TAG = "Paxsenix"
         private const val ITUNES_SEARCH_URL = "https://itunes.apple.com/search"
         private val json = Json { ignoreUnknownKeys = true }
+
+        private fun retryAfterMs(header: String?): Long? =
+            header
+                ?.trim()
+                ?.toLongOrNull()
+                ?.takeIf { it >= 0 }
+                ?.times(1000)
 
         fun parseItunesSearch(body: String): List<SearchResult> =
             json

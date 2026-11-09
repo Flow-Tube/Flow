@@ -1230,7 +1230,7 @@
     <string name="files_access_title">الوصول إلى الملفات</string>
     <string name="permissions_header">الأذونات</string>
     <string name="appearance_role_scrim">تعتيم</string>
-    <string name="deep_flow_mode_subtitle">إيقاف التعلّم مؤقتًا أثناء التصفح</string>
+    <string name="deep_flow_mode_subtitle">إيقاف التعلّم وسجل البحث مؤقتًا</string>
     <string name="deep_flow_learning_paused">التعلم متوقف</string>
     <string name="deep_flow_expires_in">تنتهي صلاحيته خلال %s</string>
     <string name="deep_flow_expire_duration_title">التعطيل التلقائي بعد</string>
@@ -5203,4 +5203,18 @@
     <string name="lyrics_romanization_only_summary">استبدل النص الأصلي بالحروف اللاتينية</string>
     <string name="eq_spatial_sound_keywords">الصوت المكاني، الصوت المحيطي، الصوت ثلاثي الأبعاد، الصوت الاستريو</string>
     <string name="session_lyric_repeated">%1$s (x%2$d)</string>
+    <string name="lyrics_provider_netease">NetEase</string>
+    <string name="lyrics_provider_amll">AMLL</string>
+    <string name="lyrics_provider_netease_desc">مزامنة الأسطر · كتالوج كبير</string>
+    <string name="lyrics_provider_amll_desc">مزامنة الكلمات · كلمات الأغاني من المجتمع</string>
+    <string name="notification_channel_new_version">إصدارات جديدة</string>
+    <string name="notification_channel_new_version_description">يُعلمك عند صدور إصدار جديد من Flow</string>
+    <string name="music_chip_load_failed">تعذّر تحميل %1$s</string>
+    <string name="music_chip_empty">لا يوجد شيء هنا حاليًا</string>
+    <string name="settings_skeleton_gradient_title">عناصر تحميل متدرجة الألوان</string>
+    <string name="settings_skeleton_gradient_summary">لوّن عناصر التحميل بألوان المظهر أو الفيديو</string>
+    <string name="settings_skeleton_gradient_keywords">تدرّج الألوان، شاشة التحميل، الهيكل التخطيطي، تأثير اللمعان</string>
+    <string name="settings_marquee_title">نص متحرك</string>
+    <string name="settings_marquee_summary">تمرير العناوين والأسماء الطويلة. عطله على الأجهزة الأبطأ</string>
+    <string name="settings_marquee_keywords">النص المتحرك، عنوان يتمرّر، اسم الفنان، الأجهزة محدودة الأداء، الأداء</string>
 </resources>

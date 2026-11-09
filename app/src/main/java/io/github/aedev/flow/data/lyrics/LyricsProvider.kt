@@ -10,8 +10,20 @@ class LyricsNotFoundException(
     message: String = "No lyrics found",
 ) : Exception(message)
 
+/**
+ * The source is overloaded or too slow to answer, so it rests before it is asked again: longer than
+ * the usual rest when the server asked for [retryAfterMs].
+ */
+class LyricsSourceBusyException(
+    message: String,
+    val retryAfterMs: Long? = null,
+) : Exception(message)
+
 interface LyricsProvider {
     val name: String
+
+    /** A slow reply means the service is overloaded, so missing the deadline rests it like [LyricsSourceBusyException]. */
+    val restsAfterTimeout: Boolean get() = false
 
     fun isEnabled(context: Context): Boolean = true
 

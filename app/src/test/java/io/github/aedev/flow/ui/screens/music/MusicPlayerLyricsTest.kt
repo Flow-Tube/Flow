@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -44,8 +45,10 @@ class MusicPlayerLyricsTest {
             every { entriesAreSynced(any()) } answers { firstArg<List<*>>().size >= 2 }
             coEvery { syncOffset(any()) } returns null
         }
+    private val onDemand = MutableStateFlow(false)
     private val preferences =
         mockk<PlayerPreferences> {
+            every { lyricsOnDemand } returns onDemand
             every { lyricsShowTranslation } returns flowOf(false)
             every { lyricsShowRomanization } returns flowOf(false)
             every { lyricsAutoRomanize } returns flowOf(false)
@@ -114,6 +117,51 @@ class MusicPlayerLyricsTest {
         coEvery { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) } returns (providerLines to "LrcLib")
         return MusicPlayerLyrics(context, backgroundScope, state, helper, preferences, reader, downloads::get, timing)
     }
+
+    private val song = MusicTrack(videoId = "v", title = "Song", artist = "Artist", thumbnailUrl = "", duration = 200)
+
+    @Test
+    fun `a song change looks lyrics up at once while they load on every song`() =
+        runTest {
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = song))
+
+            lyricsFromProvider(state).onSongChanged(song)
+
+            state.first { it.syncedLyrics == providerLines }
+            coVerify(exactly = 1) { helper.getLyrics("v", any(), any(), any(), any(), any(), any()) }
+        }
+
+    @Test
+    fun `on demand a song change waits for the player to open, then loads once`() =
+        runTest {
+            onDemand.value = true
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = song))
+            val lyrics = lyricsFromProvider(state)
+
+            lyrics.onSongChanged(song)
+            lyrics.warm(song)
+            runCurrent()
+            coVerify(exactly = 0) { helper.getLyrics(any(), any(), any(), any(), any(), any(), any()) }
+
+            lyrics.setPlayerOpen(true)
+            state.first { it.syncedLyrics == providerLines }
+            coVerify(exactly = 1) { helper.getLyrics("v", any(), any(), any(), any(), any(), any()) }
+        }
+
+    @Test
+    fun `on demand a song change while the player is open looks lyrics up at once`() =
+        runTest {
+            onDemand.value = true
+            val state = MutableStateFlow(MusicPlayerUiState())
+            val lyrics = lyricsFromProvider(state)
+            lyrics.setPlayerOpen(true)
+
+            state.value = state.value.copy(currentTrack = song)
+            lyrics.onSongChanged(song)
+
+            state.first { it.syncedLyrics == providerLines }
+            coVerify(exactly = 1) { helper.getLyrics("v", any(), any(), any(), any(), any(), any()) }
+        }
 
     @Test
     fun `lyrics stay as they came and nothing is looked up with the setting off`() =

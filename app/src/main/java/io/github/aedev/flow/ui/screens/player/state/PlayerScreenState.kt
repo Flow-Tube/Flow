@@ -161,22 +161,21 @@ class PlayerScreenState {
 @Composable
 fun rememberPlayerScreenState(): PlayerScreenState = remember { PlayerScreenState() }
 
-/**
- * The caption track a transcript should read.
- *
- * The transcript's own language choice wins, then whatever the video is subtitled with, then the
- * first authored track, since an auto-translation is a machine pass over a track already in the
- * list and reads worse than the original. A choice the current video has no track for is dropped
- * rather than fetched, so a queue advance cannot leave the panel reading an empty URL.
- */
 internal fun transcriptTrackUrl(
     playerState: io.github.aedev.flow.player.EnhancedPlayerState,
     screenState: PlayerScreenState,
-): String? {
-    // Only tracks fetched over the network can be read; files and tracks inside a video have no URL.
-    val readable = playerState.availableSubtitles.filter { it.url.startsWith("http") }
-    return screenState.selectedTranscriptUrl?.takeIf { url -> readable.any { it.url == url } }
-        ?: playerState.selectedSubtitleUrl?.takeIf { url -> readable.any { it.url == url } }
-        ?: readable.firstOrNull { !it.isTranslated }?.url
-        ?: readable.firstOrNull()?.url
-}
+    prefs: VideoPlayerPreferencesState,
+    appLanguage: String?,
+): String? =
+    TranscriptTrackChoice
+        .pick(
+            tracks = playerState.availableSubtitles,
+            pickedUrl = screenState.selectedTranscriptUrl,
+            showingUrl = playerState.selectedSubtitleUrl,
+            rememberedLanguage = prefs.transcriptLanguage,
+            subtitleLanguage = prefs.preferredSubtitleLanguage,
+            appLanguage = appLanguage,
+        )?.url
+
+internal fun hasTranscriptTrack(playerState: io.github.aedev.flow.player.EnhancedPlayerState): Boolean =
+    playerState.availableSubtitles.any(TranscriptTrackChoice::isReadable)

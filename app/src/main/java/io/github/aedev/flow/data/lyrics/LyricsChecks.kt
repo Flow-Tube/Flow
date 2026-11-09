@@ -2,6 +2,17 @@ package io.github.aedev.flow.data.lyrics
 
 /** What a provider's answer is worth: how it is timed, and whether those times can be trusted. */
 internal object LyricsChecks {
+    const val BUSY_REST_MS = 2 * 60 * 1000L
+    private const val AUTH_REST_MS = 10 * 60 * 1000L
+
+    /** How long a source that failed with [error] rests before it is asked again, or null when the next song asks it. */
+    fun restAfter(error: Throwable): Long? =
+        when {
+            error is LyricsSourceBusyException -> maxOf(BUSY_REST_MS, error.retryAfterMs ?: 0L)
+            isAuthFailure(error.message) -> AUTH_REST_MS
+            else -> null
+        }
+
     fun hasWordSync(entries: List<LyricsEntry>): Boolean {
         val wordLines = entries.filter { !it.words.isNullOrEmpty() }
         if (wordLines.isEmpty()) return false

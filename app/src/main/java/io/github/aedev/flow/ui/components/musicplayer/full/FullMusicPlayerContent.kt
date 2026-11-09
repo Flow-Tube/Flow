@@ -75,6 +75,7 @@ internal fun FullMusicPlayerContent(
     sleepTimerButton: Boolean,
     // The transport, seek bar, like and download and the action row draw with this scheme.
     controlScheme: ColorScheme = MaterialTheme.colorScheme,
+    onLyricsShownChange: (Boolean) -> Unit = {},
     viewModel: MusicPlayerViewModel = sharedMusicPlayerViewModel(),
     videoSwitch: MusicVideoSwitchViewModel = hiltViewModel(),
 ) {
@@ -126,6 +127,10 @@ internal fun FullMusicPlayerContent(
     }
 
     var showLyricsSheet by remember { mutableStateOf(false) }
+    DisposableEffect(showLyricsSheet) {
+        onLyricsShownChange(showLyricsSheet)
+        onDispose { onLyricsShownChange(false) }
+    }
 
     FullPlayerSheets(sheets, uiState.currentTrack, isPlayerSheetExpanded)
 
@@ -133,7 +138,12 @@ internal fun FullMusicPlayerContent(
         // A song swapped for its video keeps the song's related list rather than fetching another.
         viewModel.fetchRelatedContent(videoSwitch.listenId(track.videoId))
         // [track] comes from the manager a frame late, so a different song here only means a newer one was chosen.
-        if (EnhancedMusicPlayerManager.currentTrack.value?.videoId == track.videoId) viewModel.ensureLyricsLoaded(track)
+        if (EnhancedMusicPlayerManager.currentTrack.value?.videoId == track.videoId) viewModel.warmLyrics(track)
+    }
+
+    DisposableEffect(isPlayerSheetExpanded) {
+        viewModel.setPlayerOpen(isPlayerSheetExpanded)
+        onDispose { viewModel.setPlayerOpen(false) }
     }
 
     if (isPlayerSheetExpanded) {

@@ -94,6 +94,7 @@ class PlayerPreferences(
         val VIDEO_LOOP_ENABLED = booleanPreferencesKey("video_loop_enabled")
         val VIDEO_AMBIENT_MODE_ENABLED = booleanPreferencesKey("video_ambient_mode_enabled")
         val PREFERRED_SUBTITLE_LANGUAGE = stringPreferencesKey("preferred_subtitle_language")
+        val TRANSCRIPT_LANGUAGE = stringPreferencesKey("transcript_language")
         val SUBTITLE_FONT_SIZE = floatPreferencesKey("subtitle_font_size")
         val SUBTITLE_TEXT_COLOR = intPreferencesKey("subtitle_text_color")
         val SUBTITLE_BACKGROUND_COLOR = intPreferencesKey("subtitle_background_color")
@@ -166,6 +167,7 @@ class PlayerPreferences(
         val LYRICS_SHOW_TRANSLATION = booleanPreferencesKey("lyrics_show_translation")
         val LYRICS_SHOW_ROMANIZATION = booleanPreferencesKey("lyrics_show_romanization")
         val LYRICS_ON_LOCK_SCREEN = booleanPreferencesKey("lyrics_on_lock_screen")
+        val LYRICS_ON_DEMAND = booleanPreferencesKey("lyrics_on_demand")
         val LYRICS_ON_LOCK_SCREEN_DELAY_MS = intPreferencesKey("lyrics_on_lock_screen_delay_ms")
         val LYRICS_SPONSORBLOCK_TIMING = booleanPreferencesKey("lyrics_sponsorblock_timing")
         val LYRICS_AUTO_ROMANIZE = booleanPreferencesKey("lyrics_auto_romanize")
@@ -1056,11 +1058,11 @@ class PlayerPreferences(
                     ?: GestureOverlayStyle.CIRCULAR
             }
 
-    val playerHapticsEnabled: Flow<Boolean> =
+    val hapticsEnabled: Flow<Boolean> =
         context.devicePreferencesDataStore.data
             .map { preferences -> preferences[DeviceKeys.PLAYER_HAPTICS_ENABLED] ?: true }
 
-    suspend fun setPlayerHapticsEnabled(enabled: Boolean) {
+    suspend fun setHapticsEnabled(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PLAYER_HAPTICS_ENABLED] = enabled
         }
@@ -2327,6 +2329,23 @@ class PlayerPreferences(
     suspend fun setPreferredSubtitleLanguage(language: String) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.PREFERRED_SUBTITLE_LANGUAGE] = language
+        }
+    }
+
+    /**
+     * Base language of the transcript track picked last, or
+     * [CaptionTrackResolver.NO_PREFERRED_LANGUAGE]. Kept apart from the subtitle language, which
+     * also decides which caption tracks load and when captions turn on.
+     */
+    val transcriptLanguage: Flow<String> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.TRANSCRIPT_LANGUAGE] ?: CaptionTrackResolver.NO_PREFERRED_LANGUAGE
+            }.distinctUntilChanged()
+
+    suspend fun setTranscriptLanguage(language: String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.TRANSCRIPT_LANGUAGE] = language
         }
     }
 
@@ -3921,6 +3940,14 @@ class PlayerPreferences(
 
     suspend fun setLyricsOnLockScreen(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ON_LOCK_SCREEN] = enabled }
+    }
+
+    /** Whether lyrics are looked up only when the player or its lyrics open, or for lock screen lyrics. */
+    val lyricsOnDemand: Flow<Boolean> =
+        context.playerPreferencesDataStore.data.map { it[Keys.LYRICS_ON_DEMAND] ?: false }
+
+    suspend fun setLyricsOnDemand(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ON_DEMAND] = enabled }
     }
 
     /** How late lock screen lines appear, in milliseconds. Below zero they appear early. */

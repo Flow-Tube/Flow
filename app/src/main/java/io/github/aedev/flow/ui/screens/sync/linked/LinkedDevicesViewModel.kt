@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.sync2.device.WebDavLogin
 import io.github.aedev.flow.sync2.engine.ContestSide
+import io.github.aedev.flow.sync2.linking.RestoreDevice
 import io.github.aedev.flow.sync2.live.LiveConsent
 import io.github.aedev.flow.sync2.live.LiveDevices
 import io.github.aedev.flow.sync2.live.deviceKind
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -45,6 +47,8 @@ internal data class LinkedUiState(
     val kinds: Map<String, String> = emptyMap(),
     /** Recovery words to show once, until the user proves they wrote them down. */
     val words: String? = null,
+    /** The group's devices while the user chooses which a restore keeps. */
+    val restoreDevices: List<RestoreDevice>? = null,
     val busy: Boolean = false,
     val syncing: Boolean = false,
     val error: LinkedError? = null,
@@ -63,6 +67,12 @@ internal data class LinkedUiState(
     val linked: Boolean get() = storeUrl != null
 }
 
+/** A restore waiting for the user's choice: the group's [devices], and how to go on with the ones to keep. */
+private class PendingRestore(
+    val devices: List<RestoreDevice>,
+    val run: suspend (keep: Set<String>) -> String,
+)
+
 /** What the screen itself holds: the words being shown and the outcome of the last action. */
 private data class Local(
     val devices: List<LinkedDevice>? = null,
@@ -70,6 +80,7 @@ private data class Local(
     /** Devices met on this network while the app runs. */
     val nearby: Set<String> = emptySet(),
     val words: String? = null,
+    val restore: PendingRestore? = null,
     val busy: Boolean = false,
     val error: LinkedError? = null,
     val contest: List<ContestSide> = emptyList(),
@@ -101,6 +112,12 @@ internal class LinkedDevicesViewModel
 
         private val local = MutableStateFlow(Local())
 
+        init {
+            viewModelScope.launch {
+                actions.replacedWords.filterNotNull().collect { words -> local.update { it.copy(words = words) } }
+            }
+        }
+
         val state: StateFlow<LinkedUiState> =
             combine(
                 actions.group,
@@ -120,6 +137,7 @@ internal class LinkedDevicesViewModel
                     nearby,
                     if (own != null) kinds + (own to ownKind) else kinds,
                     l.words,
+                    l.restore?.devices,
                     l.busy,
                     syncing,
                     l.error ?: lastSync?.error,
@@ -197,7 +215,12 @@ internal class LinkedDevicesViewModel
             user: String,
             password: String,
             words: String,
-        ) = run { local.update { it.copy(words = actions.restoreFromWebDav(url, user, password, words)) } }
+        ) = run {
+            val devices = actions.previewRestoreFromWebDav(url, user, password, words)
+            local.update { state ->
+                state.copy(restore = PendingRestore(devices) { actions.restoreFromWebDav(url, user, password, words, it) })
+            }
+        }
 
         fun updateLogin(
             user: String,
@@ -231,7 +254,20 @@ internal class LinkedDevicesViewModel
         fun restore(
             url: String,
             words: String,
-        ) = run { local.update { it.copy(words = actions.restore(url, words)) } }
+        ) = run {
+            val devices = actions.previewRestore(url, words)
+            local.update { state -> state.copy(restore = PendingRestore(devices) { actions.restore(url, words, it) }) }
+        }
+
+        /** Goes on with the restore the user was asked about, keeping [keep]. */
+        fun confirmRestore(keep: Set<String>) =
+            run {
+                val pending = local.value.restore ?: return@run
+                val words = pending.run(keep)
+                local.update { it.copy(words = words, restore = null) }
+            }
+
+        fun cancelRestore() = local.update { it.copy(restore = null, error = null) }
 
         fun confirmWordsSaved() =
             run {
