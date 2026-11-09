@@ -120,30 +120,70 @@ class NavigationDestinationsTest {
     @Test
     fun aTabTappedOnSearchOpenedAsAPageLeavesSearchFirst() {
         FlowTab.entries.filter { it != FlowTab.Search }.forEach { tapped ->
-            assertEquals(TabTap.LEAVE_SEARCH, tabTapAction(tapped, FlowTab.Search, selectedTab = FlowTab.Home, searchIsTab = false))
+            assertEquals(
+                TabTap.LEAVE_SEARCH,
+                tabTapAction(tapped, FlowTab.Search, selectedTab = FlowTab.Home, searchIsTab = false, startTab = FlowTab.Home),
+            )
         }
     }
 
     @Test
-    fun withASearchTabInTheBarSearchSwitchesLikeAnyOtherTab() {
-        assertEquals(TabTap.SWITCH, tabTapAction(FlowTab.Home, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true))
-        assertEquals(TabTap.SCROLL_TO_TOP, tabTapAction(FlowTab.Search, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true))
+    fun withASearchTabInTheBarOtherTabsSwitchAndKeepItsResults() {
+        assertEquals(
+            TabTap.SWITCH,
+            tabTapAction(FlowTab.Music, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true, startTab = FlowTab.Home),
+        )
+        assertEquals(
+            TabTap.SCROLL_TO_TOP,
+            tabTapAction(FlowTab.Search, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true, startTab = FlowTab.Home),
+        )
+    }
+
+    @Test
+    fun theStartTabLeavesTheSearchTabLikeBack() {
+        assertEquals(
+            TabTap.LEAVE_SEARCH,
+            tabTapAction(FlowTab.Home, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true, startTab = FlowTab.Home),
+        )
+        assertEquals(
+            TabTap.LEAVE_SEARCH,
+            tabTapAction(FlowTab.Music, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true, startTab = FlowTab.Music),
+        )
+        assertEquals(
+            TabTap.SCROLL_TO_TOP,
+            tabTapAction(FlowTab.Search, FlowTab.Search, selectedTab = FlowTab.Search, searchIsTab = true, startTab = FlowTab.Search),
+        )
     }
 
     @Test
     fun theTabAlreadyOnItsFirstScreenScrollsToTheTop() {
-        assertEquals(TabTap.SCROLL_TO_TOP, tabTapAction(FlowTab.Home, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false))
-        assertEquals(TabTap.SCROLL_TO_TOP, tabTapAction(FlowTab.Music, FlowTab.Music, selectedTab = FlowTab.Music, searchIsTab = true))
+        assertEquals(
+            TabTap.SCROLL_TO_TOP,
+            tabTapAction(FlowTab.Home, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false, startTab = FlowTab.Home),
+        )
+        assertEquals(
+            TabTap.SCROLL_TO_TOP,
+            tabTapAction(FlowTab.Music, FlowTab.Music, selectedTab = FlowTab.Music, searchIsTab = true, startTab = FlowTab.Home),
+        )
     }
 
     @Test
     fun theHighlightedTabOnAPageInsideItGoesBackToItsFirstScreen() {
-        assertEquals(TabTap.POP_TO_ROOT, tabTapAction(FlowTab.Home, currentTab = null, selectedTab = FlowTab.Home, searchIsTab = false))
-        assertEquals(TabTap.SWITCH, tabTapAction(FlowTab.Music, currentTab = null, selectedTab = FlowTab.Home, searchIsTab = false))
+        assertEquals(
+            TabTap.POP_TO_ROOT,
+            tabTapAction(FlowTab.Home, currentTab = null, selectedTab = FlowTab.Home, searchIsTab = false, startTab = FlowTab.Home),
+        )
+        assertEquals(
+            TabTap.SWITCH,
+            tabTapAction(FlowTab.Music, currentTab = null, selectedTab = FlowTab.Home, searchIsTab = false, startTab = FlowTab.Home),
+        )
     }
 
     @Test
     fun anotherTabSwitches() {
-        assertEquals(TabTap.SWITCH, tabTapAction(FlowTab.Music, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false))
+        assertEquals(
+            TabTap.SWITCH,
+            tabTapAction(FlowTab.Music, FlowTab.Home, selectedTab = FlowTab.Home, searchIsTab = false, startTab = FlowTab.Home),
+        )
     }
 }

@@ -64,7 +64,7 @@ internal enum class TabTap {
     /** On a page inside the tapped tab: back to that tab's first screen. */
     POP_TO_ROOT,
 
-    /** On Search opened as a page over a tab: Search closes first, as its back arrow does. */
+    /** On Search as a page, or tapping the start tab from the Search tab: Search closes first, as its back arrow does. */
     LEAVE_SEARCH,
 
     SWITCH,
@@ -73,15 +73,18 @@ internal enum class TabTap {
 /**
  * Search is a page over the tab it was opened from unless the bar has a Search tab ([searchIsTab]).
  * As a page it is never kept in a tab's saved stack, or tapping that tab would bring it straight back.
+ * The start tab always leaves Search like Back: a Search page left under it from before the Search tab
+ * was turned on is part of its saved stack, so switching to it would restore that page.
  */
 internal fun tabTapAction(
     tapped: FlowTab,
     currentTab: FlowTab?,
     selectedTab: FlowTab,
     searchIsTab: Boolean,
+    startTab: FlowTab,
 ): TabTap =
     when {
-        currentTab == FlowTab.Search && !searchIsTab -> TabTap.LEAVE_SEARCH
+        currentTab == FlowTab.Search && tapped != FlowTab.Search && (!searchIsTab || tapped == startTab) -> TabTap.LEAVE_SEARCH
         currentTab == tapped -> TabTap.SCROLL_TO_TOP
         currentTab == null && tapped == selectedTab -> TabTap.POP_TO_ROOT
         else -> TabTap.SWITCH
