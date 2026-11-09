@@ -1732,6 +1732,8 @@
     <string name="daily_limit_music_title">Count music too</string>
     <string name="daily_limit_music_subtitle">Music counts toward the limit and pauses with it</string>
     <string name="daily_limit_footer">Counts the time videos play, Shorts, picture-in-picture and background play included. Nothing pauses while Android Auto is connected.</string>
+    <string name="daily_limit_warning_title">5 minutes left today</string>
+    <string name="daily_limit_warning_body">Your daily limit is almost up.</string>
     <string name="daily_limit_reached_title">Time\'s up</string>
     <string name="daily_limit_reached_body">You reached your daily limit, so playback is paused.</string>
     <string name="daily_limit_wait_title">Change your limit?</string>

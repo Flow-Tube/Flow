@@ -106,6 +106,7 @@ class DailyLimitGuard
                         reachLimit(limit, counted)
                         awaitCancellation()
                     }
+                    if (DailyLimitPolicy.shouldWarn(limit.minutes, counted)) warn(counted)
                     val untilMidnight = millisUntilNextDay(ZonedDateTime.now())
                     delay(minOf(DailyLimitPolicy.msUntilNextCheck(limit.minutes, counted), untilMidnight + MIDNIGHT_SLACK_MS))
                     since = addPlayed(since)
@@ -137,6 +138,11 @@ class DailyLimitGuard
             if (!isOnScreen()) {
                 notify(R.string.daily_limit_reached_title, R.string.daily_limit_reached_body)
             }
+        }
+
+        private suspend fun warn(counted: DailyTally) {
+            save(counted.copy(warned = true))
+            notify(R.string.daily_limit_warning_title, R.string.daily_limit_warning_body)
         }
 
         private suspend fun notify(
