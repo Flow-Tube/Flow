@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
+import io.github.aedev.flow.ui.utils.LocalWindowIsLandscape
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
 import io.github.aedev.flow.ui.utils.isExpandedWidth
 import io.github.aedev.flow.ui.utils.isMediumHeight
@@ -40,12 +42,21 @@ object FlowNavigationDefaults {
 }
 
 /**
- * Whether this window is wide enough to navigate from the start edge instead of the bottom. The
- * decision belongs to the window's size class, so a phone in a narrow split window keeps the bar
- * even on a large display.
+ * Whether this window navigates from the start edge instead of the bottom. An expanded window tall
+ * enough for the rail's items gets it, as on tablets. A landscape window too short for that, which
+ * is a phone on its side, gets it too: a bottom bar would take a sixth of its height (#1845), and
+ * the rail moves what does not fit behind "More". The decision belongs to the window, so a phone in
+ * a narrow portrait split window keeps the bar even on a large display.
  */
 @Composable
-fun flowUsesNavigationRail(): Boolean = LocalWindowSizeClass.current.let { it.isExpandedWidth && it.isMediumHeight }
+fun flowUsesNavigationRail(): Boolean = usesNavigationRail(LocalWindowSizeClass.current, LocalWindowIsLandscape.current)
+
+internal fun usesNavigationRail(
+    windowSizeClass: WindowSizeClass,
+    isLandscape: Boolean,
+): Boolean =
+    (windowSizeClass.isExpandedWidth && windowSizeClass.isMediumHeight) ||
+        (isLandscape && !windowSizeClass.isMediumHeight)
 
 /**
  * The app's primary navigation around [content]: the bottom bar over it on compact and medium
