@@ -86,6 +86,7 @@ import io.github.aedev.flow.player.subtitle.SubtitleTracks
 import io.github.aedev.flow.player.surface.SurfaceManager
 import io.github.aedev.flow.player.surface.VideoSurfacePolicy
 import io.github.aedev.flow.player.tracker.PlaybackTracker
+import io.github.aedev.flow.utils.FlowCrashHandler
 import io.github.aedev.flow.utils.NetworkState
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.coroutines.CancellationException
@@ -1392,6 +1393,7 @@ class EnhancedPlayerManager private constructor() {
         audioOnly: Boolean = false,
         playWhenReady: Boolean = !isStartPausedArmed(currentVideoId),
     ): Boolean {
+        FlowCrashHandler.recordPhase("video-item", "load $currentVideoId audioOnly=$audioOnly")
         val loaded =
             prepareMediaSource(
                 videoStream = videoStream,
