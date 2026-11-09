@@ -4674,4 +4674,8 @@
     <string name="settings_marquee_title">捲動文字</string>
     <string name="settings_marquee_summary">捲動顯示過長的標題和名稱。在較慢的裝置上請關閉</string>
     <string name="settings_marquee_keywords">跑馬燈、捲動標題、藝人名稱、低階、效能</string>
+    <string name="linked_restore_choose_title">你還保有哪些裝置？</string>
+    <string name="linked_restore_choose_body">還原會讓你沒有勾選的所有裝置登出。只有在裝置就在你身邊時才勾選，不要只因為名稱看起來對就勾選。如果你還有可用的裝置，請返回上一步，改從該裝置連結這部裝置。</string>
+    <string name="linked_restore_unknown_device">未知的裝置（%1$s）</string>
+    <string name="linked_error_restore_unfinished">還原尚未完成，Flow 會在下次同步時完成。</string>
 </resources>
