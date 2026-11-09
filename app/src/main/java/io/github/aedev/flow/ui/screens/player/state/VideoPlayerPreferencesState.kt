@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import io.github.aedev.flow.data.local.DEFAULT_SPEED_SWIPE_STEP
 import io.github.aedev.flow.data.local.DoubleTapSeekZone
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.PlayerPreferences
@@ -61,6 +62,7 @@ internal class VideoPlayerPreferencesState(
     val feedColumns: HomeFeedColumns,
     val deArrowEnabled: Boolean,
     val tiltFullscreenRotationLocked: Boolean,
+    val fullscreenSidePanelWidth: FullscreenSidePanelWidth,
 )
 
 @Composable
@@ -105,6 +107,8 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val feedColumns by playerPreferences.homeFeedColumns.collectAsState(initial = HomeFeedColumns.AUTO)
     val deArrowEnabled by playerPreferences.deArrowEnabled.collectAsState(initial = false)
     val tiltFullscreenRotationLocked by playerPreferences.tiltFullscreenRotationLocked.collectAsState(initial = false)
+    val fullscreenSidePanelWidth by playerPreferences.fullscreenSidePanelWidth
+        .collectAsState(initial = FullscreenSidePanelWidth.DEFAULT)
 
     return VideoPlayerPreferencesState(
         preferences = playerPreferences,
@@ -144,5 +148,6 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         feedColumns = feedColumns,
         deArrowEnabled = deArrowEnabled,
         tiltFullscreenRotationLocked = tiltFullscreenRotationLocked,
+        fullscreenSidePanelWidth = fullscreenSidePanelWidth,
     )
 }

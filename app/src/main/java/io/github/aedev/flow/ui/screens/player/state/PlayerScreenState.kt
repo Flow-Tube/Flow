@@ -1,7 +1,9 @@
 package io.github.aedev.flow.ui.screens.player.state
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
+import io.github.aedev.flow.ui.components.shared.CommentThreadState
 import io.github.aedev.flow.ui.components.videoplayer.settings.PlayerSettingsPage
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.SubtitleStyle
 
@@ -37,6 +39,11 @@ class PlayerScreenState {
 
     // Comment Sorting
     var commentSortFilter by mutableStateOf(CommentSortFilter.TOP)
+
+    // Outlives the comments sheet and panel, which leave composition on every close, collapse and rotation.
+    var commentsListState by mutableStateOf(LazyListState())
+        private set
+    val commentThreads = CommentThreadState()
 
     // Written by the host from the player sheet's settled anchor; the comments sheet outlives a collapse.
     var isPlayerExpanded by mutableStateOf(true)
@@ -99,6 +106,7 @@ class PlayerScreenState {
         currentPosition = 0L
         duration = 0L
         commentSortFilter = CommentSortFilter.TOP
+        resetCommentsPlace()
         selectedTranscriptUrl = null
         showBrightnessOverlay = false
         showVolumeOverlay = false
@@ -116,6 +124,17 @@ class PlayerScreenState {
         zoomIndicatorSequence = 0
         exitDragOffsetY = 0f
         moreVideosDragY = 0f
+    }
+
+    fun changeCommentSort(filter: CommentSortFilter) {
+        if (filter == commentSortFilter) return
+        commentSortFilter = filter
+        resetCommentsPlace()
+    }
+
+    private fun resetCommentsPlace() {
+        commentsListState = LazyListState()
+        commentThreads.clear()
     }
 
     internal fun open(sheet: PlayerSheet) {

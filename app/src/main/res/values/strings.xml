@@ -169,6 +169,8 @@
     <string name="lyrics_keep_screen_on_summary">While lyrics are showing and music plays</string>
     <string name="player_appearance_artwork_control_colors_title">Artwork colors on controls</string>
     <string name="player_appearance_artwork_control_colors_subtitle">Tint the buttons and seek bar from the cover</string>
+    <string name="player_appearance_video_artwork_colors_title">Colors from the thumbnail</string>
+    <string name="player_appearance_video_artwork_colors_subtitle">Tint description and comments</string>
     <string name="player_appearance_follow_light_theme_title">Light in light theme</string>
     <string name="player_appearance_follow_light_theme_subtitle">Artwork backgrounds turn light</string>
     <string name="player_appearance_sleep_timer_button_title">Sleep timer button</string>
@@ -669,6 +671,7 @@
     <string name="tab_posts">Posts</string>
     <string name="community_posts_empty">No community posts found</string>
     <string name="community_posts_load_failed">Couldn\'t load community posts</string>
+    <string name="subscription_posts_empty">No posts in the last 30 days</string>
     <string name="channel_search_failed">Couldn\'t search this channel</string>
     <string name="community_post_image_content_description">Community post image</string>
     <string name="share_community_post">Share community post</string>
@@ -1027,6 +1030,12 @@
     <string name="player_fullscreen_seekbar_width_default">Default</string>
     <string name="player_fullscreen_seekbar_width_custom">Custom</string>
     <string name="player_fullscreen_seekbar_width_value">%1$d dp</string>
+    <string name="player_side_panel_width_title">Side panel width</string>
+    <string name="player_side_panel_width_summary">For comments, chat and chapters in fullscreen</string>
+    <string name="player_side_panel_width_narrow">Narrow</string>
+    <string name="player_side_panel_width_small">Small</string>
+    <string name="player_side_panel_width_default">Default</string>
+    <string name="player_side_panel_width_wide">Wide</string>
     <string name="player_appearance_idle_progress_title">Progress Bar With Hidden Controls</string>
     <string name="player_appearance_idle_progress_subtitle">Where the thin bar sits in portrait</string>
     <string name="player_appearance_idle_progress_on_video">On video</string>
@@ -1325,6 +1334,8 @@
     <string name="continue_watching_title">Continue Watching</string>
     <string name="player_settings_mini_player_continue_watching_title">Continue Watching Mini Player</string>
     <string name="player_settings_mini_player_continue_watching_subtitle">Automatically pop up the last watched video</string>
+    <string name="player_settings_minimize_to_audio_bar_title">Minimize to audio bar</string>
+    <string name="player_settings_minimize_to_audio_bar_subtitle">Collapsed videos keep playing as sound only</string>
     <string name="player_mini_player_continue_watching_label">Continue watching</string>
     <!-- Player Settings -->
     <string name="player_settings_title">Player Settings</string>

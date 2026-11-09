@@ -37,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.ThumbnailQuality
-import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.LocalThumbnailQuality
 import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.theme.PlayerScrim
@@ -63,7 +62,6 @@ internal object ShortsOverlayDefaults {
     val PauseIndicatorSize = 72.dp
     val PauseIndicatorIconSize = 40.dp
     val LikeBurstSize = 120.dp
-    val BufferingIndicatorSize = 44.dp
 }
 
 /** The reel's poster, shown until its first frame and never while it is buffering mid-play. */
@@ -172,22 +170,6 @@ internal fun ShortsPauseIndicator(
                 )
             }
         }
-    }
-}
-
-/** The same indicator the player shows in its play slot while it waits on the network. */
-@Composable
-internal fun ShortsBufferingIndicator(
-    visible: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
-        exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
-        modifier = modifier,
-    ) {
-        FlowLoadingIndicator(modifier = Modifier.size(ShortsOverlayDefaults.BufferingIndicatorSize))
     }
 }
 

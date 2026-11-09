@@ -62,7 +62,7 @@ fun SearchChannelHeroCard(
     latestVideos: List<Video> = emptyList(),
     onVideoClick: (Video) -> Unit = {},
 ) {
-    val tint = rememberMediaArtworkTint(channel.thumbnailUrl)
+    val tint = rememberMediaArtworkTint(channel.thumbnailUrl, followsSetting = false)
 
     Surface(
         modifier = modifier.fillMaxWidth().padding(horizontal = CardMargin, vertical = CardGap),

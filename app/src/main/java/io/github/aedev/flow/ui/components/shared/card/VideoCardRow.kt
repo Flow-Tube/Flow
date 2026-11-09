@@ -24,6 +24,7 @@ internal fun VideoCardRow(
     onClick: () -> Unit,
     showChannel: Boolean,
     thumbnailWidth: Dp,
+    inset: Dp,
     reason: String?,
     whyShown: String?,
     modifier: Modifier = Modifier,
@@ -41,7 +42,7 @@ internal fun VideoCardRow(
                 .fillMaxWidth()
                 .videoCardClickable(state, onClick)
                 .padding(
-                    start = VideoCardDefaults.Inset,
+                    start = inset,
                     top = VideoCardDefaults.RowVerticalPadding,
                     bottom = VideoCardDefaults.RowVerticalPadding,
                 ),

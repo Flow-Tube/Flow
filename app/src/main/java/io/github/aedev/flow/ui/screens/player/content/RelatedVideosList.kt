@@ -90,6 +90,7 @@ internal fun LazyListScope.relatedVideosGridContent(
                 layout = VideoCardLayout.Row,
                 onClick = { onVideoClick(video) },
                 thumbnailWidth = layout.thumbnailWidth,
+                density = layout.cardDensity,
                 modifier = Modifier.padding(horizontal = layout.contentPadding),
             )
         } else {
@@ -97,12 +98,15 @@ internal fun LazyListScope.relatedVideosGridContent(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = layout.contentPadding, vertical = GridRowVerticalPadding),
+                        .padding(
+                            horizontal = layout.contentPadding,
+                            vertical = if (layout.dense) layout.cardSpacing / 2 else GridRowVerticalPadding,
+                        ),
             ) {
                 row.forEach { videoIndex ->
                     val video = relatedVideos[videoIndex]
                     Box(modifier = Modifier.weight(1f)) {
-                        MediaVideoCard(video = video, onClick = { onVideoClick(video) })
+                        MediaVideoCard(video = video, onClick = { onVideoClick(video) }, density = layout.cardDensity)
                     }
                 }
             }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
@@ -71,6 +72,8 @@ fun SubscriptionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val feedGridState = rememberLazyGridState()
+    val postsListState = rememberLazyListState()
+    var showPosts by rememberSaveable { mutableStateOf(false) }
 
     var isManagingSubs by remember { mutableStateOf(false) }
     var manageShowsMusic by rememberSaveable { mutableStateOf(false) }
@@ -83,6 +86,10 @@ fun SubscriptionsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showSortMenu by remember { mutableStateOf(false) }
     var showGroupsDialog by remember { mutableStateOf(false) }
+    val openManage = { showsMusic: Boolean ->
+        manageShowsMusic = showsMusic
+        isManagingSubs = true
+    }
 
     val importLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -173,10 +180,7 @@ fun SubscriptionsScreen(
                                 contentDescription = stringResource(R.string.toggle_view_mode),
                             )
                         }
-                        IconButton(onClick = {
-                            manageShowsMusic = false
-                            isManagingSubs = true
-                        }) {
+                        IconButton(onClick = { openManage(false) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Search,
                                 contentDescription = stringResource(R.string.search_subscriptions),
@@ -225,6 +229,26 @@ fun SubscriptionsScreen(
                     )
                 } else if (uiState.subscribedChannels.isEmpty()) {
                     SubscriptionsEmptyState(modifier = Modifier.fillMaxSize())
+                } else if (showPosts) {
+                    SubscriptionPostsContent(
+                        channelIds = uiState.selectedGroupScope(),
+                        listState = postsListState,
+                        onChannelClick = onChannelClick,
+                        onVideoClick = onVideoClick,
+                        header = {
+                            SubscriptionsFeedHeader(
+                                state = uiState,
+                                topChannels = topChannels,
+                                onChannelClick = onChannelClick,
+                                onViewAllClick = { openManage(false) },
+                                onMusicSubscriptionsClick = { openManage(true) },
+                                onGroupSelected = viewModel::selectGroup,
+                                onManageGroups = { showGroupsDialog = true },
+                                postsSelected = true,
+                                onPostsClick = { showPosts = false },
+                            )
+                        },
+                    )
                 } else {
                     SubscriptionsFeedContent(
                         state = uiState,
@@ -236,18 +260,13 @@ fun SubscriptionsScreen(
                         onVideoClick = onVideoClick,
                         onShortClick = onShortClick,
                         onChannelClick = onChannelClick,
-                        onViewAllClick = {
-                            manageShowsMusic = false
-                            isManagingSubs = true
-                        },
-                        onMusicSubscriptionsClick = {
-                            manageShowsMusic = true
-                            isManagingSubs = true
-                        },
+                        onViewAllClick = { openManage(false) },
+                        onMusicSubscriptionsClick = { openManage(true) },
                         onGroupSelected = viewModel::selectGroup,
                         onManageGroups = { showGroupsDialog = true },
                         onRetryFailedChannels = viewModel::retryFailedChannels,
                         onDismissFailedChannels = viewModel::dismissFailedChannels,
+                        onPostsClick = { showPosts = true },
                     )
                 }
             }

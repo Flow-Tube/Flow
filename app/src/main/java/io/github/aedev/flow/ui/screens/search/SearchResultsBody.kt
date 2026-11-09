@@ -137,6 +137,7 @@ internal fun ColumnScope.SearchResultsBody(
                     },
                     isNotifying = { it in notifyingIds },
                     onNotificationChange = { channel, enabled -> bell.setNotifications(channel.id, enabled) },
+                    onPostClick = viewModel.postComments::open,
                 )
             }
 

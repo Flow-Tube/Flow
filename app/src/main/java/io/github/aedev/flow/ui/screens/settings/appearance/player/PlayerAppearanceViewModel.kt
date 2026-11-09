@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance.player
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aedev.flow.data.local.DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
@@ -46,9 +47,11 @@ class PlayerAppearanceViewModel
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
         val ambientGlow = preferences.videoAmbientGlowEnabled.asState(false)
         val immersiveGlow = preferences.videoAmbientImmersiveEnabled.asState(false)
+        val videoArtworkColors = preferences.videoArtworkColors.asState(true)
         val groupedQualitySelector = preferences.groupedQualitySelectorEnabled.asState(false)
         val paidPromotionLabel = preferences.paidPromotionLabel.asState(false)
         val gestureOverlay = preferences.gestureOverlayStyle.asState(GestureOverlayStyle.CIRCULAR)
+        val fullscreenSidePanelWidth = preferences.fullscreenSidePanelWidth.asState(FullscreenSidePanelWidth.DEFAULT)
         val shortsUiMode = preferences.shortsPlayerUiMode.asState(ShortsPlayerUiMode.DEFAULT)
         val miniPlayerScale = preferences.miniPlayerScale.asState(MiniPlayerSize.NORMAL.scale)
         val miniPlayerSkip = preferences.miniPlayerShowSkipControls.asState(false)
@@ -98,11 +101,15 @@ class PlayerAppearanceViewModel
 
         fun setImmersiveGlow(value: Boolean) = write { preferences.setVideoAmbientImmersiveEnabled(value) }
 
+        fun setVideoArtworkColors(value: Boolean) = write { preferences.setVideoArtworkColors(value) }
+
         fun setGroupedQualitySelector(value: Boolean) = write { preferences.setGroupedQualitySelectorEnabled(value) }
 
         fun setPaidPromotionLabel(value: Boolean) = write { preferences.setPaidPromotionLabel(value) }
 
         fun setGestureOverlay(value: GestureOverlayStyle) = write { preferences.setGestureOverlayStyle(value) }
+
+        fun setFullscreenSidePanelWidth(value: FullscreenSidePanelWidth) = write { preferences.setFullscreenSidePanelWidth(value) }
 
         fun setShortsUiMode(value: ShortsPlayerUiMode) = write { preferences.setShortsPlayerUiMode(value) }
 

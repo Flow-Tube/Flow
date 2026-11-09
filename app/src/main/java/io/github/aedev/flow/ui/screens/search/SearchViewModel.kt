@@ -12,6 +12,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.data.community.PostCommentsLoader
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchFilter
@@ -67,6 +68,8 @@ class SearchViewModel
         private val privacyGate: PrivacyGate,
         private val savedState: SavedStateHandle,
     ) : ViewModel() {
+        val postComments = PostCommentsLoader(viewModelScope)
+
         // Signal each distinct submitted query once — typing and filter churn stay silent.
         private var lastSignaledQuery: String? = null
         private val _uiState = MutableStateFlow(SearchUiState())

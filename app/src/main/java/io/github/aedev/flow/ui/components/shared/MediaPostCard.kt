@@ -1,4 +1,4 @@
-package io.github.aedev.flow.ui.components.channel
+package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,7 +49,7 @@ import io.github.aedev.flow.utils.formatRichText
  * a few lines of text and a 16:9 crop, so every card in a row shares one height.
  */
 @Composable
-fun CommunityPostCard(
+fun MediaPostCard(
     post: CommunityPost,
     onAuthorClick: () -> Unit,
     onCommentsClick: () -> Unit,
@@ -136,7 +136,7 @@ fun CommunityPostCard(
         }
 
         post.attachment?.let { attachment ->
-            CommunityPostAttachment(attachment = attachment, onVideoClick = onVideoClick, compact = compact)
+            MediaPostAttachment(attachment = attachment, onVideoClick = onVideoClick, compact = compact)
         }
 
         Row(

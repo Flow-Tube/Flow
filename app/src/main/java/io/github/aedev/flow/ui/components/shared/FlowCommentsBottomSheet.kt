@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -19,7 +20,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -57,14 +57,11 @@ fun FlowCommentsBottomSheet(
     onSheetProgressChange: (Float) -> Unit = {},
     dismissOnOutsideTap: Boolean = false,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+    threadState: CommentThreadState? = null,
 ) {
     val sheetState = rememberFlowBottomSheetState()
-    val commentsListState = rememberLazyListState()
     val tint = rememberMediaArtworkTint(artworkUrl)
-
-    LaunchedEffect(selectedFilter) {
-        commentsListState.scrollToItem(0)
-    }
 
     FlowBottomSheet(
         onDismiss = onDismiss,
@@ -93,7 +90,7 @@ fun FlowCommentsBottomSheet(
         FlowCommentsList(
             comments = comments,
             isLoading = isLoading,
-            listState = commentsListState,
+            listState = listState,
             selectedFilter = selectedFilter,
             onSeekMs = onSeekMs,
             onLoadReplies = onLoadReplies,
@@ -105,6 +102,7 @@ fun FlowCommentsBottomSheet(
             hasMore = hasMore,
             tint = tint,
             timedFollow = timedFollow,
+            threadState = threadState,
             modifier =
                 Modifier
                     .fillMaxWidth()

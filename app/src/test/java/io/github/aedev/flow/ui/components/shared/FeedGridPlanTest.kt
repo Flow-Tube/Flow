@@ -4,9 +4,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.ui.components.FEED_MAX_AUTO_COLUMNS
 import io.github.aedev.flow.ui.components.feedGridLayoutFor
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
+import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 import org.junit.Test
 
 /**
@@ -157,5 +159,21 @@ class FeedGridPlanTest {
     @Test
     fun `an empty list produces no partial rows`() {
         assertThat(plan(1200.dp, itemCount = 0).partialRows).isEmpty()
+    }
+
+    @Test
+    fun `a dense grid makes dense cards and its list mode keeps the regular padding`() {
+        val layout = feedGridLayoutFor(360.dp, HomeFeedColumns.THREE)
+        val grid = feedGridPlanFor(layout, listMode = false, itemCount = 4, spansOwnRow = { false }, includeLastRun = true)
+        val list = feedGridPlanFor(layout, listMode = true, itemCount = 4, spansOwnRow = { false }, includeLastRun = true)
+
+        assertThat(grid.cardDensity).isEqualTo(VideoCardDensity.Dense)
+        assertThat(grid.cardInset).isEqualTo(VideoCardDefaults.DenseInset)
+        assertThat(grid.horizontalPadding).isEqualTo(4.dp)
+        assertThat(grid.rowSpacing).isEqualTo(8.dp)
+        assertThat(grid.isListCard(3)).isTrue()
+        assertThat(list.cardDensity).isEqualTo(VideoCardDensity.Regular)
+        assertThat(list.cardInset).isEqualTo(VideoCardDefaults.Inset)
+        assertThat(list.horizontalPadding).isEqualTo(0.dp)
     }
 }

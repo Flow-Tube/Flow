@@ -92,22 +92,20 @@ import io.github.aedev.flow.data.model.SubscriptionGroup
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
-import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.ui.components.channel.ChannelBanner
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.CollectionEditDialog
 import io.github.aedev.flow.ui.components.shared.CollectionSheetEntry
-import io.github.aedev.flow.ui.components.shared.CommentSortFilter
-import io.github.aedev.flow.ui.components.shared.FlowCommentsBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowNoteEditorDialog
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FullSizeImageDialog
+import io.github.aedev.flow.ui.components.shared.MediaPostCommentsSheet
 import io.github.aedev.flow.ui.components.shared.SaveToCollectionSheet
-import io.github.aedev.flow.ui.components.shared.sortCommentsByFilter
+import io.github.aedev.flow.ui.components.shared.rememberPostShareAction
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.ui.youtubeChannelUrl
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -157,15 +155,7 @@ fun ChannelScreen(
 
     var showCollapsedChannelTitle by remember(channelUrl) { mutableStateOf(false) }
     val collapsedChannelTitle = uiState.header?.title.orEmpty()
-    var communityCommentSort by rememberSaveable { mutableStateOf(CommentSortFilter.TOP) }
-    val sortedCommunityComments =
-        remember(communityUiState.comments, communityCommentSort) {
-            sortCommentsByFilter(communityUiState.comments, communityCommentSort)
-        }
-
-    LaunchedEffect(communityUiState.activePost?.id) {
-        communityCommentSort = CommentSortFilter.TOP
-    }
+    val sharePost = rememberPostShareAction()
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -262,20 +252,8 @@ fun ChannelScreen(
                             onTabSelected = { viewModel.selectTab(it) },
                             onSearchToggle = { viewModel.setSearchActive(!uiState.searchActive) },
                             onSearchQueryChange = { viewModel.searchInChannel(it) },
-                            onCommunityPostComments = viewModel::openCommunityPostComments,
-                            onCommunityPostShare = { post ->
-                                val shareIntent =
-                                    Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, "https://www.youtube.com/post/${post.id}")
-                                    }
-                                context.startActivity(
-                                    Intent.createChooser(
-                                        shareIntent,
-                                        context.getString(R.string.share_community_post),
-                                    ),
-                                )
-                            },
+                            onCommunityPostComments = viewModel.postComments::open,
+                            onCommunityPostShare = sharePost,
                             onLoadMoreCommunityPosts = viewModel::loadMoreCommunityPosts,
                             onRetryCommunityPosts = viewModel::retryCommunityPosts,
                             initialScrollIndex = viewModel.listScrollIndex,
@@ -288,23 +266,7 @@ fun ChannelScreen(
             }
         }
 
-        if (communityUiState.activePost != null) {
-            FlowCommentsBottomSheet(
-                comments = sortedCommunityComments,
-                isLoading = communityUiState.isLoadingComments,
-                onDismiss = viewModel::closeCommunityPostComments,
-                selectedFilter = communityCommentSort,
-                onFilterChanged = { communityCommentSort = it },
-                isLoadingMore = communityUiState.isLoadingMoreComments,
-                onLoadMore = viewModel::loadMoreCommunityPostComments,
-                hasMore = communityUiState.commentsContinuation != null,
-                onLoadReplies = viewModel::loadCommunityCommentReplies,
-                onLoadMoreReplies = viewModel::loadMoreCommunityCommentReplies,
-                onAuthorClick = { authorChannelId ->
-                    if (authorChannelId.isNotBlank()) onChannelClick(authorChannelId)
-                },
-            )
-        }
+        MediaPostCommentsSheet(loader = viewModel.postComments, onAuthorClick = onChannelClick)
     }
 
     val channelId = uiState.header?.id.orEmpty()

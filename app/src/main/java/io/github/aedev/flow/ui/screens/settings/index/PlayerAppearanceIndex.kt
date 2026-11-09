@@ -152,6 +152,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_settings_immersive_glow_subtitle,
             R.string.settings_section_video_player,
         )
+    val videoArtworkColors =
+        entry(
+            "video_artwork_colors",
+            R.string.player_appearance_video_artwork_colors_title,
+            R.string.player_appearance_video_artwork_colors_subtitle,
+            R.string.settings_section_video_player,
+        )
     val groupedQuality =
         entry(
             "grouped_quality",
@@ -171,6 +178,13 @@ internal object PlayerAppearanceIndex {
             "gesture_overlay",
             R.string.player_appearance_gesture_overlay_title,
             R.string.player_appearance_gesture_overlay_subtitle,
+            R.string.settings_section_video_player,
+        )
+    val sidePanelWidth =
+        entry(
+            "side_panel_width",
+            R.string.player_side_panel_width_title,
+            R.string.player_side_panel_width_summary,
             R.string.settings_section_video_player,
         )
     val shortsUi =
@@ -225,9 +239,11 @@ internal object PlayerAppearanceIndex {
             ambientMode,
             ambientGlow,
             immersiveGlow,
+            videoArtworkColors,
             groupedQuality,
             paidPromotion,
             gestureOverlay,
+            sidePanelWidth,
             shortsUi,
             miniPlayerSize,
             miniPlayerSkip,

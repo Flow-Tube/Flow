@@ -394,7 +394,7 @@ class VideoPlayerViewModel
             transcripts.clear()
         }
 
-        fun startBackgroundPlayback() = presence.startBackgroundPlayback()
+        fun startBackgroundPlayback(explicit: Boolean = true) = presence.startBackgroundPlayback(explicit)
 
         fun resetDismissState() = presence.resetDismissState()
 

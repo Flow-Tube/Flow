@@ -11,6 +11,7 @@ class BackgroundPlaybackPolicyTest {
                 autoPipEnabled = true,
                 isVideoPlaying = true,
                 explicitBackgroundPlaybackActive = false,
+                soundOnlyBackground = false,
             )
 
         assertThat(shouldEnter).isTrue()
@@ -23,6 +24,7 @@ class BackgroundPlaybackPolicyTest {
                 autoPipEnabled = true,
                 isVideoPlaying = true,
                 explicitBackgroundPlaybackActive = true,
+                soundOnlyBackground = false,
             )
 
         assertThat(shouldEnter).isFalse()
@@ -35,6 +37,7 @@ class BackgroundPlaybackPolicyTest {
                 autoPipEnabled = false,
                 isVideoPlaying = true,
                 explicitBackgroundPlaybackActive = false,
+                soundOnlyBackground = false,
             )
 
         assertThat(shouldEnter).isFalse()
@@ -156,4 +159,59 @@ class BackgroundPlaybackPolicyTest {
             BackgroundPlaybackPolicy.shouldKeepPausedVideo(explicitBackgroundPlaybackActive = true, hasLoadedVideo = false),
         ).isFalse()
     }
+
+    @Test
+    fun `auto pip does not enter from the sound only bar`() {
+        val shouldEnter =
+            BackgroundPlaybackPolicy.shouldEnterAutoPip(
+                autoPipEnabled = true,
+                isVideoPlaying = true,
+                explicitBackgroundPlaybackActive = false,
+                soundOnlyBackground = true,
+            )
+
+        assertThat(shouldEnter).isFalse()
+    }
+
+    @Test
+    fun `a collapse goes to the audio bar only with the setting on`() {
+        assertThat(collapseToBar(minimizeToAudioBar = true)).isTrue()
+        assertThat(collapseToBar(minimizeToAudioBar = false)).isFalse()
+    }
+
+    @Test
+    fun `a restored session keeps its video mini player`() {
+        assertThat(collapseToBar(isRestoredSession = true)).isFalse()
+    }
+
+    @Test
+    fun `a video already in the background is not sent there again`() {
+        assertThat(collapseToBar(isBackgroundPlaybackMode = true)).isFalse()
+    }
+
+    @Test
+    fun `nothing goes to the audio bar without a video`() {
+        assertThat(collapseToBar(hasVideo = false)).isFalse()
+    }
+
+    @Test
+    fun `the audio bar alone does not keep a video playing after the app is left`() {
+        val shouldKeepPlayback =
+            BackgroundPlaybackPolicy.shouldKeepPlaybackInBackground(
+                backgroundPlaybackPreferenceEnabled = false,
+                explicitBackgroundPlaybackActive = false,
+                hasActiveVideo = true,
+            )
+
+        assertThat(shouldKeepPlayback).isFalse()
+        assertThat(BackgroundPlaybackPolicy.shouldKeepPausedVideo(explicitBackgroundPlaybackActive = false, hasLoadedVideo = true))
+            .isFalse()
+    }
+
+    private fun collapseToBar(
+        minimizeToAudioBar: Boolean = true,
+        isBackgroundPlaybackMode: Boolean = false,
+        isRestoredSession: Boolean = false,
+        hasVideo: Boolean = true,
+    ) = BackgroundPlaybackPolicy.shouldCollapseToAudioBar(minimizeToAudioBar, isBackgroundPlaybackMode, isRestoredSession, hasVideo)
 }

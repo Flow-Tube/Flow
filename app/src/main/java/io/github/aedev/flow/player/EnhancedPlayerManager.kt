@@ -86,6 +86,7 @@ import io.github.aedev.flow.player.subtitle.SubtitleTracks
 import io.github.aedev.flow.player.surface.SurfaceManager
 import io.github.aedev.flow.player.surface.VideoSurfacePolicy
 import io.github.aedev.flow.player.tracker.PlaybackTracker
+import io.github.aedev.flow.utils.FlowCrashHandler
 import io.github.aedev.flow.utils.NetworkState
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.coroutines.CancellationException
@@ -159,7 +160,7 @@ class EnhancedPlayerManager private constructor() {
     private var availableVideoStreams: List<VideoStream> = emptyList()
     private var availableAudioStreams: List<AudioStream> = emptyList()
 
-    // processAudioStreams keeps one stream per track, usually Opus; DLNA casting needs the AAC ones.
+    // processAudioStreams keeps one stream per track, usually Opus; DLNA casting and decoder recovery need the other formats.
     private var castAudioStreams: List<AudioStream> = emptyList()
     private val subtitleTracks = SubtitleTracks()
     private val subtitleDelay = SubtitleDelay()
@@ -679,7 +680,9 @@ class EnhancedPlayerManager private constructor() {
                 onGatedCodecFallback = { position -> qualityManager?.fallbackToAlternateCodec(position) ?: false },
                 getFailedStreamUrls = {
                     qualityManager?.let { qm ->
-                        availableVideoStreams.filter { qm.hasStreamFailed(it.getContent()) }.map { it.getContent() }.toSet()
+                        (availableVideoStreams.map { it.getContent() } + castAudioStreams.map { it.getContent() })
+                            .filter { qm.hasStreamFailed(it) }
+                            .toSet()
                     } ?: emptySet()
                 },
                 markStreamFailed = { url -> qualityManager?.markStreamFailed(url) },
@@ -689,8 +692,14 @@ class EnhancedPlayerManager private constructor() {
                 getManualQualityHeight = { qualityManager?.manualQualityHeight },
                 getCurrentVideoStream = { currentVideoStream },
                 getCurrentAudioStream = { currentAudioStream },
-                getAvailableAudioStreams = { availableAudioStreams },
-                setCurrentAudioStream = { audio -> currentAudioStream = audio },
+                getAllAudioStreams = { castAudioStreams },
+                setCurrentAudioStream = { audio ->
+                    currentAudioStream = audio
+                    _playerState.value =
+                        _playerState.value.copy(
+                            currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, audio),
+                        )
+                },
                 setRecoveryState = { errorHandler?.setRecovery() },
                 reloadPlaybackManager = { reloadPlaybackManager() },
             )
@@ -1392,6 +1401,7 @@ class EnhancedPlayerManager private constructor() {
         audioOnly: Boolean = false,
         playWhenReady: Boolean = !isStartPausedArmed(currentVideoId),
     ): Boolean {
+        FlowCrashHandler.recordPhase("video-item", "load $currentVideoId audioOnly=$audioOnly")
         val loaded =
             prepareMediaSource(
                 videoStream = videoStream,

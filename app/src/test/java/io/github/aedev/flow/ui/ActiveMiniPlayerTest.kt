@@ -37,6 +37,12 @@ class ActiveMiniPlayerTest {
     }
 
     @Test
+    fun `a video collapsed to the audio bar shows the bar, not the hidden video player`() {
+        assertThat(resolve(hasVideo = true, videoVisible = false, videoInBackground = true)).isEqualTo(ActiveMiniPlayer.VideoBar)
+        assertThat(resolve(hasVideo = true, videoVisible = true, videoInBackground = true)).isEqualTo(ActiveMiniPlayer.VideoBar)
+    }
+
+    @Test
     fun `music shows its bar only with no video cached`() {
         assertThat(resolve(hasMusic = true)).isEqualTo(ActiveMiniPlayer.Music)
         assertThat(resolve(hasMusic = true, hasVideo = true, videoInBackground = true)).isEqualTo(ActiveMiniPlayer.VideoBar)

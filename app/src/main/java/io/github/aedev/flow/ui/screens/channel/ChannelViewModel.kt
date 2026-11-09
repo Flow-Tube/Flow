@@ -7,12 +7,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.community.PostCommentsLoader
 import io.github.aedev.flow.data.local.ChannelSubscription
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.local.dao.SubscriptionGroupDao
 import io.github.aedev.flow.data.local.entity.SubscriptionGroupEntity
-import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.SubscriptionGroup
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.distinctByNonBlankKey
@@ -23,7 +23,6 @@ import io.github.aedev.flow.data.notes.NotesRepository
 import io.github.aedev.flow.data.shorts.withoutShorts
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
-import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
 import io.github.aedev.flow.ui.youtubeChannelBrowseId
 import io.github.aedev.flow.ui.youtubeChannelUrl
@@ -173,6 +172,7 @@ class ChannelViewModel
         private val communityController = ChannelCommunityController(viewModelScope)
         private var requestedChannelUrl: String? = null
         internal val communityUiState: StateFlow<ChannelCommunityUiState> = communityController.state
+        val postComments = PostCommentsLoader(viewModelScope)
 
         private val tabController = ChannelTabController(viewModelScope)
         internal val tabStates: StateFlow<Map<ChannelTabKind, ChannelTabState>> =
@@ -248,6 +248,7 @@ class ChannelViewModel
                             )
                         }
                         communityController.reset(channelId, header.title, header.avatarUrl)
+                        postComments.close()
                         loadSubscriptionState(channelId)
                         observeNote(channelId)
                         onTabsResolved()
@@ -350,19 +351,9 @@ class ChannelViewModel
             ensureTabLoaded(kind)
         }
 
-        fun openCommunityPostComments(post: CommunityPost) = communityController.openComments(post)
-
-        fun closeCommunityPostComments() = communityController.closeComments()
-
         fun retryCommunityPosts() = communityController.retryPosts()
 
         fun loadMoreCommunityPosts() = communityController.loadMorePosts()
-
-        fun loadMoreCommunityPostComments() = communityController.loadMoreComments()
-
-        fun loadCommunityCommentReplies(comment: Comment) = communityController.loadReplies(comment, append = false)
-
-        fun loadMoreCommunityCommentReplies(comment: Comment) = communityController.loadReplies(comment, append = true)
 
         // ── Channel search ────────────────────────────────────────────────────────
 
