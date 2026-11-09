@@ -2963,7 +2963,7 @@
     <string name="duration_under_3">أقل من 3 دقائق</string>
     <string name="duration_3_20">من 3 إلى 20 دقيقة</string>
     <string name="player_appearance_haptics_title">الاهتزاز</string>
-    <string name="player_appearance_haptics_subtitle">اهتزاز خفيف عند النقر على المشغل واستخدام الإيماءات</string>
+    <string name="player_appearance_haptics_subtitle">اهتزاز خفيف عند النقر والإيماءات</string>
     <string name="player_appearance_gesture_overlay_title">نمط عرض الإيماءات</string>
     <string name="player_appearance_gesture_overlay_subtitle">طريقة عرض مستوى الصوت والسطوع أثناء السحب</string>
     <string name="gesture_overlay_style_circular">دائري</string>
@@ -5217,4 +5217,12 @@
     <string name="settings_marquee_title">نص متحرك</string>
     <string name="settings_marquee_summary">تمرير العناوين والأسماء الطويلة. عطله على الأجهزة الأبطأ</string>
     <string name="settings_marquee_keywords">النص المتحرك، عنوان يتمرّر، اسم الفنان، الأجهزة محدودة الأداء، الأداء</string>
+    <string name="lyrics_on_demand">تحميل كلمات الأغاني فقط عند فتحها</string>
+    <string name="lyrics_on_demand_summary">يبحث عنها عند فتح المشغّل أو كلمات الأغاني الخاصة به</string>
+    <string name="settings_keywords_lyrics_on_demand">الخصوصية، الشبكة، الخلفية، البيانات</string>
+    <string name="player_appearance_more_videos_gesture_title">اسحب لأعلى لمشاهدة المزيد من الفيديوهات</string>
+    <string name="player_appearance_more_videos_gesture_subtitle">اسحب لأعلى في وضع ملء الشاشة لعرض الفيديوهات ذات الصلة</string>
+    <string name="content_settings_navbar_show_on_other_pages_title">إظهار شريط التنقل في الصفحات الأخرى</string>
+    <string name="content_settings_navbar_show_on_other_pages_subtitle">أبقِ شريط التنقل ظاهرًا في القنوات وقوائم التشغيل والصفحات الأخرى</string>
+    <string name="daily_limit_title">الحد اليومي</string>
 </resources>
