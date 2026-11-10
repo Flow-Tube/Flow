@@ -350,6 +350,7 @@ fun TvPlayerScreen(
                     firstItemFocusRequester = upNextFocusRequester,
                 )
             },
+            onChannelClick = { onOpenChannel(video.channelId) },
         )
 
         SponsorBlockSkipButton(

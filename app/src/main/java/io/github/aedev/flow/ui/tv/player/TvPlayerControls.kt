@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Comment
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalToggleButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -53,9 +56,11 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
+import io.github.aedev.flow.ui.components.shared.FocusLiftDefaults
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackControls
 import io.github.aedev.flow.ui.components.shared.MediaSeekBar
 import io.github.aedev.flow.ui.components.shared.connectedButtonShapes
+import io.github.aedev.flow.ui.components.shared.focusLift
 import io.github.aedev.flow.ui.components.shared.videoMetadataLine
 import io.github.aedev.flow.ui.components.videoplayer.controls.PlayerControlActions
 import io.github.aedev.flow.ui.components.videoplayer.controls.ScrimEdge
@@ -68,7 +73,9 @@ import io.github.aedev.flow.ui.tv.theme.LocalTvDimens
 import io.github.aedev.flow.utils.formatDuration
 import org.schabi.newpipe.extractor.stream.StreamSegment
 
-private val AvatarSize = 40.dp
+private val AvatarSize = 28.dp
+private val ChannelNameMaxWidth = 240.dp
+private val ChannelButtonPadding = PaddingValues(start = 6.dp, end = 16.dp)
 private val UtilityButtonWidth = 64.dp
 private val UtilityButtonHeight = 56.dp
 private val UtilityIconSize = 24.dp
@@ -114,8 +121,11 @@ internal fun BoxScope.TvPlayerControls(
     onSeekBarFocusChanged: (Boolean) -> Unit,
     upNextShown: Boolean,
     upNext: @Composable () -> Unit,
+    onChannelClick: () -> Unit,
 ) {
     val dimens = LocalTvDimens.current
+    val channelFocusRequester = remember { FocusRequester() }
+    val channelLinked = video.channelId.isNotBlank()
     val motion = MaterialTheme.motionScheme
     AnimatedVisibility(
         visible = visible,
@@ -139,7 +149,14 @@ internal fun BoxScope.TvPlayerControls(
                     ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (!upNextShown) TvPlayerTitle(video = video, isLive = isLive)
+            if (!upNextShown) {
+                TvPlayerTitle(
+                    video = video,
+                    isLive = isLive,
+                    onChannelClick = onChannelClick.takeIf { channelLinked },
+                    channelFocusRequester = channelFocusRequester,
+                )
+            }
             val displayedPositionMs = { scrubTargetMs ?: positionMs() }
             val chapterTitle by remember(chapters) {
                 derivedStateOf {
@@ -172,7 +189,9 @@ internal fun BoxScope.TvPlayerControls(
                         Modifier
                             .fillMaxWidth()
                             .focusRequester(seekBarFocusRequester)
-                            .onFocusChanged { onSeekBarFocusChanged(it.isFocused) },
+                            .onFocusChanged { onSeekBarFocusChanged(it.isFocused) }
+                            // Play on lines up better with the full-width bar, so Up would skip the channel.
+                            .focusProperties { if (channelLinked && !upNextShown) up = channelFocusRequester },
                 )
                 TvPlayerTimes(positionMs = displayedPositionMs, durationMs = durationMs, scrubbing = scrubTargetMs != null)
             }
@@ -211,14 +230,68 @@ internal fun BoxScope.TvPlayerControls(
     }
 }
 
+/**
+ * The title, then the channel as one button (OK opens its page) beside the views and date. Until the
+ * video's details name its channel, the channel is plain text in that line instead.
+ */
 @Composable
 private fun TvPlayerTitle(
     video: Video,
     isLive: Boolean,
+    onChannelClick: (() -> Unit)?,
+    channelFocusRequester: FocusRequester,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = video.title,
+            style = MaterialTheme.typography.titleLarge,
+            color = PlayerScrimContent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val showsChannel = onChannelClick == null
+            if (onChannelClick != null) {
+                TvPlayerChannelButton(video = video, onClick = onChannelClick, focusRequester = channelFocusRequester)
+            }
+            Text(
+                text =
+                    if (isLive) {
+                        listOf(video.channelName.takeIf { showsChannel }.orEmpty(), stringResource(R.string.status_live))
+                            .filter(String::isNotBlank)
+                            .joinToString(" • ")
+                    } else {
+                        videoMetadataLine(video = video, isUpcoming = false, includeChannel = showsChannel)
+                    },
+                style = MaterialTheme.typography.bodyMedium,
+                color = PlayerScrimContentSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            PlayOnButton(tint = PlayerScrimContent)
+        }
+    }
+}
+
+@Composable
+private fun TvPlayerChannelButton(
+    video: Video,
+    onClick: () -> Unit,
+    focusRequester: FocusRequester,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    FilledTonalButton(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        contentPadding = ChannelButtonPadding,
+        modifier =
+            Modifier
+                .focusRequester(focusRequester)
+                .focusLift(interactionSource, FocusLiftDefaults.SMALL_SCALE),
     ) {
         ChannelAvatarImage(
             url = video.channelThumbnailUrl,
@@ -228,28 +301,13 @@ private fun TvPlayerTitle(
                     .size(AvatarSize)
                     .clip(CircleShape),
         )
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = video.title,
-                style = MaterialTheme.typography.titleLarge,
-                color = PlayerScrimContent,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text =
-                    if (isLive) {
-                        listOf(video.channelName, stringResource(R.string.status_live)).filter(String::isNotBlank).joinToString(" • ")
-                    } else {
-                        videoMetadataLine(video = video, isUpcoming = false, includeChannel = true)
-                    },
-                style = MaterialTheme.typography.bodyMedium,
-                color = PlayerScrimContentSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        PlayOnButton(tint = PlayerScrimContent)
+        Text(
+            text = video.channelName,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 8.dp).widthIn(max = ChannelNameMaxWidth),
+        )
     }
 }
 
