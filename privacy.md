@@ -18,6 +18,7 @@ requested, and whether the app still works without it.
 | `ACCESS_WIFI_STATE` | install-time | Local IP for DLNA casting and device sync | No |
 | `CHANGE_WIFI_MULTICAST_STATE` | install-time | SSDP discovery for DLNA casting | No |
 | `WAKE_LOCK` | install-time | Background playback and downloads | Yes |
+| `VIBRATE` | install-time | Vibration while the system's touch feedback is off, when that setting is on | No |
 | `FOREGROUND_SERVICE` | install-time | Playback and download services | Yes |
 | `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | install-time | Media3 playback service (API 34+) | Yes |
 | `FOREGROUND_SERVICE_DATA_SYNC` | install-time | Download and device-sync services (API 34+) | No |
@@ -146,6 +147,16 @@ unless the user opts into a custom location in Download settings, at which point
 the public `Movies` and `Music` folders so the files survive an uninstall and are visible to other
 apps. The app checks `Environment.isExternalStorageManager()` and sends the user to the system
 settings page rather than assuming the grant. Users who keep the default never see the prompt.
+
+### Vibration
+
+`VIBRATE` is used only when Appearance › Style › Ignore system setting is on and the system's touch
+feedback is off. Flow then plays its tap and gesture vibrations itself, as media vibrations, so they
+still follow the phone's main vibration switch, its media vibration level and battery saver. With
+the setting off, Flow's vibrations go through the normal touch feedback path and this permission is
+unused.
+
+Used at: `app/src/main/java/io/github/aedev/flow/ui/components/shared/TouchFeedbackOverride.kt`
 
 ### Battery
 
