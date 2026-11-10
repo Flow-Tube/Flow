@@ -38,6 +38,18 @@ class SubscriptionFeedExactTimeTest {
     }
 
     @Test
+    fun `a premiere keeps its start time when RSS reports its creation time`() {
+        val scheduled = video(now + 7 * 3_600_000L, "Premieres in 7 hours", exact = false).copy(isUpcoming = true)
+        val rss = video(now - 14 * 3_600_000L, "14 hours ago", exact = true)
+
+        val merged = SubscriptionFeedMerger.mergeDuplicates(listOf(rss, scheduled), now)
+
+        assertThat(merged.isUpcoming).isTrue()
+        assertThat(merged.timestamp).isEqualTo(scheduled.timestamp)
+        assertThat(merged.uploadDate).isEqualTo("Premieres in 7 hours")
+    }
+
+    @Test
     fun `a placeholder replaced by the relative text is no longer exact`() {
         val placeholder = video(now, "1 day ago", exact = true)
 

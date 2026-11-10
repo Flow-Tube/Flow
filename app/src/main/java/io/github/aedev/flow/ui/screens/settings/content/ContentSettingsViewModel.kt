@@ -27,6 +27,7 @@ class ContentSettingsViewModel
         val subsShorts = preferences.subscriptionShowShorts.asState(true)
         val subsShortsShelf = preferences.shortsShelfEnabled.asState(true)
         val subsLive = preferences.subscriptionShowLive.asState(true)
+        val subsUpcoming = preferences.subscriptionShowUpcoming.asState(true)
         val subsCollaborations = preferences.subscriptionCollaborationsEnabled.asState(true)
         val hideWatchedSubs = preferences.hideWatchedVideosFromSubscriptions.asState(false)
         val hideUnplayableSubs = preferences.hideUnplayableVideosFromSubscriptions.asState(false)
@@ -68,6 +69,8 @@ class ContentSettingsViewModel
         fun setSubsShortsShelf(value: Boolean) = write { preferences.setShortsShelfEnabled(value) }
 
         fun setSubsLive(value: Boolean) = write { preferences.setSubscriptionShowLive(value) }
+
+        fun setSubsUpcoming(value: Boolean) = write { preferences.setSubscriptionShowUpcoming(value) }
 
         fun setSubsCollaborations(value: Boolean) = write { preferences.setSubscriptionCollaborationsEnabled(value) }
 
