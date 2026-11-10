@@ -1433,7 +1433,9 @@
     <string name="player_settings_normalize_volume_summary">Turn loud videos down to the same level, like youtube.com</string>
     <string name="player_settings_display">Display</string>
     <string name="player_settings_ambient_mode">Ambient mode</string>
-    <string name="player_settings_ambient_mode_subtitle">A soft glow of the video\'s colors around it</string>
+    <string name="player_settings_ambient_mode_subtitle">Fills black bars with the video\'s colors</string>
+    <string name="player_settings_ambient_glow">Ambient glow</string>
+    <string name="player_settings_ambient_glow_subtitle">The video\'s colors glow around the player</string>
     <string name="player_settings_sponsorblock_video">SponsorBlock for this video</string>
     <string name="loop_video">Loop video</string>
     <string name="player_settings_sponsorblock">SponsorBlock</string>

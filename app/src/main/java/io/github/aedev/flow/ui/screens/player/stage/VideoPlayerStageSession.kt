@@ -37,4 +37,5 @@ internal class VideoPlayerStageSession(
     val pipPreferences: PipPreferences,
     /** Whether the window shows the fullscreen layout yet, which trails the request while it rotates. */
     val isFullscreenShown: Boolean,
+    val ambient: PlayerAmbient,
 )

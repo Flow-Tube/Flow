@@ -48,8 +48,9 @@ import io.github.aedev.flow.player.PipBounds
 import io.github.aedev.flow.player.toDisplayAspectRatioOrNull
 import io.github.aedev.flow.ui.components.shared.clipToCornerRadius
 import io.github.aedev.flow.ui.components.shared.flowPlayerViewLayout
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameCaptureEffect
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameHolder
 import io.github.aedev.flow.ui.components.videoplayer.ambient.VideoAmbientBackground
-import io.github.aedev.flow.ui.components.videoplayer.ambient.rememberAmbientFrame
 import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -61,8 +62,12 @@ fun VideoPlayerSurface(
     onVideoAspectRatioChanged: ((Float) -> Unit)? = null,
     cornerRadiusDp: Float = 0f,
     ambientMode: Boolean = false,
+    ambientFrames: AmbientFrameHolder? = null,
+    ambientGlow: Boolean = false,
 ) {
     val ambientActive = ambientMode && resizeMode == 0
+    val localAmbientFrames = remember { AmbientFrameHolder() }
+    val frames = ambientFrames ?: localAmbientFrames
     val context = LocalContext.current
     val density = LocalDensity.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -176,22 +181,10 @@ fun VideoPlayerSurface(
 
     val currentSurfaceRestoreTrigger = surfaceRestoreTrigger
 
-    val ambientFrame = rememberAmbientFrame(playerView, ambientActive)
+    AmbientFrameCaptureEffect(playerView, ambientActive || ambientGlow, frames)
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (ambientActive) {
-            // Held back until the first frame is sampled, then faded in: before that the glow is only
-            // its dark base, which used to black out the backdrop around the video for a moment.
-            val ambientAppear = remember { Animatable(0f) }
-            val ambientFade = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
-            val ambientReady = ambientFrame.frame != null
-            LaunchedEffect(ambientReady) { if (ambientReady) ambientAppear.animateTo(1f, ambientFade) }
-            VideoAmbientBackground(
-                frame = ambientFrame.frame,
-                videoAspect = ambientVideoAspect,
-                modifier = Modifier.fillMaxSize().graphicsLayer { alpha = ambientAppear.value },
-            )
-        }
+        if (ambientActive) AmbientBars(frames, ambientVideoAspect)
         AndroidView(
             factory = { playerView },
             update = { view ->
@@ -276,6 +269,26 @@ fun VideoPlayerSurface(
             modifier = Modifier.fillMaxSize().then(rememberPipSourceHintModifier(context as? Activity)),
         )
     }
+}
+
+/** Reads the frame in its own scope, so each new frame recomposes the bars and not the surface. */
+@Composable
+private fun AmbientBars(
+    frames: AmbientFrameHolder,
+    videoAspect: Float?,
+) {
+    // Held back until the first frame is sampled, then faded in: before that the glow is only
+    // its dark base, which used to black out the backdrop around the video for a moment.
+    val ambientAppear = remember { Animatable(0f) }
+    val ambientFade = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
+    val frame = frames.state.frame
+    val ambientReady = frame != null
+    LaunchedEffect(ambientReady) { if (ambientReady) ambientAppear.animateTo(1f, ambientFade) }
+    VideoAmbientBackground(
+        frame = frame,
+        videoAspect = videoAspect,
+        modifier = Modifier.fillMaxSize().graphicsLayer { alpha = ambientAppear.value },
+    )
 }
 
 private fun Context.isDisplayInteractive(): Boolean =

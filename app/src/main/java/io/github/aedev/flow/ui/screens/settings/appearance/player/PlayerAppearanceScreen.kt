@@ -210,6 +210,7 @@ internal fun PlayerAppearanceScreen(
         group(key = "player_appearance.video", header = R.string.settings_section_video_player) {
             switch(PlayerAppearanceIndex.adaptiveSize, adaptiveSize, viewModel::setAdaptivePlayerSize)
             switch(PlayerAppearanceIndex.ambientMode, ambientMode, viewModel::setAmbientMode)
+            switch(PlayerAppearanceIndex.ambientGlow, viewModel.ambientGlow, viewModel::setAmbientGlow)
             switch(PlayerAppearanceIndex.videoArtworkColors, videoArtworkColors, viewModel::setVideoArtworkColors)
             switch(PlayerAppearanceIndex.groupedQuality, groupedQuality, viewModel::setGroupedQualitySelector)
             switch(PlayerAppearanceIndex.paidPromotion, paidPromotion, viewModel::setPaidPromotionLabel)

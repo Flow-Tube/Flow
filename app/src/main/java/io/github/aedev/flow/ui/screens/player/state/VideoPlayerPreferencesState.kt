@@ -48,6 +48,7 @@ internal class VideoPlayerPreferencesState(
     val savedSubtitleStyle: SubtitleStyle,
     val rememberPlaybackSpeed: Boolean,
     val ambientModeEnabled: Boolean,
+    val ambientGlowEnabled: Boolean,
     val adaptivePlayerSizeEnabled: Boolean,
     val groupedQualitySelectorEnabled: Boolean,
     val lockModeEnabled: Boolean,
@@ -89,6 +90,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val savedSubtitleStyle by playerPreferences.subtitleStyle.collectAsState(initial = SubtitleStyle())
     val rememberPlaybackSpeed by playerPreferences.rememberPlaybackSpeed.collectAsState(initial = false)
     val ambientModeEnabled by playerPreferences.videoAmbientModeEnabled.collectAsState(initial = false)
+    val ambientGlowEnabled by playerPreferences.videoAmbientGlowEnabled.collectAsState(initial = false)
     val adaptivePlayerSizeEnabled by playerPreferences.adaptivePlayerSizeEnabled.collectAsState(initial = true)
     val groupedQualitySelectorEnabled by playerPreferences.groupedQualitySelectorEnabled.collectAsState(initial = false)
     val lockModeEnabled by playerPreferences.overlayLockModeEnabled.collectAsState(initial = false)
@@ -130,6 +132,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         savedSubtitleStyle = savedSubtitleStyle,
         rememberPlaybackSpeed = rememberPlaybackSpeed,
         ambientModeEnabled = ambientModeEnabled,
+        ambientGlowEnabled = ambientGlowEnabled,
         adaptivePlayerSizeEnabled = adaptivePlayerSizeEnabled,
         groupedQualitySelectorEnabled = groupedQualitySelectorEnabled,
         lockModeEnabled = lockModeEnabled,
