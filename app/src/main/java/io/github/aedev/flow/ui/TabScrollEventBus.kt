@@ -29,6 +29,15 @@ object TabScrollEventBus {
     fun emitScrollToTop(route: String) {
         _scrollToTopEvents.tryEmit(route)
     }
+
+    private val _scrolledToTopEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    /** Sent by a screen once it has finished a scroll asked for by [emitScrollToTop]. */
+    val scrolledToTopEvents: SharedFlow<String> = _scrolledToTopEvents.asSharedFlow()
+
+    fun emitScrolledToTop(route: String) {
+        _scrolledToTopEvents.tryEmit(route)
+    }
 }
 
 /** Runs [onReselect] each time the tab rooted at [route] is tapped while its root is showing. */

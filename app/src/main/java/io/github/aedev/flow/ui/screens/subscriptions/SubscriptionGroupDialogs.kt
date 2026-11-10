@@ -54,7 +54,9 @@ import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.SubscriptionGroup
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
+import io.github.aedev.flow.ui.components.shared.FlowReorderButtons
 import io.github.aedev.flow.ui.components.shared.FlowSearchField
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import io.github.aedev.flow.ui.utils.flowWindowDpSize
 import sh.calvin.reorderable.ReorderableItem
@@ -182,24 +184,31 @@ private fun SubscriptionGroupsReorderList(
                                 },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(
-                            modifier =
-                                with(itemScope) {
-                                    Modifier
-                                        .size(LocalMinimumInteractiveComponentSize.current)
-                                        .draggableHandle(
-                                            onDragStarted = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                            },
-                                            onDragStopped = { haptics.performHapticFeedback(HapticFeedbackType.GestureEnd) },
-                                        )
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            ReorderHandle()
+                        if (LocalDpadNavigation.current) {
+                            FlowReorderButtons(
+                                onMoveUp = if (index > 0) ({ move(index, index - 1) }) else null,
+                                onMoveDown = if (index < ordered.lastIndex) ({ move(index, index + 1) }) else null,
+                            )
+                        } else {
+                            Box(
+                                modifier =
+                                    with(itemScope) {
+                                        Modifier
+                                            .size(LocalMinimumInteractiveComponentSize.current)
+                                            .draggableHandle(
+                                                onDragStarted = {
+                                                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                },
+                                                onDragStopped = { haptics.performHapticFeedback(HapticFeedbackType.GestureEnd) },
+                                            )
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                ReorderHandle()
+                            }
                         }
                         Text(
-                            text = group.name,
+                            text = if (group.isUngrouped()) stringResource(R.string.group_ungrouped) else group.name,
                             style = MaterialTheme.typography.bodyLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -216,20 +225,22 @@ private fun SubscriptionGroupsReorderList(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = ContentSpacing),
                         )
-                        IconButton(onClick = { onEdit(group) }, modifier = Modifier.size(ActionIconSize)) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(ActionGlyphSize),
-                            )
-                        }
-                        IconButton(onClick = { onDelete(group) }, modifier = Modifier.size(ActionIconSize)) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(ActionGlyphSize),
-                                tint = MaterialTheme.colorScheme.error,
-                            )
+                        if (!group.isUngrouped()) {
+                            IconButton(onClick = { onEdit(group) }, modifier = Modifier.size(ActionIconSize)) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(ActionGlyphSize),
+                                )
+                            }
+                            IconButton(onClick = { onDelete(group) }, modifier = Modifier.size(ActionIconSize)) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(ActionGlyphSize),
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
                         }
                     }
                 }
@@ -359,7 +370,7 @@ internal fun SubscriptionGroupDialogsHost(
 
     if (!editing) {
         SubscriptionGroupsManagerDialog(
-            groups = uiState.groups,
+            groups = uiState.managedGroups(),
             onDismiss = onDismiss,
             onCreateNew = {
                 editingGroup = null

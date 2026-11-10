@@ -7,6 +7,11 @@
     <string name="subscriptions_sort_default">Default</string>
     <string name="subscriptions_sort_name">Name (A–Z)</string>
     <string name="subscriptions_sort_recent">Recently updated</string>
+    <string name="subscriptions_sort_most_watched">Most watched</string>
+    <string name="subscriptions_pin_channel">Pin to start</string>
+    <string name="subscriptions_unpin_channel">Unpin</string>
+    <string name="subscriptions_open_channel">Open channel</string>
+    <string name="subscriptions_pinned_section">Pinned</string>
     <string name="top_bar_subscriptions_title">Subscriptions</string>
     <string name="top_bar_close_search">Close search</string>
     <string name="view_all_button_label">All</string>
@@ -466,6 +471,7 @@
     <string name="search_subscriptions">Search Subscriptions</string>
     <!-- Subscription Groups -->
     <string name="group_all">All</string>
+    <string name="group_ungrouped">Ungrouped</string>
     <string name="manage_groups">Manage Groups</string>
     <string name="new_group">New Group</string>
     <string name="edit_group">Edit Group</string>
@@ -940,6 +946,8 @@
     <string name="player_appearance_hide_music_artwork_subtitle">Show the app icon on the extracted artwork color instead</string>
     <string name="player_appearance_haptics_title">Vibration</string>
     <string name="player_appearance_haptics_subtitle">Vibrate lightly on taps and gestures</string>
+    <string name="settings_haptics_ignore_system_title">Ignore system setting</string>
+    <string name="settings_haptics_ignore_system_summary">Vibrate even when touch feedback is off</string>
     <string name="player_appearance_gesture_overlay_title">Gesture overlay style</string>
     <string name="player_appearance_gesture_overlay_subtitle">How volume and brightness show while you swipe</string>
     <string name="gesture_overlay_style_circular">Circular</string>
@@ -1295,8 +1303,14 @@
     <string name="content_settings_subs_show_shorts_subtitle">Show Shorts in the subscription feed</string>
     <string name="content_settings_subs_show_live_title">Subscription live streams</string>
     <string name="content_settings_subs_show_live_subtitle">Show live and recent streams in the feed</string>
+    <string name="content_settings_subs_show_upcoming_title">Upcoming videos</string>
+    <string name="content_settings_subs_show_upcoming_subtitle">Show premieres and scheduled streams</string>
     <string name="content_settings_subs_collaborations_title">Collaborations</string>
     <string name="content_settings_subs_collaborations_subtitle">Videos made with channels you follow</string>
+    <string name="content_settings_subs_posts_chip_title">Posts chip</string>
+    <string name="content_settings_subs_posts_chip_subtitle">Show the Posts chip above the feed</string>
+    <string name="content_settings_subs_ungrouped_title">Ungrouped group</string>
+    <string name="content_settings_subs_ungrouped_subtitle">A chip for channels in no group</string>
     <string name="content_settings_nav_order_title">Tab order and default</string>
     <string name="content_settings_nav_order_subtitle">Drag to reorder. Choose the tab Flow opens on.</string>
     <string name="settings_subs_shorts_shelf_title">Subscriptions shorts shelf</string>
@@ -1442,6 +1456,8 @@
     <string name="player_settings_ambient_glow_subtitle">The video\'s colors glow around the player</string>
     <string name="player_settings_immersive_glow">Immersive glow</string>
     <string name="player_settings_immersive_glow_subtitle">Light the whole watch page</string>
+    <string name="player_settings_glow_battery_saver">Glow in battery saver</string>
+    <string name="player_settings_glow_battery_saver_subtitle">Keep the glow when saving battery</string>
     <string name="player_settings_sponsorblock_video">SponsorBlock for this video</string>
     <string name="loop_video">Loop video</string>
     <string name="player_settings_sponsorblock">SponsorBlock</string>
@@ -3625,6 +3641,8 @@
     <string name="tv_guide_player_down">Reveal the transport controls and focus Play/Pause.</string>
     <string name="tv_guide_player_media">Play, Pause, Previous, Next, Rewind, Fast-forward, and Captions keys work directly.</string>
     <string name="tv_guide_player_back">Close a panel or the controls first; press again to leave the player.</string>
+    <string name="tv_rail_now_playing">Now playing</string>
+    <string name="tv_rail_now_playing_description">Now playing: %1$s</string>
     <!-- Home-screen widgets -->
     <string name="widget_now_playing_label">Now Playing</string>
     <string name="widget_now_playing_description">Control the music that\'s playing in Flow</string>

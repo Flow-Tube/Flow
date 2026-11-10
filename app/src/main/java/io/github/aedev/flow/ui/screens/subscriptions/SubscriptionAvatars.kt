@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.subscriptions
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +22,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,20 +63,33 @@ internal fun ChannelAvatarItem(
     channel: Channel,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
+    onTogglePin: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    var menuOpen by remember { mutableStateOf(false) }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
             modifier
                 .width(AvatarItemWidth)
                 .focusLift(interactionSource)
-                .clickable(
+                .combinedClickable(
                     interactionSource = interactionSource,
                     indication = ripple(focusRingShape = MaterialTheme.shapes.medium),
                     onClick = onClick,
+                    onLongClick = onTogglePin?.let { { menuOpen = true } },
                 ),
     ) {
+        if (onTogglePin != null) {
+            SubscriptionChannelMenu(
+                expanded = menuOpen,
+                isPinned = isPinned,
+                onDismiss = { menuOpen = false },
+                onTogglePin = onTogglePin,
+                onOpenChannel = onClick,
+            )
+        }
         Box(
             modifier = Modifier.size(AvatarSize),
             contentAlignment = Alignment.Center,

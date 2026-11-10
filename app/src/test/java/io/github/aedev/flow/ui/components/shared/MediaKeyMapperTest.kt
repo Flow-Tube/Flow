@@ -27,6 +27,16 @@ class MediaKeyMapperTest {
     }
 
     @Test
+    fun `arrows are left to focus when they are a remote's d-pad`() {
+        listOf(KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN)
+            .forEach { assertThat(MediaKeyMapper.map(it, shift = false, otherModifier = false, arrowsNavigate = true)).isNull() }
+        assertThat(MediaKeyMapper.map(KeyEvent.KEYCODE_SPACE, shift = false, otherModifier = false, arrowsNavigate = true))
+            .isEqualTo(MediaKeyAction.TogglePlayback)
+        assertThat(MediaKeyMapper.map(KeyEvent.KEYCODE_L, shift = false, otherModifier = false, arrowsNavigate = true))
+            .isEqualTo(MediaKeyAction.SeekForward)
+    }
+
+    @Test
     fun `shifted keys step the queue and the speed`() {
         assertThat(map(KeyEvent.KEYCODE_N, shift = true)).isEqualTo(MediaKeyAction.Next)
         assertThat(map(KeyEvent.KEYCODE_P, shift = true)).isEqualTo(MediaKeyAction.Previous)

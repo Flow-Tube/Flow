@@ -214,6 +214,9 @@ fun SubscriptionsScreen(
                         onShortsExcludeChange = viewModel::setShortsChannelExcluded,
                         showsMusic = manageShowsMusic,
                         onShowsMusicChange = { manageShowsMusic = it },
+                        pinnedIds = uiState.pinnedChannelIds,
+                        onTogglePin = viewModel::togglePin,
+                        onPinnedOrderChanged = viewModel::setPinnedOrder,
                         onUnsubscribe = { channel ->
                             scope.launch {
                                 unsubscribeWithUndo(
@@ -229,7 +232,7 @@ fun SubscriptionsScreen(
                     )
                 } else if (uiState.subscribedChannels.isEmpty()) {
                     SubscriptionsEmptyState(modifier = Modifier.fillMaxSize())
-                } else if (showPosts) {
+                } else if (showPosts && uiState.showPostsChip) {
                     SubscriptionPostsContent(
                         channelIds = uiState.selectedGroupScope(),
                         listState = postsListState,
@@ -246,6 +249,8 @@ fun SubscriptionsScreen(
                                 onManageGroups = { showGroupsDialog = true },
                                 postsSelected = true,
                                 onPostsClick = { showPosts = false },
+                                pinnedCount = channels.pinnedCount,
+                                onTogglePin = { viewModel.togglePin(it.id) },
                             )
                         },
                     )
@@ -266,7 +271,9 @@ fun SubscriptionsScreen(
                         onManageGroups = { showGroupsDialog = true },
                         onRetryFailedChannels = viewModel::retryFailedChannels,
                         onDismissFailedChannels = viewModel::dismissFailedChannels,
-                        onPostsClick = { showPosts = true },
+                        onPostsClick = { showPosts = true }.takeIf { uiState.showPostsChip },
+                        pinnedCount = channels.pinnedCount,
+                        onTogglePin = { viewModel.togglePin(it.id) },
                     )
                 }
             }

@@ -60,6 +60,7 @@ fun FlowAlertDialog(
 ) {
     BasicAlertDialog(onDismissRequest = onDismissRequest, modifier = modifier, properties = properties) {
         Surface(
+            modifier = Modifier.ignoreHeldOk(),
             shape = AlertDialogDefaults.shape,
             color = AlertDialogDefaults.containerColor,
             tonalElevation = AlertDialogDefaults.TonalElevation,

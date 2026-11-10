@@ -14,7 +14,8 @@ import io.github.aedev.flow.ui.utils.rememberPowerSaveMode
  * The player's ambient light: the one frame every surface reads, and whether the page around the
  * player glows. [glow] holds only while the sheet is at rest open and stays on through a collapse,
  * so the glow fades out with the page instead of vanishing under the finger. [immersive] lights
- * the whole page instead of the band under the player. Both pause in battery saver.
+ * the whole page instead of the band under the player. Both pause in battery saver unless the
+ * viewer asked to keep them (#1914).
  */
 @Immutable
 internal class PlayerAmbient(
@@ -32,8 +33,8 @@ internal fun rememberPlayerAmbient(
     layoutMode: PlayerLayoutMode,
 ): PlayerAmbient {
     val frames = remember { AmbientFrameHolder() }
-    // Listened to only while the glow is wanted at all.
-    val powerSaving = prefs.ambientGlowEnabled && rememberPowerSaveMode()
+    // Listened to only while battery saver can still turn the glow off.
+    val powerSaving = prefs.ambientGlowEnabled && !prefs.ambientGlowInBatterySaver && rememberPowerSaveMode()
     val glow =
         prefs.ambientGlowEnabled &&
             !powerSaving &&

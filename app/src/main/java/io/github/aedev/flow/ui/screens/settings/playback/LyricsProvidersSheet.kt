@@ -37,8 +37,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.shared.FlowReorderButtons
 import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
 import io.github.aedev.flow.ui.components.shared.FlowSwitch
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import io.github.aedev.flow.ui.components.shared.rememberFlowSheetState
 import sh.calvin.reorderable.ReorderableColumn
@@ -127,13 +129,20 @@ internal fun LyricsProvidersSheet(
                                     },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(LocalMinimumInteractiveComponentSize.current)
-                                        .draggableHandle(),
-                                contentAlignment = Alignment.Center,
-                            ) { ReorderHandle() }
+                            if (LocalDpadNavigation.current) {
+                                FlowReorderButtons(
+                                    onMoveUp = if (index > 0) ({ move(index, index - 1) }) else null,
+                                    onMoveDown = if (index < providers.lastIndex) ({ move(index, index + 1) }) else null,
+                                )
+                            } else {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(LocalMinimumInteractiveComponentSize.current)
+                                            .draggableHandle(),
+                                    contentAlignment = Alignment.Center,
+                                ) { ReorderHandle() }
+                            }
                             val label = ProviderLabels[provider.name]
                             Column(modifier = Modifier.weight(1f).padding(vertical = RowVerticalPadding)) {
                                 Text(

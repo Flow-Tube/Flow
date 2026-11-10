@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.OndemandVideo
@@ -64,6 +65,9 @@ internal fun SubscriptionsManageContent(
     modifier: Modifier = Modifier,
     showsMusic: Boolean = false,
     onShowsMusicChange: (Boolean) -> Unit = {},
+    pinnedIds: List<String> = emptyList(),
+    onTogglePin: ((String) -> Unit)? = null,
+    onPinnedOrderChanged: (List<String>) -> Unit = {},
 ) {
     val selectedTabIndex = if (showsMusic) 1 else 0
 
@@ -84,6 +88,32 @@ internal fun SubscriptionsManageContent(
                 activeList.filter { it.name.contains(searchQuery, ignoreCase = true) }
             }
         }
+
+    val pinnedInList =
+        remember(activeList, pinnedIds, searchQuery) {
+            if (searchQuery.isNotBlank()) return@remember emptyList()
+            val byId = activeList.associateBy(Channel::id)
+            pinnedIds.mapNotNull(byId::get)
+        }
+    val listState = rememberLazyListState()
+    val pinnedReorder = rememberPinnedReorder(listState, pinnedInList, onPinnedOrderChanged)
+
+    @Composable
+    fun ManagerRow(
+        channel: Channel,
+        dragHandle: (@Composable () -> Unit)? = null,
+    ) = SubscriptionManagerItem(
+        channel = channel,
+        onClick = { onChannelClick(channel) },
+        onUnsubscribe = { onUnsubscribe(channel) },
+        isNotificationsEnabled = notificationStates[channel.id] ?: false,
+        areShortsExcluded = channel.id in excludedShortsChannelIds,
+        onNotificationChange = { enabled -> onNotificationChange(channel.id, enabled) },
+        onShortsExcludeChange = { excluded -> onShortsExcludeChange(channel.id, excluded) },
+        isPinned = channel.id in pinnedIds,
+        onTogglePin = onTogglePin?.let { toggle -> { toggle(channel.id) } },
+        dragHandle = dragHandle,
+    )
 
     Column(modifier = modifier.fillMaxSize()) {
         FlowConnectedToggleGroup(
@@ -110,6 +140,7 @@ internal fun SubscriptionsManageContent(
         )
 
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding =
                 PaddingValues(
@@ -120,6 +151,7 @@ internal fun SubscriptionsManageContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(ListItemSpacing),
         ) {
+            pinnedSubscriptionsSection(pinnedReorder) { channel, dragHandle -> ManagerRow(channel, dragHandle) }
             item {
                 Text(
                     text =
@@ -134,17 +166,7 @@ internal fun SubscriptionsManageContent(
                 )
             }
 
-            items(filteredChannels, key = { it.id }) { channel ->
-                SubscriptionManagerItem(
-                    channel = channel,
-                    onClick = { onChannelClick(channel) },
-                    onUnsubscribe = { onUnsubscribe(channel) },
-                    isNotificationsEnabled = notificationStates[channel.id] ?: false,
-                    areShortsExcluded = channel.id in excludedShortsChannelIds,
-                    onNotificationChange = { enabled -> onNotificationChange(channel.id, enabled) },
-                    onShortsExcludeChange = { excluded -> onShortsExcludeChange(channel.id, excluded) },
-                )
-            }
+            items(filteredChannels, key = { it.id }) { channel -> ManagerRow(channel) }
 
             if (filteredChannels.isEmpty()) {
                 item {

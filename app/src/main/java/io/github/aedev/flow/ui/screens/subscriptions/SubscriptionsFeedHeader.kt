@@ -51,6 +51,8 @@ internal fun SubscriptionsFeedHeader(
     modifier: Modifier = Modifier,
     postsSelected: Boolean = false,
     onPostsClick: (() -> Unit)? = null,
+    pinnedCount: Int = 0,
+    onTogglePin: ((Channel) -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         SubscriptionsQuickAccessRow(
@@ -58,6 +60,8 @@ internal fun SubscriptionsFeedHeader(
             onChannelClick = onChannelClick,
             onViewAllClick = onViewAllClick,
             onMusicClick = onMusicSubscriptionsClick,
+            pinnedCount = pinnedCount,
+            onTogglePin = onTogglePin,
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -86,15 +90,17 @@ internal fun SubscriptionsFeedHeader(
                 )
                 VerticalDivider(modifier = Modifier.height(PostsDividerHeight))
             }
+            val chips = state.groupChips()
+            val selected = state.selectedChip(chips)
             FlowFilterChip(
                 label = stringResource(R.string.group_all),
-                selected = state.selectedGroupName == null,
+                selected = selected == null,
                 onClick = { onGroupSelected(null) },
             )
-            state.groups.forEach { group ->
+            chips.forEach { group ->
                 FlowFilterChip(
-                    label = group.name,
-                    selected = state.selectedGroupName == group.name,
+                    label = if (group.isUngrouped()) stringResource(R.string.group_ungrouped) else group.name,
+                    selected = selected == group.name,
                     onClick = { onGroupSelected(group.name) },
                 )
             }

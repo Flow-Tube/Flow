@@ -58,15 +58,21 @@ sealed interface MediaKeyAction {
 
 /**
  * The keys Flow Desktop and YouTube use. Keys held with Ctrl, Alt or Meta stay with the system, and
- * the media keys are left to the media session.
+ * the media keys are left to the media session. With [arrowsNavigate] the arrows are left to focus,
+ * as on a TV, where they are the remote's D-pad.
  */
 object MediaKeyMapper {
+    private val ARROW_KEYS =
+        setOf(KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN)
+
     fun map(
         keyCode: Int,
         shift: Boolean,
         otherModifier: Boolean,
+        arrowsNavigate: Boolean = false,
     ): MediaKeyAction? {
         if (otherModifier) return null
+        if (arrowsNavigate && keyCode in ARROW_KEYS) return null
         if (shift) {
             return when (keyCode) {
                 KeyEvent.KEYCODE_N -> MediaKeyAction.Next
@@ -118,19 +124,22 @@ fun Modifier.mediaKeyboardShortcuts(
         enabled &&
             configuration.keyboard == Configuration.KEYBOARD_QWERTY &&
             configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
+    // A remote already moves focus between the player's buttons, so the keys only bubble up to here.
+    val dpad = LocalDpadNavigation.current
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(active) {
-        if (active) focusRequester.requestFocus()
+    LaunchedEffect(active, dpad) {
+        if (active && !dpad) focusRequester.requestFocus()
     }
     if (!active) return this
-    return focusRequester(focusRequester)
-        .focusTarget()
+    val target = if (dpad) this else focusRequester(focusRequester).focusTarget()
+    return target
         .onKeyEvent { event ->
             val action =
                 MediaKeyMapper.map(
                     keyCode = event.key.nativeKeyCode,
                     shift = event.isShiftPressed,
                     otherModifier = event.isCtrlPressed || event.isAltPressed || event.isMetaPressed,
+                    arrowsNavigate = dpad,
                 ) ?: return@onKeyEvent false
             when (event.type) {
                 KeyEventType.KeyDown -> {

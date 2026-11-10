@@ -71,6 +71,8 @@ object SettingsMapper {
             Entry("subscriptions_show_videos", "subscription_show_videos", Ty.BOOL),
             Entry("subscriptions_show_shorts", "subscription_show_shorts", Ty.BOOL),
             Entry("subscriptions_show_live", "subscription_show_live", Ty.BOOL),
+            Entry("subscriptions_show_upcoming", "subscription_show_upcoming", Ty.BOOL),
+            Entry("subscriptions_pinned_channels", "subs_pinned_channels", Ty.STRING),
             Entry("default_video_codec", "default_video_codec", Ty.STRING),
             Entry("shorts_quality_wifi", "shorts_quality_wifi", Ty.STRING),
             Entry("shorts_quality_cellular", "shorts_quality_cellular", Ty.STRING),

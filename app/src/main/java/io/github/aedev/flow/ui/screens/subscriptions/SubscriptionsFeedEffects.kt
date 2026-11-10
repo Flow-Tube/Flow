@@ -19,19 +19,24 @@ import kotlinx.coroutines.flow.filter
 private const val QUICK_ACCESS_CHANNEL_LIMIT = 15
 private const val STALE_REFRESH_INTERVAL_MS = 3 * 60 * 1000L
 
-/** The channels in the user's sort order, and the first of them for the quick access row. */
+/** The channels in the user's sort order, and the pinned ones then the first of the rest for the quick access row. */
 internal class SubscriptionChannels(
     val sorted: List<Channel>,
-    val quickAccess: List<Channel>,
-)
+    private val quickAccessRow: QuickAccessChannels,
+) {
+    val quickAccess: List<Channel> get() = quickAccessRow.channels
+    val pinnedCount: Int get() = quickAccessRow.pinnedCount
+}
 
 @Composable
 internal fun rememberSubscriptionChannels(uiState: SubscriptionsUiState): SubscriptionChannels {
     val sorted =
-        remember(uiState.subscribedChannels, uiState.sortMode, uiState.recentVideos) {
-            sortSubscriptions(uiState.subscribedChannels, uiState.sortMode, uiState.recentVideos)
+        remember(uiState.subscribedChannels, uiState.sortMode, uiState.recentVideos, uiState.channelWatchCounts) {
+            sortSubscriptions(uiState.subscribedChannels, uiState.sortMode, uiState.recentVideos, uiState.channelWatchCounts)
         }
-    return remember(sorted) { SubscriptionChannels(sorted, quickAccessOrder(sorted).take(QUICK_ACCESS_CHANNEL_LIMIT)) }
+    return remember(sorted, uiState.pinnedChannelIds) {
+        SubscriptionChannels(sorted, quickAccessChannels(sorted, uiState.pinnedChannelIds, QUICK_ACCESS_CHANNEL_LIMIT))
+    }
 }
 
 /**
@@ -64,6 +69,7 @@ internal fun SubscriptionsFeedEffects(
             .filter { it == "subscriptions" }
             .collectLatest {
                 feedGridState.animateScrollToItem(0)
+                TabScrollEventBus.emitScrolledToTop("subscriptions")
                 viewModel.refreshFeed()
             }
     }

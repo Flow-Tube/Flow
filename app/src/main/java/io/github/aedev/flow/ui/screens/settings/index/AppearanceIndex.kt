@@ -143,6 +143,15 @@ internal object AppearanceIndex {
             section = R.string.settings_section_style,
             destination = page,
         )
+    val hapticsIgnoreSystem =
+        SettingEntry(
+            key = "appearance.haptics_ignore_system",
+            title = R.string.settings_haptics_ignore_system_title,
+            summary = R.string.settings_haptics_ignore_system_summary,
+            keywords = R.string.settings_keywords_haptics,
+            section = R.string.settings_section_style,
+            destination = page,
+        )
     val highlightNewSettings =
         SettingEntry(
             key = "appearance.highlight_new_settings",
@@ -168,6 +177,7 @@ internal object AppearanceIndex {
             marquee,
             classicLoadingIndicator,
             haptics,
+            hapticsIgnoreSystem,
             highlightNewSettings,
             highlightNewSettingsDays,
             homeViewMode,

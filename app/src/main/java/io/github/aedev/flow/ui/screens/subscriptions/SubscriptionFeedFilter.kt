@@ -10,6 +10,7 @@ internal data class SubscriptionFeedFilters(
     val showVideos: Boolean = true,
     val showShorts: Boolean = true,
     val showLive: Boolean = true,
+    val showUpcoming: Boolean = true,
     val watchedVideoIds: Set<String> = emptySet(),
     val watchedShortIds: Set<String> = emptySet(),
     val unplayableVideoIds: Set<String> = emptySet(),
@@ -40,6 +41,7 @@ internal fun subscriptionFeedSections(
             .filter { video -> video.id !in filters.unplayableVideoIds && !filters.exclusions.hides(video) }
             .filter { video ->
                 when {
+                    video.isUpcoming -> filters.showUpcoming
                     video.isShort -> filters.showShorts
                     video.isLive -> filters.showLive
                     else -> filters.showVideos
