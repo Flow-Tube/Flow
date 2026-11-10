@@ -94,6 +94,7 @@ class AppearanceViewModel
         val marqueeEnabled = localDataManager.marqueeEnabled.asState(true)
         val classicLoadingIndicator = localDataManager.classicLoadingIndicator.asState(false)
         val haptics = preferences.hapticsEnabled.asState(true)
+        val hapticsIgnoreSystem = preferences.hapticsIgnoreSystem.asState(false)
         val newSettingsHighlight = preferences.newSettingsHighlight.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT)
         val newSettingsDays = preferences.newSettingsHighlightDays.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS)
 
@@ -104,6 +105,8 @@ class AppearanceViewModel
         fun setClassicLoadingIndicator(enabled: Boolean) = write { localDataManager.setClassicLoadingIndicator(enabled) }
 
         fun setHaptics(enabled: Boolean) = write { preferences.setHapticsEnabled(enabled) }
+
+        fun setHapticsIgnoreSystem(enabled: Boolean) = write { preferences.setHapticsIgnoreSystem(enabled) }
 
         fun setNewSettingsHighlight(enabled: Boolean) = write { preferences.setNewSettingsHighlight(enabled) }
 

@@ -75,12 +75,14 @@ internal class GaplessPreloadController(
 
     /**
      * Re-targets the preload after something changed what plays next, dropping an already appended
-     * item or an in-flight attempt aimed at a video that is no longer the target.
+     * item or an in-flight attempt aimed at a video that is no longer the target. With no target at
+     * all, the appended item goes too, or the player would still roll into it.
      */
     fun request(reason: String) {
         val target =
             nextTarget() ?: run {
                 log("requestPreloadNext no target reason=$reason")
+                clear()
                 return
             }
         log("requestPreloadNext reason=$reason target=${target.video.id} fromQueue=${target.fromQueue}")

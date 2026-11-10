@@ -946,6 +946,8 @@
     <string name="player_appearance_hide_music_artwork_subtitle">Show the app icon on the extracted artwork color instead</string>
     <string name="player_appearance_haptics_title">Vibration</string>
     <string name="player_appearance_haptics_subtitle">Vibrate lightly on taps and gestures</string>
+    <string name="settings_haptics_ignore_system_title">Ignore system setting</string>
+    <string name="settings_haptics_ignore_system_summary">Vibrate even when touch feedback is off</string>
     <string name="player_appearance_gesture_overlay_title">Gesture overlay style</string>
     <string name="player_appearance_gesture_overlay_subtitle">How volume and brightness show while you swipe</string>
     <string name="gesture_overlay_style_circular">Circular</string>
@@ -1301,6 +1303,8 @@
     <string name="content_settings_subs_show_shorts_subtitle">Show Shorts in the subscription feed</string>
     <string name="content_settings_subs_show_live_title">Subscription live streams</string>
     <string name="content_settings_subs_show_live_subtitle">Show live and recent streams in the feed</string>
+    <string name="content_settings_subs_show_upcoming_title">Upcoming videos</string>
+    <string name="content_settings_subs_show_upcoming_subtitle">Show premieres and scheduled streams</string>
     <string name="content_settings_subs_collaborations_title">Collaborations</string>
     <string name="content_settings_subs_collaborations_subtitle">Videos made with channels you follow</string>
     <string name="content_settings_subs_posts_chip_title">Posts chip</string>
@@ -1452,6 +1456,8 @@
     <string name="player_settings_ambient_glow_subtitle">The video\'s colors glow around the player</string>
     <string name="player_settings_immersive_glow">Immersive glow</string>
     <string name="player_settings_immersive_glow_subtitle">Light the whole watch page</string>
+    <string name="player_settings_glow_battery_saver">Glow in battery saver</string>
+    <string name="player_settings_glow_battery_saver_subtitle">Keep the glow when saving battery</string>
     <string name="player_settings_sponsorblock_video">SponsorBlock for this video</string>
     <string name="loop_video">Loop video</string>
     <string name="player_settings_sponsorblock">SponsorBlock</string>
