@@ -1442,6 +1442,8 @@
     <string name="player_settings_ambient_glow_subtitle">The video\'s colors glow around the player</string>
     <string name="player_settings_immersive_glow">Immersive glow</string>
     <string name="player_settings_immersive_glow_subtitle">Light the whole watch page</string>
+    <string name="player_settings_glow_battery_saver">Glow in battery saver</string>
+    <string name="player_settings_glow_battery_saver_subtitle">Keep the glow when saving battery</string>
     <string name="player_settings_sponsorblock_video">SponsorBlock for this video</string>
     <string name="loop_video">Loop video</string>
     <string name="player_settings_sponsorblock">SponsorBlock</string>
