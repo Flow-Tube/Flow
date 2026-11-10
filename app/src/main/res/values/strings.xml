@@ -3629,6 +3629,8 @@
     <string name="tv_guide_player_down">Reveal the transport controls and focus Play/Pause.</string>
     <string name="tv_guide_player_media">Play, Pause, Previous, Next, Rewind, Fast-forward, and Captions keys work directly.</string>
     <string name="tv_guide_player_back">Close a panel or the controls first; press again to leave the player.</string>
+    <string name="tv_rail_now_playing">Now playing</string>
+    <string name="tv_rail_now_playing_description">Now playing: %1$s</string>
     <!-- Home-screen widgets -->
     <string name="widget_now_playing_label">Now Playing</string>
     <string name="widget_now_playing_description">Control the music that\'s playing in Flow</string>
