@@ -13,7 +13,7 @@
     <string name="nav_library">ライブラリ</string>
     <string name="tab_videos">動画</string>
     <string name="tab_music">音楽</string>
-    <string name="tab_shorts">Shorts</string>
+    <string name="tab_shorts">ショート</string>
     <string name="tab_live">ライブ</string>
     <string name="tab_playlists">再生リスト</string>
     <string name="tab_about">チャンネルについて</string>
@@ -729,7 +729,7 @@
     <string name="share_community_post">コミュニティ投稿を共有する</string>
     <string name="end_of_queue">キューの終わり</string>
     <string name="no_videos_found">動画が見つかりませんでした</string>
-    <string name="no_shorts_found">ショートパンツが見つかりません</string>
+    <string name="no_shorts_found">ショート動画が見つかりません</string>
     <string name="no_playlists_found">プレイリストが見つかりません</string>
     <string name="channel_search_hint">チャンネル内を検索</string>
     <string name="channel_search_open">チャンネル内を検索</string>
@@ -799,7 +799,7 @@
     <string name="notif_settings_title">通知設定</string>
     <string name="notif_type_new_videos">新しい動画</string>
     <string name="notif_type_new_videos_subtitle">登録チャンネルが新しい動画をアップロードしたときに通知する</string>
-    <string name="notif_type_shorts">Shorts</string>
+    <string name="notif_type_shorts">ショート</string>
     <string name="notif_type_shorts_subtitle">サブスクリプションからの新着動画アラートに Shorts を含める</string>
     <string name="notif_type_downloads">ダウンロード通知</string>
     <string name="notif_type_downloads_subtitle">進行状況、完了、失敗のアラート</string>
