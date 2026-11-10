@@ -296,6 +296,7 @@ private fun channelRow(
                             isNotificationsEnabled = video.channelId in notifyingChannelIds,
                             onNotificationChange = { bell.setNotifications(video.channelId, it) },
                             size = FlowSubscribeButtonSize.Compact,
+                            showSubscribedLabel = false,
                         )
                     }
                 },

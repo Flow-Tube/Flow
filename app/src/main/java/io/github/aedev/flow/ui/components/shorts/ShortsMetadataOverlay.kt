@@ -117,6 +117,7 @@ internal fun ShortsMetadataOverlay(
                         isNotificationsEnabled = isNotificationsEnabled,
                         onNotificationChange = onNotificationChange,
                         size = FlowSubscribeButtonSize.Compact,
+                        showSubscribedLabel = false,
                     )
                 }
             }

@@ -92,6 +92,7 @@ internal fun collaboratorRows(
                                 isNotificationsEnabled = collaborator.channelId in notifyingChannelIds,
                                 onNotificationChange = { bell.setNotifications(collaborator.channelId, it) },
                                 size = FlowSubscribeButtonSize.Compact,
+                                showSubscribedLabel = false,
                             )
                         }
                     } else {
