@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -38,6 +40,10 @@ internal fun SubscriptionsQuickAccessRow(
     pinnedCount: Int = 0,
     onTogglePin: ((Channel) -> Unit)? = null,
 ) {
+    val listState = rememberLazyListState()
+    val pinnedIds = channels.take(pinnedCount).map(Channel::id)
+    // A lazy row keeps its first visible item in place, so a new pin would land off-screen to the left.
+    LaunchedEffect(pinnedIds) { listState.animateScrollToItem(0) }
     Column(modifier = modifier) {
         Row(
             modifier =
@@ -63,6 +69,7 @@ internal fun SubscriptionsQuickAccessRow(
         }
 
         LazyRow(
+            state = listState,
             modifier = Modifier.dpadFocusGroup(),
             contentPadding =
                 PaddingValues(
