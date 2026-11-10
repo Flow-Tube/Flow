@@ -11,8 +11,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +30,8 @@ import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.MusicMenuSheets
 import io.github.aedev.flow.ui.components.music.sheet.rememberMusicMenus
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
+import io.github.aedev.flow.ui.components.shared.DpadReturnFocus
+import io.github.aedev.flow.ui.components.shared.LocalDpadReturnFocus
 import io.github.aedev.flow.ui.components.shared.LocalFlowSheetPresenter
 import io.github.aedev.flow.ui.mediaNavigationLocals
 import io.github.aedev.flow.ui.screens.home.HomeViewModel
@@ -75,7 +81,13 @@ fun FlowTvApp(
     // Handoffs from other devices: the consent question, who took over, and the devices list.
     PlayOnHost()
 
+    // The shell leaves composition while a player covers it; this keeps its pages' scroll and saved state,
+    // and the played card takes focus again when it comes back.
+    val shellState = rememberSaveableStateHolder()
+    val returnFocus = remember { DpadReturnFocus() }
+
     fun play(video: Video) {
+        returnFocus.key = video.id
         EnhancedMusicPlayerManager.pause()
         GlobalPlayerState.setCurrentVideo(video)
         playerViewModel.playVideo(video)
@@ -88,6 +100,7 @@ fun FlowTvApp(
         shuffle: Boolean,
     ) {
         val start = videos.getOrNull(startIndex) ?: return
+        returnFocus.key = start.id
         EnhancedMusicPlayerManager.pause()
         GlobalPlayerState.setCurrentVideo(start)
         playerViewModel.playPlaylist(videos, startIndex, title, shuffle)
@@ -148,6 +161,7 @@ fun FlowTvApp(
     FlowTvTheme {
         CompositionLocalProvider(
             *mediaNavigationLocals(mediaNavigator),
+            LocalDpadReturnFocus provides returnFocus,
             LocalFlowSheetPresenter provides TvSheetPresenter,
             LocalMusicMenus provides musicMenus,
         ) {
@@ -166,26 +180,34 @@ fun FlowTvApp(
                         )
                     } else if (video == null) {
                         val tvNavigation = navigation ?: return@Surface
-                        TvShell(
-                            navigation = tvNavigation,
-                            navController = navController,
-                            homeViewModel = homeViewModel,
-                            musicViewModel = musicViewModel,
-                            musicPlayerViewModel = musicPlayerViewModel,
-                            subscriptionsViewModel = subscriptionsViewModel,
-                            searchViewModel = searchViewModel,
-                            onPlayVideo = ::play,
-                            onPlayPlaylist = ::playPlaylist,
-                            onPlayVideoId = { playById(it) },
-                            activeMusicTrack = visibleMusicTrack,
-                            onExpandMusic = { musicExpanded = true },
-                            startSettings = startSettings,
-                            onDismissMusic = {
-                                musicExpanded = false
-                                musicSessionActive = false
-                                EnhancedMusicPlayerManager.clearCurrentTrack()
-                            },
-                        )
+                        shellState.SaveableStateProvider(SHELL_STATE_KEY) {
+                            TvShell(
+                                navigation = tvNavigation,
+                                navController = navController,
+                                homeViewModel = homeViewModel,
+                                musicViewModel = musicViewModel,
+                                musicPlayerViewModel = musicPlayerViewModel,
+                                subscriptionsViewModel = subscriptionsViewModel,
+                                searchViewModel = searchViewModel,
+                                onPlayVideo = ::play,
+                                onPlayPlaylist = ::playPlaylist,
+                                onPlayVideoId = { playById(it) },
+                                activeMusicTrack = visibleMusicTrack,
+                                onExpandMusic = { musicExpanded = true },
+                                startSettings = startSettings,
+                                modifier =
+                                    Modifier.onPreviewKeyEvent { event ->
+                                        // Any key after coming back means the remote has moved on.
+                                        if (event.type == KeyEventType.KeyDown) returnFocus.key = null
+                                        false
+                                    },
+                                onDismissMusic = {
+                                    musicExpanded = false
+                                    musicSessionActive = false
+                                    EnhancedMusicPlayerManager.clearCurrentTrack()
+                                },
+                            )
+                        }
                     } else {
                         TvPlayerScreen(
                             video = video,
@@ -200,3 +222,5 @@ fun FlowTvApp(
         }
     }
 }
+
+private const val SHELL_STATE_KEY = "tv-shell"

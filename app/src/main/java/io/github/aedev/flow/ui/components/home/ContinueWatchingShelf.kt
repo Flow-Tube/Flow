@@ -44,6 +44,7 @@ import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.components.shared.WatchProgressBar
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChannelDisplayName
 import io.github.aedev.flow.ui.components.shared.dpadFocusGroup
+import io.github.aedev.flow.ui.components.shared.dpadReturnFocus
 import io.github.aedev.flow.ui.components.shared.focusLift
 import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.components.shared.pressScale
@@ -197,6 +198,7 @@ private fun ShelfVideoCardContent(
                 .pressScale(interactionSource)
                 .focusLift(interactionSource)
                 .onMenuKey(onLongClick)
+                .dpadReturnFocus(videoId)
                 .combinedClickable(
                     interactionSource = interactionSource,
                     indication = androidx.compose.material3.ripple(focusRingShape = MaterialTheme.shapes.medium),

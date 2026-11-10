@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,7 +93,7 @@ fun TvShell(
     val currentRoute = backStackEntry?.destination?.route
     val rootRoutes = navigation.rootRoutes
     val isOnDetailRoute = currentRoute != null && currentRoute !in rootRoutes
-    var lastRoot by remember { mutableStateOf(navigation.startTab.route) }
+    var lastRoot by rememberSaveable { mutableStateOf(navigation.startTab.route) }
     LaunchedEffect(currentRoute) {
         if (currentRoute != null && currentRoute in rootRoutes) lastRoot = currentRoute
     }
