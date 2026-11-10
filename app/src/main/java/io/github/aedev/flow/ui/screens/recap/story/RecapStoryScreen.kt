@@ -40,19 +40,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.os.ConfigurationCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -62,6 +71,7 @@ import io.github.aedev.flow.data.stats.RecapPeriod
 import io.github.aedev.flow.data.stats.RecapSummary
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.drawSegmentedProgress
 import io.github.aedev.flow.ui.components.stats.spentTimeLabel
 import io.github.aedev.flow.ui.screens.recap.RecapSource
@@ -132,13 +142,16 @@ private fun StoryPager(
     ) -> Unit = { delta -> scope.launch { pager.animateScrollToPage((pager.currentPage + delta).coerceIn(0, pages.lastIndex)) } }
 
     Box(
-        Modifier.fillMaxSize().semantics {
-            customActions =
-                listOf(
-                    CustomAccessibilityAction(nextLabel) { step(1).let { true } },
-                    CustomAccessibilityAction(previousLabel) { step(-1).let { true } },
-                )
-        },
+        Modifier
+            .fillMaxSize()
+            .dpadPageKeys(step)
+            .semantics {
+                customActions =
+                    listOf(
+                        CustomAccessibilityAction(nextLabel) { step(1).let { true } },
+                        CustomAccessibilityAction(previousLabel) { step(-1).let { true } },
+                    )
+            },
     ) {
         HorizontalPager(
             state = pager,
@@ -295,3 +308,22 @@ internal fun periodLabel(
         is RecapPeriod.Year -> period.year.toString()
         RecapPeriod.AllTime -> ""
     }
+
+/** A remote's Left and Right turn the page once no button lies that way, as a tap on either side does. */
+@Composable
+private fun Modifier.dpadPageKeys(step: (Int) -> Unit): Modifier {
+    if (!LocalDpadNavigation.current) return this
+    val focusManager = LocalFocusManager.current
+    val forward = if (LocalLayoutDirection.current == LayoutDirection.Rtl) Key.DirectionLeft else Key.DirectionRight
+    return onKeyEvent { event ->
+        if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+        val direction =
+            when (event.key) {
+                Key.DirectionLeft -> FocusDirection.Left
+                Key.DirectionRight -> FocusDirection.Right
+                else -> return@onKeyEvent false
+            }
+        if (!focusManager.moveFocus(direction)) step(if (event.key == forward) 1 else -1)
+        true
+    }
+}

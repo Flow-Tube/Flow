@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.*
@@ -93,13 +92,13 @@ internal fun DescriptionBody(
         shape = MaterialTheme.shapes.large,
         color = tint.container,
         contentColor = tint.onContainer,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().dpadReadThrough(),
     ) {
         Column(
             modifier = Modifier.padding(BodyPadding),
             verticalArrangement = Arrangement.spacedBy(BodySpacing),
         ) {
-            SelectionContainer {
+            FlowSelectionContainer {
                 BasicText(
                     text = text,
                     inlineContent = inlineContent,

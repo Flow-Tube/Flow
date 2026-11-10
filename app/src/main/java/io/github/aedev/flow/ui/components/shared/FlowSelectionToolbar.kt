@@ -53,9 +53,11 @@ fun FlowSelectionToolbar(
                     toolbarContainerColor = MaterialTheme.colorScheme.inverseSurface,
                     toolbarContentColor = MaterialTheme.colorScheme.inverseOnSurface,
                 ),
-            // Above the bar, the music mini player and the gesture area, riding along as they move.
+            // Above the bar, the music mini player and the gesture area, riding along as they move. A remote
+            // could reach it only from the list's last row, so on a D-pad focus starts here when it opens.
             modifier =
                 Modifier
+                    .then(dpadFocusOnEnter())
                     .floatAboveBottomChrome(bottomInsets)
                     .padding(bottom = FloatingToolbarDefaults.ScreenOffset),
             leadingContent = {
