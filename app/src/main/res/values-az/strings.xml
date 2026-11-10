@@ -4780,4 +4780,15 @@
     <string name="app_lock_screen_title">Flow kilidlənib</string>
     <string name="app_lock_screen_body">Onu açmaq üçün barmaq izinizi, üzünüzü və ya ekran kilidinizi istifadə edin</string>
     <string name="app_lock_unlock">Kilidi aç</string>
+    <string name="player_appearance_video_artwork_colors_title">Miniatürdən rənglər</string>
+    <string name="player_appearance_video_artwork_colors_subtitle">Təsviri və şərhləri rənglə</string>
+    <string name="subscription_posts_empty">Son 30 gündə paylaşım yoxdur</string>
+    <string name="player_side_panel_width_title">Yan panelin eni</string>
+    <string name="player_side_panel_width_summary">Tam ekranda şərhlər, söhbət və fəsillər üçün</string>
+    <string name="player_side_panel_width_narrow">Dar</string>
+    <string name="player_side_panel_width_small">Kiçik</string>
+    <string name="player_side_panel_width_default">İlkin</string>
+    <string name="player_side_panel_width_wide">Geniş</string>
+    <string name="player_settings_minimize_to_audio_bar_title">Səs çubuğuna qədər kiçilt</string>
+    <string name="player_settings_minimize_to_audio_bar_subtitle">Yığılmış videolar yalnız səs kimi oynadılmağa davam edir</string>
 </resources>
