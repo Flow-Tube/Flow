@@ -112,6 +112,22 @@ internal object ContentIndex {
             section = R.string.settings_section_subscriptions,
             destination = page,
         )
+    val subsPostsChip =
+        SettingEntry(
+            key = "content.subs.posts_chip",
+            title = R.string.content_settings_subs_posts_chip_title,
+            summary = R.string.content_settings_subs_posts_chip_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+        )
+    val subsUngrouped =
+        SettingEntry(
+            key = "content.subs.ungrouped",
+            title = R.string.content_settings_subs_ungrouped_title,
+            summary = R.string.content_settings_subs_ungrouped_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+        )
     val subsCollaborations =
         SettingEntry(
             key = "content.subs.collaborations",
@@ -260,6 +276,8 @@ internal object ContentIndex {
             subsLive,
             subsUpcoming,
             subsCollaborations,
+            subsPostsChip,
+            subsUngrouped,
             hideWatchedSubs,
             hideUnplayableSubs,
             subsRefreshOnStartup,

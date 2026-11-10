@@ -75,6 +75,9 @@ data class SubscriptionsUiState(
     val notificationStates: Map<String, Boolean> = emptyMap(),
     val groups: List<SubscriptionGroup> = emptyList(),
     val selectedGroupName: String? = null,
+    val ungroupedEnabled: Boolean = false,
+    val ungroupedPosition: Int = UNGROUPED_LAST,
+    val showPostsChip: Boolean = true,
     val refreshStage: SubscriptionRefreshStage = SubscriptionRefreshStage.RSS,
     val refreshProcessedChannels: Int = 0,
     val refreshTotalChannels: Int = 0,
@@ -92,7 +95,24 @@ data class SubscriptionsUiState(
     val failedChannelReasons: Map<String, String> = emptyMap(),
 ) {
     /** The selected group's channels, which scope its refreshes and reads; null for every subscription. */
-    fun selectedGroupScope(): Set<String>? = selectedGroupName?.let { name -> groups.find { it.name == name }?.channelIds?.toSet() }
+    fun selectedGroupScope(): Set<String>? = groupSelectionScope(selectedChip(), groups, subscribedChannels.map { it.id })
+
+    /** The selected chip, or null for All when the stored selection has no chip, like a switched-off Ungrouped. */
+    fun selectedChip(chips: List<SubscriptionGroup> = groupChips()): String? {
+        val name = selectedGroupName ?: return null
+        return name.takeIf { chips.any { chip -> chip.name == name } }
+    }
+
+    /** The rows of Manage groups: the groups, plus Ungrouped while it is switched on and there is a group. */
+    fun managedGroups(): List<SubscriptionGroup> =
+        if (ungroupedEnabled && groups.isNotEmpty()) {
+            groupsWithUngrouped(groups, ungroupedPosition, ungroupedChannelIds(subscribedChannels.map { it.id }, groups))
+        } else {
+            groups
+        }
+
+    /** The group chips: [managedGroups] without an Ungrouped that would show nothing. */
+    fun groupChips(): List<SubscriptionGroup> = managedGroups().filterNot { it.isUngrouped() && it.channelIds.isEmpty() }
 
     /** Display names for [failedChannelIds], falling back to the raw id for an unknown channel. */
     val failedChannelNames: List<String>

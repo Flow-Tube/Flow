@@ -466,6 +466,7 @@
     <string name="search_subscriptions">Search Subscriptions</string>
     <!-- Subscription Groups -->
     <string name="group_all">All</string>
+    <string name="group_ungrouped">Ungrouped</string>
     <string name="manage_groups">Manage Groups</string>
     <string name="new_group">New Group</string>
     <string name="edit_group">Edit Group</string>
@@ -1301,6 +1302,10 @@
     <string name="content_settings_subs_show_upcoming_subtitle">Show premieres and scheduled streams</string>
     <string name="content_settings_subs_collaborations_title">Collaborations</string>
     <string name="content_settings_subs_collaborations_subtitle">Videos made with channels you follow</string>
+    <string name="content_settings_subs_posts_chip_title">Posts chip</string>
+    <string name="content_settings_subs_posts_chip_subtitle">Show the Posts chip above the feed</string>
+    <string name="content_settings_subs_ungrouped_title">Ungrouped group</string>
+    <string name="content_settings_subs_ungrouped_subtitle">A chip for channels in no group</string>
     <string name="content_settings_nav_order_title">Tab order and default</string>
     <string name="content_settings_nav_order_subtitle">Drag to reorder. Choose the tab Flow opens on.</string>
     <string name="settings_subs_shorts_shelf_title">Subscriptions shorts shelf</string>

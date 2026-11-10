@@ -47,8 +47,6 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel as EventChannel
@@ -171,6 +169,19 @@ class SubscriptionsViewModel
                     _uiState.update { it.copy(selectedGroupName = groupName) }
                     refreshVisibleFeed()
                 }
+            }
+
+            viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                combine(
+                    playerPreferences.subscriptionUngroupedEnabled,
+                    playerPreferences.subscriptionUngroupedPosition,
+                    playerPreferences.subscriptionPostsChip,
+                    ::Triple,
+                ).distinctUntilChanged()
+                    .collect { (enabled, position, postsChip) ->
+                        _uiState.update { it.copy(ungroupedEnabled = enabled, ungroupedPosition = position, showPostsChip = postsChip) }
+                        refreshVisibleFeed()
+                    }
             }
 
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
@@ -346,13 +357,7 @@ class SubscriptionsViewModel
                             watchedVideoIds = watchedVideoIds,
                             watchedShortIds = watchedShortIds,
                             unplayableVideoIds = unplayableVideoIds,
-                            allowedChannelIds =
-                                state.selectedGroupName?.let { name ->
-                                    state.groups
-                                        .find { it.name == name }
-                                        ?.channelIds
-                                        ?.toHashSet()
-                                },
+                            allowedChannelIds = state.selectedGroupScope(),
                             excludedShortsChannelIds = excludedShortsChannelIds,
                             exclusions = neuroEngine.feedExclusions(),
                         ),
@@ -454,42 +459,30 @@ class SubscriptionsViewModel
             if (groupName != null) refreshIfStaleOrMissedUploads()
         }
 
+        private val groupEditor =
+            SubscriptionGroupEditor(
+                scope = viewModelScope,
+                dao = subscriptionGroupDao,
+                preferences = playerPreferences,
+                selectedGroup = { _uiState.value.selectedGroupName },
+                onSelectedRenamed = { newName -> _uiState.update { it.copy(selectedGroupName = newName) } },
+                onSelectedDeleted = { selectGroup(null) },
+            )
+
         fun createGroup(
             name: String,
             channelIds: List<String>,
-        ) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) { subscriptionGroupDao.appendGroup(name, channelIds) }
-        }
+        ) = groupEditor.create(name, channelIds)
 
         fun updateGroup(
             oldName: String,
             newName: String,
             channelIds: List<String>,
-        ) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                val edited = subscriptionGroupDao.editGroup(oldName, newName, channelIds)
-                if (edited && _uiState.value.selectedGroupName == oldName) {
-                    _uiState.update { it.copy(selectedGroupName = newName) }
-                    playerPreferences.setSelectedSubscriptionGroup(newName)
-                }
-            }
-        }
+        ) = groupEditor.update(oldName, newName, channelIds)
 
-        fun deleteGroup(name: String) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                subscriptionGroupDao.deleteGroup(name)
-                if (_uiState.value.selectedGroupName == name) {
-                    selectGroup(null)
-                }
-            }
-        }
+        fun deleteGroup(name: String) = groupEditor.delete(name)
 
-        private val groupOrderLock = Mutex()
-
-        /** Saves [names] as the group order; each save is a whole order, so saves are kept in sequence. */
-        fun setGroupOrder(names: List<String>) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) { groupOrderLock.withLock { subscriptionGroupDao.setOrder(names) } }
-        }
+        fun setGroupOrder(names: List<String>) = groupEditor.setOrder(names)
 
         private val _importMessages = EventChannel<String>(EventChannel.BUFFERED)
         val importMessages = _importMessages.receiveAsFlow()
