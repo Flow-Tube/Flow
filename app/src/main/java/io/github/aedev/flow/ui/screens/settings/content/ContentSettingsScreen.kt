@@ -55,6 +55,8 @@ internal fun ContentSettingsScreen(
         group(key = "content.home", header = R.string.settings_section_home) {
             switch(ContentIndex.homeFeed, viewModel.homeFeed, viewModel::setHomeFeed)
             switch(ContentIndex.refreshOnReselect, viewModel.refreshOnReselect, viewModel::setRefreshOnReselect)
+            switch(ContentIndex.homeChips, viewModel.homeChips, viewModel::setHomeChips)
+            switch(ContentIndex.homeNewVideosButton, viewModel.homeNewVideosButton, viewModel::setHomeNewVideosButton)
             switch(ContentIndex.continueWatching, viewModel.continueWatching, viewModel::setContinueWatching)
             switch(ContentIndex.homeShortsShelf, viewModel.homeShortsShelf, viewModel::setHomeShortsShelf, enabled = shortsContent)
             switch(ContentIndex.homeSubscriptions, viewModel.homeSubscriptions, viewModel::setHomeSubscriptions)

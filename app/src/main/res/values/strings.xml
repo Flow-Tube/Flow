@@ -1208,6 +1208,10 @@
     <string name="content_settings_home_feed_subtitle">Show recommendations on Home</string>
     <string name="content_settings_home_reselect_refresh_title">Refresh Home when reselected</string>
     <string name="content_settings_home_reselect_refresh_subtitle">Tap Home again at the top to reload it</string>
+    <string name="content_settings_home_chips_title">Home chips</string>
+    <string name="content_settings_home_chips_subtitle">Show the row of chips above the feed</string>
+    <string name="content_settings_home_new_videos_title">New videos button</string>
+    <string name="content_settings_home_new_videos_subtitle">Show a button when a fresher feed is ready</string>
     <string name="content_settings_home_feed_disabled_title">Home Feed Disabled</string>
     <string name="content_settings_home_feed_disabled_body">Personalized recommendations are turned off. You can re-enable this in Content Settings.</string>
     <!-- Video Player Related Card Style -->

@@ -16,6 +16,8 @@ class ContentSettingsViewModel
     ) : SettingsViewModel() {
         val homeFeed = preferences.homeFeedEnabled.asState(true)
         val refreshOnReselect = preferences.refreshHomeOnReselect.asState(true)
+        val homeChips = preferences.homeChipsEnabled.asState(true)
+        val homeNewVideosButton = preferences.homeNewVideosButtonEnabled.asState(true)
         val continueWatching = preferences.continueWatchingEnabled.asState(true)
         val homeShortsShelf = preferences.homeShortsShelfEnabled.asState(true)
         val homeSubscriptions = preferences.homeSubscriptionsEnabled.asState(true)
@@ -46,6 +48,10 @@ class ContentSettingsViewModel
         fun setHomeFeed(value: Boolean) = write { preferences.setHomeFeedEnabled(value) }
 
         fun setRefreshOnReselect(value: Boolean) = write { preferences.setRefreshHomeOnReselect(value) }
+
+        fun setHomeChips(value: Boolean) = write { preferences.setHomeChipsEnabled(value) }
+
+        fun setHomeNewVideosButton(value: Boolean) = write { preferences.setHomeNewVideosButtonEnabled(value) }
 
         fun setContinueWatching(value: Boolean) = write { preferences.setContinueWatchingEnabled(value) }
 

@@ -23,6 +23,22 @@ internal object ContentIndex {
             section = R.string.settings_section_home,
             destination = page,
         )
+    val homeChips =
+        SettingEntry(
+            key = "content.home.chips",
+            title = R.string.content_settings_home_chips_title,
+            summary = R.string.content_settings_home_chips_subtitle,
+            section = R.string.settings_section_home,
+            destination = page,
+        )
+    val homeNewVideosButton =
+        SettingEntry(
+            key = "content.home.new_videos_button",
+            title = R.string.content_settings_home_new_videos_title,
+            summary = R.string.content_settings_home_new_videos_subtitle,
+            section = R.string.settings_section_home,
+            destination = page,
+        )
     val continueWatching =
         SettingEntry(
             key = "content.home.continue_watching",
@@ -224,6 +240,8 @@ internal object ContentIndex {
         listOf(
             homeFeed,
             refreshOnReselect,
+            homeChips,
+            homeNewVideosButton,
             continueWatching,
             homeShortsShelf,
             homeSubscriptions,
