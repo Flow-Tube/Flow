@@ -2666,7 +2666,15 @@ class EnhancedPlayerManager private constructor() {
     }
 
     private fun updateEffectiveLoopState() {
-        _playerState.value = _playerState.value.copy(isLooping = manualLoopEnabled || globalLoopEnabled)
+        if (!isOnMainThread()) {
+            mainHandler.post { updateEffectiveLoopState() }
+            return
+        }
+        val looping = manualLoopEnabled || globalLoopEnabled
+        if (_playerState.value.isLooping == looping) return
+        _playerState.value = _playerState.value.copy(isLooping = looping)
+        // The next video may already be appended; left there, the player plays into it instead of ending (#1912).
+        if (looping) preload.clear() else preload.schedule()
     }
 
     fun stop() {
