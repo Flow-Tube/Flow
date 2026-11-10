@@ -149,6 +149,40 @@ internal fun QueueList(
         }
     }
 
+    var menuTarget by remember { mutableStateOf<QueueMenuTarget?>(null) }
+
+    fun onMenuAction(
+        target: QueueMenuTarget,
+        action: QueueRowMenuAction,
+    ) {
+        val index = target.index
+        when (action) {
+            QueueRowMenuAction.PLAY_NEXT -> {
+                if (target.isRadioItem) actions.onPlayNextRadio(target.track) else actions.onPlayNextFromQueue(index)
+            }
+
+            QueueRowMenuAction.ADD_TO_QUEUE -> {
+                actions.onAddRadioToQueue(target.track)
+            }
+
+            QueueRowMenuAction.MOVE_UP -> {
+                actions.onMoveTrack(index, index - 1)
+            }
+
+            QueueRowMenuAction.MOVE_DOWN -> {
+                actions.onMoveTrack(index, index + 1)
+            }
+
+            QueueRowMenuAction.MOVE_TO_END -> {
+                actions.onSendQueueTrackToEnd(index)
+            }
+
+            QueueRowMenuAction.REMOVE -> {
+                actions.onRemoveFromQueue(index)
+            }
+        }
+    }
+
     val playNextLabel = stringResource(R.string.play_next)
     val moveToEndLabel = stringResource(R.string.queue_move_to_end)
     val removeLabel = stringResource(R.string.remove_from_queue)
@@ -187,6 +221,7 @@ internal fun QueueList(
                     rowKey = localKeys.getOrNull(index) ?: track.videoId,
                     onClick = { actions.onTrackClick(index) },
                     onSwipe = { swipe -> onQueueSwipe(swipe, index) },
+                    onMenu = if (isCurrent) null else ({ menuTarget = QueueMenuTarget(track, index, isRadioItem = false) }),
                     modifier =
                         Modifier
                             .graphicsLayer {
@@ -269,6 +304,7 @@ internal fun QueueList(
                         onSwipe = { swipe ->
                             if (swipe == QueueRowSwipe.PLAY_NEXT) actions.onPlayNextRadio(track) else actions.onAddRadioToQueue(track)
                         },
+                        onMenu = { menuTarget = QueueMenuTarget(track, index = -1, isRadioItem = true) },
                     )
                 }
             }
@@ -288,7 +324,23 @@ internal fun QueueList(
             )
         }
     }
+
+    menuTarget?.let { target ->
+        QueueRowMenuSheet(
+            track = target.track,
+            actions = queueRowMenuActions(target.isRadioItem, target.index, localQueue.lastIndex),
+            onAction = { action -> onMenuAction(target, action) },
+            onDismiss = { menuTarget = null },
+        )
+    }
 }
+
+/** The row a queue menu is open for; a radio row has no queue index. */
+private class QueueMenuTarget(
+    val track: MusicTrack,
+    val index: Int,
+    val isRadioItem: Boolean,
+)
 
 /** Title, track count, and the shuffle and repeat pair shared by the sheet and the side pane. */
 @Composable
