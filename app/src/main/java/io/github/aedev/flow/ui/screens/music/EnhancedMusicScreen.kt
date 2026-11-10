@@ -142,6 +142,7 @@ fun EnhancedMusicScreen(
             .filter { it == "music" }
             .collectLatest {
                 musicListState.animateScrollToItem(0)
+                TabScrollEventBus.emitScrolledToTop("music")
                 viewModel.refresh()
             }
     }

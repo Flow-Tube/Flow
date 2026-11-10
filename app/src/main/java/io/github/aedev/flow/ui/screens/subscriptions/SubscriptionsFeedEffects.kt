@@ -69,6 +69,7 @@ internal fun SubscriptionsFeedEffects(
             .filter { it == "subscriptions" }
             .collectLatest {
                 feedGridState.animateScrollToItem(0)
+                TabScrollEventBus.emitScrolledToTop("subscriptions")
                 viewModel.refreshFeed()
             }
     }

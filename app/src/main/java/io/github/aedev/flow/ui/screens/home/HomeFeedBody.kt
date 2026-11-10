@@ -138,6 +138,7 @@ internal fun HomeFeedEffects(
                 } else if (refreshHomeOnReselect) {
                     if (currentChips.isAll) viewModel.refreshFeed() else viewModel.refreshSelectedChip()
                 }
+                TabScrollEventBus.emitScrolledToTop("home")
             }
     }
 }
