@@ -74,4 +74,48 @@ class TvPlayerOverlayControllerTest {
         assertThat(controller.state.value.mode).isEqualTo(TvOverlayMode.HIDDEN)
         assertThat(controller.onBack()).isFalse()
     }
+
+    @Test
+    fun `seeking with the controls hidden shows the seek bar alone`() {
+        now = 2_000L
+        controller.showSeek()
+        assertThat(controller.state.value.mode).isEqualTo(TvOverlayMode.SEEK)
+        assertThat(controller.state.value.lastInteractionAtMs).isEqualTo(2_000L)
+    }
+
+    @Test
+    fun `seeking from the controls keeps them`() {
+        controller.showTransport()
+        controller.showSeek()
+        assertThat(controller.state.value.mode).isEqualTo(TvOverlayMode.TRANSPORT)
+
+        controller.openPanel()
+        controller.showSeek()
+        assertThat(controller.state.value.mode).isEqualTo(TvOverlayMode.PANEL)
+    }
+
+    @Test
+    fun `the seek bar alone hides a second after the last seek, playing or paused`() {
+        now = 1_000L
+        controller.showSeek()
+        val deadline = 1_000L + TvPlayerOverlayController.SEEK_HIDE_DELAY_MS
+
+        assertThat(controller.autoHideDeadline(isPlaying = true, isScrubbing = false)).isEqualTo(deadline)
+        assertThat(controller.autoHideDeadline(isPlaying = false, isScrubbing = false)).isEqualTo(deadline)
+        assertThat(controller.autoHideDeadline(isPlaying = true, isScrubbing = true)).isNull()
+    }
+
+    @Test
+    fun `down from the seek bar alone opens the controls`() {
+        controller.showSeek()
+        controller.showTransport()
+        assertThat(controller.state.value.mode).isEqualTo(TvOverlayMode.TRANSPORT)
+    }
+
+    @Test
+    fun `back from the seek bar alone hides it`() {
+        controller.showSeek()
+        assertThat(controller.onBack()).isTrue()
+        assertThat(controller.state.value.mode).isEqualTo(TvOverlayMode.HIDDEN)
+    }
 }

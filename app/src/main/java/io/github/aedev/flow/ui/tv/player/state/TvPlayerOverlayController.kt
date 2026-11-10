@@ -6,10 +6,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * What the TV player shows over the video. In [PANEL] one of the phone player's sheets is open beside
- * it; which one lives in the shared player screen state.
+ * What the TV player shows over the video. [SEEK] is the seek bar alone, while Left or Right seek with
+ * the controls hidden. In [PANEL] one of the phone player's sheets is open beside it; which one lives
+ * in the shared player screen state.
  */
-enum class TvOverlayMode { HIDDEN, TRANSPORT, PANEL }
+enum class TvOverlayMode { HIDDEN, SEEK, TRANSPORT, PANEL }
 
 data class TvOverlayState(
     val mode: TvOverlayMode = TvOverlayMode.HIDDEN,
@@ -33,6 +34,16 @@ class TvPlayerOverlayController(
 
     fun showTransport() {
         _state.update { it.copy(mode = TvOverlayMode.TRANSPORT, lastInteractionAtMs = nowMs()) }
+    }
+
+    /** The seek bar alone, unless the controls are already up: seeking from them keeps them. */
+    fun showSeek() {
+        _state.update { current ->
+            when (current.mode) {
+                TvOverlayMode.HIDDEN, TvOverlayMode.SEEK -> current.copy(mode = TvOverlayMode.SEEK, lastInteractionAtMs = nowMs())
+                else -> current
+            }
+        }
     }
 
     fun hide() {
@@ -59,7 +70,7 @@ class TvPlayerOverlayController(
                 true
             }
 
-            TvOverlayMode.TRANSPORT -> {
+            TvOverlayMode.TRANSPORT, TvOverlayMode.SEEK -> {
                 hide()
                 true
             }
@@ -70,22 +81,25 @@ class TvPlayerOverlayController(
         }
 
     /**
-     * Epoch-ms moment the transport should hide, or null when it must stay up
-     * (hidden/panel mode, paused, or an active scrub).
+     * Epoch-ms moment the overlay should hide, or null when it must stay up (hidden or panel mode, an
+     * active scrub, or the transport while paused). The seek bar alone goes soon after the last seek,
+     * paused or not, so it never sits over the picture (#998).
      */
     fun autoHideDeadline(
         isPlaying: Boolean,
         isScrubbing: Boolean,
     ): Long? {
         val current = _state.value
-        return if (current.mode == TvOverlayMode.TRANSPORT && isPlaying && !isScrubbing) {
-            current.lastInteractionAtMs + AUTO_HIDE_DELAY_MS
-        } else {
-            null
+        if (isScrubbing) return null
+        return when (current.mode) {
+            TvOverlayMode.SEEK -> current.lastInteractionAtMs + SEEK_HIDE_DELAY_MS
+            TvOverlayMode.TRANSPORT -> if (isPlaying) current.lastInteractionAtMs + AUTO_HIDE_DELAY_MS else null
+            else -> null
         }
     }
 
     companion object {
         const val AUTO_HIDE_DELAY_MS = 5_000L
+        const val SEEK_HIDE_DELAY_MS = 1_000L
     }
 }

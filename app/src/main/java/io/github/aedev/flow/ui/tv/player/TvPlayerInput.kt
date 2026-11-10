@@ -45,10 +45,11 @@ internal class TvPlayerInput(
             perform(it, repeatCount)
             return true
         }
+        val mode = overlayMode()
         val action =
             when {
-                overlayMode() == TvOverlayMode.PANEL -> null
-                overlayMode() == TvOverlayMode.HIDDEN -> TvPlayerKeyMapper.mapDpadWhenControlsHidden(keyCode)
+                mode == TvOverlayMode.PANEL -> null
+                mode == TvOverlayMode.HIDDEN || mode == TvOverlayMode.SEEK -> TvPlayerKeyMapper.mapDpadWhenControlsHidden(keyCode)
                 seekBarFocused() -> TvPlayerKeyMapper.mapDpadWhenSeekBarFocused(keyCode)
                 else -> null
             }

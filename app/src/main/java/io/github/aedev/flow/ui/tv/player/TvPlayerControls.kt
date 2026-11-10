@@ -2,8 +2,10 @@ package io.github.aedev.flow.ui.tv.player
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -82,6 +84,7 @@ private val UtilityIconSize = 24.dp
 private val TransportWidth = 320.dp
 private val ScrimLeadIn = 120.dp
 private val UpNextLeadIn = 48.dp
+private val SeekLeadIn = 64.dp
 
 /** The panels and toggles the TV control row opens; the play actions come in [PlayerControlActions]. */
 internal class TvPlayerUtilityActions(
@@ -101,6 +104,7 @@ internal class TvPlayerUtilityActions(
 @Composable
 internal fun BoxScope.TvPlayerControls(
     visible: Boolean,
+    seekOnly: Boolean,
     video: Video,
     isPlaying: Boolean,
     isBuffering: Boolean,
@@ -135,7 +139,8 @@ internal fun BoxScope.TvPlayerControls(
     ) {
         // The phone player's edge scrim (D4: the one gradient the redesign allows, in the player). It starts
         // well above the title so the text sits on enough of it over a bright frame. The up-next row needs
-        // that height for its cards, so while it is open the title steps aside.
+        // that height for its cards, so while it is open the title steps aside. Seeking with the controls
+        // hidden shows the seek bar alone, on a shallow scrim (#998).
         Column(
             modifier =
                 Modifier
@@ -144,18 +149,29 @@ internal fun BoxScope.TvPlayerControls(
                     .padding(
                         start = dimens.overscanHorizontal,
                         end = dimens.overscanHorizontal,
-                        top = if (upNextShown) UpNextLeadIn else ScrimLeadIn,
+                        top =
+                            when {
+                                seekOnly -> SeekLeadIn
+                                upNextShown -> UpNextLeadIn
+                                else -> ScrimLeadIn
+                            },
                         bottom = dimens.overscanVertical,
                     ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (!upNextShown) {
-                TvPlayerTitle(
-                    video = video,
-                    isLive = isLive,
-                    onChannelClick = onChannelClick.takeIf { channelLinked },
-                    channelFocusRequester = channelFocusRequester,
-                )
+                AnimatedVisibility(
+                    visible = !seekOnly,
+                    enter = fadeIn(motion.defaultEffectsSpec()) + expandVertically(motion.defaultSpatialSpec()),
+                    exit = fadeOut(motion.fastEffectsSpec()) + shrinkVertically(motion.fastSpatialSpec()),
+                ) {
+                    TvPlayerTitle(
+                        video = video,
+                        isLive = isLive,
+                        onChannelClick = onChannelClick.takeIf { channelLinked },
+                        channelFocusRequester = channelFocusRequester,
+                    )
+                }
             }
             val displayedPositionMs = { scrubTargetMs ?: positionMs() }
             val chapterTitle by remember(chapters) {
@@ -195,36 +211,44 @@ internal fun BoxScope.TvPlayerControls(
                 )
                 TvPlayerTimes(positionMs = displayedPositionMs, durationMs = durationMs, scrubbing = scrubTargetMs != null)
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+            AnimatedVisibility(
+                visible = !seekOnly,
+                enter = fadeIn(motion.defaultEffectsSpec()) + expandVertically(motion.defaultSpatialSpec()),
+                exit = fadeOut(motion.fastEffectsSpec()) + shrinkVertically(motion.fastSpatialSpec()),
             ) {
-                MediaPlaybackControls(
-                    isPlaying = isPlaying,
-                    isBuffering = isBuffering,
-                    onPreviousClick = playActions.onPrevious,
-                    onPlayPauseToggle = playActions.onPlayPause,
-                    onNextClick = playActions.onNext,
-                    playPauseFocusRequester = playPauseFocusRequester,
-                    modifier = Modifier.width(TransportWidth),
-                )
-                Spacer(Modifier.weight(1f))
-                TvPlayerUtilities(
-                    isLive = isLive,
-                    subtitlesAvailable = subtitlesAvailable,
-                    subtitlesOn = subtitlesOn,
-                    actions = utilityActions,
-                )
-            }
-            // The row opens on Down from the controls, so it is composed only once someone asks for it.
-            if (upNextShown) {
-                upNext()
-            } else {
-                Text(
-                    text = stringResource(R.string.up_next),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = PlayerScrimContentSecondary,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MediaPlaybackControls(
+                            isPlaying = isPlaying,
+                            isBuffering = isBuffering,
+                            onPreviousClick = playActions.onPrevious,
+                            onPlayPauseToggle = playActions.onPlayPause,
+                            onNextClick = playActions.onNext,
+                            playPauseFocusRequester = playPauseFocusRequester,
+                            modifier = Modifier.width(TransportWidth),
+                        )
+                        Spacer(Modifier.weight(1f))
+                        TvPlayerUtilities(
+                            isLive = isLive,
+                            subtitlesAvailable = subtitlesAvailable,
+                            subtitlesOn = subtitlesOn,
+                            actions = utilityActions,
+                        )
+                    }
+                    // The row opens on Down from the controls, so it is composed only once someone asks for it.
+                    if (upNextShown) {
+                        upNext()
+                    } else {
+                        Text(
+                            text = stringResource(R.string.up_next),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = PlayerScrimContentSecondary,
+                        )
+                    }
+                }
             }
         }
     }
