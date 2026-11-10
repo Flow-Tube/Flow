@@ -54,6 +54,7 @@ import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
 import io.github.aedev.flow.ui.components.music.common.rememberMusicArtworkColors
 import io.github.aedev.flow.ui.components.shared.DownloadedBadge
 import io.github.aedev.flow.ui.components.shared.ExplicitBadge
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.theme.Dimensions
 import io.github.aedev.flow.utils.formatDuration
 import io.github.aedev.flow.utils.formatViewCount
@@ -126,6 +127,7 @@ fun MusicTrackItem(
                 .height(density.rowHeight)
                 .clip(shape)
                 .background(rowColor)
+                .then(if (onLongClick != null) Modifier.onMenuKey(onLongClick) else Modifier)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick,

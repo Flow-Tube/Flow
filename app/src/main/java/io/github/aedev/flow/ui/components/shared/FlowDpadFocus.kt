@@ -10,7 +10,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -132,6 +134,31 @@ fun Modifier.onMenuKey(onMenu: () -> Unit): Modifier =
 @Composable
 fun Modifier.dpadFocusGroup(fallback: FocusRequester = FocusRequester.Default): Modifier =
     if (LocalDpadNavigation.current) focusRestorer(fallback).focusGroup() else this
+
+/**
+ * The item a remote should land on when its page comes back, such as the card a video was played from:
+ * the full-screen player replaces the page, so the page's own focus memory is gone when it returns.
+ */
+class DpadReturnFocus {
+    var key: String? by mutableStateOf(null)
+}
+
+/** Provided by a D-pad shell; null elsewhere, which turns [dpadReturnFocus] off. */
+val LocalDpadReturnFocus = staticCompositionLocalOf<DpadReturnFocus?> { null }
+
+/** Takes focus once when this item, identified by [key], is the one [LocalDpadReturnFocus] is waiting for. */
+@Composable
+fun Modifier.dpadReturnFocus(key: String): Modifier {
+    val target = LocalDpadReturnFocus.current
+    if (target == null || target.key != key) return this
+    val requester = remember { FocusRequester() }
+    LaunchedEffect(requester) {
+        // Lazy lists place their items in the first layout pass, after this effect starts.
+        withFrameNanos {}
+        if (requester.requestFocus()) target.key = null
+    }
+    return focusRequester(requester)
+}
 
 /**
  * Focus for content that enters an [androidx.compose.animation.AnimatedContent] after its first frame:

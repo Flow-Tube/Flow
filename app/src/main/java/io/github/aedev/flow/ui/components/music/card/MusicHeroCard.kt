@@ -7,7 +7,9 @@
 package io.github.aedev.flow.ui.components.music.card
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -31,6 +34,8 @@ import coil3.compose.AsyncImage
 import io.github.aedev.flow.ui.components.music.common.MusicNowPlayingOverlay
 import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
 import io.github.aedev.flow.ui.components.shared.DownloadedBadge
+import io.github.aedev.flow.ui.components.shared.focusLift
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.components.shared.titleMarquee
 import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
 
@@ -61,11 +66,16 @@ fun MusicHeroCard(
 ) {
     val isPlaying = isTrackPlaying(mediaId)
 
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier =
             modifier
                 .fillMaxSize()
+                .focusLift(interactionSource)
+                .then(if (onLongClick != null) Modifier.onMenuKey(onLongClick) else Modifier)
                 .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
                     onClick = onClick,
                     onLongClick = onLongClick,
                 ),

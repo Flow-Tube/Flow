@@ -37,6 +37,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.dpadReturnFocus
 import io.github.aedev.flow.ui.components.shared.focusLift
 import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.components.shared.pressScale
@@ -114,6 +115,7 @@ internal fun Modifier.videoCardClickable(
     return pressScale(interactionSource)
         .focusLift(interactionSource)
         .onMenuKey { state.sheets.showQuickActions = true }
+        .dpadReturnFocus(state.video.id)
         .combinedClickable(
             interactionSource = interactionSource,
             indication = ripple(focusRingShape = MaterialTheme.shapes.large),

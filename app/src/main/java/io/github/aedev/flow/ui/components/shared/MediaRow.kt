@@ -66,11 +66,13 @@ fun MediaRow(
                 .background(background)
                 .then(
                     if (onClick != null || onLongClick != null) {
-                        Modifier.combinedClickable(
-                            onClick = onClick ?: {},
-                            onLongClick = onLongClick,
-                            role = Role.Button,
-                        )
+                        Modifier
+                            .then(if (onLongClick != null) Modifier.onMenuKey(onLongClick) else Modifier)
+                            .combinedClickable(
+                                onClick = onClick ?: {},
+                                onLongClick = onLongClick,
+                                role = Role.Button,
+                            )
                     } else {
                         Modifier
                     },

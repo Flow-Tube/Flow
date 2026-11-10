@@ -45,6 +45,7 @@ import io.github.aedev.flow.ui.components.music.header.MusicSectionHeader
 import io.github.aedev.flow.ui.components.music.item.MusicItemDensity
 import io.github.aedev.flow.ui.components.music.item.MusicTrackItem
 import io.github.aedev.flow.ui.components.shared.flowLaneItemWidth
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.theme.Dimensions
 
 private const val PREVIEW_TRACKS = 3
@@ -100,7 +101,7 @@ fun CommunityPlaylistCard(
 ) {
     Card(
         modifier =
-            modifier.combinedClickable(
+            modifier.onMenuKey(onPlaylistAction).combinedClickable(
                 onClick = onPlaylistClick,
                 onLongClick = onPlaylistAction,
             ),
