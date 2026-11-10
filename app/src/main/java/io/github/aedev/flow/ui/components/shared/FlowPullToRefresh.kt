@@ -12,8 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 /**
- * Every pull-to-refresh surface in the app, on the M3 Expressive loading indicator rather than the
- * legacy arrow.
+ * Every pull-to-refresh surface in the app, on the M3 Expressive loading indicator, or on the circular
+ * one while [LocalClassicLoadingIndicator] is on.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -32,11 +32,19 @@ fun FlowPullToRefreshBox(
         state = state,
         contentAlignment = contentAlignment,
         indicator = {
-            PullToRefreshDefaults.LoadingIndicator(
-                state = state,
-                isRefreshing = isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
+            if (LocalClassicLoadingIndicator.current) {
+                PullToRefreshDefaults.Indicator(
+                    state = state,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            } else {
+                PullToRefreshDefaults.LoadingIndicator(
+                    state = state,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
         },
         content = content,
     )

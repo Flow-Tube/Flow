@@ -125,6 +125,15 @@ internal object AppearanceIndex {
             section = R.string.settings_section_style,
             destination = page,
         )
+    val classicLoadingIndicator =
+        SettingEntry(
+            key = "appearance.classic_loading_indicator",
+            title = R.string.settings_classic_loader_title,
+            summary = R.string.settings_classic_loader_summary,
+            keywords = R.string.settings_classic_loader_keywords,
+            section = R.string.settings_section_style,
+            destination = page,
+        )
     val haptics =
         SettingEntry(
             key = "appearance.haptics",
@@ -157,6 +166,7 @@ internal object AppearanceIndex {
             interfaceMode,
             skeletonGradient,
             marquee,
+            classicLoadingIndicator,
             haptics,
             highlightNewSettings,
             highlightNewSettingsDays,

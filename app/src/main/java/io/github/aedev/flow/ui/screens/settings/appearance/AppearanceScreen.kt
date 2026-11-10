@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.AppShortcut
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.FiberNew
 import androidx.compose.material.icons.outlined.Gradient
 import androidx.compose.material.icons.outlined.GridView
@@ -159,6 +160,12 @@ internal fun AppearanceScreen(
                 viewModel.marqueeEnabled,
                 viewModel::setMarqueeEnabled,
                 icon = Icons.Outlined.TextRotationNone,
+            )
+            switch(
+                AppearanceIndex.classicLoadingIndicator,
+                viewModel.classicLoadingIndicator,
+                viewModel::setClassicLoadingIndicator,
+                icon = Icons.Outlined.Autorenew,
             )
             switch(AppearanceIndex.haptics, viewModel.haptics, viewModel::setHaptics, icon = Icons.Outlined.Vibration)
             switch(

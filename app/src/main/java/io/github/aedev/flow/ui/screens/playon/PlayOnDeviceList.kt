@@ -15,7 +15,6 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.deviceKindIcon
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionRow
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsGroup
@@ -172,7 +172,7 @@ private fun DeviceTile(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MovingIndicator() {
-    LoadingIndicator(modifier = Modifier.size(TrailingSize))
+    FlowSpinner(modifier = Modifier.size(TrailingSize))
 }
 
 /** "Playing · title" behind a small waveform, "Paused · title", "Ready" or when it was last seen. */

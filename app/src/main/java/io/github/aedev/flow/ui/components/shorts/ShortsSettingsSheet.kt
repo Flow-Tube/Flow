@@ -16,7 +16,6 @@ import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.NotInterested
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +42,7 @@ import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowRowGroup
 import io.github.aedev.flow.ui.components.shared.FlowSectionHeader
 import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.MediaAudioTrackRow
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackSpeedPicker
@@ -379,7 +379,7 @@ private fun SheetLoading() {
                 .padding(LoadingPadding),
         contentAlignment = Alignment.Center,
     ) {
-        LoadingIndicator()
+        FlowSpinner()
     }
 }
 

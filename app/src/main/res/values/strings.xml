@@ -4167,6 +4167,9 @@
     <string name="settings_marquee_title">Scrolling text</string>
     <string name="settings_marquee_summary">Scroll long titles and names. Turn off on slower devices</string>
     <string name="settings_marquee_keywords">marquee, scrolling title, artist name, low end, performance</string>
+    <string name="settings_classic_loader_title">Classic loading indicator</string>
+    <string name="settings_classic_loader_summary">Use the spinning circle instead of the shape-shifting indicator</string>
+    <string name="settings_classic_loader_keywords">loader, spinner, progress, circle, loading animation</string>
     <string name="settings_highlight_new_title">Highlight new settings</string>
     <string name="settings_highlight_new_summary">Mark settings added in an update with a dot</string>
     <string name="settings_highlight_new_days_title">Keep the dot for</string>
