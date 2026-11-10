@@ -250,6 +250,7 @@ internal fun VideoInfoSection(
                     onSubscribeClick = onSubscribeClick,
                     onUnsubscribeClick = onUnsubscribeClick,
                     onNotificationChange = onNotificationChange,
+                    showSubscribedLabel = false,
                 )
             }
         }

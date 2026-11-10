@@ -76,8 +76,8 @@ enum class FlowSubscribeButtonSize {
  * Tapping while subscribed opens the menu rather than unsubscribing outright, so the destructive
  * action always needs a second, deliberate tap. A control that stands for several channels passes
  * [onSubscribedClick] instead: it then reads "Subscribed" with no bell or menu, since neither can
- * say which channel they act on. A list in which every row is already subscribed passes
- * [showSubscribedLabel] false to keep only the bell and the menu.
+ * say which channel they act on. A surface short on room, or a list in which every row is already
+ * subscribed, passes [showSubscribedLabel] false to keep only the bell and the menu.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
