@@ -21,13 +21,13 @@ import androidx.navigation.compose.rememberNavController
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
-import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.music.common.ProvideMusicPlaybackState
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.MusicMenuSheets
 import io.github.aedev.flow.ui.components.music.sheet.rememberMusicMenus
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.LocalFlowSheetPresenter
+import io.github.aedev.flow.ui.mediaNavigationLocals
 import io.github.aedev.flow.ui.screens.home.HomeViewModel
 import io.github.aedev.flow.ui.screens.music.MusicPlayerViewModel
 import io.github.aedev.flow.ui.screens.music.MusicViewModel
@@ -40,6 +40,7 @@ import io.github.aedev.flow.ui.tv.music.TvMusicNowPlaying
 import io.github.aedev.flow.ui.tv.navigation.TvMediaNavigator
 import io.github.aedev.flow.ui.tv.player.TvPlayerScreen
 import io.github.aedev.flow.ui.tv.theme.FlowTvTheme
+import kotlinx.coroutines.flow.first
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -115,6 +116,14 @@ fun FlowTvApp(
         GlobalPlayerState.setCurrentVideo(null)
     }
 
+    // A page asked for before the shell's NavHost has set its graph, as from a player a link opened.
+    var pendingRoute by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(pendingRoute) {
+        val route = pendingRoute ?: return@LaunchedEffect
+        navController.currentBackStackEntryFlow.first()
+        navController.navigate(route)
+        pendingRoute = null
+    }
     val mediaNavigator =
         remember(navController) {
             TvMediaNavigator(
@@ -124,6 +133,7 @@ fun FlowTvApp(
                     if (GlobalPlayerState.currentVideo.value != null) closePlayer()
                 },
                 playVideo = { playById(it) },
+                navigateWhenReady = { pendingRoute = it },
             )
         }
 
@@ -137,7 +147,7 @@ fun FlowTvApp(
 
     FlowTvTheme {
         CompositionLocalProvider(
-            LocalMediaNavigator provides mediaNavigator,
+            *mediaNavigationLocals(mediaNavigator),
             LocalFlowSheetPresenter provides TvSheetPresenter,
             LocalMusicMenus provides musicMenus,
         ) {

@@ -8,12 +8,14 @@ import java.net.URLDecoder
 /**
  * The TV shell's [MediaNavigator], so a card's channel, a menu's "Go to artist" and a link in a
  * description open the TV page for it. [beforeNavigate] closes a full-screen player, which would
- * otherwise cover the page. TV has no equalizer page, so that request does nothing.
+ * otherwise cover the page. A player a link opened at launch covers a shell that has never set its
+ * graph, so its page goes to [navigateWhenReady]. TV has no equalizer page, so that request does nothing.
  */
 internal class TvMediaNavigator(
     private val navController: NavHostController,
     private val beforeNavigate: () -> Unit,
     private val playVideo: (videoId: String) -> Unit,
+    private val navigateWhenReady: (route: String) -> Unit,
 ) : MediaNavigator {
     override fun openChannel(channelId: String) = open(channelId, TvRoutes.CHANNEL, TvRoutes.CHANNEL_ARG, TvRoutes::channel)
 
@@ -78,10 +80,9 @@ internal class TvMediaNavigator(
         route: (String) -> String,
     ) {
         val key = id.trim().takeIf(String::isNotEmpty) ?: return
-        // Null until the shell's NavHost has set its graph, as when a deep link opens straight into the player.
-        val current = navController.currentBackStackEntry ?: return
-        val openId = current.arguments?.getString(argName)?.let { URLDecoder.decode(it, "UTF-8") }
         beforeNavigate()
+        val current = navController.currentBackStackEntry ?: return navigateWhenReady(route(key))
+        val openId = current.arguments?.getString(argName)?.let { URLDecoder.decode(it, "UTF-8") }
         if (current.destination.route == pattern && openId == key) return
         navController.navigate(route(key))
     }
