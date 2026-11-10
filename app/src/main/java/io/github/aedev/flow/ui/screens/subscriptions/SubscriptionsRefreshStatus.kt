@@ -2,8 +2,7 @@ package io.github.aedev.flow.ui.screens.subscriptions
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,7 +17,6 @@ private val StatusHorizontalPadding = 12.dp
 private val ProgressVerticalPadding = 4.dp
 private val TextVerticalPadding = 2.dp
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun SubscriptionsRefreshStatus(
     stage: SubscriptionRefreshStage,
@@ -31,7 +29,7 @@ internal fun SubscriptionsRefreshStatus(
 ) {
     if (totalChannels > 0) {
         val progress = processedChannels.toFloat() / totalChannels.toFloat().coerceAtLeast(1f)
-        LinearWavyProgressIndicator(
+        LinearProgressIndicator(
             progress = { progress.coerceIn(0f, 1f) },
             modifier =
                 modifier
