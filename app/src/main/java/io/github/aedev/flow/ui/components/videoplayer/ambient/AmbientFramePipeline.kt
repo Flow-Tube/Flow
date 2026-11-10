@@ -38,6 +38,12 @@ private const val DECIMATION = 3
 private const val CAPTURE_MS_ASYNC = 900L
 private const val CAPTURE_MS_BLOCKING = 1800L
 
+/** How often the frame is sampled: the bars and the glow change slowly, a lit page follows the picture. */
+internal enum class AmbientCadence { STANDARD, LIVELY }
+
+private const val LIVELY_CHANGING_MS = 250L
+private const val LIVELY_STILL_MS = 1000L
+
 /** How often a surface that is not ready yet is checked again, and how often a polled player is asked. */
 internal const val IDLE_MS = 1500L
 
@@ -130,6 +136,7 @@ private val LINEAR_TO_SRGB =
 internal class AmbientPipeline(
     private val pixelDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val pageStyle: () -> AmbientPageStyle? = { null },
+    private val capturePace: () -> AmbientCadence = { AmbientCadence.STANDARD },
 ) {
     private val sample = Bitmap.createBitmap(SAMPLE_W, SAMPLE_H, Bitmap.Config.ARGB_8888)
     private val samplePixels = IntArray(SAMPLE_W * SAMPLE_H)
@@ -185,10 +192,16 @@ internal class AmbientPipeline(
                 when (captureSurface(surface, sample, handler)) {
                     CAPTURE_OK -> {
                         consecutiveFailures = 0
-                        cadence = base
                         // Heavy work off Main; withContext joins before anything is published, so
                         // the staging buffers are never read concurrently.
                         val accepted = withContext(pixelDispatcher) { computeTarget() }
+                        // A TextureView readback blocks Main, so it keeps its slow pace whatever is asked.
+                        cadence =
+                            when {
+                                capturePace() == AmbientCadence.STANDARD || surface is TextureView -> base
+                                accepted -> LIVELY_CHANGING_MS
+                                else -> LIVELY_STILL_MS
+                            }
                         if (accepted) {
                             stagingGrid.copyInto(targetGrid)
                             hasTarget = true

@@ -75,6 +75,7 @@ internal fun PlayerAppearanceScreen(
     val sleepTimerButton by viewModel.sleepTimerButton.collectAsStateWithLifecycle()
     val adaptiveSize by viewModel.adaptivePlayerSize.collectAsStateWithLifecycle()
     val ambientMode by viewModel.ambientMode.collectAsStateWithLifecycle()
+    val ambientGlow by viewModel.ambientGlow.collectAsStateWithLifecycle()
     val videoArtworkColors by viewModel.videoArtworkColors.collectAsStateWithLifecycle()
     val paidPromotion by viewModel.paidPromotionLabel.collectAsStateWithLifecycle()
     val groupedQuality by viewModel.groupedQualitySelector.collectAsStateWithLifecycle()
@@ -210,7 +211,8 @@ internal fun PlayerAppearanceScreen(
         group(key = "player_appearance.video", header = R.string.settings_section_video_player) {
             switch(PlayerAppearanceIndex.adaptiveSize, adaptiveSize, viewModel::setAdaptivePlayerSize)
             switch(PlayerAppearanceIndex.ambientMode, ambientMode, viewModel::setAmbientMode)
-            switch(PlayerAppearanceIndex.ambientGlow, viewModel.ambientGlow, viewModel::setAmbientGlow)
+            switch(PlayerAppearanceIndex.ambientGlow, ambientGlow, viewModel::setAmbientGlow)
+            switch(PlayerAppearanceIndex.immersiveGlow, viewModel.immersiveGlow, viewModel::setImmersiveGlow, enabled = ambientGlow)
             switch(PlayerAppearanceIndex.videoArtworkColors, videoArtworkColors, viewModel::setVideoArtworkColors)
             switch(PlayerAppearanceIndex.groupedQuality, groupedQuality, viewModel::setGroupedQualitySelector)
             switch(PlayerAppearanceIndex.paidPromotion, paidPromotion, viewModel::setPaidPromotionLabel)

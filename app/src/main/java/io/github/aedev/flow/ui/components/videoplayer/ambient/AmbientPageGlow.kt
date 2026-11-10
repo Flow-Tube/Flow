@@ -112,7 +112,7 @@ fun AmbientStatusBarGlow(
 
 /** Fades the light in once its first frame exists, rather than popping in over the page. */
 @Composable
-private fun rememberAmbientAppear(frames: AmbientFrameHolder): Animatable<Float, AnimationVector1D> {
+internal fun rememberAmbientAppear(frames: AmbientFrameHolder): Animatable<Float, AnimationVector1D> {
     val appear = remember(frames) { Animatable(0f) }
     val ready by remember(frames) { derivedStateOf { frames.state.page != null } }
     val spec = MaterialTheme.motionScheme.slowEffectsSpec<Float>()

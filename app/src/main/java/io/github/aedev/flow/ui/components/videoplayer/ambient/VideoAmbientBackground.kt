@@ -104,7 +104,13 @@ fun AmbientFrameCaptureEffect(
         // without this the loop kept running a GPU readback every cadence with the screen off,
         // painting a surface nobody could see.
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            val pipeline = AmbientPipeline(pageStyle = { holder.pageStyle })
+            val pipeline =
+                AmbientPipeline(
+                    pageStyle = { holder.pageStyle },
+                    capturePace = {
+                        if (holder.pageStyle is AmbientPageStyle.Immersive) AmbientCadence.LIVELY else AmbientCadence.STANDARD
+                    },
+                )
             // coroutineScope, not a bare launch pair: it suspends until both loops finish, so the
             // pipeline is never abandoned while either loop can still touch its buffers.
             coroutineScope {
