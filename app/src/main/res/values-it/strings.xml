@@ -4854,4 +4854,14 @@
     <string name="player_appearance_more_videos_gesture_subtitle">Scorri verso l\'alto in modalità a schermo intero per vedere i video correlati</string>
     <string name="lyrics_provider_netease">NetEase</string>
     <string name="lyrics_provider_amll">AMLL</string>
+    <string name="player_appearance_video_artwork_colors_title">Colori dalla miniatura</string>
+    <string name="subscription_posts_empty">Nessuna pubblicazione negli ultimi 30 giorni</string>
+    <string name="player_side_panel_width_title">Larghezza pannello laterale</string>
+    <string name="player_side_panel_width_summary">Per commenti, chat e capitoli in modalità a schermo intero</string>
+    <string name="player_side_panel_width_narrow">Stretta</string>
+    <string name="player_side_panel_width_small">Piccola</string>
+    <string name="player_side_panel_width_default">Predefinita</string>
+    <string name="player_side_panel_width_wide">Larga</string>
+    <string name="content_settings_navbar_show_on_other_pages_title">Mostra la barra di navigazione nelle altre pagine</string>
+    <string name="content_settings_navbar_show_on_other_pages_subtitle">Mantieni la barra sui canali, playlist e altre pagine</string>
 </resources>
