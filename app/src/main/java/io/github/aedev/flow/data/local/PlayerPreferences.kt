@@ -272,6 +272,9 @@ class PlayerPreferences(
         val SUBS_FULL_WIDTH_VIEW = booleanPreferencesKey("subs_full_width_view")
         val SUBS_SORT_MODE = stringPreferencesKey("subs_sort_mode")
         val SUBS_SELECTED_GROUP = stringPreferencesKey("subs_selected_group")
+        val SUBS_UNGROUPED_ENABLED = booleanPreferencesKey("subs_ungrouped_enabled")
+        val SUBS_UNGROUPED_POSITION = intPreferencesKey("subs_ungrouped_position")
+        val SUBS_POSTS_CHIP = booleanPreferencesKey("subs_posts_chip")
         val SUBS_REFRESH_ON_STARTUP = booleanPreferencesKey("subs_refresh_on_startup")
         val SUBS_LAST_REFRESH_TIME = longPreferencesKey("subs_last_refresh_time")
         val SUBS_LAST_REFRESHED_COUNT = intPreferencesKey("subs_last_refreshed_count")
@@ -2937,6 +2940,31 @@ class PlayerPreferences(
                 preferences[Keys.SUBS_SELECTED_GROUP] = groupName
             }
         }
+    }
+
+    val subscriptionUngroupedEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_UNGROUPED_ENABLED] ?: false }
+
+    suspend fun setSubscriptionUngroupedEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_UNGROUPED_ENABLED] = enabled }
+    }
+
+    /** Ungrouped's index among the group chips; -1 keeps it after every group. */
+    val subscriptionUngroupedPosition: Flow<Int> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_UNGROUPED_POSITION] ?: -1 }
+
+    suspend fun setSubscriptionUngroupedPosition(position: Int) {
+        context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_UNGROUPED_POSITION] = position }
+    }
+
+    val subscriptionPostsChip: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_POSTS_CHIP] ?: true }
+
+    suspend fun setSubscriptionPostsChip(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_POSTS_CHIP] = enabled }
     }
 
     val subscriptionRefreshOnStartup: Flow<Boolean> =

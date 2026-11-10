@@ -199,7 +199,7 @@ private fun SubscriptionGroupsReorderList(
                             ReorderHandle()
                         }
                         Text(
-                            text = group.name,
+                            text = if (group.isUngrouped()) stringResource(R.string.group_ungrouped) else group.name,
                             style = MaterialTheme.typography.bodyLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -216,20 +216,22 @@ private fun SubscriptionGroupsReorderList(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = ContentSpacing),
                         )
-                        IconButton(onClick = { onEdit(group) }, modifier = Modifier.size(ActionIconSize)) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(ActionGlyphSize),
-                            )
-                        }
-                        IconButton(onClick = { onDelete(group) }, modifier = Modifier.size(ActionIconSize)) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(ActionGlyphSize),
-                                tint = MaterialTheme.colorScheme.error,
-                            )
+                        if (!group.isUngrouped()) {
+                            IconButton(onClick = { onEdit(group) }, modifier = Modifier.size(ActionIconSize)) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(ActionGlyphSize),
+                                )
+                            }
+                            IconButton(onClick = { onDelete(group) }, modifier = Modifier.size(ActionIconSize)) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(ActionGlyphSize),
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
                         }
                     }
                 }
@@ -359,7 +361,7 @@ internal fun SubscriptionGroupDialogsHost(
 
     if (!editing) {
         SubscriptionGroupsManagerDialog(
-            groups = uiState.groups,
+            groups = uiState.managedGroups(),
             onDismiss = onDismiss,
             onCreateNew = {
                 editingGroup = null

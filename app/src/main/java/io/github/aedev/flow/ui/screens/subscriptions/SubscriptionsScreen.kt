@@ -229,7 +229,7 @@ fun SubscriptionsScreen(
                     )
                 } else if (uiState.subscribedChannels.isEmpty()) {
                     SubscriptionsEmptyState(modifier = Modifier.fillMaxSize())
-                } else if (showPosts) {
+                } else if (showPosts && uiState.showPostsChip) {
                     SubscriptionPostsContent(
                         channelIds = uiState.selectedGroupScope(),
                         listState = postsListState,
@@ -266,7 +266,7 @@ fun SubscriptionsScreen(
                         onManageGroups = { showGroupsDialog = true },
                         onRetryFailedChannels = viewModel::retryFailedChannels,
                         onDismissFailedChannels = viewModel::dismissFailedChannels,
-                        onPostsClick = { showPosts = true },
+                        onPostsClick = { showPosts = true }.takeIf { uiState.showPostsChip },
                     )
                 }
             }
