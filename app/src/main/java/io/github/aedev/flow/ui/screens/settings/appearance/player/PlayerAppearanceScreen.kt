@@ -213,6 +213,12 @@ internal fun PlayerAppearanceScreen(
             switch(PlayerAppearanceIndex.ambientMode, ambientMode, viewModel::setAmbientMode)
             switch(PlayerAppearanceIndex.ambientGlow, ambientGlow, viewModel::setAmbientGlow)
             switch(PlayerAppearanceIndex.immersiveGlow, viewModel.immersiveGlow, viewModel::setImmersiveGlow, enabled = ambientGlow)
+            switch(
+                PlayerAppearanceIndex.glowInBatterySaver,
+                viewModel.glowInBatterySaver,
+                viewModel::setGlowInBatterySaver,
+                enabled = ambientGlow,
+            )
             switch(PlayerAppearanceIndex.videoArtworkColors, videoArtworkColors, viewModel::setVideoArtworkColors)
             switch(PlayerAppearanceIndex.groupedQuality, groupedQuality, viewModel::setGroupedQualitySelector)
             switch(PlayerAppearanceIndex.paidPromotion, paidPromotion, viewModel::setPaidPromotionLabel)

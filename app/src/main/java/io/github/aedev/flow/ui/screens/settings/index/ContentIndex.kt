@@ -104,6 +104,14 @@ internal object ContentIndex {
             section = R.string.settings_section_subscriptions,
             destination = page,
         )
+    val subsUpcoming =
+        SettingEntry(
+            key = "content.subs.upcoming",
+            title = R.string.content_settings_subs_show_upcoming_title,
+            summary = R.string.content_settings_subs_show_upcoming_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+        )
     val subsCollaborations =
         SettingEntry(
             key = "content.subs.collaborations",
@@ -250,6 +258,7 @@ internal object ContentIndex {
             subsShorts,
             subsShortsShelf,
             subsLive,
+            subsUpcoming,
             subsCollaborations,
             hideWatchedSubs,
             hideUnplayableSubs,

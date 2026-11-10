@@ -454,21 +454,20 @@ class VideoPlayerViewModelEntryPointsTest {
         }
 
     @Test
-    fun `toggleLoop on disables autoplay and toggleLoop off leaves autoplay alone`() =
+    fun `toggleLoop delegates to the player and leaves the autoplay setting alone`() =
         runTest {
             val viewModel = newViewModel()
+            val autoplayBefore = viewModel.uiState.value.autoplayEnabled
 
             viewModel.toggleLoop(true)
             advanceUntilIdle()
             verify(exactly = 1) { harness.playerManager.toggleLoop(true) }
-            coVerify(exactly = 1) { harness.playerPreferences.setAutoplayEnabled(false) }
-            assertThat(viewModel.uiState.value.autoplayEnabled).isFalse()
 
             viewModel.toggleLoop(false)
             advanceUntilIdle()
             verify(exactly = 1) { harness.playerManager.toggleLoop(false) }
-            coVerify(exactly = 1) { harness.playerPreferences.setAutoplayEnabled(any()) }
-            assertThat(viewModel.uiState.value.autoplayEnabled).isFalse()
+            coVerify(exactly = 0) { harness.playerPreferences.setAutoplayEnabled(any()) }
+            assertThat(viewModel.uiState.value.autoplayEnabled).isEqualTo(autoplayBefore)
         }
 
     @Test
