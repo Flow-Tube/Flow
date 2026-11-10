@@ -105,6 +105,7 @@ class PlayerPreferences(
         val VIDEO_AMBIENT_MODE_ENABLED = booleanPreferencesKey("video_ambient_mode_enabled")
         val VIDEO_AMBIENT_GLOW_ENABLED = booleanPreferencesKey("video_ambient_glow_enabled")
         val VIDEO_AMBIENT_IMMERSIVE_ENABLED = booleanPreferencesKey("video_ambient_immersive_enabled")
+        val VIDEO_AMBIENT_GLOW_BATTERY_SAVER = booleanPreferencesKey("video_ambient_glow_battery_saver")
         val PREFERRED_SUBTITLE_LANGUAGE = stringPreferencesKey("preferred_subtitle_language")
         val TRANSCRIPT_LANGUAGE = stringPreferencesKey("transcript_language")
         val SUBTITLE_FONT_SIZE = floatPreferencesKey("subtitle_font_size")
@@ -2011,6 +2012,18 @@ class PlayerPreferences(
     suspend fun setVideoAmbientImmersiveEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.VIDEO_AMBIENT_IMMERSIVE_ENABLED] = enabled
+        }
+    }
+
+    val videoAmbientGlowInBatterySaver: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.VIDEO_AMBIENT_GLOW_BATTERY_SAVER] ?: false
+            }
+
+    suspend fun setVideoAmbientGlowInBatterySaver(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.VIDEO_AMBIENT_GLOW_BATTERY_SAVER] = enabled
         }
     }
 
