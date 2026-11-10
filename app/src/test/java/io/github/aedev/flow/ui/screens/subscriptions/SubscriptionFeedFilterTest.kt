@@ -31,6 +31,7 @@ class SubscriptionFeedFilterTest {
         ageHours: Long = 1L,
         isShort: Boolean = false,
         isLive: Boolean = false,
+        isUpcoming: Boolean = false,
     ) = Video(
         id = id,
         title = id,
@@ -43,12 +44,29 @@ class SubscriptionFeedFilterTest {
         timestamp = now - ageHours * 3_600_000L,
         isShort = isShort,
         isLive = isLive,
+        isUpcoming = isUpcoming,
     )
 
     private fun sections(
         videos: List<Video>,
         filters: SubscriptionFeedFilters = SubscriptionFeedFilters(),
     ) = subscriptionFeedSections(videos, filters, now)
+
+    @Test
+    fun `upcoming premieres and scheduled streams follow their own switch`() {
+        val feed =
+            listOf(
+                video("uploaded"),
+                video("premiere", ageHours = -3L, isUpcoming = true),
+                video("scheduled", ageHours = -5L, isLive = true, isUpcoming = true),
+            )
+
+        assertThat(sections(feed).recentVideos.map { it.id }).containsExactly("uploaded", "premiere", "scheduled")
+        assertThat(sections(feed, SubscriptionFeedFilters(showUpcoming = false)).recentVideos.map { it.id })
+            .containsExactly("uploaded")
+        assertThat(sections(feed, SubscriptionFeedFilters(showVideos = false, showLive = false)).recentVideos.map { it.id })
+            .containsExactly("premiere", "scheduled")
+    }
 
     @Test
     fun `a video marked not interested is hidden`() {

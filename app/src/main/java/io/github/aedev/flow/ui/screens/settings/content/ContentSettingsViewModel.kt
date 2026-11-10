@@ -27,6 +27,7 @@ class ContentSettingsViewModel
         val subsShorts = preferences.subscriptionShowShorts.asState(true)
         val subsShortsShelf = preferences.shortsShelfEnabled.asState(true)
         val subsLive = preferences.subscriptionShowLive.asState(true)
+        val subsUpcoming = preferences.subscriptionShowUpcoming.asState(true)
         val subsPostsChip = preferences.subscriptionPostsChip.asState(true)
         val subsUngrouped = preferences.subscriptionUngroupedEnabled.asState(false)
         val subsCollaborations = preferences.subscriptionCollaborationsEnabled.asState(true)
@@ -70,6 +71,8 @@ class ContentSettingsViewModel
         fun setSubsShortsShelf(value: Boolean) = write { preferences.setShortsShelfEnabled(value) }
 
         fun setSubsLive(value: Boolean) = write { preferences.setSubscriptionShowLive(value) }
+
+        fun setSubsUpcoming(value: Boolean) = write { preferences.setSubscriptionShowUpcoming(value) }
 
         fun setSubsPostsChip(value: Boolean) = write { preferences.setSubscriptionPostsChip(value) }
 

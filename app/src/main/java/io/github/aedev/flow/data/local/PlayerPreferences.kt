@@ -105,6 +105,7 @@ class PlayerPreferences(
         val VIDEO_AMBIENT_MODE_ENABLED = booleanPreferencesKey("video_ambient_mode_enabled")
         val VIDEO_AMBIENT_GLOW_ENABLED = booleanPreferencesKey("video_ambient_glow_enabled")
         val VIDEO_AMBIENT_IMMERSIVE_ENABLED = booleanPreferencesKey("video_ambient_immersive_enabled")
+        val VIDEO_AMBIENT_GLOW_BATTERY_SAVER = booleanPreferencesKey("video_ambient_glow_battery_saver")
         val PREFERRED_SUBTITLE_LANGUAGE = stringPreferencesKey("preferred_subtitle_language")
         val TRANSCRIPT_LANGUAGE = stringPreferencesKey("transcript_language")
         val SUBTITLE_FONT_SIZE = floatPreferencesKey("subtitle_font_size")
@@ -365,6 +366,7 @@ class PlayerPreferences(
         val SUBSCRIPTION_SHOW_VIDEOS = booleanPreferencesKey("subscription_show_videos")
         val SUBSCRIPTION_SHOW_SHORTS = booleanPreferencesKey("subscription_show_shorts")
         val SUBSCRIPTION_SHOW_LIVE = booleanPreferencesKey("subscription_show_live")
+        val SUBSCRIPTION_SHOW_UPCOMING = booleanPreferencesKey("subscription_show_upcoming")
         val SUBSCRIPTION_SHORTS_EXCLUDED_CHANNELS = stringSetPreferencesKey("subscription_shorts_excluded_channels")
         val UPCOMING_VIDEO_REMINDER_IDS = stringSetPreferencesKey("upcoming_video_reminder_ids")
         val UPCOMING_VIDEO_REMINDERS = stringPreferencesKey("upcoming_video_reminders")
@@ -2016,6 +2018,18 @@ class PlayerPreferences(
         }
     }
 
+    val videoAmbientGlowInBatterySaver: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.VIDEO_AMBIENT_GLOW_BATTERY_SAVER] ?: false
+            }
+
+    suspend fun setVideoAmbientGlowInBatterySaver(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.VIDEO_AMBIENT_GLOW_BATTERY_SAVER] = enabled
+        }
+    }
+
     // Video Loop
     val videoLoopEnabled: Flow<Boolean> =
         context.playerPreferencesDataStore.data
@@ -3143,6 +3157,16 @@ class PlayerPreferences(
     suspend fun setSubscriptionShowLive(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.SUBSCRIPTION_SHOW_LIVE] = enabled
+        }
+    }
+
+    val subscriptionShowUpcoming: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBSCRIPTION_SHOW_UPCOMING] ?: true }
+
+    suspend fun setSubscriptionShowUpcoming(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SUBSCRIPTION_SHOW_UPCOMING] = enabled
         }
     }
 
