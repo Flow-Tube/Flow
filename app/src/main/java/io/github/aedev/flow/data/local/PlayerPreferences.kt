@@ -276,6 +276,7 @@ class PlayerPreferences(
         val SUBS_UNGROUPED_ENABLED = booleanPreferencesKey("subs_ungrouped_enabled")
         val SUBS_UNGROUPED_POSITION = intPreferencesKey("subs_ungrouped_position")
         val SUBS_POSTS_CHIP = booleanPreferencesKey("subs_posts_chip")
+        val SUBS_PINNED_CHANNELS = stringPreferencesKey("subs_pinned_channels")
         val SUBS_REFRESH_ON_STARTUP = booleanPreferencesKey("subs_refresh_on_startup")
         val SUBS_LAST_REFRESH_TIME = longPreferencesKey("subs_last_refresh_time")
         val SUBS_LAST_REFRESHED_COUNT = intPreferencesKey("subs_last_refreshed_count")
@@ -2990,6 +2991,15 @@ class PlayerPreferences(
 
     suspend fun setSubscriptionPostsChip(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_POSTS_CHIP] = enabled }
+    }
+
+    /** Pinned channel ids in pin order, comma separated. */
+    val subscriptionPinnedChannels: Flow<String> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_PINNED_CHANNELS].orEmpty() }
+
+    suspend fun setSubscriptionPinnedChannels(stored: String) {
+        context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_PINNED_CHANNELS] = stored }
     }
 
     val subscriptionRefreshOnStartup: Flow<Boolean> =

@@ -51,6 +51,8 @@ internal fun SubscriptionsFeedHeader(
     modifier: Modifier = Modifier,
     postsSelected: Boolean = false,
     onPostsClick: (() -> Unit)? = null,
+    pinnedCount: Int = 0,
+    onTogglePin: ((Channel) -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         SubscriptionsQuickAccessRow(
@@ -58,6 +60,8 @@ internal fun SubscriptionsFeedHeader(
             onChannelClick = onChannelClick,
             onViewAllClick = onViewAllClick,
             onMusicClick = onMusicSubscriptionsClick,
+            pinnedCount = pinnedCount,
+            onTogglePin = onTogglePin,
             modifier =
                 Modifier
                     .fillMaxWidth()
