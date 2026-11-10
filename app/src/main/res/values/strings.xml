@@ -940,6 +940,8 @@
     <string name="player_appearance_hide_music_artwork_subtitle">Show the app icon on the extracted artwork color instead</string>
     <string name="player_appearance_haptics_title">Vibration</string>
     <string name="player_appearance_haptics_subtitle">Vibrate lightly on taps and gestures</string>
+    <string name="settings_haptics_ignore_system_title">Ignore system setting</string>
+    <string name="settings_haptics_ignore_system_summary">Vibrate even when touch feedback is off</string>
     <string name="player_appearance_gesture_overlay_title">Gesture overlay style</string>
     <string name="player_appearance_gesture_overlay_subtitle">How volume and brightness show while you swipe</string>
     <string name="gesture_overlay_style_circular">Circular</string>

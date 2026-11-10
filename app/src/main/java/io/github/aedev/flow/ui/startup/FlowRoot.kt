@@ -81,7 +81,9 @@ internal fun FlowRoot(
     val configuration = LocalConfiguration.current
     val uiPreferences = remember { AppUiModePreferences(applicationContext) }
     val appUiMode by uiPreferences.mode.collectAsState(initial = AppUiMode.AUTOMATIC)
-    val hapticsEnabled by remember { PlayerPreferences(applicationContext) }.hapticsEnabled.collectAsState(initial = true)
+    val hapticPreferences = remember { PlayerPreferences(applicationContext) }
+    val hapticsEnabled by hapticPreferences.hapticsEnabled.collectAsState(initial = true)
+    val hapticsIgnoreSystem by hapticPreferences.hapticsIgnoreSystem.collectAsState(initial = false)
     val deviceFormFactor =
         remember(configuration.uiMode, context) {
             DeviceFormFactorDetector.detect(context)
@@ -126,7 +128,7 @@ internal fun FlowRoot(
 
         // Date preferences: five DataStore flows used to be opened per video card,
         // metadata line, info section, description sheet and info dialog.
-        AppHaptics(enabled = hapticsEnabled) {
+        AppHaptics(enabled = hapticsEnabled, ignoreSystemSetting = hapticsIgnoreSystem) {
             ProvideWindowSizeClass {
                 ProvideDateDisplaySettings {
                     // Card preferences and watch progress are collected once here. Cards used to

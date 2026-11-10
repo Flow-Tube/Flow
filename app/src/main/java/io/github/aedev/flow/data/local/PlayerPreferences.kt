@@ -468,6 +468,7 @@ class PlayerPreferences(
 
         // UI preferences
         val PLAYER_HAPTICS_ENABLED = device(booleanPreferencesKey("player_haptics_enabled"))
+        val HAPTICS_IGNORE_SYSTEM = device(booleanPreferencesKey("haptics_ignore_system"))
         val SWIPE_GESTURES_ENABLED = device(booleanPreferencesKey("swipe_gestures_enabled"))
         val BRIGHTNESS_SWIPE_GESTURES_ENABLED = device(booleanPreferencesKey("brightness_swipe_gestures_enabled"))
         val REMEMBER_BRIGHTNESS_ENABLED = device(booleanPreferencesKey("remember_brightness_enabled"))
@@ -1113,6 +1114,16 @@ class PlayerPreferences(
     suspend fun setHapticsEnabled(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PLAYER_HAPTICS_ENABLED] = enabled
+        }
+    }
+
+    val hapticsIgnoreSystem: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.HAPTICS_IGNORE_SYSTEM] ?: false }
+
+    suspend fun setHapticsIgnoreSystem(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.HAPTICS_IGNORE_SYSTEM] = enabled
         }
     }
 
