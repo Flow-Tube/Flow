@@ -92,6 +92,7 @@ class AppearanceViewModel
 
         val skeletonGradient = localDataManager.skeletonGradient.asState(false)
         val marqueeEnabled = localDataManager.marqueeEnabled.asState(true)
+        val classicLoadingIndicator = localDataManager.classicLoadingIndicator.asState(false)
         val haptics = preferences.hapticsEnabled.asState(true)
         val newSettingsHighlight = preferences.newSettingsHighlight.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT)
         val newSettingsDays = preferences.newSettingsHighlightDays.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS)
@@ -99,6 +100,8 @@ class AppearanceViewModel
         fun setSkeletonGradient(enabled: Boolean) = write { localDataManager.setSkeletonGradient(enabled) }
 
         fun setMarqueeEnabled(enabled: Boolean) = write { localDataManager.setMarqueeEnabled(enabled) }
+
+        fun setClassicLoadingIndicator(enabled: Boolean) = write { localDataManager.setClassicLoadingIndicator(enabled) }
 
         fun setHaptics(enabled: Boolean) = write { preferences.setHapticsEnabled(enabled) }
 

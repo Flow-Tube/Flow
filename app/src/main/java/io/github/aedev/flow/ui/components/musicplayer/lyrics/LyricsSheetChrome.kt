@@ -39,7 +39,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,6 +67,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_LEFT
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_RIGHT
 import io.github.aedev.flow.ui.components.PlayingWaveform
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import kotlinx.coroutines.delay
 
 internal fun lyricsTextAlignFor(pref: String): TextAlign =
@@ -137,7 +137,7 @@ internal fun LyricsTrackPill(
                 )
             }
             if (isLoading) {
-                LoadingIndicator(
+                FlowSpinner(
                     modifier = Modifier.size(24.dp),
                     color = MaterialTheme.colorScheme.primary,
                 )

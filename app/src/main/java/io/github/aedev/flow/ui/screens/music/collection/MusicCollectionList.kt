@@ -19,7 +19,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +38,7 @@ import io.github.aedev.flow.ui.components.music.item.MusicTrackItem
 import io.github.aedev.flow.ui.components.music.section.MusicCollectionShelf
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import io.github.aedev.flow.ui.components.shared.ReorderableLazyListState
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
@@ -160,7 +160,7 @@ internal fun MusicCollectionList(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     when {
-                        footer.isLoadingMore -> LoadingIndicator()
+                        footer.isLoadingMore -> FlowSpinner()
                         footer.moreFailed -> TextButton(onClick = footer.onRetryMore) { Text(stringResource(R.string.retry)) }
                     }
                     Text(

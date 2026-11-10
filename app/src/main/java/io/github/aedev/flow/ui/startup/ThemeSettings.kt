@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.font.FontFamily
 import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.LocalDataManager
+import io.github.aedev.flow.ui.components.shared.LocalClassicLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.LocalMarqueeEnabled
 import io.github.aedev.flow.ui.components.shared.LocalSkeletonGradientEnabled
 import io.github.aedev.flow.ui.theme.CustomTheme
@@ -28,6 +29,7 @@ data class ThemeSettings(
     val fontFamily: FontFamily = FlowFontFamily,
     val skeletonGradient: Boolean = false,
     val marqueeEnabled: Boolean = true,
+    val classicLoadingIndicator: Boolean = false,
 )
 
 fun LocalDataManager.themeSettings(fonts: AppFontPreferences): Flow<ThemeSettings> =
@@ -37,6 +39,7 @@ fun LocalDataManager.themeSettings(fonts: AppFontPreferences): Flow<ThemeSetting
         .combine(fonts.fontFamily) { settings, family -> settings.copy(fontFamily = family) }
         .combine(skeletonGradient) { settings, gradient -> settings.copy(skeletonGradient = gradient) }
         .combine(marqueeEnabled) { settings, marquee -> settings.copy(marqueeEnabled = marquee) }
+        .combine(classicLoadingIndicator) { settings, classic -> settings.copy(classicLoadingIndicator = classic) }
 
 @Composable
 fun FlowTheme(
@@ -54,6 +57,7 @@ fun FlowTheme(
         CompositionLocalProvider(
             LocalSkeletonGradientEnabled provides settings.skeletonGradient,
             LocalMarqueeEnabled provides settings.marqueeEnabled,
+            LocalClassicLoadingIndicator provides settings.classicLoadingIndicator,
             content = content,
         )
     },

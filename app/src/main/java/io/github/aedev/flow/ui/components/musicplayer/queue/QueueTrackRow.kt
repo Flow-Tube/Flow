@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Explicit
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,6 +61,7 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.musicplayer.common.formatTime
 import io.github.aedev.flow.ui.components.musicplayer.motion.QueueRowSwipeGestureHandler
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -73,7 +73,7 @@ internal fun RadioLoadingRow() {
                 .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
     ) {
-        LoadingIndicator(
+        FlowSpinner(
             modifier = Modifier.size(30.dp),
             color = MaterialTheme.colorScheme.primary,
         )

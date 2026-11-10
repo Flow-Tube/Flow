@@ -12,7 +12,6 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,7 +57,7 @@ fun MediaPlayPauseButton(
         interactionSource = interactionSource,
     ) {
         if (isBuffering) {
-            LoadingIndicator(
+            FlowSpinner(
                 modifier = Modifier.size(28.dp),
                 color = MaterialTheme.colorScheme.onPrimary,
             )

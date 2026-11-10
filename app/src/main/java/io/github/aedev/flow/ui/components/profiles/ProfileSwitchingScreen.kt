@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,6 +24,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.profile.Profile
 import io.github.aedev.flow.data.profile.ProfileSwitchGate
 import io.github.aedev.flow.data.profile.displayName
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 
 private val SwitchingAvatarSize = 96.dp
 private val ContentSpacing = 24.dp
@@ -53,7 +53,7 @@ fun ProfileSwitchingScreen(profile: Profile?) {
                     textAlign = TextAlign.Center,
                 )
             }
-            LoadingIndicator()
+            FlowSpinner()
         }
     }
 }
