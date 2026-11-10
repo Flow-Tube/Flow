@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +25,8 @@ import io.github.aedev.flow.ui.components.shared.dpadFocusGroup
 private val RowHorizontalPadding = 12.dp
 private val AvatarSpacing = 12.dp
 private val AvatarRowTopPadding = 10.dp
+private val PinDividerHeight = 40.dp
+private val PinDividerTopPadding = 8.dp
 
 @Composable
 internal fun SubscriptionsQuickAccessRow(
@@ -31,6 +35,8 @@ internal fun SubscriptionsQuickAccessRow(
     onViewAllClick: () -> Unit,
     onMusicClick: () -> Unit,
     modifier: Modifier = Modifier,
+    pinnedCount: Int = 0,
+    onTogglePin: ((Channel) -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         Row(
@@ -66,10 +72,24 @@ internal fun SubscriptionsQuickAccessRow(
                 ),
             horizontalArrangement = Arrangement.spacedBy(AvatarSpacing),
         ) {
-            items(channels, key = { it.id }) { channel ->
+            items(channels.take(pinnedCount), key = { it.id }) { channel ->
                 ChannelAvatarItem(
                     channel = channel,
                     onClick = { onChannelClick(channel) },
+                    isPinned = true,
+                    onTogglePin = onTogglePin?.let { toggle -> { toggle(channel) } },
+                )
+            }
+            if (pinnedCount > 0 && channels.size > pinnedCount) {
+                item(key = "pinned_divider") {
+                    VerticalDivider(modifier = Modifier.padding(top = PinDividerTopPadding).height(PinDividerHeight))
+                }
+            }
+            items(channels.drop(pinnedCount), key = { it.id }) { channel ->
+                ChannelAvatarItem(
+                    channel = channel,
+                    onClick = { onChannelClick(channel) },
+                    onTogglePin = onTogglePin?.let { toggle -> { toggle(channel) } },
                 )
             }
             item(key = "view_all") {

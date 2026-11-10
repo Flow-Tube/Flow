@@ -214,6 +214,9 @@ fun SubscriptionsScreen(
                         onShortsExcludeChange = viewModel::setShortsChannelExcluded,
                         showsMusic = manageShowsMusic,
                         onShowsMusicChange = { manageShowsMusic = it },
+                        pinnedIds = uiState.pinnedChannelIds,
+                        onTogglePin = viewModel::togglePin,
+                        onPinnedOrderChanged = viewModel::setPinnedOrder,
                         onUnsubscribe = { channel ->
                             scope.launch {
                                 unsubscribeWithUndo(
@@ -246,6 +249,8 @@ fun SubscriptionsScreen(
                                 onManageGroups = { showGroupsDialog = true },
                                 postsSelected = true,
                                 onPostsClick = { showPosts = false },
+                                pinnedCount = channels.pinnedCount,
+                                onTogglePin = { viewModel.togglePin(it.id) },
                             )
                         },
                     )
@@ -267,6 +272,8 @@ fun SubscriptionsScreen(
                         onRetryFailedChannels = viewModel::retryFailedChannels,
                         onDismissFailedChannels = viewModel::dismissFailedChannels,
                         onPostsClick = { showPosts = true }.takeIf { uiState.showPostsChip },
+                        pinnedCount = channels.pinnedCount,
+                        onTogglePin = { viewModel.togglePin(it.id) },
                     )
                 }
             }

@@ -109,6 +109,8 @@ fun TvSubscriptionsScreen(
                     maxAutoColumns = dimens.feedMaxColumns,
                     minCellWidth = dimens.feedCardMinWidth,
                     showShorts = false,
+                    pinnedCount = channels.pinnedCount,
+                    onTogglePin = { viewModel.togglePin(it.id) },
                 )
             }
         }

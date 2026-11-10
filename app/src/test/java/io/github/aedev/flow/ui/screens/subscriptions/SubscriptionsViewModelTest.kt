@@ -92,6 +92,7 @@ class SubscriptionsViewModelTest {
                 subscriptionWatchedVideos = SubscriptionWatchedVideos(viewHistory, playerPreferences, database),
                 neuroEngine = neuroEngine,
                 backupCoordinator = mockk(relaxed = true),
+                watchHistoryDao = mockk(relaxed = true),
             )
         viewModelStore.put("subscriptions", viewModel)
     }

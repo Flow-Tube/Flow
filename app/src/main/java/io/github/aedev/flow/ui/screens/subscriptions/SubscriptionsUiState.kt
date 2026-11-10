@@ -12,6 +12,7 @@ enum class SubscriptionSortMode {
     DEFAULT,
     NAME_ASC,
     RECENTLY_UPDATED,
+    MOST_WATCHED,
     ;
 
     companion object {
@@ -78,6 +79,9 @@ data class SubscriptionsUiState(
     val ungroupedEnabled: Boolean = false,
     val ungroupedPosition: Int = UNGROUPED_LAST,
     val showPostsChip: Boolean = true,
+    val pinnedChannelIds: List<String> = emptyList(),
+    /** Watched videos per channel, loaded only for the Most watched sort. */
+    val channelWatchCounts: Map<String, Int> = emptyMap(),
     val refreshStage: SubscriptionRefreshStage = SubscriptionRefreshStage.RSS,
     val refreshProcessedChannels: Int = 0,
     val refreshTotalChannels: Int = 0,

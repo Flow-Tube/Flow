@@ -91,6 +91,9 @@ interface WatchHistoryDao {
     @Query("SELECT * FROM watch_history WHERE videoId = :videoId")
     fun getEntry(videoId: String): Flow<WatchHistoryEntity?>
 
+    @Query("SELECT channelId, COUNT(*) AS watched FROM watch_history WHERE isLocal = 0 AND channelId != '' GROUP BY channelId")
+    suspend fun watchedCountByChannel(): List<ChannelWatchCount>
+
     /** Only touches a row that already exists, so a finished video keeps its title and timestamp. */
     @Query("UPDATE watch_history SET position = :durationMs, duration = :durationMs WHERE videoId = :videoId")
     suspend fun markCompleted(
@@ -217,4 +220,10 @@ data class ChannelVideoCount(
     val channelId: String,
     val channelName: String,
     val videos: Int,
+)
+
+/** How many videos of one channel are in watch history. */
+data class ChannelWatchCount(
+    val channelId: String,
+    val watched: Int,
 )
