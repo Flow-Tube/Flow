@@ -207,6 +207,8 @@ class PlayerPreferences(
         val HOME_FEED_COLUMNS = stringPreferencesKey("home_feed_columns")
         val HOME_FEED_ENABLED = booleanPreferencesKey("home_feed_enabled")
         val REFRESH_HOME_ON_RESELECT = booleanPreferencesKey("refresh_home_on_reselect")
+        val HOME_CHIPS_ENABLED = booleanPreferencesKey("home_chips_enabled")
+        val HOME_NEW_VIDEOS_BUTTON_ENABLED = booleanPreferencesKey("home_new_videos_button_enabled")
         val RELATED_CARD_STYLE = stringPreferencesKey("related_card_style")
 
         // SponsorBlock per-category action keys
@@ -1590,6 +1592,26 @@ class PlayerPreferences(
     suspend fun setRefreshHomeOnReselect(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.REFRESH_HOME_ON_RESELECT] = enabled
+        }
+    }
+
+    val homeChipsEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.HOME_CHIPS_ENABLED] ?: true }
+
+    suspend fun setHomeChipsEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.HOME_CHIPS_ENABLED] = enabled
+        }
+    }
+
+    val homeNewVideosButtonEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.HOME_NEW_VIDEOS_BUTTON_ENABLED] ?: true }
+
+    suspend fun setHomeNewVideosButtonEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.HOME_NEW_VIDEOS_BUTTON_ENABLED] = enabled
         }
     }
 
