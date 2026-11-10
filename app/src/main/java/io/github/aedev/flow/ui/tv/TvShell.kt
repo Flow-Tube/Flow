@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import androidx.navigation.NavGraph
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -61,6 +62,8 @@ import io.github.aedev.flow.ui.tv.navigation.TvNavHost
 import io.github.aedev.flow.ui.tv.navigation.TvNavigation
 import io.github.aedev.flow.ui.tv.navigation.TvRoutes
 import io.github.aedev.flow.ui.tv.theme.LocalTvDimens
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * TV browse shell: content laid out against the collapsed rail width, with the mini player floating
@@ -140,19 +143,27 @@ fun TvShell(
 
     // Navigating to a root with restoreState brings back the pages last opened over it, so the root the
     // remote is already under, and the start root (always at the bottom of the stack), are popped to instead.
+    // The route is read from the back stack when the selection happens: the rail's items keep the click
+    // handlers of their first composition, which saw no route yet.
+    val latestNavigation by rememberUpdatedState(navigation)
+
+    fun shownRoute(): String? = navController.currentBackStackEntry?.destination?.route
+
     fun selectRoot(route: String) {
+        val shownRoute = shownRoute()
+        val shownRoot = shownRoute?.takeIf { it in latestNavigation.rootRoutes } ?: lastRoot
         val popped =
             when {
-                route == currentRoute -> {
+                route == shownRoute -> {
                     TabScrollEventBus.emitScrollToTop(route)
                     true
                 }
 
-                route == currentRoot -> {
+                route == shownRoot -> {
                     navController.popBackStack(route, inclusive = false)
                 }
 
-                route == navigation.startTab.route -> {
+                route == latestNavigation.startTab.route -> {
                     navController.popBackStack(route, inclusive = false, saveState = true)
                 }
 
@@ -161,6 +172,29 @@ fun TvShell(
                 }
             }
         if (!popped) navigateToRoot(route)
+    }
+
+    // Choosing a destination on the rail hands focus to the page, which closes the rail. It waits for the
+    // page that is leaving to finish its crossfade (it stays focusable until then) or, on a reselect, for
+    // the page's own scroll back to the top, so the restored focus doesn't pull it back down.
+    var pageFocusRequest by remember { mutableStateOf<PageFocusRequest?>(null) }
+
+    fun selectFromRail(route: String) {
+        val reselect = route == shownRoute()
+        selectRoot(route)
+        pageFocusRequest = PageFocusRequest(route, afterScroll = reselect)
+    }
+    LaunchedEffect(pageFocusRequest) {
+        val request = pageFocusRequest ?: return@LaunchedEffect
+        if (request.afterScroll) {
+            withTimeoutOrNull(PAGE_SCROLL_WAIT_MS) {
+                TabScrollEventBus.scrolledToTopEvents.first { it == request.route }
+            }
+        } else {
+            navController.visibleEntries.first { entries -> entries.count { it.destination !is NavGraph } <= 1 }
+        }
+        if (railHasFocus) railHoldsFocusForPage = !contentFocusRequester.requestFocus()
+        pageFocusRequest = null
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -243,7 +277,7 @@ fun TvShell(
         TvNavRail(
             tabs = navigation.tabs,
             selectedRoute = currentRoot,
-            onSelect = ::selectRoot,
+            onSelect = ::selectFromRail,
             onFocusChanged = {
                 railHasFocus = it
                 if (!it) railHoldsFocusForPage = false
@@ -265,3 +299,12 @@ fun TvShell(
 }
 
 private fun KeyEvent.isPress(key: Key): Boolean = this.key == key && type == KeyEventType.KeyDown
+
+/** The longest a rail reselect waits for the page to report it is back at the top. */
+private const val PAGE_SCROLL_WAIT_MS = 1_000L
+
+/** A rail selection whose page should take focus once [route] is settled. */
+private class PageFocusRequest(
+    val route: String,
+    val afterScroll: Boolean,
+)
