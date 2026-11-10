@@ -44,6 +44,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.MediaThumbnail
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardPreferences
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.components.shared.quickactions.VideoQuickActionsBottomSheet
 
 private val ThumbnailWidth: Dp = 112.dp
@@ -150,6 +151,7 @@ private fun QueueRowContent(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .onMenuKey(onLongClick)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
                 .semantics { customActions = actions },
     ) {

@@ -38,6 +38,7 @@ import io.github.aedev.flow.innertube.models.PlaylistItem
 import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.innertube.models.YTItem
 import io.github.aedev.flow.ui.components.shared.flowArtistShape
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.screens.music.convertSongToMusicTrack
 
 /**
@@ -75,6 +76,7 @@ fun MusicCollectionRow(
         modifier =
             modifier
                 .fillMaxWidth()
+                .then(if (onLongClick != null) Modifier.onMenuKey(onLongClick) else Modifier)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick,
