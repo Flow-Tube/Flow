@@ -4552,4 +4552,11 @@
     <string name="keyboard_shortcut_exit_fullscreen">Beenden Sie den Vollbildmodus</string>
     <string name="keyboard_shortcut_faster">Schneller</string>
     <string name="keyboard_shortcut_slower">Langsamer</string>
+    <string name="subscriptions_sort_most_watched">Meist gesehen</string>
+    <string name="subscriptions_pin_channel">Kanal pinnen</string>
+    <string name="subscriptions_unpin_channel">Kanal unpinnen</string>
+    <string name="subscriptions_open_channel">Kanal öffnen</string>
+    <string name="lyrics_background">Hintergrund</string>
+    <string name="lyrics_background_solid">Undurchsichtig</string>
+    <string name="auto_group_video_playlists">Video-Playlists</string>
 </resources>
