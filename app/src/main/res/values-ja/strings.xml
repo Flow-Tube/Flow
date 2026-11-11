@@ -257,8 +257,8 @@
     <string name="subscriptions_failed_channels_more">%1$s と %2$d より</string>
     <string name="retry">再試行</string>
     <string name="copy_logs">ログのコピー</string>
-    <string name="logs_copied">コピーされたログ</string>
-    <string name="logs_copy_failed">ログをコピーできない</string>
+    <string name="logs_copied">ログをコピーしました</string>
+    <string name="logs_copy_failed">ログをコピーできませんでした</string>
     <string name="channel_error_log_clip_label">Flow チャンネルエラーログ</string>
     <string name="failed_to_load_channel">チャンネルをロードできませんでした</string>
     <string name="conjunction_and">そして、</string>
