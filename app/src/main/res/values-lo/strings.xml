@@ -405,7 +405,7 @@
     <string name="channel_links">ລິ້ງຄ໌</string>
     <string name="artist">ສິລະປິນ</string>
     <string name="playlist">ລາຍການຫຼິ້ນ</string>
-    <string name="app_name_uppercase">ກະແສ</string>
+    <string name="app_name_uppercase">FLOW</string>
     <string name="notification_badge_9_plus">9+</string>
     <string name="personalized_feed">ຟີດສ່ວນຕົວຂອງທ່ານ</string>
     <plurals name="videos_curated_template">
