@@ -1638,6 +1638,16 @@
     <string name="buffer_profile_custom_desc">Manually configure buffer sizes</string>
     <string name="buffer_custom_mode_desc">Larger buffers stall less but take longer to start.</string>
     <string name="buffer_long_memory_note">Long buffers stop early when memory runs low.</string>
+    <string name="disk_read_ahead_title">Buffer ahead on disk</string>
+    <string name="disk_read_ahead_summary">Saves what comes next to the video cache</string>
+    <string name="disk_read_ahead_footer">Keeps a video playing when the connection drops. Not used for live streams.</string>
+    <plurals name="disk_read_ahead_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <string name="disk_read_ahead_whole_video">Whole video</string>
+    <string name="disk_read_ahead_unmetered_only">Only on Wi-Fi</string>
+    <string name="disk_read_ahead_unmetered_only_summary">Not on mobile data or metered networks</string>
     <string name="buffer_switch_to_custom">Switch to \'Custom\' to enable sliders.</string>
     <string name="buffer_label_min">Min Buffer: %1$ds</string>
     <string name="buffer_label_max">Max Buffer: %1$ds</string>

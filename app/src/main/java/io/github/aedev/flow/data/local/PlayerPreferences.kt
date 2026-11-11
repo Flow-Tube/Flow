@@ -428,6 +428,8 @@ class PlayerPreferences(
 
         // Buffer profiles
         val BUFFER_PROFILE = device(stringPreferencesKey("buffer_profile"))
+        val DISK_READ_AHEAD_MINUTES = device(intPreferencesKey("disk_read_ahead_minutes"))
+        val DISK_READ_AHEAD_UNMETERED_ONLY = device(booleanPreferencesKey("disk_read_ahead_unmetered_only"))
 
         // Download settings
         val DOWNLOAD_THREADS = device(intPreferencesKey("download_threads"))
@@ -3774,6 +3776,21 @@ class PlayerPreferences(
                 preferences[DeviceKeys.BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS] = profile.rebufferBuffer
             }
         }
+    }
+
+    /** Minutes of video written to the cache ahead of playback; 0 is off, -1 the whole video (#1696). */
+    val diskReadAheadMinutes: Flow<Int> =
+        context.devicePreferencesDataStore.data.map { it[DeviceKeys.DISK_READ_AHEAD_MINUTES] ?: 0 }
+
+    suspend fun setDiskReadAheadMinutes(minutes: Int) {
+        context.devicePreferencesDataStore.edit { it[DeviceKeys.DISK_READ_AHEAD_MINUTES] = minutes }
+    }
+
+    val diskReadAheadUnmeteredOnly: Flow<Boolean> =
+        context.devicePreferencesDataStore.data.map { it[DeviceKeys.DISK_READ_AHEAD_UNMETERED_ONLY] ?: true }
+
+    suspend fun setDiskReadAheadUnmeteredOnly(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { it[DeviceKeys.DISK_READ_AHEAD_UNMETERED_ONLY] = enabled }
     }
 
     // Download Preferences

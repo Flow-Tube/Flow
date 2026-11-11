@@ -3,10 +3,11 @@ package io.github.aedev.flow.ui.screens.settings.playback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aedev.flow.data.local.BufferProfile
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.player.cache.DiskReadAheadPolicy
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
 import javax.inject.Inject
 
-/** The video player's buffer: a preset profile, or four custom durations. */
+/** The video player's buffer: a preset profile or four custom durations, and the disk read-ahead. */
 @HiltViewModel
 class BufferSettingsViewModel
     @Inject
@@ -18,6 +19,8 @@ class BufferSettingsViewModel
         val maxBufferMs = preferences.maxBufferMs.asState(BufferProfile.STABLE.maxBuffer)
         val startBufferMs = preferences.bufferForPlaybackMs.asState(BufferProfile.STABLE.playbackBuffer)
         val rebufferMs = preferences.bufferForPlaybackAfterRebufferMs.asState(BufferProfile.STABLE.rebufferBuffer)
+        val diskReadAheadMinutes = preferences.diskReadAheadMinutes.asState(DiskReadAheadPolicy.OFF)
+        val diskReadAheadUnmeteredOnly = preferences.diskReadAheadUnmeteredOnly.asState(true)
 
         fun setProfile(value: BufferProfile) =
             write {
@@ -46,4 +49,8 @@ class BufferSettingsViewModel
         fun setStartBuffer(ms: Int) = write { preferences.setBufferForPlaybackMs(ms) }
 
         fun setRebuffer(ms: Int) = write { preferences.setBufferForPlaybackAfterRebufferMs(ms) }
+
+        fun setDiskReadAheadMinutes(minutes: Int) = write { preferences.setDiskReadAheadMinutes(minutes) }
+
+        fun setDiskReadAheadUnmeteredOnly(enabled: Boolean) = write { preferences.setDiskReadAheadUnmeteredOnly(enabled) }
     }
