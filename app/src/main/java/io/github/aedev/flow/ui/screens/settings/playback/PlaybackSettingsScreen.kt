@@ -50,6 +50,7 @@ internal fun PlaybackSettingsScreen(
     val speedSwipeSide by viewModel.speedSwipeSide.collectAsStateWithLifecycle()
     val musicSideSwipes by viewModel.musicSideSwipes.collectAsStateWithLifecycle()
     val comments by viewModel.comments.collectAsStateWithLifecycle()
+    val commentGifs by viewModel.commentGifs.collectAsStateWithLifecycle()
     val shortsContent by viewModel.shortsContent.collectAsStateWithLifecycle()
     val disableShortsPlayer by viewModel.disableShortsPlayer.collectAsStateWithLifecycle()
     val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsStateWithLifecycle()
@@ -78,6 +79,7 @@ internal fun PlaybackSettingsScreen(
                     speedSwipeSide,
                     musicSideSwipes,
                     comments,
+                    commentGifs,
                     shortsContent,
                     disableShortsPlayer,
                     backgroundRestricted = !backgroundAllowed,
@@ -104,6 +106,7 @@ internal data class PlaybackStructure(
     val speedSwipeSide: SpeedSwipeSide,
     val musicSideSwipes: Boolean,
     val comments: Boolean,
+    val commentGifs: Boolean,
     val shortsContent: Boolean,
     val disableShortsPlayer: Boolean,
     val backgroundRestricted: Boolean,

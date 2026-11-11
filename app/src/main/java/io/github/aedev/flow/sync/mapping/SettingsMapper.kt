@@ -63,6 +63,7 @@ object SettingsMapper {
             Entry("show_shorts_player_prompt", "show_shorts_player_prompt", Ty.BOOL),
             Entry("comments_enabled", "comments_enabled", Ty.BOOL),
             Entry("comments_preview_enabled", "comments_preview_enabled", Ty.BOOL),
+            Entry("comment_gifs_enabled", "comment_gifs_enabled", Ty.BOOL),
             Entry("return_youtube_dislikes", "rytd_enabled", Ty.BOOL),
             Entry("background_play", "background_play_enabled", Ty.BOOL),
             Entry("video_loop", "video_loop_enabled", Ty.BOOL),

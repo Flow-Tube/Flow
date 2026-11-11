@@ -351,6 +351,22 @@ internal object PlaybackIndex {
             section = R.string.settings_section_watch_page,
             destination = page,
         )
+    val commentGifs =
+        SettingEntry(
+            key = "playback.comment_gifs",
+            title = R.string.content_settings_comment_gifs_title,
+            summary = R.string.content_settings_comment_gifs_subtitle,
+            section = R.string.settings_section_watch_page,
+            destination = page,
+        )
+    val commentGifsWifiOnly =
+        SettingEntry(
+            key = "playback.comment_gifs_wifi_only",
+            title = R.string.content_settings_comment_gifs_wifi_title,
+            summary = R.string.content_settings_comment_gifs_wifi_subtitle,
+            section = R.string.settings_section_watch_page,
+            destination = page,
+        )
     val liveChat =
         SettingEntry(
             key = "playback.live_chat",
@@ -464,6 +480,8 @@ internal object PlaybackIndex {
                 titleLines,
                 comments,
                 commentsPreview,
+                commentGifs,
+                commentGifsWifiOnly,
                 liveChat,
             ) +
             PlaybackShortsIndex.all +

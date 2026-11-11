@@ -259,6 +259,13 @@ private fun SettingsListScope.watchPageSection(
     }
     switch(PlaybackIndex.comments, viewModel.comments, viewModel::setComments)
     switch(PlaybackIndex.commentsPreview, viewModel.commentsPreview, viewModel::setCommentsPreview, enabled = state.comments)
+    switch(PlaybackIndex.commentGifs, viewModel.commentGifs, viewModel::setCommentGifs, enabled = state.comments)
+    switch(
+        PlaybackIndex.commentGifsWifiOnly,
+        viewModel.commentGifsWifiOnly,
+        viewModel::setCommentGifsWifiOnly,
+        enabled = state.comments && state.commentGifs,
+    )
     switch(PlaybackIndex.liveChat, viewModel.liveChat, viewModel::setLiveChat)
 }
 
