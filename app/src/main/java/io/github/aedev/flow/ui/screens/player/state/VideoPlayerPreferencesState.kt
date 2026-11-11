@@ -48,6 +48,7 @@ internal class VideoPlayerPreferencesState(
     val savedSubtitleStyle: SubtitleStyle,
     val rememberPlaybackSpeed: Boolean,
     val ambientModeEnabled: Boolean,
+    val sphericalMotionEnabled: Boolean,
     val ambientGlowEnabled: Boolean,
     val ambientImmersiveEnabled: Boolean,
     val ambientGlowInBatterySaver: Boolean,
@@ -92,6 +93,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val savedSubtitleStyle by playerPreferences.subtitleStyle.collectAsState(initial = SubtitleStyle())
     val rememberPlaybackSpeed by playerPreferences.rememberPlaybackSpeed.collectAsState(initial = false)
     val ambientModeEnabled by playerPreferences.videoAmbientModeEnabled.collectAsState(initial = false)
+    val sphericalMotionEnabled by playerPreferences.sphericalMotionEnabled.collectAsState(initial = true)
     val ambientGlowEnabled by playerPreferences.videoAmbientGlowEnabled.collectAsState(initial = false)
     val ambientImmersiveEnabled by playerPreferences.videoAmbientImmersiveEnabled.collectAsState(initial = false)
     val ambientGlowInBatterySaver by playerPreferences.videoAmbientGlowInBatterySaver.collectAsState(initial = false)
@@ -136,6 +138,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         savedSubtitleStyle = savedSubtitleStyle,
         rememberPlaybackSpeed = rememberPlaybackSpeed,
         ambientModeEnabled = ambientModeEnabled,
+        sphericalMotionEnabled = sphericalMotionEnabled,
         ambientGlowEnabled = ambientGlowEnabled,
         ambientImmersiveEnabled = ambientImmersiveEnabled,
         ambientGlowInBatterySaver = ambientGlowInBatterySaver,

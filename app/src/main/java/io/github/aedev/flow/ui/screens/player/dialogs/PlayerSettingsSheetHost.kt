@@ -64,6 +64,7 @@ internal fun PlayerSettingsSheetHost(
     val sponsorSegments by playerManager.sponsorSegments.collectAsState()
     val sponsorBlockOffForVideo by playerManager.sponsorBlockOffForVideo.collectAsState()
     val sponsorBlockEnabled by playerPreferences.sponsorBlockEnabled.collectAsState(initial = false)
+    val sphericalMotion by playerPreferences.sphericalMotionEnabled.collectAsState(initial = true)
     val videoNotesEnabled by viewModel.videoNotesEnabled.collectAsState()
     val subtitleFilePicker =
         rememberLauncherForActivityResult(OpenSubtitleFile()) { uri ->
@@ -135,6 +136,8 @@ internal fun PlayerSettingsSheetHost(
         onLoopToggle = { viewModel.toggleLoop(it) },
         ambientModeEnabled = ambientModeEnabled,
         onAmbientModeToggle = { scope.launch { playerPreferences.setVideoAmbientModeEnabled(it) } },
+        sphericalMotionEnabled = sphericalMotion.takeIf { playerState.isSphericalVideo },
+        onSphericalMotionToggle = { scope.launch { playerPreferences.setSphericalMotionEnabled(it) } },
         onStatsForNerds = { screenState.showStatsForNerds = true },
         onCastClick = {
             DlnaCastManager.startDiscovery(context)
