@@ -429,7 +429,7 @@
     <string name="channel_links">Povezave</string>
     <string name="artist">Umetnik</string>
     <string name="playlist">Seznam predvajanja</string>
-    <string name="app_name_uppercase">PRETOK</string>
+    <string name="app_name_uppercase">FLOW</string>
     <string name="notification_badge_9_plus">9+</string>
     <string name="personalized_feed">Vaš prilagojen vir</string>
     <plurals name="videos_curated_template">
