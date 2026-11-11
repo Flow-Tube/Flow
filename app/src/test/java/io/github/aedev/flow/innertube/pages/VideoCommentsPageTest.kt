@@ -253,6 +253,70 @@ class VideoCommentsPageTest {
         assertNull(comment.richText)
     }
 
+    @Test
+    fun `reads the GIF attached to a comment through its surface entity (1939)`() {
+        val page =
+            Json
+                .parseToJsonElement(
+                    """
+                    {
+                      "onResponseReceivedEndpoints": [{"appendContinuationItemsAction": {"continuationItems": [
+                        {"commentThreadRenderer": {"commentViewModel": {"commentViewModel": {
+                          "commentKey": "gif-key",
+                          "commentSurfaceKey": "surface-key",
+                          "commentId": "gif-1"
+                        }}}},
+                        {"commentThreadRenderer": {"commentViewModel": {"commentViewModel": {
+                          "commentKey": "plain-key",
+                          "commentSurfaceKey": "plain-surface",
+                          "commentId": "plain-1"
+                        }}}}
+                      ]}}],
+                      "frameworkUpdates": {"entityBatchUpdate": {"mutations": [
+                        {"entityKey": "gif-key", "payload": {"commentEntityPayload": {
+                          "properties": {"commentId": "gif-1", "content": {"content": "me right now"}, "publishedTime": "4 hours ago"},
+                          "author": {"displayName": "@fan", "channelId": "UCfan"}
+                        }}},
+                        {"entityKey": "surface-key", "payload": {"commentSurfaceEntityPayload": {
+                          "imageAttachmentViewModel": {"commentImageAttachmentViewModel": {
+                            "width": 498, "height": 279, "aspectRatio": 1.7849462,
+                            "image": {"sources": [{"url": "https://i.ytimg.com/c_exp/gif-1/abc_webp_animated.webp?sqp=x", "width": 498, "height": 279}],
+                              "imageFormatHint": "IMAGE_FORMAT_ANIMATED_WEBP"}
+                          }}
+                        }}},
+                        {"entityKey": "plain-key", "payload": {"commentEntityPayload": {
+                          "properties": {"commentId": "plain-1", "content": {"content": "no gif"}, "publishedTime": "1 hour ago"},
+                          "author": {"displayName": "@other", "channelId": "UCother"}
+                        }}},
+                        {"entityKey": "plain-surface", "payload": {"commentSurfaceEntityPayload": {"key": "plain-surface"}}}
+                      ]}}
+                    }
+                    """.trimIndent(),
+                ).toVideoCommentsPage(ownVideoId = "fJ9rUzIMcZQ")
+
+        val (gif, plain) = page.comments
+        assertEquals("https://i.ytimg.com/c_exp/gif-1/abc_webp_animated.webp?sqp=x", gif.image?.url)
+        assertEquals(498, gif.image?.width)
+        assertEquals(279, gif.image?.height)
+        assertNull(plain.image)
+    }
+
+    @Test
+    fun `reads a GIF on a legacy comment renderer and drops one without a size`() {
+        val sized =
+            Json.parseToJsonElement(
+                """{"commentImageAttachmentViewModel": {"width": 200, "height": 200,
+                    "image": {"sources": [{"url": "//i.ytimg.com/c_exp/a.webp", "width": 200, "height": 200}]}}}""",
+            )
+        val unsized =
+            Json.parseToJsonElement(
+                """{"commentImageAttachmentViewModel": {"image": {"sources": [{"url": "https://i.ytimg.com/c_exp/b.webp"}]}}}""",
+            )
+
+        assertEquals("https://i.ytimg.com/c_exp/a.webp", sized.toCommentImage()?.url)
+        assertNull(unsized.toCommentImage())
+    }
+
     private companion object {
         val FIRST_PAGE =
             """
