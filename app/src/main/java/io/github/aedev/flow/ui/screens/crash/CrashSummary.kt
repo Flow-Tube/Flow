@@ -101,7 +101,8 @@ private fun exceptionName(header: String): String? =
  * happened can still send it in one tap and edit only what they know (#1189).
  */
 fun CrashSummary.issueUrl(): String {
-    val title = "[Bug]: $headline" + (location?.let { " in $it" } ?: "")
+    // The version rides in the title too: people often clear the form and send the title alone (#1942).
+    val title = "[Bug]: $headline" + (location?.let { " in $it" } ?: "") + (appVersion?.let { " (${it.substringBefore(' ')})" } ?: "")
     val error = exception + (message?.let { ": $it" } ?: "")
     val cause =
         rootCause
