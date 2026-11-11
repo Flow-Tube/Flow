@@ -20,6 +20,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
+import io.github.aedev.flow.player.MediaButtonSessionCallback
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
 import io.github.aedev.flow.player.config.PlayerConfig
@@ -51,6 +52,7 @@ internal object ShortsPlayerFactory {
             MediaSession
                 .Builder(context, player)
                 .setId(SESSION_ID)
+                .setCallback(MediaButtonSessionCallback)
                 .build()
         } catch (e: Exception) {
             Log.w(TAG, "Shorts MediaSession unavailable; media buttons will not reach the reel", e)
