@@ -413,7 +413,7 @@
     <string name="channel_links">සබැඳි</string>
     <string name="artist">කලාකරුවා</string>
     <string name="playlist">ධාවන ලැයිස්තුව</string>
-    <string name="app_name_uppercase">ප්රවාහය</string>
+    <string name="app_name_uppercase">FLOW</string>
     <string name="notification_badge_9_plus">9+</string>
     <string name="personalized_feed">ඔබේ පෞද්ගලීකරණය කළ සංග්රහය</string>
     <plurals name="videos_curated_template">
