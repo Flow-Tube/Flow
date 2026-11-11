@@ -21,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -28,9 +29,12 @@ import java.io.IOException
  * Writes the playing video ahead into the video cache, per [DiskReadAheadPolicy] (#1696).
  *
  * The streams and bitrates come from the player's own media loads, so whatever source Flow built
- * (generated DASH, the Auto ladder) is followed without knowing how it was built. A pass runs only
- * when a load shows playback has used half of what was written: no timer, nothing while paused
- * with a full buffer. The writer blocks on spans the player is loading instead of fetching them.
+ * (generated DASH, the Auto ladder) is followed without knowing how it was built.
+ *
+ * Playback always comes first: a pass starts only once the player has filled its own buffer and
+ * stopped loading, and is cancelled the moment the player loads again, so on a slow connection the
+ * writer never takes bandwidth the next seconds of video need. Whatever a cancelled pass wrote stays
+ * cached and is skipped next time. No timer: the player's loading changes drive it.
  */
 @UnstableApi
 internal class DiskReadAhead(
@@ -81,7 +85,13 @@ internal class DiskReadAhead(
             coveredUntilMs = 0L
             retryAfterPositionMs = 0L
         }
-        maybeStart()
+    }
+
+    override fun onIsLoadingChanged(
+        eventTime: AnalyticsListener.EventTime,
+        isLoading: Boolean,
+    ) {
+        if (isLoading) cancel() else maybeStart()
     }
 
     override fun onMediaItemTransition(
@@ -108,7 +118,7 @@ internal class DiskReadAhead(
     }
 
     private fun maybeStart() {
-        if (job?.isActive == true || player.isCurrentMediaItemLive) return
+        if (job?.isActive == true || player.isLoading || player.isCurrentMediaItemLive || streams.isEmpty()) return
         val positionMs = player.currentPosition
         if (positionMs < retryAfterPositionMs) return
         val bufferedMs = player.bufferedPosition
@@ -123,6 +133,7 @@ internal class DiskReadAhead(
                     return@launch
                 }
                 val window = DiskReadAheadPolicy.plan(minutes, positionMs, bufferedMs, durationMs) ?: return@launch
+                Log.d(TAG, "Read-ahead from ${window.first / 1000}s to ${(window.last + 1) / 1000}s")
                 write(targets, window, positionMs)
             }
     }
@@ -178,7 +189,8 @@ internal class DiskReadAhead(
                 backOff(positionMs, e)
             }
         } catch (e: IOException) {
-            backOff(positionMs, e)
+            // A cancel interrupts the write with an IOException of its own; that is no failure.
+            if (currentCoroutineContext().isActive) backOff(positionMs, e)
         }
     }
 
