@@ -25,4 +25,16 @@ class SearchHistoryMatchingTest {
     fun `nothing matches an unrelated query`() {
         assertThat(history("jazz").matchingTyped("metal")).isEmpty()
     }
+
+    @Test
+    fun `every kept search is listed while nothing is typed`() {
+        val all = history(*Array(SEARCH_HISTORY_LIMIT * 5) { "query $it" })
+        assertThat(all.recentOrMatching(" ")).isEqualTo(all)
+    }
+
+    @Test
+    fun `typing narrows the list to the best matches`() {
+        val all = history(*Array(SEARCH_HISTORY_LIMIT * 5) { "query $it" })
+        assertThat(all.recentOrMatching("query")).hasSize(SEARCH_HISTORY_LIMIT)
+    }
 }
