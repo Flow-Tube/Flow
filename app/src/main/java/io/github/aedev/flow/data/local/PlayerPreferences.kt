@@ -412,6 +412,7 @@ class PlayerPreferences(
         val DEFAULT_VIDEO_CODEC = device(stringPreferencesKey("default_video_codec"))
         val FALLBACK_VIDEO_CODEC = device(stringPreferencesKey("fallback_video_codec"))
         val TILT_FULLSCREEN_ROTATION_LOCKED = device(booleanPreferencesKey("tilt_fullscreen_rotation_locked"))
+        val SPHERICAL_MOTION_ENABLED = device(booleanPreferencesKey("spherical_motion_enabled"))
         val RESUME_FROM_HEADPHONES = device(booleanPreferencesKey("resume_from_headphones"))
         val SHOW_CONTROLS_WHILE_LOADING = device(booleanPreferencesKey("show_controls_while_loading"))
         val TRENDING_REGION = device(stringPreferencesKey("trending_region"))
@@ -1937,6 +1938,14 @@ class PlayerPreferences(
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.TILT_FULLSCREEN_ROTATION_LOCKED] = enabled
         }
+    }
+
+    /** Turning the phone looks around a 360 video (#1295). Dragging always does. */
+    val sphericalMotionEnabled: Flow<Boolean> =
+        context.devicePreferencesDataStore.data.map { it[DeviceKeys.SPHERICAL_MOTION_ENABLED] ?: true }
+
+    suspend fun setSphericalMotionEnabled(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { it[DeviceKeys.SPHERICAL_MOTION_ENABLED] = enabled }
     }
 
     /** A Play button on headphones may start the last songs after Flow was closed. */
