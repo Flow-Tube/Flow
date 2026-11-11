@@ -4441,4 +4441,8 @@
     <string name="keyboard_shortcut_exit_fullscreen">退出全屏</string>
     <string name="keyboard_shortcut_faster">快点</string>
     <string name="keyboard_shortcut_slower">慢点</string>
+    <string name="subscriptions_open_channel">进入频道</string>
+    <string name="subscriptions_pinned_section">已固定</string>
+    <string name="auto_group_music_playlists">音乐播放列表</string>
+    <string name="auto_group_video_playlists">视频播放列表</string>
 </resources>
