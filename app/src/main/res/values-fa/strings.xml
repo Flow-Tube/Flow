@@ -413,7 +413,7 @@
     <string name="channel_links">پیوندها</string>
     <string name="artist">هنرمند</string>
     <string name="playlist">لیست پخش</string>
-    <string name="app_name_uppercase">جریان</string>
+    <string name="app_name_uppercase">FLOW</string>
     <string name="notification_badge_9_plus">9+</string>
     <string name="personalized_feed">فید شخصی شما</string>
     <plurals name="videos_curated_template">
