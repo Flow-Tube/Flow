@@ -485,7 +485,7 @@
     <string name="section_from_the_community">De la comunidad</string>
     <string name="already_downloaded_toast">Ya descargado</string>
     <string name="video_download_location_label">Ubicación de descarga de vídeo</string>
-    <string name="datetime_mode_exact">fecha exacta</string>
+    <string name="datetime_mode_exact">Fecha exacta</string>
     <string name="player_appearance_volume_boost_subtitle">Permitir que el control de volumen supere el máximo del sistema</string>
     <string name="download_no_compatible_audio">No hay transmisión de audio compatible: la descarga no puede continuar</string>
     <string name="notif_system_settings">Configuración de notificaciones del sistema</string>
@@ -751,7 +751,7 @@
     <string name="quality_2160p_4k">2160p 4K</string>
     <string name="buffer_profile_stable">Estable (predeterminado)</string>
     <string name="buffer_settings_header_custom">Configuración manual</string>
-    <string name="buffer_profile_custom">Costumbre</string>
+    <string name="buffer_profile_custom">Personalizado</string>
     <string name="buffer_profile_datasaver">Ahorro de datos/baja latencia</string>
     <string name="buffer_desc_stable">Equilibrio entre velocidad de inicio y carga del búfer</string>
     <string name="buffer_desc_datasaver">Búferes más pequeños que consumen menos datos</string>
@@ -981,7 +981,7 @@
     <string name="category_technology">Tecnología</string>
     <string name="category_entertainment">Entretenimiento</string>
     <string name="category_education">Educación</string>
-    <string name="category_health_fitness">Salud y fitness</string>
+    <string name="category_health_fitness">Salud y bienestar</string>
     <string name="category_lifestyle">Estilo de vida</string>
     <string name="category_science_nature">Ciencia y naturaleza</string>
     <string name="category_news_current_events">Noticias y eventos actuales</string>
@@ -1155,13 +1155,13 @@
     <string name="check_for_updates_subtitle">Toque para buscar la última versión</string>
     <string name="checking_for_updates">Buscando actualizaciones…</string>
     <string name="flow_is_up_to_date">¡Flow está actualizado!</string>
-    <string name="export_engine_data">Perfil del motor de exportación</string>
+    <string name="export_engine_data">Exportar perfil del motor</string>
     <string name="export_engine_data_subtitle">Haga una copia de seguridad de sus datos de aprendizaje y personalidad de IA</string>
     <string name="update_check_failed">No se pudieron buscar actualizaciones. Comprueba tu conexión.</string>
     <string name="export_engine_failed">No se pudo exportar el perfil del motor</string>
     <string name="import_engine_data">Importar datos del motor de Flow</string>
-    <string name="export_engine_success">Perfil del motor exportado exitosamente</string>
-    <string name="import_engine_success">Perfil del motor restaurado exitosamente</string>
+    <string name="export_engine_success">Perfil del motor exportado correctamente</string>
+    <string name="import_engine_success">Perfil del motor restaurado con éxito</string>
     <string name="import_engine_failed">No se pudo importar el perfil del motor</string>
     <string name="import_engine_data_desc">Restaura tu perfil de personalidad de IA desde un archivo de respaldo</string>
     <string name="error_age_restricted_hint">Este video solo está disponible para usuarios registrados que hayan verificado su edad.</string>
@@ -1262,7 +1262,7 @@
     <string name="import_master_backup_desc">Restaura tanto los datos de la aplicación como el perfil del motor desde un único archivo de respaldo maestro</string>
     <string name="master_backup_export_success">Respaldo maestro guardado correctamente</string>
     <string name="master_backup_export_failed">No se pudo exportar el respaldo maestro</string>
-    <string name="import_master_backup_success">Respaldo maestro restaurado correctamente</string>
+    <string name="import_master_backup_success">Respaldo maestro restaurado con éxito</string>
     <string name="auto_backup_screen_title">Respaldos automáticos</string>
     <string name="auto_backup_schedule_section">Cronograma</string>
     <string name="import_master_backup_failed">No se pudo importar el respaldo maestro</string>
@@ -1294,7 +1294,7 @@
     <string name="deep_flow_expires_in">Caduca en %s</string>
     <string name="deep_flow_learning_paused">APRENDIZAJE EN PAUSA</string>
     <string name="deep_flow_mode_title">Modo de Deep Flow</string>
-    <string name="deep_flow_expire_duration_title">Desactivar automáticamente después</string>
+    <string name="deep_flow_expire_duration_title">Desactivación automática tras</string>
     <string name="deep_flow_dialog_body">¿Cuánto tiempo debe permanecer en pausa el aprendizaje?</string>
     <string name="deep_flow_duration_1h">1 hora</string>
     <string name="deep_flow_expire_duration_subtitle">El aprendizaje se reanuda automáticamente después de %s</string>
@@ -1545,7 +1545,7 @@
     <string name="music_playback_warning_final">Esta canción no se pudo cargar después de varios intentos. Pruebe con otra red o VPN si las canciones siguen fallando.</string>
     <string name="music_playback_warning_generic">Error en la reproducción de música. Inténtalo de nuevo o cambia de red si esto sigue sucediendo.</string>
     <string name="music_playback_warning_forbidden">Se denegó el acceso a la transmisión de música. YouTube puede estar limitando esta IP; Intente recargar o cambiar de red/VPN.</string>
-    <string name="music_quality_auto">Auto</string>
+    <string name="music_quality_auto">Automático</string>
     <string name="music_quality_header">Calidad de audio musical</string>
     <string name="music_quality_medium">Medio</string>
     <string name="music_quality_high">Alto</string>
@@ -1563,7 +1563,7 @@
     <string name="datetime_overrides_note">Cambia el formato para lugares específicos. «Predeterminado» sigue la configuración anterior.</string>
     <string name="datetime_sample_relative">hace 7 meses</string>
     <string name="datetime_format_system">Valor predeterminado del sistema</string>
-    <string name="datetime_context_watch">Ver página</string>
+    <string name="datetime_context_watch">Página de vistos</string>
     <string name="datetime_context_lists">Listas y tarjetas</string>
     <string name="datetime_format_iso_hint">ISO 8601</string>
     <string name="datetime_context_description">Descripción</string>
@@ -1583,7 +1583,7 @@
     <string name="history_delete_shorts_title">¿Eliminar cortos?</string>
     <string name="download_title_label">Título</string>
     <string name="download_threads_label">Conexiones</string>
-    <string name="download_menu_style_title">Descargar estilo de menú</string>
+    <string name="download_menu_style_title">Estilo del menú de descargas</string>
     <string name="download_format_label">Formato</string>
     <string name="download_menu_style_classic">Clásico</string>
     <string name="download_menu_style_classic_desc">Todas las calidades en una pantalla</string>
@@ -5029,4 +5029,28 @@
     <string name="app_lock_screen_title">Flow está bloqueado</string>
     <string name="app_lock_screen_body">Usa la huella, el rostro o el bloqueo de pantalla para abrirlo</string>
     <string name="app_lock_unlock">Desbloquear</string>
+    <string name="disk_read_ahead_title">Lectura anticipada en disco</string>
+    <string name="content_settings_comment_gifs_title">GIFs en comentarios</string>
+    <string name="content_settings_comment_gifs_subtitle">Mostrar los GIF que se adjuntan en los comentarios</string>
+    <string name="content_settings_comment_gifs_wifi_title">GIF solo con Wi-Fi</string>
+    <string name="content_settings_comment_gifs_wifi_subtitle">Toca para cargarlos con datos móviles</string>
+    <string name="comment_gif_description">GIF en el comentario</string>
+    <string name="comment_gif_show">Mostrar GIF</string>
+    <string name="player_settings_spherical_motion">Mueve el teléfono para mirar alrededor</string>
+    <string name="player_settings_spherical_motion_summary">Arrastrar el vídeo siempre funciona</string>
+    <string name="disk_read_ahead_summary">Guarda en la caché de vídeo lo que viene después</string>
+    <string name="disk_read_ahead_footer">Mantiene el vídeo reproduciéndose si se corta la conexión. No se aplica a los directos.</string>
+    <plurals name="disk_read_ahead_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="many">%1$d minutos</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+    <string name="disk_read_ahead_whole_video">Vídeo completo</string>
+    <string name="disk_read_ahead_unmetered_only">Solo con Wi-Fi</string>
+    <string name="disk_read_ahead_unmetered_only_summary">No con datos móviles ni en redes medidas</string>
+    <plurals name="import_takeout_part_ads_removed">
+        <item quantity="one">%d anuncio eliminado del historial</item>
+        <item quantity="many">%d anuncios eliminados del historial</item>
+        <item quantity="other">%d anuncios eliminados del historial</item>
+    </plurals>
 </resources>
