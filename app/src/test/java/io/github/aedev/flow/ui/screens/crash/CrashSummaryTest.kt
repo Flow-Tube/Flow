@@ -54,6 +54,13 @@ class CrashSummaryTest {
     }
 
     @Test
+    fun `the title names the build, so a report sent as a bare title can still be traced (1942)`() {
+        val url = parseCrashSummary(report).issueUrl()
+
+        assertThat(url).contains("&title=%5BBug%5D%3A%20IllegalArgumentException%20in%20PlayerBottomBar.kt%3A212%20%282.2.5%29&")
+    }
+
+    @Test
     fun `the link answers every required text field, so a crash can be sent without a questionnaire (1189)`() {
         val url = parseCrashSummary(report).issueUrl()
 
