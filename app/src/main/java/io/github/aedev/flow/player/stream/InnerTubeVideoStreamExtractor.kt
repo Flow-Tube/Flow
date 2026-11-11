@@ -100,13 +100,15 @@ object InnerTubeVideoStreamExtractor {
             YouTubeClient.WEB,
         )
 
-    // ANDROID_VR leads: on a live broadcast it is the only client that returns a DASH manifest
-    // alongside the HLS one, and VISIONOS returns HLS only.
-    private val LIVE_MANIFEST_CLIENTS: List<YouTubeClient> =
+    // The only client whose live manifests carry the whole four hours YouTube keeps seekable, and
+    // the only one that returns a DASH manifest alongside the HLS one. VISIONOS returns HLS only,
+    // signed for the last hour (#1385).
+    private val FULL_DVR_LIVE_CLIENTS: List<YouTubeClient> =
         listOf(
             YouTubeClient.ANDROID_VR_1_65_10,
-            YouTubeClient.VISIONOS,
         )
+
+    private val LIVE_MANIFEST_CLIENTS: List<YouTubeClient> = FULL_DVR_LIVE_CLIENTS + YouTubeClient.VISIONOS
 
     data class VideoExtractionResult(
         val videoFormats: List<PlayerResponse.StreamingData.Format>,
@@ -223,7 +225,20 @@ object InnerTubeVideoStreamExtractor {
                 liveDetected = liveDetected,
                 retryTimeoutOnce = true,
             )?.let { direct ->
-                val result = if (audioOnly) direct else maybeUpgradeToSabr(videoId, direct, failureReasons)
+                val result =
+                    when {
+                        LiveDetectionRules.hasCappedDvrWindow(direct.liveHlsUrl) -> {
+                            tryLiveClients(videoId, failureReasons, FULL_DVR_LIVE_CLIENTS) ?: direct
+                        }
+
+                        audioOnly -> {
+                            direct
+                        }
+
+                        else -> {
+                            maybeUpgradeToSabr(videoId, direct, failureReasons)
+                        }
+                    }
                 Log.w(TAG, "Extraction OK for $videoId via ${result.usedClient.clientName} (mode=${resultMode(result)})")
                 PlayerDiagnostics.logWarning(TAG, "extract OK $videoId via ${result.usedClient.clientName} mode=${resultMode(result)}")
                 return result
@@ -848,15 +863,16 @@ object InnerTubeVideoStreamExtractor {
     private suspend fun tryLiveClients(
         videoId: String,
         failureReasons: MutableList<String>,
+        clients: List<YouTubeClient> = LIVE_MANIFEST_CLIENTS,
     ): VideoExtractionResult? {
         val sts: Int? =
-            if (LIVE_MANIFEST_CLIENTS.any { it.useSignatureTimestamp }) {
+            if (clients.any { it.useSignatureTimestamp }) {
                 CipherDeobfuscator.ensureSignatureTimestamp()
             } else {
                 null
             }
 
-        for (client in LIVE_MANIFEST_CLIENTS) {
+        for (client in clients) {
             try {
                 val playerResponse =
                     withTimeoutOrNull(PER_CLIENT_TIMEOUT_MS) {

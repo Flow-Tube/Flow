@@ -25,4 +25,13 @@ object LiveDetectionRules {
         if (hasLiveStreamability) return true
         return hasHlsManifest && !hasAdaptiveFormats
     }
+
+    /**
+     * Whether a live HLS manifest was signed for a fixed stretch behind the live edge rather than
+     * for everything YouTube keeps seekable. The stretch is part of the signed URL, so a longer one
+     * can only come from a client that is not handed the cap.
+     */
+    fun hasCappedDvrWindow(hlsManifestUrl: String?): Boolean = hlsManifestUrl?.contains(PLAYLIST_DURATION_PARAM) == true
+
+    private const val PLAYLIST_DURATION_PARAM = "/playlist_duration/"
 }

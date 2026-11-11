@@ -61,4 +61,21 @@ class LiveDetectionRulesTest {
     fun `a plain VOD with neither manifest nor live flags is not live`() {
         assertFalse(rule(hasAdaptiveFormats = true))
     }
+
+    @Test
+    fun `a manifest signed for a fixed stretch has a capped dvr window`() {
+        val url = "https://manifest.googlevideo.com/api/manifest/hls_variant/playlist_duration/3600/file/index.m3u8"
+        assertTrue(LiveDetectionRules.hasCappedDvrWindow(url))
+    }
+
+    @Test
+    fun `a manifest with no stretch in its url keeps the whole dvr window`() {
+        val url = "https://manifest.googlevideo.com/api/manifest/hls_variant/hfr/1/ss/1/playlist_type/DVR/file/index.m3u8"
+        assertFalse(LiveDetectionRules.hasCappedDvrWindow(url))
+    }
+
+    @Test
+    fun `no manifest has no capped dvr window`() {
+        assertFalse(LiveDetectionRules.hasCappedDvrWindow(null))
+    }
 }
