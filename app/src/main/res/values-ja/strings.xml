@@ -260,10 +260,10 @@
     <string name="logs_copied">ログをコピーしました</string>
     <string name="logs_copy_failed">ログをコピーできませんでした</string>
     <string name="channel_error_log_clip_label">Flow チャンネルエラーログ</string>
-    <string name="failed_to_load_channel">チャンネルをロードできませんでした</string>
+    <string name="failed_to_load_channel">チャンネルの読み込みに失敗しました</string>
     <string name="conjunction_and">そして、</string>
     <string name="streamed_date_template">ストリーミング %1$s</string>
-    <string name="channel_and_more_template">%1$s と %2$d より</string>
+    <string name="channel_and_more_template">%1‭$s と 他 \\%2$‬‭‬‭‬d 件</string>
     <string name="library_section_header">あなたのコンテンツ</string>
     <string name="library_music_playlists_subtitle">あなたの音楽コレクション</string>
     <string name="library_saved_shorts_label">保存済みのショート動画</string>
