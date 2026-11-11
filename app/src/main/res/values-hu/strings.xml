@@ -413,7 +413,7 @@
     <string name="channel_links">Linkek</string>
     <string name="artist">Művész</string>
     <string name="playlist">Lejátszási lista elemre</string>
-    <string name="app_name_uppercase">FOLYIK</string>
+    <string name="app_name_uppercase">FLOW</string>
     <string name="notification_badge_9_plus">9+</string>
     <string name="personalized_feed">Az Ön személyre szabott hírcsatornája</string>
     <plurals name="videos_curated_template">
