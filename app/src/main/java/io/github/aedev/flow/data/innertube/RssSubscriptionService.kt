@@ -126,8 +126,7 @@ class RssSubscriptionService
                         sweep.rssDates.putAll(result.videoTimestamps)
                         when {
                             result.failed -> {
-                                sweep.unreachable += channelId
-                                result.failureReason?.let { sweep.reasons[channelId] = it }
+                                sweep.rssFailures[channelId] = result.failureReason.orEmpty()
                                 sweep.needsTabs += channelId
                             }
 
@@ -209,8 +208,7 @@ class RssSubscriptionService
                     for ((channelId, result) in chunkResults) {
                         when {
                             !result.failed -> {
-                                sweep.unreachable -= channelId
-                                sweep.reasons -= channelId
+                                sweep.rssFailures -= channelId
                                 sweep.incomplete -= channelId
                             }
 
@@ -220,7 +218,10 @@ class RssSubscriptionService
 
                             else -> {
                                 sweep.unreachable += channelId
-                                result.failureReason?.let { sweep.reasons[channelId] = it }
+                                sweep.reasons[channelId] =
+                                    listOfNotNull(sweep.rssFailures.remove(channelId), result.failureReason)
+                                        .filter(String::isNotBlank)
+                                        .joinToString("; ")
                             }
                         }
                         sweep.held.remove(channelId)?.let { rss ->
@@ -256,7 +257,13 @@ class RssSubscriptionService
             val needsTabs = mutableSetOf<String>()
             val rssAnswered = mutableSetOf<String>()
 
-            // Seeded by the RSS stage and cleared per channel as soon as the tabs answer for it.
+            /**
+             * Why RSS failed, per channel, until its page read answers. Not reported yet: the page
+             * usually rescues it, and a card listing it meanwhile was a false alarm (#1946).
+             */
+            val rssFailures = mutableMapOf<String, String>()
+
+            /** Channels neither RSS nor their page could read. */
             val unreachable = mutableSetOf<String>()
             val reasons = mutableMapOf<String, String>()
             val incomplete = mutableSetOf<String>()
@@ -318,7 +325,7 @@ class RssSubscriptionService
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "UNCAUGHT in channel $channelId: ${e::class.simpleName}: ${e.message}")
-                ChannelFetchResult(emptyList(), failed = true, failureReason = "${e::class.simpleName}: ${e.message}")
+                ChannelFetchResult(emptyList(), failed = true, failureReason = "Channel page: ${e::class.simpleName}: ${e.message}")
             }
 
         private data class RssResult(
@@ -456,7 +463,7 @@ class RssSubscriptionService
                     return ChannelFetchResult(
                         videos = emptyList(),
                         failed = true,
-                        failureReason = "Channel: ${error::class.simpleName}: ${error.message}",
+                        failureReason = "Channel page: ${error::class.simpleName}: ${error.message}",
                     )
                 }
             val channelAvatar =
