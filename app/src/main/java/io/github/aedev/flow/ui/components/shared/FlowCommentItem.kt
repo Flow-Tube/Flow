@@ -197,6 +197,8 @@ fun FlowCommentItem(
                     )
                 }
 
+                comment.image?.let { FlowCommentImage(image = it, modifier = Modifier.padding(top = 8.dp)) }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 CommentEngagementRow(comment = comment)

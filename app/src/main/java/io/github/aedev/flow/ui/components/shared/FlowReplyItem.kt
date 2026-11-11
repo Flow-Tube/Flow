@@ -128,6 +128,8 @@ fun FlowReplyItem(
                 )
             }
 
+            reply.image?.let { FlowCommentImage(image = it, modifier = Modifier.padding(top = 6.dp)) }
+
             Spacer(modifier = Modifier.height(4.dp))
 
             // Action Bar (Minimal for replies)

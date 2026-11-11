@@ -100,6 +100,8 @@ class PlaybackSettingsViewModel
         val comments = preferences.commentsEnabled.asState(true)
         val liveChat = preferences.liveChatEnabled.asState(true)
         val commentsPreview = preferences.commentsPreviewEnabled.asState(true)
+        val commentGifs = preferences.commentGifsEnabled.asState(true)
+        val commentGifsWifiOnly = preferences.commentGifsWifiOnly.asState(false)
 
         val shortsContent = preferences.shortsContentEnabled.asState(true)
         val disableShortsPlayer = preferences.disableShortsPlayer.asState(false)
@@ -269,6 +271,10 @@ class PlaybackSettingsViewModel
         fun setLiveChat(value: Boolean) = write { preferences.setLiveChatEnabled(value) }
 
         fun setCommentsPreview(value: Boolean) = write { preferences.setCommentsPreviewEnabled(value) }
+
+        fun setCommentGifs(value: Boolean) = write { preferences.setCommentGifsEnabled(value) }
+
+        fun setCommentGifsWifiOnly(value: Boolean) = write { preferences.setCommentGifsWifiOnly(value) }
 
         fun setDisableShortsPlayer(value: Boolean) = write { preferences.setDisableShortsPlayer(value) }
 
