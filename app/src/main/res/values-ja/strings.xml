@@ -121,10 +121,10 @@
     <string name="top_bar_close_search">検索を閉じる</string>
     <string name="home_refresh_feed">フィードを更新</string>
     <string name="subscriptions_search_placeholder">登録チャンネルを検索...</string>
-    <string name="subscriptions_sort_label">チャンネルを並べ替える</string>
+    <string name="subscriptions_sort_label">チャンネルを並び替え</string>
     <string name="subscriptions_sort_name">名前（A～Z）</string>
     <string name="subscriptions_sort_recent">最近更新された</string>
-    <string name="empty_subscriptions_body">チャンネルを登録すると最新の動画を閲覧できます</string>
+    <string name="empty_subscriptions_body">チャンネルを登録すると、ここに最新の動画が表示されます</string>
     <plurals name="subscriptions_refresh_progress_template">
         <item quantity="other">%2$d チャンネルのうち %1$d を更新中</item>
     </plurals>
@@ -244,7 +244,7 @@
         <item quantity="other">%1$d の %2$d チャンネルのショートとライブのチェック</item>
     </plurals>
     <plurals name="subscriptions_last_refreshed_template">
-        <item quantity="other">最終更新 %1$s - %2$d チェックされた動画</item>
+        <item quantity="other">最終更新: %1‭$s - \\%2$‬‭‬‭‬‭‬d 件の動画をチェック済み</item>
     </plurals>
     <plurals name="subscriptions_failed_channels_title">
         <item quantity="other">%d チャンネルをロードできません</item>
