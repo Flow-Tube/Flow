@@ -1932,6 +1932,10 @@
         <item quantity="one">%d search</item>
         <item quantity="other">%d searches</item>
     </plurals>
+    <plurals name="import_takeout_part_ads_removed">
+        <item quantity="one">%d ad removed from history</item>
+        <item quantity="other">%d ads removed from history</item>
+    </plurals>
     <string name="import_yt_playlist">Import YouTube Playlist</string>
     <string name="import_yt_playlist_desc">Import a playlist from YouTube Takeout CSV (Playlist-&lt;name&gt;.csv).</string>
     <string name="import_yt_watch_later">Import Watch Later</string>

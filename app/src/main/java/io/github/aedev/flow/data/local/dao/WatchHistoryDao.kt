@@ -29,6 +29,10 @@ interface WatchHistoryDao {
     @Query("DELETE FROM watch_history")
     suspend fun clearAll()
 
+    /** Deletes the rows for [videoIds] that were never played in Flow: no position and no duration. */
+    @Query("DELETE FROM watch_history WHERE videoId IN (:videoIds) AND position = 0 AND duration = 0")
+    suspend fun deleteUnplayed(videoIds: List<String>): Int
+
     @Query("DELETE FROM watch_history WHERE isShort = 1")
     suspend fun clearShorts()
 
