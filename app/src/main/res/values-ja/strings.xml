@@ -180,7 +180,7 @@
     <string name="onboarding_channels_title">チャンネルを探す</string>
     <string name="onboarding_channels_search_placeholder">チャンネルを検索…</string>
     <string name="onboarding_import_title">データのインポート</string>
-    <string name="onboarding_import_subtitle">他のアプリから、チャンネル登録や再生履歴を引き継ぐことができます。スキップすることもできます。</string>
+    <string name="onboarding_import_subtitle">他のアプリから、登録チャンネルや再生履歴を引き継ぐことができます。スキップすることもできます。</string>
     <string name="onboarding_import_source_flow">Flow バックアップ</string>
     <string name="onboarding_import_source_youtube">YouTube</string>
     <string name="onboarding_import_footnote">ここに表示されているものはオプションで、スキップできます。設定からもインポートできます。</string>
@@ -266,7 +266,7 @@
     <string name="channel_and_more_template">%1$s と 他 %2$d 件</string>
     <string name="library_section_header">マイコンテンツ</string>
     <string name="library_music_playlists_subtitle">あなたの音楽コレクション</string>
-    <string name="library_saved_shorts_label">保存済みのショート動画</string>
+    <string name="library_saved_shorts_label">保存したショート動画</string>
     <string name="local_media_rescan">再読み込み</string>
     <string name="local_media_scanning">デバイスをスキャンしています…</string>
     <string name="library_local_media_label">ローカルメディア</string>
@@ -329,7 +329,7 @@
     <string name="player_appearance_plain_control_colors_app">アプリのテーマ</string>
     <string name="related">関連している</string>
     <string name="close">閉じる</string>
-    <string name="more_options">その他のオプション</string>
+    <string name="more_options">その他</string>
     <string name="previous">前の</string>
     <string name="pause">一時停止</string>
     <string name="resume">再開する</string>
@@ -395,12 +395,12 @@
     <string name="subscribed_to">%s を購読しました</string>
     <string name="unsubscribed_from">%s の購読を解除しました</string>
     <string name="share_video">ビデオを共有する</string>
-    <string name="check_out_video_template">このビデオをチェックしてください: %1$s\nhttps://youtube.com/watch?v=%2$s</string>
+    <string name="check_out_video_template">この動画をチェックしてください: %1$s\nhttps://youtube.com/watch?v=%2$s</string>
     <string name="share_link_only_template">https://youtube.com/watch?v=%1$s</string>
     <string name="check_out_short_template">このショートを確認してください: %1$s\nhttps://youtube.com/shorts/%2$s</string>
     <string name="link_not_supported">Flow はこの種のリンクを開けません</string>
     <string name="content_settings_share_without_text_title">テキストなしでリンクを共有する</string>
-    <string name="content_settings_share_without_text_subtitle">「このビデオをチェックしてください」というメッセージを表示せずに、ビデオ リンクのみを共有します。</string>
+    <string name="content_settings_share_without_text_subtitle">「この動画をチェックしてください」というメッセージを表示せずに、動画リンクのみを共有する</string>
     <string name="related_videos">関連動画</string>
     <string name="quality_auto">自動</string>
     <string name="quality_auto_template">自動 (%1$dp)</string>
@@ -462,12 +462,12 @@
     <string name="duration">長さ</string>
     <string name="copied_to_clipboard">%1$s をコピーしました</string>
     <string name="unknown">未知</string>
-    <string name="subscriptions_video_section_title">動画のチャンネル登録</string>
-    <string name="subscriptions_music_section_title">音楽のチャンネル登録</string>
+    <string name="subscriptions_video_section_title">動画の登録チャンネル</string>
+    <string name="subscriptions_music_section_title">音楽の登録チャンネル</string>
     <string name="subscriptions_compact_header">最新の登録チャンネルにジャンプします。</string>
     <string name="subscriptions_compact_header_with_music">音楽チャンネルはインラインでマークされるため、フィードはコンパクトに保たれます。</string>
     <string name="subscriptions_music_chip_label">音楽</string>
-    <string name="subscriptions_music_badge_cd">音楽のチャンネル登録</string>
+    <string name="subscriptions_music_badge_cd">音楽の登録チャンネル</string>
     <string name="no_subscriptions_found">サブスクリプションが見つかりませんでした</string>
     <string name="live_chat">ライブチャット</string>
     <string name="live_chat_connecting">ライブチャットに接続中…</string>
@@ -766,7 +766,7 @@
     <string name="settings_analyzing_interactions">インタラクションを分析しています...</string>
     <string name="settings_view_analytics">分析を見る</string>
     <string name="deep_flow_mode_title">Deep Flow モード</string>
-    <string name="deep_flow_mode_subtitle">閲覧中に学習を一時停止する</string>
+    <string name="deep_flow_mode_subtitle">閲覧中に学習と履歴への記録を一時停止</string>
     <string name="deep_flow_learning_paused">学習が一時停止されました</string>
     <string name="deep_flow_expires_in">%s で期限切れになります</string>
     <string name="deep_flow_expire_duration_title">この時間後に無効化</string>
@@ -811,10 +811,10 @@
     <string name="notif_type_general_subtitle">その他のアプリのアラートとお知らせ</string>
     <string name="notif_system_settings">システム通知設定</string>
     <string name="notif_system_settings_subtitle">Android 設定を開いてチャンネルごとの権限を管理する</string>
-    <string name="notif_check_interval_section_header">フィードチェックスケジュール</string>
+    <string name="notif_check_interval_section_header">フィードの確認スケジュール</string>
     <string name="notif_master_toggle">通知を有効にする</string>
     <string name="notif_master_toggle_subtitle">Flow がバックグラウンドで新しいビデオをチェックできるようにします</string>
-    <string name="notif_background_restricted_title">身元調査は制限されています</string>
+    <string name="notif_background_restricted_title">バックグラウンドでの確認は制限されています</string>
     <string name="notif_background_restricted_subtitle">Flow が閉じている間、Android はチェックをブロックします。タップしてバックグラウンドアクティビティを許可します。</string>
     <string name="notif_check_interval">新しいビデオのチェック間隔</string>
     <string name="notif_check_interval_subtitle_template">すべての %s を確認してください</string>
@@ -1333,7 +1333,7 @@
     <string name="player_settings_shorts_continue_into_feed_subtitle">キューが終了しても推奨される Shorts を再生し続ける</string>
     <string name="player_settings_shorts_playback_mode_title">Shorts 再生モード</string>
     <string name="player_settings_shorts_playback_mode_loop">ループ（繰り返し電流ショート）</string>
-    <string name="player_settings_shorts_playback_mode_auto_next">次の自動再生 (次の短編に進みます)</string>
+    <string name="player_settings_shorts_playback_mode_auto_next">自動再生 (次のショート動画に進みます)</string>
     <string name="player_settings_shorts_playback_mode_auto_interval">カスタム時間の後に自動スクロール</string>
     <plurals name="player_settings_shorts_playback_mode_auto_interval_summary">
         <item quantity="other">%1$d 秒ごとに自動スクロールします</item>
@@ -1558,11 +1558,11 @@
     <string name="btn_back">戻る</string>
     <string name="back">戻る</string>
     <string name="btn_close">閉じる</string>
-    <string name="loading_shorts">ショートパンツを読み込み中…</string>
+    <string name="loading_shorts">ショートを読み込み中…</string>
     <string name="error_short_load">エラーが発生しました</string>
     <string name="cd_pause">一時停止</string>
     <string name="cd_play">再生</string>
-    <string name="cd_more_options">その他のオプション</string>
+    <string name="cd_more_options">その他</string>
     <string name="cd_short_watched">見た</string>
     <string name="shorts_original_sound">オリジナル楽曲 - %1$s</string>
     <string name="shorts_linked_video">関連動画</string>
@@ -1572,8 +1572,8 @@
     <string name="action_search">検索</string>
     <string name="content_preferences_title">コンテンツの設定</string>
     <string name="content_preferences_subtitle">表示されるものをカスタマイズする</string>
-    <string name="interests_tab">興味のあること</string>
-    <string name="blocked_tab">ブロックされました</string>
+    <string name="interests_tab">興味がある</string>
+    <string name="blocked_tab">ブロック</string>
     <plurals name="topics_count_template">
         <item quantity="other">%1$d 件のトピック</item>
     </plurals>
@@ -1598,7 +1598,7 @@
     <string name="desc_remove_topic">%1$s を削除します</string>
     <string name="desc_unblock_topic">%1$s のブロックを解除する</string>
     <plurals name="selected_count_template">
-        <item quantity="other">%1$d 個が選択されました</item>
+        <item quantity="other">%1$d 個を選択中</item>
     </plurals>
     <string name="select_videos">選択</string>
     <string name="cancel_selection">選択をキャンセルする</string>
@@ -1789,7 +1789,7 @@
     <string name="audio_access_denied_subtitle">タップして許可します</string>
     <string name="storage_header">ストレージ</string>
     <string name="internal_storage_label">内部ストレージ</string>
-    <string name="free_space_template">%1$s 無料</string>
+    <string name="free_space_template">%1$sの空き</string>
     <string name="total_space_template">合計: %1$s</string>
     <string name="location_label">位置</string>
     <string name="video_download_location_label">ビデオのダウンロード場所</string>
@@ -1909,7 +1909,7 @@
     <string name="remove_selected_playlist_text">それらはこのプレイリストから削除されます。</string>
     <string name="remove_selected_watch_later_text">これらは後で Watch から削除されます。</string>
     <string name="welcome_to_flow">Flow へようこそ</string>
-    <string name="onboarding_subtitle">興味のあることを教えてください</string>
+    <string name="onboarding_subtitle">興味があることを教えてください</string>
     <string name="onboarding_instructions">エクスペリエンスをパーソナライズするには、少なくとも 3 つのトピックを選択してください</string>
     <string name="onboarding_channels_subtitle">すでにフォローしているチャンネルを検索し、ワンタップで登録します。</string>
     <string name="onboarding_channels_empty_prompt">チャンネル名を入力して検索します</string>
@@ -1932,10 +1932,10 @@
     <string name="onboarding_topic_selected">選択済み</string>
     <string name="onboarding_topic_not_selected">未選択</string>
     <string name="onboarding_import_failed_template">インポートに失敗しました: %1$s</string>
-    <string name="onboarding_step_interests">興味のあること</string>
+    <string name="onboarding_step_interests">興味があること</string>
     <string name="onboarding_step_channels">チャンネル</string>
-    <string name="onboarding_step_import">輸入</string>
-    <string name="onboarding_import_done">輸入品</string>
+    <string name="onboarding_step_import">インポート</string>
+    <string name="onboarding_import_done">インポートされました</string>
     <plurals name="onboarding_import_count">
         <item quantity="other">%d 件のインポート</item>
     </plurals>
@@ -2241,7 +2241,7 @@
     <string name="eq_import_file">ファイルをインポートする</string>
     <string name="eq_import_file_desc">AutoEQ または EqualizerAPO テキスト</string>
     <string name="eq_paste_text">テキストを貼り付ける</string>
-    <string name="eq_export">輸出</string>
+    <string name="eq_export">エクスポート</string>
     <string name="eq_mode_parametric">パラメトリック</string>
     <string name="eq_mode_graphic">グラフィック</string>
     <string name="eq_auto_preamp">オートプリアンプ</string>
@@ -2292,10 +2292,10 @@
     <string name="eq_import_peak">Peaks at %1$s.自動プリアンプにより 0 dB になります。</string>
     <string name="eq_import_failed">そのテキストにはフィルターが見つかりませんでした</string>
     <string name="eq_import_read_failed">そのファイルを読み取れませんでした</string>
-    <string name="eq_import_action">輸入</string>
+    <string name="eq_import_action">インポート</string>
     <string name="eq_imported">インポートされたプリセット</string>
     <string name="eq_paste_hint">AutoEQ または EqualizerAPO プリセットを貼り付けます</string>
-    <string name="eq_imported_badge">輸入品</string>
+    <string name="eq_imported_badge">インポート済み</string>
     <plurals name="eq_band_total">
         <item quantity="other">%d バンド</item>
     </plurals>
@@ -2358,7 +2358,7 @@
     <string name="resize_fill">埋める</string>
     <string name="resize_zoom">ズーム</string>
     <string name="shorts_audio_track">オーディオトラック</string>
-    <string name="shorts_settings_this_short">この短編</string>
+    <string name="shorts_settings_this_short">このショート動画</string>
     <string name="shorts_auto_scroll_active_template">自動 %1$ds</string>
     <string name="shorts_no_audio_tracks">利用可能なオーディオトラックがありません</string>
     <string name="shorts_audio_original">オリジナル</string>
@@ -2369,7 +2369,7 @@
     <string name="shorts_quality_wifi_header">Shorts Wi-Fi の品質</string>
     <string name="shorts_quality_cellular_header">Shorts セルラー品質</string>
     <string name="play_next_video">次に再生</string>
-    <string name="play_next_video_desc">現在のビデオの後に再生されます</string>
+    <string name="play_next_video_desc">現在の動画の後に再生されます</string>
     <string name="add_video_to_queue">キューに追加</string>
     <string name="add_video_to_queue_desc">動画キューの最後に追加</string>
     <string name="added_to_queue_toast">キューに追加されました</string>
@@ -2403,7 +2403,7 @@
     <string name="downloads_confirm_delete_title">削除する前に質問してください</string>
     <string name="downloads_confirm_delete_summary">スワイプして削除するとスキップされ、元に戻すことができます</string>
     <string name="download_sheet_button">%1$s をダウンロード</string>
-    <string name="download_sheet_save_folder">%1$s · %2$s 無料</string>
+    <string name="download_sheet_save_folder">%1$s · %2$s 空き</string>
     <string name="download_sheet_change_folder">変化</string>
     <string name="download_sheet_all_languages">すべての言語</string>
     <string name="downloading_template">%1$s をダウンロードしています...</string>
@@ -2844,8 +2844,8 @@
     <string name="error_geo_restricted_hint">コンテンツ所有者は、あなたの国でこの動画を制限しました。 VPN を使用してみてください。</string>
     <string name="error_paid_content">有料・レンタルコンテンツ</string>
     <string name="error_paid_content_hint">このビデオは YouTube で購入またはレンタルする必要があります。</string>
-    <string name="error_members_or_paid">会員限定または有料動画</string>
-    <string name="error_members_or_paid_hint">このビデオを視聴するには、チャンネル メンバーシップまたは YouTube での購入が必要です。</string>
+    <string name="error_members_or_paid">メンバー限定または有料動画</string>
+    <string name="error_members_or_paid_hint">この動画を視聴するには、チャンネル メンバーシップまたは YouTube での購入が必要です。</string>
     <string name="error_rate_limited">YouTube はこのネットワークを制限しています</string>
     <string name="error_rate_limited_hint">しばらく待ってから再試行するか、ネットワークを切り替えてください。</string>
     <string name="error_yt_music_premium">YouTube Music プレミアム コンテンツ</string>
@@ -2929,7 +2929,7 @@
     <string name="player_action_copy_link_at_time">時間付きでコピー</string>
     <string name="link_with_timestamp_copied">タイムスタンプがコピーされたリンク</string>
     <string name="player_live_label">ライブ</string>
-    <string name="action_want_more">もっとこういうのが欲しい</string>
+    <string name="action_want_more">似た動画がほしい</string>
     <string name="settings_item_diagnostics">診断</string>
     <string name="settings_item_diagnostics_subtitle">エラーログとクラッシュレポートを表示する</string>
     <string name="diagnostics_title">診断</string>
@@ -3516,8 +3516,8 @@
     <string name="error_channel_loading_timed_out">チャンネルの読み込みがタイムアウトしました</string>
     <string name="error_failed_to_load_feed">フィードの読み込みに失敗しました</string>
     <string name="error_failed_to_load_channel">チャンネルの読み込みに失敗しました</string>
-    <string name="error_failed_to_load_shorts">ショートパンツの読み込みに失敗しました</string>
-    <string name="error_failed_to_load_more_shorts">さらにショートパンツを読み込めませんでした</string>
+    <string name="error_failed_to_load_shorts">ショートの読み込みに失敗しました</string>
+    <string name="error_failed_to_load_more_shorts">さらにショートを読み込めませんでした</string>
     <string name="error_search_timed_out">検索がタイムアウトしました</string>
     <string name="error_filter_search_timed_out">フィルター検索がタイムアウトしました</string>
     <string name="error_failed_to_load_playlist">プレイリストの読み込みに失敗しました</string>
@@ -3615,7 +3615,7 @@
     <string name="downloads_sort_title">タイトル</string>
     <string name="downloads_sort_channel">チャンネル</string>
     <string name="downloads_storage_used">%1$s (Flow)</string>
-    <string name="downloads_storage_free">%1$s 無料</string>
+    <string name="downloads_storage_free">%1$sの空き</string>
     <string name="downloads_storage_videos">動画 %1$s</string>
     <string name="downloads_storage_music">音楽 %1$s</string>
     <string name="downloads_section_in_progress">進行中</string>
@@ -3701,7 +3701,7 @@
     <string name="fallback_unknown_video">不明なビデオ</string>
     <string name="fallback_local_video">ローカルの動画</string>
     <string name="fallback_local_audio">ローカルオーディオ</string>
-    <string name="fallback_your_saved_shorts">保存したショートパンツ</string>
+    <string name="fallback_your_saved_shorts">保存したショート動画</string>
     <string name="fallback_your_watch_later_list">後で見るリスト</string>
     <string name="fallback_downloaded_locally">ローカルにダウンロードされました</string>
     <string name="fallback_more_results">他の結果</string>
@@ -3723,7 +3723,7 @@
     <string name="settings_history_title">履歴とプライバシー</string>
     <string name="settings_downloads_title">ダウンロードとストレージ</string>
     <string name="settings_network_title">ネットワーク</string>
-    <string name="settings_wellbeing_title">幸福</string>
+    <string name="settings_wellbeing_title">生活</string>
     <string name="settings_group_look">見た目とスタイル</string>
     <string name="settings_group_watching">閲覧</string>
     <string name="settings_group_data">あなたのデータ</string>
@@ -3865,8 +3865,8 @@
     <string name="shared_link_play_now">今すぐプレイ</string>
     <string name="shared_link_play_now_desc">再生中のものを置き換えます</string>
     <string name="settings_keywords_hide_watched">見た、すでに見た、フィルター</string>
-    <string name="settings_topics_tab_interests">興味のあること</string>
-    <string name="settings_topics_tab_blocked">ブロックされました</string>
+    <string name="settings_topics_tab_interests">興味がある</string>
+    <string name="settings_topics_tab_blocked">ブロック</string>
     <string name="settings_topics_your_topics">あなたのトピック</string>
     <string name="settings_keywords_topics">興味がある、興味がない、非表示、ブロック、ミュート、推奨</string>
     <string name="settings_keywords_sponsorblock">スポンサー、広告、セグメント、イントロ、アウトロをスキップします</string>
@@ -3875,13 +3875,13 @@
     <string name="settings_segment_colour">%1$s の色</string>
     <string name="settings_truncated">%1$s…</string>
     <string name="settings_backup_exporting">エクスポート中…</string>
-    <string name="settings_backup_tab_export">輸出</string>
-    <string name="settings_backup_tab_import">輸入</string>
+    <string name="settings_backup_tab_export">エクスポート</string>
+    <string name="settings_backup_tab_import">インポート</string>
     <string name="settings_backup_tab_auto">自動</string>
     <string name="settings_backup_full">完全バックアップ</string>
-    <string name="settings_backup_individual">個別輸出</string>
+    <string name="settings_backup_individual">個別にエクスポート</string>
     <string name="settings_backup_restore_flow">Flowから復元</string>
-    <string name="settings_backup_source_youtube">YouTube と Google Takeout</string>
+    <string name="settings_backup_source_youtube">YouTube と Google Takeout （Google データのアーカイブ）</string>
     <string name="settings_backup_source_newpipe">NewPipe</string>
     <string name="settings_backup_source_libretube">LibreTube</string>
     <string name="settings_backup_source_freetube">FreeTube</string>
@@ -3904,7 +3904,7 @@
     <string name="settings_location_default">デフォルト</string>
     <string name="settings_music_folder_label">音楽 / Flow</string>
     <string name="settings_keywords_downloads">オフライン保存、フォルダー、ストレージ、SD カード</string>
-    <string name="settings_section_notification_types">～について通知してください</string>
+    <string name="settings_section_notification_types">通知する項目</string>
     <string name="settings_keywords_notifications">アラート、プッシュ、新しいアップロード、バックグラウンド チェック、ショート</string>
     <string name="settings_section_proxy_server">サーバ</string>
     <string name="settings_section_proxy_sign_in">サインイン</string>
@@ -3980,7 +3980,7 @@
     <string name="settings_custom_theme_editor_title">テーマの編集</string>
     <string name="settings_custom_theme_default_name">私のテーマ</string>
     <string name="settings_custom_theme_create">テーマの作成</string>
-    <string name="settings_custom_theme_import">輸入</string>
+    <string name="settings_custom_theme_import">インポート</string>
     <string name="settings_custom_theme_export">ファイルにエクスポート</string>
     <string name="settings_custom_theme_export_all">すべてエクスポート</string>
     <string name="settings_custom_theme_share">共有</string>
@@ -4039,7 +4039,7 @@
     <string name="taste_evidence_some">数回視聴しました</string>
     <string name="taste_evidence_once">1、2回見た</string>
     <string name="taste_evidence_none">まだ見ていない</string>
-    <string name="taste_topic_boost">このようなものをもっと表示</string>
+    <string name="taste_topic_boost">このようなものをさらに表示</string>
     <string name="taste_topic_unboost">ブーストをやめる</string>
     <string name="taste_topic_block">トピックをブロックする</string>
     <string name="taste_topic_block_named">%1$s をブロック</string>
@@ -4121,14 +4121,14 @@
         <item quantity="other">%d 回</item>
     </plurals>
     <string name="recap_topics_title">あなたが調べたトピック</string>
-    <string name="recap_topics_new">新しい動画の発見: %1$s</string>
+    <string name="recap_topics_new">新しいコンテンツの発見: %1$s</string>
     <string name="recap_formats_title">視聴したコンテンツ</string>
     <string name="recap_format_long">動画</string>
     <string name="recap_format_shorts">Shorts</string>
     <string name="recap_format_live">ライブ</string>
     <string name="recap_format_music">音楽</string>
     <string name="recap_format_share">%1$s · %2$s</string>
-    <string name="recap_discoveries_title">新しい動画の発見</string>
+    <string name="recap_discoveries_title">新しいコンテンツの発見</string>
     <plurals name="recap_new_channels">
         <item quantity="other">%d 個の新しいチャンネル</item>
     </plurals>
@@ -4141,7 +4141,7 @@
     <string name="recap_skipped_channels">最もスキップしたチャンネル</string>
     <string name="recap_skipped_tracks">スキップした曲</string>
     <string name="recap_dislikes">低評価</string>
-    <string name="recap_blocked">ブロックされました</string>
+    <string name="recap_blocked">ブロック</string>
     <string name="recap_library_title">あなたのライブラリ</string>
     <string name="recap_likes">いいね！</string>
     <string name="recap_saves">保存されました</string>
@@ -4168,7 +4168,7 @@
     <string name="recap_insight_weekend_body">週末に落ち着いているようです</string>
     <string name="recap_insight_loyal">忠実な視聴者</string>
     <string name="recap_insight_loyal_body">1 つのチャンネルが時間の大部分を占めます</string>
-    <string name="recap_insight_explorer">エクスプローラ</string>
+    <string name="recap_insight_explorer">探検家</string>
     <string name="recap_insight_explorer_body">新しいチャンネルやアーティストをたくさん見つけました</string>
     <string name="recap_insight_marathon">マラソン選手</string>
     <string name="recap_insight_marathon_body">少なくとも1日は3時間を超えた</string>
@@ -4194,7 +4194,7 @@
     <string name="recap_story_artist">あなたのトップアーティスト</string>
     <string name="recap_story_artist_body">%1$sし、あなたの音楽の%2$d%%です</string>
     <string name="recap_story_songs">何度も聴き返した曲</string>
-    <string name="recap_story_new">新しい動画の発見</string>
+    <string name="recap_story_new">新しいコンテンツの発見</string>
     <string name="recap_story_passed">あなたが伝えたこと</string>
     <string name="recap_story_formats">視聴したコンテンツ</string>
     <string name="recap_story_sponsor">SponsorBlock が返した時間</string>
@@ -4278,7 +4278,7 @@
     <string name="home_origin_related">%1$s に関連する</string>
     <string name="home_origin_related_watched">視聴した動画に関連する</string>
     <string name="home_origin_search">%1$s の検索から</string>
-    <string name="home_origin_search_unnamed">興味のあることの検索から</string>
+    <string name="home_origin_search_unnamed">興味があることの検索から</string>
     <string name="home_origin_channel_memory">よく見るチャンネルから</string>
     <string name="home_origin_neighbour">%1$s のようなチャンネル</string>
     <string name="home_origin_neighbour_unnamed">あなたがフォローしているようなチャンネル</string>
@@ -4407,7 +4407,7 @@
     <string name="scrobbling_import_summary">よく再生されるアーティストをお気に入りに追加します</string>
     <string name="scrobbling_import_offer_title">%1$s で音楽を形作りませんか?</string>
     <string name="scrobbling_import_offer_body">Flow は、過去 1 年間で最も再生されたアーティスト 20 人をお気に入りのアーティストに追加します。後でどれでも削除できます。</string>
-    <string name="scrobbling_import_action">輸入</string>
+    <string name="scrobbling_import_action">インポート</string>
     <string name="scrobbling_import_later">今はしない</string>
     <plurals name="scrobbling_import_done">
         <item quantity="other">%d 人のアーティストをお気に入りに追加しました</item>
@@ -4425,4 +4425,7 @@
     <string name="keyboard_shortcut_exit_fullscreen">全画面表示を終了する</string>
     <string name="keyboard_shortcut_faster">もっと早く</string>
     <string name="keyboard_shortcut_slower">もっとゆっくり</string>
+    <string name="settings_security_title">セキュリティ</string>
+    <string name="settings_security_summary">アプリのロック</string>
+    <string name="settings_keywords_security">アプリのロック、プライバシー、パスワード、PIN、パターン、指紋認証、顔認証、最近のアプリ</string>
 </resources>
