@@ -5328,4 +5328,18 @@
     <string name="settings_classic_loader_title">مؤشر التحميل الكلاسيكي</string>
     <string name="settings_classic_loader_summary">استخدم الدائرة الدوّارة بدلًا من مؤشر التحميل المتغيّر الشكل</string>
     <string name="settings_classic_loader_keywords">مؤشر التحميل، الدائرة الدوّارة، التقدم، الدائرة، حركة التحميل</string>
+    <string name="content_settings_comment_gifs_title">صور GIF في التعليقات</string>
+    <string name="content_settings_comment_gifs_subtitle">إظهار صور GIF التي يرفقها الأشخاص بالتعليقات</string>
+    <string name="content_settings_comment_gifs_wifi_title">صور GIF عبر Wi-Fi فقط</string>
+    <string name="content_settings_comment_gifs_wifi_subtitle">اضغط لتحميلها عبر بيانات الجوال</string>
+    <string name="comment_gif_description">صورة GIF في تعليق</string>
+    <string name="comment_gif_show">إظهار صورة GIF</string>
+    <plurals name="import_takeout_part_ads_removed">
+        <item quantity="zero">لم ‏تتم إزالة أي إعلانات من السجل</item>
+        <item quantity="one">تمت إزالة إعلان واحد من السجل</item>
+        <item quantity="two">تمت إزالة %d إعلان من السجل</item>
+        <item quantity="few">تمت إزالة %d إعلانات من السجل</item>
+        <item quantity="many">تمت إزالة %d إعلان من السجل</item>
+        <item quantity="other">تمت إزالة %d إعلان من السجل</item>
+    </plurals>
 </resources>
