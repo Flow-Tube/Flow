@@ -76,6 +76,7 @@ internal fun PlayerAppearanceScreen(
     val adaptiveSize by viewModel.adaptivePlayerSize.collectAsStateWithLifecycle()
     val ambientMode by viewModel.ambientMode.collectAsStateWithLifecycle()
     val ambientGlow by viewModel.ambientGlow.collectAsStateWithLifecycle()
+    val immersiveGlow by viewModel.immersiveGlow.collectAsStateWithLifecycle()
     val videoArtworkColors by viewModel.videoArtworkColors.collectAsStateWithLifecycle()
     val paidPromotion by viewModel.paidPromotionLabel.collectAsStateWithLifecycle()
     val groupedQuality by viewModel.groupedQualitySelector.collectAsStateWithLifecycle()
@@ -212,7 +213,13 @@ internal fun PlayerAppearanceScreen(
             switch(PlayerAppearanceIndex.adaptiveSize, adaptiveSize, viewModel::setAdaptivePlayerSize)
             switch(PlayerAppearanceIndex.ambientMode, ambientMode, viewModel::setAmbientMode)
             switch(PlayerAppearanceIndex.ambientGlow, ambientGlow, viewModel::setAmbientGlow)
-            switch(PlayerAppearanceIndex.immersiveGlow, viewModel.immersiveGlow, viewModel::setImmersiveGlow, enabled = ambientGlow)
+            switch(PlayerAppearanceIndex.immersiveGlow, immersiveGlow, viewModel::setImmersiveGlow, enabled = ambientGlow)
+            switch(
+                PlayerAppearanceIndex.immersiveScrollDim,
+                viewModel.immersiveScrollDim,
+                viewModel::setImmersiveScrollDim,
+                enabled = ambientGlow && immersiveGlow,
+            )
             switch(
                 PlayerAppearanceIndex.glowInBatterySaver,
                 viewModel.glowInBatterySaver,

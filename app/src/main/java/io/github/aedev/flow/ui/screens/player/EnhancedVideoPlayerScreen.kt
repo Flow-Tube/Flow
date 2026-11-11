@@ -100,6 +100,7 @@ internal fun EnhancedVideoPlayerScreen(
     val playerState by EnhancedPlayerManager.getInstance().playerState.collectAsStateWithLifecycle()
     val showsRelatedSkeleton = rememberRelatedSkeleton(video, uiState, screenState)
     val immersive = ambientImmersive && ambientGlowFrames != null
+    val dimOnScroll by rememberUpdatedState(prefs.ambientImmersiveScrollDim)
     Box(
         modifier =
             Modifier
@@ -217,7 +218,7 @@ internal fun EnhancedVideoPlayerScreen(
                 val relatedLayout = rememberFeedGridLayout(maxWidth, prefs.feedColumns)
                 val listState = rememberLazyListState()
                 if (ambientGlowFrames != null && immersive) {
-                    AmbientImmersiveLayer(frames = ambientGlowFrames, isScrolling = { listState.isScrollInProgress })
+                    AmbientImmersiveLayer(frames = ambientGlowFrames, isScrolling = { dimOnScroll && listState.isScrollInProgress })
                 } else if (ambientGlowFrames != null) {
                     AmbientPageGlow(
                         frames = ambientGlowFrames,
