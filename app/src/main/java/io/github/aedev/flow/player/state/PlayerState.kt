@@ -37,6 +37,8 @@ data class EnhancedPlayerState(
     val isLive: Boolean = false,
     val isAtLiveEdge: Boolean = false,
     val liveDurationMs: Long = 0L,
+    /** The playing video is a 360 video, shown in a view the viewer can look around in (#1295). */
+    val isSphericalVideo: Boolean = false,
 )
 
 /** A video that played to its end, and the length it ended at. */
