@@ -240,7 +240,10 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Artist Page
-    composable(MUSIC_ARTIST_ROUTE_PATTERN) { backStackEntry ->
+    composable(
+        MUSIC_ARTIST_ROUTE_PATTERN,
+        arguments = listOf(navArgument("channelId") { type = NavType.StringType }),
+    ) { backStackEntry ->
         val channelId = backStackEntry.arguments?.getString("channelId") ?: return@composable
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         io.github.aedev.flow.ui.screens.music.ArtistRoute(
@@ -321,7 +324,10 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Music Playlist Page
-    composable(MUSIC_PLAYLIST_ROUTE_PATTERN) { backStackEntry ->
+    composable(
+        MUSIC_PLAYLIST_ROUTE_PATTERN,
+        arguments = listOf(navArgument("playlistId") { type = NavType.StringType }),
+    ) { backStackEntry ->
         if (backStackEntry.arguments?.getString("playlistId") == null) return@composable
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         io.github.aedev.flow.ui.screens.music.collection.MusicCollectionScreen(

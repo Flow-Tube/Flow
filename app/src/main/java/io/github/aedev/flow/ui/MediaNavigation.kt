@@ -47,6 +47,9 @@ internal fun <T> pageOpen(
  * Opens [route], or returns to it when it is already on the back stack. Each stacked page keeps its
  * state in the activity's saved bundle, and a long loop between two channels grew that bundle past
  * what Android can hand over when the app stops (#1338).
+ *
+ * The route's destination must declare a type for each argument: Navigation compares only typed
+ * arguments, so an untyped one makes every page of that route look like this one (#1945).
  */
 internal fun NavController.openPage(route: String) {
     // The public lookup for the exact, argument-filled match that popBackStack(route) pops to.

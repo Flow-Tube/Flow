@@ -504,7 +504,10 @@ fun NavGraphBuilder.flowAppGraph(
     }
 
     // Playlist Detail Screen
-    composable("playlist/{playlistId}") { _ ->
+    composable(
+        "playlist/{playlistId}",
+        arguments = listOf(navArgument("playlistId") { type = NavType.StringType }),
+    ) { _ ->
         currentRoute.value = "playlist"
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         PlaylistDetailScreen(
