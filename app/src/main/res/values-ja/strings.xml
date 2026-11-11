@@ -244,7 +244,7 @@
         <item quantity="other">%1$d の %2$d チャンネルのショートとライブのチェック</item>
     </plurals>
     <plurals name="subscriptions_last_refreshed_template">
-        <item quantity="other">最終更新: %1‭$s - \\%2$‬‭‬‭‬‭‬d 件の動画をチェック済み</item>
+        <item quantity="other">最終更新: %1$s - %2$d 件の動画を確認済み</item>
     </plurals>
     <plurals name="subscriptions_failed_channels_title">
         <item quantity="other">%d チャンネルをロードできません</item>
