@@ -44,6 +44,7 @@ import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
 import io.github.aedev.flow.player.audio.AudioFeaturesManager
 import io.github.aedev.flow.player.audio.AudioSessionAnnouncer
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
+import io.github.aedev.flow.player.cache.DiskReadAhead
 import io.github.aedev.flow.player.cache.PlayerCacheManager
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
@@ -526,6 +527,7 @@ class EnhancedPlayerManager private constructor() {
     private val playerFactory = PlayerFactory()
     private val backgroundServiceManager = BackgroundServiceManager()
     private var cacheManager: PlayerCacheManager? = null
+    private var diskReadAhead: DiskReadAhead? = null
     private var qualityManager: QualityManager? = null
     private var surfaceManager: SurfaceManager? = null
     private var sponsorBlockHandler: SponsorBlockHandler? = null
@@ -777,6 +779,13 @@ class EnhancedPlayerManager private constructor() {
                 dataSourceFactory = cacheManager?.getDataSourceFactory(),
             )
         analyticsLogger = PlaybackAnalyticsLogger(TAG) { currentVideoId }.also { player?.addAnalyticsListener(it) }
+        diskReadAhead =
+            player?.let { built ->
+                cacheManager?.let { cache ->
+                    DiskReadAhead(context.applicationContext, built, cache, PlayerPreferences(context), scope)
+                        .also(built::addAnalyticsListener)
+                }
+            }
         player?.addAnalyticsListener(
             RenderedFirstFrameListener(currentVideoId = { currentVideoId }) { videoId -> _firstFrameVideoId.value = videoId },
         )
@@ -3472,6 +3481,8 @@ class EnhancedPlayerManager private constructor() {
         surfaceManager?.release(player)
         audioSessionAnnouncer?.detach()
         audioSessionAnnouncer = null
+        diskReadAhead?.release()
+        diskReadAhead = null
         player?.release()
         player = null
         playerFactory.clearPreferences()

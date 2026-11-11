@@ -27,5 +27,20 @@ internal object BufferIndex {
             destination = page,
         )
 
-    val all = listOf(profile, minBuffer, maxBuffer, startBuffer, rebuffer, cacheSize)
+    val diskReadAhead =
+        SettingEntry(
+            key = "buffer.disk_read_ahead",
+            title = R.string.disk_read_ahead_title,
+            summary = R.string.disk_read_ahead_summary,
+            destination = page,
+        )
+    val diskReadAheadUnmeteredOnly =
+        SettingEntry(
+            key = "buffer.disk_read_ahead_unmetered",
+            title = R.string.disk_read_ahead_unmetered_only,
+            summary = R.string.disk_read_ahead_unmetered_only_summary,
+            destination = page,
+        )
+
+    val all = listOf(profile, minBuffer, maxBuffer, startBuffer, rebuffer, diskReadAhead, diskReadAheadUnmeteredOnly, cacheSize)
 }
