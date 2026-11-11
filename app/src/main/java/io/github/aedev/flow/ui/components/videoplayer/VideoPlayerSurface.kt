@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.components.videoplayer
 
 import android.app.Activity
 import android.content.Context
+import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
@@ -71,6 +72,7 @@ fun VideoPlayerSurface(
     spherical: Boolean = false,
     sphericalMotion: Boolean = true,
     sphericalTouch: Boolean = false,
+    sphericalStill: Boolean = false,
 ) {
     val ambientActive = ambientMode && resizeMode == 0 && !spherical
     val localAmbientFrames = remember { AmbientFrameHolder() }
@@ -195,9 +197,30 @@ fun VideoPlayerSurface(
             reportAspectRatio(16f / 9f)
             onDispose { }
         }
-        DisposableEffect(sphericalView, sphericalMotion) {
-            sphericalView.setUseSensorRotation(sphericalMotion)
+        // A paused 360 view redrew every refresh and read the gyroscope at 200 Hz: about four
+        // times a paused flat video's CPU on a phone. Still, it draws only when a drag or a seek
+        // changes the picture, and the phone's motion is left out until playback resumes.
+        DisposableEffect(sphericalView, sphericalMotion, sphericalStill) {
+            sphericalView.setUseSensorRotation(sphericalMotion && !sphericalStill)
+            sphericalView.renderMode =
+                if (sphericalStill) GLSurfaceView.RENDERMODE_WHEN_DIRTY else GLSurfaceView.RENDERMODE_CONTINUOUSLY
+            sphericalView.requestRender()
             onDispose { }
+        }
+        if (sphericalStill) {
+            DisposableEffect(sphericalView) {
+                val player = EnhancedPlayerManager.getInstance().getPlayer()
+                val seekFrames =
+                    object : Player.Listener {
+                        override fun onRenderedFirstFrame() {
+                            // The frame can reach the view's texture just after this callback.
+                            sphericalView.requestRender()
+                            sphericalView.postDelayed(sphericalView::requestRender, SEEK_FRAME_REDRAW_DELAY_MS)
+                        }
+                    }
+                player?.addListener(seekFrames)
+                onDispose { player?.removeListener(seekFrames) }
+            }
         }
         // Stop, not pause: a PiP window is paused but still on screen and still drawing.
         LifecycleStartEffect(playerView, lifecycleOwner = lifecycleOwner) {
@@ -311,14 +334,19 @@ fun VideoPlayerSurface(
  * given, so the view itself sits under this layer: touches reach it from here without being
  * consumed, and the player's taps and double taps above keep working.
  */
-private fun Modifier.forwardTouchesTo(view: View): Modifier =
+private fun Modifier.forwardTouchesTo(view: GLSurfaceView): Modifier =
     pointerInput(view) {
         awaitPointerEventScope {
             while (true) {
-                awaitPointerEvent().motionEvent?.let(view::dispatchTouchEvent)
+                awaitPointerEvent().motionEvent?.let { event ->
+                    view.dispatchTouchEvent(event)
+                    view.requestRender()
+                }
             }
         }
     }
+
+private const val SEEK_FRAME_REDRAW_DELAY_MS = 50L
 
 /** Reads the frame in its own scope, so each new frame recomposes the bars and not the surface. */
 @Composable

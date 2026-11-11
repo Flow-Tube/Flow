@@ -214,6 +214,7 @@ internal fun VideoStage(
                 spherical = spherical,
                 sphericalMotion = prefs.sphericalMotionEnabled,
                 sphericalTouch = gesturesActive,
+                sphericalStill = !playerState.playWhenReady || playerState.hasEnded,
             )
             if (expandedSurfacesMounted && !localIsInPipMode) {
                 Media3SubtitleOverlay(
