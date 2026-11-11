@@ -128,7 +128,7 @@
     <plurals name="subscriptions_refresh_progress_template">
         <item quantity="other">%2$d チャンネルのうち %1$d を更新中</item>
     </plurals>
-    <string name="subscriptions_last_refreshed_time_only_template">最終更新日時 %1$s</string>
+    <string name="subscriptions_last_refreshed_time_only_template">最終更新 %1$s</string>
     <string name="subscriptions_failed_channels_copy_logs">ログのコピー</string>
     <string name="content_settings_channel_group_badge_title">チャンネルアバターにグループを表示する</string>
     <string name="download">ダウンロード</string>
