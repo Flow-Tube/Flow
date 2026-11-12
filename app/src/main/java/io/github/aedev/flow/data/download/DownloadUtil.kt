@@ -22,6 +22,8 @@ import io.github.aedev.flow.di.MusicCache
 import io.github.aedev.flow.network.AppProxyManager
 import io.github.aedev.flow.player.datasource.GoogleVideoRequestPolicy
 import io.github.aedev.flow.player.datasource.RefusedStreamRetryDataSource
+import io.github.aedev.flow.player.datasource.StreamHostFallback
+import io.github.aedev.flow.player.datasource.UnreachableHostRetryDataSource
 import io.github.aedev.flow.player.error.StreamDenialClassifier
 import io.github.aedev.flow.player.error.StreamDenialKind
 import io.github.aedev.flow.player.stream.ClientGateTracker
@@ -60,6 +62,7 @@ class DownloadUtil
         )
 
         private val songUrlCache = java.util.concurrent.ConcurrentHashMap<String, ResolvedSong>()
+        private val streamHosts = StreamHostFallback()
 
         private val okHttpClient: OkHttpClient by lazy {
             AppProxyManager.buildLive(
@@ -143,7 +146,13 @@ class DownloadUtil
                     if (mediaId != null) onStreamRefused(mediaId, url)
                     mediaId != null
                 }
-            return ChunkStitchingDataSource.Factory(refusalRetrying)
+            val unreachableRetrying =
+                UnreachableHostRetryDataSource.Factory(refusalRetrying) { dataSpec, url ->
+                    streamHosts.markUnreachable(url)
+                    Log.w(TAG, "[Player] ${dataSpec.key} could not reach ${url.toUri().host}, trying another server")
+                    dataSpec.key != null
+                }
+            return ChunkStitchingDataSource.Factory(unreachableRetrying)
         }
 
         private fun SimpleCache.cachedSpan(
@@ -154,9 +163,14 @@ class DownloadUtil
         private fun resolveStream(dataSpec: DataSpec): DataSpec {
             val mediaId = dataSpec.key ?: error("No media id (key) in dataSpec")
             songUrlCache[mediaId]?.takeIf(::isReusable)?.let { song ->
-                Log.d(TAG, "[Player] Using cached URL for $mediaId")
-                recordSongFile(mediaId, song.fileId)
-                return buildPlaybackDataSpec(dataSpec, song.url, song.userAgent)
+                val routed = streamHosts.route(song.url)
+                if (routed != null) {
+                    Log.d(TAG, "[Player] Using cached URL for $mediaId")
+                    recordSongFile(mediaId, song.fileId)
+                    return buildPlaybackDataSpec(dataSpec, routed, song.userAgent)
+                }
+                // Every server this url names is unreachable from here; a fresh resolve may name others.
+                songUrlCache.remove(mediaId)
             }
 
             val playbackData =
@@ -178,7 +192,7 @@ class DownloadUtil
             recordSongFile(mediaId, format.fileId())
             Log.d(TAG, "[Player] Resolved $mediaId via ${playbackData.usedClient.clientName}")
 
-            return buildPlaybackDataSpec(dataSpec, streamUrl, userAgent)
+            return buildPlaybackDataSpec(dataSpec, streamHosts.route(streamUrl) ?: streamUrl, userAgent)
         }
 
         /** The file the song's cached bytes came from. A song cached before this was kept has none on record. */
