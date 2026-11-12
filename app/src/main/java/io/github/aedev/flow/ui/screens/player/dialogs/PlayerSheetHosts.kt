@@ -209,6 +209,7 @@ internal fun PlayerTranscriptSheetHost(
     prefs: VideoPlayerPreferencesState,
     chapters: List<StreamSegment>,
     artworkUrl: String?,
+    exportTitle: String?,
     asSidePanel: Boolean,
     expandedHeight: Dp?,
     onDismiss: () -> Unit,
@@ -245,6 +246,7 @@ internal fun PlayerTranscriptSheetHost(
                 scope.launch { prefs.preferences.setTranscriptLanguage(language) }
             }
         },
+        exportTitle = exportTitle,
         expandedHeight = expandedHeight,
         collapsedHeight = collapsedHeight,
         enableVerticalDismiss = !asSidePanel,

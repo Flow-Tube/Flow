@@ -71,6 +71,7 @@ class PlaybackSettingsViewModel
         val speedSwipeStep = preferences.speedSwipeStep.asState(DEFAULT_SPEED_SWIPE_STEP)
         val seekGesture = preferences.seekSwipeGesturesEnabled.asState(true)
         val moreVideosGesture = preferences.moreVideosSwipeEnabled.asState(true)
+        val chapterSkipGesture = preferences.chapterSkipGestureEnabled.asState(true)
         val controlsWhileLoading = preferences.showControlsWhileLoading.asState(overlay.showControlsWhileLoading)
 
         val castButton = preferences.overlayCastEnabled.asState(overlay.castEnabled)
@@ -218,6 +219,8 @@ class PlaybackSettingsViewModel
         fun setSeekGesture(value: Boolean) = write { preferences.setSeekSwipeGesturesEnabled(value) }
 
         fun setMoreVideosGesture(value: Boolean) = write { preferences.setMoreVideosSwipeEnabled(value) }
+
+        fun setChapterSkipGesture(value: Boolean) = write { preferences.setChapterSkipGestureEnabled(value) }
 
         fun setControlsWhileLoading(value: Boolean) = write { preferences.setShowControlsWhileLoading(value) }
 

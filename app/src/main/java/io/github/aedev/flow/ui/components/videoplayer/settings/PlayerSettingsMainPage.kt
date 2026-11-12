@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material.icons.outlined.MoreTime
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Repeat
@@ -58,6 +59,8 @@ internal fun PlayerSettingsMainPage(
     onSkipSilenceToggle: (Boolean) -> Unit,
     onVolumeNormalizationToggle: (Boolean) -> Unit,
     onAmbientModeToggle: (Boolean) -> Unit,
+    ambientGlowEnabled: Boolean? = null,
+    onAmbientGlowToggle: (Boolean) -> Unit = {},
     sponsorBlockSegmentCount: Int = 0,
     sponsorBlockOffForVideo: Boolean = false,
     onSponsorBlockToggle: (off: Boolean) -> Unit = {},
@@ -215,24 +218,36 @@ internal fun PlayerSettingsMainPage(
         )
     }
 
+    val glowRows = if (ambientGlowEnabled != null) 1 else 0
     val sphericalRows = listOfNotNull(sphericalViewEnabled, sphericalMotionEnabled).size
-    val displayRows = DISPLAY_ROWS + sphericalRows
+    val displayRows = DISPLAY_ROWS + glowRows + sphericalRows
     FlowSectionHeader(stringResource(R.string.player_settings_display))
     FlowRowGroup {
         FlowSwitchRow(
             leadingIcon = ImageVector.vectorResource(R.drawable.ic_ambient_mode),
             title = stringResource(R.string.player_settings_ambient_mode),
+            supportingText = stringResource(R.string.player_settings_ambient_mode_subtitle).takeIf { ambientGlowEnabled != null },
             checked = ambientModeEnabled,
             shape = flowRowGroupShape(0, displayRows),
             onCheckedChange = onAmbientModeToggle,
         )
+        if (ambientGlowEnabled != null) {
+            FlowSwitchRow(
+                leadingIcon = Icons.Filled.WbTwilight,
+                title = stringResource(R.string.player_settings_ambient_glow),
+                supportingText = stringResource(R.string.player_settings_ambient_glow_subtitle),
+                checked = ambientGlowEnabled,
+                shape = flowRowGroupShape(1, displayRows),
+                onCheckedChange = onAmbientGlowToggle,
+            )
+        }
         if (sphericalViewEnabled != null) {
             FlowSwitchRow(
                 leadingIcon = Icons.AutoMirrored.Filled._360,
                 title = stringResource(R.string.player_settings_spherical_view),
                 supportingText = stringResource(R.string.player_settings_spherical_view_summary),
                 checked = sphericalViewEnabled,
-                shape = flowRowGroupShape(1, displayRows),
+                shape = flowRowGroupShape(1 + glowRows, displayRows),
                 onCheckedChange = onSphericalViewToggle,
             )
         }
@@ -242,7 +257,7 @@ internal fun PlayerSettingsMainPage(
                 title = stringResource(R.string.player_settings_spherical_motion),
                 supportingText = stringResource(R.string.player_settings_spherical_motion_summary),
                 checked = sphericalMotionEnabled,
-                shape = flowRowGroupShape(sphericalRows, displayRows),
+                shape = flowRowGroupShape(glowRows + sphericalRows, displayRows),
                 onCheckedChange = onSphericalMotionToggle,
             )
         }

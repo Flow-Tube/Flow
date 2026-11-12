@@ -143,6 +143,7 @@ internal fun PlayerBottomSheetsContainer(
             prefs = prefs,
             chapters = uiState.chapters,
             artworkUrl = video.thumbnailUrl,
+            exportTitle = video.title,
             asSidePanel = false,
             expandedHeight = mediaSheetExpandedHeight,
             onDismiss = { screenState.closeSheet() },

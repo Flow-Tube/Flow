@@ -114,7 +114,7 @@ object LyricsCacheManager {
                     val file = getCacheFile(context, videoId)
                     if (file.exists() && file.length() > 0L) {
                         val jsonString = file.readText(Charsets.UTF_8)
-                        val entries = json.decodeFromString<List<LyricsEntry>>(jsonString)
+                        val entries = LyricsUtils.withoutLineMarkers(json.decodeFromString<List<LyricsEntry>>(jsonString))
                         Log.d(TAG, "Instant cache hit: loaded lyrics from disk for videoId: $videoId")
                         entries
                     } else {

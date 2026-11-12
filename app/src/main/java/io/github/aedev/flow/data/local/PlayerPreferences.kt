@@ -488,6 +488,7 @@ class PlayerPreferences(
         val VOLUME_SWIPE_GESTURES_ENABLED = device(booleanPreferencesKey("volume_swipe_gestures_enabled"))
         val SEEK_SWIPE_GESTURES_ENABLED = device(booleanPreferencesKey("seek_swipe_gestures_enabled"))
         val MORE_VIDEOS_SWIPE_ENABLED = device(booleanPreferencesKey("more_videos_swipe_enabled"))
+        val CHAPTER_SKIP_GESTURE_ENABLED = device(booleanPreferencesKey("chapter_skip_gesture_enabled"))
         val DOUBLE_TAP_SEEK_SECONDS = device(intPreferencesKey("double_tap_seek_seconds"))
         val DOUBLE_TAP_SEEK_ZONE = device(stringPreferencesKey("double_tap_seek_zone"))
 
@@ -788,6 +789,16 @@ class PlayerPreferences(
     suspend fun setMoreVideosSwipeEnabled(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.MORE_VIDEOS_SWIPE_ENABLED] = enabled
+        }
+    }
+
+    val chapterSkipGestureEnabled: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.CHAPTER_SKIP_GESTURE_ENABLED] ?: true }
+
+    suspend fun setChapterSkipGestureEnabled(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.CHAPTER_SKIP_GESTURE_ENABLED] = enabled
         }
     }
 
