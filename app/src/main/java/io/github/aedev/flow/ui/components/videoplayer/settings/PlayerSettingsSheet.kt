@@ -53,6 +53,8 @@ fun SettingsMenuDialog(
     onLoopToggle: (Boolean) -> Unit,
     ambientModeEnabled: Boolean = false,
     onAmbientModeToggle: (Boolean) -> Unit = {},
+    sphericalViewEnabled: Boolean? = null,
+    onSphericalViewToggle: (Boolean) -> Unit = {},
     sphericalMotionEnabled: Boolean? = null,
     onSphericalMotionToggle: (Boolean) -> Unit = {},
     onCastClick: () -> Unit = {},
@@ -162,6 +164,8 @@ fun SettingsMenuDialog(
                         onSponsorBlockToggle = onSponsorBlockToggle,
                         notePositionMs = notePositionMs,
                         onAddNote = onAddNote,
+                        sphericalViewEnabled = sphericalViewEnabled,
+                        onSphericalViewToggle = onSphericalViewToggle,
                         sphericalMotionEnabled = sphericalMotionEnabled,
                         onSphericalMotionToggle = onSphericalMotionToggle,
                     )

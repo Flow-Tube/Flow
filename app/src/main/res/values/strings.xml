@@ -1457,6 +1457,8 @@
     <string name="player_settings_normalize_volume_summary">Turn loud videos down to the same level, like youtube.com</string>
     <string name="player_settings_display">Display</string>
     <string name="player_settings_ambient_mode">Ambient mode</string>
+    <string name="player_settings_spherical_view">360° view</string>
+    <string name="player_settings_spherical_view_summary">Drag to look around this video</string>
     <string name="player_settings_spherical_motion">Move phone to look around</string>
     <string name="player_settings_spherical_motion_summary">Dragging the video always works</string>
     <string name="player_settings_ambient_mode_subtitle">Fills black bars with the video\'s colors</string>

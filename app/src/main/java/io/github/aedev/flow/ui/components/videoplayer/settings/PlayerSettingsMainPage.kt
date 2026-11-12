@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.components.videoplayer.settings
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled._360
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Bedtime
@@ -63,6 +64,8 @@ internal fun PlayerSettingsMainPage(
     notePositionMs: Long? = null,
     onAddNote: () -> Unit = {},
     onStatsForNerds: () -> Unit = {},
+    sphericalViewEnabled: Boolean? = null,
+    onSphericalViewToggle: (Boolean) -> Unit = {},
     sphericalMotionEnabled: Boolean? = null,
     onSphericalMotionToggle: (Boolean) -> Unit = {},
 ) {
@@ -212,7 +215,8 @@ internal fun PlayerSettingsMainPage(
         )
     }
 
-    val displayRows = if (sphericalMotionEnabled != null) DISPLAY_ROWS + 1 else DISPLAY_ROWS
+    val sphericalRows = listOfNotNull(sphericalViewEnabled, sphericalMotionEnabled).size
+    val displayRows = DISPLAY_ROWS + sphericalRows
     FlowSectionHeader(stringResource(R.string.player_settings_display))
     FlowRowGroup {
         FlowSwitchRow(
@@ -222,13 +226,23 @@ internal fun PlayerSettingsMainPage(
             shape = flowRowGroupShape(0, displayRows),
             onCheckedChange = onAmbientModeToggle,
         )
+        if (sphericalViewEnabled != null) {
+            FlowSwitchRow(
+                leadingIcon = Icons.AutoMirrored.Filled._360,
+                title = stringResource(R.string.player_settings_spherical_view),
+                supportingText = stringResource(R.string.player_settings_spherical_view_summary),
+                checked = sphericalViewEnabled,
+                shape = flowRowGroupShape(1, displayRows),
+                onCheckedChange = onSphericalViewToggle,
+            )
+        }
         if (sphericalMotionEnabled != null) {
             FlowSwitchRow(
                 leadingIcon = Icons.Filled.ScreenRotation,
                 title = stringResource(R.string.player_settings_spherical_motion),
                 supportingText = stringResource(R.string.player_settings_spherical_motion_summary),
                 checked = sphericalMotionEnabled,
-                shape = flowRowGroupShape(1, displayRows),
+                shape = flowRowGroupShape(sphericalRows, displayRows),
                 onCheckedChange = onSphericalMotionToggle,
             )
         }
