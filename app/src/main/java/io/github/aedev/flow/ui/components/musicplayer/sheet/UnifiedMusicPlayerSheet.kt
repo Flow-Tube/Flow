@@ -50,6 +50,7 @@ import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.common.rememberMusicPlayerAppearance
 import io.github.aedev.flow.ui.components.musicplayer.full.FullMusicPlayerContent
 import io.github.aedev.flow.ui.components.musicplayer.mini.MiniPlayerContent
+import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLyrics
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSheetDragGestureHandler
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSheetMotionController
 import io.github.aedev.flow.ui.components.musicplayer.motion.musicSheetVerticalDragGesture
@@ -93,6 +94,7 @@ internal fun UnifiedMusicPlayerSheet(
     swipeRightAction: MiniBarSwipeAction,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    lyricsInMiniPlayer: Boolean = false,
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -421,6 +423,7 @@ internal fun UnifiedMusicPlayerSheet(
                             track = displayTrack,
                             animationsEnabled = miniAnimationsEnabled,
                             showPrevious = !isCompactWidth,
+                            lyrics = if (lyricsInMiniPlayer) rememberMiniPlayerLyrics(displayTrack.videoId) else null,
                         )
                     }
                 }

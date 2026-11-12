@@ -162,6 +162,8 @@
     <string name="lyrics_on_lock_screen_summary">Shows the current line as the song title, also to other apps</string>
     <string name="lyrics_on_lock_screen_timing">Lock screen lyrics timing</string>
     <string name="lyrics_on_lock_screen_timing_summary">Move lines earlier if they feel late</string>
+    <string name="lyrics_in_mini_player">Lyrics in mini player</string>
+    <string name="lyrics_in_mini_player_summary">Show the line being sung in place of the artist</string>
     <string name="lyrics_sponsorblock_timing">Fit lyrics to music videos</string>
     <string name="lyrics_sponsorblock_timing_summary">Uses SponsorBlock to skip parts with no music</string>
     <string name="lyrics_on_demand">Load lyrics only when opened</string>

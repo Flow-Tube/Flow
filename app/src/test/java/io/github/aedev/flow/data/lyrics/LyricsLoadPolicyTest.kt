@@ -23,4 +23,10 @@ class LyricsLoadPolicyTest {
         assertThat(LyricsLoadPolicy.serviceMayFetch(onDemand = true, lockScreenLyrics = false)).isFalse()
         assertThat(LyricsLoadPolicy.serviceMayFetch(onDemand = true, lockScreenLyrics = true)).isTrue()
     }
+
+    @Test
+    fun `on demand lyrics in the mini player let a song change look them up`() {
+        assertThat(LyricsLoadPolicy.playerMayFetch(onDemand = true, playerOpen = false, miniPlayerLyrics = true)).isTrue()
+        assertThat(LyricsLoadPolicy.playerMayFetch(onDemand = true, playerOpen = false, miniPlayerLyrics = false)).isFalse()
+    }
 }

@@ -225,6 +225,7 @@ internal fun FlowPlayerOverlays(
     val playerPreferences = remember(context) { PlayerPreferences(context) }
     val swipeLeftAction by playerPreferences.miniBarSwipeLeftAction.collectAsState(initial = MiniBarSwipeAction.CLOSE)
     val swipeRightAction by playerPreferences.miniBarSwipeRightAction.collectAsState(initial = MiniBarSwipeAction.CLOSE)
+    val lyricsInMiniPlayer by playerPreferences.lyricsInMiniPlayer.collectAsState(initial = false)
     val quickActions = sharedQuickActionsViewModel()
     val removedFromQueue = stringResource(R.string.removed_from_queue)
     val scope = rememberCoroutineScope()
@@ -341,6 +342,7 @@ internal fun FlowPlayerOverlays(
                 track = track,
                 swipeLeftAction = swipeLeftAction,
                 swipeRightAction = swipeRightAction,
+                lyricsInMiniPlayer = lyricsInMiniPlayer,
                 onDismiss = {
                     EnhancedMusicPlayerManager.stop()
                     EnhancedMusicPlayerManager.clearCurrentTrack()

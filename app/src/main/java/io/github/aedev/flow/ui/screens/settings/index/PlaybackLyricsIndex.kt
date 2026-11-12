@@ -15,6 +15,14 @@ internal object PlaybackLyricsIndex {
             section = R.string.settings_section_music,
             destination = page,
         )
+    val lyricsInMiniPlayer =
+        SettingEntry(
+            key = "playback.lyrics_in_mini_player",
+            title = R.string.lyrics_in_mini_player,
+            summary = R.string.lyrics_in_mini_player_summary,
+            section = R.string.settings_section_music,
+            destination = page,
+        )
     val lyricsOnLockScreenTiming =
         SettingEntry(
             key = "playback.lyrics_on_lock_screen_timing",
@@ -53,6 +61,7 @@ internal object PlaybackLyricsIndex {
         listOf(
             lyricsOnLockScreen,
             lyricsOnLockScreenTiming,
+            lyricsInMiniPlayer,
             lyricsSponsorBlockTiming,
             lyricsOnDemand,
             lyricsProviders,

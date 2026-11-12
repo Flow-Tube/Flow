@@ -325,7 +325,14 @@ internal class MusicPlayerLyrics(
     /** A new song in the player. Online lookups wait for the player to open when lyrics load only on demand. */
     suspend fun onSongChanged(track: MusicTrack) {
         val local = LocalMediaIds.isLocal(track.videoId)
-        if (!local && !LyricsLoadPolicy.playerMayFetch(playerPreferences.lyricsOnDemand.first(), isPlayerOpen)) return
+        val onDemand = playerPreferences.lyricsOnDemand.first()
+        val mayFetch =
+            LyricsLoadPolicy.playerMayFetch(
+                onDemand = onDemand,
+                playerOpen = isPlayerOpen,
+                miniPlayerLyrics = onDemand && playerPreferences.lyricsInMiniPlayer.first(),
+            )
+        if (!local && !mayFetch) return
         fetch(track.videoId, track.artist, track.title, track.duration, track.album)
     }
 

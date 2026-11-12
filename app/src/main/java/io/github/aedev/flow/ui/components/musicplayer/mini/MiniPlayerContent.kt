@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -52,6 +54,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,6 +65,9 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.PlayingWaveform
+import io.github.aedev.flow.ui.components.musicplayer.lyrics.SYNCED_LINE_UNSUNG_ALPHA
+import io.github.aedev.flow.ui.components.musicplayer.lyrics.SyncedLines
+import io.github.aedev.flow.ui.components.musicplayer.lyrics.SyncedLyricLine
 import io.github.aedev.flow.ui.components.shared.MediaPlayPauseButton
 import io.github.aedev.flow.ui.components.shared.titleMarquee
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
@@ -80,7 +86,8 @@ private val ProgressRingStroke = 2.5.dp
 
 /**
  * The collapsed player: cover in a progress ring, title and artist, then the transport. Wider
- * windows give the card room for Previous as well.
+ * windows give the card room for Previous as well. With [lyrics] the line being sung takes the
+ * artist's place while a line is up.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -92,6 +99,7 @@ internal fun MiniPlayerContent(
     animationsEnabled: Boolean = true,
     showPrevious: Boolean = false,
     onOpen: (() -> Unit)? = null,
+    lyrics: SyncedLines? = null,
 ) {
     val playerState by EnhancedMusicPlayerManager.playerState.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
@@ -222,13 +230,36 @@ internal fun MiniPlayerContent(
                     )
                 }
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (elsewhere != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                val artistLine: @Composable () -> Unit = {
+                    Text(
+                        text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (elsewhere != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (lyrics != null && elsewhere == null) {
+                    val style = MaterialTheme.typography.labelLarge
+                    val sung = MaterialTheme.colorScheme.onSurface
+                    SyncedLyricLine(
+                        lyrics = lyrics,
+                        isPlaying = playerState.isPlaying,
+                        positionKey = playerState.position / 1000L,
+                        style = style,
+                        sungColor = sung,
+                        unsungColor = sung.copy(alpha = SYNCED_LINE_UNSUNG_ALPHA),
+                        // As tall as a lyric line either way, so the title doesn't move when the artist comes back.
+                        modifier = Modifier.fillMaxWidth().heightIn(min = with(LocalDensity.current) { style.lineHeight.toDp() }),
+                        active = animationsEnabled,
+                        clearInGaps = true,
+                        singleLine = true,
+                        contentAlignment = Alignment.CenterStart,
+                        empty = artistLine,
+                    )
+                } else {
+                    artistLine()
+                }
             }
         }
 

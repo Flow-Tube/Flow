@@ -203,6 +203,7 @@ internal fun SettingsListScope.playbackSections(
                 centered = true,
             )
         }
+        switch(PlaybackLyricsIndex.lyricsInMiniPlayer, viewModel.lyricsInMiniPlayer, viewModel::setLyricsInMiniPlayer)
         switch(PlaybackLyricsIndex.lyricsSponsorBlockTiming, viewModel.lyricsSponsorBlockTiming, viewModel::setLyricsSponsorBlockTiming)
         switch(PlaybackLyricsIndex.lyricsOnDemand, viewModel.lyricsOnDemand, viewModel::setLyricsOnDemand)
         choice(PlaybackLyricsIndex.lyricsProviders, onClick = { openDialog(PlaybackDialog.LYRICS) }) {
