@@ -1012,6 +1012,8 @@
     <string name="player_appearance_seek_gesture_subtitle">Swipe sideways on the video to seek</string>
     <string name="player_appearance_more_videos_gesture_title">Swipe up for more videos</string>
     <string name="player_appearance_more_videos_gesture_subtitle">Swipe up in fullscreen to see related videos</string>
+    <string name="player_appearance_chapter_skip_gesture_title">Two-finger double tap for chapters</string>
+    <string name="player_appearance_chapter_skip_gesture_subtitle">Double tap with two fingers to jump to the next or previous chapter</string>
     <string name="player_appearance_controls_while_loading_title">Controls While Loading</string>
     <string name="player_appearance_controls_while_loading_subtitle">Show controls before the video finishes loading</string>
     <string name="player_appearance_long_press_speed_title">Long-press Playback Speed</string>
@@ -3266,6 +3268,7 @@
     <!-- Double-tap seek indicator: the chasing chevrons and the seconds the tap adds or removes -->
     <string name="player_seek_seconds_forward">+%1$d</string>
     <string name="player_seek_seconds_back">-%1$d</string>
+    <string name="player_chapter_number">Chapter %1$d</string>
     <!-- New Video Player Strings -->
     <string name="player_settings_overlay_controls">Overlay Controls</string>
     <string name="player_settings_overlay_cast">Cast Button</string>

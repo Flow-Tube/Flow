@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
 import io.github.aedev.flow.ui.components.shared.CommentThreadState
+import io.github.aedev.flow.ui.components.videoplayer.overlay.ChapterSkipFeedback
 import io.github.aedev.flow.ui.components.videoplayer.settings.PlayerSettingsPage
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.SubtitleStyle
 
@@ -60,6 +61,8 @@ class PlayerScreenState {
     var showSeekForwardAnimation by mutableStateOf(false)
     var seekAccumulation by mutableIntStateOf(10)
     var showSeekBackAnimation by mutableStateOf(false)
+    internal var chapterSkip by mutableStateOf<ChapterSkipFeedback?>(null)
+    var showChapterSkip by mutableStateOf(false)
 
     /** A tap just lifted and the double-tap timeout is still running. */
     var isTapWindowOpen by mutableStateOf(false)
@@ -113,6 +116,8 @@ class PlayerScreenState {
         showSpeedSwipeOverlay = false
         showSeekBackAnimation = false
         showSeekForwardAnimation = false
+        chapterSkip = null
+        showChapterSkip = false
         hasShownShortsPrompt = false
         showShortsPrompt = false
         activeSheet = PlayerSheet.None
