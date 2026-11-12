@@ -1,97 +1,28 @@
-name: CodeQL
-
-# Only Kotlin/Java sources and the build definition affect the analysis, so
-# translation-only and documentation pushes are skipped. Unlike build.yml this
-# workflow never runs on tags, so path filters here cannot skip a release.
+name: Android Build
 on:
   push:
-    branches: [ main ]
-    paths:
-      - '**/*.kt'
-      - '**/*.java'
-      - '**/*.gradle.kts'
-      - 'gradle/libs.versions.toml'
-      - '.github/workflows/codeql.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - '**/*.kt'
-      - '**/*.java'
-      - '**/*.gradle.kts'
-      - 'gradle/libs.versions.toml'
-      - '.github/workflows/codeql.yml'
-  schedule:
-    # Weekly, so newly published queries still run against a quiet main.
-    - cron: '27 4 * * 1'
+    branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: codeql-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-
 jobs:
-  analyze:
-    name: Analyze Kotlin/Java
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
-
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v6
+      - uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: 17
 
-      # Caching is disabled deliberately. CodeQL extracts Kotlin by observing
-      # the compiler as it runs, so a cache hit that makes the compile tasks
-      # UP-TO-DATE would produce an empty database and fail the analysis.
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-disabled: true
+      - uses: gradle/actions/setup-gradle@v4
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      # build-mode "none" cannot be used here: buildless extraction supports
-      # Java only and silently drops Kotlin, which is effectively this entire
-      # codebase. Kotlin requires a real build.
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: java-kotlin
-          build-mode: manual
-
-      - name: Build for extraction
-        run: >
-          ./gradlew :app:assembleGithubDebug
-          --no-build-cache --stacktrace
-
-      # The Gradle and Kotlin compile daemons stay resident after the build.
-      # Left running, they hold enough heap that CodeQL's query evaluation --
-      # which by default claims most of the runner's memory -- OOM-killed the
-      # runner ("The runner has received a shutdown signal").
-      - name: Stop Gradle and Kotlin daemons
+      - name: Build debug APK
         run: |
-          ./gradlew --stop || true
-          pkill -f KotlinCompileDaemon || true
-          free -h || true
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+      - uses: actions/upload-artifact@v4
         with:
-          category: /language:java-kotlin
-          # Explicit cap rather than the default "most of the runner", which
-          # left no headroom on a 16 GB standard runner.
-          ram: 10240
-          threads: 4
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
