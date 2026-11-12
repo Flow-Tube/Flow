@@ -200,10 +200,15 @@ private fun ColumnScope.LyricsShareStyler(
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(PNG_MIME)) { uri ->
             val image = pendingSave
             pendingSave = null
-            if (uri != null && image != null) {
-                scope.launch {
-                    val saved = saveLyricsCard(context, image, uri)
-                    report(if (saved) R.string.lyrics_share_image_saved else R.string.lyrics_share_image_failed)
+            if (uri != null) {
+                if (image == null) {
+                    // The card held for the picker is gone when Flow was recreated behind it.
+                    report(R.string.lyrics_share_image_failed)
+                } else {
+                    scope.launch {
+                        val saved = saveLyricsCard(context, image, uri)
+                        report(if (saved) R.string.lyrics_share_image_saved else R.string.lyrics_share_image_failed)
+                    }
                 }
             }
         }
