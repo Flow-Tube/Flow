@@ -5342,4 +5342,20 @@
         <item quantity="many">تمت إزالة %d إعلان من السجل</item>
         <item quantity="other">تمت إزالة %d إعلان من السجل</item>
     </plurals>
+    <string name="player_settings_spherical_motion">حرّك هاتفك لاستكشاف ما حولك</string>
+    <string name="player_settings_spherical_motion_summary">سحب الفيديو يعمل دائمًا</string>
+    <string name="disk_read_ahead_title">التخزين المؤقت المسبق على القرص</string>
+    <string name="disk_read_ahead_summary">يحفظ الأجزاء التالية من الفيديو في ذاكرة التخزين المؤقت</string>
+    <string name="disk_read_ahead_footer">يُبقي الفيديو قيد التشغيل عند انقطاع الاتصال. لا يعمل مع البث المباشر.</string>
+    <plurals name="disk_read_ahead_minutes">
+        <item quantity="zero">%1$d دقيقة</item>
+        <item quantity="one">%1$d دقيقة</item>
+        <item quantity="two">%1$d دقيقة</item>
+        <item quantity="few">%1$d دقائق</item>
+        <item quantity="many">%1$d دقيقة</item>
+        <item quantity="other">%1$d دقيقة</item>
+    </plurals>
+    <string name="disk_read_ahead_whole_video">الفيديو بالكامل</string>
+    <string name="disk_read_ahead_unmetered_only">عبر Wi-Fi فقط</string>
+    <string name="disk_read_ahead_unmetered_only_summary">ليس عبر بيانات الهاتف أو الشبكات محدودة الاستخدام</string>
 </resources>
