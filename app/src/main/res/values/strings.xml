@@ -538,6 +538,7 @@
     <string name="loading_more">Loading more…</string>
     <string name="load_failed">Load failed</string>
     <string name="recent_searches">Recent Searches</string>
+    <string name="recent_searches_show_all">Show all</string>
     <string name="search_empty_prompt">Search for videos, music and more</string>
     <string name="import_success_count">Imported %1$d %2$s</string>
     <string name="import_success">%1$s imported successfully</string>

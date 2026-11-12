@@ -22,3 +22,6 @@ fun List<SearchHistoryItem>.matchingTyped(
  * matches once typing brings suggestions in below them.
  */
 fun List<SearchHistoryItem>.recentOrMatching(typed: String): List<SearchHistoryItem> = if (typed.isBlank()) this else matchingTyped(typed)
+
+/** The rows drawn under the header: the newest few until the user asks for the rest. */
+fun List<SearchHistoryItem>.shownHistory(showAll: Boolean): List<SearchHistoryItem> = if (showAll) this else take(SEARCH_HISTORY_LIMIT)

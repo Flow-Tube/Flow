@@ -21,7 +21,7 @@ import io.github.aedev.flow.innertube.models.YTItem
 import io.github.aedev.flow.innertube.pages.ArtistSectionKind
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
 import io.github.aedev.flow.innertube.pages.SearchSummaryPage
-import io.github.aedev.flow.ui.components.search.matchingTyped
+import io.github.aedev.flow.ui.components.search.recentOrMatching
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -47,7 +47,7 @@ class MusicSearchViewModel
 
         val matchingHistory: StateFlow<List<SearchHistoryItem>> =
             combine(searchHistory.getSearchHistoryFlow(SearchHistoryScope.MUSIC), _query) { history, typed ->
-                history.matchingTyped(typed)
+                history.recentOrMatching(typed)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         private val _moods = MutableStateFlow<List<MoodAndGenres>>(emptyList())

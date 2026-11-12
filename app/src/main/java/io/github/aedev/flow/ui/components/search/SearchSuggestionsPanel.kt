@@ -20,6 +20,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -53,6 +57,7 @@ fun SearchSuggestionsPanel(
     deepFlow: DeepFlowState = DeepFlowState(),
     onDeepFlowChange: (Boolean) -> Unit = {},
 ) {
+    var showAllHistory by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = flowBottomContentPadding()),
@@ -74,6 +79,8 @@ fun SearchSuggestionsPanel(
         searchHistoryItems(
             query = query,
             history = history,
+            showAll = showAllHistory,
+            onShowAll = { showAllHistory = true },
             onSelect = onHistorySelect,
             onDeleteHistoryItem = onDeleteHistoryItem,
             onClearHistory = onClearHistory,
@@ -95,15 +102,21 @@ fun SearchSuggestionsPanel(
     }
 }
 
-/** The "Recent searches" header and rows, for any search surface's lazy list. */
+/**
+ * The "Recent searches" header and rows, for any search surface's lazy list. Only the newest few
+ * are drawn until [onShowAll] asks for the rest, which then scroll with the list.
+ */
 fun LazyListScope.searchHistoryItems(
     query: String,
     history: List<SearchHistoryItem>,
+    showAll: Boolean,
+    onShowAll: () -> Unit,
     onSelect: (SearchHistoryItem) -> Unit,
     onDeleteHistoryItem: (SearchHistoryItem) -> Unit,
     onClearHistory: () -> Unit,
 ) {
     if (history.isEmpty()) return
+    val shown = history.shownHistory(showAll)
     item(key = "history:header") {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = HeaderStartPadding, end = HeaderEndPadding),
@@ -120,7 +133,7 @@ fun LazyListScope.searchHistoryItems(
             }
         }
     }
-    items(history, key = { "history:${it.id}" }) { item ->
+    items(shown, key = { "history:${it.id}" }) { item ->
         FlowSuggestionRow(
             text = item.query,
             leadingIcon = if (item.type == SearchType.VOICE) Icons.Rounded.Mic else Icons.Rounded.History,
@@ -132,9 +145,22 @@ fun LazyListScope.searchHistoryItems(
             onTrailingClick = { onDeleteHistoryItem(item) },
         )
     }
+    if (shown.size < history.size) {
+        item(key = "history:show-all") {
+            TextButton(
+                onClick = onShowAll,
+                modifier = Modifier.padding(start = ShowAllStartPadding),
+            ) {
+                Text(stringResource(R.string.recent_searches_show_all))
+            }
+        }
+    }
 }
 
 private val DeepFlowHorizontalPadding = 12.dp
 private val DeepFlowVerticalPadding = 4.dp
 private val HeaderStartPadding = 16.dp
 private val HeaderEndPadding = 4.dp
+
+// Puts the button label on the header title's 16 dp start line.
+private val ShowAllStartPadding = 4.dp

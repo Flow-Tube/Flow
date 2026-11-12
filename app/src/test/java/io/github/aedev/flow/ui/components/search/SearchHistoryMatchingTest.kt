@@ -37,4 +37,17 @@ class SearchHistoryMatchingTest {
         val all = history(*Array(SEARCH_HISTORY_LIMIT * 5) { "query $it" })
         assertThat(all.recentOrMatching("query")).hasSize(SEARCH_HISTORY_LIMIT)
     }
+
+    @Test
+    fun `only the newest searches are shown until the rest are asked for`() {
+        val all = history(*Array(SEARCH_HISTORY_LIMIT * 5) { "query $it" })
+        assertThat(all.shownHistory(showAll = false)).isEqualTo(all.take(SEARCH_HISTORY_LIMIT))
+        assertThat(all.shownHistory(showAll = true)).isEqualTo(all)
+    }
+
+    @Test
+    fun `a short history is shown whole either way`() {
+        val all = history("a", "b")
+        assertThat(all.shownHistory(showAll = false)).isEqualTo(all)
+    }
 }
