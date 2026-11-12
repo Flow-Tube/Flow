@@ -98,6 +98,7 @@ internal fun PlayerDetailSideColumn(
                     scope = scope,
                     rememberPlaybackSpeed = prefs.rememberPlaybackSpeed,
                     ambientModeEnabled = prefs.ambientModeEnabled,
+                    ambientGlowEnabled = prefs.ambientGlowEnabled,
                     groupedQualitySelectorEnabled = prefs.groupedQualitySelectorEnabled,
                     rememberSubtitleLanguage = { language ->
                         scope.launch { playerPreferences.setPreferredSubtitleLanguage(language) }

@@ -242,6 +242,7 @@ internal fun BoxScope.FullscreenSidePanel(
                 scope = scope,
                 rememberPlaybackSpeed = prefs.rememberPlaybackSpeed,
                 ambientModeEnabled = prefs.ambientModeEnabled,
+                ambientGlowEnabled = prefs.ambientGlowEnabled,
                 groupedQualitySelectorEnabled = prefs.groupedQualitySelectorEnabled,
                 rememberSubtitleLanguage = rememberSubtitleLanguage,
                 asSidePanel = true,
