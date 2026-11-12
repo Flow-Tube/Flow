@@ -68,7 +68,7 @@ class DownloadUtil
             AppProxyManager.buildLive(
                 OkHttpClient
                     .Builder()
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .connectTimeout(15, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS),
             )
         }
