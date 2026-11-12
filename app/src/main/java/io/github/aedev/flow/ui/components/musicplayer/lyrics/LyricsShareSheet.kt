@@ -86,6 +86,9 @@ internal fun LyricsShareSheet(
     val texts = remember(lines) { shareableLyricLines(lines) }
     var selected by remember(texts) { mutableStateOf(emptyList<Int>()) }
     var customising by remember { mutableStateOf(false) }
+    // Held here so going back to change the lines keeps the look already picked.
+    var style by remember { mutableStateOf(LyricsCardStyle.ARTWORK) }
+    var align by remember { mutableStateOf(initialAlign) }
     val styling = customising && selected.isNotEmpty()
     val sheetState = rememberFlowSheetState()
     val scope = rememberCoroutineScope()
@@ -112,7 +115,10 @@ internal fun LyricsShareSheet(
                 artist = artist,
                 artworkUrl = artworkUrl,
                 lines = selected.map { texts[it] },
-                initialAlign = initialAlign,
+                style = style,
+                onStyleChange = { style = it },
+                align = align,
+                onAlignChange = { align = it },
             )
         } else {
             LyricsSharePicker(
@@ -184,13 +190,17 @@ private fun ColumnScope.LyricsShareStyler(
     artist: String,
     artworkUrl: String,
     lines: List<String>,
-    initialAlign: TextAlign,
+    style: LyricsCardStyle,
+    onStyleChange: (LyricsCardStyle) -> Unit,
+    align: TextAlign,
+    onAlignChange: (TextAlign) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val palette = rememberMediaPalette(artworkUrl, animated = false, cacheOnly = true)
-    var style by remember { mutableStateOf(LyricsCardStyle.ARTWORK) }
-    var align by remember { mutableStateOf(initialAlign) }
+    val cover = rememberLyricsCover(artworkUrl, enabled = true)
+    val colorsByStyle = LyricsCardStyle.entries.associateWith { lyricsCardColors(it, palette, cover) }
+    val styles = remember(colorsByStyle, cover) { distinctCardStyles(cover != null) { colorsByStyle.getValue(it).ground } }
     val layer = rememberGraphicsLayer()
     var pendingSave by remember { mutableStateOf<ImageBitmap?>(null) }
 
@@ -228,9 +238,10 @@ private fun ColumnScope.LyricsShareStyler(
             artist = artist,
             artworkUrl = artworkUrl,
             lines = lines,
-            colors = lyricsCardColors(style, palette),
+            colors = colorsByStyle.getValue(style),
             textAlign = align,
             modifier = Modifier.widthIn(max = CardMaxWidth).fillMaxWidth().captureInto(layer),
+            cover = cover.takeIf { style == LyricsCardStyle.COLORFUL },
         )
     }
     LazyRow(
@@ -238,8 +249,16 @@ private fun ColumnScope.LyricsShareStyler(
         contentPadding = PaddingValues(horizontal = EdgePadding),
         horizontalArrangement = Arrangement.spacedBy(ControlSpacing),
     ) {
-        items(LyricsCardStyle.entries) { option ->
-            FlowColorSwatch(color = lyricsCardColors(option, palette).ground, selected = option == style, onClick = { style = option })
+        items(styles) { option ->
+            FlowColorSwatch(
+                color = colorsByStyle.getValue(option).ground,
+                selected = option == style,
+                onClick = { onStyleChange(option) },
+                fill =
+                    cover?.takeIf { option == LyricsCardStyle.COLORFUL }?.let { field ->
+                        { LyricsCoverLayer(cover = field, moving = false, running = false) }
+                    },
+            )
         }
     }
     FlowConnectedToggleGroup(
@@ -250,7 +269,7 @@ private fun ColumnScope.LyricsShareStyler(
                 FlowToggleOption(TextAlign.Right, stringResource(R.string.lyrics_share_align_right), Icons.Outlined.FormatAlignRight),
             ),
         selected = align,
-        onSelected = { align = it },
+        onSelected = onAlignChange,
         modifier = Modifier.padding(horizontal = EdgePadding, vertical = ControlSpacing),
     )
     FlowActionButtonPair(
