@@ -21,6 +21,7 @@ import io.github.aedev.flow.data.notes.NoteKind
 import io.github.aedev.flow.data.notes.NoteSubject
 import io.github.aedev.flow.data.notes.NotesRepository
 import io.github.aedev.flow.data.shorts.withoutShorts
+import io.github.aedev.flow.data.subscriptions.markChannelSeen
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
@@ -251,6 +252,7 @@ class ChannelViewModel
                         postComments.close()
                         loadSubscriptionState(channelId)
                         observeNote(channelId)
+                        markSeen(channelId)
                         onTabsResolved()
                     },
                     onFailure = { error ->
@@ -264,6 +266,14 @@ class ChannelViewModel
                     },
                 )
             }
+        }
+
+        /** Clears the channel's Quick access dot: opening its page counts as seeing its new videos (#1755). */
+        private suspend fun markSeen(channelId: String) {
+            val subscribed = subscriptionRepository.getAllSubscriptions().first().mapTo(HashSet()) { it.channelId }
+            if (channelId !in subscribed) return
+            val now = System.currentTimeMillis()
+            playerPreferences.updateSubscriptionChannelSeenAt { stored -> markChannelSeen(stored, channelId, now, subscribed) }
         }
 
         private fun onTabsResolved() {
