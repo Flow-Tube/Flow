@@ -6,4 +6,7 @@
     <cache-path
         name="playlists"
         path="playlists/" />
+    <cache-path
+        name="lyrics"
+        path="lyrics/" />
 </paths>
