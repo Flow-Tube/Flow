@@ -4780,4 +4780,24 @@
     <string name="settings_classic_loader_title">經典載入指示器</string>
     <string name="settings_classic_loader_summary">使用旋轉圓圈，而非變形指示器</string>
     <string name="settings_classic_loader_keywords">載入器、旋轉、進度、圓圈、載入動畫</string>
+    <string name="content_settings_comment_gifs_title">留言中的 GIF</string>
+    <string name="content_settings_comment_gifs_subtitle">顯示他人附在留言中的 GIF</string>
+    <string name="content_settings_comment_gifs_wifi_title">僅在 Wi-Fi 下顯示 GIF</string>
+    <string name="content_settings_comment_gifs_wifi_subtitle">使用行動數據時，點選即可載入</string>
+    <string name="comment_gif_description">留言中的 GIF</string>
+    <string name="comment_gif_show">顯示 GIF</string>
+    <string name="player_settings_spherical_motion">移動手機以環顧四周</string>
+    <string name="player_settings_spherical_motion_summary">隨時都能拖曳影片</string>
+    <string name="disk_read_ahead_title">在磁碟上預先緩衝</string>
+    <string name="disk_read_ahead_summary">將接下來的內容儲存到影片快取</string>
+    <string name="disk_read_ahead_footer">連線中斷時仍可繼續播放影片。不適用於直播。</string>
+    <plurals name="disk_read_ahead_minutes">
+        <item quantity="other">%1$d 分鐘</item>
+    </plurals>
+    <string name="disk_read_ahead_whole_video">整部影片</string>
+    <string name="disk_read_ahead_unmetered_only">僅限 Wi-Fi</string>
+    <string name="disk_read_ahead_unmetered_only_summary">使用行動數據或計量付費網路時不啟用</string>
+    <plurals name="import_takeout_part_ads_removed">
+        <item quantity="other">已從記錄中移除 %d 則廣告</item>
+    </plurals>
 </resources>
