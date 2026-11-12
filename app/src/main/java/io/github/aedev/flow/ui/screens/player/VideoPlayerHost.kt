@@ -141,6 +141,7 @@ fun VideoPlayerHost(
 
     PlayerZoomEffects(
         videoId = video.id,
+        spherical = playerState.showsSpherical,
         screenState = screenState,
         onResetVideoAspectRatio = { decodedVideoAspectRatio = 16f / 9f },
     )

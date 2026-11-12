@@ -34,6 +34,8 @@ private const val ZOOM_RESET_THRESHOLD = 1.02f
  * Only claims the gesture once a second pointer arrives, so single-finger taps and the
  * brightness/volume/seek drags in [videoPlayerControls] are untouched.
  *
+ * With [panEnabled] off the pinch only scales, about the centre.
+ *
  * [scale] and [offsetX]/[offsetY] read back the transform the caller is currently applying;
  * [onTransform] publishes the next one. They are plain values rather than a state object because
  * the transform lives in the player screen state and is read in the draw phase — routing it through
@@ -44,9 +46,10 @@ fun Modifier.videoPlayerZoom(
     scale: () -> Float,
     offsetX: () -> Float,
     offsetY: () -> Float,
+    panEnabled: Boolean = true,
     onTransform: (scale: Float, offsetX: Float, offsetY: Float) -> Unit,
 ): Modifier =
-    pointerInput("playerZoom") {
+    pointerInput("playerZoom", panEnabled) {
         var settleJob: Job? = null
 
         awaitEachGesture {
@@ -85,7 +88,7 @@ fun Modifier.videoPlayerZoom(
 
                 val span = (p1.position - p2.position).getDistance().coerceAtLeast(1f)
                 val centroid = (p1.position + p2.position) / 2f
-                val pan = centroid - previousCentroid
+                val pan = if (panEnabled) centroid - previousCentroid else Offset.Zero
 
                 rawScale =
                     (rawScale * (span / previousSpan))
