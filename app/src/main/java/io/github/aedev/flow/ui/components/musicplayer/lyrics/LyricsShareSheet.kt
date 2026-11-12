@@ -264,7 +264,7 @@ private fun ColumnScope.LyricsShareStyler(
                         report(R.string.lyrics_share_image_failed)
                     } else {
                         pendingSave = image
-                        saveLauncher.launch(lyricsCardFileName(title, artist))
+                        saveLauncher.launch(lyricsFileName(title, artist, "png"))
                     }
                 }
             },

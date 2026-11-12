@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
+import io.github.aedev.flow.data.video.storage.DownloadNaming
 import io.github.aedev.flow.utils.sharedPngUri
 import io.github.aedev.flow.utils.writePngTo
 import kotlinx.coroutines.Dispatchers
@@ -46,12 +47,14 @@ internal suspend fun saveLyricsCard(
         }.getOrDefault(false)
     }
 
-internal fun lyricsCardFileName(
+/** "Artist - Title.[extension]", made safe for any folder the user saves the lyrics to. */
+internal fun lyricsFileName(
     title: String,
     artist: String,
+    extension: String,
 ): String =
-    listOf(artist, title)
-        .filter { it.isNotBlank() }
-        .joinToString(" - ")
-        .replace(Regex("[\\/:*?\"<>|]"), "_")
-        .ifBlank { "lyrics" } + ".png"
+    DownloadNaming.fileName(
+        title = listOf(artist, title).filter { it.isNotBlank() }.joinToString(" - "),
+        fallback = "lyrics",
+        extension = extension,
+    )

@@ -350,12 +350,7 @@ internal fun MusicLyricsSheet(
             },
             onSaveFile = {
                 pendingSaveText = lrcText(syncedLyrics, lyrics)
-                val baseName =
-                    listOf(trackArtist, trackTitle)
-                        .filter { it.isNotBlank() }
-                        .joinToString(" - ")
-                        .replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                saveLauncher.launch("$baseName.lrc")
+                saveLauncher.launch(lyricsFileName(trackTitle, trackArtist, "lrc"))
             },
             onShare = { showShareSheet = true },
             onAlignChange = onAlignChange,
