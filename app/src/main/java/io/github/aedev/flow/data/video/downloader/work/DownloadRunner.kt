@@ -17,6 +17,7 @@ import io.github.aedev.flow.data.video.downloader.resolve.ResolvedStreams
 import io.github.aedev.flow.data.video.downloader.subtitle.DownloadSubtitleFile
 import io.github.aedev.flow.data.video.downloader.tags.CoverArtLoader
 import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
+import io.github.aedev.flow.data.video.downloader.tags.Mp4ProjectionCopier
 import io.github.aedev.flow.data.video.downloader.tags.Mp4Remuxer
 import io.github.aedev.flow.data.video.downloader.tags.Mp4TagWriter
 import io.github.aedev.flow.data.video.storage.DownloadCovers
@@ -57,6 +58,7 @@ class DownloadRunner
         private val lyrics: DownloadLyrics,
         private val remuxer: Mp4Remuxer,
         private val tagWriter: Mp4TagWriter,
+        private val projectionCopier: Mp4ProjectionCopier,
         private val coverArt: CoverArtLoader,
         private val validator: DownloadValidator,
         private val placement: DownloadPlacement,
@@ -129,6 +131,7 @@ class DownloadRunner
                 fail(request, staging, context.getString(R.string.download_failed_merge), keepParts = false)
                 return
             }
+            fetched.videoPart?.let { keepProjection(request.videoId, it, output) }
             try {
                 tagWriter.write(output, request.tags, cover)
             } catch (e: IOException) {
@@ -147,6 +150,22 @@ class DownloadRunner
             }
             withContext(NonCancellable) {
                 commit(request, staging, itemId, placed, extension, size, qualityOf(fetched), cover, fetched.streams)
+            }
+        }
+
+        /** A 360° video stays 360°; a failure only costs the projection, never the download (#1967). */
+        private suspend fun keepProjection(
+            videoId: String,
+            videoPart: File,
+            output: File,
+        ) {
+            try {
+                val kept = withContext(Dispatchers.IO) { projectionCopier.copy(videoPart.path, output) }
+                if (kept) Log.i(TAG, "$videoId: kept the 360° projection")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "$videoId: 360° projection not kept", e)
             }
         }
 
