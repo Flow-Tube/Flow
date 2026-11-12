@@ -201,7 +201,8 @@ data class PlayerResponse(
             val itag: Int,
             val url: String?,
             val mimeType: String,
-            val bitrate: Int,
+            // Absent on the caption track a live stream with auto captions lists among its formats.
+            val bitrate: Int = 0,
             val width: Int?,
             val height: Int?,
             val contentLength: Long?,
@@ -225,8 +226,12 @@ data class PlayerResponse(
             val indexRange: Range? = null,
             val colorInfo: ColorInfo? = null,
         ) {
+            /** A live stream's auto-caption track (`text/mp4`), listed with the formats but neither audio nor video. */
+            val isText: Boolean
+                get() = mimeType.startsWith("text/")
+
             val isAudio: Boolean
-                get() = width == null
+                get() = width == null && !isText
 
             /**
              * Dynamic-range-compressed variant. YouTube ships DRC and non-DRC copies of the same
