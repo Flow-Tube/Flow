@@ -132,6 +132,7 @@ internal fun BoxScope.TvPlayerSheets(
                             prefs = prefs,
                             chapters = uiState.chapters,
                             artworkUrl = video.thumbnailUrl,
+                            exportTitle = null,
                             asSidePanel = true,
                             expandedHeight = panelHeight,
                             onDismiss = onClose,
