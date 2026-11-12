@@ -87,7 +87,7 @@ object SabrUrlResolver {
         }
 
         val audioFormats = adaptiveFormats.filter { it.isAudio }
-        val videoFormats = adaptiveFormats.filter { !it.isAudio }
+        val videoFormats = adaptiveFormats.filter { !it.isAudio && !it.isText }
 
         val selectedVideo = selectBestVideo(videoFormats, preferredCodec)
         val selectedAudio = selectedVideo?.let { selectBestAudio(audioFormats, it, audioTrackId) }
@@ -167,7 +167,7 @@ object SabrUrlResolver {
 
         val adaptiveFormats = streamingData.adaptiveFormats
         val audioFormats = adaptiveFormats.filter { it.isAudio }
-        val videoFormats = adaptiveFormats.filter { !it.isAudio }
+        val videoFormats = adaptiveFormats.filter { !it.isAudio && !it.isText }
 
         val selectedVideo = selectVideoForHeight(videoFormats, targetHeight, preferredCodec) ?: return null
         val selectedAudio = selectBestAudio(audioFormats, selectedVideo, audioTrackId) ?: return null
