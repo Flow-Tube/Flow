@@ -4,7 +4,7 @@
     <string name="stats">統計</string>
     <string name="library">ライブラリ</string>
     <string name="local_media_title">ローカルメディア</string>
-    <string name="subscribers">チャンネル登録者</string>
+    <string name="subscribers">チャンネル登録者数</string>
     <string name="shorts">ショート</string>
     <string name="nav_home">ホーム</string>
     <string name="nav_shorts">ショート</string>
@@ -225,7 +225,7 @@
     <string name="subtitle_style">字幕のスタイル</string>
     <string name="subscriptions_quick_access_title">クイックアクセス</string>
     <string name="trending">急上昇</string>
-    <string name="section_featured_on">収録プレイリスト</string>
+    <string name="section_featured_on">特集</string>
     <string name="section_fans_also_like">おすすめのアーティスト</string>
     <string name="action_play_all">すべて再生</string>
     <string name="section_artists_for_you">おすすめのアーティスト</string>
@@ -249,7 +249,7 @@
     <plurals name="subscriptions_failed_channels_title">
         <item quantity="other">%d チャンネルをロードできません</item>
     </plurals>
-    <string name="content_settings_channel_group_badge_subtitle">サブスクリプショングループでラベルアバター</string>
+    <string name="content_settings_channel_group_badge_subtitle">登録チャンネルグループでアバターにラベル付け</string>
     <string name="channel_add_to_group">グループに追加</string>
     <string name="channel_groups_sheet_title">チャンネルグループ</string>
     <string name="channel_groups_empty">グループはまだありません</string>
@@ -261,9 +261,9 @@
     <string name="logs_copy_failed">ログをコピーできませんでした</string>
     <string name="channel_error_log_clip_label">Flow チャンネルエラーログ</string>
     <string name="failed_to_load_channel">チャンネルの読み込みに失敗しました</string>
-    <string name="conjunction_and">そして、</string>
+    <string name="conjunction_and">、</string>
     <string name="streamed_date_template">ストリーミング %1$s</string>
-    <string name="channel_and_more_template">%1$s と 他 %2$d 件</string>
+    <string name="channel_and_more_template">%1$s、他 %2$d チャンネル</string>
     <string name="library_section_header">マイコンテンツ</string>
     <string name="library_music_playlists_subtitle">あなたの音楽コレクション</string>
     <string name="library_saved_shorts_label">保存したショート動画</string>
@@ -298,7 +298,7 @@
         <item quantity="other">%1$d 個のビデオをすべてダウンロードしますか?これにより、大量のストレージが使用される可能性があります。</item>
     </plurals>
     <string name="playlist_filter_owned">所有</string>
-    <string name="playlist_creation_menu_close">プレイリスト作成メニューを閉じる</string>
+    <string name="playlist_creation_menu_close">再生リスト作成メニューを閉じる</string>
     <string name="add_to_library">ライブラリに追加</string>
     <string name="failed_to_save_to_library">ライブラリへの保存に失敗しました</string>
     <string name="open">開ける</string>
@@ -392,8 +392,8 @@
     <string name="channels_label">チャンネル</string>
     <string name="audio_info_not_available">オーディオ ストリーム情報はまだ利用できません。</string>
     <string name="undo">元に戻す</string>
-    <string name="subscribed_to">%s を購読しました</string>
-    <string name="unsubscribed_from">%s の購読を解除しました</string>
+    <string name="subscribed_to">%s を登録しました</string>
+    <string name="unsubscribed_from">%s の登録を解除しました</string>
     <string name="share_video">ビデオを共有する</string>
     <string name="check_out_video_template">この動画をチェックしてください: %1$s\nhttps://youtube.com/watch?v=%2$s</string>
     <string name="share_link_only_template">https://youtube.com/watch?v=%1$s</string>
@@ -405,7 +405,7 @@
     <string name="quality_auto">自動</string>
     <string name="quality_auto_template">自動 (%1$dp)</string>
     <string name="video_marked_not_interested">興味がないとマークされたビデオ</string>
-    <string name="play_mode_suggestion_title">プレイモードの提案</string>
+    <string name="play_mode_suggestion_title">再生モードの提案</string>
     <string name="play_mode_suggestion_body">このビデオの長さは 2 分未満です。専門プレーヤーに切り替えますか?</string>
     <string name="shorts_player">Shorts プレーヤー</string>
     <string name="music_player">音楽プレーヤー</string>
@@ -468,7 +468,7 @@
     <string name="subscriptions_compact_header_with_music">音楽チャンネルはインラインでマークされるため、フィードはコンパクトに保たれます。</string>
     <string name="subscriptions_music_chip_label">音楽</string>
     <string name="subscriptions_music_badge_cd">音楽の登録チャンネル</string>
-    <string name="no_subscriptions_found">サブスクリプションが見つかりませんでした</string>
+    <string name="no_subscriptions_found">登録チャンネルが見つかりませんでした</string>
     <string name="live_chat">ライブチャット</string>
     <string name="live_chat_connecting">ライブチャットに接続中…</string>
     <string name="live_chat_empty">メッセージを待っています…</string>
@@ -510,7 +510,7 @@
     <string name="sb_manual_skip">スキップ</string>
     <string name="sb_skip_segment">%1$s をスキップします</string>
     <string name="since">以来</string>
-    <string name="add_to_playlist">プレイリストに追加</string>
+    <string name="add_to_playlist">再生リストに追加</string>
     <string name="start_radio">ラジオを開始する</string>
     <string name="start_radio_desc">この曲に基づくステーションを再生する</string>
     <string name="play_next">次に再生</string>
@@ -521,7 +521,7 @@
     <string name="no_similar_content_found">類似のコンテンツは見つかりませんでした</string>
     <string name="radio_source_template">ラジオ • %1$s</string>
     <string name="unknown_source">出典不明</string>
-    <string name="added_to_playlist_toast">プレイリストに追加されました</string>
+    <string name="added_to_playlist_toast">再生リストに追加されました</string>
     <string name="already_downloaded_toast">すでにダウンロードされています</string>
     <string name="download_started_toast">ダウンロードが開始されました…</string>
     <string name="download_error_toast">ダウンロード エラー: %1$s</string>
@@ -545,8 +545,8 @@
         <item quantity="other">あなたのために厳選された %1$d 本の動画</item>
     </plurals>
     <string name="import_newpipe_backup">NewPipe バックアップのインポート</string>
-    <string name="importing_from_backup">NewPipe バックアップからサブスクリプションをインポートしています...</string>
-    <string name="search_subscriptions">サブスクリプションの検索</string>
+    <string name="importing_from_backup">NewPipe バックアップから登録チャンネルをインポートしています...</string>
+    <string name="search_subscriptions">登録チャンネルの検索</string>
     <string name="group_all">全て</string>
     <string name="manage_groups">グループの管理</string>
     <string name="new_group">新しいグループ</string>
@@ -556,7 +556,7 @@
     <string name="no_groups_yet">まだグループはありません。フィードをフィルタリングするために作成します。</string>
     <string name="search_channels_hint">チャンネルを検索…</string>
     <string name="toggle_view_mode">表示モードの切り替え</string>
-    <string name="unsubscribed_from_template">%1$s の購読を解除しました</string>
+    <string name="unsubscribed_from_template">%1$s の登録を解除しました</string>
     <string name="hide_channel_shorts">このチャンネルからのショート動画を非表示</string>
     <string name="show_channel_shorts">このチャンネルからのショート動画を表示</string>
     <plurals name="course_lessons_count">
@@ -569,7 +569,7 @@
         <item quantity="other">%1$d 曲</item>
     </plurals>
     <plurals name="playlists_count_template">
-        <item quantity="other">%1$d 個のプレイリスト</item>
+        <item quantity="other">%1$d 個の再生リスト</item>
     </plurals>
     <plurals name="shorts_count_template">
         <item quantity="other">%1$d Shorts</item>
@@ -730,7 +730,7 @@
     <string name="end_of_queue">キューの終わり</string>
     <string name="no_videos_found">動画が見つかりませんでした</string>
     <string name="no_shorts_found">ショート動画が見つかりません</string>
-    <string name="no_playlists_found">プレイリストが見つかりません</string>
+    <string name="no_playlists_found">再生リストが見つかりません</string>
     <string name="channel_search_hint">チャンネル内を検索</string>
     <string name="channel_search_open">チャンネル内を検索</string>
     <string name="channel_search_close">検索を閉じる</string>
@@ -757,11 +757,11 @@
     <string name="delete">削除</string>
     <string name="dismiss">却下する</string>
     <string name="peace_and_quiet">平和と静けさ</string>
-    <string name="notifications_empty_body">皆さんも追いついてきました！サブスクリプションからの新しい更新がここに表示されます。</string>
+    <string name="notifications_empty_body">皆さんも追いついてきました！登録チャンネルからの新しい更新がここに表示されます。</string>
     <string name="settings_flow_engine_header">Flow エンジン</string>
     <string name="settings_active_learning">アクティブラーニング</string>
     <string name="settings_reset_brain_title">Flow の性格をリセットしますか?</string>
-    <string name="settings_reset_brain_body">これにより、Flow Brain プロファイルが消去されます。\n\n• 学んだ内容は忘れてしまいます。\n• 性格特性がリセットされる。\n• 推奨事項がデフォルトに戻ります。\n\nこれを元に戻すことはできません。</string>
+    <string name="settings_reset_brain_body">これにより、Flow Brain プロファイルが消去されます。\n\n• 学んだ内容は忘れてしまいます。\n• 性格特性がリセットされる。\n• おすすめがデフォルトに戻ります。\n\nこれを元に戻すことはできません。</string>
     <string name="settings_reset_everything">すべてをリセット</string>
     <string name="settings_analyzing_interactions">インタラクションを分析しています...</string>
     <string name="settings_view_analytics">分析を見る</string>
@@ -777,7 +777,7 @@
     <string name="taste_learning_paused">Deep Flow がオンになり、学習が一時停止されます</string>
     <string name="deep_flow_scrobble_subtitle">Last.fm、Libre.fm、ListenBrainz にリッスンを送信し続けます</string>
     <string name="deep_flow_on_search_title">検索時に表示</string>
-    <string name="deep_flow_on_search_subtitle">最近の検索の上にある深い Flow スイッチ</string>
+    <string name="deep_flow_on_search_subtitle">最近の検索 の上にDeep Flow スイッチを表示</string>
     <string name="deep_flow_long_press_hint">ホーム上の Flow ロゴまたは名前を長押しして Deep Flow を切り替えます</string>
     <string name="deep_flow_dialog_title">一時停止期間</string>
     <string name="deep_flow_dialog_body">どれくらい学習を一時停止しておく必要がありますか?</string>
@@ -800,7 +800,7 @@
     <string name="notif_type_new_videos">新しい動画</string>
     <string name="notif_type_new_videos_subtitle">登録チャンネルが新しい動画をアップロードしたときに通知する</string>
     <string name="notif_type_shorts">ショート</string>
-    <string name="notif_type_shorts_subtitle">サブスクリプションからの新着動画アラートに Shorts を含める</string>
+    <string name="notif_type_shorts_subtitle">登録チャンネルからの新着動画アラートにショート動画を含める</string>
     <string name="notif_type_downloads">ダウンロード通知</string>
     <string name="notif_type_downloads_subtitle">進行状況、完了、失敗のアラート</string>
     <string name="notif_type_reminders">スクリーンタイムリマインダー</string>
@@ -937,7 +937,7 @@
     <string name="app_icon_apply_toast">アイコンが更新されました - ランチャーが更新されます</string>
     <string name="icon_name_flow_red">Flow 赤</string>
     <string name="icon_name_flow_light">Flow ライト</string>
-    <string name="icon_name_flow_play">Flow プレイ</string>
+    <string name="icon_name_flow_play">Flow Play</string>
     <string name="icon_name_amoled">AMOLEDダーク</string>
     <string name="icon_name_monochrome">モノクロ</string>
     <string name="icon_name_ghost">おばけ</string>
@@ -1201,8 +1201,8 @@
     <string name="content_settings_video_card_mark_watched_subtitle">カード上の目のボタンでビデオを視聴済みとしてマークします</string>
     <string name="content_settings_video_card_progress_title">時計の進行状況を表示する</string>
     <string name="content_settings_video_card_progress_subtitle">サムネイル上にどれだけ視聴したかを示すバーが表示されます</string>
-    <string name="content_settings_home_subscriptions_title">ホームでのサブスクリプション</string>
-    <string name="content_settings_home_subscriptions_subtitle">フォローしているチャンネルの動画をホームにミックスする</string>
+    <string name="content_settings_home_subscriptions_title">ホームでの登録チャンネル</string>
+    <string name="content_settings_home_subscriptions_subtitle">登録しているチャンネルの動画をホームにミックスします</string>
     <string name="settings_section_watch_history">視聴履歴</string>
     <string name="pause_watch_history_title">視聴履歴を一時停止する</string>
     <string name="pause_watch_history_subtitle">視聴したものを保存するのはやめてください。Deep Flow も学習を一時停止します</string>
@@ -1223,8 +1223,8 @@
     <string name="content_settings_hide_watched_home_title">視聴した動画をホームから非表示にする</string>
     <string name="content_settings_hide_watched_home_subtitle">ホームから視聴した動画を非表示にする</string>
     <string name="content_settings_hide_watched_subscriptions_title">視聴した動画を登録チャンネルから非表示にする</string>
-    <string name="content_settings_hide_watched_subscriptions_subtitle">視聴した動画を定期購入から非表示にする</string>
-    <string name="content_settings_hide_unplayable_subscriptions_title">サブスクリプションから再生できないビデオを非表示にする</string>
+    <string name="content_settings_hide_watched_subscriptions_subtitle">視聴した動画を登録チャンネルから非表示にする</string>
+    <string name="content_settings_hide_unplayable_subscriptions_title">登録チャンネルから再生できないビデオを非表示にする</string>
     <string name="content_settings_hide_unplayable_subscriptions_subtitle">再生できない非公開動画、削除済み動画、制限付き動画を非表示にする</string>
     <string name="content_settings_watched_threshold_title">いつ視聴済みとしてマークするか</string>
     <string name="content_settings_watched_threshold_dialog_body">動画が視聴済みとしてカウントされるまでに、どれだけの動画を視聴する必要があるか。</string>
@@ -1247,22 +1247,22 @@
     <string name="content_settings_comments_preview_subtitle">コメントカード内に最新のコメントを表示します</string>
     <string name="content_settings_live_chat_enabled_title">ライブチャット</string>
     <string name="content_settings_live_chat_enabled_subtitle">ライブ ストリームでチャットを表示する</string>
-    <string name="content_settings_subs_startup_refresh_title">起動時にサブスクリプションを更新する</string>
-    <string name="content_settings_subs_startup_refresh_subtitle">アプリを開いたら定期購読フィードを確認してください</string>
+    <string name="content_settings_subs_startup_refresh_title">起動時に登録チャンネルを更新する</string>
+    <string name="content_settings_subs_startup_refresh_subtitle">アプリを開いたら登録チャンネルフィードを確認</string>
     <string name="content_settings_subs_show_checked_count_title">確認した動画数</string>
     <string name="content_settings_subs_show_checked_count_subtitle">更新時にチェックされたビデオの数を表示します</string>
-    <string name="content_settings_subs_show_videos_title">サブスクリプションビデオ</string>
-    <string name="content_settings_subs_show_videos_subtitle">定期購読フィードに通常の動画を表示する</string>
-    <string name="content_settings_subs_show_shorts_title">サブスクリプションショート</string>
-    <string name="content_settings_subs_show_shorts_subtitle">購読フィードに Shorts を表示する</string>
-    <string name="content_settings_subs_show_live_title">サブスクリプションライブストリーム</string>
+    <string name="content_settings_subs_show_videos_title">登録チャンネルの動画</string>
+    <string name="content_settings_subs_show_videos_subtitle">登録チャンネルフィードに通常の動画を表示します</string>
+    <string name="content_settings_subs_show_shorts_title">登録チャンネルのショート</string>
+    <string name="content_settings_subs_show_shorts_subtitle">登録チャンネルフィードにショート動画を表示します</string>
+    <string name="content_settings_subs_show_live_title">登録チャンネルのライブ配信</string>
     <string name="content_settings_subs_show_live_subtitle">フィードにライブ ストリームと最近のストリームを表示する</string>
     <string name="content_settings_subs_collaborations_title">コラボレーション</string>
     <string name="content_settings_subs_collaborations_subtitle">フォローしているチャンネルで作成された動画</string>
     <string name="content_settings_nav_order_title">タブオーダーとデフォルト</string>
     <string name="content_settings_nav_order_subtitle">ドラッグして並べ替えます。 Flow が開くタブを選択します。</string>
-    <string name="settings_subs_shorts_shelf_title">定期購読ショーツの棚</string>
-    <string name="settings_subs_shorts_shelf_subtitle">購読フィードに Shorts シェルフを表示する</string>
+    <string name="settings_subs_shorts_shelf_title">登録チャンネルショートの棚</string>
+    <string name="settings_subs_shorts_shelf_subtitle">登録チャンネルフィードにショート動画シェルフを表示</string>
     <string name="settings_home_shorts_shelf_title">ホーム画面ショーツ棚</string>
     <string name="settings_home_shorts_shelf_subtitle">ホーム画面に水平のショーツ棚を表示します。</string>
     <string name="settings_shorts_nav_tab_title">ナビゲーションの Shorts タブ</string>
@@ -1329,8 +1329,8 @@
     <string name="player_settings_shorts_background_play_subtitle">アプリがバックグラウンドで動作しているときに Shorts の再生を続ける</string>
     <string name="player_settings_shorts_pip">Shorts ピクチャインピクチャ</string>
     <string name="player_settings_shorts_pip_subtitle">離れるときはショート動画をフローティング ウィンドウに表示したままにしておきます</string>
-    <string name="player_settings_shorts_continue_into_feed">推奨事項を続ける</string>
-    <string name="player_settings_shorts_continue_into_feed_subtitle">キューが終了しても推奨される Shorts を再生し続ける</string>
+    <string name="player_settings_shorts_continue_into_feed">おすすめを続ける</string>
+    <string name="player_settings_shorts_continue_into_feed_subtitle">キューが終了してもおすすめの Shorts を再生し続ける</string>
     <string name="player_settings_shorts_playback_mode_title">Shorts 再生モード</string>
     <string name="player_settings_shorts_playback_mode_loop">ループ（繰り返し電流ショート）</string>
     <string name="player_settings_shorts_playback_mode_auto_next">自動再生 (次のショート動画に進みます)</string>
@@ -1352,7 +1352,7 @@
     <string name="player_settings_autoplay">関連動画の自動再生</string>
     <string name="player_settings_autoplay_subtitle">キューに何もないときに提案されたビデオを再生する</string>
     <string name="player_settings_queue_autoplay">キューに入れられたビデオを自動再生する</string>
-    <string name="player_settings_queue_autoplay_subtitle">プレイリスト内の次のビデオを再生するか、後で見る</string>
+    <string name="player_settings_queue_autoplay_subtitle">再生リスト内の次の動画を再生するか、後で見る</string>
     <string name="player_settings_autoplay_countdown_title">自動再生の遅延</string>
     <string name="player_settings_autoplay_countdown_none">なし（すぐに切り替えます）</string>
     <plurals name="player_settings_autoplay_countdown_seconds_template">
@@ -1363,7 +1363,7 @@
     <string name="autoplay_countdown_next_video">次の動画</string>
     <string name="autoplay_countdown_cancel">キャンセル</string>
     <string name="autoplay_countdown_restart">再起動</string>
-    <string name="autoplay_countdown_play_now">今すぐプレイ</string>
+    <string name="autoplay_countdown_play_now">今すぐ再生</string>
     <string name="player_settings_skip_silence">沈黙をスキップ</string>
     <string name="player_settings_skip_silence_subtitle">音声のない部分をスキップする</string>
     <string name="player_settings_remember_speed">再生速度を記憶する</string>
@@ -1519,7 +1519,7 @@
     <string name="buffer_profile_datasaver">データセーバー / 低遅延</string>
     <string name="buffer_profile_custom">カスタム</string>
     <string name="buffer_desc_stable">バランスのとれた開始時間とバッファリング</string>
-    <string name="buffer_desc_aggressive">できるだけ早くプレイを開始します</string>
+    <string name="buffer_desc_aggressive">できるだけ早く再生を開始します</string>
     <string name="buffer_desc_datasaver">使用するデータが少ない小さいバッファ</string>
     <string name="buffer_profile_custom_desc">バッファサイズを手動で設定する</string>
     <string name="buffer_custom_mode_desc">バッファが大きいほどストールは少なくなりますが、開始までに時間がかかります。</string>
@@ -1578,13 +1578,13 @@
         <item quantity="other">%1$d 件のトピック</item>
     </plurals>
     <string name="your_interests_title">あなたの興味</string>
-    <string name="your_interests_desc">トピックを選択して推奨事項を作成します。</string>
+    <string name="your_interests_desc">トピックを選択しておすすめをカスタマイズしましょう。</string>
     <string name="currently_following">現在フォロー中</string>
     <string name="tap_to_remove">タップして削除します</string>
     <string name="add_topics">トピックの追加</string>
     <string name="browse_by_category">カテゴリ別に閲覧する</string>
     <string name="hidden_content_title">隠しコンテンツ</string>
-    <string name="hidden_content_desc">これらのトピックに関する動画は推奨されません。どのビデオでも「興味なし」をタップすることもできます。</string>
+    <string name="hidden_content_desc">これらのトピックに関する動画はおすすめされなくなります。動画から「興味なし」をタップすることもできます。</string>
     <string name="block_topic_title">トピックをブロックする</string>
     <string name="enter_keywords_to_hide">非表示にするキーワードを入力してください</string>
     <string name="block_topic_placeholder">例: メイク、フォートナイト、ASMR</string>
@@ -1630,7 +1630,7 @@
     <string name="bedtime_reminder_title">就寝時間リマインダー</string>
     <string name="bedtime_reminder_subtitle">寝る時間になったら通知を受け取る</string>
     <string name="break_reminder_title">休憩リマインダー</string>
-    <string name="break_reminder_subtitle">鑑賞中は定期的に休憩をとりましょう</string>
+    <string name="break_reminder_subtitle">閲覧中は定期的に休憩をとりましょう</string>
     <string name="sleep_window">スリープウィンドウ:</string>
     <string name="frequency_description">どのくらいの頻度で通知するか</string>
     <string name="tools_subtitle">リマインダーを設定して視聴習慣のバランスをとる</string>
@@ -1698,35 +1698,35 @@
     <string name="import_newpipe_failed_template">NewPipe バックアップのインポートに失敗しました: %1$s</string>
     <string name="import_youtube_failed_template">YouTube バックアップのインポートに失敗しました: %1$s</string>
     <string name="import_flow_backup_item_title">Flow バックアップのインポート</string>
-    <string name="import_flow_backup_desc">Flow バックアップ ファイルから履歴、設定、サブスクリプションを復元します。</string>
+    <string name="import_flow_backup_desc">Flow バックアップ ファイルから履歴、設定、登録チャンネルを復元します。</string>
     <string name="import_from_newpipe">NewPipeからインポート</string>
-    <string name="import_from_newpipe_desc">NewPipe エクスポート ファイル (JSON) からサブスクリプションをインポートします。</string>
+    <string name="import_from_newpipe_desc">NewPipe エクスポート ファイル (JSON) から登録チャンネルをインポートします。</string>
     <string name="import_from_libretube">LibreTube からインポート</string>
-    <string name="import_from_libretube_desc">LibreTube バックアップ ファイル (JSON) からサブスクリプションをインポートします。</string>
-    <string name="import_playlists_section_title">プレイリスト</string>
-    <string name="import_playlists_section_subtitle">他のアプリからビデオプレイリストをインポートする</string>
-    <string name="import_newpipe_playlists">NewPipe プレイリストをインポートする</string>
-    <string name="import_newpipe_playlists_desc">NewPipe ローカル プレイリストをバックアップ ZIP ファイルからインポートします。</string>
-    <string name="import_libretube_playlists">LibreTube プレイリストをインポートする</string>
-    <string name="import_libretube_playlists_desc">バックアップ JSON ファイルから LibreTube ローカル プレイリストをインポートします。</string>
+    <string name="import_from_libretube_desc">LibreTube バックアップ ファイル (JSON) から登録チャンネルをインポートします。</string>
+    <string name="import_playlists_section_title">再生リスト</string>
+    <string name="import_playlists_section_subtitle">他のアプリから動画の再生リストをインポートする</string>
+    <string name="import_newpipe_playlists">NewPipe 再生リストをインポート</string>
+    <string name="import_newpipe_playlists_desc">NewPipe ローカル再生リストをバックアップ ZIP ファイルからインポートします。</string>
+    <string name="import_libretube_playlists">LibreTube 再生リストをインポート</string>
+    <string name="import_libretube_playlists_desc">バックアップ JSON ファイルから LibreTube ローカル再生リストをインポートします。</string>
     <string name="import_yt_takeout_all">Google Takeoutからインポート</string>
-    <string name="import_yt_takeout_all_desc">定期購入、履歴、検索、プレイリスト、「いいね！」、Google Takeout からの YouTube Music ライブラリ。エクスポートのすべての ZIP を選択します。</string>
+    <string name="import_yt_takeout_all_desc">登録チャンネル、履歴、検索、再生リスト、高評価した動画、Google Takeout からの YouTube Music ライブラリ。エクスポートのすべての ZIP を選択します。</string>
     <string name="import_music_apps_section_title">音楽アプリ</string>
     <string name="import_music_apps_section_subtitle">他のプレーヤーから音楽ライブラリをインポートする</string>
     <string name="import_from_metrolist">Metrolistからインポート</string>
-    <string name="import_from_metrolist_desc">Metrolist バックアップ ファイル (.zip) から音楽プレイリストをインポートします。プレイリストはミュージック ライブラリに表示されます。</string>
+    <string name="import_from_metrolist_desc">Metrolist バックアップ ファイル (.zip) から音楽再生リストをインポートします。再生リストはミュージック ライブラリに表示されます。</string>
     <string name="import_from_youtube">YouTubeからインポート</string>
-    <string name="import_from_youtube_desc">YouTube Takeout (CSV) からサブスクリプションをインポートします。</string>
-    <string name="import_label_newpipe_subscriptions">NewPipe サブスクリプション</string>
-    <string name="import_label_youtube_subscriptions">YouTube サブスクリプション</string>
+    <string name="import_from_youtube_desc">YouTube Takeout (CSV) から登録チャンネルをインポートします。</string>
+    <string name="import_label_newpipe_subscriptions">NewPipeの登録チャンネル</string>
+    <string name="import_label_youtube_subscriptions">YouTubeの登録チャンネル</string>
     <string name="import_label_youtube_watch_history">YouTube の視聴履歴</string>
     <string name="import_label_youtube_likes">YouTubeの「いいね！」</string>
     <string name="import_label_freetube_watch_history">FreeTube の視聴履歴</string>
     <string name="import_label_newpipe_watch_history">NewPipe の視聴履歴</string>
-    <string name="import_label_libretube_subscriptions">LibreTube のサブスクリプション</string>
-    <string name="import_label_metrolist_playlists">Metrolistの音楽プレイリスト</string>
-    <string name="import_label_newpipe_playlists">NewPipe プレイリスト</string>
-    <string name="import_label_libretube_playlists">LibreTube プレイリスト</string>
+    <string name="import_label_libretube_subscriptions">LibreTubeの登録チャンネル</string>
+    <string name="import_label_metrolist_playlists">Metrolistの音楽再生リスト</string>
+    <string name="import_label_newpipe_playlists">NewPipe 再生リスト</string>
+    <string name="import_label_libretube_playlists">LibreTube 再生リスト</string>
     <string name="import_label_youtube_takeout">YouTube テイクアウト</string>
     <string name="import_subscriptions_section_title">サブ</string>
     <string name="import_history_section_title">履歴</string>
@@ -1745,16 +1745,16 @@
     <string name="import_takeout_step_subscriptions">登録チャンネル</string>
     <string name="import_takeout_step_activity">「いいね！」と検索</string>
     <plurals name="import_takeout_part_subscriptions">
-        <item quantity="other">%d 件の定期購入</item>
+        <item quantity="other">%d 件の登録チャンネル</item>
     </plurals>
     <plurals name="import_takeout_part_history">
         <item quantity="other">%d 件の履歴エントリ</item>
     </plurals>
     <plurals name="import_takeout_part_playlists">
-        <item quantity="other">%1$d 個のプレイリスト (%2$d 個のビデオ)</item>
+        <item quantity="other">%1$d 個の再生リスト (%2$d 本の動画)</item>
     </plurals>
     <plurals name="import_takeout_part_music_playlists">
-        <item quantity="other">ミュージック内の %d 個のプレイリスト</item>
+        <item quantity="other">音楽 内の %d 個の再生リスト</item>
     </plurals>
     <plurals name="import_takeout_part_music_library">
         <item quantity="other">%d YouTube Music ライブラリ曲</item>
@@ -1763,19 +1763,19 @@
     <plurals name="import_takeout_part_searches">
         <item quantity="other">%d 件の検索</item>
     </plurals>
-    <string name="import_yt_playlist">YouTube プレイリストをインポートする</string>
-    <string name="import_yt_playlist_desc">YouTube Takeout CSV (Playlist-&lt;name&gt;.csv) からプレイリストをインポートします。</string>
+    <string name="import_yt_playlist">YouTube 再生リストをインポート</string>
+    <string name="import_yt_playlist_desc">YouTube Takeout CSV (Playlist-&lt;name&gt;.csv) から再生リストをインポートします。</string>
     <string name="import_yt_watch_later">インポートして後で見る</string>
     <string name="import_yt_watch_later_desc">ファイル名に関係なく、YouTube テイクアウト CSV を後で見るリストに直接インポートします。</string>
-    <string name="import_yt_music_playlist">YouTube Music プレイリストをインポートする</string>
-    <string name="import_yt_music_playlist_desc">YouTube Music Takeout CSV から音楽プレイリストをインポートします。音楽プレイリストの下に表示されます。</string>
+    <string name="import_yt_music_playlist">YouTube Music 再生リストをインポート</string>
+    <string name="import_yt_music_playlist_desc">YouTube Music Takeout CSV から音楽再生リストをインポートします。音楽再生リストの下に表示されます。</string>
     <string name="import_yt_history_failed_template">視聴履歴のインポートに失敗しました: %1$s</string>
     <plurals name="import_yt_playlist_success_template">
-        <item quantity="other">%2$d 個のビデオを含むプレイリスト「%1$s」をインポートしました</item>
+        <item quantity="other">%2$d 本のビデオを含む再生リスト「%1$s」をインポートしました</item>
     </plurals>
-    <string name="import_yt_playlist_failed_template">プレイリストのインポートに失敗しました: %1$s</string>
+    <string name="import_yt_playlist_failed_template">再生リストのインポートに失敗しました: %1$s</string>
     <string name="import_yt_history_empty_error">このファイルには視聴履歴エントリが見つかりません。それが YouTube Takeout watch-history.html ファイルであることを確認してください。</string>
-    <string name="import_yt_playlist_empty_error">この CSV にはビデオが見つかりませんでした。 YouTube テイクアウト プレイリスト CSV ファイルであることを確認してください。</string>
+    <string name="import_yt_playlist_empty_error">この CSV にはビデオが見つかりませんでした。 YouTube Takeout の再生リスト CSV ファイルであることを確認してください。</string>
     <string name="download_settings_title">ダウンロード設定</string>
     <string name="permissions_header">権限</string>
     <string name="files_access_title">ファイルアクセス</string>
@@ -1826,7 +1826,7 @@
     <string name="location_manual_dialog_title">カスタムダウンロードパス</string>
     <string name="location_manual_hint">/ストレージ/エミュレート/0/…</string>
     <string name="location_manual_confirm">保存</string>
-    <string name="location_badge_recommended">推奨</string>
+    <string name="location_badge_recommended">おすすめ</string>
     <string name="location_badge_active">アクティブ</string>
     <string name="select_threads_count_desc">スレッド数を選択します (1 ～ 8):</string>
     <plurals name="threads_count_label">
@@ -1886,27 +1886,27 @@
     <string name="btn_ok">わかりました</string>
     <string name="btn_copy">コピー</string>
     <string name="github_label">GitHub</string>
-    <string name="new_playlist_button">新しいプレイリスト</string>
-    <string name="your_playlists_header">あなたのプレイリスト</string>
-    <string name="saved_playlists_header">保存されたプレイリスト</string>
-    <string name="create_playlist_empty_desc">最初のプレイリストを作成してお気に入りの動画を整理します</string>
-    <string name="my_playlist_placeholder">私のプレイリスト</string>
+    <string name="new_playlist_button">新しい再生リスト</string>
+    <string name="your_playlists_header">あなたの再生リスト</string>
+    <string name="saved_playlists_header">保存された再生リスト</string>
+    <string name="create_playlist_empty_desc">最初の再生リストを作成してお気に入りの動画を整理します</string>
+    <string name="my_playlist_placeholder">私の再生リスト</string>
     <string name="add_description_placeholder">説明を追加...</string>
-    <string name="edit_playlist_action">プレイリストを編集する</string>
-    <string name="delete_playlist_action">プレイリストを削除する</string>
-    <string name="remove_from_playlist_action">プレイリストから削除</string>
-    <string name="playlist_empty_title">このプレイリストは空です</string>
-    <string name="playlist_empty_desc">ビデオプレーヤーからビデオを追加する\nプレイリストを構築するには</string>
+    <string name="edit_playlist_action">再生リストを編集する</string>
+    <string name="delete_playlist_action">再生リストを削除する</string>
+    <string name="remove_from_playlist_action">再生リストから削除</string>
+    <string name="playlist_empty_title">この再生リストには動画がありません</string>
+    <string name="playlist_empty_desc">再生リストを構築するには、\nビデオプレーヤーから動画を追加します</string>
     <string name="playlist_downloading_template">ダウンロード中: %1$s</string>
     <string name="playlist_downloads_queued">キューに登録された %1$d/%2$d ダウンロード</string>
-    <string name="playlist_download_queue_empty">このプレイリストからのダウンロードをキューに入れることができませんでした</string>
-    <string name="delete_playlist_dialog_title">プレイリストを削除しますか?</string>
+    <string name="playlist_download_queue_empty">この再生リストからのダウンロードをキューに入れることができませんでした</string>
+    <string name="delete_playlist_dialog_title">再生リストを削除しますか？</string>
     <string name="delete_playlist_dialog_text">これにより、「%1$s」とそのすべてのビデオが完全に削除されます。</string>
-    <string name="playlist_sort_options">プレイリストの並べ替えオプション</string>
+    <string name="playlist_sort_options">再生リストの並べ替えオプション</string>
     <plurals name="remove_selected_videos_title">
         <item quantity="other">%1$d 個の動画を削除しますか?</item>
     </plurals>
-    <string name="remove_selected_playlist_text">それらはこのプレイリストから削除されます。</string>
+    <string name="remove_selected_playlist_text">それらはこの再生リストから削除されます。</string>
     <string name="remove_selected_watch_later_text">これらは後で Watch から削除されます。</string>
     <string name="welcome_to_flow">Flow へようこそ</string>
     <string name="onboarding_subtitle">興味があることを教えてください</string>
@@ -1918,7 +1918,7 @@
         <item quantity="other">%1$d チャンネルが追加されました</item>
     </plurals>
     <string name="onboarding_channels_results_header">チャンネル</string>
-    <string name="onboarding_import_subtitle_profile">他のアプリからサブスクリプションと履歴を %1$s に取り込みます。すべてはオプションです。</string>
+    <string name="onboarding_import_subtitle_profile">他のアプリから登録チャンネルや履歴を %1$s に取り込みます。すべてはオプションです。</string>
     <string name="onboarding_import_master_profile">バックアップ内のすべてのプロファイルを復元します</string>
     <string name="master_restore_confirm_title">バックアップを復元しますか?</string>
     <string name="auto_backup_type_all_profiles">複数のプロファイルの場合、自動バックアップはマスター バックアップとなるため、すべてのプロファイルが含まれます</string>
@@ -2022,8 +2022,8 @@
     <string name="header_your_collection">あなたのコレクション</string>
     <string name="subtitle_liked_music">あなたの好きな曲</string>
     <string name="subtitle_history">聴いた曲</string>
-    <string name="empty_music_playlists">音楽プレイリストはまだありません</string>
-    <string name="rename_playlist_title">プレイリストの名前を変更する</string>
+    <string name="empty_music_playlists">音楽の再生リストはまだありません</string>
+    <string name="rename_playlist_title">再生リストの名前を変更</string>
     <string name="action_rename">名前の変更</string>
     <string name="link_copied">リンクがコピーされました</string>
     <string name="link_cannot_open">このデバイス上のアプリはこのリンクを開けません</string>
@@ -2049,16 +2049,16 @@
     <string name="equalizer_frequency_label">F</string>
     <string name="equalizer_gain_label">G</string>
     <string name="equalizer_q_label">Q</string>
-    <string name="title_create_playlist">プレイリストの作成</string>
-    <string name="label_playlist_name">プレイリスト名</string>
-    <string name="placeholder_playlist_name">私の素晴らしいプレイリスト</string>
+    <string name="title_create_playlist">再生リストの作成</string>
+    <string name="label_playlist_name">再生リスト名</string>
+    <string name="placeholder_playlist_name">私の素晴らしい再生リスト</string>
     <string name="label_description_optional">説明 (オプション)</string>
     <string name="placeholder_playlist_desc">私のお気に入りのトラック...</string>
     <string name="action_create">作成する</string>
     <string name="action_cancel">キャンセル</string>
-    <string name="title_add_to_playlist">プレイリストに追加</string>
-    <string name="action_create_new_playlist">新しいプレイリストを作成する</string>
-    <string name="empty_playlists_dialog">プレイリストはまだありません。まずは作成してみましょう。</string>
+    <string name="title_add_to_playlist">再生リストに追加</string>
+    <string name="action_create_new_playlist">新しい再生リストを作成する</string>
+    <string name="empty_playlists_dialog">再生リストはまだありません。まずは作成してみましょう。</string>
     <string name="action_remove_from_favorites">お気に入りから削除</string>
     <string name="action_add_to_favorites">お気に入りに追加</string>
     <string name="action_listen_now">今すぐ聴く</string>
@@ -2073,7 +2073,7 @@
     <string name="section_deep_cuts">深いカット</string>
     <string name="section_from_artists_you_love">大好きなアーティストから</string>
     <string name="section_your_history">あなたの履歴</string>
-    <string name="artist_insights_played_times">%1$d 回プレイしました</string>
+    <string name="artist_insights_played_times">%1$d 回再生しました</string>
     <string name="artist_insights_liked">気に入った</string>
     <string name="artist_known_related_badge">あなたのローテーションで</string>
     <string name="section_rotation_morning">朝のローテーション</string>
@@ -2082,13 +2082,13 @@
     <string name="section_rotation_night">あなたの深夜のローテーション</string>
     <string name="source_your_rotation">あなたのローテーション</string>
     <string name="music_genre_affinity_title">ジャンルと雰囲気</string>
-    <string name="music_genre_affinity_subtitle">実際にプレイするジャンルや雰囲気の表面から学習</string>
-    <string name="recommendations_header">推奨事項</string>
+    <string name="music_genre_affinity_subtitle">実際に再生するジャンルや雰囲気の表面から学習</string>
+    <string name="recommendations_header">おすすめ</string>
     <string name="not_interested_desc">しばらくの間、このアーティストの表示を減らします</string>
     <string name="dont_recommend_artist">%1$s はお勧めしません</string>
     <string name="dont_recommend_artist_desc">このアーティストを二度と提案しないでください</string>
     <string name="feedback_not_interested_applied">%1$s の表示が少なくなります。</string>
-    <string name="feedback_artist_blocked">%1$s は推奨されなくなります</string>
+    <string name="feedback_artist_blocked">%1$s はおすすめに表示されなくなります</string>
     <string name="music_prefs_section_title">おすすめの音楽</string>
     <string name="music_endless_radio_title">エンドレスラジオ</string>
     <string name="music_endless_radio_desc">キューが終了したら類似の曲を追加する</string>
@@ -2164,7 +2164,7 @@
     <string name="music_bucket_weekend_evening">週末の夜</string>
     <string name="music_bucket_weekend_night">週末の夜</string>
     <string name="music_bucket_plays">%1$d が再生されます</string>
-    <string name="music_blocked_artists_subtitle">エンジンが決して推奨しないアーティスト</string>
+    <string name="music_blocked_artists_subtitle">エンジンがおすすめに表示しないアーティスト</string>
     <string name="music_persona_empty">音楽を再生するとエンジンが学習を開始します</string>
     <string name="shuffle_play">シャッフル再生</string>
     <string name="feeling_lucky">幸運な気分ですか？</string>
@@ -2173,8 +2173,8 @@
     <string name="daily_discover_similar_to">%1$sに似ている</string>
     <string name="daily_discover_based_on">%1$s に基づく</string>
     <string name="daily_discover_for_fans_of">%1$s のファン向け</string>
-    <string name="section_recommended">推奨</string>
-    <string name="section_recently_played">最近プレイした</string>
+    <string name="section_recommended">おすすめ</string>
+    <string name="section_recently_played">最近再生した</string>
     <string name="auto_tab_for_you">あなたのために</string>
     <string name="auto_tab_queue">列</string>
     <string name="section_music_videos">ミュージックビデオ</string>
@@ -2194,12 +2194,12 @@
     <string name="section_top_artists_global">世界中のトップアーティスト</string>
     <string name="section_similar_to">%1$sに似ている</string>
     <string name="subtitle_similar_to">あなたの聴取履歴に基づいて</string>
-    <string name="section_other_performances">その他の公演</string>
+    <string name="section_other_performances">その他のパフォーマンス</string>
     <string name="section_more_from">もっと見る</string>
     <string name="section_vibe_vibes">%1$s バイブ</string>
-    <string name="subtitle_community_playlists">コミュニティプレイリスト</string>
-    <string name="playlist_author_community">コミュニティプレイリスト</string>
-    <string name="playlist_description_community">私たちのコミュニティから厳選された %1$s 音楽のプレイリスト</string>
+    <string name="subtitle_community_playlists">コミュニティ再生リスト</string>
+    <string name="playlist_author_community">コミュニティ再生リスト</string>
+    <string name="playlist_description_community">私たちのコミュニティから厳選された %1$s 音楽の再生リスト</string>
     <string name="radio">無線</string>
     <string name="audio_settings_title">オーディオ設定</string>
     <string name="label_preset">プリセット</string>
@@ -2303,15 +2303,15 @@
     <string name="eq_settings_summary">プリセット、バンド、AutoEQ インポート</string>
     <string name="eq_settings_keywords">イコライザー、eq、ベースブースト、トレブル、autoeq、プリアンプ、サウンド</string>
     <string name="eq_reset_done">カーブリセット</string>
-    <string name="now_playing">プレイ中</string>
+    <string name="now_playing">再生中</string>
     <string name="voice_search_prompt">話しかけて音楽を検索</string>
     <string name="search_music_placeholder">音楽を検索</string>
     <string name="voice_search_cd">音声検索</string>
     <string name="filter_albums">アルバム</string>
     <string name="filter_songs">歌</string>
-    <string name="filter_community_playlists">コミュニティプレイリスト</string>
+    <string name="filter_community_playlists">コミュニティ再生リスト</string>
     <string name="filter_artists">アーティスト</string>
-    <string name="filter_featured_playlists">注目のプレイリスト</string>
+    <string name="filter_featured_playlists">注目の再生リスト</string>
     <string name="filter_podcasts">ポッドキャスト</string>
     <string name="filter_episodes">エピソード</string>
     <string name="filter_profiles">プロファイル</string>
@@ -2323,7 +2323,7 @@
     <string name="subtitle_artist">アーティスト</string>
     <string name="subtitle_profile">プロファイル</string>
     <string name="subtitle_album_template">アルバム • %1$s</string>
-    <string name="subtitle_playlist_template">プレイリスト • %1$s</string>
+    <string name="subtitle_playlist_template">再生リスト • %1$s</string>
     <string name="plays_count_template">• %1$s が再生されます</string>
     <string name="album_year_template">アルバム • %1$s • %2$s</string>
     <string name="search_source_template">検索: %1$s</string>
@@ -2333,8 +2333,8 @@
     <string name="no_tracks_available">利用可能なトラックがありません</string>
     <string name="tab_favorites">お気に入り</string>
     <string name="create_playlist_subtitle">音楽を整理する</string>
-    <string name="empty_playlists_title">プレイリストはまだありません</string>
-    <string name="empty_playlists_subtitle">最初のプレイリストを作成してお気に入りのトラックを整理します</string>
+    <string name="empty_playlists_title">再生リストはまだありません</string>
+    <string name="empty_playlists_subtitle">最初の再生リストを作成してお気に入りのトラックを整理します</string>
     <string name="empty_favorites_title">お気に入りはまだありません</string>
     <string name="empty_favorites_subtitle">トラック上のハートアイコンをタップしてお気に入りに追加します</string>
     <plurals name="favorites_count_template">
@@ -2454,7 +2454,7 @@
     <string name="subtitle_add_file_failed">Flow はそのファイルを字幕として読み取ることができません</string>
     <string name="normal">普通</string>
     <string name="done">完了</string>
-    <string name="playlist_queue">プレイリストキュー</string>
+    <string name="playlist_queue">キュー再生リスト</string>
     <string name="next_up">次</string>
     <string name="cast_to_tv">テレビにキャストする</string>
     <string name="cast_connecting">キャストデバイスに接続中…</string>
@@ -2510,10 +2510,10 @@
     <string name="import_master_backup_failed">マスターバックアップのインポートに失敗しました</string>
     <string name="sync_devices_title">デバイスを同期する</string>
     <string name="linked_title">リンクされたデバイス</string>
-    <string name="play_on_title">プレイオン</string>
+    <string name="play_on_title">プレイ中</string>
     <string name="play_on_subtitle">再生場所を選択してください</string>
     <string name="play_on_button">別のデバイスで再生する</string>
-    <string name="play_on_playing_on">%1$s でプレイしています</string>
+    <string name="play_on_playing_on">%1$s でプレイ中</string>
     <string name="play_on_nothing">デバイスでは何も再生されていません</string>
     <string name="play_on_this_phone">この電話</string>
     <string name="play_on_this_tablet">このタブレットは</string>
@@ -2525,7 +2525,7 @@
     <string name="play_on_never_seen">まだ見ていない</string>
     <string name="play_on_volume">音量</string>
     <string name="play_on_controlled_by">%1$s から再生しています</string>
-    <string name="play_on_consent_title">%1$s をここでプレイしましょうか?</string>
+    <string name="play_on_consent_title">%1$s をここで再生しますか？</string>
     <string name="play_on_consent_body">%1$s はこのデバイスで再生し、ここでの再生を制御したいと考えています。これは、[リンクされたデバイス] で後で変更できます。</string>
     <string name="play_on_consent_always">常に許可する</string>
     <string name="play_on_consent_once">一度許可する</string>
@@ -2674,7 +2674,7 @@
     <string name="linked_profile_other">他のデバイスで</string>
     <string name="linked_profile_unnamed">名前のないプロファイル</string>
     <string name="linked_profile_start_title">%1$s を同期します</string>
-    <string name="linked_profile_merge_note">同期されたプロファイルに参加すると、その履歴、いいね、プレイリストがこのプロファイルに統合されます。</string>
+    <string name="linked_profile_merge_note">同期されたプロファイルに参加すると、その履歴、いいね、再生リストがこのプロファイルに統合されます。</string>
     <string name="linked_profile_new_link">新しい同期プロファイルとして</string>
     <string name="linked_profile_join">%1$s を使用</string>
     <string name="linked_profile_stop_title">%1$s の同期を停止しますか?</string>
@@ -2692,14 +2692,14 @@
     <string name="sync_notification_title">デバイスを同期中</string>
     <string name="sync_notification_text">ローカル Wi-Fi 経由でライブラリを転送しています…</string>
     <string name="sync_notification_channel">デバイスの同期</string>
-    <string name="sync_collection_playlists">プレイリスト</string>
+    <string name="sync_collection_playlists">再生リスト</string>
     <string name="sync_collection_watch_history">視聴履歴</string>
     <string name="sync_collection_likes">いいね！</string>
     <string name="sync_collection_subscriptions">登録チャンネル</string>
-    <string name="sync_collection_subscription_groups">サブスクリプショングループ</string>
+    <string name="sync_collection_subscription_groups">登録チャンネルのグループ</string>
     <string name="sync_collection_subscription_groups_body">チャンネルを分類するフォルダー。</string>
     <string name="sync_collection_settings">設定</string>
-    <string name="sync_collection_recommendation_profile">推奨プロファイル</string>
+    <string name="sync_collection_recommendation_profile">おすすめプロファイル</string>
     <string name="sync_collection_music_profile">音楽の好みのプロファイル</string>
     <string name="sync_preparing">準備中…</string>
     <string name="sync_connecting">接続中…</string>
@@ -2787,7 +2787,7 @@
     <plurals name="sync_selected_count">
         <item quantity="other">%2$d 個中 %1$d 個が選択されました</item>
     </plurals>
-    <string name="sync_collection_playlists_body">プレイリスト、アルバム、後で見る。</string>
+    <string name="sync_collection_playlists_body">再生リスト、アルバム、後で見る。</string>
     <string name="sync_collection_watch_history_body">何を見て、どこまで到達したか。</string>
     <string name="sync_collection_likes_body">ビデオや音楽の好き嫌い。</string>
     <string name="sync_collection_subscriptions_body">あなたがフォローしているチャンネル。</string>
@@ -2827,16 +2827,16 @@
     <string name="export_data_screen_title">データのエクスポート</string>
     <string name="export_data_section_header">エクスポートの種類を選択してください</string>
     <string name="export_data_section_subtitle">エクスポートしてデバイスに保存するものを選択します</string>
-    <string name="export_newpipe_subs_title">サブスクリプションのエクスポート (NewPipe 形式)</string>
+    <string name="export_newpipe_subs_title">登録チャンネルのエクスポート (NewPipe 形式)</string>
     <string name="export_newpipe_subs_desc">NewPipe JSON ファイル。 NewPipe で、以前のエクスポートからインポートを使用します。</string>
-    <string name="export_newpipe_subs_success">NewPipe サブスクリプションは正常にエクスポートされました</string>
-    <string name="export_newpipe_subs_failed">NewPipe サブスクリプションのエクスポートに失敗しました</string>
+    <string name="export_newpipe_subs_success">NewPipe 登録チャンネルは正常にエクスポートされました</string>
+    <string name="export_newpipe_subs_failed">NewPipe 登録チャンネルのエクスポートに失敗しました</string>
     <plurals name="export_newpipe_subs_skipped">
         <item quantity="other">エクスポートされましたが、チャンネル ID のない %1$d 個のチャンネルが除外されました</item>
     </plurals>
     <string name="backup_busy">別のインポートまたはエクスポートがまだ実行中です</string>
     <string name="export_app_data_title">アプリデータのバックアップ</string>
-    <string name="export_app_data_desc">サブスクリプション、視聴履歴、プレイリスト、設定をエクスポートします</string>
+    <string name="export_app_data_desc">登録チャンネル、視聴履歴、再生リスト、設定をエクスポートします</string>
     <string name="error_age_restricted">年齢制限のあるコンテンツ</string>
     <string name="error_age_restricted_hint">このビデオは、年齢確認済みのサインイン ユーザーのみが視聴できます。</string>
     <string name="error_private_video_hint">この動画の所有者は非公開に設定しています。</string>
@@ -2952,7 +2952,7 @@
     <string name="diagnostics_profile_add">プロファイルを追加</string>
     <string name="diagnostics_profile_add_copy">このプロファイルのコピーを追加</string>
     <string name="diagnostics_profile_photo">このプロファイルに写真を使用してください</string>
-    <string name="diagnostics_profile_add_copy_summary">設定、サブスクリプション、推奨事項</string>
+    <string name="diagnostics_profile_add_copy_summary">設定、登録チャンネル、おすすめ</string>
     <string name="diagnostics_profile_new_name">プロファイル %1$d</string>
     <string name="diagnostics_profile_delete">プロファイルの削除</string>
     <string name="diagnostics_profile_delete_title">%1$s を削除しますか?</string>
@@ -2986,7 +2986,7 @@
     <string name="profiles_rename">名前の変更</string>
     <string name="profiles_delete">消去</string>
     <string name="profiles_delete_title">%1$s を削除しますか?</string>
-    <string name="profiles_delete_body">履歴、サブスクリプション、プレイリスト、メモ、おすすめがこのデバイスから削除されます。ダウンロードはそのまま残ります。これを元に戻すことはできません。</string>
+    <string name="profiles_delete_body">履歴、登録チャンネル、再生リスト、メモ、おすすめがこのデバイスから削除されます。ダウンロードはそのまま残ります。これを元に戻すことはできません。</string>
     <string name="profiles_deleted">プロファイルが削除されました</string>
     <string name="profiles_name">名前</string>
     <string name="profiles_name_taken">別のプロファイルがすでにこの名前を持っています</string>
@@ -3009,7 +3009,7 @@
     <string name="profiles_copy_settings_summary">テーマ、再生、アプリの設定</string>
     <string name="profiles_copy_subscriptions">登録チャンネル</string>
     <string name="profiles_copy_subscriptions_summary">チャンネルとチャンネルグループ</string>
-    <string name="profiles_copy_recommendations">推奨事項</string>
+    <string name="profiles_copy_recommendations">おすすめ</string>
     <string name="profiles_copy_recommendations_summary">Flow があなたの好みについて学んだこと</string>
     <string name="profiles_create_and_switch">作成して切り替える</string>
     <string name="profiles_create">プロファイルの作成</string>
@@ -3030,12 +3030,12 @@
     <string name="diagnostics_no_session_logs">このセッションには警告やエラーはありません。</string>
     <string name="diagnostics_loading">ログを読んでいます…</string>
     <string name="diagnostics_copied">レポートをクリップボードにコピーしました</string>
-    <string name="add_all_to_playlist">プレイリストに追加する</string>
+    <string name="add_all_to_playlist">再生リストに追加する</string>
     <string name="merge_playlist_dialog_title">すべての曲を…に追加します</string>
     <plurals name="merge_playlist_success">
         <item quantity="other">「%2$s」に %1$d 曲を追加しました</item>
     </plurals>
-    <string name="merge_playlist_no_playlists">プレイリストはまだありません。まず作成してください。</string>
+    <string name="merge_playlist_no_playlists">再生リストはまだありません。まず作成してください。</string>
     <string name="profile_export_success">プロファイルは正常にエクスポートされました</string>
     <string name="profile_export_failed">エクスポートに失敗しました</string>
     <string name="profile_import_success">プロファイルは正常にインポートされました</string>
@@ -3119,7 +3119,7 @@
     <string name="blocked_item_unblock_channel">チャンネルのブロックを解除する</string>
     <string name="blocked_item_showing_count">%1$d/%2$d を表示中</string>
     <string name="profile_data_title">プロファイルデータ</string>
-    <string name="profile_data_subtitle">ローカル推奨プロファイルのバックアップ、復元、またはリセット</string>
+    <string name="profile_data_subtitle">ローカルおすすめプロファイルのバックアップ、復元、またはリセット</string>
     <string name="profile_action_export">プロファイルのエクスポート</string>
     <string name="profile_action_export_detail">現在のプロファイルを JSON として保存します</string>
     <string name="profile_action_import">プロファイルのインポート</string>
@@ -3127,7 +3127,7 @@
     <string name="profile_action_reset">プロファイルをリセット</string>
     <string name="profile_action_reset_detail">学習した設定を消去して最初からやり直す</string>
     <string name="reset_profile_dialog_title">プロファイルをリセットしますか?</string>
-    <string name="reset_profile_dialog_message">これにより、ローカル推奨プロファイルがクリアされ、再びゼロから学習が開始されます。</string>
+    <string name="reset_profile_dialog_message">これにより、ローカルおすすめプロファイルがクリアされ、再びゼロから学習が開始されます。</string>
     <string name="reset_profile_confirm">リセット</string>
     <string name="taste_chart_profile">プロファイル</string>
     <string name="taste_chart_now">今</string>
@@ -3196,12 +3196,12 @@
     <string name="discord_presence_disconnect">切断とリンク解除</string>
     <string name="discord_presence_unlink_action">リンクを解除する</string>
     <string name="discord_presence_retry">接続を再試行します</string>
-    <string name="discord_presence_description">Discord のステータスとしてプレイ内容を表示します。</string>
+    <string name="discord_presence_description">Discord のステータスとして再生内容を表示します。</string>
     <string name="discord_presence_connection_section">繋がり</string>
     <string name="discord_presence_account">Discordアカウント</string>
     <string name="discord_presence_privacy_section">プライバシーとアカウントのリスク</string>
     <string name="discord_presence_privacy_title">プライバシー</string>
-    <string name="discord_presence_privacy_body">Flow は、タイトル、作成者、アートワーク、プレイの進行状況を共有します。デフォルトではオフです。 Discord トークンは暗号化され、ログに記録されることはありません。</string>
+    <string name="discord_presence_privacy_body">Flow は、タイトル、作成者、アートワーク、再生の進行状況を共有します。デフォルトではオフです。 Discord トークンは暗号化され、ログに記録されることはありません。</string>
     <string name="discord_presence_gateway_warning">これは、公式ログインの代わりに Discord トークンを使用してサインインします。 Discordの利用規約に違反し、アカウントが制限されたり禁止されたりする可能性があります。</string>
     <string name="discord_presence_risk_dialog_title">Discord アカウントのリスクを受け入れますか?</string>
     <string name="discord_presence_risk_dialog_body">接続すると、Flow に Discord トークンが付与されます。このデバイス上では暗号化されたままとなり、Discord にのみ送信されます。この方法は Discord の利用規約に違反するため、アカウントが制限されたり禁止されたりする可能性があります。</string>
@@ -3223,7 +3223,7 @@
     <string name="discord_error_heartbeat_unacknowledged">Discord Gateway のハートビートが認識されませんでした。</string>
     <string name="discord_error_heartbeat_failed">Discord ゲートウェイのハートビートが失敗しました。</string>
     <string name="discord_account_fallback">Discordユーザー</string>
-    <string name="discord_presence_playing_fallback">Flowでプレイしています</string>
+    <string name="discord_presence_playing_fallback">Flowで再生中</string>
     <string name="discord_presence_by_creator">%1$s によって</string>
     <string name="settings_item_interface_mode">インターフェースモード</string>
     <string name="settings_item_interface_mode_subtitle">自動、モバイル、または TV レイアウトを選択します</string>
@@ -3267,7 +3267,7 @@
     <string name="tv_guide_player_down">トランスポート コントロールを表示し、再生/一時停止にフォーカスします。</string>
     <string name="tv_guide_player_media">再生、一時停止、前へ、次へ、巻き戻し、早送り、およびキャプション キーは直接機能します。</string>
     <string name="tv_guide_player_back">まずパネルまたはコントロールを閉じてください。もう一度押すとプレーヤーを終了します。</string>
-    <string name="widget_now_playing_label">プレイ中</string>
+    <string name="widget_now_playing_label">再生中</string>
     <string name="widget_now_playing_description">Flow で再生中の音楽を制御します</string>
     <string name="widget_quick_actions_label">クイックアクション</string>
     <string name="widget_quick_actions_description">Flow を検索し、ダウンロード、履歴、または認識にジャンプします</string>
@@ -3310,10 +3310,10 @@
     <string name="widget_open_music">オープンミュージック</string>
     <string name="widget_config_shortcuts">ショートカット</string>
     <string name="widget_config_shortcuts_footer">最大 4 つまで選択してください。検索は常に存在します。</string>
-    <string name="widget_playlist_label">プレイリスト</string>
-    <string name="widget_playlist_description">後で見るか任意のプレイリストをタップして再生から開始</string>
-    <string name="widget_choose_playlist">プレイリストを選択してください</string>
-    <string name="widget_config_playlist">あなたのプレイリスト</string>
+    <string name="widget_playlist_label">再生リスト</string>
+    <string name="widget_playlist_description">後で見るか任意の再生リストをタップして再生から開始</string>
+    <string name="widget_choose_playlist">再生リストを選択してください</string>
+    <string name="widget_config_playlist">あなたの再生リスト</string>
     <string name="widget_playlist_empty">ここにはまだ何もありません</string>
     <string name="widget_refresh">更新</string>
     <plurals name="widget_playlist_songs">
@@ -3352,10 +3352,10 @@
     <string name="ui_save_to_library">ライブラリに保存</string>
     <string name="ui_remove_from_library">ライブラリから削除</string>
     <string name="ui_clear">クリア</string>
-    <string name="ui_delete_from_playlist">プレイリストから削除</string>
+    <string name="ui_delete_from_playlist">再生リストから削除</string>
     <string name="ui_added">追加した</string>
     <string name="ui_sync_lyrics">歌詞を同期する</string>
-    <string name="ui_downloading_playlist">プレイリストをダウンロード中</string>
+    <string name="ui_downloading_playlist">再生リストをダウンロード中</string>
     <string name="ui_no_songs_found">曲が見つかりませんでした</string>
     <string name="ui_search_songs_to_add">追加する曲を検索…</string>
     <string name="ui_add_songs_to_playlist">プレイリストに曲を追加する</string>
@@ -3389,12 +3389,12 @@
     <string name="ui_version">バージョン %1$s</string>
     <string name="update_download_prompt">新しいバージョンの Flow が利用可能です (%1$s)。最新のAPKをダウンロードしますか?</string>
     <string name="ui_instrumental">インストール</string>
-    <string name="ui_playlist_empty">プレイリストが空です</string>
+    <string name="ui_playlist_empty">再生リストが空です</string>
     <plurals name="ui_downloading_videos">
         <item quantity="other">%1$d 個の動画をダウンロードしています…</item>
     </plurals>
-    <string name="ui_playlist_saved_to_library">プレイリストをライブラリに保存しました</string>
-    <string name="ui_playlist_removed_from_library">プレイリストがライブラリから削除されました</string>
+    <string name="ui_playlist_saved_to_library">再生リストをライブラリに保存しました</string>
+    <string name="ui_playlist_removed_from_library">再生リストがライブラリから削除されました</string>
     <string name="ui_download_audio">オーディオのダウンロード: %1$skbps %2$s</string>
     <string name="audio_track_original">オリジナル</string>
     <string name="audio_track_dubbed">吹き替え</string>
@@ -3409,8 +3409,8 @@
     </plurals>
     <string name="ui_started_download">ダウンロードを開始しました: %1$s</string>
     <string name="ui_download_start_failed">ダウンロードを開始できませんでした: %1$s</string>
-    <string name="toast_unsubscribed_from">%1$s の購読を解除しました</string>
-    <string name="toast_subscribed_to">%1$s を購読しました</string>
+    <string name="toast_unsubscribed_from">%1$s の登録を解除しました</string>
+    <string name="toast_subscribed_to">%1$s を登録しました</string>
     <string name="toast_removed_from_watch_later">後で見るから削除されました</string>
     <string name="toast_added_to_watch_later">後で見るに追加</string>
     <string name="toast_fetching_download_links">ダウンロードリンクを取得中…</string>
@@ -3421,29 +3421,29 @@
     <string name="toast_no_download_source">利用可能なダウンロードソースがありません</string>
     <string name="toast_sabr_download_failed">SABR ダウンロードに失敗しました: %1$s</string>
     <string name="toast_copied_to_clipboard">クリップボードにコピーされました</string>
-    <string name="toast_playlist_deleted">プレイリストが削除されました</string>
-    <string name="toast_playlist_renamed">プレイリストの名前が変更されました</string>
+    <string name="toast_playlist_deleted">再生リストが削除されました</string>
+    <string name="toast_playlist_renamed">再生リストの名前が変更されました</string>
     <string name="toast_starting_playlist_download">%1$s のダウンロードを開始しています…</string>
     <plurals name="toast_downloaded_tracks_from_playlist">
         <item quantity="other">%2$s から %1$d トラックをダウンロードしました</item>
     </plurals>
-    <string name="toast_failed_to_download_playlist">プレイリストのダウンロードに失敗しました</string>
-    <string name="toast_error_downloading_playlist">プレイリストのダウンロード中にエラーが発生しました</string>
+    <string name="toast_failed_to_download_playlist">再生リストのダウンロードに失敗しました</string>
+    <string name="toast_error_downloading_playlist">再生リストのダウンロード中にエラーが発生しました</string>
     <plurals name="toast_downloaded_tracks">
         <item quantity="other">%1$d トラックをダウンロードしました</item>
     </plurals>
-    <string name="toast_added_to_playlist">プレイリストに追加されました</string>
+    <string name="toast_added_to_playlist">再生リストに追加されました</string>
     <string name="toast_failed_to_add_track">トラックの追加に失敗しました</string>
-    <string name="toast_removed_from_playlist">プレイリストから削除されました</string>
+    <string name="toast_removed_from_playlist">再生リストから削除されました</string>
     <string name="toast_failed_to_remove_track">トラックの削除に失敗しました</string>
     <string name="toast_saved_playlist_to_music_library">プレイリストが音楽ライブラリに保存されました</string>
     <string name="playlist_move_to_music">音楽に移動</string>
     <string name="playlist_move_to_videos">動画へ移動</string>
     <string name="playlist_moved_to_music">音楽に移りました</string>
     <string name="playlist_moved_to_videos">動画に移動しました</string>
-    <string name="toast_failed_to_save_playlist">プレイリストの保存に失敗しました</string>
-    <string name="toast_removed_playlist_from_library">プレイリストがライブラリから削除されました</string>
-    <string name="toast_failed_to_merge_playlist">プレイリストの結合に失敗しました</string>
+    <string name="toast_failed_to_save_playlist">再生リストの保存に失敗しました</string>
+    <string name="toast_removed_playlist_from_library">再生リストがライブラリから削除されました</string>
+    <string name="toast_failed_to_merge_playlist">再生リストの結合に失敗しました</string>
     <string name="notification_importing">%1$s をインポートしています</string>
     <string name="notification_import_complete">インポートが完了しました</string>
     <string name="notification_imported">インポート済み %1$d %2$s</string>
@@ -3463,14 +3463,14 @@
     <string name="notification_more">+%1$d 詳細</string>
     <string name="notification_new_videos">新しい動画</string>
     <plurals name="notification_new_videos_from_subscriptions">
-        <item quantity="other">サブスクリプションからの新しい動画 %1$d</item>
+        <item quantity="other">登録チャンネルからの新しい動画 %1$d</item>
     </plurals>
     <string name="notification_update_available">利用可能なアップデート: %1$s</string>
     <string name="notification_tap_to_update">タップして最新バージョンに更新します。</string>
     <string name="update_downloading_notification">Flow %1$s をダウンロードしています</string>
     <string name="update_ready_notification">Flow %1$s の準備ができました</string>
     <string name="update_ready_notification_text">完了しました。タップしてインストールします。</string>
-    <string name="update_title">Flow %1$s が来ました</string>
+    <string name="update_title">Flow %1$s アップデート</string>
     <string name="update_version_change">%1$s → %2$s</string>
     <string name="update_not_now">今はしない</string>
     <string name="update_skip_version">このバージョンをスキップする</string>
@@ -3499,7 +3499,7 @@
     <string name="notification_channel_general_description">一般的なアプリの通知</string>
     <string name="notification_channel_break_reminders_description">就寝時間と休憩のリマインダー</string>
     <string name="notification_channel_updates_description">アプリのアップデート通知</string>
-    <string name="notification_channel_import_description">定期購入または視聴履歴のインポート中の進行状況を表示します</string>
+    <string name="notification_channel_import_description">登録チャンネルまたは視聴履歴のインポート中の進行状況を表示します</string>
     <string name="notification_channel_downloads">ダウンロード</string>
     <string name="notification_channel_new_videos">新しい動画</string>
     <string name="notification_channel_video_playback">ビデオの再生</string>
@@ -3520,13 +3520,13 @@
     <string name="error_failed_to_load_more_shorts">さらにショートを読み込めませんでした</string>
     <string name="error_search_timed_out">検索がタイムアウトしました</string>
     <string name="error_filter_search_timed_out">フィルター検索がタイムアウトしました</string>
-    <string name="error_failed_to_load_playlist">プレイリストの読み込みに失敗しました</string>
+    <string name="error_failed_to_load_playlist">再生リストの読み込みに失敗しました</string>
     <string name="error_failed_to_load_artist">このアーティストを読み込めませんでした</string>
     <string name="error_failed_to_load_content">コンテンツのロードに失敗しました</string>
     <string name="error_no_videos_found">動画が見つかりませんでした</string>
     <string name="error_no_shorts_found">Shorts が見つかりません</string>
     <string name="error_no_live_videos_found">ライブビデオが見つかりません</string>
-    <string name="error_no_playlists_found">プレイリストが見つかりません</string>
+    <string name="error_no_playlists_found">再生リストが見つかりません</string>
     <string name="error_unable_to_load_next_video">次のビデオを読み込めません</string>
     <string name="error_unable_to_play_quality_options">再生できません - すべての品質オプションが失敗しました</string>
     <string name="error_all_stream_sources_failed">このビデオを再生できません。すべてのストリーム ソースがエラーを返しました。</string>
@@ -3537,7 +3537,7 @@
     <string name="local_sort_name">名前</string>
     <string name="local_sort_length">長さ</string>
     <string name="local_sort_size">サイズ</string>
-    <string name="local_sort_recently_played">最近プレイした</string>
+    <string name="local_sort_recently_played">最近再生した</string>
     <string name="local_filter_length_any">任意の長さ</string>
     <string name="local_filter_length_short">4分未満</string>
     <string name="local_filter_length_medium">4～20分</string>
@@ -3621,8 +3621,8 @@
     <string name="downloads_section_in_progress">進行中</string>
     <string name="download_bytes_progress">%1$s/%2$s</string>
     <string name="downloads_no_results">%1$s に一致するダウンロードはありません</string>
-    <string name="playlist_type_builtin">内蔵プレイリスト</string>
-    <string name="playlist_type_yours">あなたのプレイリスト</string>
+    <string name="playlist_type_builtin">内蔵の再生リスト</string>
+    <string name="playlist_type_yours">あなたの再生リスト</string>
     <string name="playlist_type_saved">保存元： YouTube</string>
     <plurals name="playlist_videos_removed">
         <item quantity="other">%1$d 個の動画を削除しました</item>
@@ -3651,7 +3651,7 @@
     <string name="downloads_collections_title">プレイリストとアルバム</string>
     <string name="download_collection_progress">%1$d/%2$d がダウンロードされました</string>
     <string name="download_collection_remove_title">%1$s を削除しますか?</string>
-    <string name="download_collection_remove_body">別のダウンロードされたプレイリストに保持されていない限り、そのダウンロードも削除されます。</string>
+    <string name="download_collection_remove_body">別のダウンロードされた再生リストに保持されていない限り、そのダウンロードも削除されます。</string>
     <string name="download_collection_delete_files">ダウンロードを削除する</string>
     <string name="download_collection_keep_files">ファイルを保持する</string>
     <string name="download_merging_audio_video">オーディオとビデオを結合しています…</string>
@@ -3665,7 +3665,7 @@
     <string name="download_failed_audio_length">音声コンテンツの長さを取得できませんでした</string>
     <string name="download_workers_failed">1 つ以上のワーカーが失敗しました</string>
     <string name="download_block_failed">%1$s のブロックに失敗しました: %2$s</string>
-    <string name="import_migrate_description">サブスクリプションと履歴を他のプラットフォームから Flow にシームレスに移行します。</string>
+    <string name="import_migrate_description">登録チャンネルと履歴を他のプラットフォームから Flow にシームレスに移行します。</string>
     <string name="import_backup_restore">バックアップと復元</string>
     <string name="import_manage_backups">Flow バックアップを管理する</string>
     <string name="import_external_services">外部サービス</string>
@@ -3673,7 +3673,7 @@
     <string name="imported_successfully">%1$s は正常にインポートされました</string>
     <string name="importing_label">%1$s をインポートしています…</string>
     <string name="imported_from_google_takeout">Google Takeout からインポート</string>
-    <string name="imported_playlist_fallback">インポートされたプレイリスト</string>
+    <string name="imported_playlist_fallback">インポートされた再生リスト</string>
     <string name="fallback_playing">遊んでいます…</string>
     <string name="empty_saved_shorts">保存されたショート動画はまだありません</string>
     <string name="settings_search_no_results">「%1$s」の設定が見つかりません</string>
@@ -3681,7 +3681,7 @@
     <string name="import_running_background">この画面から離れても構いません。インポートは実行を続けます。</string>
     <string name="donations_cryptocurrency">暗号通貨</string>
     <string name="import_no_history_entries">ファイル内に視聴履歴エントリが見つかりません</string>
-    <string name="import_no_videos">プレイリスト ファイルにビデオが見つかりません</string>
+    <string name="import_no_videos">再生リスト ファイルに動画が見つかりません</string>
     <string name="import_no_likes">「いいね！」は見つかりませんでした。英語の Google アカウントを使用して、YouTube のマイ アクティビティを JSON としてエクスポートします。</string>
     <string name="import_no_content">このバックアップにはインポート可能なコンテンツが見つかりません</string>
     <string name="import_invalid_format">認識できないバックアップ形式 - 正しいファイルを選択していることを確認してください</string>
@@ -3695,7 +3695,7 @@
     <string name="duration_minutes_short">%1$dm</string>
     <string name="fallback_unknown_title">タイトル不明</string>
     <string name="fallback_unknown_channel">不明なチャンネル</string>
-    <string name="fallback_unknown_playlist">不明なプレイリスト</string>
+    <string name="fallback_unknown_playlist">不明な再生リスト</string>
     <string name="fallback_unknown_artist">不明なアーティスト</string>
     <string name="fallback_unknown_album">未知のアルバム</string>
     <string name="fallback_unknown_video">不明なビデオ</string>
@@ -3707,7 +3707,7 @@
     <string name="fallback_more_results">他の結果</string>
     <string name="remove_from_queue">キューから削除</string>
     <string name="removed_from_queue">キューから削除されました</string>
-    <string name="queue_after_this_template">この後%1$s</string>
+    <string name="queue_after_this_template">この動画の後 %1$s</string>
     <string name="reorder_queue_item">キューアイテムを並べ替える</string>
     <string name="music_search_no_results">\"%1$s\" の結果はありません</string>
     <plurals name="chapters_count_template">
@@ -3732,7 +3732,7 @@
     <string name="settings_language_region_summary">アプリの言語、コンテンツの言語、国</string>
     <string name="settings_playback_summary">自動再生、ジェスチャー、キャプション、プレーヤー ボタン</string>
     <string name="settings_quality_summary">ビデオ、Shorts、音楽の品質</string>
-    <string name="settings_content_summary">ホーム、サブスクリプション、Shorts、メモ</string>
+    <string name="settings_content_summary">ホーム、登録チャンネル、Shorts、メモ</string>
     <string name="settings_topics_summary">フォローするトピックと非表示にするトピック</string>
     <string name="settings_integrations_summary">SponsorBlock、DeArrow、低評価など</string>
     <string name="settings_backup_summary">エクスポート、インポート、自動バックアップ</string>
@@ -3755,7 +3755,7 @@
     <string name="font_preview_glyphs">ああ</string>
     <string name="font_preview_title">深夜のローファイミックス</string>
     <string name="font_preview_body">240 万回の再生 · 3 週間前</string>
-    <string name="font_preview_label">プレイ中</string>
+    <string name="font_preview_label">再生中</string>
     <string name="font_imported">現在は %1$s を使用しています</string>
     <string name="font_import_not_font">.ttf または .otf ファイルを選択してください</string>
     <string name="font_import_too_large">フォント ファイルは最大 %1$d MB まで可能です</string>
@@ -3794,8 +3794,8 @@
     <string name="settings_section_video_player">ビデオプレーヤー</string>
     <string name="settings_section_mini_player">ミニプレーヤー</string>
     <string name="settings_seekbar_custom_width">カスタム幅</string>
-    <string name="settings_content_language_summary">タイトル、トレンド、推奨事項の言語</string>
-    <string name="settings_content_country_summary">トレンド、チャート、推奨事項に使用される国</string>
+    <string name="settings_content_language_summary">タイトル、トレンド、おすすめの言語</string>
+    <string name="settings_content_country_summary">トレンド、チャート、おすすめに使用される国</string>
     <string name="settings_keywords_region">トレンドの地域、国、場所、チャート</string>
     <string name="settings_keywords_language">ロケール、翻訳、タイトル</string>
     <string name="settings_original_titles">オリジナルタイトル</string>
@@ -3859,16 +3859,16 @@
     <string name="content_settings_shared_links_title">共有リンク</string>
     <string name="content_settings_shared_links_subtitle">Flow に共有されたビデオの動作</string>
     <string name="content_settings_shared_links_dialog_body">他のアプリでタップしたリンクは常に再生されます。</string>
-    <string name="content_settings_shared_links_play">すぐにプレイ</string>
+    <string name="content_settings_shared_links_play">すぐに再生</string>
     <string name="content_settings_shared_links_ask_while_playing">何かが再生されている間に質問する</string>
     <string name="content_settings_shared_links_always_ask">常に尋ねてください</string>
-    <string name="shared_link_play_now">今すぐプレイ</string>
+    <string name="shared_link_play_now">今すぐ再生</string>
     <string name="shared_link_play_now_desc">再生中のものを置き換えます</string>
     <string name="settings_keywords_hide_watched">見た、すでに見た、フィルター</string>
     <string name="settings_topics_tab_interests">興味がある</string>
     <string name="settings_topics_tab_blocked">ブロック</string>
     <string name="settings_topics_your_topics">あなたのトピック</string>
-    <string name="settings_keywords_topics">興味がある、興味がない、非表示、ブロック、ミュート、推奨</string>
+    <string name="settings_keywords_topics">興味がある、興味がない、非表示、ブロック、ミュート、おすすめ</string>
     <string name="settings_keywords_sponsorblock">スポンサー、広告、セグメント、イントロ、アウトロをスキップします</string>
     <string name="settings_keywords_dearrow">クリックベイト、タイトル、サムネイル</string>
     <string name="settings_keywords_discord">豊富なプレゼンス、再生中、ステータス</string>
@@ -3928,7 +3928,7 @@
     <string name="settings_diagnostics_reset_summary">動画が停止したり再生されない場合はこれをお試しください</string>
     <string name="settings_section_home_snapshots">ホームスナップショット</string>
     <string name="diagnostics_record_home_snapshots">ホームスナップショットを記録する</string>
-    <string name="settings_diagnostics_record_snapshots_summary">推奨レポートのために、このデバイスに最近 3 件のホーム ロードを保存します</string>
+    <string name="settings_diagnostics_record_snapshots_summary">おすすめレポートのために、このデバイスに最近 3 件のホーム ロードを保存します</string>
     <string name="diagnostics_export_home_snapshot">最新のスナップショットをエクスポートする</string>
     <string name="settings_diagnostics_export_snapshot_summary">視聴履歴のタイトルが含まれます</string>
     <string name="diagnostics_no_home_snapshot">最初に録画をオンにしてホームを開く</string>
@@ -4025,7 +4025,7 @@
     <string name="settings_custom_theme_export_failed">テーマを保存できませんでした</string>
     <string name="taste_title">あなたの好み</string>
     <string name="taste_summary">Flow はあなたをどのように見ているか、そしてあなたのフィードをどのように形作っているのか</string>
-    <string name="taste_keywords">ペルソナ、プロファイル、アルゴリズム、推奨事項、興味、脳、エンジン、コントロール センター</string>
+    <string name="taste_keywords">ペルソナ、プロファイル、アルゴリズム、おすすめ、興味、脳、エンジン、コントロール センター</string>
     <string name="taste_card_hint">Flow があなたをどのように見ているかを確認してください</string>
     <string name="taste_card_loading">プロファイルを読む</string>
     <string name="taste_shape_header">味の形</string>
@@ -4069,7 +4069,7 @@
     <string name="taste_export_music">音楽プロファイルをエクスポートする</string>
     <string name="taste_import_music">音楽プロファイルをインポートする</string>
     <string name="taste_reset_music">音楽プロファイルをリセットする</string>
-    <string name="taste_reset_video_body">Flow はビデオや検索から学んだことを忘れてしまいます。履歴、いいね、プレイリスト、非表示のアイテムは残り、ホームでは引き続き使用されます。</string>
+    <string name="taste_reset_video_body">Flow はビデオや検索から学んだことを忘れてしまいます。履歴、いいね、再生リスト、非表示のアイテムは残り、ホームでは引き続き使用されます。</string>
     <string name="taste_reset_music_title">音楽プロファイルをリセットしますか?</string>
     <string name="taste_reset_music_body">これにより、Flow が音楽から学んだ内容がクリアされ、再びゼロから始まります。あなたのハイライトは残ります。</string>
     <string name="taste_trait_now">現在は %1$s</string>
@@ -4212,17 +4212,17 @@
     <string name="recap_summary_top_channel">トップチャンネル</string>
     <string name="recap_summary_top_artist">トップアーティスト</string>
     <string name="recap_summary_top_topic">トップトピック</string>
-    <string name="search_in_playlist">プレイリスト内を検索</string>
+    <string name="search_in_playlist">再生リスト内を検索</string>
     <string name="playlist_search_no_results">「%1$s」に一致する動画はありません</string>
     <string name="export_playlist_action">ファイルとして保存</string>
     <string name="import_playlist_action">ファイルからインポート</string>
-    <string name="imported_playlist_default_name">インポートされたプレイリスト</string>
-    <string name="playlist_exported">プレイリストを保存しました</string>
-    <string name="playlist_export_failed">プレイリストを保存できませんでした</string>
-    <string name="playlist_share_failed">プレイリストを共有できませんでした</string>
-    <string name="playlist_import_not_a_playlist">このファイルは Flow プレイリストではありません</string>
-    <string name="playlist_import_too_new">このプレイリストには新しいバージョンの Flow が必要です</string>
-    <string name="playlist_import_empty">このプレイリストにはインポートする動画がありません</string>
+    <string name="imported_playlist_default_name">インポートされた再生リスト</string>
+    <string name="playlist_exported">再生リストを保存しました</string>
+    <string name="playlist_export_failed">再生リストを保存できませんでした</string>
+    <string name="playlist_share_failed">再生リストを共有できませんでした</string>
+    <string name="playlist_import_not_a_playlist">このファイルは Flow 再生リストではありません</string>
+    <string name="playlist_import_too_new">この再生リストには新しいバージョンの Flow が必要です</string>
+    <string name="playlist_import_empty">この再生リストにはインポートする動画がありません</string>
     <string name="playlist_import_unreadable">このファイルを読み取れませんでした</string>
     <plurals name="playlist_imported">
         <item quantity="other">%1$s、%2$d 個のビデオをインポートしました</item>
@@ -4270,7 +4270,7 @@
         <item quantity="other">%d 曲がダウンロード待ちになっています</item>
     </plurals>
     <string name="songs_download_nothing_new">ここにあるものはすべてすでにダウンロードされているか、利用できません</string>
-    <string name="save_as_playlist">プレイリストとして保存</string>
+    <string name="save_as_playlist">再生リストとして保存</string>
     <string name="daily_mix_saved_as_playlist">%1$s をプレイリストに保存しました</string>
     <string name="home_reason_channel_memory">視聴しているチャンネルから</string>
     <string name="details_why_shown">おすすめの理由</string>
@@ -4284,7 +4284,7 @@
     <string name="home_origin_neighbour_unnamed">あなたがフォローしているようなチャンネル</string>
     <string name="home_origin_neighbour_pair">%1$s および %2$s</string>
     <string name="taste_remembered_header">ずっと見ているチャンネル</string>
-    <string name="taste_remembered_footer">これらのチャンネルからの新しいアップロードが時々ホームに表示されます。チャンネルを購読または削除すると、そのチャンネルはこのリストから削除されます。</string>
+    <string name="taste_remembered_footer">これらのチャンネルからの新しいアップロードが時々ホームに表示されます。チャンネルを登録または削除すると、そのチャンネルはこのリストから削除されます。</string>
     <string name="taste_remembered_empty">登録せずにチャンネルを数回視聴すると、ここに表示されます。</string>
     <string name="taste_remembered_remove">取り除く</string>
     <string name="taste_remembered_remove_item">%1$s を削除します</string>
@@ -4304,20 +4304,20 @@
     <string name="home_theme_howto">ハウツー＆スタイル</string>
     <string name="home_theme_nonprofits">非営利団体</string>
     <string name="home_chip_description">ホームに %1$s を表示</string>
-    <string name="home_chip_empty_title">今ここには何もない</string>
-    <string name="home_chip_empty_body">後でもう一度見るには下にプルします。</string>
+    <string name="home_chip_empty_title">今ここには何もありません</string>
+    <string name="home_chip_empty_body">下にスワイプして後でもう一度確認してください。</string>
     <string name="home_chip_failed">現在これを読み込めませんでした。</string>
     <string name="home_mix_title">ミックス - %1$s</string>
-    <string name="library_video_playlists">ビデオプレイリスト</string>
+    <string name="library_video_playlists">動画の再生リスト</string>
     <string name="library_music_playlists">音楽プレイリスト</string>
     <string name="playlists_sort_newest">最新</string>
     <string name="playlists_sort_oldest">最古の</string>
     <string name="playlists_sort_name">名前</string>
     <string name="playlists_sort_custom">カスタムオーダー</string>
-    <string name="playlists_reorder">プレイリストを並べ替える</string>
+    <string name="playlists_reorder">再生リストを並べ替える</string>
     <string name="playlists_show_list">リストとして表示</string>
     <string name="playlists_show_grid">グリッドとして表示</string>
-    <string name="settings_separate_playlists_title">ビデオと音楽の個別のプレイリスト</string>
+    <string name="settings_separate_playlists_title">動画と音楽の個別の再生リスト</string>
     <string name="settings_separate_playlists_summary">ライブラリ内の 2 つのエントリとして表示します</string>
     <string name="music_home_your_playlists">あなたのプレイリスト</string>
     <string name="settings_music_normal_speed_title">通常の速度で音楽を再生する</string>
@@ -4428,4 +4428,5 @@
     <string name="settings_security_title">セキュリティ</string>
     <string name="settings_security_summary">アプリのロック</string>
     <string name="settings_keywords_security">アプリのロック、プライバシー、パスワード、PIN、パターン、指紋認証、顔認証、最近のアプリ</string>
+    <string name="subscriptions_sort_most_watched">最も多く視聴</string>
 </resources>
