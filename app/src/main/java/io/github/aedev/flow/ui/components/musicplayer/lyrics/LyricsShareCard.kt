@@ -21,10 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -75,6 +78,16 @@ internal fun lyricsCardColors(
         LyricsCardStyle.TERTIARY_CONTAINER -> LyricsCardColors(scheme.tertiaryContainer, scheme.onTertiaryContainer)
     }
 }
+
+/** [base] set the way the lyrics screen sets a line: the app font, bold, untracked and unpadded. */
+@Composable
+internal fun lyricsShareLineStyle(base: TextStyle): TextStyle =
+    base.copy(
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.sp,
+        fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+    )
 
 /** The card that gets shared: the song, the chosen lines and the Flow mark, on one flat colour. */
 @Composable
@@ -135,8 +148,7 @@ internal fun LyricsShareCard(
             Text(
                 text = line,
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                style = lyricsShareLineStyle(MaterialTheme.typography.headlineSmall),
                 color = colors.ink,
                 textAlign = textAlign,
             )

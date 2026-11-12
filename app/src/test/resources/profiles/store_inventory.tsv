@@ -92,7 +92,7 @@ files_dir	local_subtitles.json	main:data/localmedia/LocalSubtitleStore.kt	DEVICE
 files_dir	fake_stream_wall, fake_stream_wall_all	main:player/datasource/FakeStreamWallDataSource.kt	DEVICE	-	Debug switch files.
 no_backup_dir	headphone_resume_off	main:service/HeadphoneResume.kt	DEVICE	-	Player control; written during a switch so no headset resumes.
 cache_dir	innertube_http_cache/	main:FlowApplication.kt	CACHE	-	Deleted at switch: suggestion and sw.js_data GETs might be stored.
-cache_dir	recap/	main:ui/screens/recap/story/RecapShare.kt	CACHE	-	Share images from the active profile; deleted at switch.
+cache_dir	recap/, lyrics/	main:utils/SharedFiles.kt	CACHE	-	Share images from the active profile; deleted at switch.
 cache_dir	image_cache/	main:di/AppModule.kt	CACHE	-	Thumbnails; shared.
 cache_dir	http_cache/	main:di/NetworkModule.kt	CACHE	-	App OkHttp GET cache; shared.
 cache_dir	cipher/player.js	main:utils/cipher/CipherWebView.kt	CACHE	-	Player JS for the WebView; shared.
@@ -151,7 +151,7 @@ profile_file	music_home_cache_prefs	main:data/recommendation/MusicRecommendation
 files_dir	profile_settings/<id>/, profile_library/<id>/	main:data/profile/ProfileFolders.kt	PROFILE	settings	Deletes a removed profile's folders, and lists ids on disk after a restore.
 no_backup_dir	profiles/<id>/	main:data/profile/ProfileFolders.kt	PROFILE	private	Deletes a removed profile's private folder.
 profile_file	youtube_identity_<id>, music_home_cache_prefs_<id>	main:data/profile/ProfileFolders.kt	PROFILE	identity	A removed profile's SharedPreferences files, named the way ProfileFiles names them.
-cache_dir	innertube_http_cache/, recap/, playlists/	main:data/profile/AppProfileSwitchSteps.kt	CACHE	-	Deleted at a switch: search suggestions, visitor responses and share exports of the old profile.
+cache_dir	innertube_http_cache/, recap/, lyrics/, playlists/	main:data/profile/AppProfileSwitchSteps.kt	CACHE	-	Deleted at a switch: search suggestions, visitor responses and share exports of the old profile.
 profile_file	pending_restore.zip	main:FlowApplication.kt	PROFILE	private	A seed or restore waiting for the running profile, applied at start before the start destination is picked.
 profile_file	pending_restore.zip	main:data/profile/ProfileSlices.kt	PROFILE	private	The seed a new profile copies from the running one, written into the new profile's private folder.
 no_backup_dir	profiles/<id>/pending_restore.zip	main:data/profile/ProfileSlices.kt	PROFILE	private	A new profile's private folder, resolved by id before that profile ever runs.

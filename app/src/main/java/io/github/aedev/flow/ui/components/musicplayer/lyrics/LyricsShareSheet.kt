@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -25,14 +24,10 @@ import androidx.compose.material.icons.outlined.FormatAlignLeft
 import androidx.compose.material.icons.outlined.FormatAlignRight
 import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,9 +49,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.lyrics.LyricsEntry
+import io.github.aedev.flow.ui.components.shared.FlowActionButton
+import io.github.aedev.flow.ui.components.shared.FlowActionButtonPair
 import io.github.aedev.flow.ui.components.shared.FlowColorSwatch
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowModalSheetDefaults
+import io.github.aedev.flow.ui.components.shared.FlowPairAction
 import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.components.shared.rememberFlowSheetState
@@ -82,6 +80,7 @@ internal fun LyricsShareSheet(
     artworkUrl: String,
     lines: List<LyricsEntry>,
     positionProvider: () -> Long,
+    initialAlign: TextAlign,
     onDismiss: () -> Unit,
 ) {
     val texts = remember(lines) { shareableLyricLines(lines) }
@@ -108,7 +107,13 @@ internal fun LyricsShareSheet(
             showDragHandle = false,
         )
         if (styling) {
-            LyricsShareStyler(title = title, artist = artist, artworkUrl = artworkUrl, lines = selected.map { texts[it] })
+            LyricsShareStyler(
+                title = title,
+                artist = artist,
+                artworkUrl = artworkUrl,
+                lines = selected.map { texts[it] },
+                initialAlign = initialAlign,
+            )
         } else {
             LyricsSharePicker(
                 texts = texts,
@@ -157,17 +162,20 @@ private fun ColumnScope.LyricsSharePicker(
                         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_LINE_ALPHA)
                     },
             ) {
-                Text(text = text, modifier = Modifier.padding(LinePadding), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = text,
+                    modifier = Modifier.padding(LinePadding),
+                    style = lyricsShareLineStyle(MaterialTheme.typography.titleLarge),
+                )
             }
         }
     }
-    Button(
+    FlowActionButton(
+        text = stringResource(R.string.next),
         onClick = onNext,
         enabled = selected.isNotEmpty(),
         modifier = Modifier.fillMaxWidth().padding(horizontal = EdgePadding, vertical = ControlSpacing),
-    ) {
-        Text(stringResource(R.string.next))
-    }
+    )
 }
 
 @Composable
@@ -176,12 +184,13 @@ private fun ColumnScope.LyricsShareStyler(
     artist: String,
     artworkUrl: String,
     lines: List<String>,
+    initialAlign: TextAlign,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val palette = rememberMediaPalette(artworkUrl, animated = false, cacheOnly = true)
     var style by remember { mutableStateOf(LyricsCardStyle.ARTWORK) }
-    var align by remember { mutableStateOf(TextAlign.Start) }
+    var align by remember { mutableStateOf(initialAlign) }
     val layer = rememberGraphicsLayer()
     var pendingSave by remember { mutableStateOf<ImageBitmap?>(null) }
 
@@ -231,20 +240,24 @@ private fun ColumnScope.LyricsShareStyler(
     FlowConnectedToggleGroup(
         options =
             listOf(
-                FlowToggleOption(TextAlign.Start, stringResource(R.string.lyrics_share_align_left), Icons.Outlined.FormatAlignLeft),
+                FlowToggleOption(TextAlign.Left, stringResource(R.string.lyrics_share_align_left), Icons.Outlined.FormatAlignLeft),
                 FlowToggleOption(TextAlign.Center, stringResource(R.string.lyrics_share_align_center), Icons.Outlined.FormatAlignCenter),
-                FlowToggleOption(TextAlign.End, stringResource(R.string.lyrics_share_align_right), Icons.Outlined.FormatAlignRight),
+                FlowToggleOption(TextAlign.Right, stringResource(R.string.lyrics_share_align_right), Icons.Outlined.FormatAlignRight),
             ),
         selected = align,
         onSelected = { align = it },
         modifier = Modifier.padding(horizontal = EdgePadding, vertical = ControlSpacing),
     )
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = EdgePadding, end = EdgePadding, bottom = ControlSpacing),
-        horizontalArrangement = Arrangement.spacedBy(ControlSpacing),
-    ) {
-        OutlinedButton(
-            onClick = {
+    FlowActionButtonPair(
+        primary =
+            FlowPairAction(Icons.Outlined.Share, stringResource(R.string.share)) {
+                scope.launch {
+                    val image = runCatching { layer.toImageBitmap() }.getOrNull()
+                    if (image == null || !shareLyricsCard(context, image, chooserTitle)) report(R.string.lyrics_share_image_failed)
+                }
+            },
+        secondary =
+            FlowPairAction(Icons.Outlined.SaveAlt, stringResource(R.string.lyrics_share_save_image)) {
                 scope.launch {
                     val image = runCatching { layer.toImageBitmap() }.getOrNull()
                     if (image == null) {
@@ -255,22 +268,6 @@ private fun ColumnScope.LyricsShareStyler(
                     }
                 }
             },
-            modifier = Modifier.weight(1f),
-        ) {
-            Icon(Icons.Outlined.SaveAlt, contentDescription = null, modifier = Modifier.padding(end = ButtonDefaults.IconSpacing))
-            Text(stringResource(R.string.lyrics_share_save_image))
-        }
-        Button(
-            onClick = {
-                scope.launch {
-                    val image = runCatching { layer.toImageBitmap() }.getOrNull()
-                    if (image == null || !shareLyricsCard(context, image, chooserTitle)) report(R.string.lyrics_share_image_failed)
-                }
-            },
-            modifier = Modifier.weight(1f),
-        ) {
-            Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.padding(end = ButtonDefaults.IconSpacing))
-            Text(stringResource(R.string.share))
-        }
-    }
+        modifier = Modifier.padding(start = EdgePadding, end = EdgePadding, bottom = ControlSpacing),
+    )
 }

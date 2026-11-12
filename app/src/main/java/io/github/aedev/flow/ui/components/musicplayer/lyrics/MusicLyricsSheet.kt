@@ -388,6 +388,7 @@ internal fun MusicLyricsSheet(
             artworkUrl = artworkUrl,
             lines = remember(lyrics, syncedLyrics) { buildLines(lyrics, syncedLyrics) },
             positionProvider = positionProvider,
+            initialAlign = lyricsTextAlignFor(alignPref),
             onDismiss = { showShareSheet = false },
         )
     }
