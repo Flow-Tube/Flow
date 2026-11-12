@@ -39,12 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -76,6 +73,7 @@ import io.github.aedev.flow.ui.components.shared.drawSegmentedProgress
 import io.github.aedev.flow.ui.components.stats.spentTimeLabel
 import io.github.aedev.flow.ui.screens.recap.RecapSource
 import io.github.aedev.flow.ui.screens.recap.RecapViewModel
+import io.github.aedev.flow.ui.utils.captureInto
 import kotlinx.coroutines.launch
 import java.time.format.TextStyle
 import java.util.Locale
@@ -290,13 +288,6 @@ private fun FittedShareCard(card: @Composable () -> Unit) {
         ) { card() }
     }
 }
-
-/** Draws the node as usual and also records it into [layer], so it can be shared as an image. */
-private fun Modifier.captureInto(layer: GraphicsLayer): Modifier =
-    drawWithContent {
-        layer.record { this@drawWithContent.drawContent() }
-        drawLayer(layer)
-    }
 
 /** "September 2026" for a month, "2026" for a year. */
 internal fun periodLabel(

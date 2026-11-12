@@ -104,6 +104,7 @@ internal fun MusicLyricsSheet(
     var showSourcesSheet by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showSyncControls by remember { mutableStateOf(false) }
+    var showShareSheet by remember { mutableStateOf(false) }
     var pendingSaveText by remember { mutableStateOf<String?>(null) }
     val visibleState = rememberUpdatedState(visible)
     val onDismissState = rememberUpdatedState(onDismiss)
@@ -130,6 +131,7 @@ internal fun MusicLyricsSheet(
             showSourcesSheet = false
             showEditDialog = false
             showSyncControls = false
+            showShareSheet = false
             sheetShown.animateTo(
                 targetValue = 0f,
                 animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
@@ -355,6 +357,7 @@ internal fun MusicLyricsSheet(
                         .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                 saveLauncher.launch("$baseName.lrc")
             },
+            onShare = { showShareSheet = true },
             onAlignChange = onAlignChange,
             onDisplayChange = onDisplayChange,
             onAdjustSync = { showSyncControls = true },
@@ -375,6 +378,17 @@ internal fun MusicLyricsSheet(
                 onCancelBrowse()
                 showSourcesSheet = false
             },
+        )
+    }
+
+    if (showShareSheet) {
+        LyricsShareSheet(
+            title = trackTitle,
+            artist = trackArtist,
+            artworkUrl = artworkUrl,
+            lines = remember(lyrics, syncedLyrics) { buildLines(lyrics, syncedLyrics) },
+            positionProvider = positionProvider,
+            onDismiss = { showShareSheet = false },
         )
     }
 

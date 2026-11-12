@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.FormatAlignRight
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SaveAlt
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.TravelExplore
@@ -77,6 +78,7 @@ internal fun LyricsActionsSheet(
     onEdit: () -> Unit,
     onCopy: () -> Unit,
     onSaveFile: () -> Unit,
+    onShare: () -> Unit,
     onAlignChange: (String) -> Unit,
     onDisplayChange: (LyricsDisplayOptions) -> Unit,
     onAdjustSync: () -> Unit,
@@ -136,6 +138,7 @@ internal fun LyricsActionsSheet(
                         add(lyricsRow("edit", Icons.Outlined.Edit, stringResource(R.string.lyrics_edit), onClick = run(onEdit)))
                         add(lyricsRow("copy", Icons.Outlined.ContentCopy, stringResource(R.string.lyrics_copy), onClick = run(onCopy)))
                         add(lyricsRow("save", Icons.Outlined.SaveAlt, stringResource(R.string.lyrics_save_file), onClick = run(onSaveFile)))
+                        add(lyricsRow("share", Icons.Outlined.Share, stringResource(R.string.lyrics_share), onClick = run(onShare)))
                     }
                 },
         )

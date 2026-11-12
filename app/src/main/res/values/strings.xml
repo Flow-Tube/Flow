@@ -213,6 +213,14 @@
     <string name="lyrics_synced_badge">Synced</string>
     <string name="lyrics_edit">Edit lyrics</string>
     <string name="lyrics_copy">Copy lyrics</string>
+    <string name="lyrics_share">Share lyrics</string>
+    <string name="lyrics_share_selected">%1$d of %2$d lines selected</string>
+    <string name="lyrics_share_align_left">Left</string>
+    <string name="lyrics_share_align_center">Center</string>
+    <string name="lyrics_share_align_right">Right</string>
+    <string name="lyrics_share_save_image">Save image</string>
+    <string name="lyrics_share_image_saved">Image saved</string>
+    <string name="lyrics_share_image_failed">Could not create the image</string>
     <string name="lyrics_copied">Lyrics copied</string>
     <string name="lyrics_alignment">Alignment</string>
     <string name="lyrics_align_left">Align left</string>

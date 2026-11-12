@@ -1,0 +1,276 @@
+package io.github.aedev.flow.ui.components.musicplayer.lyrics
+
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FormatAlignCenter
+import androidx.compose.material.icons.outlined.FormatAlignLeft
+import androidx.compose.material.icons.outlined.FormatAlignRight
+import androidx.compose.material.icons.outlined.SaveAlt
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.R
+import io.github.aedev.flow.data.lyrics.LyricsEntry
+import io.github.aedev.flow.ui.components.shared.FlowColorSwatch
+import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
+import io.github.aedev.flow.ui.components.shared.FlowModalSheetDefaults
+import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
+import io.github.aedev.flow.ui.components.shared.FlowToggleOption
+import io.github.aedev.flow.ui.components.shared.rememberFlowSheetState
+import io.github.aedev.flow.ui.components.shared.rememberMediaPalette
+import io.github.aedev.flow.ui.components.shared.toggleHapticType
+import io.github.aedev.flow.ui.utils.captureInto
+import kotlinx.coroutines.launch
+
+private val EdgePadding = 16.dp
+private val RowSpacing = 4.dp
+private val ControlSpacing = 12.dp
+private val LinePadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+private val CardMaxWidth = 360.dp
+private const val DISABLED_LINE_ALPHA = 0.38f
+private const val PNG_MIME = "image/png"
+
+/** Picks up to [MAX_SHARE_LINES] lyric lines, then styles the card they make and saves or shares it. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun LyricsShareSheet(
+    title: String,
+    artist: String,
+    artworkUrl: String,
+    lines: List<LyricsEntry>,
+    positionProvider: () -> Long,
+    onDismiss: () -> Unit,
+) {
+    val texts = remember(lines) { shareableLyricLines(lines) }
+    var selected by remember(texts) { mutableStateOf(emptyList<Int>()) }
+    var customising by remember { mutableStateOf(false) }
+    val styling = customising && selected.isNotEmpty()
+    val sheetState = rememberFlowSheetState()
+    val scope = rememberCoroutineScope()
+    val properties = remember(styling) { ModalBottomSheetProperties(shouldDismissOnBackPress = !styling) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        properties = properties,
+        modifier = FlowModalSheetDefaults.modifier,
+        contentWindowInsets = FlowModalSheetDefaults.contentWindowInsets,
+    ) {
+        BackHandler(enabled = styling) { customising = false }
+        FlowSheetHeader(
+            title = stringResource(R.string.lyrics_share),
+            subtitle = stringResource(R.string.lyrics_share_selected, selected.size, MAX_SHARE_LINES),
+            onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() } },
+            onBack = if (styling) ({ customising = false }) else null,
+            showDragHandle = false,
+        )
+        if (styling) {
+            LyricsShareStyler(title = title, artist = artist, artworkUrl = artworkUrl, lines = selected.map { texts[it] })
+        } else {
+            LyricsSharePicker(
+                texts = texts,
+                selected = selected,
+                // Read once: the picker opens at the line being sung and must not follow playback.
+                initialIndex = remember(lines) { Snapshot.withoutReadObservation { shareLineIndexAt(lines, positionProvider()) } },
+                onToggle = { selected = toggleShareLine(selected, it) },
+                onNext = { customising = true },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.LyricsSharePicker(
+    texts: List<String>,
+    selected: List<Int>,
+    initialIndex: Int,
+    onToggle: (Int) -> Unit,
+    onNext: () -> Unit,
+) {
+    val haptics = LocalHapticFeedback.current
+    LazyColumn(
+        state = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex),
+        modifier = Modifier.weight(1f, fill = false),
+        contentPadding = PaddingValues(horizontal = EdgePadding, vertical = ControlSpacing),
+        verticalArrangement = Arrangement.spacedBy(RowSpacing),
+    ) {
+        itemsIndexed(texts) { index, text ->
+            val isSelected = index in selected
+            val enabled = isSelected || selected.size < MAX_SHARE_LINES
+            Surface(
+                selected = isSelected,
+                onClick = {
+                    haptics.performHapticFeedback(toggleHapticType(!isSelected))
+                    onToggle(index)
+                },
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                contentColor =
+                    when {
+                        isSelected -> MaterialTheme.colorScheme.onSecondaryContainer
+                        enabled -> MaterialTheme.colorScheme.onSurface
+                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_LINE_ALPHA)
+                    },
+            ) {
+                Text(text = text, modifier = Modifier.padding(LinePadding), style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    }
+    Button(
+        onClick = onNext,
+        enabled = selected.isNotEmpty(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = EdgePadding, vertical = ControlSpacing),
+    ) {
+        Text(stringResource(R.string.next))
+    }
+}
+
+@Composable
+private fun ColumnScope.LyricsShareStyler(
+    title: String,
+    artist: String,
+    artworkUrl: String,
+    lines: List<String>,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val palette = rememberMediaPalette(artworkUrl, animated = false, cacheOnly = true)
+    var style by remember { mutableStateOf(LyricsCardStyle.ARTWORK) }
+    var align by remember { mutableStateOf(TextAlign.Start) }
+    val layer = rememberGraphicsLayer()
+    var pendingSave by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    fun report(message: Int) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+    val saveLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(PNG_MIME)) { uri ->
+            val image = pendingSave
+            pendingSave = null
+            if (uri != null && image != null) {
+                scope.launch {
+                    val saved = saveLyricsCard(context, image, uri)
+                    report(if (saved) R.string.lyrics_share_image_saved else R.string.lyrics_share_image_failed)
+                }
+            }
+        }
+    val chooserTitle = stringResource(R.string.lyrics_share)
+
+    Box(
+        modifier =
+            Modifier
+                .weight(1f, fill = false)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(EdgePadding),
+        contentAlignment = Alignment.Center,
+    ) {
+        LyricsShareCard(
+            title = title,
+            artist = artist,
+            artworkUrl = artworkUrl,
+            lines = lines,
+            colors = lyricsCardColors(style, palette),
+            textAlign = align,
+            modifier = Modifier.widthIn(max = CardMaxWidth).fillMaxWidth().captureInto(layer),
+        )
+    }
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = EdgePadding),
+        horizontalArrangement = Arrangement.spacedBy(ControlSpacing),
+    ) {
+        items(LyricsCardStyle.entries) { option ->
+            FlowColorSwatch(color = lyricsCardColors(option, palette).ground, selected = option == style, onClick = { style = option })
+        }
+    }
+    FlowConnectedToggleGroup(
+        options =
+            listOf(
+                FlowToggleOption(TextAlign.Start, stringResource(R.string.lyrics_share_align_left), Icons.Outlined.FormatAlignLeft),
+                FlowToggleOption(TextAlign.Center, stringResource(R.string.lyrics_share_align_center), Icons.Outlined.FormatAlignCenter),
+                FlowToggleOption(TextAlign.End, stringResource(R.string.lyrics_share_align_right), Icons.Outlined.FormatAlignRight),
+            ),
+        selected = align,
+        onSelected = { align = it },
+        modifier = Modifier.padding(horizontal = EdgePadding, vertical = ControlSpacing),
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = EdgePadding, end = EdgePadding, bottom = ControlSpacing),
+        horizontalArrangement = Arrangement.spacedBy(ControlSpacing),
+    ) {
+        OutlinedButton(
+            onClick = {
+                scope.launch {
+                    val image = runCatching { layer.toImageBitmap() }.getOrNull()
+                    if (image == null) {
+                        report(R.string.lyrics_share_image_failed)
+                    } else {
+                        pendingSave = image
+                        saveLauncher.launch(lyricsCardFileName(title, artist))
+                    }
+                }
+            },
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(Icons.Outlined.SaveAlt, contentDescription = null, modifier = Modifier.padding(end = ButtonDefaults.IconSpacing))
+            Text(stringResource(R.string.lyrics_share_save_image))
+        }
+        Button(
+            onClick = {
+                scope.launch {
+                    val image = runCatching { layer.toImageBitmap() }.getOrNull()
+                    if (image == null || !shareLyricsCard(context, image, chooserTitle)) report(R.string.lyrics_share_image_failed)
+                }
+            },
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.padding(end = ButtonDefaults.IconSpacing))
+            Text(stringResource(R.string.share))
+        }
+    }
+}
