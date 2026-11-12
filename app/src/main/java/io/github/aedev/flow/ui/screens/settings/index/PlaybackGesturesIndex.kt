@@ -90,6 +90,15 @@ internal object PlaybackGesturesIndex {
             section = R.string.player_appearance_gestures_header,
             destination = page,
         )
+    val chapterSkipGesture =
+        SettingEntry(
+            key = "playback.chapter_skip_gesture",
+            title = R.string.player_appearance_chapter_skip_gesture_title,
+            summary = R.string.player_appearance_chapter_skip_gesture_subtitle,
+            keywords = R.string.settings_keywords_gestures,
+            section = R.string.player_appearance_gestures_header,
+            destination = page,
+        )
     val controlsWhileLoading =
         SettingEntry(
             key = "playback.controls_while_loading",
@@ -111,6 +120,7 @@ internal object PlaybackGesturesIndex {
             speedSwipeStep,
             seekGesture,
             moreVideosGesture,
+            chapterSkipGesture,
             controlsWhileLoading,
         )
 }

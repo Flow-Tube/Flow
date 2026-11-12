@@ -13,6 +13,7 @@ import androidx.compose.ui.util.lerp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /** Resting bounds of the pinch transform. */
 private const val ZOOM_MIN = 1f
@@ -36,6 +37,10 @@ private const val ZOOM_RESET_THRESHOLD = 1.02f
  *
  * With [panEnabled] off the pinch only scales, about the centre.
  *
+ * The transform starts once the fingers move past touch slop, so two fingers that land and lift
+ * without moving are a two-finger tap instead. Two of those in a row call [onTwoFingerDoubleTap]
+ * with the side they landed on; null leaves two-finger taps alone.
+ *
  * [scale] and [offsetX]/[offsetY] read back the transform the caller is currently applying;
  * [onTransform] publishes the next one. They are plain values rather than a state object because
  * the transform lives in the player screen state and is read in the draw phase — routing it through
@@ -47,15 +52,19 @@ fun Modifier.videoPlayerZoom(
     offsetX: () -> Float,
     offsetY: () -> Float,
     panEnabled: Boolean = true,
+    onTwoFingerDoubleTap: ((forward: Boolean) -> Unit)? = null,
     onTransform: (scale: Float, offsetX: Float, offsetY: Float) -> Unit,
 ): Modifier =
-    pointerInput("playerZoom", panEnabled) {
+    pointerInput("playerZoom", panEnabled, onTwoFingerDoubleTap != null) {
         var settleJob: Job? = null
+        var lastTwoFingerTapUpMs: Long? = null
 
         awaitEachGesture {
             val firstDown = awaitFirstDown(requireUnconsumed = false)
 
-            var secondDown: PointerInputChange? = null
+            // Two fingers landing in the same frame arrive in one event.
+            var secondDown: PointerInputChange? =
+                currentEvent.changes.firstOrNull { it.id != firstDown.id && it.pressed }
             while (secondDown == null) {
                 val event = awaitPointerEvent()
                 val first = event.changes.firstOrNull { it.id == firstDown.id }
@@ -73,21 +82,38 @@ fun Modifier.videoPlayerZoom(
 
             val firstId = firstDown.id
             val secondId = second.id
-            var previousSpan = (firstDown.position - second.position).getDistance().coerceAtLeast(1f)
-            var previousCentroid = (firstDown.position + second.position) / 2f
+            val startSpan = (firstDown.position - second.position).getDistance().coerceAtLeast(1f)
+            val startCentroid = (firstDown.position + second.position) / 2f
+            var previousSpan = startSpan
+            var previousCentroid = startCentroid
             // Tracked unresisted so that pushing past a bound and easing off retraces the same path.
             var rawScale = scale()
+            var transforming = false
+            var liftedAtMs = firstDown.uptimeMillis
 
             while (true) {
                 val event = awaitPointerEvent()
                 val p1 = event.changes.firstOrNull { it.id == firstId }
                 val p2 = event.changes.firstOrNull { it.id == secondId }
-                if (p1 == null || p2 == null || !p1.pressed || !p2.pressed) break
+                if (p1 == null || p2 == null || !p1.pressed || !p2.pressed) {
+                    // The lift is ours too, or a still two-finger tap would reach the tap detector as a one-finger tap.
+                    p1?.consume()
+                    p2?.consume()
+                    liftedAtMs = event.changes.maxOf { it.uptimeMillis }
+                    break
+                }
                 p1.consume()
                 p2.consume()
 
                 val span = (p1.position - p2.position).getDistance().coerceAtLeast(1f)
                 val centroid = (p1.position + p2.position) / 2f
+                if (!transforming) {
+                    val slop = viewConfiguration.touchSlop
+                    transforming = abs(span - startSpan) > slop || (centroid - startCentroid).getDistance() > slop
+                    previousSpan = span
+                    previousCentroid = centroid
+                    continue
+                }
                 val pan = if (panEnabled) centroid - previousCentroid else Offset.Zero
 
                 rawScale =
@@ -107,6 +133,17 @@ fun Modifier.videoPlayerZoom(
                 previousCentroid = centroid
             }
 
+            val tapped = !transforming && liftedAtMs - firstDown.uptimeMillis <= viewConfiguration.longPressTimeoutMillis
+            val previousTapUpMs = lastTwoFingerTapUpMs
+            lastTwoFingerTapUpMs = null
+            if (tapped && onTwoFingerDoubleTap != null) {
+                if (previousTapUpMs != null && firstDown.uptimeMillis - previousTapUpMs <= viewConfiguration.doubleTapTimeoutMillis) {
+                    onTwoFingerDoubleTap(previousCentroid.x >= size.width / 2f)
+                } else {
+                    lastTwoFingerTapUpMs = liftedAtMs
+                }
+            }
+
             settleJob =
                 scope.launch {
                     settleZoom(
@@ -117,6 +154,11 @@ fun Modifier.videoPlayerZoom(
                         onTransform = onTransform,
                     )
                 }
+
+            // The finger still down after the other lifts must not start a tap or a drag of its own.
+            while (currentEvent.changes.any { it.pressed }) {
+                awaitPointerEvent().changes.forEach { it.consume() }
+            }
         }
     }
 
