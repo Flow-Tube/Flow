@@ -1,5 +1,6 @@
 package io.github.aedev.flow.player.stream
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -77,5 +78,35 @@ class LiveDetectionRulesTest {
     @Test
     fun `no manifest has no capped dvr window`() {
         assertFalse(LiveDetectionRules.hasCappedDvrWindow(null))
+    }
+
+    @Test
+    fun `an uncapped hls manifest is dropped for the dash one`() {
+        val manifests = LiveDetectionRules.playableLiveManifests(UNCAPPED_HLS, DASH)
+        assertEquals(LiveDetectionRules.LiveManifests(hlsUrl = null, dashUrl = DASH), manifests)
+    }
+
+    @Test
+    fun `a capped hls manifest is kept`() {
+        val manifests = LiveDetectionRules.playableLiveManifests(CAPPED_HLS, null)
+        assertEquals(LiveDetectionRules.LiveManifests(hlsUrl = CAPPED_HLS, dashUrl = null), manifests)
+    }
+
+    @Test
+    fun `an uncapped hls manifest with no dash is kept`() {
+        val manifests = LiveDetectionRules.playableLiveManifests(UNCAPPED_HLS, null)
+        assertEquals(LiveDetectionRules.LiveManifests(hlsUrl = UNCAPPED_HLS, dashUrl = null), manifests)
+    }
+
+    @Test
+    fun `a dash manifest alone is kept`() {
+        val manifests = LiveDetectionRules.playableLiveManifests(null, DASH)
+        assertEquals(LiveDetectionRules.LiveManifests(hlsUrl = null, dashUrl = DASH), manifests)
+    }
+
+    private companion object {
+        const val CAPPED_HLS = "https://manifest.googlevideo.com/api/manifest/hls_variant/playlist_duration/3600/file/index.m3u8"
+        const val UNCAPPED_HLS = "https://manifest.googlevideo.com/api/manifest/hls_variant/playlist_type/DVR/file/index.m3u8"
+        const val DASH = "https://manifest.googlevideo.com/api/manifest/dash/source/yt_live_broadcast/file/default.mpd"
     }
 }

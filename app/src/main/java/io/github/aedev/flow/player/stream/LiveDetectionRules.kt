@@ -33,5 +33,26 @@ object LiveDetectionRules {
      */
     fun hasCappedDvrWindow(hlsManifestUrl: String?): Boolean = hlsManifestUrl?.contains(PLAYLIST_DURATION_PARAM) == true
 
+    /**
+     * The manifests a live result should hand the player, which plays HLS whenever it has one.
+     * An uncapped HLS manifest comes from ANDROID_VR, and GVS refuses its segments (403 at the
+     * oldest, middle and live edge) while serving the same window from its DASH manifest, so the
+     * HLS is dropped whenever that DASH is there.
+     */
+    fun playableLiveManifests(
+        hlsManifestUrl: String?,
+        dashManifestUrl: String?,
+    ): LiveManifests =
+        if (hlsManifestUrl != null && dashManifestUrl != null && !hasCappedDvrWindow(hlsManifestUrl)) {
+            LiveManifests(hlsUrl = null, dashUrl = dashManifestUrl)
+        } else {
+            LiveManifests(hlsUrl = hlsManifestUrl, dashUrl = dashManifestUrl)
+        }
+
+    data class LiveManifests(
+        val hlsUrl: String?,
+        val dashUrl: String?,
+    )
+
     private const val PLAYLIST_DURATION_PARAM = "/playlist_duration/"
 }

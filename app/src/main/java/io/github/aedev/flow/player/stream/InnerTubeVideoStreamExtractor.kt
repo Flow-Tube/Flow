@@ -102,7 +102,7 @@ object InnerTubeVideoStreamExtractor {
 
     // The only client whose live manifests carry the whole four hours YouTube keeps seekable, and
     // the only one that returns a DASH manifest alongside the HLS one. VISIONOS returns HLS only,
-    // signed for the last hour (#1385).
+    // signed for the last hour (#1385). Only its DASH plays: see LiveDetectionRules.playableLiveManifests.
     private val FULL_DVR_LIVE_CLIENTS: List<YouTubeClient> =
         listOf(
             YouTubeClient.ANDROID_VR_1_65_10,
@@ -228,7 +228,9 @@ object InnerTubeVideoStreamExtractor {
                 val result =
                     when {
                         LiveDetectionRules.hasCappedDvrWindow(direct.liveHlsUrl) -> {
-                            tryLiveClients(videoId, failureReasons, FULL_DVR_LIVE_CLIENTS) ?: direct
+                            tryLiveClients(videoId, failureReasons, FULL_DVR_LIVE_CLIENTS)
+                                ?.takeIf { it.liveDashUrl != null }
+                                ?: direct
                         }
 
                         audioOnly -> {
@@ -920,9 +922,12 @@ object InnerTubeVideoStreamExtractor {
         )
 
     private fun PlayerResponse.toLiveResultOrNull(client: YouTubeClient): VideoExtractionResult? {
-        val hls = streamingData?.hlsManifestUrl?.takeIf { it.isNotBlank() }
-        val dash = streamingData?.dashManifestUrl?.takeIf { it.isNotBlank() }
-        if (hls == null && dash == null) return null
+        val manifests =
+            LiveDetectionRules.playableLiveManifests(
+                hlsManifestUrl = streamingData?.hlsManifestUrl?.takeIf { it.isNotBlank() },
+                dashManifestUrl = streamingData?.dashManifestUrl?.takeIf { it.isNotBlank() },
+            )
+        if (manifests.hlsUrl == null && manifests.dashUrl == null) return null
         return VideoExtractionResult(
             videoFormats = emptyList(),
             audioFormats = emptyList(),
@@ -930,8 +935,8 @@ object InnerTubeVideoStreamExtractor {
             usedClient = client,
             sabrInfo = null,
             isLive = true,
-            liveHlsUrl = hls,
-            liveDashUrl = dash,
+            liveHlsUrl = manifests.hlsUrl,
+            liveDashUrl = manifests.dashUrl,
         )
     }
 
