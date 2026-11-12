@@ -2,11 +2,13 @@ package io.github.aedev.flow.ui.components.videoplayer
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Matrix
 import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -73,6 +75,7 @@ fun VideoPlayerSurface(
     sphericalMotion: Boolean = true,
     sphericalTouch: Boolean = false,
     sphericalStill: Boolean = false,
+    sphericalZoom: () -> Float = { 1f },
 ) {
     val ambientActive = ambientMode && resizeMode == 0 && !spherical
     val localAmbientFrames = remember { AmbientFrameHolder() }
@@ -324,7 +327,7 @@ fun VideoPlayerSurface(
             )
         }
         if (sphericalView != null && sphericalTouch) {
-            Box(Modifier.matchParentSize().forwardTouchesTo(sphericalView))
+            Box(Modifier.matchParentSize().forwardTouchesTo(sphericalView, sphericalZoom))
         }
     }
 }
@@ -333,15 +336,44 @@ fun VideoPlayerSurface(
  * Hands each touch to the 360 view's own drag-to-look. Media3's tracker claims every touch it is
  * given, so the view itself sits under this layer: touches reach it from here without being
  * consumed, and the player's taps and double taps above keep working.
+ *
+ * A second finger means a pinch, which zooms instead: the tracker gets a cancel and nothing more
+ * until every finger lifts. While zoomed, a drag is scaled down by [zoom], so it moves the picture
+ * as far across the screen as it does unzoomed.
  */
-private fun Modifier.forwardTouchesTo(view: GLSurfaceView): Modifier =
+private fun Modifier.forwardTouchesTo(
+    view: GLSurfaceView,
+    zoom: () -> Float,
+): Modifier =
     pointerInput(view) {
         awaitPointerEventScope {
+            var forwarding = true
+            val unzoom = Matrix()
             while (true) {
-                awaitPointerEvent().motionEvent?.let { event ->
-                    view.dispatchTouchEvent(event)
-                    view.requestRender()
+                val event = awaitPointerEvent().motionEvent ?: continue
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) forwarding = true
+                if (!forwarding) continue
+                if (event.pointerCount > 1) {
+                    forwarding = false
+                    MotionEvent.obtain(event).apply {
+                        action = MotionEvent.ACTION_CANCEL
+                        view.dispatchTouchEvent(this)
+                        recycle()
+                    }
+                    continue
                 }
+                val scale = zoom()
+                if (scale == 1f) {
+                    view.dispatchTouchEvent(event)
+                } else {
+                    unzoom.setScale(1f / scale, 1f / scale)
+                    MotionEvent.obtain(event).apply {
+                        transform(unzoom)
+                        view.dispatchTouchEvent(this)
+                        recycle()
+                    }
+                }
+                view.requestRender()
             }
         }
     }

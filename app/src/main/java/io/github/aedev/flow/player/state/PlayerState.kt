@@ -39,7 +39,12 @@ data class EnhancedPlayerState(
     val liveDurationMs: Long = 0L,
     /** The playing video is a 360 video, shown in a view the viewer can look around in (#1295). */
     val isSphericalVideo: Boolean = false,
-)
+    /** The viewer's own 360 view choice for this video, or null to follow [isSphericalVideo] (#1967). */
+    val sphericalOverride: Boolean? = null,
+) {
+    /** Whether the video is shown in the 360 view: detected from the stream, or turned on or off by hand. */
+    val showsSpherical: Boolean get() = sphericalOverride ?: isSphericalVideo
+}
 
 /** A video that played to its end, and the length it ended at. */
 data class PlaybackCompletion(

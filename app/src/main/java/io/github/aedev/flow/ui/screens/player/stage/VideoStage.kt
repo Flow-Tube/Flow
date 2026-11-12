@@ -66,7 +66,7 @@ internal fun VideoStage(
     val audioSystemInfo = session.audioSystemInfo
     val isLandscapeWindow = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val playerPreferences = remember(session.context) { PlayerPreferences(session.context) }
-    val spherical = playerState.isSphericalVideo
+    val spherical = playerState.showsSpherical
     val gesturesActive = !isMinimized && !localIsInPipMode && !screenState.isTouchLocked
 
     // ALWAYS use the same video surface
@@ -151,23 +151,19 @@ internal fun VideoStage(
                     onTapWindowChange = { screenState.isTapWindowOpen = it },
                     // A drag on a 360 video looks around instead.
                     dragGesturesEnabled = !spherical,
-                ).then(
-                    if (spherical) {
-                        Modifier
-                    } else {
-                        Modifier.videoPlayerZoom(
-                            scope = scope,
-                            scale = { screenState.zoomScale },
-                            offsetX = { screenState.zoomOffsetX },
-                            offsetY = { screenState.zoomOffsetY },
-                            onTransform = { newScale, newOffsetX, newOffsetY ->
-                                screenState.zoomScale = newScale
-                                screenState.zoomOffsetX = newOffsetX
-                                screenState.zoomOffsetY = newOffsetY
-                                screenState.showZoomIndicator = true
-                                screenState.zoomIndicatorSequence += 1
-                            },
-                        )
+                ).videoPlayerZoom(
+                    scope = scope,
+                    scale = { screenState.zoomScale },
+                    offsetX = { screenState.zoomOffsetX },
+                    offsetY = { screenState.zoomOffsetY },
+                    // A 360 video is moved by looking around, so a pinch only zooms it.
+                    panEnabled = !spherical,
+                    onTransform = { newScale, newOffsetX, newOffsetY ->
+                        screenState.zoomScale = newScale
+                        screenState.zoomOffsetX = newOffsetX
+                        screenState.zoomOffsetY = newOffsetY
+                        screenState.showZoomIndicator = true
+                        screenState.zoomIndicatorSequence += 1
                     },
                 ).graphicsLayer {
                     if (screenState.isFullscreen) translationY = screenState.exitDragOffsetY
@@ -189,7 +185,7 @@ internal fun VideoStage(
                     .fillMaxSize()
                     .clipToBounds()
                     .graphicsLayer {
-                        if (!isMinimized && !spherical) {
+                        if (!isMinimized) {
                             scaleX = screenState.zoomScale
                             scaleY = screenState.zoomScale
                             translationX = screenState.zoomOffsetX
@@ -215,6 +211,7 @@ internal fun VideoStage(
                 sphericalMotion = prefs.sphericalMotionEnabled,
                 sphericalTouch = gesturesActive,
                 sphericalStill = !playerState.playWhenReady || playerState.hasEnded,
+                sphericalZoom = { screenState.zoomScale },
             )
             if (expandedSurfacesMounted && !localIsInPipMode) {
                 Media3SubtitleOverlay(

@@ -1365,7 +1365,16 @@ class EnhancedPlayerManager private constructor() {
                 liveDurationMs = 0L,
                 availableSubtitles = emptyList(),
                 selectedSubtitleUrl = null,
+                sphericalOverride = null,
             )
+    }
+
+    /**
+     * Shows this video in the 360 view or flat, whatever its stream says. Files that lost their 360
+     * tag, such as older downloads, can be looked around in this way (#1967). Lasts until the next video.
+     */
+    fun setSphericalView(enabled: Boolean) {
+        _playerState.value = _playerState.value.copy(sphericalOverride = enabled)
     }
 
     private fun updateLivePlaybackMode(
@@ -3297,7 +3306,7 @@ class EnhancedPlayerManager private constructor() {
         val p = player ?: return
         val displayInteractive = isDisplayInteractive()
         // A 360 video's spherical view hands Media3 its own surface, so no managed holder ever exists.
-        val surfaceValid = surfaceManager?.isSurfaceValid() == true || _playerState.value.isSphericalVideo
+        val surfaceValid = surfaceManager?.isSurfaceValid() == true || _playerState.value.showsSpherical
         val canRestore =
             VideoSurfacePolicy.canRestoreVideoOutput(
                 sdkInt = Build.VERSION.SDK_INT,

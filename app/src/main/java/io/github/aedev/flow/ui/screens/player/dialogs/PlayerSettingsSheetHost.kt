@@ -136,7 +136,9 @@ internal fun PlayerSettingsSheetHost(
         onLoopToggle = { viewModel.toggleLoop(it) },
         ambientModeEnabled = ambientModeEnabled,
         onAmbientModeToggle = { scope.launch { playerPreferences.setVideoAmbientModeEnabled(it) } },
-        sphericalMotionEnabled = sphericalMotion.takeIf { playerState.isSphericalVideo },
+        sphericalViewEnabled = playerState.showsSpherical,
+        onSphericalViewToggle = playerManager::setSphericalView,
+        sphericalMotionEnabled = sphericalMotion.takeIf { playerState.showsSpherical },
         onSphericalMotionToggle = { scope.launch { playerPreferences.setSphericalMotionEnabled(it) } },
         onStatsForNerds = { screenState.showStatsForNerds = true },
         onCastClick = {
