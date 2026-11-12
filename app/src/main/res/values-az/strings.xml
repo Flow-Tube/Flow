@@ -4846,4 +4846,13 @@
     <string name="player_settings_immersive_scroll_dim_subtitle">Səhifə hərəkət edərkən işığı azalt</string>
     <string name="player_settings_spherical_view">360° görünüş</string>
     <string name="player_settings_spherical_view_summary">Bu videoya ətrafdan baxmaq üçün sürüklə</string>
+    <string name="lyrics_share">Sözləri paylaş</string>
+    <string name="lyrics_share_selected">%2$d sətirdən %1$d seçildi</string>
+    <string name="lyrics_share_align_left">Sol</string>
+    <string name="lyrics_share_align_center">Mərkəz</string>
+    <string name="lyrics_share_align_right">Sağ</string>
+    <string name="lyrics_share_save_image">Şəkli saxla</string>
+    <string name="lyrics_share_image_saved">Şəkil saxlanıldı</string>
+    <string name="lyrics_share_image_failed">Şəkil yaradıla bilmədi</string>
+    <string name="recent_searches_show_all">Hamısını göstər</string>
 </resources>
