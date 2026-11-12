@@ -4753,4 +4753,7 @@
     <string name="app_lock_screen_title">Flow đang bị khóa</string>
     <string name="app_lock_screen_body">Dùng vân tay, khuôn mặt hoặc khóa màn hình để mở</string>
     <string name="app_lock_unlock">Mở khóa</string>
+    <string name="subscriptions_sort_most_watched">Nhiều lượt xem nhất</string>
+    <string name="subscriptions_pin_channel">Ghim vào khởi đầu</string>
+    <string name="subscriptions_unpin_channel">Bỏ ghim</string>
 </resources>
