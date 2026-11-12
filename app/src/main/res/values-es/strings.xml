@@ -1293,7 +1293,7 @@
     <string name="deep_flow_mode_subtitle">Pausar el aprendizaje e historial de búsqueda</string>
     <string name="deep_flow_expires_in">Caduca en %s</string>
     <string name="deep_flow_learning_paused">APRENDIZAJE EN PAUSA</string>
-    <string name="deep_flow_mode_title">Modo de Deep Flow</string>
+    <string name="deep_flow_mode_title">Modo Deep Flow</string>
     <string name="deep_flow_expire_duration_title">Desactivación automática tras</string>
     <string name="deep_flow_dialog_body">¿Cuánto tiempo debe permanecer en pausa el aprendizaje?</string>
     <string name="deep_flow_duration_1h">1 hora</string>
@@ -5053,4 +5053,6 @@
         <item quantity="many">%d anuncios eliminados del historial</item>
         <item quantity="other">%d anuncios eliminados del historial</item>
     </plurals>
+    <string name="player_settings_immersive_scroll_dim">Atenuar al desplazar</string>
+    <string name="player_settings_immersive_scroll_dim_subtitle">Atenúa la luz mientras la página se desplaza</string>
 </resources>
