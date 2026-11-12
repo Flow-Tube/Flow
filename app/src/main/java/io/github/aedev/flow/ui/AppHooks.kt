@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -46,12 +47,29 @@ fun HandlePendingRoute(
             val tab = flowTabForRoute(route, downloadsTab())
             when {
                 tab != null -> navController.navigateToTab(tab, startRoute)
-                else -> navController.openPage(route)
+                else -> openExternalPage(navController, route)
             }
             onConsumed()
         }
     }
 }
+
+/**
+ * The launcher activity is exported, so any app can hand in a route the graph doesn't have, and
+ * navigate() throws for those. Dropping it keeps Flow open on the current page.
+ */
+private fun openExternalPage(
+    navController: NavController,
+    route: String,
+) {
+    try {
+        navController.openPage(route)
+    } catch (e: IllegalArgumentException) {
+        Log.w(PENDING_ROUTE_TAG, "No page for route $route", e)
+    }
+}
+
+private const val PENDING_ROUTE_TAG = "PendingRoute"
 
 /** [asksFirst] turns a video into a question instead: [onAsk] gets it and nothing plays yet. */
 @Composable
