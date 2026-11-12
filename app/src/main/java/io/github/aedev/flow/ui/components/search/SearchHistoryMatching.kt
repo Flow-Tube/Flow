@@ -16,3 +16,12 @@ fun List<SearchHistoryItem>.matchingTyped(
     val (prefix, rest) = matches.partition { it.query.lowercase().startsWith(lowered) }
     return (prefix + rest).take(limit)
 }
+
+/**
+ * Every kept search while nothing is typed, when history has the list to itself; only the best
+ * matches once typing brings suggestions in below them.
+ */
+fun List<SearchHistoryItem>.recentOrMatching(typed: String): List<SearchHistoryItem> = if (typed.isBlank()) this else matchingTyped(typed)
+
+/** The rows drawn under the header: the newest few until the user asks for the rest. */
+fun List<SearchHistoryItem>.shownHistory(showAll: Boolean): List<SearchHistoryItem> = if (showAll) this else take(SEARCH_HISTORY_LIMIT)

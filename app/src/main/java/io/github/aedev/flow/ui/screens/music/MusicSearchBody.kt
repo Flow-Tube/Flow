@@ -10,7 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -64,6 +66,7 @@ internal fun MusicSearchBody(
     val query by viewModel.query.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val history by viewModel.matchingHistory.collectAsStateWithLifecycle()
+    var showAllHistory by rememberSaveable { mutableStateOf(false) }
     val moods by viewModel.moods.collectAsStateWithLifecycle()
     val musicMenus = LocalMusicMenus.current
 
@@ -126,6 +129,8 @@ internal fun MusicSearchBody(
             searchHistoryItems(
                 query = query,
                 history = history,
+                showAll = showAllHistory,
+                onShowAll = { showAllHistory = true },
                 onSelect = { item ->
                     viewModel.performSearch(item.query)
                     dismissSearchInput()

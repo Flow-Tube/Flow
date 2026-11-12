@@ -20,7 +20,7 @@ import io.github.aedev.flow.data.local.SearchHistoryRepository
 import io.github.aedev.flow.data.local.SearchHistoryScope
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.player.DeepFlowManager
-import io.github.aedev.flow.ui.components.search.matchingTyped
+import io.github.aedev.flow.ui.components.search.recentOrMatching
 import io.github.aedev.flow.ui.components.shared.DeepFlowState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
@@ -69,7 +69,7 @@ class SearchScreenState(
         get() = textFieldState.text.toString()
 
     val matchingHistory: List<SearchHistoryItem>
-        get() = allHistoryState.value.matchingTyped(query)
+        get() = allHistoryState.value.recentOrMatching(query)
 
     fun onSubmit(text: String) {
         suggestions = emptyList()
