@@ -278,6 +278,8 @@ class PlayerPreferences(
         val SUBS_UNGROUPED_POSITION = intPreferencesKey("subs_ungrouped_position")
         val SUBS_POSTS_CHIP = booleanPreferencesKey("subs_posts_chip")
         val SUBS_PINNED_CHANNELS = stringPreferencesKey("subs_pinned_channels")
+        val SUBS_CHANNEL_SEEN_AT = stringPreferencesKey("subs_channel_seen_at")
+        val SUBS_NEW_VIDEOS_SINCE = longPreferencesKey("subs_new_videos_since")
         val SUBS_REFRESH_ON_STARTUP = booleanPreferencesKey("subs_refresh_on_startup")
         val SUBS_LAST_REFRESH_TIME = longPreferencesKey("subs_last_refresh_time")
         val SUBS_LAST_REFRESHED_COUNT = intPreferencesKey("subs_last_refreshed_count")
@@ -3026,6 +3028,29 @@ class PlayerPreferences(
 
     suspend fun setSubscriptionPinnedChannels(stored: String) {
         context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_PINNED_CHANNELS] = stored }
+    }
+
+    /** When each subscribed channel's page was last opened, for the Quick access dots (#1755). */
+    val subscriptionChannelSeenAt: Flow<String> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_CHANNEL_SEEN_AT].orEmpty() }
+
+    suspend fun updateSubscriptionChannelSeenAt(transform: (String) -> String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SUBS_CHANNEL_SEEN_AT] = transform(preferences[Keys.SUBS_CHANNEL_SEEN_AT].orEmpty())
+        }
+    }
+
+    /** Uploads before this time never get a Quick access dot; 0 until the dots first run. */
+    val subscriptionNewVideosSince: Flow<Long> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_NEW_VIDEOS_SINCE] ?: 0L }
+
+    /** Starts the dots at [now] on their first run, so channels don't all light up at once after the update. */
+    suspend fun startSubscriptionNewVideosSince(now: Long) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            if (preferences[Keys.SUBS_NEW_VIDEOS_SINCE] == null) preferences[Keys.SUBS_NEW_VIDEOS_SINCE] = now
+        }
     }
 
     val subscriptionRefreshOnStartup: Flow<Boolean> =

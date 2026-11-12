@@ -19,6 +19,8 @@ import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedRepository
 import io.github.aedev.flow.data.subscriptions.SubscriptionRefreshPlan
 import io.github.aedev.flow.data.subscriptions.SubscriptionWatchedVideos
+import io.github.aedev.flow.data.subscriptions.channelsWithNewUploads
+import io.github.aedev.flow.data.subscriptions.parseChannelSeenAt
 import io.github.aedev.flow.data.subscriptions.withHighQualityThumbnails
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -73,6 +75,9 @@ class SubscriptionsViewModel
         private var watchedShortIds: Set<String> = emptySet()
         private var unplayableVideoIds: Set<String> = emptySet()
         private var excludedShortsChannelIds: Set<String> = emptySet()
+        private var startedVideoIds: Set<String> = emptySet()
+        private var channelSeenAt: Map<String, Long> = emptyMap()
+        private var newVideosSince = 0L
         private var hasStarted = false
 
         /**
@@ -204,6 +209,22 @@ class SubscriptionsViewModel
                     watchedShortIds = shortIds
                     refreshVisibleFeed()
                 }
+            }
+
+            viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                playerPreferences.startSubscriptionNewVideosSince(System.currentTimeMillis())
+                combine(
+                    subscriptionWatchedVideos.startedIds,
+                    playerPreferences.subscriptionChannelSeenAt.map(::parseChannelSeenAt),
+                    playerPreferences.subscriptionNewVideosSince,
+                    ::Triple,
+                ).distinctUntilChanged()
+                    .collect { (started, seenAt, since) ->
+                        startedVideoIds = started
+                        channelSeenAt = seenAt
+                        newVideosSince = since
+                        refreshVisibleFeed()
+                    }
             }
 
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
@@ -340,25 +361,27 @@ class SubscriptionsViewModel
             channels: List<Channel> = _uiState.value.subscribedChannels,
         ) {
             val state = _uiState.value
+            val filters =
+                SubscriptionFeedFilters(
+                    showVideos = state.showSubscriptionVideos,
+                    showShorts = state.showSubscriptionShorts,
+                    showLive = state.showSubscriptionLive,
+                    showUpcoming = state.showSubscriptionUpcoming,
+                    watchedVideoIds = watchedVideoIds,
+                    watchedShortIds = watchedShortIds,
+                    unplayableVideoIds = unplayableVideoIds,
+                    allowedChannelIds = state.selectedGroupScope(),
+                    excludedShortsChannelIds = excludedShortsChannelIds,
+                    exclusions = neuroEngine.feedExclusions(),
+                )
             val sections =
                 subscriptionFeedSections(
                     videos = videos.withHighQualityThumbnails().withSubscriptionAvatars(channels),
-                    filters =
-                        SubscriptionFeedFilters(
-                            showVideos = state.showSubscriptionVideos,
-                            showShorts = state.showSubscriptionShorts,
-                            showLive = state.showSubscriptionLive,
-                            showUpcoming = state.showSubscriptionUpcoming,
-                            watchedVideoIds = watchedVideoIds,
-                            watchedShortIds = watchedShortIds,
-                            unplayableVideoIds = unplayableVideoIds,
-                            allowedChannelIds = state.selectedGroupScope(),
-                            excludedShortsChannelIds = excludedShortsChannelIds,
-                            exclusions = neuroEngine.feedExclusions(),
-                        ),
+                    filters = filters,
                     now = System.currentTimeMillis(),
                 )
-            _uiState.update { it.copy(recentVideos = sections.recentVideos, shorts = sections.shorts) }
+            val newUploads = channelsWithNewUploads(videos.filter(filters::admits), channelSeenAt, newVideosSince, startedVideoIds)
+            _uiState.update { it.copy(recentVideos = sections.recentVideos, shorts = sections.shorts, newUploadChannelIds = newUploads) }
         }
 
         private val durationEnricher =
