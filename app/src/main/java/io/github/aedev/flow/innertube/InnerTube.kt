@@ -1224,8 +1224,7 @@ class InnerTube {
                         ?.videoOwnerRenderer
                         ?.subscriberCountText
                         ?.simpleText
-                        ?.split(" ")
-                        ?.firstOrNull(),
+                        ?.trim(),
                 uploadDate = baseForTitle?.dateText?.simpleText,
                 viewCount = returnYouTubeDislikeResponse?.viewCount,
                 like = returnYouTubeDislikeResponse?.likes,
