@@ -464,6 +464,14 @@
     <string name="transcript_no_matches">No lines match your search</string>
     <string name="transcript_resync">Sync to video</string>
     <string name="transcript_language">Language</string>
+    <string name="transcript_actions">Transcript options</string>
+    <string name="transcript_copy">Copy</string>
+    <string name="transcript_copy_with_timestamps">Copy with timestamps</string>
+    <string name="transcript_save_file">Save as text file</string>
+    <string name="transcript_copied">Transcript copied</string>
+    <string name="transcript_too_long_to_copy">Too long to copy. Save it as a file instead</string>
+    <string name="transcript_saved">Transcript saved</string>
+    <string name="transcript_save_failed">Couldn\'t save the transcript</string>
     <string name="channel_links">Links</string>
     <string name="artist">Artist</string>
     <string name="playlist">Playlist</string>

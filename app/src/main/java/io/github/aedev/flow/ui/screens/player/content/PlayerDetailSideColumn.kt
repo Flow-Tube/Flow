@@ -133,6 +133,7 @@ internal fun PlayerDetailSideColumn(
                     prefs = prefs,
                     chapters = uiState.chapters,
                     artworkUrl = video.thumbnailUrl,
+                    exportTitle = video.title,
                     asSidePanel = true,
                     expandedHeight = paneHeight,
                     onDismiss = closeSheet,

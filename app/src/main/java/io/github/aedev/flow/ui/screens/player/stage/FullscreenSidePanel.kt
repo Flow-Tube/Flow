@@ -279,6 +279,7 @@ internal fun BoxScope.FullscreenSidePanel(
                 prefs = prefs,
                 chapters = playerUiState.chapters,
                 artworkUrl = video.thumbnailUrl,
+                exportTitle = video.title,
                 asSidePanel = true,
                 expandedHeight = panelState.panelHeight,
                 onDismiss = closeFullscreenSidePanel,

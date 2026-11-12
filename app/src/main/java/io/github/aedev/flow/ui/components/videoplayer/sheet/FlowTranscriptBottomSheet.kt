@@ -68,6 +68,7 @@ fun FlowTranscriptBottomSheet(
     tracks: List<SubtitleOption> = emptyList(),
     selectedTrackUrl: String? = null,
     onTrackSelected: (String) -> Unit = {},
+    exportTitle: String? = null,
     expandedHeight: Dp? = null,
     collapsedHeight: Dp = 0.dp,
     enableVerticalDismiss: Boolean = true,
@@ -145,6 +146,16 @@ fun FlowTranscriptBottomSheet(
                     inSidePane = !enableVerticalDismiss,
                     title = stringResource(R.string.transcript),
                     onClose = { sheetState.dismiss() },
+                    actions = {
+                        if (exportTitle != null && cues.isNotEmpty()) {
+                            TranscriptExportMenu(
+                                cues = cues,
+                                chapters = chapters,
+                                title = exportTitle,
+                                language = tracks.firstOrNull { it.url == selectedTrackUrl }?.label,
+                            )
+                        }
+                    },
                 )
                 if (cues.isNotEmpty() || tracks.size > 1) {
                     Row(
