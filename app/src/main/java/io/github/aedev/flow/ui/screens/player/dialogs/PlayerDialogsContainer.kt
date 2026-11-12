@@ -57,6 +57,7 @@ internal fun PlayerDialogsContainer(
             scope = coroutineScope,
             rememberPlaybackSpeed = prefs.rememberPlaybackSpeed,
             ambientModeEnabled = prefs.ambientModeEnabled,
+            ambientGlowEnabled = prefs.ambientGlowEnabled,
             groupedQualitySelectorEnabled = prefs.groupedQualitySelectorEnabled,
             rememberSubtitleLanguage = { language ->
                 coroutineScope.launch { playerPreferences.setPreferredSubtitleLanguage(language) }
