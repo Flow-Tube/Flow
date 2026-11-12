@@ -4844,4 +4844,6 @@
     <string name="disk_read_ahead_unmetered_only_summary">Mobil data və ya ölçülmüş şəbəkələrdə deyil</string>
     <string name="player_settings_immersive_scroll_dim">Sürüşdürərkən qaraldır</string>
     <string name="player_settings_immersive_scroll_dim_subtitle">Səhifə hərəkət edərkən işığı azalt</string>
+    <string name="player_settings_spherical_view">360° görünüş</string>
+    <string name="player_settings_spherical_view_summary">Bu videoya ətrafdan baxmaq üçün sürüklə</string>
 </resources>
