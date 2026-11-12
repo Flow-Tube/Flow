@@ -141,6 +141,7 @@ class PlaybackSettingsViewModel
         val musicSideSwipes = preferences.musicSideSwipes.asState(false)
         val lockScreenPlayer = preferences.lockScreenPlayer.asState(false)
         val lyricsOnLockScreen = preferences.lyricsOnLockScreen.asState(false)
+        val lyricsInMiniPlayer = preferences.lyricsInMiniPlayer.asState(false)
         val lyricsOnLockScreenDelayMs = preferences.lyricsOnLockScreenDelayMs.asState(0)
         val lyricsSponsorBlockTiming = preferences.lyricsSponsorBlockTiming.asState(false)
         val lyricsOnDemand = preferences.lyricsOnDemand.asState(false)
@@ -306,6 +307,8 @@ class PlaybackSettingsViewModel
         fun setLockScreenPlayer(value: Boolean) = write { preferences.setLockScreenPlayer(value) }
 
         fun setLyricsOnLockScreen(value: Boolean) = write { preferences.setLyricsOnLockScreen(value) }
+
+        fun setLyricsInMiniPlayer(value: Boolean) = write { preferences.setLyricsInMiniPlayer(value) }
 
         fun setLyricsOnLockScreenDelayMs(delayMs: Int) = write { preferences.setLyricsOnLockScreenDelayMs(delayMs) }
 

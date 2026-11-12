@@ -46,9 +46,11 @@ class MusicPlayerLyricsTest {
             coEvery { syncOffset(any()) } returns null
         }
     private val onDemand = MutableStateFlow(false)
+    private val miniPlayerLyrics = MutableStateFlow(false)
     private val preferences =
         mockk<PlayerPreferences> {
             every { lyricsOnDemand } returns onDemand
+            every { lyricsInMiniPlayer } returns miniPlayerLyrics
             every { lyricsShowTranslation } returns flowOf(false)
             every { lyricsShowRomanization } returns flowOf(false)
             every { lyricsAutoRomanize } returns flowOf(false)
@@ -157,6 +159,20 @@ class MusicPlayerLyricsTest {
             lyrics.setPlayerOpen(true)
 
             state.value = state.value.copy(currentTrack = song)
+            lyrics.onSongChanged(song)
+
+            state.first { it.syncedLyrics == providerLines }
+            coVerify(exactly = 1) { helper.getLyrics("v", any(), any(), any(), any(), any(), any()) }
+        }
+
+    @Test
+    fun `on demand a song change looks lyrics up at once for the mini player's lyric line`() =
+        runTest {
+            onDemand.value = true
+            miniPlayerLyrics.value = true
+            val state = MutableStateFlow(MusicPlayerUiState(currentTrack = song))
+            val lyrics = lyricsFromProvider(state)
+
             lyrics.onSongChanged(song)
 
             state.first { it.syncedLyrics == providerLines }
