@@ -39,6 +39,7 @@ internal fun SubscriptionsQuickAccessRow(
     modifier: Modifier = Modifier,
     pinnedCount: Int = 0,
     onTogglePin: ((Channel) -> Unit)? = null,
+    newUploadChannelIds: Set<String> = emptySet(),
 ) {
     val listState = rememberLazyListState()
     val pinnedIds = channels.take(pinnedCount).map(Channel::id)
@@ -84,6 +85,7 @@ internal fun SubscriptionsQuickAccessRow(
                     channel = channel,
                     onClick = { onChannelClick(channel) },
                     isPinned = true,
+                    hasNewUploads = channel.id in newUploadChannelIds,
                     onTogglePin = onTogglePin?.let { toggle -> { toggle(channel) } },
                 )
             }
@@ -96,6 +98,7 @@ internal fun SubscriptionsQuickAccessRow(
                 ChannelAvatarItem(
                     channel = channel,
                     onClick = { onChannelClick(channel) },
+                    hasNewUploads = channel.id in newUploadChannelIds,
                     onTogglePin = onTogglePin?.let { toggle -> { toggle(channel) } },
                 )
             }

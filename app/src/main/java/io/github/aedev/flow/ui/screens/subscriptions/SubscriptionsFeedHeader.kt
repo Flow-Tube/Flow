@@ -62,6 +62,7 @@ internal fun SubscriptionsFeedHeader(
             onMusicClick = onMusicSubscriptionsClick,
             pinnedCount = pinnedCount,
             onTogglePin = onTogglePin,
+            newUploadChannelIds = state.newUploadChannelIds,
             modifier =
                 Modifier
                     .fillMaxWidth()
