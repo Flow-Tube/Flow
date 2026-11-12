@@ -21,7 +21,7 @@
     <string name="library_saved_shorts_label">Shorts guardados</string>
     <string name="library_watch_later_label">Ver más tarde</string>
     <string name="library_downloads_label">Descargas</string>
-    <string name="library_settings_data_header"><![CDATA[Configuración y datos]]></string>
+    <string name="library_settings_data_header"><![CDATA[Ajustes y datos]]></string>
     <string name="library_manage_data_label">Gestionar datos</string>
     <string name="library_manage_data_subtitle">Borrar caché e historial</string>
     <string name="about">Acerca de</string>
@@ -91,7 +91,7 @@
     <string name="settings_header_content_playback">Contenido y reproducción</string>
     <string name="settings_item_content_prefs">Preferencias de contenido</string>
     <string name="settings_item_content_prefs_subtitle">Bloquear temas que no quieres ver</string>
-    <string name="settings_item_player">Configuración del reproductor</string>
+    <string name="settings_item_player">Ajustes del reproductor</string>
     <string name="content_preferences_title">Preferencias de contenido</string>
     <string name="diagnostics_title">Diagnóstico</string>
     <string name="diagnostics_copy">Copiar informe</string>
@@ -488,10 +488,10 @@
     <string name="datetime_mode_exact">Fecha exacta</string>
     <string name="player_appearance_volume_boost_subtitle">Permitir que el control de volumen supere el máximo del sistema</string>
     <string name="download_no_compatible_audio">No hay transmisión de audio compatible: la descarga no puede continuar</string>
-    <string name="notif_system_settings">Configuración de notificaciones del sistema</string>
+    <string name="notif_system_settings">Ajustes de notificaciones del sistema</string>
     <string name="notif_type_general_subtitle">Avisos y notificaciones varias de la app</string>
     <string name="notif_type_general">Notificaciones generales</string>
-    <string name="notif_system_settings_subtitle">Abra la configuración de Android para administrar los permisos por canal</string>
+    <string name="notif_system_settings_subtitle">Abre los ajustes de Android para gestionar los permisos por canal</string>
     <string name="notif_check_interval_section_header">Programación de actualización del feed</string>
     <string name="notif_check_interval_subtitle_template">Revisa cada %s</string>
     <string name="notif_check_interval_dialog_title">Intervalo de revisión</string>
@@ -510,9 +510,9 @@
     <string name="settings_item_quality_subtitle">Resolución de vídeo y calidad de audio de música</string>
     <string name="settings_item_content_display">Visualización de contenido</string>
     <string name="settings_item_content_display_subtitle">Tamaño de cuadrícula, miniaturas, diseño</string>
-    <string name="settings_item_buffer">Configuración del búfer</string>
+    <string name="settings_item_buffer">Ajustes del búfer</string>
     <string name="settings_item_buffer_subtitle">Configurar el comportamiento del almacenamiento en búfer de vídeo</string>
-    <string name="settings_item_downloads">Configuración de descargas</string>
+    <string name="settings_item_downloads">Ajustes de descargas</string>
     <string name="settings_item_downloads_subtitle">Rendimiento, almacenamiento, subprocesos</string>
     <string name="settings_item_region">Región de tendencia</string>
     <string name="settings_item_search_history">Búsqueda e historial</string>
@@ -615,7 +615,7 @@
     <string name="content_settings_header_player">Reproductor de video</string>
     <string name="content_settings_related_card_style_title">Estilo de tarjeta de video relacionado</string>
     <string name="content_settings_home_feed_disabled_title">Feed de Inicio deshabilitado</string>
-    <string name="content_settings_home_feed_disabled_body">Las recomendaciones personalizadas están desactivadas. Puede volver a habilitar esto en Configuración de contenido.</string>
+    <string name="content_settings_home_feed_disabled_body">Las recomendaciones personalizadas están desactivadas. Puedes volver a activarlas en Ajustes de contenido.</string>
     <string name="content_settings_related_card_style_subtitle">Elija cómo aparecen los videos relacionados en el panel del reproductor</string>
     <string name="content_settings_related_card_compact">Compacto</string>
     <string name="content_settings_related_card_full_width">Ancho completo</string>
@@ -655,7 +655,7 @@
     <string name="continue_watching_title">Continuar Viendo</string>
     <string name="player_settings_mini_player_continue_watching_subtitle">Aparece automáticamente el último vídeo visto</string>
     <string name="player_mini_player_continue_watching_label">Seguir viendo</string>
-    <string name="player_settings_title">Configuración del reproductor</string>
+    <string name="player_settings_title">Ajustes del reproductor</string>
     <string name="player_settings_background_play_subtitle">Continuar reproduciendo cuando la aplicación esté en segundo plano</string>
     <string name="player_settings_autoplay">Reproducción automática • videos relacionados</string>
     <string name="player_settings_autoplay_subtitle">Reproducir un vídeo sugerido cuando no haya nada en la cola</string>
@@ -745,7 +745,7 @@
     <string name="quality_360p">360p</string>
     <string name="quality_1080p_full_hd">1080p Full HD</string>
     <string name="quality_1440p_qhd">1440p QHD</string>
-    <string name="buffer_settings_title">Configuración del búfer</string>
+    <string name="buffer_settings_title">Ajustes del búfer</string>
     <string name="buffer_settings_desc">Ajusta el búfer del video según tu conexión.</string>
     <string name="buffer_settings_header_profile">Perfil de rendimiento</string>
     <string name="quality_2160p_4k">2160p 4K</string>
@@ -891,7 +891,7 @@
     <string name="import_yt_history_failed_template">No se pudo importar el historial de reproducciones: %1$s</string>
     <string name="import_yt_music_playlist">Importar lista de reproducción de música de YouTube</string>
     <string name="import_yt_history_empty_error">No se encontraron entradas del historial de reproducciones en este archivo. Asegúrate de que sea un archivo watch-history.html de YouTube Takeout.</string>
-    <string name="download_settings_title">Configuración de descargas</string>
+    <string name="download_settings_title">Ajustes de descargas</string>
     <string name="import_yt_playlist_failed_template">No se pudo importar la lista de reproducción: %1$s</string>
     <string name="internal_storage_label">Almacenamiento interno</string>
     <string name="free_space_template">%1$s libre</string>
@@ -1064,7 +1064,7 @@
     <string name="section_vibe_vibes">%1$s vibraciones</string>
     <string name="playlist_author_community">Lista de reproducción comunitaria</string>
     <string name="radio">Radio</string>
-    <string name="audio_settings_title">Configuración de audio</string>
+    <string name="audio_settings_title">Ajustes de audio</string>
     <string name="label_preset">Programar</string>
     <string name="template_bass_boost">Refuerzo de graves: %1$ddB</string>
     <string name="label_tempo_pitch">Tempo y tono</string>
@@ -1139,7 +1139,7 @@
     <string name="section_downloading">Descargando</string>
     <string name="audio_track">Pista de audio</string>
     <string name="off">Desactivadas</string>
-    <string name="player_settings">Configuración del reproductor</string>
+    <string name="player_settings">Ajustes del reproductor</string>
     <string name="playback_speed">Velocidad de reproducción</string>
     <string name="autoplay_next">Reproducción automática del siguiente vídeo</string>
     <string name="subtitle_style">Estilo de subtítulo</string>
@@ -1289,7 +1289,7 @@
     <string name="auto_backup_last_run_label">Último respaldo</string>
     <string name="export_data_section_subtitle">Selecciona lo que quieres exportar y guárdalo en tu dispositivo</string>
     <string name="export_app_data_title">Respaldo de datos de la aplicación</string>
-    <string name="export_app_data_desc">Exporta tus suscripciones, historial de reproducciones, listas de reproducción y configuraciones</string>
+    <string name="export_app_data_desc">Exporta tus suscripciones, historial de reproducciones, listas de reproducción y ajustes</string>
     <string name="deep_flow_mode_subtitle">Pausar el aprendizaje e historial de búsqueda</string>
     <string name="deep_flow_expires_in">Caduca en %s</string>
     <string name="deep_flow_learning_paused">APRENDIZAJE EN PAUSA</string>
@@ -1304,7 +1304,7 @@
     <string name="deep_flow_duration_12h">12 horas</string>
     <string name="deep_flow_duration_24h">24 horas</string>
     <string name="deep_flow_duration_8h">8 horas</string>
-    <string name="sb_settings_subtitle">Acciones de segmento, controles DeArrow y configuraciones de recuento de «No me gusta»</string>
+    <string name="sb_settings_subtitle">Acciones de segmentos, controles de DeArrow y ajustes del recuento de «No me gusta»</string>
     <string name="group_all">Todo</string>
     <string name="manage_groups">Administrar grupos</string>
     <string name="edit_group">Editar grupo</string>
@@ -1340,9 +1340,9 @@
     <string name="export_newpipe_subs_failed">No se pudieron exportar las suscripciones a NewPipe</string>
     <string name="settings_item_proxy_subtitle">Enrutar el tráfico remoto a través de HTTP o SOCKS5</string>
     <string name="proxy_settings_description">Enrutar el tráfico remoto a través de un proxy HTTP o SOCKS5. El casting local y el descubrimiento de LAN se mantienen directos.</string>
-    <string name="settings_item_proxy">Configuración de proxy</string>
+    <string name="settings_item_proxy">Ajustes del proxy</string>
     <string name="proxy_settings_enabled">Habilitar Proxy</string>
-    <string name="proxy_settings_title">Configuración de Proxy</string>
+    <string name="proxy_settings_title">Ajustes del proxy</string>
     <string name="proxy_settings_enabled_subtitle">Utilice el proxy configurado para el tráfico de red remoto</string>
     <string name="proxy_settings_host">Servidor</string>
     <string name="proxy_settings_port">Puerto</string>
@@ -1355,7 +1355,7 @@
     <string name="proxy_settings_type">Tipo de Proxy</string>
     <string name="proxy_settings_invalid_port">Ingrese un puerto proxy válido entre 1 y 65535.</string>
     <string name="settings_item_app_language">Idioma de la aplicación</string>
-    <string name="proxy_settings_saved">Configuración de proxy guardada</string>
+    <string name="proxy_settings_saved">Ajustes del proxy guardados</string>
     <string name="support_flow_patreon">Apoya a Flow en Patreon</string>
     <string name="settings_item_app_language_subtitle">Utilice el idioma de su dispositivo o elija uno manualmente</string>
     <string name="settings_language_dialog_title">Seleccionar idioma de la aplicación</string>
@@ -1560,7 +1560,7 @@
     <string name="datetime_mode_header">Visualización de la hora</string>
     <string name="datetime_mode_relative">Tiempo relativo (por ejemplo, hace 7 meses)</string>
     <string name="datetime_mode_both">Ambos</string>
-    <string name="datetime_overrides_note">Cambia el formato para lugares específicos. «Predeterminado» sigue la configuración anterior.</string>
+    <string name="datetime_overrides_note">Cambia el formato para lugares concretos. «Predeterminado» sigue el ajuste de arriba.</string>
     <string name="datetime_sample_relative">hace 7 meses</string>
     <string name="datetime_format_system">Valor predeterminado del sistema</string>
     <string name="datetime_context_watch">Página de vistos</string>
@@ -1909,7 +1909,7 @@
     <string name="widget_previous">Pista anterior</string>
     <string name="widget_like">Me gusta</string>
     <string name="widget_artwork">Portada del álbum</string>
-    <string name="ui_search_settings">Configuración de búsqueda…</string>
+    <string name="ui_search_settings">Buscar ajustes…</string>
     <string name="widget_open_downloads">Abrir descargas</string>
     <string name="widget_open_history">Abrir historial</string>
     <string name="widget_no_recent">Los vídeos que veas aparecerán aquí</string>
@@ -5055,4 +5055,15 @@
     </plurals>
     <string name="player_settings_immersive_scroll_dim">Atenuar al desplazar</string>
     <string name="player_settings_immersive_scroll_dim_subtitle">Atenúa la luz mientras la página se desplaza</string>
+    <string name="lyrics_share">Compartir letras</string>
+    <string name="lyrics_share_selected">%1$d de %2$d líneas seleccionadas</string>
+    <string name="lyrics_share_align_left">Izquierda</string>
+    <string name="lyrics_share_align_center">Centro</string>
+    <string name="lyrics_share_align_right">Derecha</string>
+    <string name="lyrics_share_save_image">Guardar imagen</string>
+    <string name="lyrics_share_image_saved">Imagen guardada</string>
+    <string name="lyrics_share_image_failed">No se pudo crear la imagen</string>
+    <string name="recent_searches_show_all">Mostrar todo</string>
+    <string name="player_settings_spherical_view">Vista de 360°</string>
+    <string name="player_settings_spherical_view_summary">Arrastra para explorar este vídeo</string>
 </resources>
