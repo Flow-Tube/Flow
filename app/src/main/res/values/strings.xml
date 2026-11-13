@@ -223,6 +223,12 @@
     <string name="lyrics_share_frame_square">Square</string>
     <string name="lyrics_share_frame_backdrop">Framed</string>
     <string name="lyrics_share_frame_clear">Clear</string>
+    <string name="lyrics_share_size_fit">Fit</string>
+    <string name="lyrics_share_size_square">1:1</string>
+    <string name="lyrics_share_size_story">Story</string>
+    <string name="lyrics_share_layout_classic">Classic</string>
+    <string name="lyrics_share_layout_poster">Poster</string>
+    <string name="lyrics_share_layout_shape">Shape</string>
     <string name="lyrics_share_save_image">Save image</string>
     <string name="lyrics_share_image_saved">Image saved</string>
     <string name="lyrics_share_image_failed">Could not create the image</string>

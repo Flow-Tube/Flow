@@ -29,7 +29,8 @@ class FlowPairAction(
 
 /**
  * A page's two main actions as a connected pair of medium buttons sharing the width: [primary]
- * filled, [secondary] tonal. Play all and Shuffle on a playlist; Resume and Edit on a note.
+ * filled, [secondary] tonal. Play all and Shuffle on a playlist; Resume and Edit on a note. A
+ * [tertiary] action joins the group as an icon-only tonal button at the end.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -37,14 +38,16 @@ fun FlowActionButtonPair(
     primary: FlowPairAction,
     secondary: FlowPairAction,
     modifier: Modifier = Modifier,
+    tertiary: FlowPairAction? = null,
 ) {
     val height = ButtonDefaults.MediumContainerHeight
+    val count = if (tertiary == null) 2 else 3
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
-        val leading = connectedButtonShapes(index = 0, count = 2)
-        val trailing = connectedButtonShapes(index = 1, count = 2)
+        val leading = connectedButtonShapes(index = 0, count = count)
+        val trailing = connectedButtonShapes(index = 1, count = count)
         Button(
             onClick = primary.onClick,
             shapes = ButtonShapes(leading.shape, leading.pressedShape),
@@ -60,6 +63,21 @@ fun FlowActionButtonPair(
             modifier = Modifier.weight(1f).heightIn(min = height),
         ) {
             PairActionLabel(secondary.icon, secondary.label, height)
+        }
+        if (tertiary != null) {
+            val end = connectedButtonShapes(index = 2, count = count)
+            FilledTonalButton(
+                onClick = tertiary.onClick,
+                shapes = ButtonShapes(end.shape, end.pressedShape),
+                contentPadding = ButtonDefaults.contentPaddingFor(height),
+                modifier = Modifier.heightIn(min = height),
+            ) {
+                Icon(
+                    imageVector = tertiary.icon,
+                    contentDescription = tertiary.label,
+                    modifier = Modifier.size(ButtonDefaults.iconSizeFor(height)),
+                )
+            }
         }
     }
 }

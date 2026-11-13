@@ -1,51 +1,25 @@
 package io.github.aedev.flow.ui.components.musicplayer.lyrics
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import io.github.aedev.flow.R
-import io.github.aedev.flow.ui.components.shared.FlowLogo
 import io.github.aedev.flow.ui.components.shared.MediaPalette
 import kotlin.math.sqrt
-
-private val CardPadding = 24.dp
-private val CardSpacing = 14.dp
-private val HeaderSpacing = 12.dp
-private val ArtworkSize = 56.dp
-private val LogoWidth = 28.dp
-private val LogoSpacing = 8.dp
-private const val SECONDARY_INK = 0.7f
-private const val DIVIDER_INK = 0.2f
 
 // About 15 of 255 across red, green and blue together: closer than that, two swatches read as one.
 private const val SAME_GROUND_DISTANCE = 0.06f
@@ -138,7 +112,7 @@ internal fun lyricsShareLineStyle(base: TextStyle): TextStyle =
         platformStyle = PlatformTextStyle(includeFontPadding = false),
     )
 
-/** The card that gets shared: the song, the chosen lines and the Flow mark, on one flat colour or the [cover] field. */
+/** The card that gets shared, drawn in [layout] on one flat colour or the [cover] field. [fill] gives it a fixed height to fill. */
 @Composable
 internal fun LyricsShareCard(
     title: String,
@@ -149,6 +123,8 @@ internal fun LyricsShareCard(
     textAlign: TextAlign,
     shape: Shape,
     modifier: Modifier = Modifier,
+    layout: LyricsCardLayout = LyricsCardLayout.CLASSIC,
+    fill: Boolean = false,
     cover: LyricsCover? = null,
 ) {
     val context = LocalContext.current
@@ -165,66 +141,11 @@ internal fun LyricsShareCard(
         if (cover != null) {
             LyricsCoverLayer(cover = cover, moving = false, running = false, modifier = Modifier.matchParentSize())
         }
-        LyricsShareCardContent(title, artist, artwork, lines, colors, textAlign)
-    }
-}
-
-@Composable
-private fun LyricsShareCardContent(
-    title: String,
-    artist: String,
-    artwork: ImageRequest,
-    lines: List<String>,
-    colors: LyricsCardColors,
-    textAlign: TextAlign,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(CardPadding),
-        verticalArrangement = Arrangement.spacedBy(CardSpacing),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(HeaderSpacing)) {
-            AsyncImage(
-                model = artwork,
-                contentDescription = null,
-                modifier = Modifier.size(ArtworkSize).clip(MaterialTheme.shapes.small),
-                contentScale = ContentScale.Crop,
-            )
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = artist,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.ink.copy(alpha = SECONDARY_INK),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        HorizontalDivider(color = colors.ink.copy(alpha = DIVIDER_INK))
-        lines.forEach { line ->
-            Text(
-                text = line,
-                modifier = Modifier.fillMaxWidth(),
-                style = lyricsShareLineStyle(MaterialTheme.typography.headlineSmall),
-                color = colors.ink,
-                textAlign = textAlign,
-            )
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogoSpacing)) {
-            FlowLogo(modifier = Modifier.width(LogoWidth), shapeColor = colors.ink, glyphColor = colors.ground)
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = colors.ink,
-            )
+        val content = LyricsCardContent(title, artist, artwork, lines, colors, textAlign)
+        when (layout) {
+            LyricsCardLayout.CLASSIC -> ClassicCard(content, fill)
+            LyricsCardLayout.POSTER -> PosterCard(content, fill)
+            LyricsCardLayout.SHAPE -> ShapeCard(content, fill)
         }
     }
 }
