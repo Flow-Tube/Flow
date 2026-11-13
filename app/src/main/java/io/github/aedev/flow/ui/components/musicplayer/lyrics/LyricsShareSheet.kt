@@ -10,14 +10,13 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FormatAlignCenter
 import androidx.compose.material.icons.outlined.FormatAlignLeft
@@ -31,6 +30,7 @@ import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,12 +43,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.lyrics.LyricsEntry
+import io.github.aedev.flow.ui.components.shared.FittedShareCard
 import io.github.aedev.flow.ui.components.shared.FlowActionButton
 import io.github.aedev.flow.ui.components.shared.FlowActionButtonPair
 import io.github.aedev.flow.ui.components.shared.FlowColorSwatch
@@ -67,7 +69,6 @@ private val EdgePadding = 16.dp
 private val RowSpacing = 4.dp
 private val ControlSpacing = 12.dp
 private val LinePadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-private val CardMaxWidth = 360.dp
 private const val DISABLED_LINE_ALPHA = 0.38f
 private const val PNG_MIME = "image/png"
 
@@ -224,25 +225,30 @@ private fun ColumnScope.LyricsShareStyler(
         }
     val chooserTitle = stringResource(R.string.lyrics_share)
 
+    val fontScale = LocalDensity.current.fontScale
+    val exportDensity = remember(fontScale) { lyricsCardExportDensity(fontScale) }
     Box(
         modifier =
             Modifier
                 .weight(1f, fill = false)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
                 .padding(EdgePadding),
         contentAlignment = Alignment.Center,
     ) {
-        LyricsShareCard(
-            title = title,
-            artist = artist,
-            artworkUrl = artworkUrl,
-            lines = lines,
-            colors = colorsByStyle.getValue(style),
-            textAlign = align,
-            modifier = Modifier.widthIn(max = CardMaxWidth).fillMaxWidth().captureInto(layer),
-            cover = cover.takeIf { style == LyricsCardStyle.COLORFUL },
-        )
+        FittedShareCard(Modifier.widthIn(max = LyricsCardWidth)) {
+            CompositionLocalProvider(LocalDensity provides exportDensity) {
+                LyricsShareCard(
+                    title = title,
+                    artist = artist,
+                    artworkUrl = artworkUrl,
+                    lines = lines,
+                    colors = colorsByStyle.getValue(style),
+                    textAlign = align,
+                    modifier = Modifier.width(LyricsCardWidth).captureInto(layer),
+                    cover = cover.takeIf { style == LyricsCardStyle.COLORFUL },
+                )
+            }
+        }
     }
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
