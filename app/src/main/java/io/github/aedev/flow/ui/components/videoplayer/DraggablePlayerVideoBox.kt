@@ -71,7 +71,7 @@ internal fun Modifier.draggablePlayerVideoBox(
             val windowW = geometry.expandedVideoWidth * visualScale
             val windowH = size.height * visualScale
             val expandedTopY =
-                statusBarHeight + state.portraitFsFraction.coerceAtLeast(0f) * portraitFsTravel()
+                statusBarHeight + state.portraitFsFraction.coerceAtLeast(0f) * portraitFsTravel() - state.scrollAwayPx
             translationX =
                 lerpClamped(0f, origin?.left ?: state.offsetX.value, fraction) +
                 windowW * (1f - drag) / 2f

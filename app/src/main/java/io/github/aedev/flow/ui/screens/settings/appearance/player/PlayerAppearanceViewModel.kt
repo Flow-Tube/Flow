@@ -44,6 +44,7 @@ class PlayerAppearanceViewModel
         val plainControlColors = preferences.musicPlainControlColors.asState(MusicPlainControlColors.MONOCHROME)
         val sleepTimerButton = preferences.musicSleepTimerButton.asState(false)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
+        val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
         val ambientGlow = preferences.videoAmbientGlowEnabled.asState(false)
         val immersiveGlow = preferences.videoAmbientImmersiveEnabled.asState(false)
@@ -97,6 +98,8 @@ class PlayerAppearanceViewModel
         fun setSleepTimerButton(value: Boolean) = write { preferences.setMusicSleepTimerButton(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
+
+        fun setPlayerScrollAway(value: Boolean) = write { preferences.setPlayerScrollAwayEnabled(value) }
 
         fun setAmbientMode(value: Boolean) = write { preferences.setVideoAmbientModeEnabled(value) }
 

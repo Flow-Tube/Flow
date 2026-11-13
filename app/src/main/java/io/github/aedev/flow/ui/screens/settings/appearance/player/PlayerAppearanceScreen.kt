@@ -74,6 +74,7 @@ internal fun PlayerAppearanceScreen(
     val plainControlColors by viewModel.plainControlColors.collectAsStateWithLifecycle()
     val sleepTimerButton by viewModel.sleepTimerButton.collectAsStateWithLifecycle()
     val adaptiveSize by viewModel.adaptivePlayerSize.collectAsStateWithLifecycle()
+    val scrollAway by viewModel.playerScrollAway.collectAsStateWithLifecycle()
     val ambientMode by viewModel.ambientMode.collectAsStateWithLifecycle()
     val ambientGlow by viewModel.ambientGlow.collectAsStateWithLifecycle()
     val immersiveGlow by viewModel.immersiveGlow.collectAsStateWithLifecycle()
@@ -212,6 +213,7 @@ internal fun PlayerAppearanceScreen(
         group(key = "player_appearance.video", header = R.string.settings_section_video_player) {
             switch(PlayerAppearanceIndex.adaptiveSize, adaptiveSize, viewModel::setAdaptivePlayerSize)
             switch(PlayerAppearanceIndex.fullscreenZoomToFill, viewModel.fullscreenZoomToFill, viewModel::setFullscreenZoomToFill)
+            switch(PlayerAppearanceIndex.scrollAway, scrollAway, viewModel::setPlayerScrollAway)
             switch(PlayerAppearanceIndex.ambientMode, ambientMode, viewModel::setAmbientMode)
             switch(PlayerAppearanceIndex.ambientGlow, ambientGlow, viewModel::setAmbientGlow)
             switch(PlayerAppearanceIndex.immersiveGlow, immersiveGlow, viewModel::setImmersiveGlow, enabled = ambientGlow)

@@ -19,6 +19,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
@@ -77,6 +78,7 @@ internal fun EnhancedVideoPlayerScreen(
     video: Video,
     alpha: () -> Float,
     videoPlayerHeightPx: () -> Float = { 0f },
+    offscreenBottomPx: () -> Float = { 0f },
     screenState: PlayerScreenState, // Shared screenState from FlowApp
     isFullscreenShown: Boolean,
     prefs: VideoPlayerPreferencesState,
@@ -297,6 +299,7 @@ internal fun EnhancedVideoPlayerScreen(
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
+                        .offset { IntOffset(0, -offscreenBottomPx().roundToInt()) }
                         .padding(bottom = QueueDockMargin)
                         .widthIn(max = QueueDockMaxWidth),
             )
@@ -307,6 +310,7 @@ internal fun EnhancedVideoPlayerScreen(
             modifier =
                 Modifier
                     .align(Alignment.BottomCenter)
+                    .offset { IntOffset(0, -offscreenBottomPx().roundToInt()) }
                     .padding(bottom = dockReserve),
         )
     }
