@@ -40,7 +40,11 @@ internal fun PlayerStatsOverlay(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rows = lines.map { stringResource(R.string.stats_line, stringResource(it.label), it.value) }
+    val rows =
+        lines.map { line ->
+            val value = line.valueRes?.let { stringResource(it) } ?: line.value
+            stringResource(R.string.stats_line, stringResource(line.label), value)
+        }
     Box(
         modifier =
             modifier

@@ -16,6 +16,8 @@ class PlayerStatsFormatterTest {
             audio = PlayerStatsSnapshot.AudioStats("251", "opus", 160_000, 48_000),
             volume = 0.46f,
             gainDb = -3.2f,
+            speed = 1f,
+            skipSilence = false,
             bandwidthBitsPerSecond = 18_400_000L,
             bufferedMs = 85_700L,
             viewportWidth = 1080,
@@ -39,6 +41,20 @@ class PlayerStatsFormatterTest {
         assertThat(value(full, R.string.stats_buffered)).isEqualTo("85.7 s")
         assertThat(value(full, R.string.stats_viewport)).isEqualTo("1080x608")
         assertThat(value(full, R.string.stats_dropped_frames)).isEqualTo("18 / 4469")
+    }
+
+    @Test
+    fun `speed and skip silence read as set`() {
+        assertThat(value(full, R.string.stats_speed)).isEqualTo("1×")
+        val line = PlayerStatsFormatter.lines(full).single { it.label == R.string.stats_skip_silence }
+        assertThat(line.valueRes).isEqualTo(R.string.off)
+
+        val fast = full.copy(speed = 1.25f, skipSilence = true)
+
+        assertThat(value(fast, R.string.stats_speed)).isEqualTo("1.25×")
+        assertThat(PlayerStatsFormatter.lines(fast).single { it.label == R.string.stats_skip_silence }.valueRes)
+            .isEqualTo(R.string.on)
+        assertThat(value(full.copy(speed = 1.5f), R.string.stats_speed)).isEqualTo("1.5×")
     }
 
     @Test

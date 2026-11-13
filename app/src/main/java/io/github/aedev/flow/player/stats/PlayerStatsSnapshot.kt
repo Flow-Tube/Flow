@@ -3,6 +3,8 @@ package io.github.aedev.flow.player.stats
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import io.github.aedev.flow.R
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.Locale
 
 private const val BITS_PER_KBIT = 1_000.0
@@ -23,6 +25,8 @@ internal data class PlayerStatsSnapshot(
     val audio: AudioStats?,
     val volume: Float,
     val gainDb: Float?,
+    val speed: Float,
+    val skipSilence: Boolean,
     val bandwidthBitsPerSecond: Long,
     val bufferedMs: Long,
     val viewportWidth: Int,
@@ -52,6 +56,7 @@ internal data class PlayerStatsSnapshot(
 internal data class PlayerStatLine(
     @param:StringRes val label: Int,
     val value: String,
+    @param:StringRes val valueRes: Int? = null,
 )
 
 internal object PlayerStatsFormatter {
@@ -65,6 +70,12 @@ internal object PlayerStatsFormatter {
             PlayerStatLine(R.string.stats_decoder, snapshot.decoder ?: UNKNOWN),
             PlayerStatLine(R.string.stats_audio, snapshot.audio?.let(::audio) ?: UNKNOWN),
             PlayerStatLine(R.string.stats_volume, volume(snapshot)),
+            PlayerStatLine(R.string.stats_speed, speed(snapshot.speed)),
+            PlayerStatLine(
+                R.string.stats_skip_silence,
+                if (snapshot.skipSilence) "on" else "off",
+                if (snapshot.skipSilence) R.string.on else R.string.off,
+            ),
             PlayerStatLine(R.string.stats_bandwidth, bandwidth(snapshot.bandwidthBitsPerSecond)),
             PlayerStatLine(R.string.stats_buffered, String.format(Locale.US, "%.1f s", snapshot.bufferedMs / MS_PER_SECOND)),
             PlayerStatLine(R.string.stats_viewport, viewport(snapshot)),
@@ -103,6 +114,13 @@ internal object PlayerStatsFormatter {
         val gain = snapshot.gainDb ?: return percent
         return "$percent ${"%+.1f dB".format(Locale.US, gain)}"
     }
+
+    private fun speed(speed: Float): String =
+        BigDecimal
+            .valueOf(speed.toDouble())
+            .setScale(2, RoundingMode.HALF_UP)
+            .stripTrailingZeros()
+            .toPlainString() + "×"
 
     private fun bandwidth(bitsPerSecond: Long): String =
         if (bitsPerSecond >= BITS_PER_MBIT) {

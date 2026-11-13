@@ -995,6 +995,8 @@
     <string name="stats_buffered">Buffered</string>
     <string name="stats_viewport">Viewport</string>
     <string name="stats_dropped_frames">Dropped frames</string>
+    <string name="stats_speed">Speed</string>
+    <string name="stats_skip_silence">Skip silence</string>
     <string name="shorts_saved">Short saved</string>
     <string name="shorts_unsaved">Short unsaved</string>
     <string name="remove_from_saved_shorts">Remove from Saved Shorts</string>
