@@ -57,6 +57,7 @@ internal class VideoPlayerPreferencesState(
     val ambientImmersiveScrollDim: Boolean,
     val ambientGlowInBatterySaver: Boolean,
     val adaptivePlayerSizeEnabled: Boolean,
+    val playerScrollAwayEnabled: Boolean,
     val groupedQualitySelectorEnabled: Boolean,
     val lockModeEnabled: Boolean,
     val commentsEnabled: Boolean,
@@ -106,6 +107,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val ambientImmersiveScrollDim by playerPreferences.videoAmbientImmersiveScrollDim.collectAsState(initial = true)
     val ambientGlowInBatterySaver by playerPreferences.videoAmbientGlowInBatterySaver.collectAsState(initial = false)
     val adaptivePlayerSizeEnabled by playerPreferences.adaptivePlayerSizeEnabled.collectAsState(initial = true)
+    val playerScrollAwayEnabled by playerPreferences.playerScrollAwayEnabled.collectAsState(initial = false)
     val groupedQualitySelectorEnabled by playerPreferences.groupedQualitySelectorEnabled.collectAsState(initial = false)
     val lockModeEnabled by playerPreferences.overlayLockModeEnabled.collectAsState(initial = false)
     val commentsEnabled by playerPreferences.commentsEnabled.collectAsState(initial = true)
@@ -155,6 +157,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         ambientImmersiveScrollDim = ambientImmersiveScrollDim,
         ambientGlowInBatterySaver = ambientGlowInBatterySaver,
         adaptivePlayerSizeEnabled = adaptivePlayerSizeEnabled,
+        playerScrollAwayEnabled = playerScrollAwayEnabled,
         groupedQualitySelectorEnabled = groupedQualitySelectorEnabled,
         lockModeEnabled = lockModeEnabled,
         commentsEnabled = commentsEnabled,

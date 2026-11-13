@@ -138,6 +138,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_fullscreen_zoom_to_fill_subtitle,
             R.string.settings_section_video_player,
         )
+    val scrollAway =
+        entry(
+            "scroll_away",
+            R.string.player_scroll_away_title,
+            R.string.player_scroll_away_subtitle,
+            R.string.settings_section_video_player,
+        )
     val ambientMode =
         entry(
             "ambient_mode",
@@ -258,6 +265,7 @@ internal object PlayerAppearanceIndex {
             queueSwipeRight,
             adaptiveSize,
             fullscreenZoomToFill,
+            scrollAway,
             ambientMode,
             ambientGlow,
             immersiveGlow,
