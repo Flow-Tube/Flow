@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -58,7 +57,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -88,23 +86,20 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
-import io.github.aedev.flow.data.model.SubscriptionGroup
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.ui.components.channel.ChannelBanner
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
-import io.github.aedev.flow.ui.components.shared.CollectionEditDialog
-import io.github.aedev.flow.ui.components.shared.CollectionSheetEntry
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
-import io.github.aedev.flow.ui.components.shared.FlowNoteEditorDialog
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FullSizeImageDialog
 import io.github.aedev.flow.ui.components.shared.MediaPostCommentsSheet
-import io.github.aedev.flow.ui.components.shared.SaveToCollectionSheet
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberPostShareAction
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.ui.youtubeChannelUrl
@@ -141,15 +136,24 @@ fun ChannelScreen(
     val channelNote by viewModel.channelNote.collectAsStateWithLifecycle()
     val notesEnabled by viewModel.notesEnabled.collectAsStateWithLifecycle()
     val showShortsTab by viewModel.showShortsTab.collectAsStateWithLifecycle()
-    var showNoteEditor by rememberSaveable { mutableStateOf(false) }
-    val subscriptionGroups by viewModel.subscriptionGroups.collectAsStateWithLifecycle()
-    var showGroupSheet by rememberSaveable { mutableStateOf(false) }
-    var showCreateGroupDialog by rememberSaveable { mutableStateOf(false) }
 
     // Shelves and posts have their own layout; only the item grids can switch.
     val showLayoutToggle =
         uiState.selectedTab != null &&
             uiState.selectedTab !in setOf(ChannelTabKind.Home, ChannelTabKind.Posts)
+
+    val header = uiState.header
+    val organizeTarget =
+        remember(header) {
+            ChannelOrganizeTarget(
+                channelId = header?.id.orEmpty(),
+                title = header?.title.orEmpty(),
+                avatarUrl = header?.avatarUrl.orEmpty(),
+                handle = header?.handle.orEmpty(),
+                subscriberCountText = header?.subscriberCountText.orEmpty(),
+            )
+        }
+    val organize = rememberChannelOrganizeActions(organizeTarget, isSubscribed = uiState.isSubscribed)
 
     LaunchedEffect(channelUrl) { viewModel.loadChannel(channelUrl) }
 
@@ -237,7 +241,7 @@ fun ChannelScreen(
                             notifyingChannelIds = notifyingChannelIds,
                             onChannelNotificationChange = viewModel::setChannelNotifications,
                             channelNote = channelNote.takeIf { notesEnabled },
-                            onEditNote = { showNoteEditor = true }.takeIf { notesEnabled },
+                            onEditNote = organize.onAddNote,
                             onSubscribeChannel = viewModel::setChannelSubscription,
                             onVideoClick = onVideoClick,
                             onChannelClick = onChannelClick,
@@ -248,7 +252,7 @@ fun ChannelScreen(
                             onSubscribeClick = { viewModel.toggleSubscription() },
                             onUnsubscribeClick = { viewModel.unsubscribe() },
                             onNotificationChange = { viewModel.setNotificationState(it) },
-                            onManageGroups = { showGroupSheet = true },
+                            onManageGroups = organize.onManageGroups,
                             onTabSelected = { viewModel.selectTab(it) },
                             onSearchToggle = { viewModel.setSearchActive(!uiState.searchActive) },
                             onSearchQueryChange = { viewModel.searchInChannel(it) },
@@ -267,42 +271,5 @@ fun ChannelScreen(
         }
 
         MediaPostCommentsSheet(loader = viewModel.postComments, onAuthorClick = onChannelClick)
-    }
-
-    val channelId = uiState.header?.id.orEmpty()
-    if (showGroupSheet && channelId.isNotBlank()) {
-        ChannelGroupSheet(
-            groups = subscriptionGroups,
-            channelId = channelId,
-            onToggle = { groupName, inGroup -> viewModel.setChannelInGroup(groupName, channelId, inGroup) },
-            onCreateNew = {
-                showGroupSheet = false
-                showCreateGroupDialog = true
-            },
-            onDismiss = { showGroupSheet = false },
-        )
-    }
-
-    if (showNoteEditor && notesEnabled) {
-        FlowNoteEditorDialog(
-            initialText = channelNote.orEmpty(),
-            title = stringResource(R.string.note_channel_title),
-            onSave = viewModel::saveChannelNote,
-            onDismiss = { showNoteEditor = false },
-        )
-    }
-
-    if (showCreateGroupDialog && channelId.isNotBlank()) {
-        CollectionEditDialog(
-            title = stringResource(R.string.new_group),
-            confirmLabel = stringResource(R.string.save),
-            onDismiss = { showCreateGroupDialog = false },
-            onConfirm = { name, _ ->
-                viewModel.createGroupWithChannel(name, channelId)
-                showCreateGroupDialog = false
-            },
-            icon = Icons.Rounded.Folder,
-            showDescription = false,
-        )
     }
 }

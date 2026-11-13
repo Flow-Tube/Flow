@@ -42,6 +42,7 @@ import io.github.aedev.flow.ui.components.applock.AppLockScreen
 import io.github.aedev.flow.ui.components.profiles.ProfileSwitchingOverlay
 import io.github.aedev.flow.ui.components.shared.AppHaptics
 import io.github.aedev.flow.ui.components.shared.ProvideChannelGroupLabels
+import io.github.aedev.flow.ui.components.shared.ProvideChannelOrganizer
 import io.github.aedev.flow.ui.components.shared.ProvideDateDisplaySettings
 import io.github.aedev.flow.ui.components.shared.card.ProvideVideoCardState
 import io.github.aedev.flow.ui.screens.crash.CrashReportScreen
@@ -169,22 +170,24 @@ internal fun FlowRoot(
                                                 )
                                             }
                                         } else {
-                                            FlowApp(
-                                                currentTheme = theme.themeMode,
-                                                themeVariant = theme.themeVariant,
-                                                systemLightThemeMode = theme.systemLightThemeMode,
-                                                systemDarkThemeMode = theme.systemDarkThemeMode,
-                                                deeplinkVideoId = deeplinkVideoId,
-                                                isShort = isDeeplinkShort,
-                                                isSharedLink = isDeeplinkShared,
-                                                openMusicPlayerRequest = openMusicPlayerRequest,
-                                                onDeeplinkConsumed = links::consumeVideo,
-                                                pendingRoute = pendingRoute,
-                                                onPendingRouteConsumed = links::consumeRoute,
-                                                downloadVideoId = downloadVideoId,
-                                                onDownloadConsumed = links::consumeDownload,
-                                                onStartDestinationKnown = { splashController.contentReady = true },
-                                            )
+                                            ProvideChannelOrganizer {
+                                                FlowApp(
+                                                    currentTheme = theme.themeMode,
+                                                    themeVariant = theme.themeVariant,
+                                                    systemLightThemeMode = theme.systemLightThemeMode,
+                                                    systemDarkThemeMode = theme.systemDarkThemeMode,
+                                                    deeplinkVideoId = deeplinkVideoId,
+                                                    isShort = isDeeplinkShort,
+                                                    isSharedLink = isDeeplinkShared,
+                                                    openMusicPlayerRequest = openMusicPlayerRequest,
+                                                    onDeeplinkConsumed = links::consumeVideo,
+                                                    pendingRoute = pendingRoute,
+                                                    onPendingRouteConsumed = links::consumeRoute,
+                                                    downloadVideoId = downloadVideoId,
+                                                    onDownloadConsumed = links::consumeDownload,
+                                                    onStartDestinationKnown = { splashController.contentReady = true },
+                                                )
+                                            }
                                         }
                                     }
                                 }

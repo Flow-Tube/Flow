@@ -11,14 +11,9 @@ import io.github.aedev.flow.data.community.PostCommentsLoader
 import io.github.aedev.flow.data.local.ChannelSubscription
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
-import io.github.aedev.flow.data.local.dao.SubscriptionGroupDao
-import io.github.aedev.flow.data.local.entity.SubscriptionGroupEntity
-import io.github.aedev.flow.data.model.SubscriptionGroup
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.distinctByNonBlankKey
-import io.github.aedev.flow.data.model.toUiModel
 import io.github.aedev.flow.data.notes.NoteKind
-import io.github.aedev.flow.data.notes.NoteSubject
 import io.github.aedev.flow.data.notes.NotesRepository
 import io.github.aedev.flow.data.shorts.withoutShorts
 import io.github.aedev.flow.data.subscriptions.markChannelSeen
@@ -47,43 +42,9 @@ class ChannelViewModel
     constructor(
         @ApplicationContext private val appContext: Context,
         private val subscriptionRepository: SubscriptionRepository,
-        private val subscriptionGroupDao: SubscriptionGroupDao,
         private val notesRepository: NotesRepository,
         private val playerPreferences: PlayerPreferences,
     ) : ViewModel() {
-        val subscriptionGroups: StateFlow<List<SubscriptionGroup>> =
-            subscriptionGroupDao
-                .getAllGroups()
-                .map { entities -> entities.map { it.toUiModel() } }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(GROUPS_SUBSCRIPTION_TIMEOUT_MS), emptyList())
-
-        fun setChannelInGroup(
-            groupName: String,
-            channelId: String,
-            inGroup: Boolean,
-        ) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                val group = subscriptionGroupDao.getAllGroupsOnce().firstOrNull { it.name == groupName } ?: return@launch
-                val members = group.toUiModel().channelIds.toMutableSet()
-                if (inGroup) members.add(channelId) else members.remove(channelId)
-                subscriptionGroupDao.updateGroup(group.copy(channelIds = members.joinToString(",")))
-            }
-        }
-
-        fun createGroupWithChannel(
-            groupName: String,
-            channelId: String,
-        ) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                val name = groupName.trim()
-                if (name.isEmpty() || subscriptionGroupDao.exists(name)) return@launch
-                val order = subscriptionGroupDao.getAllGroupsOnce().size
-                subscriptionGroupDao.insertGroup(
-                    SubscriptionGroupEntity(name = name, channelIds = channelId, sortOrder = order),
-                )
-            }
-        }
-
         /** Which channels the user follows, so a featured-channel row can show its real state. */
         val subscribedChannelIds: StateFlow<Set<String>> =
             subscriptionRepository
@@ -146,26 +107,6 @@ class ChannelViewModel
                         _channelNote.value = note?.text
                     }
                 }
-        }
-
-        fun saveChannelNote(text: String) {
-            val channelId = _uiState.value.channelId ?: return
-            val subject =
-                _uiState.value.header
-                    ?.takeIf { it.title.isNotBlank() }
-                    ?.let { header ->
-                        NoteSubject(
-                            title = header.title,
-                            channelId = header.id,
-                            thumbnailUrl = header.avatarUrl,
-                            channelAvatarUrl = header.avatarUrl,
-                            channelHandle = header.handle.orEmpty(),
-                            subscriberCountText = header.subscriberCountText.orEmpty(),
-                        )
-                    }
-            viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                notesRepository.save(NoteKind.Channel, channelId, text, subject)
-            }
         }
 
         private val _uiState = MutableStateFlow(ChannelUiState())
