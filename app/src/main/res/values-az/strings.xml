@@ -4855,4 +4855,17 @@
     <string name="lyrics_share_image_saved">Şəkil saxlanıldı</string>
     <string name="lyrics_share_image_failed">Şəkil yaradıla bilmədi</string>
     <string name="recent_searches_show_all">Hamısını göstər</string>
+    <string name="lyrics_in_mini_player">Kiçik oynadıcıda sözlər</string>
+    <string name="lyrics_in_mini_player_summary">Sənətçinin yerinə oxunan misranı göstər</string>
+    <string name="transcript_actions">Transkripsiya seçimləri</string>
+    <string name="transcript_copy">Köçür</string>
+    <string name="transcript_copy_with_timestamps">Zaman damğaları ilə köçür</string>
+    <string name="transcript_save_file">Mətn faylı kimi saxla</string>
+    <string name="transcript_copied">Transkripsiya kopyalandı</string>
+    <string name="transcript_too_long_to_copy">Kopyalamaq üçün çox uzundur. Əvəzinə fayl kimi saxla</string>
+    <string name="transcript_saved">Transkripsiya saxlanıldı</string>
+    <string name="transcript_save_failed">Transkripsiyanı saxlamaq olmadı</string>
+    <string name="player_appearance_chapter_skip_gesture_title">Fəsillər üçün iki barmaqla cüt toxunuş</string>
+    <string name="player_appearance_chapter_skip_gesture_subtitle">Növbəti və ya əvvəlki fəslə keçmək üçün iki barmaqla iki dəfə toxun</string>
+    <string name="player_chapter_number">Fəsil %1$d</string>
 </resources>
