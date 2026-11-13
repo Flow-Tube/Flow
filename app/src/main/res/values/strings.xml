@@ -356,8 +356,6 @@
     <string name="duration">Duration</string>
     <string name="copied_to_clipboard">Copied %1$s</string>
     <string name="unknown">Unknown</string>
-    <string name="subscriptions_video_section_title">Video subscriptions</string>
-    <string name="subscriptions_music_section_title">Music subscriptions</string>
     <string name="subscriptions_quick_access_title">Quick access</string>
     <string name="subscriptions_compact_header">Jump into your latest subscribed channels.</string>
     <string name="subscriptions_compact_header_with_music">Music channels are marked inline so the feed stays compact.</string>
