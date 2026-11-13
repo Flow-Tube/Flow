@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.subscriptions
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -75,7 +76,7 @@ fun SubscriptionsScreen(
     val postsListState = rememberLazyListState()
     var showPosts by rememberSaveable { mutableStateOf(false) }
 
-    var isManagingSubs by remember { mutableStateOf(false) }
+    var isManagingSubs by rememberSaveable { mutableStateOf(false) }
     var manageShowsMusic by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(openMusicSubscriptions) {
         if (!openMusicSubscriptions) return@LaunchedEffect
@@ -83,13 +84,18 @@ fun SubscriptionsScreen(
         isManagingSubs = true
         onMusicSubscriptionsOpened()
     }
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var showSortMenu by remember { mutableStateOf(false) }
     var showGroupsDialog by remember { mutableStateOf(false) }
     val openManage = { showsMusic: Boolean ->
         manageShowsMusic = showsMusic
         isManagingSubs = true
     }
+    val closeManage = {
+        isManagingSubs = false
+        searchQuery = ""
+    }
+    BackHandler(enabled = isManagingSubs, onBack = closeManage)
 
     val importLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -120,10 +126,7 @@ fun SubscriptionsScreen(
                 FlowSearchTopBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
-                    onClose = {
-                        isManagingSubs = false
-                        searchQuery = ""
-                    },
+                    onClose = closeManage,
                     placeholder = stringResource(R.string.subscriptions_search_placeholder),
                     // Manage mode opens a browsable channel list; popping the keyboard would cover it.
                     autoFocus = false,
