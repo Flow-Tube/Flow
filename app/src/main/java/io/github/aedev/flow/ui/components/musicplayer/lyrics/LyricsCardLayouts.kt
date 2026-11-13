@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.components.musicplayer.lyrics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -23,17 +24,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -158,15 +164,41 @@ private fun ColumnScope.CardLines(
     base: TextStyle,
     fill: Boolean,
 ) {
-    Column(
-        modifier = if (fill) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(CardSpacing, Alignment.CenterVertically),
-    ) {
+    val style = lyricsShareLineStyle(base).copy(lineBreak = LineBreak.Heading)
+    if (!fill) {
+        LineStack(content, style, Modifier.fillMaxWidth())
+        return
+    }
+    BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val measurer = rememberTextMeasurer()
+        val spacing = with(LocalDensity.current) { CardSpacing.roundToPx() }
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        val scale =
+            remember(content.lines, style, width, height, spacing) {
+                largestFittingScale(MIN_LINE_SCALE, MAX_LINE_SCALE) { candidate ->
+                    val scaled = style.scaledBy(candidate)
+                    val heights =
+                        content.lines.map { measurer.measure(it, scaled, constraints = Constraints(maxWidth = width)).size.height }
+                    stackedHeight(heights, spacing) <= height
+                }
+            }
+        LineStack(content, style.scaledBy(scale), Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun LineStack(
+    content: LyricsCardContent,
+    style: TextStyle,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(CardSpacing)) {
         content.lines.forEach { line ->
             Text(
                 text = line,
                 modifier = Modifier.fillMaxWidth(),
-                style = lyricsShareLineStyle(base),
+                style = style,
                 color = content.colors.ink,
                 textAlign = content.textAlign,
             )
