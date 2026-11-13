@@ -504,6 +504,7 @@ class Media3MusicService : MediaLibraryService() {
         val allowed = offloadState.allowed
         if (allowed == appliedOffload) return
         appliedOffload = allowed
+        Log.w(TAG, "audio offload ${if (allowed) "allowed" else "off"}: $offloadState")
         player.setOffloadEnabled(allowed)
     }
 
@@ -516,6 +517,12 @@ class Media3MusicService : MediaLibraryService() {
             object : ExoPlayer.AudioOffloadListener {
                 override fun onOffloadedPlayback(isOffloadedPlayback: Boolean) {
                     isOffloaded = isOffloadedPlayback
+                    // Warning level so Diagnostics, which keeps only warnings, shows which tracks went to offload (#1686).
+                    Log.w(
+                        TAG,
+                        "offloaded playback $isOffloadedPlayback: ${player.currentMediaItem?.mediaId} " +
+                            "${player.audioFormat?.sampleMimeType} ${player.audioFormat?.sampleRate} Hz",
+                    )
                 }
             },
         )
