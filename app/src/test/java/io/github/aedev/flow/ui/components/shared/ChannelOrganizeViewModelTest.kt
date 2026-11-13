@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
@@ -85,7 +86,10 @@ class ChannelOrganizeViewModelTest {
 
             viewModel.editNote(target)
 
-            val request = withTimeout(WRITE_TIMEOUT_MS) { viewModel.request.filterNotNull().first() }
+            val request =
+                withContext(Dispatchers.Default) {
+                    withTimeout(WRITE_TIMEOUT_MS) { viewModel.request.filterNotNull().first() }
+                }
             assertThat(request.kind).isEqualTo(ChannelOrganizeKind.Note)
             assertThat(request.noteText).isEqualTo("Great animator")
         }
