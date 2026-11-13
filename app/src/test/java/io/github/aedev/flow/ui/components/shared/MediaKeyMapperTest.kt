@@ -62,11 +62,35 @@ class MediaKeyMapperTest {
     }
 
     @Test
+    fun `media keys map whatever modifier is held`() {
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)).isEqualTo(MediaKeyAction.TogglePlayback)
+        assertThat(map(KeyEvent.KEYCODE_HEADSETHOOK)).isEqualTo(MediaKeyAction.TogglePlayback)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_PLAY)).isEqualTo(MediaKeyAction.Play)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_PAUSE)).isEqualTo(MediaKeyAction.Pause)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_STOP)).isEqualTo(MediaKeyAction.Pause)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_REWIND)).isEqualTo(MediaKeyAction.SeekBack)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD)).isEqualTo(MediaKeyAction.SeekForward)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_NEXT)).isEqualTo(MediaKeyAction.Next)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_PREVIOUS)).isEqualTo(MediaKeyAction.Previous)
+        assertThat(map(KeyEvent.KEYCODE_MEDIA_NEXT, shift = true, otherModifier = true)).isEqualTo(MediaKeyAction.Next)
+    }
+
+    @Test
+    fun `tab moves into the list and shift tab is left to the page`() {
+        assertThat(map(KeyEvent.KEYCODE_TAB)).isEqualTo(MediaKeyAction.FocusList)
+        assertThat(map(KeyEvent.KEYCODE_TAB, shift = true)).isNull()
+        assertThat(map(KeyEvent.KEYCODE_TAB, otherModifier = true)).isNull()
+    }
+
+    @Test
     fun `only stepping actions repeat while held`() {
         assertThat(MediaKeyAction.SeekForward.repeats).isTrue()
         assertThat(MediaKeyAction.VolumeDown.repeats).isTrue()
         assertThat(MediaKeyAction.SpeedUp.repeats).isTrue()
         assertThat(MediaKeyAction.TogglePlayback.repeats).isFalse()
+        assertThat(MediaKeyAction.Play.repeats).isFalse()
+        assertThat(MediaKeyAction.Pause.repeats).isFalse()
+        assertThat(MediaKeyAction.FocusList.repeats).isFalse()
         assertThat(MediaKeyAction.ToggleFullscreen.repeats).isFalse()
         assertThat(MediaKeyAction.JumpTo(3).repeats).isFalse()
     }

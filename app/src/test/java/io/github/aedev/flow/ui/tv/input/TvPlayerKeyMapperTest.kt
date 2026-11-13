@@ -5,7 +5,6 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class TvPlayerKeyMapperTest {
-
     @Test
     fun `media keys map to playback actions`() {
         assertThat(TvPlayerKeyMapper.map(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
@@ -28,6 +27,11 @@ class TvPlayerKeyMapperTest {
             .isEqualTo(TvPlayerAction.PREVIOUS)
         assertThat(TvPlayerKeyMapper.map(KeyEvent.KEYCODE_CAPTIONS))
             .isEqualTo(TvPlayerAction.TOGGLE_CAPTIONS)
+    }
+
+    @Test
+    fun `space toggles playback`() {
+        assertThat(TvPlayerKeyMapper.map(KeyEvent.KEYCODE_SPACE)).isEqualTo(TvPlayerAction.TOGGLE_PLAYBACK)
     }
 
     @Test
