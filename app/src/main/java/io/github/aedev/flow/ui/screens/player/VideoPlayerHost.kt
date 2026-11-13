@@ -476,8 +476,12 @@ fun VideoPlayerHost(
             progress = progressProvider,
             isFullscreen = fullscreenShown,
             thumbnailUrl =
-                video.thumbnailUrl.takeIf { it.isNotEmpty() }
-                    ?: ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(video.id),
+                if (prefs.ambientModeEnabled && screenState.resizeMode == 0 && !playerState.showsSpherical) {
+                    video.thumbnailUrl.takeIf { it.isNotEmpty() }
+                        ?: ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(video.id)
+                } else {
+                    null
+                },
             videoAspectRatio = effectiveVideoAspectRatio,
             expandedPlayerHeightFractionOverride = mediaSheetGeometry.playerHeightFractionOverride,
             bottomPadding = bottomPadding,
