@@ -89,6 +89,7 @@ fun VideoPlayerSurface(
     val currentVideoId by rememberUpdatedState(video.id)
     var ambientVideoAspect by remember { mutableStateOf<Float?>(null) }
     val currentSpherical by rememberUpdatedState(spherical)
+    val currentSphericalTouch by rememberUpdatedState(sphericalTouch)
     // A 360 frame is the whole sphere unrolled; the viewer sees a window into it, framed like any video.
     val reportAspectRatio by
         rememberUpdatedState<(Float) -> Unit> { decoded ->
@@ -326,8 +327,8 @@ fun VideoPlayerSurface(
                 modifier = Modifier.fillMaxSize().then(rememberPipSourceHintModifier(context as? Activity)),
             )
         }
-        if (sphericalView != null && sphericalTouch) {
-            Box(Modifier.matchParentSize().forwardTouchesTo(sphericalView, sphericalZoom))
+        if (sphericalView != null) {
+            Box(Modifier.matchParentSize().forwardTouchesTo(sphericalView, { currentSphericalTouch }, sphericalZoom))
         }
     }
 }
@@ -337,29 +338,38 @@ fun VideoPlayerSurface(
  * given, so the view itself sits under this layer: touches reach it from here without being
  * consumed, and the player's taps and double taps above keep working.
  *
+ * The layer stays even while [enabled] is off (mini player, PiP, touch lock): without it the view
+ * would take touches directly and its tracker would consume the mini player's taps and drags.
+ * Turning [enabled] off mid-drag cancels the tracker's gesture on the next touch event.
+ *
  * A second finger means a pinch, which zooms instead: the tracker gets a cancel and nothing more
  * until every finger lifts. While zoomed, a drag is scaled down by [zoom], so it moves the picture
  * as far across the screen as it does unzoomed.
  */
 private fun Modifier.forwardTouchesTo(
     view: GLSurfaceView,
+    enabled: () -> Boolean,
     zoom: () -> Float,
 ): Modifier =
     pointerInput(view) {
         awaitPointerEventScope {
-            var forwarding = true
+            var forwarding = false
             val unzoom = Matrix()
+
+            fun cancelTracker(event: MotionEvent) {
+                forwarding = false
+                MotionEvent.obtain(event).apply {
+                    action = MotionEvent.ACTION_CANCEL
+                    view.dispatchTouchEvent(this)
+                    recycle()
+                }
+            }
             while (true) {
                 val event = awaitPointerEvent().motionEvent ?: continue
-                if (event.actionMasked == MotionEvent.ACTION_DOWN) forwarding = true
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) forwarding = enabled()
                 if (!forwarding) continue
-                if (event.pointerCount > 1) {
-                    forwarding = false
-                    MotionEvent.obtain(event).apply {
-                        action = MotionEvent.ACTION_CANCEL
-                        view.dispatchTouchEvent(this)
-                        recycle()
-                    }
+                if (!enabled() || event.pointerCount > 1) {
+                    cancelTracker(event)
                     continue
                 }
                 val scale = zoom()
