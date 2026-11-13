@@ -6,6 +6,9 @@ import io.github.aedev.flow.data.model.RichTextTarget
 private const val MILLIS_PER_SECOND = 1_000L
 private const val MARK_MERGE_FRACTION = 0.004f
 
+/** Where Timed places a comment, in seconds: YouTube's own time for it, or else the first time it points at. */
+fun Comment.timedSeconds(): Long? = timedAtMs?.let { it / MILLIS_PER_SECOND } ?: firstTimestampSeconds()
+
 /** Where a comment first points in its video, in seconds, or null when it points nowhere. */
 fun Comment.firstTimestampSeconds(): Long? =
     richText
@@ -26,7 +29,7 @@ fun timedCommentsInOrder(
     comments
         .mapNotNull { comment ->
             comment
-                .firstTimestampSeconds()
+                .timedSeconds()
                 ?.takeIf { durationMs <= 0L || it * MILLIS_PER_SECOND <= durationMs }
                 ?.let { seconds -> comment to seconds }
         }.sortedWith(compareByDescending<Pair<Comment, Long>> { it.second }.thenByDescending { it.first.likeCount })
@@ -45,7 +48,7 @@ fun timedCommentMarks(
     val fractions =
         timedCommentsInOrder(comments, durationMs)
             .asReversed()
-            .mapNotNull { it.firstTimestampSeconds() }
+            .mapNotNull { it.timedSeconds() }
             .map { seconds -> seconds * MILLIS_PER_SECOND / durationMs.toFloat() }
     return buildList {
         fractions.forEach { fraction ->
@@ -68,3 +71,22 @@ fun timedAnchorIndex(
     }
     return low.takeIf { it < secondsLatestFirst.size } ?: -1
 }
+
+/**
+ * What Timed shows while following: the comments already reached, latest first, out of
+ * [latestFirst]. Before the first one, nothing.
+ */
+internal fun revealedTimedComments(
+    latestFirst: List<Comment>,
+    anchor: Int,
+): List<Comment> = if (anchor < 0) emptyList() else latestFirst.subList(anchor, latestFirst.size)
+
+/** The time of the next comment to come, in seconds, or null once every one has been reached. */
+internal fun nextTimedCommentSeconds(
+    latestFirst: List<Comment>,
+    anchor: Int,
+): Long? =
+    when {
+        anchor < 0 -> latestFirst.lastOrNull()
+        else -> latestFirst.getOrNull(anchor - 1)
+    }?.timedSeconds()

@@ -2,10 +2,14 @@ package io.github.aedev.flow.ui.components.shared
 
 import android.os.SystemClock
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -15,14 +19,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.utils.formatDuration
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 
 private const val NO_ANCHOR = -1
 private const val DRAG_PAUSE_MS = 5_000L
@@ -87,25 +101,23 @@ internal fun rememberTimedAnchor(
     positionMs: (() -> Long)?,
 ): State<Int> {
     val latestPosition by rememberUpdatedState(positionMs)
-    val seconds = remember(comments) { comments.map { it.firstTimestampSeconds() ?: 0L } }
+    val seconds = remember(comments) { comments.map { it.timedSeconds() ?: 0L } }
     return remember(seconds) {
         derivedStateOf { latestPosition?.let { timedAnchorIndex(seconds, it()) } ?: NO_ANCHOR }
     }
 }
 
 /**
- * Scrolls to the anchor at each crossing, or to the earliest row before the first one. It watches
- * which comment that is rather than its index: a new page moves the index without anything being
- * crossed, and rows keep their place by key, so that is no reason to pull someone back up the list.
+ * Brings each newly reached comment into view: it joins the top of the list, and a list kept by key
+ * would otherwise hold the row that was first and leave the new one just above the screen. Someone
+ * reading or dragging holds this off ([TimedFollowPause]).
  */
 @Composable
-internal fun FollowTimedAnchor(
+internal fun FollowTimedReveal(
     listState: LazyListState,
     anchor: State<Int>,
-    comments: List<Comment>,
     pause: TimedFollowPause,
 ) {
-    val latestComments by rememberUpdatedState(comments)
     LaunchedEffect(listState, pause) {
         listState.interactionSource.interactions.collect { interaction ->
             when (interaction) {
@@ -115,17 +127,68 @@ internal fun FollowTimedAnchor(
         }
     }
     LaunchedEffect(listState, anchor, pause) {
-        snapshotFlow { (latestComments.getOrNull(anchor.value) ?: latestComments.lastOrNull())?.id }.collectLatest { id ->
-            val row = latestComments.indexOfFirst { it.id == id }
-            if (row < 0 || pause.isPaused) return@collectLatest
+        snapshotFlow { anchor.value }.drop(1).collectLatest {
+            if (pause.isPaused) return@collectLatest
             try {
-                listState.animateScrollToItem(row)
+                listState.animateScrollToItem(0)
             } catch (e: CancellationException) {
                 // A drag takes over the scroll and cancels this animation, not the collector.
                 currentCoroutineContext().ensureActive()
             }
         }
     }
+}
+
+/**
+ * The row under the reached comments: when the next one comes, as a time that seeks there, or that
+ * there are no more. [waiting] is before the first one, when the row is all there is.
+ */
+@Composable
+internal fun TimedCommentsNextRow(
+    nextSeconds: Long?,
+    waiting: Boolean,
+    onSeekMs: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val latestOnSeek by rememberUpdatedState(onSeekMs)
+    val time = nextSeconds?.let { formatDuration(it.toInt()) }
+    val full =
+        when {
+            time == null -> stringResource(R.string.comments_timed_end)
+            waiting -> stringResource(R.string.comments_timed_waiting, time)
+            else -> stringResource(R.string.comments_timed_next, time)
+        }
+    val linkColor = MaterialTheme.colorScheme.primary
+    val text =
+        remember(full, time, linkColor) {
+            buildAnnotatedString {
+                append(full)
+                val start = time?.let(full::lastIndexOf) ?: -1
+                if (time != null && start >= 0 && nextSeconds != null) {
+                    addLink(
+                        LinkAnnotation.Clickable(
+                            tag = "timed_next",
+                            styles = TextLinkStyles(SpanStyle(color = linkColor, fontWeight = FontWeight.Medium)),
+                        ) { latestOnSeek(nextSeconds * 1_000L) },
+                        start,
+                        start + time.length,
+                    )
+                }
+            }
+        }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(MaterialTheme.shapes.large)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+    )
 }
 
 /** A comment row, on a highlight while it is the anchor. The colour is read while drawing. */
