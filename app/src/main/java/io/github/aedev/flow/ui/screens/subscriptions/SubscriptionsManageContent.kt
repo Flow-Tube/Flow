@@ -121,12 +121,12 @@ internal fun SubscriptionsManageContent(
                 listOf(
                     FlowToggleOption(
                         value = 0,
-                        label = stringResource(R.string.subscriptions_video_section_title),
+                        label = stringResource(R.string.video),
                         icon = Icons.Default.OndemandVideo,
                     ),
                     FlowToggleOption(
                         value = 1,
-                        label = stringResource(R.string.subscriptions_music_section_title),
+                        label = stringResource(R.string.subscriptions_music_chip_label),
                         icon = Icons.Default.MusicNote,
                     ),
                 ),
