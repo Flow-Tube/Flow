@@ -1,0 +1,163 @@
+{
+ "engagementPanels": [
+  {
+   "engagementPanelSectionListRenderer": {
+    "panelIdentifier": "engagement-panel-comments-section",
+    "content": {}
+   }
+  },
+  {
+   "engagementPanelSectionListRenderer": {
+    "panelIdentifier": "engagement-panel-macro-markers-auto-chapters",
+    "content": {
+     "macroMarkersListRenderer": {
+      "contents": [
+       {
+        "macroMarkersInfoItemRenderer": {
+         "infoText": {
+          "runs": [
+           {
+            "text": "These chapters are auto-generated"
+           }
+          ]
+         }
+        }
+       },
+       {
+        "macroMarkersListItemRenderer": {
+         "title": {
+          "simpleText": "Start line"
+         },
+         "timeDescription": {
+          "simpleText": "0:00"
+         },
+         "thumbnail": {
+          "thumbnails": [
+           {
+            "url": "https://i.ytimg.com/vi/autoChapters/hqdefault_0.jpg",
+            "width": 168,
+            "height": 94
+           }
+          ]
+         },
+         "onTap": {
+          "watchEndpoint": {
+           "videoId": "autoChapters",
+           "startTimeSeconds": 0
+          }
+         }
+        }
+       },
+       {
+        "macroMarkersListItemRenderer": {
+         "title": {
+          "simpleText": "Along the coast"
+         },
+         "timeDescription": {
+          "simpleText": "1:15"
+         },
+         "thumbnail": {
+          "thumbnails": [
+           {
+            "url": "https://i.ytimg.com/vi/autoChapters/hqdefault_75.jpg",
+            "width": 168,
+            "height": 94
+           }
+          ]
+         },
+         "onTap": {
+          "watchEndpoint": {
+           "videoId": "autoChapters",
+           "startTimeSeconds": 75.2
+          }
+         }
+        }
+       },
+       {
+        "macroMarkersListItemRenderer": {
+         "title": {
+          "simpleText": "Over the bridge"
+         },
+         "timeDescription": {
+          "simpleText": "2:09"
+         },
+         "thumbnail": {
+          "thumbnails": [
+           {
+            "url": "https://i.ytimg.com/vi/autoChapters/hqdefault_129.jpg",
+            "width": 168,
+            "height": 94
+           }
+          ]
+         },
+         "onTap": {
+          "watchEndpoint": {
+           "videoId": "autoChapters",
+           "startTimeSeconds": 129.44
+          }
+         }
+        }
+       },
+       {
+        "macroMarkersListItemRenderer": {
+         "title": {
+          "simpleText": "Last stretch"
+         },
+         "timeDescription": {
+          "simpleText": "2:52"
+         },
+         "thumbnail": {
+          "thumbnails": [
+           {
+            "url": "https://i.ytimg.com/vi/autoChapters/hqdefault_172.jpg",
+            "width": 168,
+            "height": 94
+           }
+          ]
+         },
+         "onTap": {
+          "watchEndpoint": {
+           "videoId": "autoChapters",
+           "startTimeSeconds": 172.959
+          }
+         }
+        }
+       },
+       {
+        "macroMarkersListItemRenderer": {
+         "title": {
+          "simpleText": "Finish"
+         },
+         "timeDescription": {
+          "simpleText": "3:33"
+         },
+         "thumbnail": {
+          "thumbnails": [
+           {
+            "url": "https://i.ytimg.com/vi/autoChapters/hqdefault_213.jpg",
+            "width": 168,
+            "height": 94
+           }
+          ]
+         },
+         "onTap": {
+          "watchEndpoint": {
+           "videoId": "autoChapters",
+           "startTimeSeconds": 213.2
+          }
+         }
+        }
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "engagementPanelSectionListRenderer": {
+    "panelIdentifier": "engagement-panel-structured-description",
+    "content": {}
+   }
+  }
+ ]
+}
