@@ -5066,4 +5066,17 @@
     <string name="recent_searches_show_all">Mostrar todo</string>
     <string name="player_settings_spherical_view">Vista de 360°</string>
     <string name="player_settings_spherical_view_summary">Arrastra para explorar este vídeo</string>
+    <string name="lyrics_in_mini_player">Letras en el minirreproductor</string>
+    <string name="lyrics_in_mini_player_summary">Muestra la línea que suena en lugar del artista</string>
+    <string name="transcript_actions">Opciones de transcripción</string>
+    <string name="transcript_copy">Copiar</string>
+    <string name="transcript_copy_with_timestamps">Copiar con marcas de tiempo</string>
+    <string name="transcript_save_file">Guardar como archivo de texto</string>
+    <string name="transcript_copied">Transcripción copiada</string>
+    <string name="transcript_too_long_to_copy">Demasiado larga para copiar. Guárdala como archivo</string>
+    <string name="transcript_saved">Transcripción guardada</string>
+    <string name="transcript_save_failed">No se pudo guardar la transcripción</string>
+    <string name="player_appearance_chapter_skip_gesture_title">Doble toque con dos dedos para los capítulos</string>
+    <string name="player_appearance_chapter_skip_gesture_subtitle">Doble toque con dos dedos para saltar al capítulo siguiente o al anterior</string>
+    <string name="player_chapter_number">Capítulo %1$d</string>
 </resources>
