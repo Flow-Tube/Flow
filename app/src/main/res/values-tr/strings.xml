@@ -4549,4 +4549,10 @@
     <string name="player_appearance_idle_progress_below">Altta</string>
     <string name="player_appearance_idle_progress_off">Kapalı</string>
     <string name="pip_listen_in_background">Arka planda dinle</string>
+    <string name="subscriptions_sort_most_watched">En çok izlenenler</string>
+    <string name="subscriptions_pin_channel">Başlamak için sabitle</string>
+    <string name="subscriptions_open_channel">Kanalı aç</string>
+    <string name="subscriptions_pinned_section">Sabitlenmiş</string>
+    <string name="auto_group_music_playlists">Müzik oynatma listeleri</string>
+    <string name="auto_group_video_playlists">Video oynatma listeleri</string>
 </resources>
