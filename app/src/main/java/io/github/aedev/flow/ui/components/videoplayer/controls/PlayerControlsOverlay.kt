@@ -24,13 +24,11 @@ import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.utils.formatMultiplierLabel
 
-private val OverlayActionButtonSize = 40.dp
 private val OverlayActionIconSize = 24.dp
 private val OverlayActionSpacing = 8.dp
 internal val OverlayPillHeight = 28.dp
 private val OverlayExpandIconSize = 18.dp
-private val OverlayControlRowMinHeight = 44.dp
-private val OverlayActionIconInset = (OverlayActionButtonSize - OverlayActionIconSize) / 2f
+private val OverlayActionIconInset = (PlayerTopBarActionButtonSize - OverlayActionIconSize) / 2f
 
 /** Tint over the video while the controls are up; the loading state blacks it out entirely. */
 private const val CONTROLS_BACKDROP_ALPHA = 0.24f
@@ -140,13 +138,8 @@ internal fun PlayerControlsOverlay(
             label = "bottomControlPadding",
         )
     val topControlHorizontalPadding = (bottomControlHorizontalPadding - OverlayActionIconInset).coerceAtLeast(0.dp)
-    val topControlVerticalPadding = if (isFullscreen) 8.dp else 4.dp
-    val fullscreenTopPadding =
-        when {
-            isPortraitFullscreen -> cutoutPadding.calculateTopPadding().coerceAtLeast(16.dp)
-            isLandscapeFullscreen -> cutoutPadding.calculateTopPadding()
-            else -> 0.dp
-        }
+    val topControlVerticalPadding = playerTopBarVerticalPadding(isFullscreen)
+    val fullscreenTopPadding = playerTopBarTopPadding(isFullscreen, isPortraitFullscreen, cutoutPadding.calculateTopPadding())
     val seekbarHorizontalPadding =
         animatedInset(
             target =
@@ -157,7 +150,7 @@ internal fun PlayerControlsOverlay(
                 },
             label = "seekbarHorizontalPadding",
         )
-    val pillsRowMinHeight = if (isFullscreen) OverlayControlRowMinHeight else 30.dp
+    val pillsRowMinHeight = if (isFullscreen) PlayerTopBarRowMinHeight else 30.dp
     val chapterMaxWidth = if (isLandscapeFullscreen) 200.dp else 96.dp
     val qualityBadge = remember(state.qualityLabel) { state.qualityLabel?.let(::compactPlayerQualityBadge) }
     val compactQualityLabel = qualityBadge?.let { playerQualityBadgeLabel(it) }
@@ -311,9 +304,9 @@ internal fun PlayerControlsOverlay(
                             topPadding = fullscreenTopPadding,
                             horizontalPadding = topControlHorizontalPadding,
                             verticalPadding = topControlVerticalPadding,
-                            rowMinHeight = OverlayControlRowMinHeight,
+                            rowMinHeight = PlayerTopBarRowMinHeight,
                             pillHeight = OverlayPillHeight,
-                            actionButtonSize = OverlayActionButtonSize,
+                            actionButtonSize = PlayerTopBarActionButtonSize,
                             actionIconSize = OverlayActionIconSize,
                             actionSpacing = OverlayActionSpacing,
                             actions = actions,
