@@ -203,7 +203,8 @@ fun FlowCommentItem(
 
                 CommentEngagementRow(comment = comment)
 
-                if (comment.replyCount > 0) {
+                // YouTube's Timed list gives no way to load a comment's replies, so nothing to open.
+                if (comment.replyCount > 0 && (comment.continuationToken != null || comment.replies.isNotEmpty())) {
                     RepliesToggle(
                         replyCount = comment.replyCount,
                         expanded = isRepliesVisible,
