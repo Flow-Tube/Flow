@@ -45,6 +45,8 @@ internal object PlayerStatsReader {
                 },
             volume = player.volume,
             gainDb = readings.gainDb,
+            speed = player.playbackParameters.speed,
+            skipSilence = player.skipSilenceEnabled,
             bandwidthBitsPerSecond = readings.bandwidthBitsPerSecond,
             bufferedMs = player.totalBufferedDuration,
             viewportWidth = viewport.width,
