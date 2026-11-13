@@ -9,7 +9,8 @@
  * contributors, licensed under the GNU General Public License v3, the same licence as Flow.
  * Flow's changes: lowercased, zero-width characters and embedded numerals dropped, regional
  * variants identical to their base language folded into it, Arabic duals added as fixed
- * amounts, and English limited to whole words.
+ * amounts, English limited to whole words, and the abbreviated units YouTube writes in the
+ * related list added.
  */
 
 package io.github.aedev.flow.utils.relativedate
@@ -28,12 +29,14 @@ internal enum class RelativeDateUnit(
 
 /**
  * How one YouTube host language words an age. [spaced] languages separate words, so a unit only
- * counts as a whole word; the others ("3日前") are matched as a plain substring.
+ * counts as a whole word; the others ("3日前") are matched as a plain substring. [abbreviated] units
+ * ("hace 3 m", "5 дн. назад") only count right after a whole number, since a lone letter is also a word.
  */
 internal class RelativeDateVocabulary(
     val spaced: Boolean,
     val units: List<Pair<RelativeDateUnit, List<String>>>,
     val fixed: Map<String, Pair<RelativeDateUnit, Int>>,
+    val abbreviated: List<Pair<RelativeDateUnit, List<String>>> = emptyList(),
 )
 
 /** Keyed by lowercased hl tag ("es", "zh-tw"); [RelativeUploadDateParser] resolves aliases. */
@@ -106,6 +109,7 @@ internal object RelativeDatePatterns {
                     "woche|wochen",
                     "monat|monaten",
                     "jahr|jahren",
+                    abbreviated = mapOf(RelativeDateUnit.HOUR to "std."),
                 ),
             "el" to
                 spaced(
@@ -127,7 +131,24 @@ internal object RelativeDatePatterns {
                     "month|months",
                     "year|years|yr|yrs",
                 ),
-            "es" to spaced("segundo|segundos", "minuto|minutos", "hora|horas", "día|días", "semana|semanas", "mes|meses", "año|años"),
+            "es" to
+                spaced(
+                    "segundo|segundos",
+                    "minuto|minutos",
+                    "hora|horas",
+                    "día|días",
+                    "semana|semanas",
+                    "mes|meses",
+                    "año|años",
+                    abbreviated =
+                        mapOf(
+                            RelativeDateUnit.HOUR to "h",
+                            RelativeDateUnit.DAY to "d",
+                            RelativeDateUnit.WEEK to "sem.",
+                            RelativeDateUnit.MONTH to "m",
+                            RelativeDateUnit.YEAR to "a",
+                        ),
+                ),
             "et" to spaced("sekund|sekundit", "minut|minutit", "tund|tundi", "päev|päeva", "nädal|nädalat", "kuu|kuud", "aasta|aastat"),
             "eu" to spaced("segundo", "minutu", "ordu|ordubete", "egun", "aste|astebete", "hilabete", "urte|urtebete"),
             "fa" to spaced("ثانیه", "دقیقه", "ساعت", "روز", "هفته", "ماه", "سال"),
@@ -142,7 +163,24 @@ internal object RelativeDatePatterns {
                     "vuosi|vuotta",
                 ),
             "fil" to spaced("segundo", "minuto", "oras", "araw", "linggo", "buwan", "taon"),
-            "fr" to spaced("seconde|secondes", "minute|minutes", "heure|heures", "jour|jours", "semaine|semaines", "mois", "an|ans"),
+            "fr" to
+                spaced(
+                    "seconde|secondes",
+                    "minute|minutes",
+                    "heure|heures",
+                    "jour|jours",
+                    "semaine|semaines",
+                    "mois",
+                    "an|ans",
+                    abbreviated =
+                        mapOf(
+                            RelativeDateUnit.HOUR to "h",
+                            RelativeDateUnit.DAY to "j",
+                            RelativeDateUnit.WEEK to "sem.",
+                            RelativeDateUnit.MONTH to "m.",
+                            RelativeDateUnit.YEAR to "a",
+                        ),
+                ),
             "gl" to spaced("segundo|segundos", "minuto|minutos", "hora|horas", "día|días", "semana|semanas", "mes|meses", "ano|anos"),
             "gu" to spaced("સેકંડ", "મિનિટ", "કલાક", "દિવસ", "અઠવાડિયા", "મહિના", "વર્ષ"),
             "hi" to spaced("सेकंड", "मिनट", "घंटा|घंटे", "दिन", "सप्ताह|हफ़्ते", "महीना|महीने", "वर्ष"),
@@ -169,7 +207,22 @@ internal object RelativeDatePatterns {
                     "mánuði|mánuðum",
                     "ári|árum",
                 ),
-            "it" to spaced("secondi|secondo", "minuti|minuto", "ora|ore", "giorni|giorno", "settimana|settimane", "mese|mesi", "anni|anno"),
+            "it" to
+                spaced(
+                    "secondi|secondo",
+                    "minuti|minuto",
+                    "ora|ore",
+                    "giorni|giorno",
+                    "settimana|settimane",
+                    "mese|mesi",
+                    "anni|anno",
+                    abbreviated =
+                        mapOf(
+                            RelativeDateUnit.HOUR to "h",
+                            RelativeDateUnit.DAY to "g|gg",
+                            RelativeDateUnit.WEEK to "sett.",
+                        ),
+                ),
             "iw" to
                 spaced(
                     "שניות|שנייה",
@@ -254,7 +307,17 @@ internal object RelativeDatePatterns {
                     "miesiąc|miesiące|miesięcy",
                     "lat|lata|rok",
                 ),
-            "pt" to spaced("segundo|segundos", "minuto|minutos", "hora|horas", "dia|dias", "semana|semanas", "meses|mês", "ano|anos"),
+            "pt" to
+                spaced(
+                    "segundo|segundos",
+                    "minuto|minutos",
+                    "hora|horas",
+                    "dia|dias",
+                    "semana|semanas",
+                    "meses|mês",
+                    "ano|anos",
+                    abbreviated = mapOf(RelativeDateUnit.WEEK to "sem."),
+                ),
             "ro" to spaced("secunde|secundă", "minut|minute", "ore|oră", "zi|zile", "săptămâni|săptămână", "luni|lună", "an|ani"),
             "ru" to
                 spaced(
@@ -265,6 +328,14 @@ internal object RelativeDatePatterns {
                     "неделю|недели",
                     "месяц|месяца|месяцев",
                     "год|года|лет",
+                    abbreviated =
+                        mapOf(
+                            RelativeDateUnit.HOUR to "ч",
+                            RelativeDateUnit.DAY to "дн.",
+                            RelativeDateUnit.WEEK to "нед.",
+                            RelativeDateUnit.MONTH to "мес.",
+                            RelativeDateUnit.YEAR to "г.|л.",
+                        ),
                 ),
             "si" to spaced("තත්පර", "මිනිත්තු", "පැය", "දින", "සති", "මාස", "වසර"),
             "sk" to
@@ -369,7 +440,8 @@ internal object RelativeDatePatterns {
         months: String,
         years: String,
         fixed: Map<String, Pair<RelativeDateUnit, Int>> = emptyMap(),
-    ) = vocabulary(true, listOf(seconds, minutes, hours, days, weeks, months, years), fixed)
+        abbreviated: Map<RelativeDateUnit, String> = emptyMap(),
+    ) = vocabulary(true, listOf(seconds, minutes, hours, days, weeks, months, years), fixed, abbreviated)
 
     private fun unspaced(
         seconds: String,
@@ -385,9 +457,11 @@ internal object RelativeDatePatterns {
         spaced: Boolean,
         words: List<String>,
         fixed: Map<String, Pair<RelativeDateUnit, Int>>,
+        abbreviated: Map<RelativeDateUnit, String> = emptyMap(),
     ) = RelativeDateVocabulary(
         spaced = spaced,
         units = RelativeDateUnit.entries.zip(words) { unit, list -> unit to list.split('|') },
         fixed = fixed,
+        abbreviated = abbreviated.map { (unit, list) -> unit to list.split('|') },
     )
 }

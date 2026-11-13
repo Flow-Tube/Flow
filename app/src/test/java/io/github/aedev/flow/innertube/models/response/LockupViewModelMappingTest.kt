@@ -66,6 +66,50 @@ class LockupViewModelMappingTest {
         assertThat(first.lengthText?.text()).isEqualTo("21:51")
     }
 
+    private fun singleLockup(
+        byline: String,
+        views: String,
+        age: String,
+    ): WatchMetadataResponse =
+        json.decodeFromString(
+            """{"contents":{"twoColumnWatchNextResults":{"secondaryResults":{"secondaryResults":{"results":[""" +
+                """{"lockupViewModel":{"contentId":"abcdefghijk","contentType":"LOCKUP_CONTENT_TYPE_VIDEO",""" +
+                """"metadata":{"lockupMetadataViewModel":{"title":{"content":"Title"},""" +
+                """"metadata":{"contentMetadataViewModel":{"metadataRows":[""" +
+                """{"metadataParts":[{"text":{"content":"$byline"}}]},""" +
+                """{"metadataParts":[{"text":{"content":"$views"},"leadingIcon":{"name":"PLAY_ARROW_OUTLINED"}},""" +
+                """{"text":{"content":"$age"}}]}""" +
+                """]}}}}}}]}}}}}""",
+        )
+
+    @Test
+    fun `an abbreviated age beside the view count is kept as the published text`() {
+        val spanish = singleLockup(byline = "Nostalgia Grupera", views = "234 K", age = "hace 3 m").relatedVideos("es").single()
+        val russian = singleLockup(byline = "Natural Life TV", views = "3,1 тыс.", age = "5 дн. назад").relatedVideos("ru").single()
+
+        assertThat(spanish.publishedTimeText?.text()).isEqualTo("hace 3 m")
+        assertThat(spanish.longBylineText?.text()).isEqualTo("Nostalgia Grupera")
+        assertThat(spanish.viewCountText?.text()).isEqualTo("234 K")
+        assertThat(russian.publishedTimeText?.text()).isEqualTo("5 дн. назад")
+        assertThat(russian.longBylineText?.text()).isEqualTo("Natural Life TV")
+    }
+
+    @Test
+    fun `an unrecognised age is still taken by its place beside the view count`() {
+        val video = singleLockup(byline = "Some Channel", views = "12 K", age = "3 kk sitten").relatedVideos("xx").single()
+
+        assertThat(video.publishedTimeText?.text()).isEqualTo("3 kk sitten")
+        assertThat(video.longBylineText?.text()).isEqualTo("Some Channel")
+    }
+
+    @Test
+    fun `a live item takes no published text from beside its viewer count`() {
+        val video = singleLockup(byline = "Some Channel", views = "1.2K watching", age = "Live").relatedVideos("en").single()
+
+        assertThat(video.isLive).isTrue()
+        assertThat(video.publishedTimeText?.text().isNullOrBlank()).isTrue()
+    }
+
     @Test
     fun `a compact video renderer still resolves its channel id from the byline`() {
         val legacy =
