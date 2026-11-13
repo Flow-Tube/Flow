@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube
 
 import android.util.Log
+import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.innertube.models.AccountInfo
 import io.github.aedev.flow.innertube.models.AlbumItem
@@ -117,6 +118,7 @@ import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
 import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
 import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
+import io.github.aedev.flow.innertube.pages.toTimedComments
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
 import io.github.aedev.flow.innertube.pages.toVideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.toVideoPlaylistPage
@@ -2472,6 +2474,17 @@ object YouTube {
             Json
                 .parseToJsonElement(innerTube.nextWatch(continuation = continuation).bodyAsText())
                 .toVideoCommentsPage(ownVideoId)
+        }
+
+    /** YouTube's Timed comments for the section [continuation] opens, in playback order. */
+    suspend fun timedComments(
+        continuation: String,
+        ownVideoId: String?,
+    ): Result<List<Comment>> =
+        runCatching {
+            Json
+                .parseToJsonElement(innerTube.timedComments(continuation).bodyAsText())
+                .toTimedComments(ownVideoId)
         }
 
     suspend fun commentReplies(
