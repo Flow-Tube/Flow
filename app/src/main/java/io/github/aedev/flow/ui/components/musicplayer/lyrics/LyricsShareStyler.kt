@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.BorderOuter
 import androidx.compose.material.icons.outlined.CropDin
 import androidx.compose.material.icons.outlined.CropFree
@@ -24,6 +25,8 @@ import androidx.compose.material.icons.outlined.FilterFrames
 import androidx.compose.material.icons.outlined.FormatAlignCenter
 import androidx.compose.material.icons.outlined.FormatAlignLeft
 import androidx.compose.material.icons.outlined.FormatAlignRight
+import androidx.compose.material.icons.outlined.FormatQuote
+import androidx.compose.material.icons.outlined.Interests
 import androidx.compose.material.icons.outlined.Opacity
 import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material.icons.outlined.Share
@@ -74,6 +77,8 @@ internal fun ColumnScope.LyricsShareStyler(
     onFrameChange: (LyricsCardFrame) -> Unit,
     aspect: LyricsCardAspect,
     onAspectChange: (LyricsCardAspect) -> Unit,
+    layout: LyricsCardLayout,
+    onLayoutChange: (LyricsCardLayout) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -132,6 +137,7 @@ internal fun ColumnScope.LyricsShareStyler(
                         textAlign = align,
                         shape = shape,
                         modifier = if (cardHeight != null) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
+                        layout = layout,
                         fill = cardHeight != null,
                         cover = cover.takeIf { style == LyricsCardStyle.COLORFUL },
                     )
@@ -156,6 +162,21 @@ internal fun ColumnScope.LyricsShareStyler(
             )
         }
     }
+    FlowConnectedToggleGroup(
+        options =
+            listOf(
+                FlowToggleOption(
+                    LyricsCardLayout.CLASSIC,
+                    stringResource(R.string.lyrics_share_layout_classic),
+                    Icons.AutoMirrored.Outlined.Notes,
+                ),
+                FlowToggleOption(LyricsCardLayout.POSTER, stringResource(R.string.lyrics_share_layout_poster), Icons.Outlined.FormatQuote),
+                FlowToggleOption(LyricsCardLayout.SHAPE, stringResource(R.string.lyrics_share_layout_shape), Icons.Outlined.Interests),
+            ),
+        selected = layout,
+        onSelected = onLayoutChange,
+        modifier = Modifier.padding(start = EdgePadding, end = EdgePadding, top = ControlSpacing),
+    )
     FlowConnectedToggleGroup(
         options =
             listOf(
