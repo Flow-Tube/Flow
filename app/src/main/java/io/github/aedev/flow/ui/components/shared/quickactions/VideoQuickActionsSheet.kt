@@ -17,6 +17,8 @@ import androidx.compose.material.icons.outlined.QueuePlayNext
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.VerticalAlignBottom
+import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.WatchLater
@@ -85,6 +87,8 @@ fun VideoQuickActionsBottomSheet(
     removeFromCollectionLabel: String? = null,
     removeFromCollectionIcon: ImageVector = Icons.Outlined.PlaylistRemove,
     onPlayNow: (() -> Unit)? = null,
+    onMoveToTop: (() -> Unit)? = null,
+    onMoveToBottom: (() -> Unit)? = null,
     viewModel: QuickActionsViewModel = sharedQuickActionsViewModel(),
 ) {
     var page by rememberSaveable(video.id) { mutableStateOf(VideoMenuPage.Actions) }
@@ -154,9 +158,28 @@ fun VideoQuickActionsBottomSheet(
                     } else {
                         null
                     }
+                val moveRows =
+                    listOfNotNull(
+                        onMoveToTop?.let { move ->
+                            actionRow("move_to_top", Icons.Outlined.VerticalAlignTop, stringResource(R.string.playlist_move_to_top)) {
+                                move()
+                                close()
+                            }
+                        },
+                        onMoveToBottom?.let { move ->
+                            actionRow(
+                                "move_to_bottom",
+                                Icons.Outlined.VerticalAlignBottom,
+                                stringResource(R.string.playlist_move_to_bottom),
+                            ) {
+                                move()
+                                close()
+                            }
+                        },
+                    )
                 QuickActionsGroup(
                     title = stringResource(R.string.section_options),
-                    rows = moreRows(video, viewModel, close) { page = VideoMenuPage.Details } + listOfNotNull(removeRow),
+                    rows = moreRows(video, viewModel, close) { page = VideoMenuPage.Details } + moveRows + listOfNotNull(removeRow),
                 )
             }
         }

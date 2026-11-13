@@ -12,6 +12,17 @@ fun <T> List<T>.movedByKey(
     return toMutableList().apply { add(to, removeAt(from)) }
 }
 
+/** The list with the item at [index] moved to the start or to the end, or null when it is already there. */
+fun <T> List<T>.movedToEdge(
+    index: Int,
+    toStart: Boolean,
+): List<T>? {
+    if (index !in indices) return null
+    val target = if (toStart) 0 else lastIndex
+    if (index == target) return null
+    return toMutableList().apply { add(target, removeAt(index)) }
+}
+
 /**
  * True while the database still holds the order from before a drop: the same items as [pending],
  * the order just saved, in another order. A list with other items has moved on and is shown.

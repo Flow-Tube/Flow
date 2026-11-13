@@ -525,6 +525,8 @@ class PlayerPreferences(
         val MINI_BAR_SWIPE_RIGHT_ACTION = device(stringPreferencesKey("mini_bar_swipe_right_action"))
         val QUEUE_SWIPE_LEFT_ACTION = device(stringPreferencesKey("queue_swipe_left_action"))
         val QUEUE_SWIPE_RIGHT_ACTION = device(stringPreferencesKey("queue_swipe_right_action"))
+        val PLAYLIST_SWIPE_LEFT_ACTION = device(stringPreferencesKey("playlist_swipe_left_action"))
+        val PLAYLIST_SWIPE_RIGHT_ACTION = device(stringPreferencesKey("playlist_swipe_right_action"))
 
         // Audio focus during calls
         val PLAY_DURING_CALLS = device(booleanPreferencesKey("play_during_calls"))
@@ -4531,6 +4533,28 @@ class PlayerPreferences(
         }
     }
 
+    /** What swiping a video in one of the viewer's playlists to the left and to the right does. */
+    val playlistSwipeActions: Flow<PlaylistSwipes> =
+        context.devicePreferencesDataStore.data
+            .map { preferences ->
+                PlaylistSwipes(
+                    left = PlaylistSwipeAction.fromString(preferences[DeviceKeys.PLAYLIST_SWIPE_LEFT_ACTION]),
+                    right = PlaylistSwipeAction.fromString(preferences[DeviceKeys.PLAYLIST_SWIPE_RIGHT_ACTION]),
+                )
+            }.distinctUntilChanged()
+
+    suspend fun setPlaylistSwipeLeftAction(action: PlaylistSwipeAction) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.PLAYLIST_SWIPE_LEFT_ACTION] = action.name
+        }
+    }
+
+    suspend fun setPlaylistSwipeRightAction(action: PlaylistSwipeAction) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.PLAYLIST_SWIPE_RIGHT_ACTION] = action.name
+        }
+    }
+
     // DEEP FLOW (INCOGNITO / NO-ENGINE) MODE
 
     val deepFlowActive: Flow<Boolean> =
@@ -5011,6 +5035,24 @@ enum class QueueSwipeAction {
         ): QueueSwipeAction = entries.firstOrNull { it.name == value } ?: default
     }
 }
+
+/** What swiping a video in one of the viewer's playlists does. Off until the viewer picks one. */
+enum class PlaylistSwipeAction {
+    NONE,
+    MOVE_TO_TOP,
+    MOVE_TO_BOTTOM,
+    REMOVE,
+    ;
+
+    companion object {
+        fun fromString(value: String?): PlaylistSwipeAction = entries.firstOrNull { it.name == value } ?: NONE
+    }
+}
+
+data class PlaylistSwipes(
+    val left: PlaylistSwipeAction = PlaylistSwipeAction.NONE,
+    val right: PlaylistSwipeAction = PlaylistSwipeAction.NONE,
+)
 
 /** How the volume and brightness read-outs are drawn mid-gesture. */
 enum class GestureOverlayStyle {
