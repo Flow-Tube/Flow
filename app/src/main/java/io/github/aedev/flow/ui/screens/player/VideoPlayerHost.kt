@@ -476,7 +476,7 @@ fun VideoPlayerHost(
             progress = progressProvider,
             isFullscreen = fullscreenShown,
             thumbnailUrl =
-                if (prefs.ambientModeEnabled && screenState.resizeMode == 0 && !playerState.showsSpherical) {
+                if (prefs.ambientModeEnabled && screenState.fitChosen && !playerState.showsSpherical) {
                     video.thumbnailUrl.takeIf { it.isNotEmpty() }
                         ?: ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(video.id)
                 } else {

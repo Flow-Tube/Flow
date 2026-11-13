@@ -37,6 +37,7 @@ import io.github.aedev.flow.ui.components.videoplayer.placedWhen
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.Media3SubtitleOverlay
 import io.github.aedev.flow.ui.screens.player.saveChosenPlaybackSpeed
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
+import io.github.aedev.flow.ui.screens.player.state.effectiveResizeMode
 
 /**
  * The player's video slot: the surface itself, the gesture and zoom transforms wrapped around it,
@@ -73,6 +74,12 @@ internal fun VideoStage(
     val isLandscapeWindow = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val playerPreferences = remember(session.context) { PlayerPreferences(session.context) }
     val spherical = playerState.showsSpherical
+    val resizeMode =
+        effectiveResizeMode(
+            isFullscreen = session.isFullscreenShown && !localIsInPipMode,
+            spherical = spherical,
+            override = screenState.resizeModeOverride,
+        )
     val gesturesActive = !isMinimized && !localIsInPipMode && !screenState.isTouchLocked
     val haptics = LocalHapticFeedback.current
     val chapters = playerUiState.chapters
@@ -225,7 +232,7 @@ internal fun VideoStage(
         ) {
             VideoPlayerSurface(
                 video = video,
-                resizeMode = screenState.resizeMode,
+                resizeMode = resizeMode,
                 modifier = Modifier.fillMaxSize(),
                 onVideoAspectRatioChanged = onDecodedVideoAspectRatioChanged,
                 cornerRadiusDp =
@@ -258,7 +265,7 @@ internal fun VideoStage(
                             isVertical = configuration.screenHeightDp > configuration.screenWidthDp,
                         ),
                     videoAspectRatio = videoAspectRatio,
-                    resizeMode = screenState.resizeMode,
+                    resizeMode = resizeMode,
                     modifier = Modifier.fillMaxSize().placedWhen(expandedSurfacesPlaced),
                 )
             }
@@ -294,6 +301,7 @@ internal fun VideoStage(
                 session = session,
                 expandedSurfacesPlaced = expandedSurfacesPlaced,
                 videoAspectRatio = videoAspectRatio,
+                resizeMode = resizeMode,
                 canGoPrevious = canGoPrevious,
                 isCommentsAvailable = isCommentsAvailable,
                 canUseFullscreenSidePanel = canUseFullscreenSidePanel,
