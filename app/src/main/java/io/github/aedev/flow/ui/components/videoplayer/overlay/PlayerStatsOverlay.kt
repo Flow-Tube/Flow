@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.player.stats.PlayerStatLine
@@ -31,13 +32,15 @@ private val PanelMaxWidth = 520.dp
 
 /**
  * "Stats for nerds", over the top of the video. Taps away from its two buttons reach the player, so
- * nothing here may take pointer input: a scroller would swallow every touch over the controls.
+ * nothing here may take pointer input: a scroller would swallow every touch over the controls. The
+ * buttons start at [actionsTop], below the player's top bar, so they never sit on its buttons (#2022).
  */
 @Composable
 internal fun PlayerStatsOverlay(
     lines: List<PlayerStatLine>,
     onCopy: (String) -> Unit,
     onClose: () -> Unit,
+    actionsTop: Dp,
     modifier: Modifier = Modifier,
 ) {
     val rows =
@@ -64,19 +67,22 @@ internal fun PlayerStatsOverlay(
                 Text(text = row, style = MaterialTheme.typography.labelSmall, color = PlayerScrimContent)
             }
         }
-        IconButton(
-            onClick = onClose,
-            colors = IconButtonDefaults.iconButtonColors(contentColor = PlayerScrimContent),
-            modifier = Modifier.align(Alignment.TopEnd),
+        Column(
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = actionsTop),
+            horizontalAlignment = Alignment.End,
         ) {
-            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
-        }
-        TextButton(
-            onClick = { onCopy(rows.joinToString("\n")) },
-            colors = ButtonDefaults.textButtonColors(contentColor = PlayerScrimContent),
-            modifier = Modifier.align(Alignment.BottomEnd),
-        ) {
-            Text(stringResource(R.string.stats_copy))
+            IconButton(
+                onClick = onClose,
+                colors = IconButtonDefaults.iconButtonColors(contentColor = PlayerScrimContent),
+            ) {
+                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
+            }
+            TextButton(
+                onClick = { onCopy(rows.joinToString("\n")) },
+                colors = ButtonDefaults.textButtonColors(contentColor = PlayerScrimContent),
+            ) {
+                Text(stringResource(R.string.stats_copy))
+            }
         }
     }
 }

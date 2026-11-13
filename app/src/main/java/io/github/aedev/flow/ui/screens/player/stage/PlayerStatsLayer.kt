@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.aedev.flow.player.stats.PlayerStatsFormatter
 import io.github.aedev.flow.player.stats.PlayerStatsSnapshot
+import io.github.aedev.flow.ui.components.videoplayer.controls.playerTopBarClearance
 import io.github.aedev.flow.ui.components.videoplayer.overlay.PlayerStatsOverlay
 import io.github.aedev.flow.ui.screens.player.PlayerStatsViewModel
 import kotlinx.coroutines.delay
@@ -62,6 +63,7 @@ internal fun BoxScope.PlayerStatsLayer(session: VideoPlayerStageSession) {
                 scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(videoId, text))) }
             },
             onClose = { screenState.showStatsForNerds = false },
+            actionsTop = playerTopBarClearance(session.isFullscreenShown),
             modifier = Modifier.align(Alignment.TopStart),
         )
     }
