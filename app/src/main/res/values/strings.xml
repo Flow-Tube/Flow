@@ -1481,6 +1481,7 @@
     <string name="player_settings_spherical_view_summary">Drag to look around this video</string>
     <string name="player_settings_spherical_motion">Move phone to look around</string>
     <string name="player_settings_spherical_motion_summary">Dragging the video always works</string>
+    <string name="player_settings_spherical_drag_speed">Look-around speed</string>
     <string name="player_settings_ambient_mode_subtitle">Fills black bars with the video\'s colors</string>
     <string name="player_settings_ambient_glow">Ambient glow</string>
     <string name="player_settings_ambient_glow_subtitle">The video\'s colors glow around the player</string>

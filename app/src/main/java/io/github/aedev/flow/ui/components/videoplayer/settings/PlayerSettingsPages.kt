@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.SPHERICAL_DRAG_SPEEDS
 import io.github.aedev.flow.player.AudioTrackOption
 import io.github.aedev.flow.player.QualityOption
 import io.github.aedev.flow.player.SubtitleOption
@@ -29,6 +30,7 @@ import io.github.aedev.flow.ui.components.shared.MediaQualitySelectorContent
 import io.github.aedev.flow.ui.components.shared.MediaQualitySelectorOption
 import io.github.aedev.flow.ui.components.shared.audioTrackFallbackLabel
 import io.github.aedev.flow.ui.components.shared.flowRowGroupShape
+import io.github.aedev.flow.ui.components.shared.playbackSpeedLabel
 
 @Composable
 internal fun PlayerSettingsQualityPage(
@@ -105,6 +107,23 @@ internal fun PlayerSettingsSpeedPage(
         onSpeedSelected = onSpeedSelected,
         onSpeedRowSelected = { onSpeedSelectionFinished() },
     )
+}
+
+@Composable
+internal fun PlayerSettingsSphericalDragSpeedPage(
+    currentSpeed: Float,
+    onSpeedSelected: (Float) -> Unit,
+) {
+    FlowRowGroup {
+        SPHERICAL_DRAG_SPEEDS.forEachIndexed { index, speed ->
+            FlowSelectionRow(
+                title = playbackSpeedLabel(speed),
+                selected = speed == currentSpeed,
+                shape = flowRowGroupShape(index, SPHERICAL_DRAG_SPEEDS.size),
+                onClick = { onSpeedSelected(speed) },
+            )
+        }
+    }
 }
 
 @Composable

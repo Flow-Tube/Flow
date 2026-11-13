@@ -71,6 +71,7 @@ internal fun PlayerSettingsMainPage(
     onSphericalViewToggle: (Boolean) -> Unit = {},
     sphericalMotionEnabled: Boolean? = null,
     onSphericalMotionToggle: (Boolean) -> Unit = {},
+    sphericalDragSpeed: Float? = null,
 ) {
     val playbackRows = if (sponsorBlockSegmentCount > 0) PLAYBACK_ROWS + 1 else PLAYBACK_ROWS
     FlowSectionHeader(stringResource(R.string.video))
@@ -219,7 +220,7 @@ internal fun PlayerSettingsMainPage(
     }
 
     val glowRows = if (ambientGlowEnabled != null) 1 else 0
-    val sphericalRows = listOfNotNull(sphericalViewEnabled, sphericalMotionEnabled).size
+    val sphericalRows = listOfNotNull(sphericalViewEnabled, sphericalMotionEnabled, sphericalDragSpeed).size
     val displayRows = DISPLAY_ROWS + glowRows + sphericalRows
     FlowSectionHeader(stringResource(R.string.player_settings_display))
     FlowRowGroup {
@@ -257,8 +258,17 @@ internal fun PlayerSettingsMainPage(
                 title = stringResource(R.string.player_settings_spherical_motion),
                 supportingText = stringResource(R.string.player_settings_spherical_motion_summary),
                 checked = sphericalMotionEnabled,
-                shape = flowRowGroupShape(glowRows + sphericalRows, displayRows),
+                shape = flowRowGroupShape(glowRows + 2, displayRows),
                 onCheckedChange = onSphericalMotionToggle,
+            )
+        }
+        if (sphericalDragSpeed != null) {
+            FlowNavRow(
+                leadingIcon = Icons.Filled.Speed,
+                title = stringResource(R.string.player_settings_spherical_drag_speed),
+                trailingText = playbackSpeedLabel(sphericalDragSpeed),
+                shape = flowRowGroupShape(glowRows + sphericalRows, displayRows),
+                onClick = { onNavigateToPage(PlayerSettingsPage.SphericalDragSpeed) },
             )
         }
         FlowNavRow(

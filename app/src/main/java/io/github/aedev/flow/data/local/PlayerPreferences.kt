@@ -417,6 +417,7 @@ class PlayerPreferences(
         val FALLBACK_VIDEO_CODEC = device(stringPreferencesKey("fallback_video_codec"))
         val TILT_FULLSCREEN_ROTATION_LOCKED = device(booleanPreferencesKey("tilt_fullscreen_rotation_locked"))
         val SPHERICAL_MOTION_ENABLED = device(booleanPreferencesKey("spherical_motion_enabled"))
+        val SPHERICAL_DRAG_SPEED = device(floatPreferencesKey("spherical_drag_speed"))
         val RESUME_FROM_HEADPHONES = device(booleanPreferencesKey("resume_from_headphones"))
         val SHOW_CONTROLS_WHILE_LOADING = device(booleanPreferencesKey("show_controls_while_loading"))
         val TRENDING_REGION = device(stringPreferencesKey("trending_region"))
@@ -1961,6 +1962,14 @@ class PlayerPreferences(
 
     suspend fun setSphericalMotionEnabled(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { it[DeviceKeys.SPHERICAL_MOTION_ENABLED] = enabled }
+    }
+
+    /** How far a drag turns a 360 video, as a multiple of Media3's own rate (#2001). */
+    val sphericalDragSpeed: Flow<Float> =
+        context.devicePreferencesDataStore.data.map { it[DeviceKeys.SPHERICAL_DRAG_SPEED] ?: DEFAULT_SPHERICAL_DRAG_SPEED }
+
+    suspend fun setSphericalDragSpeed(speed: Float) {
+        context.devicePreferencesDataStore.edit { it[DeviceKeys.SPHERICAL_DRAG_SPEED] = speed }
     }
 
     /** A Play button on headphones may start the last songs after Flow was closed. */
@@ -4918,6 +4927,10 @@ enum class SpeedSwipeSide {
 /** How much one step of a speed swipe changes the speed by. */
 val SPEED_SWIPE_STEPS = listOf(0.05f, 0.1f, 0.25f)
 const val DEFAULT_SPEED_SWIPE_STEP = 0.1f
+
+/** How fast dragging turns a 360 video, offered in the player settings. */
+val SPHERICAL_DRAG_SPEEDS = listOf(1f, 1.5f, 2f, 3f)
+const val DEFAULT_SPHERICAL_DRAG_SPEED = 1f
 
 /** How much of a landscape fullscreen player the side panel takes, as a share of the window width. */
 enum class FullscreenSidePanelWidth(

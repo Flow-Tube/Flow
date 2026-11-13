@@ -76,6 +76,7 @@ fun VideoPlayerSurface(
     sphericalTouch: Boolean = false,
     sphericalStill: Boolean = false,
     sphericalZoom: () -> Float = { 1f },
+    sphericalDragSpeed: Float = 1f,
 ) {
     val ambientActive = ambientMode && resizeMode == 0 && !spherical
     val localAmbientFrames = remember { AmbientFrameHolder() }
@@ -90,6 +91,7 @@ fun VideoPlayerSurface(
     var ambientVideoAspect by remember { mutableStateOf<Float?>(null) }
     val currentSpherical by rememberUpdatedState(spherical)
     val currentSphericalTouch by rememberUpdatedState(sphericalTouch)
+    val currentSphericalDragSpeed by rememberUpdatedState(sphericalDragSpeed)
     // A 360 frame is the whole sphere unrolled; the viewer sees a window into it, framed like any video.
     val reportAspectRatio by
         rememberUpdatedState<(Float) -> Unit> { decoded ->
@@ -328,7 +330,13 @@ fun VideoPlayerSurface(
             )
         }
         if (sphericalView != null) {
-            Box(Modifier.matchParentSize().forwardTouchesTo(sphericalView, { currentSphericalTouch }, sphericalZoom))
+            Box(
+                Modifier.matchParentSize().forwardTouchesTo(
+                    view = sphericalView,
+                    enabled = { currentSphericalTouch },
+                    dragScale = { currentSphericalDragSpeed / sphericalZoom() },
+                ),
+            )
         }
     }
 }
@@ -343,18 +351,20 @@ fun VideoPlayerSurface(
  * Turning [enabled] off mid-drag cancels the tracker's gesture on the next touch event.
  *
  * A second finger means a pinch, which zooms instead: the tracker gets a cancel and nothing more
- * until every finger lifts. While zoomed, a drag is scaled down by [zoom], so it moves the picture
- * as far across the screen as it does unzoomed.
+ * until every finger lifts. Each forwarded touch is scaled by [dragScale]: the chosen look-around
+ * speed over the zoom, so a zoomed drag moves the picture as far across the screen as it does
+ * unzoomed. Media3's degrees per pixel are private, so scaling the touch is the only way to turn
+ * the view faster.
  */
 private fun Modifier.forwardTouchesTo(
     view: GLSurfaceView,
     enabled: () -> Boolean,
-    zoom: () -> Float,
+    dragScale: () -> Float,
 ): Modifier =
     pointerInput(view) {
         awaitPointerEventScope {
             var forwarding = false
-            val unzoom = Matrix()
+            val scaleMatrix = Matrix()
 
             fun cancelTracker(event: MotionEvent) {
                 forwarding = false
@@ -372,13 +382,13 @@ private fun Modifier.forwardTouchesTo(
                     cancelTracker(event)
                     continue
                 }
-                val scale = zoom()
+                val scale = dragScale()
                 if (scale == 1f) {
                     view.dispatchTouchEvent(event)
                 } else {
-                    unzoom.setScale(1f / scale, 1f / scale)
+                    scaleMatrix.setScale(scale, scale)
                     MotionEvent.obtain(event).apply {
-                        transform(unzoom)
+                        transform(scaleMatrix)
                         view.dispatchTouchEvent(this)
                         recycle()
                     }
