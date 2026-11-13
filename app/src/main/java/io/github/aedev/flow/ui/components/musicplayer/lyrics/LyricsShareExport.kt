@@ -58,3 +58,16 @@ internal fun lyricsFileName(
         fallback = "lyrics",
         extension = extension,
     )
+
+/** The chosen lines with a "Song, Artist" credit under them, for the clipboard. */
+internal fun lyricsCopyText(
+    lines: List<String>,
+    title: String,
+    artist: String,
+): String {
+    val credit = listOf(title, artist).filter { it.isNotBlank() }.joinToString(", ")
+    return buildString {
+        append(lines.joinToString("\n"))
+        if (credit.isNotEmpty()) append("\n\n").append(credit)
+    }
+}

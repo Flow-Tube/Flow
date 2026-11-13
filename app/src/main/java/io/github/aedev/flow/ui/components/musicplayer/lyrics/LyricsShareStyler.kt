@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.musicplayer.lyrics
 
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.BorderOuter
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.CropDin
 import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.CropPortrait
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -56,6 +59,7 @@ import io.github.aedev.flow.ui.components.shared.FlowPairAction
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.components.shared.rememberMediaPalette
 import io.github.aedev.flow.ui.utils.captureInto
+import io.github.aedev.flow.utils.copyPlainText
 import kotlinx.coroutines.launch
 
 private val EdgePadding = 16.dp
@@ -82,6 +86,7 @@ internal fun ColumnScope.LyricsShareStyler(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboard.current
     val palette = rememberMediaPalette(artworkUrl, animated = false, cacheOnly = true)
     val cover = rememberLyricsCover(artworkUrl, enabled = true)
     val colorsByStyle = LyricsCardStyle.entries.associateWith { lyricsCardColors(it, palette, cover) }
@@ -235,5 +240,13 @@ internal fun ColumnScope.LyricsShareStyler(
                 }
             },
         modifier = Modifier.padding(start = EdgePadding, end = EdgePadding, bottom = ControlSpacing),
+        tertiary =
+            FlowPairAction(Icons.Outlined.ContentCopy, stringResource(R.string.btn_copy)) {
+                scope.launch {
+                    clipboard.copyPlainText(title, lyricsCopyText(lines, title, artist))
+                    // Android 13 and later confirm a copy themselves.
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) report(R.string.toast_copied_to_clipboard)
+                }
+            },
     )
 }
