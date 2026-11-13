@@ -1907,7 +1907,7 @@ object YouTube {
                     ?.contents!!
                     .mapNotNull { it.musicCarouselShelfRenderer }
                     .mapNotNull {
-                        HomePage.Section.fromMusicCarouselShelfRenderer(it, includeSongRows = params != null)
+                        HomePage.Section.fromMusicCarouselShelfRenderer(it, chipPage = params != null)
                     }.toMutableList()
             val chips =
                 sectionListRender.header

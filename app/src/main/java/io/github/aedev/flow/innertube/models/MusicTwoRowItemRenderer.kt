@@ -4,6 +4,7 @@ import io.github.aedev.flow.innertube.models.BrowseEndpoint.BrowseEndpointContex
 import io.github.aedev.flow.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_ARTIST
 import io.github.aedev.flow.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_AUDIOBOOK
 import io.github.aedev.flow.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_PLAYLIST
+import io.github.aedev.flow.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE
 import kotlinx.serialization.Serializable
 
 /**
@@ -49,6 +50,13 @@ data class MusicTwoRowItemRenderer(
                 ?.browseEndpointContextMusicConfig
                 ?.pageType ==
                 MUSIC_PAGE_TYPE_ARTIST
+    val isPodcast: Boolean
+        get() =
+            navigationEndpoint.browseEndpoint
+                ?.browseEndpointContextSupportedConfigs
+                ?.browseEndpointContextMusicConfig
+                ?.pageType ==
+                MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE
 
     val musicVideoType: String?
         get() =
