@@ -4725,10 +4725,18 @@ class PlayerPreferences(
         return SettingsBackup(strings, booleans, ints, floats, longs, stringSets)
     }
 
-    suspend fun restoreData(backup: SettingsBackup) {
-        val (deviceBackup, profileBackup) = backup.splitBy { it in DeviceKeys.NAMES }
-        context.playerPreferencesDataStore.edit { prefs -> prefs.restore(profileBackup) }
-        context.devicePreferencesDataStore.edit { prefs -> prefs.restore(deviceBackup) }
+    /**
+     * @param ownedElsewhere names another store restores itself. A backup is one flat map of every
+     *   store's settings, so without this each of them would also be written into this store.
+     */
+    suspend fun restoreData(
+        backup: SettingsBackup,
+        ownedElsewhere: Set<String> = emptySet(),
+    ) {
+        val restorable = backup.filterNames { it !in BackupExcludedKeys && it !in ownedElsewhere }
+        val isDevice = { name: String -> name in DeviceKeys.NAMES || name in LocalDataManager.DEVICE_KEY_NAMES }
+        context.playerPreferencesDataStore.edit { prefs -> prefs.putAll(restorable.filterNames { !isDevice(it) }) }
+        context.devicePreferencesDataStore.edit { prefs -> prefs.putAll(restorable.filterNames(isDevice)) }
         // The UI language belongs to the language manager; written here alone it would never show,
         // while YouTube's language follows what is shown (#1277).
         backup.strings[DeviceKeys.APP_LANGUAGE.name]
@@ -4746,34 +4754,6 @@ internal fun exportedPreferences(
     device: Map<Preferences.Key<*>, Any>,
     deviceNames: Set<String>,
 ): Map<Preferences.Key<*>, Any> = profile.filterKeys { it.name !in deviceNames } + device
-
-private fun SettingsBackup.splitBy(predicate: (String) -> Boolean): Pair<SettingsBackup, SettingsBackup> =
-    SettingsBackup(
-        strings.filterKeys(predicate),
-        booleans.filterKeys(predicate),
-        ints.filterKeys(predicate),
-        floats.filterKeys(predicate),
-        longs.filterKeys(predicate),
-        stringSets.filterKeys(predicate),
-    ) to
-        SettingsBackup(
-            strings.filterKeys { !predicate(it) },
-            booleans.filterKeys { !predicate(it) },
-            ints.filterKeys { !predicate(it) },
-            floats.filterKeys { !predicate(it) },
-            longs.filterKeys { !predicate(it) },
-            stringSets.filterKeys { !predicate(it) },
-        )
-
-private fun MutablePreferences.restore(backup: SettingsBackup) {
-    fun <T> Map<String, T>.restorable() = filterKeys { it !in BackupExcludedKeys }
-    backup.strings.restorable().forEach { (k, v) -> this[stringPreferencesKey(k)] = v }
-    backup.booleans.restorable().forEach { (k, v) -> this[booleanPreferencesKey(k)] = v }
-    backup.ints.restorable().forEach { (k, v) -> this[intPreferencesKey(k)] = v }
-    backup.floats.restorable().forEach { (k, v) -> this[floatPreferencesKey(k)] = v }
-    backup.longs.restorable().forEach { (k, v) -> this[longPreferencesKey(k)] = v }
-    backup.stringSets.restorable().forEach { (k, v) -> this[stringSetPreferencesKey(k)] = v }
-}
 
 const val DEFAULT_NEW_SETTINGS_HIGHLIGHT = false
 const val DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS = 7
