@@ -56,6 +56,9 @@ sealed interface MediaKeyAction {
 
     data object SpeedDown : MediaKeyAction
 
+    /** Tab: move focus into the page's list, such as the related videos. */
+    data object FocusList : MediaKeyAction
+
     /** Jump to [tenths] × 10 % of the video. */
     data class JumpTo(
         val tenths: Int,
@@ -102,6 +105,7 @@ object MediaKeyMapper {
             KeyEvent.KEYCODE_F -> MediaKeyAction.ToggleFullscreen
             KeyEvent.KEYCODE_ESCAPE -> MediaKeyAction.ExitFullscreen
             KeyEvent.KEYCODE_C -> MediaKeyAction.ToggleCaptions
+            KeyEvent.KEYCODE_TAB -> MediaKeyAction.FocusList
             in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> MediaKeyAction.JumpTo(keyCode - KeyEvent.KEYCODE_0)
             in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9 -> MediaKeyAction.JumpTo(keyCode - KeyEvent.KEYCODE_NUMPAD_0)
             else -> null

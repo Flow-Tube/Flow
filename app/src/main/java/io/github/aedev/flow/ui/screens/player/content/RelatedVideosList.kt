@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +21,8 @@ import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.partialRowIndices
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.LocalHardwareKeyboard
 import io.github.aedev.flow.ui.components.shared.LocalSkeletonGradientEnabled
 import io.github.aedev.flow.ui.components.shared.ThumbnailSkeletonGradient
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
@@ -36,29 +39,44 @@ internal fun LazyListScope.relatedVideosContent(
     relatedVideos: List<Video>,
     onVideoClick: (Video) -> Unit,
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
+    firstCardModifier: Modifier = Modifier,
 ) {
-    // Video items
     items(
         count = relatedVideos.size,
         key = { index -> relatedVideos[index].id },
     ) { index ->
         val relatedVideo = relatedVideos[index]
-        when (cardStyle) {
-            PlayerRelatedCardStyle.COMPACT -> {
-                MediaVideoCard(
-                    video = relatedVideo,
-                    layout = VideoCardLayout.Row,
-                    onClick = { onVideoClick(relatedVideo) },
-                )
-            }
+        val cardModifier = if (index == 0) firstCardModifier else Modifier
+        KeyboardCardFocus {
+            when (cardStyle) {
+                PlayerRelatedCardStyle.COMPACT -> {
+                    MediaVideoCard(
+                        video = relatedVideo,
+                        layout = VideoCardLayout.Row,
+                        onClick = { onVideoClick(relatedVideo) },
+                        modifier = cardModifier,
+                    )
+                }
 
-            PlayerRelatedCardStyle.FULL_WIDTH -> {
-                MediaVideoCard(
-                    video = relatedVideo,
-                    onClick = { onVideoClick(relatedVideo) },
-                )
+                PlayerRelatedCardStyle.FULL_WIDTH -> {
+                    MediaVideoCard(
+                        video = relatedVideo,
+                        onClick = { onVideoClick(relatedVideo) },
+                        modifier = cardModifier,
+                    )
+                }
             }
         }
+    }
+}
+
+/** Once a keyboard is typing, related cards act as on a TV: one focus stop each, lifted while focused. */
+@Composable
+private fun KeyboardCardFocus(content: @Composable () -> Unit) {
+    if (LocalHardwareKeyboard.current.inUse && !LocalDpadNavigation.current) {
+        CompositionLocalProvider(LocalDpadNavigation provides true, content)
+    } else {
+        content()
     }
 }
 
@@ -73,6 +91,7 @@ internal fun LazyListScope.relatedVideosGridContent(
     layout: FeedGridLayout,
     onVideoClick: (Video) -> Unit,
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
+    firstCardModifier: Modifier = Modifier,
 ) {
     val columns = if (cardStyle == PlayerRelatedCardStyle.COMPACT) 1 else layout.columns
     val rows = relatedGridRows(relatedVideos.size, columns)
@@ -83,31 +102,48 @@ internal fun LazyListScope.relatedVideosGridContent(
         contentType = { index -> if (rows[index].size == 1) "related_row" else "related_grid_row" },
     ) { index ->
         val row = rows[index]
-        if (row.size == 1) {
-            val video = relatedVideos[row.single()]
-            MediaVideoCard(
-                video = video,
-                layout = VideoCardLayout.Row,
-                onClick = { onVideoClick(video) },
-                thumbnailWidth = layout.thumbnailWidth,
-                density = layout.cardDensity,
-                modifier = Modifier.padding(horizontal = layout.contentPadding),
-            )
-        } else {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = layout.contentPadding,
-                            vertical = if (layout.dense) layout.cardSpacing / 2 else GridRowVerticalPadding,
-                        ),
-            ) {
-                row.forEach { videoIndex ->
-                    val video = relatedVideos[videoIndex]
-                    Box(modifier = Modifier.weight(1f)) {
-                        MediaVideoCard(video = video, onClick = { onVideoClick(video) }, density = layout.cardDensity)
-                    }
+        KeyboardCardFocus { RelatedGridRow(row, index == 0, relatedVideos, layout, onVideoClick, firstCardModifier) }
+    }
+}
+
+@Composable
+private fun RelatedGridRow(
+    row: List<Int>,
+    firstRow: Boolean,
+    relatedVideos: List<Video>,
+    layout: FeedGridLayout,
+    onVideoClick: (Video) -> Unit,
+    firstCardModifier: Modifier,
+) {
+    if (row.size == 1) {
+        val video = relatedVideos[row.single()]
+        MediaVideoCard(
+            video = video,
+            layout = VideoCardLayout.Row,
+            onClick = { onVideoClick(video) },
+            thumbnailWidth = layout.thumbnailWidth,
+            density = layout.cardDensity,
+            modifier = Modifier.padding(horizontal = layout.contentPadding).then(if (firstRow) firstCardModifier else Modifier),
+        )
+    } else {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = layout.contentPadding,
+                        vertical = if (layout.dense) layout.cardSpacing / 2 else GridRowVerticalPadding,
+                    ),
+        ) {
+            row.forEachIndexed { position, videoIndex ->
+                val video = relatedVideos[videoIndex]
+                Box(modifier = Modifier.weight(1f)) {
+                    MediaVideoCard(
+                        video = video,
+                        onClick = { onVideoClick(video) },
+                        density = layout.cardDensity,
+                        modifier = if (firstRow && position == 0) firstCardModifier else Modifier,
+                    )
                 }
             }
         }

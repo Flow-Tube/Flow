@@ -15,6 +15,7 @@ import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaf
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
@@ -40,12 +41,14 @@ import io.github.aedev.flow.ui.screens.player.content.relatedVideosContent
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosGridContent
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosSkeleton
 import io.github.aedev.flow.ui.screens.player.content.rememberRelatedSkeleton
+import io.github.aedev.flow.ui.screens.player.state.BindRelatedFocus
 import io.github.aedev.flow.ui.screens.player.state.PlayerLayoutMode
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.QueueDockPlacement
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
 import io.github.aedev.flow.ui.screens.player.state.hasVisibleQueue
+import io.github.aedev.flow.ui.screens.player.state.keyboardReturnToPlayer
 import io.github.aedev.flow.ui.screens.player.state.nextQueueVideo
 import io.github.aedev.flow.ui.screens.player.state.playerLayoutModeFor
 import io.github.aedev.flow.ui.screens.player.state.queueDockPlacement
@@ -106,6 +109,7 @@ internal fun EnhancedVideoPlayerScreen(
             Modifier
                 .fillMaxSize()
                 .graphicsLayer { this.alpha = alpha() }
+                .keyboardReturnToPlayer()
                 // The immersive light paints the page colour itself, under its light.
                 .then(if (immersive) Modifier else Modifier.background(MaterialTheme.colorScheme.background)),
     ) {
@@ -217,6 +221,13 @@ internal fun EnhancedVideoPlayerScreen(
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val relatedLayout = rememberFeedGridLayout(maxWidth, prefs.feedColumns)
                 val listState = rememberLazyListState()
+                BindRelatedFocus(
+                    focus = screenState.relatedFocus,
+                    listState = listState,
+                    firstIndex = 1,
+                    enabled = showRelatedVideos && !showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty() && !isInPipMode,
+                )
+                val firstRelatedCard = Modifier.focusRequester(screenState.relatedFocus.firstCard)
                 if (ambientGlowFrames != null && immersive) {
                     AmbientImmersiveLayer(frames = ambientGlowFrames, isScrolling = { dimOnScroll && listState.isScrollInProgress })
                 } else if (ambientGlowFrames != null) {
@@ -260,12 +271,14 @@ internal fun EnhancedVideoPlayerScreen(
                                     layout = relatedLayout,
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
+                                    firstCardModifier = firstRelatedCard,
                                 )
                             } else {
                                 relatedVideosContent(
                                     relatedVideos = uiState.relatedVideos,
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
+                                    firstCardModifier = firstRelatedCard,
                                 )
                             }
                         }

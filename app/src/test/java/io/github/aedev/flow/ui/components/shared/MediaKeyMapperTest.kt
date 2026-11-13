@@ -57,7 +57,6 @@ class MediaKeyMapperTest {
     fun `system keys are left alone`() {
         assertThat(map(KeyEvent.KEYCODE_SPACE, otherModifier = true)).isNull()
         assertThat(map(KeyEvent.KEYCODE_C, otherModifier = true)).isNull()
-        assertThat(map(KeyEvent.KEYCODE_TAB)).isNull()
         assertThat(map(KeyEvent.KEYCODE_ENTER)).isNull()
         assertThat(map(KeyEvent.KEYCODE_M)).isNull()
     }

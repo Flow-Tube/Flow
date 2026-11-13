@@ -30,6 +30,8 @@ object PlayerKeyboardShortcutHelp {
                 key(R.string.previous, KeyEvent.KEYCODE_P, KeyEvent.META_SHIFT_ON),
                 key(R.string.keyboard_shortcut_faster, KeyEvent.KEYCODE_PERIOD, KeyEvent.META_SHIFT_ON),
                 key(R.string.keyboard_shortcut_slower, KeyEvent.KEYCODE_COMMA, KeyEvent.META_SHIFT_ON),
+                key(R.string.keyboard_shortcut_related_videos, KeyEvent.KEYCODE_TAB),
+                key(R.string.keyboard_shortcut_back_to_player, KeyEvent.KEYCODE_TAB, KeyEvent.META_SHIFT_ON),
                 key(R.string.keyboard_shortcut_play_pause, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE),
                 key(R.string.pause, KeyEvent.KEYCODE_MEDIA_STOP),
                 key(R.string.keyboard_shortcut_seek_back, KeyEvent.KEYCODE_MEDIA_REWIND),

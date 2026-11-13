@@ -129,6 +129,10 @@ internal fun Modifier.videoStageKeyboardShortcuts(
                 stepSpeed(faster = false)
             }
 
+            MediaKeyAction.FocusList -> {
+                screenState.relatedFocus.focusFirstCard(session.scope)
+            }
+
             is MediaKeyAction.JumpTo -> {
                 val canJump = !playerState.isLive && screenState.duration > 0
                 if (canJump) {
