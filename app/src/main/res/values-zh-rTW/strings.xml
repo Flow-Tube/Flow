@@ -4800,4 +4800,31 @@
     <plurals name="import_takeout_part_ads_removed">
         <item quantity="other">已從記錄中移除 %d 則廣告</item>
     </plurals>
+    <string name="lyrics_in_mini_player">迷你播放器顯示歌詞</string>
+    <string name="lyrics_in_mini_player_summary">在藝人名稱的位置顯示正在演唱的歌詞</string>
+    <string name="lyrics_share">分享歌詞</string>
+    <string name="lyrics_share_selected">已選取 %1$d／%2$d 行</string>
+    <string name="lyrics_share_align_left">靠左</string>
+    <string name="lyrics_share_align_center">置中</string>
+    <string name="lyrics_share_align_right">靠右</string>
+    <string name="lyrics_share_save_image">儲存圖片</string>
+    <string name="lyrics_share_image_saved">圖片已儲存</string>
+    <string name="lyrics_share_image_failed">無法建立圖片</string>
+    <string name="comments_turned_off">已關閉留言功能</string>
+    <string name="transcript_actions">逐字稿選項</string>
+    <string name="transcript_copy">複製</string>
+    <string name="transcript_copy_with_timestamps">連同時間戳記複製</string>
+    <string name="transcript_save_file">儲存為文字檔</string>
+    <string name="transcript_copied">已複製逐字稿</string>
+    <string name="transcript_too_long_to_copy">內容過長，無法複製。請改為儲存成檔案</string>
+    <string name="transcript_saved">已儲存逐字稿</string>
+    <string name="transcript_save_failed">無法儲存逐字稿</string>
+    <string name="recent_searches_show_all">顯示全部</string>
+    <string name="player_appearance_chapter_skip_gesture_title">雙指點兩下切換章節</string>
+    <string name="player_appearance_chapter_skip_gesture_subtitle">用兩指點兩下，即可跳到下一個或上一個章節</string>
+    <string name="player_settings_spherical_view">360° 檢視</string>
+    <string name="player_settings_spherical_view_summary">拖曳即可環顧這部影片</string>
+    <string name="player_settings_immersive_scroll_dim">捲動時調暗</string>
+    <string name="player_settings_immersive_scroll_dim_subtitle">頁面移動時減弱光線</string>
+    <string name="player_chapter_number">第 %1$d 章</string>
 </resources>
