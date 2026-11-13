@@ -186,8 +186,12 @@ class YouTubeHttpDataSource private constructor(
     private fun resolveYouTubeUserAgent(uri: Uri): String = GoogleVideoRequestPolicy.userAgent(uri.getQueryParameter("c"), userAgent)
 
     private fun youtubeHeaders(dataSpec: DataSpec): Map<String, String> =
-        GoogleVideoRequestPolicy.headers(
-            clientName = dataSpec.uri.getQueryParameter("c"),
-            allowGzip = dataSpec.isFlagSet(DataSpec.FLAG_ALLOW_GZIP),
-        )
+        if (GoogleVideoRequestPolicy.isCaptionRequest(dataSpec.uri.path)) {
+            GoogleVideoRequestPolicy.captionHeaders()
+        } else {
+            GoogleVideoRequestPolicy.headers(
+                clientName = dataSpec.uri.getQueryParameter("c"),
+                allowGzip = dataSpec.isFlagSet(DataSpec.FLAG_ALLOW_GZIP),
+            )
+        }
 }

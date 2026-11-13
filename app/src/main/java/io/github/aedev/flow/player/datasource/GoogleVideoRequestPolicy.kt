@@ -20,6 +20,19 @@ object GoogleVideoRequestPolicy {
             "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
         )
 
+    private const val CAPTION_PATH = "/api/timedtext"
+
+    /** Whether [path] is YouTube's caption endpoint, which [captionHeaders] describes. */
+    fun isCaptionRequest(path: String?): Boolean = path == CAPTION_PATH
+
+    /**
+     * A caption URL carries no `c=`, so [headers] would take it for a web page's request and add
+     * Origin, Referer and `Sec-Fetch-*`, which no browser sends without the web player's PO token.
+     * NewTube fetches the same signed URL with none of them, and users report its translations load where Flow's
+     * were refused with 429 (#1369). Encoding is left to OkHttp: caption text compresses well.
+     */
+    fun captionHeaders(): Map<String, String> = mapOf("Accept" to "*/*")
+
     fun userAgent(
         clientName: String?,
         fallback: String,
