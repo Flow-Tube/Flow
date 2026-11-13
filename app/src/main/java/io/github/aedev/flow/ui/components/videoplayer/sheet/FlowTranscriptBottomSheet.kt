@@ -43,9 +43,6 @@ import io.github.aedev.flow.ui.components.shared.rememberMediaArtworkTint
 
 private val EmptyStateHeight = 160.dp
 
-/** How far up the list the line being spoken is parked when the transcript follows playback. */
-private const val FOLLOW_OFFSET_ITEMS = 2
-
 /**
  * The video's captions as a readable, seekable list that follows playback.
  *
@@ -122,9 +119,7 @@ fun FlowTranscriptBottomSheet(
     LaunchedEffect(activeStartMs, isFollowing, items) {
         if (!isFollowing) return@LaunchedEffect
         val index = items.indexOfFirst { it is TranscriptItem.Line && it.cue.startMs == activeStartMs }
-        if (index >= 0) {
-            listState.animateScrollToItem((index - FOLLOW_OFFSET_ITEMS).coerceAtLeast(0))
-        }
+        if (index >= 0) listState.followTo(index)
     }
 
     FlowBottomSheet(

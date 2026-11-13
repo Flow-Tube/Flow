@@ -94,7 +94,7 @@ class FlowTranscriptBottomSheetTest {
     fun draggingRaisesTheSyncPillAndTappingItGoesBack() {
         setSheet()
 
-        rule.onNodeWithText("Line 10", substring = true).performTouchInput { swipeUp() }
+        rule.onNodeWithText("Line 12", substring = true).performTouchInput { swipeUp() }
         rule.waitForIdle()
 
         syncPill().assertIsDisplayed()
