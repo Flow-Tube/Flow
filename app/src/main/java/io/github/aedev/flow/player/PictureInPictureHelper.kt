@@ -352,7 +352,7 @@ object PictureInPictureHelper {
 
                 PipControl.PREVIOUS -> {
                     PipButton(
-                        android.R.drawable.ic_media_previous,
+                        R.drawable.ic_previous,
                         R.string.previous,
                         ACTION_PREVIOUS,
                         REQUEST_CODE_PREVIOUS,
@@ -360,15 +360,15 @@ object PictureInPictureHelper {
                 }
 
                 PipControl.PLAY -> {
-                    PipButton(android.R.drawable.ic_media_play, R.string.play, ACTION_PLAY, REQUEST_CODE_PLAY)
+                    PipButton(R.drawable.ic_play, R.string.play, ACTION_PLAY, REQUEST_CODE_PLAY)
                 }
 
                 PipControl.PAUSE -> {
-                    PipButton(android.R.drawable.ic_media_pause, R.string.pause, ACTION_PAUSE, REQUEST_CODE_PAUSE)
+                    PipButton(R.drawable.ic_pause, R.string.pause, ACTION_PAUSE, REQUEST_CODE_PAUSE)
                 }
 
                 PipControl.NEXT -> {
-                    PipButton(android.R.drawable.ic_media_next, R.string.next, ACTION_NEXT, REQUEST_CODE_NEXT)
+                    PipButton(R.drawable.ic_next, R.string.next, ACTION_NEXT, REQUEST_CODE_NEXT)
                 }
             }
         val title = context.getString(titleResId)
