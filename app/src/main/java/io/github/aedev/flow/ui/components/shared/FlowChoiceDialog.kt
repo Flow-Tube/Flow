@@ -1,5 +1,7 @@
 package io.github.aedev.flow.ui.components.shared
 
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,13 +25,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.utils.foldForSearch
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 
 /** One option of a [FlowChoiceDialog]. */
 @Immutable
@@ -73,7 +81,14 @@ fun <T> FlowChoiceDialog(
     val listState = rememberLazyListState()
     LaunchedEffect(Unit) {
         val index = options.indexOfFirst { it.value == selected }
-        if (index > 0) listState.scrollToItem(index)
+        if (index <= 0) return@LaunchedEffect
+        listState.scrollToItem(index)
+        val item =
+            snapshotFlow { listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } }
+                .filterNotNull()
+                .first()
+        val viewport = listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
+        listState.scrollBy((item.offset - (viewport - item.size) / 2).toFloat())
     }
 
     FlowAlertDialog(
@@ -101,22 +116,35 @@ fun <T> FlowChoiceDialog(
                     )
                     Spacer(Modifier.height(SearchSpacing))
                 }
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.heightIn(max = listMaxHeight),
-                ) {
-                    items(visible, key = { it.value.toString() }) { option ->
-                        FlowSelectionRow(
-                            title = option.label,
-                            supportingText = option.supportingText,
-                            selected = option.value == selected,
-                            showSelectedContainer = false,
-                            onClick = {
-                                onSelect(option.value)
-                                if (dismissOnSelect) onDismiss()
-                            },
-                        )
+                Box {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.heightIn(max = listMaxHeight),
+                    ) {
+                        items(visible, key = { it.value.toString() }) { option ->
+                            FlowSelectionRow(
+                                title = option.label,
+                                supportingText = option.supportingText,
+                                selected = option.value == selected,
+                                showSelectedContainer = false,
+                                onClick = {
+                                    onSelect(option.value)
+                                    if (dismissOnSelect) onDismiss()
+                                },
+                            )
+                        }
                     }
+                    // Overlaid rather than stacked, so a list that never scrolls keeps its height.
+                    HorizontalDivider(
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .graphicsLayer { alpha = if (listState.canScrollBackward) 1f else 0f },
+                    )
+                    HorizontalDivider(
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .graphicsLayer { alpha = if (listState.canScrollForward) 1f else 0f },
+                    )
                 }
                 footer?.invoke()
             }
