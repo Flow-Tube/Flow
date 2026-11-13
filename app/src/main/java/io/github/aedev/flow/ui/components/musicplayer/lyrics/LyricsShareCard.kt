@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -117,7 +118,7 @@ internal fun distinctCardStyles(
     return kept
 }
 
-private fun looksAlike(
+internal fun looksAlike(
     a: Color,
     b: Color,
 ): Boolean {
@@ -146,6 +147,7 @@ internal fun LyricsShareCard(
     lines: List<String>,
     colors: LyricsCardColors,
     textAlign: TextAlign,
+    shape: Shape,
     modifier: Modifier = Modifier,
     cover: LyricsCover? = null,
 ) {
@@ -159,7 +161,7 @@ internal fun LyricsShareCard(
                 .allowHardware(false)
                 .build()
         }
-    Box(modifier = modifier.clip(MaterialTheme.shapes.extraLarge).background(colors.ground)) {
+    Box(modifier = modifier.clip(shape).background(colors.ground)) {
         if (cover != null) {
             LyricsCoverLayer(cover = cover, moving = false, running = false, modifier = Modifier.matchParentSize())
         }

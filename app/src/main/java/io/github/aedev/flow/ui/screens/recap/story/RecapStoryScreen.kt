@@ -4,13 +4,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -41,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -67,6 +64,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.stats.RecapPeriod
 import io.github.aedev.flow.data.stats.RecapSummary
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
+import io.github.aedev.flow.ui.components.shared.FittedShareCard
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.drawSegmentedProgress
@@ -271,23 +269,6 @@ private fun StoryHeader(
 }
 
 private const val TRACK_ALPHA = 0.3f
-
-/**
- * Shows the fixed-size share poster scaled down to the space the page has. The scale is applied
- * around the poster, so the image recorded for sharing is always the full-size poster.
- */
-@Composable
-private fun FittedShareCard(card: @Composable () -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        val scale = minOf(1f, maxWidth / ShareCardWidth, maxHeight / ShareCardHeight)
-        Box(
-            Modifier.requiredSize(ShareCardWidth, ShareCardHeight).graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        ) { card() }
-    }
-}
 
 /** "September 2026" for a month, "2026" for a year. */
 internal fun periodLabel(

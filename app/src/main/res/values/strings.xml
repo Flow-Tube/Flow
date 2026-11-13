@@ -220,6 +220,9 @@
     <string name="lyrics_share_align_left">Left</string>
     <string name="lyrics_share_align_center">Center</string>
     <string name="lyrics_share_align_right">Right</string>
+    <string name="lyrics_share_frame_square">Square</string>
+    <string name="lyrics_share_frame_backdrop">Framed</string>
+    <string name="lyrics_share_frame_clear">Clear</string>
     <string name="lyrics_share_save_image">Save image</string>
     <string name="lyrics_share_image_saved">Image saved</string>
     <string name="lyrics_share_image_failed">Could not create the image</string>
