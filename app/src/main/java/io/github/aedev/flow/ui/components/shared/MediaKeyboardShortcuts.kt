@@ -109,7 +109,7 @@ private const val SPEED_EPSILON = 0.001f
 
 /**
  * Runs [onAction] for the keys of a physical keyboard while [enabled] and a hardware keyboard is
- * attached. Compose sends a key only into the focused subtree and nothing in a player holds focus on
+ * attached or has typed. Compose sends a key only into the focused subtree and nothing in a player holds focus on
  * a touch screen, so this takes focus when it turns on, as a bare focus target that TalkBack skips.
  * Keys reach it after the focused child, so a focused button or text field keeps its own, and an
  * action [onAction] reports as not applied falls through.
@@ -120,10 +120,10 @@ fun Modifier.mediaKeyboardShortcuts(
     onAction: (MediaKeyAction) -> Boolean,
 ): Modifier {
     val configuration = LocalConfiguration.current
-    val active =
-        enabled &&
-            configuration.keyboard == Configuration.KEYBOARD_QWERTY &&
+    val reportedKeyboard =
+        configuration.keyboard == Configuration.KEYBOARD_QWERTY &&
             configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
+    val active = enabled && (reportedKeyboard || LocalHardwareKeyboard.current.inUse)
     // A remote already moves focus between the player's buttons, so the keys only bubble up to here.
     val dpad = LocalDpadNavigation.current
     val focusRequester = remember { FocusRequester() }
