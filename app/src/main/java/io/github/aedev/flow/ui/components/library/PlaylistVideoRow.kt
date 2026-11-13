@@ -35,6 +35,8 @@ internal fun PlaylistVideoRow(
     isWatchLater: Boolean,
     onRemove: () -> Unit,
     isLikes: Boolean = false,
+    onMoveToTop: (() -> Unit)? = null,
+    onMoveToBottom: (() -> Unit)? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     thumbnailWidth: Dp = MediaThumbnailDefaults.VideoWidth,
@@ -95,6 +97,8 @@ internal fun PlaylistVideoRow(
                 } else {
                     null
                 },
+            onMoveToTop = onMoveToTop,
+            onMoveToBottom = onMoveToBottom,
             onDismiss = { showQuickActions = false },
         )
     }

@@ -52,6 +52,7 @@ internal fun PlaylistDetailList(
     reorderState: ReorderableLazyListState,
     onVideoClick: (index: Int, video: Video) -> Unit,
     onRemove: (Video) -> Unit,
+    onMoveToEdge: (video: Video, toTop: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = flowBottomContentPadding()),
     header: (@Composable () -> Unit)? = null,
@@ -115,6 +116,8 @@ internal fun PlaylistDetailList(
                         isWatchLater = mode.isWatchLater,
                         isLikes = mode.isLikes,
                         onRemove = { onRemove(video) },
+                        onMoveToTop = if (mode.canReorder && index > 0) ({ onMoveToEdge(video, true) }) else null,
+                        onMoveToBottom = if (mode.canReorder && index < videos.lastIndex) ({ onMoveToEdge(video, false) }) else null,
                         onClick = { onVideoClick(index, video) },
                         thumbnailWidth = thumbnailWidth,
                     )
