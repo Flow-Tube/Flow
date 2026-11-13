@@ -1044,6 +1044,11 @@
     <string name="queue_swipe_right">Queue swipe right</string>
     <string name="queue_swipe_subtitle">For songs in Up next</string>
     <string name="queue_move_to_end">Move to end</string>
+    <string name="playlist_swipe_left">Playlist swipe left</string>
+    <string name="playlist_swipe_right">Playlist swipe right</string>
+    <string name="playlist_swipe_subtitle">For videos in your playlists</string>
+    <string name="playlist_move_to_top">Move to top</string>
+    <string name="playlist_move_to_bottom">Move to bottom</string>
     <string name="mini_bar_nothing_next">Nothing up next</string>
     <string name="mini_bar_nothing_previous">Nothing before this</string>
     <string name="skip_button_title">Show Skip Buttons</string>
