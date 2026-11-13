@@ -516,6 +516,7 @@ class PlayerPreferences(
         val FULLSCREEN_SEEKBAR_PADDING_MODE = device(stringPreferencesKey("fullscreen_seekbar_padding_mode"))
         val FULLSCREEN_SEEKBAR_CUSTOM_PADDING_DP = device(intPreferencesKey("fullscreen_seekbar_custom_padding_dp"))
         val FULLSCREEN_SIDE_PANEL_WIDTH = device(stringPreferencesKey("fullscreen_side_panel_width"))
+        val FULLSCREEN_ZOOM_TO_FILL = device(booleanPreferencesKey("fullscreen_zoom_to_fill"))
         val FRAME_STEP_BUTTONS_ENABLED = device(booleanPreferencesKey("frame_step_buttons_enabled"))
 
         // Mini Player Customizations
@@ -2429,6 +2430,17 @@ class PlayerPreferences(
     suspend fun setFullscreenSidePanelWidth(width: FullscreenSidePanelWidth) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.FULLSCREEN_SIDE_PANEL_WIDTH] = width.name
+        }
+    }
+
+    val fullscreenZoomToFill: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.FULLSCREEN_ZOOM_TO_FILL] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setFullscreenZoomToFill(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.FULLSCREEN_ZOOM_TO_FILL] = enabled
         }
     }
 

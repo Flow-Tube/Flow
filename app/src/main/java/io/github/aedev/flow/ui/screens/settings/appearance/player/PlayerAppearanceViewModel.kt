@@ -54,6 +54,7 @@ class PlayerAppearanceViewModel
         val paidPromotionLabel = preferences.paidPromotionLabel.asState(false)
         val gestureOverlay = preferences.gestureOverlayStyle.asState(GestureOverlayStyle.CIRCULAR)
         val fullscreenSidePanelWidth = preferences.fullscreenSidePanelWidth.asState(FullscreenSidePanelWidth.DEFAULT)
+        val fullscreenZoomToFill = preferences.fullscreenZoomToFill.asState(false)
         val shortsUiMode = preferences.shortsPlayerUiMode.asState(ShortsPlayerUiMode.DEFAULT)
         val miniPlayerScale = preferences.miniPlayerScale.asState(MiniPlayerSize.NORMAL.scale)
         val miniPlayerSkip = preferences.miniPlayerShowSkipControls.asState(false)
@@ -116,6 +117,8 @@ class PlayerAppearanceViewModel
         fun setGestureOverlay(value: GestureOverlayStyle) = write { preferences.setGestureOverlayStyle(value) }
 
         fun setFullscreenSidePanelWidth(value: FullscreenSidePanelWidth) = write { preferences.setFullscreenSidePanelWidth(value) }
+
+        fun setFullscreenZoomToFill(value: Boolean) = write { preferences.setFullscreenZoomToFill(value) }
 
         fun setShortsUiMode(value: ShortsPlayerUiMode) = write { preferences.setShortsPlayerUiMode(value) }
 

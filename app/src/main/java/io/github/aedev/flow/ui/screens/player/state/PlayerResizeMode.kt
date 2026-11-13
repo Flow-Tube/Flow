@@ -12,14 +12,25 @@ internal object PlayerResizeMode {
 
 /**
  * The resize mode the surface draws with. Only fullscreen takes the button's choice ([override]);
- * the page player and the 360 view always fit.
+ * the page player and the 360 view always fit. With no choice made, [zoomToFill] zooms a video
+ * that faces the same way as the fullscreen layout, where the crop is only the bars' worth.
  */
 internal fun effectiveResizeMode(
     isFullscreen: Boolean,
     spherical: Boolean,
     override: Int?,
+    zoomToFill: Boolean,
+    videoAspectRatio: Float,
+    portraitLayout: Boolean,
 ): Int =
     when {
         !isFullscreen || spherical -> PlayerResizeMode.FIT
-        else -> override ?: PlayerResizeMode.FIT
+        override != null -> override
+        zoomToFill && videoFacesLayout(videoAspectRatio, portraitLayout) -> PlayerResizeMode.ZOOM
+        else -> PlayerResizeMode.FIT
     }
+
+internal fun videoFacesLayout(
+    videoAspectRatio: Float,
+    portraitLayout: Boolean,
+): Boolean = if (portraitLayout) videoAspectRatio < 1f else videoAspectRatio > 1f

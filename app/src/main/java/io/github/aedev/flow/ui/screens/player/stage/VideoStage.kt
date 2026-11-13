@@ -71,7 +71,8 @@ internal fun VideoStage(
     val scope = session.scope
     val activity = session.activity
     val audioSystemInfo = session.audioSystemInfo
-    val isLandscapeWindow = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val stageConfiguration = LocalConfiguration.current
+    val isLandscapeWindow = stageConfiguration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val playerPreferences = remember(session.context) { PlayerPreferences(session.context) }
     val spherical = playerState.showsSpherical
     val resizeMode =
@@ -79,6 +80,16 @@ internal fun VideoStage(
             isFullscreen = session.isFullscreenShown && !localIsInPipMode,
             spherical = spherical,
             override = screenState.resizeModeOverride,
+            zoomToFill = prefs.fullscreenZoomToFill,
+            videoAspectRatio = videoAspectRatio,
+            portraitLayout =
+                usesPortraitFullscreenLayout(
+                    isFullscreen = session.isFullscreenShown,
+                    isFullscreenPortrait = screenState.isFullscreenPortrait,
+                    videoAspectRatio = videoAspectRatio,
+                    orientationRequestIgnored = session.context.orientationRequestIgnored(stageConfiguration),
+                    windowIsPortrait = stageConfiguration.screenHeightDp > stageConfiguration.screenWidthDp,
+                ),
         )
     val gesturesActive = !isMinimized && !localIsInPipMode && !screenState.isTouchLocked
     val haptics = LocalHapticFeedback.current
