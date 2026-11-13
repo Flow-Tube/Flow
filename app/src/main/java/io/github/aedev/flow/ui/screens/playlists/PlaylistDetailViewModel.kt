@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.local.LikedVideoInfo
 import io.github.aedev.flow.data.local.LikedVideosRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PlaylistRepository
+import io.github.aedev.flow.data.local.PlaylistSwipes
 import io.github.aedev.flow.data.local.WatchLaterCleanup
 import io.github.aedev.flow.data.local.dao.DownloadCollectionSummary
 import io.github.aedev.flow.data.local.entity.DownloadCollectionKind
@@ -98,6 +99,13 @@ class PlaylistDetailViewModel
                     .fromStorageValue(stored)
                     .takeIf { it in PlaylistSortOrder.availableFor(isLocal, isLikes) } ?: PlaylistSortOrder.defaultFor(isLikes)
             }.stateIn(viewModelScope, sharing, PlaylistSortOrder.MANUAL)
+
+        val playlistSwipes: StateFlow<PlaylistSwipes> =
+            playerPreferences.playlistSwipeActions.stateIn(
+                viewModelScope,
+                sharing,
+                PlaylistSwipes(),
+            )
 
         val sortedVideos: StateFlow<List<Video>> =
             combine(_uiState.map { it.videos }, sortOrder) { videos, order ->

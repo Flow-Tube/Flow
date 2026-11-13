@@ -72,6 +72,7 @@ fun PlaylistDetailScreen(
     val downloadBatch by viewModel.downloadBatch.collectAsStateWithLifecycle()
     val downloadedCollection by viewModel.downloadedCollection.collectAsStateWithLifecycle()
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+    val swipes by viewModel.playlistSwipes.collectAsStateWithLifecycle()
     val mergeTargets by viewModel.userCreatedPlaylists.collectAsStateWithLifecycle()
     val quickActions = sharedQuickActionsViewModel()
     val context = LocalContext.current
@@ -265,6 +266,8 @@ fun PlaylistDetailScreen(
                                     isWatchLater = uiState.isWatchLater,
                                     isLikes = uiState.isLikes,
                                     searchQuery = searchQuery.orEmpty(),
+                                    swipes = swipes,
+                                    swipeEnabled = !selectionMode && !reorderState.isAnyItemDragging,
                                 ),
                             isLoadingMore = uiState.isLoadingMore,
                             listState = listState,
