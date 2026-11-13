@@ -376,7 +376,7 @@ class MainActivity : ComponentActivity() {
         ) {
             return true
         }
-        return super.onKeyDown(keyCode, event)
+        return hardwareKeyboard.onUnhandledKeyDown(event, window::superDispatchKeyEvent) || super.onKeyDown(keyCode, event)
     }
 
     override fun onProvideKeyboardShortcuts(

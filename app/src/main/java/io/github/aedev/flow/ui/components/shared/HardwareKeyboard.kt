@@ -19,6 +19,38 @@ class HardwareKeyboardState {
     var inUse by mutableStateOf(false)
         private set
 
+    private val shortcutTargets = ArrayList<() -> Boolean>()
+    private var redispatching = false
+
+    /** Adds a player's request for its shortcut focus; the newest one wins. Returns its removal. */
+    internal fun addShortcutTarget(requestFocus: () -> Boolean): () -> Unit {
+        shortcutTargets += requestFocus
+        return { shortcutTargets.remove(requestFocus) }
+    }
+
+    /** Hands focus to the player on screen, so its shortcuts hear the keys again. */
+    fun focusShortcutTarget(): Boolean = shortcutTargets.lastOrNull()?.invoke() == true
+
+    /**
+     * A shortcut key that no focused node took, as after a click cleared focus: the player takes
+     * focus back and the key is sent once more, so the press still counts.
+     */
+    fun onUnhandledKeyDown(
+        event: KeyEvent,
+        redispatch: (KeyEvent) -> Boolean,
+    ): Boolean {
+        if (redispatching || event.repeatCount > 0) return false
+        val otherModifier = event.isCtrlPressed || event.isAltPressed || event.isMetaPressed
+        MediaKeyMapper.map(event.keyCode, event.isShiftPressed, otherModifier) ?: return false
+        if (!focusShortcutTarget()) return false
+        redispatching = true
+        return try {
+            redispatch(event)
+        } finally {
+            redispatching = false
+        }
+    }
+
     fun onKeyEvent(event: KeyEvent) {
         if (inUse) return
         val device = event.device
