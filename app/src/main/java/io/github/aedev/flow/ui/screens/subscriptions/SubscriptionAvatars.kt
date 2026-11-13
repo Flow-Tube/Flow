@@ -44,8 +44,10 @@ import io.github.aedev.flow.ui.components.shared.ChannelGroupBadge
 import io.github.aedev.flow.ui.components.shared.FlowNewBadge
 import io.github.aedev.flow.ui.components.shared.flowArtistShape
 import io.github.aedev.flow.ui.components.shared.focusLift
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.titleMarquee
 import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
+import io.github.aedev.flow.ui.components.shared.toOrganizeTarget
 
 private val AvatarItemWidth = 64.dp
 private val AvatarSize = 56.dp
@@ -93,6 +95,11 @@ internal fun ChannelAvatarItem(
                 onDismiss = { menuOpen = false },
                 onTogglePin = onTogglePin,
                 onOpenChannel = onClick,
+                organize =
+                    rememberChannelOrganizeActions(
+                        target = remember(channel) { channel.takeUnless { it.isMusic }?.toOrganizeTarget() },
+                        isSubscribed = true,
+                    ),
             )
         }
         Box(

@@ -43,6 +43,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
@@ -56,6 +57,7 @@ import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChanne
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorItems
 import io.github.aedev.flow.ui.components.shared.card.rememberWatchProgress
 import io.github.aedev.flow.ui.components.shared.collaboratorRows
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberVideoShareAction
 import io.github.aedev.flow.ui.components.shared.sharedSubscriptionBellViewModel
 import io.github.aedev.flow.utils.youtubeWatchUrl
@@ -289,14 +291,30 @@ private fun channelRow(
                 } else {
                     {
                         val toggle = { viewModel.toggleSubscription(video.channelId, video.channelName, video.channelThumbnailUrl) }
+                        val isSubscribed = video.channelId in subscribedChannelIds
+                        val organize =
+                            rememberChannelOrganizeActions(
+                                target =
+                                    remember(video.channelId, video.channelName, avatars) {
+                                        ChannelOrganizeTarget(
+                                            channelId = video.channelId,
+                                            title = video.channelName,
+                                            avatarUrl = avatars.firstOrNull().orEmpty(),
+                                        )
+                                    },
+                                isSubscribed = isSubscribed,
+                                beforeOpen = onDismiss,
+                            )
                         FlowSubscribeButton(
-                            isSubscribed = video.channelId in subscribedChannelIds,
+                            isSubscribed = isSubscribed,
                             onSubscribeClick = toggle,
                             onUnsubscribeClick = toggle,
                             isNotificationsEnabled = video.channelId in notifyingChannelIds,
                             onNotificationChange = { bell.setNotifications(video.channelId, it) },
                             size = FlowSubscribeButtonSize.Compact,
                             showSubscribedLabel = false,
+                            onAddNote = organize.onAddNote,
+                            onManageGroups = organize.onManageGroups,
                         )
                     }
                 },

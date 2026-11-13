@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -16,11 +17,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
 import io.github.aedev.flow.ui.components.settings.SettingsPage
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeActions
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowQuickSearchChips
 import io.github.aedev.flow.ui.components.shared.FlowSearchField
 import io.github.aedev.flow.ui.components.shared.MediaChannelSubscribeRow
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.utils.formatSubscriberCount
 
 private val LoadingHeight = 160.dp
@@ -75,6 +79,7 @@ private fun SettingsListScope.suggestions(
                     shape = shape,
                     onToggle = { viewModel.toggleSubscription(channel.channelId, channel.name, avatar.orEmpty()) },
                     onNotificationsChange = { viewModel.setNotifications(channel.channelId, it) },
+                    organize = discoverOrganize(channel.channelId, channel.name, avatar, channel.channelId in state.subscribedIds),
                 )
             }
         }
@@ -120,6 +125,7 @@ private fun SettingsListScope.neighbours(
                     shape = shape,
                     onToggle = { viewModel.toggleSubscription(channel.channelId, channel.name, avatar.orEmpty()) },
                     onNotificationsChange = { viewModel.setNotifications(channel.channelId, it) },
+                    organize = discoverOrganize(channel.channelId, channel.name, avatar, channel.channelId in state.subscribedIds),
                 )
             }
         }
@@ -162,6 +168,7 @@ private fun SettingsListScope.results(
                             shape = shape,
                             onToggle = { viewModel.toggleSubscription(channel.id, channel.name, channel.thumbnailUrl) },
                             onNotificationsChange = { viewModel.setNotifications(channel.id, it) },
+                            organize = discoverOrganize(channel.id, channel.name, channel.thumbnailUrl, channel.id in state.subscribedIds),
                         )
                     }
                 }
@@ -169,3 +176,15 @@ private fun SettingsListScope.results(
         }
     }
 }
+
+@Composable
+private fun discoverOrganize(
+    channelId: String,
+    name: String,
+    avatarUrl: String?,
+    isSubscribed: Boolean,
+): ChannelOrganizeActions =
+    rememberChannelOrganizeActions(
+        target = remember(channelId, name, avatarUrl) { ChannelOrganizeTarget(channelId, name, avatarUrl.orEmpty()) },
+        isSubscribed = isSubscribed,
+    )

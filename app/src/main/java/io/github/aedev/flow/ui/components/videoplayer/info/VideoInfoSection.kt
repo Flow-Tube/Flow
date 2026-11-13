@@ -24,10 +24,12 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.CollaboratorsBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChannelDisplayName
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.DateContext
@@ -243,6 +245,18 @@ internal fun VideoInfoSection(
                     onSubscribedClick = { showCollaborators = true },
                 )
             } else if (!isDeviceFile) {
+                val organize =
+                    rememberChannelOrganizeActions(
+                        target =
+                            remember(video.channelId, channelName, channelAvatarUrl) {
+                                ChannelOrganizeTarget(
+                                    channelId = video.channelId,
+                                    title = channelName,
+                                    avatarUrl = channelAvatarUrl.ifBlank { video.channelThumbnailUrl },
+                                )
+                            },
+                        isSubscribed = isSubscribed,
+                    )
                 FlowSubscribeButton(
                     size = FlowSubscribeButtonSize.Compact,
                     isSubscribed = isSubscribed,
@@ -251,6 +265,8 @@ internal fun VideoInfoSection(
                     onUnsubscribeClick = onUnsubscribeClick,
                     onNotificationChange = onNotificationChange,
                     showSubscribedLabel = false,
+                    onAddNote = organize.onAddNote,
+                    onManageGroups = organize.onManageGroups,
                 )
             }
         }

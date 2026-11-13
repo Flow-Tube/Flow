@@ -38,6 +38,7 @@ fun MediaChannelSubscribeRow(
     shape: Shape,
     onToggle: () -> Unit,
     onNotificationsChange: (Boolean) -> Unit,
+    organize: ChannelOrganizeActions? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     SegmentedListItem(
@@ -77,6 +78,8 @@ fun MediaChannelSubscribeRow(
                 isNotificationsEnabled = notifying,
                 onNotificationChange = onNotificationsChange,
                 size = FlowSubscribeButtonSize.Compact,
+                onAddNote = organize?.onAddNote,
+                onManageGroups = organize?.onManageGroups,
             )
         },
     ) {

@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,8 +40,10 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.videoMetadataLine
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
 import io.github.aedev.flow.ui.theme.PlayerScrimPanel
@@ -110,6 +113,14 @@ internal fun ShortsMetadataOverlay(
                 }
 
                 ShortsSubscribeControl.Button -> {
+                    val organize =
+                        rememberChannelOrganizeActions(
+                            target =
+                                remember(short.channelId, short.channelName, short.channelThumbnailUrl) {
+                                    ChannelOrganizeTarget(short.channelId, short.channelName, short.channelThumbnailUrl)
+                                },
+                            isSubscribed = isSubscribed,
+                        )
                     FlowSubscribeButton(
                         isSubscribed = isSubscribed,
                         onSubscribeClick = onSubscribeToggle,
@@ -118,6 +129,8 @@ internal fun ShortsMetadataOverlay(
                         onNotificationChange = onNotificationChange,
                         size = FlowSubscribeButtonSize.Compact,
                         showSubscribedLabel = false,
+                        onAddNote = organize.onAddNote,
+                        onManageGroups = organize.onManageGroups,
                     )
                 }
             }

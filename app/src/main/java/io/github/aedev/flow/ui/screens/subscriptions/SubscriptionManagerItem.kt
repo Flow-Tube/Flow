@@ -28,6 +28,8 @@ import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.ChannelGroupBadge
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
+import io.github.aedev.flow.ui.components.shared.toOrganizeTarget
 
 private val RowPadding = 12.dp
 private val AvatarSize = 48.dp
@@ -50,6 +52,11 @@ internal fun SubscriptionManagerItem(
     dragHandle: (@Composable () -> Unit)? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val organize =
+        rememberChannelOrganizeActions(
+            target = remember(channel) { channel.takeUnless { it.isMusic }?.toOrganizeTarget() },
+            isSubscribed = true,
+        )
     Row(
         modifier =
             modifier
@@ -68,6 +75,7 @@ internal fun SubscriptionManagerItem(
                     isPinned = isPinned,
                     onDismiss = { menuOpen = false },
                     onTogglePin = onTogglePin,
+                    organize = organize,
                 )
             }
             ChannelAvatarImage(
@@ -111,6 +119,8 @@ internal fun SubscriptionManagerItem(
             areShortsExcluded = areShortsExcluded,
             onShortsExcludeChange = onShortsExcludeChange,
             showSubscribedLabel = false,
+            onAddNote = organize.onAddNote,
+            onManageGroups = organize.onManageGroups,
         )
     }
 }
