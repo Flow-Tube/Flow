@@ -275,6 +275,7 @@
     <string name="related_videos">Related Videos</string>
     <string name="quality_auto">Auto</string>
     <string name="quality_auto_template">Auto (%1$dp)</string>
+    <string name="quality_auto_with_resolution">Auto (%1$s)</string>
     <string name="video_marked_not_interested">Video marked as not interested</string>
     <string name="play_mode_suggestion_title">Play Mode Suggestion</string>
     <string name="play_mode_suggestion_body">This video is less than 2 minutes long. Would you like to switch to a specialized player?</string>

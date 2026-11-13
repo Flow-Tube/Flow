@@ -73,16 +73,23 @@ internal fun PlayerSettingsMainPage(
     onSphericalMotionToggle: (Boolean) -> Unit = {},
 ) {
     val playbackRows = if (sponsorBlockSegmentCount > 0) PLAYBACK_ROWS + 1 else PLAYBACK_ROWS
+    val qualityResolution =
+        qualitySummaryResolution(
+            currentQuality = playerState.currentQuality,
+            currentQualityKey = playerState.currentQualityKey,
+            effectiveQuality = playerState.effectiveQuality,
+            options = playerState.availableQualities,
+        )
     FlowSectionHeader(stringResource(R.string.video))
     FlowRowGroup {
         FlowNavRow(
             leadingIcon = Icons.Filled.HighQuality,
             title = stringResource(R.string.quality),
             trailingText =
-                if (playerState.currentQuality == 0) {
-                    stringResource(R.string.quality_auto)
-                } else {
-                    "${playerState.currentQuality}p"
+                when {
+                    qualityResolution == null -> stringResource(R.string.quality_auto)
+                    playerState.currentQuality == 0 -> stringResource(R.string.quality_auto_with_resolution, qualityResolution)
+                    else -> qualityResolution
                 },
             shape = flowRowGroupShape(0, VIDEO_ROWS),
             onClick = { onNavigateToPage(PlayerSettingsPage.Quality) },
