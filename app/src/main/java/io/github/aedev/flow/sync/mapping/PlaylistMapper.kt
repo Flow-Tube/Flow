@@ -29,7 +29,10 @@ object PlaylistMapper {
         items: List<ItemSource>,
         exportHlc: String,
     ): CanonicalPlaylist {
-        val origin = if (!playlist.isUserCreated) CanonicalPlaylist.ORIGIN_YOUTUBE else CanonicalPlaylist.ORIGIN_LOCAL
+        val isWatchLater = playlist.id == WATCH_LATER_ID
+        // Watch Later takes isUserCreated = false from the desktop's copy, but is never a YouTube playlist.
+        val origin =
+            if (!playlist.isUserCreated && !isWatchLater) CanonicalPlaylist.ORIGIN_YOUTUBE else CanonicalPlaylist.ORIGIN_LOCAL
         val syncId =
             when (playlist.id) {
                 WATCH_LATER_ID -> CanonicalPlaylist.RESERVED_WATCH_LATER
@@ -61,7 +64,7 @@ object PlaylistMapper {
             description = playlist.description,
             isMusic = playlist.isMusic,
             isUserCreated = playlist.isUserCreated,
-            isProtected = playlist.id == WATCH_LATER_ID,
+            isProtected = isWatchLater,
             createdAtMs = playlist.createdAt,
             updatedHlc = exportHlc,
             deleted = false,
