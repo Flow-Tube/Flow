@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -70,11 +69,22 @@ fun FlowCommentsList(
             comments.distinctByNonBlankKey(Comment::id)
         }
     val followPosition = timedFollow?.takeIf { timed && it.enabled && it.isSurfaceVisible }?.positionMs
+    val following = followPosition != null
     val anchor = rememberTimedAnchor(uniqueComments, followPosition)
     val pause = remember { TimedFollowPause() }
-    if (followPosition != null) {
-        FollowTimedAnchor(listState, anchor, uniqueComments, pause)
+    if (following) {
+        FollowTimedReveal(listState, anchor, pause)
     }
+    // Read here, the anchor recomposes the list only when the video crosses a comment's time.
+    val reached = if (following) anchor.value else -1
+    val shown =
+        remember(uniqueComments, timed, following, reached) {
+            when {
+                !timed -> uniqueComments
+                following -> revealedTimedComments(uniqueComments, reached)
+                else -> uniqueComments.asReversed()
+            }
+        }
     val seekAndResume: (Long) -> Unit =
         remember(onSeekMs, pause) {
             { positionMs ->
@@ -124,11 +134,10 @@ fun FlowCommentsList(
             if (timed && hasMore) item(key = "load_more_button") { CommentsLoadMoreButton(onLoadMore) }
         } else {
             itemsIndexed(
-                items = uniqueComments,
+                items = shown,
                 key = { _, comment -> "${selectedFilter.name}_${comment.id}" },
             ) { index, comment ->
-                val highlighted by remember(index, anchor) { derivedStateOf { anchor.value == index } }
-                TimedCommentBackdrop(highlighted) {
+                TimedCommentBackdrop(highlighted = following && index == 0) {
                     FlowCommentItem(
                         comment = comment,
                         tint = tint,
@@ -141,6 +150,15 @@ fun FlowCommentsList(
                         onToggleReplies = { threads.toggleReplies(comment.id) },
                         isExpanded = threads.isTextExpanded(comment.id),
                         onExpand = { threads.expandText(comment.id) },
+                    )
+                }
+            }
+            if (following) {
+                item(key = "timed_next") {
+                    TimedCommentsNextRow(
+                        nextSeconds = nextTimedCommentSeconds(uniqueComments, reached),
+                        waiting = shown.isEmpty(),
+                        onSeekMs = seekAndResume,
                     )
                 }
             }

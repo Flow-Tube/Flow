@@ -2,6 +2,7 @@ package io.github.aedev.flow.innertube.models.body
 
 import io.github.aedev.flow.innertube.models.Context
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class NextBody(
@@ -16,4 +17,5 @@ data class NextBody(
     // so its related list and autoplay are empty.
     val contentCheckOk: Boolean = true,
     val racyCheckOk: Boolean = true,
+    val formData: JsonObject? = null,
 )

@@ -116,4 +116,31 @@ class TimedCommentsTest {
         assertThat(timedAnchorIndex(seconds, 9_000L)).isEqualTo(-1)
         assertThat(timedAnchorIndex(emptyList(), 9_000L)).isEqualTo(-1)
     }
+
+    @Test
+    fun `YouTube's own time wins over the first timestamp in the text`() {
+        val placed = comment("c", 0 to 12L).copy(timedAtMs = 74_500L)
+
+        assertThat(placed.timedSeconds()).isEqualTo(74L)
+        assertThat(comment("c", 0 to 12L).timedSeconds()).isEqualTo(12L)
+    }
+
+    @Test
+    fun `following shows only the comments already reached, latest first`() {
+        val latestFirst = listOf(comment("c", 0 to 30L), comment("b", 0 to 20L), comment("a", 0 to 10L))
+
+        assertThat(ids(revealedTimedComments(latestFirst, anchor = -1))).isEmpty()
+        assertThat(ids(revealedTimedComments(latestFirst, anchor = 1))).containsExactly("b", "a").inOrder()
+        assertThat(ids(revealedTimedComments(latestFirst, anchor = 0))).containsExactly("c", "b", "a").inOrder()
+    }
+
+    @Test
+    fun `the next time is the earliest comment not reached yet`() {
+        val latestFirst = listOf(comment("c", 0 to 30L), comment("b", 0 to 20L), comment("a", 0 to 10L))
+
+        assertThat(nextTimedCommentSeconds(latestFirst, anchor = -1)).isEqualTo(10L)
+        assertThat(nextTimedCommentSeconds(latestFirst, anchor = 1)).isEqualTo(30L)
+        assertThat(nextTimedCommentSeconds(latestFirst, anchor = 0)).isNull()
+        assertThat(nextTimedCommentSeconds(emptyList(), anchor = -1)).isNull()
+    }
 }

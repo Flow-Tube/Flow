@@ -26,7 +26,10 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class CommentsPagerTest {
     private val testDispatcher = StandardTestDispatcher()
-    private val repository: YouTubeRepository = mockk(relaxed = true)
+    private val repository: YouTubeRepository =
+        mockk(relaxed = true) {
+            coEvery { getTimedComments(any(), any()) } returns CommentsPageResult.EMPTY
+        }
 
     private fun comment(
         id: String,
@@ -286,6 +289,45 @@ class CommentsPagerTest {
             pager.loadMore("v")
             advanceUntilIdle()
             coVerify(exactly = 20) { repository.getMoreVideoComments("v", any()) }
+            scope.cancel()
+        }
+
+    @Test
+    fun `timed takes YouTube's own list when there is one and reads no pages`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            val orders = listOf(VideoCommentSort("Newest", "newest", false), VideoCommentSort("Top", "top", true))
+            coEvery { repository.getTimedComments("v", "newest") } returns
+                CommentsPageResult(comments = listOf(comment("early"), comment("late"), comment("early")))
+            val pager = pager(scope)
+
+            pager.selectTimed("v", orders)
+            advanceUntilIdle()
+            pager.selectTimed("v", orders)
+            pager.loadMore("v")
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { repository.getTimedComments("v", "newest") }
+            coVerify(exactly = 0) { repository.getMoreVideoComments(any(), any()) }
+            assertThat(pager.comments.value.map { it.id }).containsExactly("early", "late").inOrder()
+            assertThat(pager.hasMore.value).isFalse()
+            assertThat(pager.isLoading.value).isFalse()
+            scope.cancel()
+        }
+
+    @Test
+    fun `timed falls back to reading pages when YouTube has no list`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            coEvery { repository.getMoreVideoComments("v", "newest") } returns CommentsPageResult(comments = listOf(comment("a")))
+            coEvery { repository.getMoreVideoComments("v", "top") } returns CommentsPageResult(comments = listOf(comment("b")))
+            val pager = pager(scope)
+
+            pager.selectTimed("v", listOf(VideoCommentSort("Newest", "newest", false), VideoCommentSort("Top", "top", true)))
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { repository.getTimedComments("v", "newest") }
+            assertThat(pager.comments.value.map { it.id }).containsExactly("a", "b")
             scope.cancel()
         }
 

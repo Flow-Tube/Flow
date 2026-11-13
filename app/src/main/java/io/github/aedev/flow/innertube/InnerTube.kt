@@ -29,6 +29,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -38,6 +41,13 @@ import java.util.*
 import kotlin.io.encoding.Base64
 
 private const val TAG = "InnerTube"
+
+private val TIMED_COMMENTS_FILTER =
+    buildJsonObject {
+        putJsonObject("commentsFilterFormData") {
+            putJsonObject("commentsFilter") { put("sortBy", "SORT_BY_TIMED") }
+        }
+    }
 
 /**
  * Provide access to InnerTube endpoints.
@@ -758,6 +768,34 @@ class InnerTube {
             )
         }
     }
+
+    /**
+     * YouTube's Timed comments for the comment section [continuation] opens. Only the iOS client
+     * accepts the Timed filter without a login; Android answers it with HTTP 400 and the web has no
+     * Timed order at all. The web section's token works here as it is. The comments and their times
+     * are all in the entity mutations; asking for those alone takes about 0.7 s and 18 KB, against
+     * 15 s and 600 KB for the server-drawn rows Flow doesn't read.
+     */
+    suspend fun timedComments(continuation: String) =
+        withRetry {
+            val client = YouTubeClient.IOS
+            httpClient.post("${YouTubeClient.API_URL_YOUTUBE}next") {
+                ytClient(client, apiUrl = YouTubeClient.API_URL_YOUTUBE)
+                header("X-Goog-FieldMask", "frameworkUpdates.entityBatchUpdate.mutations")
+                setBody(
+                    NextBody(
+                        context = client.toContext(locale, visitorData, null),
+                        videoId = null,
+                        playlistId = null,
+                        playlistSetVideoId = null,
+                        index = null,
+                        params = null,
+                        continuation = continuation,
+                        formData = TIMED_COMMENTS_FILTER,
+                    ),
+                )
+            }
+        }
 
     /**
      * A mix's queue on the main site. Sent without the visitor id: with it, YouTube answers with a

@@ -388,6 +388,9 @@
     <string name="no_timed_comments">No comments with a timestamp yet</string>
     <string name="comments_load_more">Load more comments</string>
     <string name="comments_timed_follow">Follow the video</string>
+    <string name="comments_timed_waiting">Comments about what you\'re watching show up here as the video plays. The next one is at %1$s.</string>
+    <string name="comments_timed_next">Next comment at %1$s</string>
+    <string name="comments_timed_end">No more timed comments in this video</string>
     <string name="comment_hearted_by_creator">Hearted by the creator</string>
     <string name="verified">Verified</string>
     <string name="comments_with_count_template">Comments · %1$s</string>

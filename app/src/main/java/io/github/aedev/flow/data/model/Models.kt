@@ -97,6 +97,8 @@ data class Comment(
     val isCreator: Boolean = false,
     val isArtist: Boolean = false,
     val image: CommentImage? = null,
+    /** Where YouTube's Timed list shows this comment, when it came from that list. */
+    val timedAtMs: Long? = null,
 )
 
 /** A GIF or picture attached to a comment, with the size YouTube gives for it. */
