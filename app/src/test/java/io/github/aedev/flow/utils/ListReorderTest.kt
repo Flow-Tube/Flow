@@ -27,6 +27,20 @@ class ListReorderTest {
     }
 
     @Test
+    fun `moves an item to the top or the bottom`() {
+        assertEquals(listOf("c", "a", "b", "d"), list.movedToEdge(2, toStart = true))
+        assertEquals(listOf("a", "c", "d", "b"), list.movedToEdge(1, toStart = false))
+    }
+
+    @Test
+    fun `ignores a move to where the item already is`() {
+        assertNull(list.movedToEdge(0, toStart = true))
+        assertNull(list.movedToEdge(3, toStart = false))
+        assertNull(list.movedToEdge(-1, toStart = true))
+        assertNull(list.movedToEdge(4, toStart = false))
+    }
+
+    @Test
     fun `holds while the database still has the old order`() {
         assertTrue(holdsPendingOrder(saved = list, pending = listOf("b", "a", "c", "d")))
     }
