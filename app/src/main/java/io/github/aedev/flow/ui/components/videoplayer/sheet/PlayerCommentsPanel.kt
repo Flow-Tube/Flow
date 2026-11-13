@@ -56,6 +56,7 @@ fun PlayerCommentsPanel(
     timedFollow: CommentsTimedFollow? = null,
     listState: LazyListState = rememberLazyListState(),
     threadState: CommentThreadState? = null,
+    isDisabled: Boolean = false,
 ) {
     val tint = rememberMediaArtworkTint(artworkUrl)
 
@@ -114,6 +115,7 @@ fun PlayerCommentsPanel(
             tint = tint,
             timedFollow = timedFollow,
             threadState = threadState,
+            isDisabled = isDisabled,
             modifier = Modifier.fillMaxWidth().weight(1f),
         )
     }

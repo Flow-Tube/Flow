@@ -370,7 +370,7 @@ class VideoPlayerViewModelFetchCountsTest {
             viewModel.loadComments("vid_other")
             advanceUntilIdle()
 
-            coVerify(exactly = 0) { harness.repository.getComments(any()) }
+            coVerify(exactly = 0) { harness.repository.getVideoComments(any(), any()) }
             assertThat(viewModel.isLoadingComments.value).isFalse()
         }
 

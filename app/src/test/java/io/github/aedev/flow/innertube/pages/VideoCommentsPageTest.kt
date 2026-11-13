@@ -61,7 +61,7 @@ class VideoCommentsPageTest {
                 """.trimIndent(),
             )
 
-        assertEquals("comments-token", response.videoCommentsContinuation())
+        assertEquals(VideoCommentsSection.Open("comments-token"), response.videoCommentsSection())
     }
 
     @Test
@@ -82,7 +82,54 @@ class VideoCommentsPageTest {
                 """.trimIndent(),
             )
 
-        assertNull(response.videoCommentsContinuation())
+        assertNull(response.videoCommentsSection())
+    }
+
+    @Test
+    fun `a comment section holding a message instead of a continuation means comments are turned off`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {
+                  "contents": {"twoColumnWatchNextResults": {"results": {"results": {"contents": [
+                    {"videoPrimaryInfoRenderer": {}},
+                    {"itemSectionRenderer": {
+                      "sectionIdentifier": "comment-item-section",
+                      "contents": [{"messageRenderer": {"text": {"runs": [
+                        {"text": "Kommentare sind deaktiviert. "},
+                        {"text": "Weitere Informationen"}
+                      ]}}}]
+                    }}
+                  ]}}}}
+                }
+                """.trimIndent(),
+            )
+
+        assertEquals(VideoCommentsSection.TurnedOff, response.videoCommentsSection())
+    }
+
+    @Test
+    fun `a watch response with no comment section has no section state`() {
+        val response =
+            Json.parseToJsonElement(
+                """{"contents": {"twoColumnWatchNextResults": {"results": {"results": {"contents": [{"videoPrimaryInfoRenderer": {}}]}}}}}""",
+            )
+
+        assertNull(response.videoCommentsSection())
+    }
+
+    @Test
+    fun `an empty comment section is neither open nor turned off`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {"contents": {"twoColumnWatchNextResults": {"results": {"results": {"contents": [
+                  {"itemSectionRenderer": {"sectionIdentifier": "comment-item-section", "contents": []}}
+                ]}}}}}
+                """.trimIndent(),
+            )
+
+        assertNull(response.videoCommentsSection())
     }
 
     @Test

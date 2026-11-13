@@ -116,6 +116,7 @@ fun ShortsScreen(
     val isLoadingMoreComments by viewModel.isLoadingMoreComments.collectAsState()
     val hasMoreComments by viewModel.hasMoreComments.collectAsState()
     val commentTotalText by viewModel.commentTotalText.collectAsState()
+    val commentsDisabled by viewModel.commentsDisabled.collectAsState()
     val visibleComments =
         remember(comments, commentSortFilter) {
             applyVideoCommentFilters(comments, commentSortFilter)
@@ -275,6 +276,7 @@ fun ShortsScreen(
                 onSheetProgressChange = { progress -> sheetInsets.follow(sheetExpandedHeightPx * progress) },
                 dismissOnOutsideTap = true,
                 onDismiss = { showCommentsSheet = false },
+                isDisabled = commentsDisabled,
             )
         }
 

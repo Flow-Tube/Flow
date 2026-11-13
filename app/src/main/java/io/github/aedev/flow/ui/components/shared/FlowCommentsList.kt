@@ -56,6 +56,7 @@ fun FlowCommentsList(
     tint: MediaArtworkTint? = null,
     timedFollow: CommentsTimedFollow? = null,
     threadState: CommentThreadState? = null,
+    isDisabled: Boolean = false,
 ) {
     val threads = threadState ?: rememberCommentThreadState(selectedFilter)
     val latestOnLoadMore by rememberUpdatedState(onLoadMore)
@@ -109,7 +110,13 @@ fun FlowCommentsList(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        stringResource(if (timed) R.string.no_timed_comments else R.string.no_comments_yet),
+                        stringResource(
+                            when {
+                                isDisabled -> R.string.comments_turned_off
+                                timed -> R.string.no_timed_comments
+                                else -> R.string.no_comments_yet
+                            },
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

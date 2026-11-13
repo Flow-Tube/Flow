@@ -218,6 +218,7 @@ internal fun VideoInfoContent(
             authorAvatar = if (showCommentsPreview) commentsUiState.comments.firstOrNull()?.authorThumbnail else null,
             totalText = commentsUiState.totalText,
             showPreviewText = showCommentsPreview,
+            isDisabled = commentsUiState.isDisabled,
             onClick = { screenState.open(PlayerSheet.Comments()) },
         )
     }

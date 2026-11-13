@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CommentsDisabled
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +21,9 @@ import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.utils.formatRichText
 
+private const val DISABLED_CONTENT_ALPHA = 0.38f
+private val DisabledIconSize = 18.dp
+
 @Composable
 internal fun CommentsPreview(
     latestComment: String?,
@@ -26,9 +31,12 @@ internal fun CommentsPreview(
     onClick: () -> Unit,
     totalText: String? = null,
     showPreviewText: Boolean = true,
+    isDisabled: Boolean = false,
 ) {
+    val disabledContent = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA)
     Surface(
         onClick = onClick,
+        enabled = !isDisabled,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier =
@@ -40,18 +48,34 @@ internal fun CommentsPreview(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text =
-                        if (totalText.isNullOrBlank()) {
+                        if (isDisabled || totalText.isNullOrBlank()) {
                             stringResource(R.string.comments)
                         } else {
                             stringResource(R.string.comments_with_count_template, totalText)
                         },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (isDisabled) disabledContent else MaterialTheme.colorScheme.onSurface,
                 )
             }
 
-            if (showPreviewText && !latestComment.isNullOrBlank()) {
+            if (isDisabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.CommentsDisabled,
+                        contentDescription = null,
+                        tint = disabledContent,
+                        modifier = Modifier.size(DisabledIconSize),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.comments_turned_off),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = disabledContent,
+                    )
+                }
+            } else if (showPreviewText && !latestComment.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
