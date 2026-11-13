@@ -24,8 +24,11 @@ import io.github.aedev.flow.ui.components.library.PlaylistVideoRow
 import io.github.aedev.flow.ui.components.library.libraryListThumbnailWidth
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
-import io.github.aedev.flow.ui.components.shared.ReorderableLazyListState
 import io.github.aedev.flow.ui.components.shared.animateMediaListItem
+import io.github.aedev.flow.ui.components.shared.reorderHandleDrag
+import io.github.aedev.flow.ui.components.shared.reorderLift
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyListState
 
 /** How the list lets the viewer act on its videos. */
 internal class PlaylistListMode(
@@ -39,10 +42,7 @@ internal class PlaylistListMode(
     val searchQuery: String = "",
 )
 
-/**
- * The playlist's videos under an optional [header]. Positions in [reorderState] count the header
- * as item zero, so the list and the reorder state must agree on whether it is there.
- */
+/** The playlist's videos under an optional [header], which stays put while videos are dragged. */
 @Composable
 internal fun PlaylistDetailList(
     videos: List<Video>,
@@ -97,22 +97,28 @@ internal fun PlaylistDetailList(
                 }
             }
             itemsIndexed(items = videos, key = { _, video -> video.id }, contentType = { _, _ -> "playlist-video" }) { index, video ->
-                PlaylistVideoRow(
-                    modifier = if (mode.canReorder) Modifier else animateMediaListItem(),
-                    video = video,
-                    isSelected = video.id in mode.selectedIds,
-                    inSelectionMode = mode.selectionMode,
-                    canModify = mode.canModify,
-                    reorderModifier = if (mode.canReorder) reorderState.itemModifier(index) else Modifier,
-                    dragHandleModifier = if (mode.canReorder && !mode.selectionMode) reorderState.handleModifier(index) else Modifier,
-                    showDragHandle = mode.canReorder,
-                    showAddedDate = mode.showAddedDate,
-                    isWatchLater = mode.isWatchLater,
-                    isLikes = mode.isLikes,
-                    onRemove = { onRemove(video) },
-                    onClick = { onVideoClick(index, video) },
-                    thumbnailWidth = thumbnailWidth,
-                )
+                ReorderableItem(
+                    state = reorderState,
+                    key = video.id,
+                    enabled = mode.canReorder,
+                    animateItemModifier = if (mode.canReorder) Modifier.animateItem() else animateMediaListItem(),
+                ) { isDragging ->
+                    PlaylistVideoRow(
+                        modifier = Modifier.reorderLift(isDragging),
+                        video = video,
+                        isSelected = video.id in mode.selectedIds,
+                        inSelectionMode = mode.selectionMode,
+                        canModify = mode.canModify,
+                        dragHandleModifier = reorderHandleDrag(enabled = mode.canReorder && !mode.selectionMode),
+                        showDragHandle = mode.canReorder,
+                        showAddedDate = mode.showAddedDate,
+                        isWatchLater = mode.isWatchLater,
+                        isLikes = mode.isLikes,
+                        onRemove = { onRemove(video) },
+                        onClick = { onVideoClick(index, video) },
+                        thumbnailWidth = thumbnailWidth,
+                    )
+                }
             }
             if (isLoadingMore) {
                 item(key = "playlist-loading-more", contentType = "loading") {

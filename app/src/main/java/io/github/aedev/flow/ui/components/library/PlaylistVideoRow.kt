@@ -29,7 +29,6 @@ internal fun PlaylistVideoRow(
     isSelected: Boolean,
     inSelectionMode: Boolean,
     canModify: Boolean,
-    reorderModifier: Modifier,
     dragHandleModifier: Modifier,
     showDragHandle: Boolean,
     showAddedDate: Boolean,
@@ -44,7 +43,7 @@ internal fun PlaylistVideoRow(
 
     MediaRow(
         title = video.title,
-        modifier = modifier.then(reorderModifier),
+        modifier = modifier,
         subtitle = video.channelName,
         supporting = video.playlistMetadataLine(showAddedDate, isLikes),
         supportingColor =

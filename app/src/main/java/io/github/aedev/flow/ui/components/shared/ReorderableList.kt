@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
 fun ReorderHandle(
@@ -66,6 +67,35 @@ fun ReorderHandle(
         )
     }
 }
+
+/**
+ * The long-press drag for a [ReorderHandle] inside a row that has its own long press. The handle
+ * claims the press, so the row's menu doesn't open as the drag starts.
+ */
+@Composable
+fun ReorderableCollectionItemScope.reorderHandleDrag(enabled: Boolean = true): Modifier {
+    if (!enabled) return Modifier
+    val haptics = LocalHapticFeedback.current
+    return Modifier
+        .longPressDraggableHandle(
+            onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) },
+            onDragStopped = { haptics.performHapticFeedback(HapticFeedbackType.GestureEnd) },
+        ).pointerInput(Unit) {
+            awaitEachGesture { awaitFirstDown(requireUnconsumed = false).consume() }
+        }
+}
+
+/** Lifts the row being dragged above its neighbours. */
+fun Modifier.reorderLift(isDragging: Boolean): Modifier =
+    graphicsLayer {
+        val scale = if (isDragging) DRAGGED_SCALE else 1f
+        scaleX = scale
+        scaleY = scale
+        shadowElevation = if (isDragging) DRAGGED_SHADOW_PX else 0f
+    }
+
+private const val DRAGGED_SCALE = 1.03f
+private const val DRAGGED_SHADOW_PX = 12f
 
 @Stable
 class ReorderableLazyListState internal constructor(
