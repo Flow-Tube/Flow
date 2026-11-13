@@ -26,6 +26,7 @@ import io.github.aedev.flow.data.profile.SlicePart
 import io.github.aedev.flow.data.profile.seedFor
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.notification.AutoBackupWorker
 import io.github.aedev.flow.platform.AppIconEntryPoint
 import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
 import io.github.aedev.flow.util.AppIcons
@@ -138,6 +139,11 @@ private const val MASTER_RECAP_ENTRY = "recap_stats.json"
 private const val MASTER_FAVOURITE_ARTISTS_ENTRY = "favourite_artists.json"
 
 internal const val NO_LIKES = "no_likes"
+
+/** Settings other stores restore themselves, kept out of the player store's restore of the same flat backup. */
+private val SETTINGS_OWNED_ELSEWHERE: Set<String> =
+    LocalDataManager.BACKED_UP_NAMES + SearchHistoryRepository.SETTING_NAMES + AppFontPreferences.SETTING_NAMES
+
 private const val LIKES_LEARNING_WINDOW_DAYS = 365L
 private const val MAX_LEARNED_LIKES = 500
 
@@ -221,7 +227,7 @@ class BackupRepository(
             ints = playerSettings.ints + localSettings.ints + searchSettings.ints,
             floats = playerSettings.floats + localSettings.floats + searchSettings.floats,
             longs = playerSettings.longs + localSettings.longs + searchSettings.longs,
-            stringSets = playerSettings.stringSets,
+            stringSets = playerSettings.stringSets + localSettings.stringSets,
         )
     }
 
@@ -1741,10 +1747,11 @@ class BackupRepository(
         backupData.settings?.let { backedUp ->
             backedUp.strings[EqStateJson.KEY]?.let { equalizer.importJson(it) }
             val settings = backedUp.copy(strings = backedUp.strings - EqStateJson.KEY)
-            playerPreferences.restoreData(settings)
+            playerPreferences.restoreData(settings, ownedElsewhere = SETTINGS_OWNED_ELSEWHERE)
             localDataManager.restoreData(settings)
             searchHistoryRepo.restoreSettings(settings)
             appFontPreferences.restoreSettings(settings)
+            AutoBackupWorker.applySchedule(context)
             val savedIconSuffix = settings.strings["app_icon_suffix"]
             if (!savedIconSuffix.isNullOrEmpty() && AppIcons.ALL_SUFFIXES.contains(savedIconSuffix)) {
                 appIconController.apply(savedIconSuffix)
