@@ -103,7 +103,7 @@ internal fun VideoInfoSection(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(vertical = InfoPadding),
     ) {
         // ============ TITLE SECTION ============
         val context = LocalContext.current
@@ -116,6 +116,7 @@ internal fun VideoInfoSection(
         Column(
             modifier =
                 Modifier
+                    .padding(horizontal = InfoPadding)
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
                     .clickable(onClick = onDescriptionClick),
@@ -188,7 +189,11 @@ internal fun VideoInfoSection(
 
         // ============ CHANNEL SECTION ============
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .padding(horizontal = InfoPadding)
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -275,6 +280,7 @@ internal fun VideoInfoSection(
             onNoteClick = onNoteClick,
             hasNote = hasNote,
             isDeviceFile = isDeviceFile,
+            contentPadding = PaddingValues(horizontal = InfoPadding),
         )
     }
 
@@ -285,3 +291,5 @@ internal fun VideoInfoSection(
         )
     }
 }
+
+private val InfoPadding = 12.dp
