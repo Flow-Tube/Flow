@@ -30,6 +30,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 sealed interface MediaKeyAction {
     data object TogglePlayback : MediaKeyAction
 
+    data object Play : MediaKeyAction
+
+    data object Pause : MediaKeyAction
+
     data object SeekBack : MediaKeyAction
 
     data object SeekForward : MediaKeyAction
@@ -63,8 +67,8 @@ sealed interface MediaKeyAction {
 }
 
 /**
- * The keys Flow Desktop and YouTube use. Keys held with Ctrl, Alt or Meta stay with the system, and
- * the media keys are left to the media session. With [arrowsNavigate] the arrows are left to focus,
+ * The keys Flow Desktop and YouTube use, and the media keys from [MediaButton]. Other keys held
+ * with Ctrl, Alt or Meta stay with the system. With [arrowsNavigate] the arrows are left to focus,
  * as on a TV, where they are the remote's D-pad.
  */
 object MediaKeyMapper {
@@ -77,6 +81,7 @@ object MediaKeyMapper {
         otherModifier: Boolean,
         arrowsNavigate: Boolean = false,
     ): MediaKeyAction? {
+        MediaButton.forKeyCode(keyCode)?.let { return it.toAction() }
         if (otherModifier) return null
         if (arrowsNavigate && keyCode in ARROW_KEYS) return null
         if (shift) {
@@ -102,6 +107,17 @@ object MediaKeyMapper {
             else -> null
         }
     }
+
+    private fun MediaButton.toAction(): MediaKeyAction =
+        when (this) {
+            MediaButton.TOGGLE -> MediaKeyAction.TogglePlayback
+            MediaButton.PLAY -> MediaKeyAction.Play
+            MediaButton.PAUSE -> MediaKeyAction.Pause
+            MediaButton.SEEK_BACK -> MediaKeyAction.SeekBack
+            MediaButton.SEEK_FORWARD -> MediaKeyAction.SeekForward
+            MediaButton.NEXT -> MediaKeyAction.Next
+            MediaButton.PREVIOUS -> MediaKeyAction.Previous
+        }
 }
 
 /**

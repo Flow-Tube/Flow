@@ -30,6 +30,16 @@ internal fun Modifier.musicPlayerKeyboardShortcuts(
                 true
             }
 
+            MediaKeyAction.Play -> {
+                viewModel.play()
+                true
+            }
+
+            MediaKeyAction.Pause -> {
+                viewModel.pause()
+                true
+            }
+
             MediaKeyAction.SeekBack -> {
                 viewModel.seekTo(viewModel.currentPositionMs.value - seekSeconds * 1000L)
                 true
