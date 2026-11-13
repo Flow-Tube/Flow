@@ -224,7 +224,7 @@ fun FlowCommentItem(
             val tree = remember(comment.replies) { buildCommentReplyTree(comment.replies) }
             ReplyThread(
                 nodes = tree,
-                hasMore = comment.repliesPage != null || comment.continuationToken != null,
+                hasMore = comment.continuationToken != null,
                 startPadding = ThreadLineStart,
                 tint = tint,
                 onSeekMs = onSeekMs,

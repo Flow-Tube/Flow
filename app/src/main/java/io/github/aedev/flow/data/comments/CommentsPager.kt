@@ -93,6 +93,9 @@ internal class CommentsPager(
     private val _totalCount = MutableStateFlow<Long?>(null)
     val totalCount: StateFlow<Long?> = _totalCount.asStateFlow()
 
+    private val _isDisabled = MutableStateFlow(false)
+    val isDisabled: StateFlow<Boolean> = _isDisabled.asStateFlow()
+
     private var next: CommentsPageResult = CommentsPageResult.EMPTY
     private var loadJob: Job? = null
     private var prefetchJob: Job? = null
@@ -120,6 +123,7 @@ internal class CommentsPager(
         _sortOptions.value = emptyList()
         _totalText.value = null
         _totalCount.value = null
+        _isDisabled.value = false
     }
 
     fun load(videoId: String) {
@@ -205,6 +209,7 @@ internal class CommentsPager(
                     if (page.sortOptions.isNotEmpty()) _sortOptions.value = page.sortOptions
                     page.totalText?.let { _totalText.value = it }
                     page.totalCount?.let { _totalCount.value = it }
+                    _isDisabled.value = page.disabled
                     prefetchFollowingPages(videoId)
                 } catch (e: CancellationException) {
                     throw e
@@ -227,6 +232,7 @@ internal class CommentsPager(
             _sortOptions.value = emptyList()
             _totalText.value = null
             _totalCount.value = null
+            _isDisabled.value = false
         }
         loadingVideoId = videoId
         activeSortToken = sortToken
@@ -302,24 +308,7 @@ internal class CommentsPager(
     private suspend fun fetchNextPage(
         videoId: String,
         cursor: CommentsPageResult,
-    ): CommentsPageResult? {
-        val continuation = cursor.continuation
-        val legacyPage = cursor.legacyPage
-        return when {
-            continuation != null -> {
-                repository.getMoreVideoComments(videoId, continuation)
-            }
-
-            legacyPage != null -> {
-                val (comments, nextLegacy) = repository.getMoreComments(videoId, legacyPage)
-                CommentsPageResult(comments = comments, legacyPage = nextLegacy)
-            }
-
-            else -> {
-                null
-            }
-        }
-    }
+    ): CommentsPageResult? = cursor.continuation?.let { repository.getMoreVideoComments(videoId, it) }
 
     private suspend fun appendNextPage(videoId: String) {
         val page = fetchNextPage(videoId, next) ?: return
@@ -344,21 +333,12 @@ internal class CommentsPager(
         comment: Comment,
         append: Boolean,
     ) {
-        val continuation = comment.continuationToken
-        val repliesPage = comment.repliesPage
-        if (continuation == null && repliesPage == null) return
+        val continuation = comment.continuationToken ?: return
         if (!repliesInFlight.add(comment.id)) return
         scope.launch {
             try {
-                val (replies, nextContinuation, nextLegacyPage) =
-                    if (continuation != null) {
-                        val page = repository.getVideoCommentReplies(videoId, continuation)
-                        Triple(page.comments, page.continuation, null)
-                    } else {
-                        val url = "https://www.youtube.com/watch?v=$videoId"
-                        val (items, nextPage) = repository.getCommentReplies(url, requireNotNull(repliesPage))
-                        Triple(items, null, nextPage)
-                    }
+                val page = repository.getVideoCommentReplies(videoId, continuation)
+                val replies = page.comments
                 _comments.value =
                     _comments.value.map { current ->
                         if (current.id != comment.id) {
@@ -371,8 +351,7 @@ internal class CommentsPager(
                                     } else {
                                         replies.distinctByNonBlankKey(Comment::id)
                                     },
-                                continuationToken = nextContinuation,
-                                repliesPage = nextLegacyPage,
+                                continuationToken = page.continuation,
                             )
                         }
                     }

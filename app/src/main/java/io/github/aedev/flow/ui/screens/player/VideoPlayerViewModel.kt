@@ -145,6 +145,7 @@ class VideoPlayerViewModel
         val isLoadingMoreComments: StateFlow<Boolean> = comments.isLoadingMore
         val commentSortOptions: StateFlow<List<VideoCommentSort>> = comments.sortOptions
         val commentTotalText: StateFlow<String?> = comments.totalText
+        val commentsDisabled: StateFlow<Boolean> = comments.isDisabled
         val descriptionState: StateFlow<VideoDescriptionPage?> = descriptions.description
         val transcriptState: StateFlow<TranscriptState> = transcripts.state
 

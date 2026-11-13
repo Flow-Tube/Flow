@@ -101,6 +101,7 @@ class ShortsViewModel
         val isLoadingMoreComments: StateFlow<Boolean> = comments.isLoadingMore
         val hasMoreComments: StateFlow<Boolean> = comments.hasMore
         val commentTotalText: StateFlow<String?> = comments.totalText
+        val commentsDisabled: StateFlow<Boolean> = comments.isDisabled
 
         private val savedShortIds = MutableStateFlow<Set<String>>(emptySet())
 

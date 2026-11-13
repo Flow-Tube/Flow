@@ -384,6 +384,7 @@
     <string name="verified">Verified</string>
     <string name="comments_with_count_template">Comments · %1$s</string>
     <string name="no_comments_yet">No comments yet</string>
+    <string name="comments_turned_off">Comments are turned off</string>
     <string name="add_comment_placeholder">Add a comment...</string>
     <string name="comment_edited">edited</string>
     <string name="comment_time_edited_template">%1$s (%2$s)</string>

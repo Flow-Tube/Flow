@@ -17,7 +17,7 @@ import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 
 /**
  * Everything the three comment surfaces read: the loaded list, its paging flags, the section's own
- * total, and the orders it offers.
+ * total, the orders it offers, and whether the uploader turned comments off.
  *
  * Collected once in the host so the bottom sheet, the fullscreen drawer and the supporting pane all
  * show the same page rather than each collecting their own.
@@ -30,6 +30,7 @@ data class PlayerCommentsUiState(
     val hasMore: Boolean = false,
     val totalText: String? = null,
     val sortOptions: List<VideoCommentSort> = emptyList(),
+    val isDisabled: Boolean = false,
 )
 
 @Composable
@@ -40,7 +41,8 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
     val hasMore by viewModel.hasMoreComments.collectAsStateWithLifecycle()
     val totalText by viewModel.commentTotalText.collectAsStateWithLifecycle()
     val sortOptions by viewModel.commentSortOptions.collectAsStateWithLifecycle()
-    return remember(comments, isLoading, isLoadingMore, hasMore, totalText, sortOptions) {
+    val isDisabled by viewModel.commentsDisabled.collectAsStateWithLifecycle()
+    return remember(comments, isLoading, isLoadingMore, hasMore, totalText, sortOptions, isDisabled) {
         PlayerCommentsUiState(
             comments = comments,
             isLoading = isLoading,
@@ -48,6 +50,7 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
             hasMore = hasMore,
             totalText = totalText,
             sortOptions = sortOptions,
+            isDisabled = isDisabled,
         )
     }
 }

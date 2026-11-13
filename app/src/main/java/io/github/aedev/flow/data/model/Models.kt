@@ -1,7 +1,6 @@
 package io.github.aedev.flow.data.model
 
 import kotlinx.serialization.Serializable
-import org.schabi.newpipe.extractor.Page
 
 @Serializable
 data class VideoCollaborator(
@@ -86,7 +85,6 @@ data class Comment(
     val publishedTime: String,
     val replies: List<Comment> = emptyList(),
     val replyCount: Int = 0,
-    val repliesPage: Page? = null,
     val isPinned: Boolean = false,
     val continuationToken: String? = null,
     val authorChannelId: String = "",

@@ -100,6 +100,7 @@ internal fun PlayerBottomSheetsContainer(
             onDismiss = { screenState.closeSheet() },
             listState = screenState.commentsListState,
             threadState = screenState.commentThreads,
+            isDisabled = commentsUiState.isDisabled,
         )
     }
 

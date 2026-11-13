@@ -70,6 +70,7 @@ import io.github.aedev.flow.innertube.pages.SearchSummaryPage
 import io.github.aedev.flow.innertube.pages.TimedLyricLine
 import io.github.aedev.flow.innertube.pages.VideoCommentsPage
 import io.github.aedev.flow.innertube.pages.VideoCommentsPanelHeader
+import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.VideoPlaylistPage
 import io.github.aedev.flow.innertube.pages.channel.ChannelAbout
@@ -119,8 +120,8 @@ import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
 import io.github.aedev.flow.innertube.pages.toVideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.toVideoPlaylistPage
-import io.github.aedev.flow.innertube.pages.videoCommentsContinuation
 import io.github.aedev.flow.innertube.pages.videoCommentsPanelHeader
+import io.github.aedev.flow.innertube.pages.videoCommentsSection
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.avatarImageIdentityKey
 import io.github.aedev.flow.utils.relativedate.RelativeUploadDateParser
@@ -2457,8 +2458,8 @@ object YouTube {
         videoId: String,
     ): VideoDescriptionPage = watchNext.toVideoDescriptionPage(videoId)
 
-    /** The continuation that opens [videoId]'s comment section, from an already-fetched watch response. */
-    fun commentsContinuation(watchNext: JsonElement): String? = watchNext.videoCommentsContinuation()
+    /** The comment section of an already-fetched watch response: its continuation, or that comments are off. */
+    fun commentsSection(watchNext: JsonElement): VideoCommentsSection? = watchNext.videoCommentsSection()
 
     /** The sort menu and count in [watchNext]'s comments panel, from an already-fetched watch response. */
     fun commentsPanelHeader(watchNext: JsonElement): VideoCommentsPanelHeader? = watchNext.videoCommentsPanelHeader()

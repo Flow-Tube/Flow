@@ -340,6 +340,7 @@ internal fun PlayerCommentsPanelHost(
         modifier = modifier,
         listState = screenState.commentsListState,
         threadState = screenState.commentThreads,
+        isDisabled = commentsUiState.isDisabled,
     )
 }
 
