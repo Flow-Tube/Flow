@@ -25,7 +25,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -47,13 +49,15 @@ import io.github.aedev.flow.ui.components.shared.FlowSelectionToolbar
 import io.github.aedev.flow.ui.components.shared.FlowSidePanes
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.rememberFlowPaneState
-import io.github.aedev.flow.ui.components.shared.rememberReorderableLazyListState
 import io.github.aedev.flow.ui.components.shared.rememberShareLinksWithoutText
 import io.github.aedev.flow.utils.PLAYLIST_FILE_MIME_TYPE
 import io.github.aedev.flow.utils.filterBySearch
+import io.github.aedev.flow.utils.holdsPendingOrder
+import io.github.aedev.flow.utils.movedByKey
 import io.github.aedev.flow.utils.sharePlaylist
 import io.github.aedev.flow.utils.sharePlaylistFile
 import kotlinx.coroutines.launch
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun PlaylistDetailScreen(
@@ -102,17 +106,31 @@ fun PlaylistDetailScreen(
         selectedIds = emptySet()
     }
 
+    val haptics = LocalHapticFeedback.current
+    var dragMoved by remember { mutableStateOf(false) }
+    var pendingOrder by remember { mutableStateOf<List<String>?>(null) }
     val reorderState =
-        rememberReorderableLazyListState(
-            listState = listState,
-            itemIndexOffset = if (twoPane || isSearching) 0 else 1,
-            onMove = { from, to -> displayVideos = displayVideos.toMutableList().apply { add(to, removeAt(from)) } },
-            onDragStopped = { viewModel.reorderVideos(displayVideos.map { it.id }) },
-        )
+        rememberReorderableLazyListState(listState) { from, to ->
+            displayVideos.movedByKey(from.key, to.key) { it.id }?.let { moved ->
+                displayVideos = moved
+                dragMoved = true
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            }
+        }
 
-    // Held while a drag is in progress, so a sync or metadata update can't replace the list mid-drag.
-    LaunchedEffect(sortedVideos, reorderState.isDragging) {
-        if (reorderState.isDragging) return@LaunchedEffect
+    // Held while a drag is in progress and until the saved order comes back, so neither a sync nor
+    // the order from before the drop can replace the list under the finger.
+    LaunchedEffect(sortedVideos, reorderState.isAnyItemDragging) {
+        if (reorderState.isAnyItemDragging) return@LaunchedEffect
+        if (dragMoved) {
+            dragMoved = false
+            val order = displayVideos.map { it.id }
+            pendingOrder = order
+            viewModel.reorderVideos(order)
+            return@LaunchedEffect
+        }
+        if (sortOrder == PlaylistSortOrder.MANUAL && holdsPendingOrder(sortedVideos.map { it.id }, pendingOrder)) return@LaunchedEffect
+        pendingOrder = null
         displayVideos = sortedVideos
         selectedIds = selectedIds.intersect(sortedVideos.mapTo(HashSet()) { it.id })
         if (sortedVideos.isEmpty()) exitSelection()

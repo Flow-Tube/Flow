@@ -40,9 +40,12 @@ import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
 import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
-import io.github.aedev.flow.ui.components.shared.ReorderableLazyListState
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
+import io.github.aedev.flow.ui.components.shared.reorderHandleDrag
+import io.github.aedev.flow.ui.components.shared.reorderLift
 import io.github.aedev.flow.ui.theme.Dimensions
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyListState
 
 // Room for the selection toolbar to float over the last row.
 private val ListEndPadding = 96.dp
@@ -67,10 +70,7 @@ internal class CollectionFooter(
     val onRetryMore: () -> Unit,
 )
 
-/**
- * The songs of an album or playlist under an optional [header]. Positions in [reorderState] count
- * the header as item zero, so the list and the reorder state must agree on whether it is there.
- */
+/** The songs of an album or playlist under an optional [header], which stays put while songs are dragged. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun MusicCollectionList(
@@ -110,35 +110,43 @@ internal fun MusicCollectionList(
         itemsIndexed(tracks, key = { _, (key, _) -> key }, contentType = { _, _ -> "track" }) { index, (key, track) ->
             val selected = mode.selectedKeys?.contains(key) == true
             val rowColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            MusicTrackItem(
-                track = track,
-                onClick = { onTrackClick(key) },
-                onLongClick = { if (mode.inSelection) onTrackClick(key) else onTrackMenu(track) },
-                modifier =
-                    Modifier
-                        .padding(horizontal = Dimensions.ContentPaddingHorizontal)
-                        .then(if (mode.canReorder) reorderState.itemModifier(index) else Modifier),
-                density = MusicItemDensity.Compact,
-                index = mode.positions[key] ?: (index + 1),
-                shape = flowSegmentShape(index = index, count = tracks.size),
-                containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else rowColor,
-                leadingContent =
-                    when {
-                        mode.inSelection -> {
-                            { Checkbox(checked = selected, onCheckedChange = { onTrackClick(key) }) }
-                        }
+            ReorderableItem(
+                state = reorderState,
+                key = key,
+                enabled = mode.canReorder,
+                animateItemModifier = if (mode.canReorder) Modifier.animateItem() else Modifier,
+            ) { isDragging ->
+                val dragHandle = reorderHandleDrag(enabled = mode.canReorder)
+                MusicTrackItem(
+                    track = track,
+                    onClick = { onTrackClick(key) },
+                    onLongClick = { if (mode.inSelection) onTrackClick(key) else onTrackMenu(track) },
+                    modifier =
+                        Modifier
+                            .padding(horizontal = Dimensions.ContentPaddingHorizontal)
+                            .reorderLift(isDragging),
+                    density = MusicItemDensity.Compact,
+                    index = mode.positions[key] ?: (index + 1),
+                    shape = flowSegmentShape(index = index, count = tracks.size),
+                    containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else rowColor,
+                    leadingContent =
+                        when {
+                            mode.inSelection -> {
+                                { Checkbox(checked = selected, onCheckedChange = { onTrackClick(key) }) }
+                            }
 
-                        mode.canReorder -> {
-                            { ReorderHandle(modifier = reorderState.handleModifier(index)) }
-                        }
+                            mode.canReorder -> {
+                                { ReorderHandle(modifier = dragHandle) }
+                            }
 
-                        else -> {
-                            null
-                        }
-                    },
-                showMenu = false,
-                trailingContent = if (mode.inSelection) null else removeButton(mode.kind, track, onRemove),
-            )
+                            else -> {
+                                null
+                            }
+                        },
+                    showMenu = false,
+                    trailingContent = if (mode.inSelection) null else removeButton(mode.kind, track, onRemove),
+                )
+            }
         }
         if (otherVersions.isNotEmpty()) {
             item(key = "collection-other-versions", contentType = "shelf") {
