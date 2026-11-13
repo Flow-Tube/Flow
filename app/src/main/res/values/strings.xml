@@ -1053,6 +1053,8 @@
     <string name="player_appearance_fullscreen_header">Fullscreen</string>
     <string name="player_adaptive_size_title">Adaptive Player Size</string>
     <string name="player_adaptive_size_subtitle">Grow the player for taller videos. Off keeps it 16:9.</string>
+    <string name="player_fullscreen_zoom_to_fill_title">Zoom to fill in fullscreen</string>
+    <string name="player_fullscreen_zoom_to_fill_subtitle">Crops the edges so there are no black bars</string>
     <string name="player_fullscreen_seekbar_width_title">Fullscreen Seekbar Width</string>
     <string name="player_portrait_seekbar_width_title">Portrait Seekbar Width</string>
     <string name="player_portrait_seekbar_width_spaced">Spaced</string>

@@ -69,6 +69,7 @@ internal class VideoPlayerPreferencesState(
     val deArrowEnabled: Boolean,
     val tiltFullscreenRotationLocked: Boolean,
     val fullscreenSidePanelWidth: FullscreenSidePanelWidth,
+    val fullscreenZoomToFill: Boolean,
 )
 
 @Composable
@@ -120,6 +121,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val tiltFullscreenRotationLocked by playerPreferences.tiltFullscreenRotationLocked.collectAsState(initial = false)
     val fullscreenSidePanelWidth by playerPreferences.fullscreenSidePanelWidth
         .collectAsState(initial = FullscreenSidePanelWidth.DEFAULT)
+    val fullscreenZoomToFill by playerPreferences.fullscreenZoomToFill.collectAsState(initial = false)
 
     return VideoPlayerPreferencesState(
         preferences = playerPreferences,
@@ -165,5 +167,6 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         deArrowEnabled = deArrowEnabled,
         tiltFullscreenRotationLocked = tiltFullscreenRotationLocked,
         fullscreenSidePanelWidth = fullscreenSidePanelWidth,
+        fullscreenZoomToFill = fullscreenZoomToFill,
     )
 }

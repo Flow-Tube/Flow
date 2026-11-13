@@ -131,6 +131,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_adaptive_size_subtitle,
             R.string.settings_section_video_player,
         )
+    val fullscreenZoomToFill =
+        entry(
+            "fullscreen_zoom_to_fill",
+            R.string.player_fullscreen_zoom_to_fill_title,
+            R.string.player_fullscreen_zoom_to_fill_subtitle,
+            R.string.settings_section_video_player,
+        )
     val ambientMode =
         entry(
             "ambient_mode",
@@ -250,6 +257,7 @@ internal object PlayerAppearanceIndex {
             queueSwipeLeft,
             queueSwipeRight,
             adaptiveSize,
+            fullscreenZoomToFill,
             ambientMode,
             ambientGlow,
             immersiveGlow,

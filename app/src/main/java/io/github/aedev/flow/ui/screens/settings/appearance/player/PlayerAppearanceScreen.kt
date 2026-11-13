@@ -211,6 +211,7 @@ internal fun PlayerAppearanceScreen(
         }
         group(key = "player_appearance.video", header = R.string.settings_section_video_player) {
             switch(PlayerAppearanceIndex.adaptiveSize, adaptiveSize, viewModel::setAdaptivePlayerSize)
+            switch(PlayerAppearanceIndex.fullscreenZoomToFill, viewModel.fullscreenZoomToFill, viewModel::setFullscreenZoomToFill)
             switch(PlayerAppearanceIndex.ambientMode, ambientMode, viewModel::setAmbientMode)
             switch(PlayerAppearanceIndex.ambientGlow, ambientGlow, viewModel::setAmbientGlow)
             switch(PlayerAppearanceIndex.immersiveGlow, immersiveGlow, viewModel::setImmersiveGlow, enabled = ambientGlow)

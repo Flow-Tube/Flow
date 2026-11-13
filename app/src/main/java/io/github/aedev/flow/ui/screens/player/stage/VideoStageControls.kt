@@ -34,6 +34,7 @@ internal fun VideoStageControls(
     session: VideoPlayerStageSession,
     expandedSurfacesPlaced: () -> Boolean,
     videoAspectRatio: Float,
+    resizeMode: Int,
     canGoPrevious: Boolean,
     isCommentsAvailable: Boolean,
     canUseFullscreenSidePanel: Boolean,
@@ -109,7 +110,7 @@ internal fun VideoStageControls(
             videoTitle = video.title,
             channelName = video.channelName,
             playbackSpeed = playerState.playbackSpeed,
-            resizeMode = screenState.resizeMode,
+            resizeMode = resizeMode,
             isFullscreen = session.isFullscreenShown,
             isPortraitFullscreen = isPortraitFullscreenLayout,
             isPipSupported =
@@ -169,7 +170,7 @@ internal fun VideoStageControls(
             onFullscreenClick = { screenState.toggleFullscreen() },
             onResizeClick = {
                 screenState.onInteraction()
-                screenState.cycleResizeMode()
+                screenState.cycleResizeMode(resizeMode)
             },
             onPipClick = {
                 PictureInPictureHelper.requestPlayerPipMode(
