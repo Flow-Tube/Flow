@@ -24,6 +24,8 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -34,7 +36,10 @@ import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
 import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
 import io.github.aedev.flow.ui.components.shared.mediaLengthLabel
 import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
-import io.github.aedev.flow.ui.components.shared.rememberReorderableLazyListState
+import io.github.aedev.flow.ui.components.shared.reorderHandleDrag
+import io.github.aedev.flow.ui.components.shared.reorderLift
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private class QueueDisplayItem(
     val key: String,
@@ -73,28 +78,28 @@ fun FlowPlaylistQueueBottomSheet(
         remember(queueVideos, currentQueueIndex) {
             displayItems.getOrNull(currentQueueIndex)
         }
+    val haptics = LocalHapticFeedback.current
     var pendingMoveFrom by remember(queueVideos) { mutableStateOf<Int?>(null) }
-    var pendingMoveTo by remember(queueVideos) { mutableStateOf<Int?>(null) }
+    var draggedKey by remember(queueVideos) { mutableStateOf<String?>(null) }
     val reorderState =
-        rememberReorderableLazyListState(
-            listState = listState,
-            onMove = { fromIndex, toIndex ->
-                if (pendingMoveFrom == null) {
-                    pendingMoveFrom = fromIndex
-                }
-                pendingMoveTo = toIndex
-                displayItems.add(toIndex, displayItems.removeAt(fromIndex))
-            },
-            onDragStopped = {
-                val fromIndex = pendingMoveFrom
-                val toIndex = pendingMoveTo
-                pendingMoveFrom = null
-                pendingMoveTo = null
-                if (fromIndex != null && toIndex != null) {
-                    onMoveVideoAtIndex(fromIndex, toIndex)
-                }
-            },
-        )
+        rememberReorderableLazyListState(listState) { from, to ->
+            val fromIndex = displayItems.indexOfFirst { it.key == from.key }
+            val toIndex = displayItems.indexOfFirst { it.key == to.key }
+            if (fromIndex < 0 || toIndex < 0) return@rememberReorderableLazyListState
+            if (pendingMoveFrom == null) pendingMoveFrom = fromIndex
+            draggedKey = displayItems[fromIndex].key
+            displayItems.add(toIndex, displayItems.removeAt(fromIndex))
+            haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+        }
+
+    LaunchedEffect(reorderState.isAnyItemDragging) {
+        if (reorderState.isAnyItemDragging) return@LaunchedEffect
+        val fromIndex = pendingMoveFrom
+        val toIndex = displayItems.indexOfFirst { it.key == draggedKey }
+        pendingMoveFrom = null
+        draggedKey = null
+        if (fromIndex != null && toIndex >= 0 && fromIndex != toIndex) onMoveVideoAtIndex(fromIndex, toIndex)
+    }
 
     LaunchedEffect(currentQueueIndex) {
         if (currentQueueIndex >= 0 && currentQueueIndex < queueVideos.size) {
@@ -149,32 +154,34 @@ fun FlowPlaylistQueueBottomSheet(
         ) {
             itemsIndexed(displayItems, key = { _, item -> item.key }) { index, item ->
                 val isPlaying = item === currentDisplayItem
-                PlaylistQueueItem(
-                    video = item.video,
-                    isPlaying = isPlaying,
-                    isPlayed = index < currentQueueIndex,
-                    reorderModifier = reorderState.itemModifier(index),
-                    dragHandleModifier = reorderState.handleModifier(index),
-                    onClick = { onPlayVideoAtIndex(index) },
-                    onRemove =
-                        if (isPlaying) {
-                            null
-                        } else {
-                            { onRemoveVideoAtIndex(index) }
-                        },
-                    onMoveUp =
-                        if (index > 0) {
-                            { onMoveVideoAtIndex(index, index - 1) }
-                        } else {
-                            null
-                        },
-                    onMoveDown =
-                        if (index < displayItems.lastIndex) {
-                            { onMoveVideoAtIndex(index, index + 1) }
-                        } else {
-                            null
-                        },
-                )
+                ReorderableItem(reorderState, key = item.key) { isDragging ->
+                    PlaylistQueueItem(
+                        video = item.video,
+                        isPlaying = isPlaying,
+                        isPlayed = index < currentQueueIndex,
+                        reorderModifier = Modifier.reorderLift(isDragging),
+                        dragHandleModifier = reorderHandleDrag(),
+                        onClick = { onPlayVideoAtIndex(index) },
+                        onRemove =
+                            if (isPlaying) {
+                                null
+                            } else {
+                                { onRemoveVideoAtIndex(index) }
+                            },
+                        onMoveUp =
+                            if (index > 0) {
+                                { onMoveVideoAtIndex(index, index - 1) }
+                            } else {
+                                null
+                            },
+                        onMoveDown =
+                            if (index < displayItems.lastIndex) {
+                                { onMoveVideoAtIndex(index, index + 1) }
+                            } else {
+                                null
+                            },
+                    )
+                }
             }
         }
         footer?.invoke()
