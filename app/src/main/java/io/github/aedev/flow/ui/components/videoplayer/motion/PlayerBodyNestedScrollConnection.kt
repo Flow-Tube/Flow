@@ -6,10 +6,12 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.unit.Velocity
 
 /**
- * Lets the body list drive two things while the player is expanded: a tall video shrinking to
- * 16:9 as the list scrolls up, and an overscroll pull at the top that slides the video to the
- * centre of the window for portrait fullscreen. Both fractions are snapshot state read only in the
- * layout or draw phase.
+ * Lets the body list drive three things while the player is expanded: a tall video shrinking to
+ * 16:9 as the list scrolls up, then, when the player is set to scroll away, the video sliding off
+ * the top with the page, and an overscroll pull at the top that slides the video to the centre of
+ * the window for portrait fullscreen. Scrolling back down undoes them in reverse: the list returns
+ * to its top first, then the video slides back, then a tall video grows. All of it is snapshot
+ * state read only in the layout or draw phase.
  */
 internal class PlayerBodyNestedScrollConnection(
     private val expandedVideoHeight: Float,
@@ -24,6 +26,10 @@ internal class PlayerBodyNestedScrollConnection(
     private val portraitFsActivationPx: () -> Float,
     private val expandFraction: () -> Float,
     private val onEnterPortraitFullscreen: () -> (() -> Unit)?,
+    private val scrollAwayEnabled: () -> Boolean = { false },
+    private val scrollAway: () -> Float = { 0f },
+    private val scrollAwayRange: () -> Float = { 0f },
+    private val onScrollAwayChange: (value: Float, range: Float) -> Unit = { _, _ -> },
 ) : NestedScrollConnection {
     private var listScrolledThisGesture = false
     private var pullAccum = 0f
@@ -41,15 +47,26 @@ internal class PlayerBodyNestedScrollConnection(
             onPortraitFsFractionChange((portraitFraction + consumed / travel).coerceIn(0f, 1f))
             return Offset(0f, consumed)
         }
+        if (delta >= 0f) return Offset.Zero
+        var remaining = delta
         val playerDelta = expandedVideoHeight - baseVideoHeight
         val heightFraction = playerHeightFraction()
-        if (delta < 0 && heightFraction > 0f && playerDelta > 1f) {
-            val maxConsumable = heightFraction * playerDelta
-            val consumed = maxOf(delta, -maxConsumable)
+        if (heightFraction > 0f && playerDelta > 1f) {
+            val consumed = maxOf(remaining, -heightFraction * playerDelta)
             onPlayerHeightFractionChange((heightFraction + consumed / playerDelta).coerceIn(0f, 1f))
-            return Offset(0f, consumed)
+            remaining -= consumed
         }
-        return Offset.Zero
+        if (remaining < 0f && scrollAwayEnabled()) {
+            val range = scrollAwayRange()
+            val current = scrollAway()
+            val room = range - current
+            if (room > 0f) {
+                val consumed = minOf(-remaining, room)
+                onScrollAwayChange(current + consumed, range)
+                remaining += consumed
+            }
+        }
+        return Offset(0f, delta - remaining)
     }
 
     override fun onPostScroll(
@@ -59,6 +76,14 @@ internal class PlayerBodyNestedScrollConnection(
     ): Offset {
         if (consumed.y != 0f) listScrolledThisGesture = true
         val delta = available.y
+        val current = scrollAway()
+        if (delta > 0f && current > 0f) {
+            // Bringing the video back is this gesture's job, so the same pull can't run on into fullscreen.
+            listScrolledThisGesture = true
+            val consumable = minOf(delta, current)
+            onScrollAwayChange(current - consumable, scrollAwayRange())
+            return Offset(0f, consumable)
+        }
         val playerDelta = expandedVideoHeight - baseVideoHeight
         val heightFraction = playerHeightFraction()
         if (delta > 0 && heightFraction < 1f && playerDelta > 1f) {

@@ -95,6 +95,33 @@ class PlayerDraggableState(
     internal var portraitFsTravel = 1f
     private var portraitFsJob: Job? = null
 
+    /**
+     * How far the expanded video and its page have scrolled up off the window with the body list, in
+     * px, read in the layout and draw phases only. Zero unless the player is set to scroll away.
+     */
+    var scrollAwayPx by mutableFloatStateOf(0f)
+        private set
+
+    /** The video's height when [scrollAwayPx] last moved: the distance that hides it completely. */
+    private var scrollAwayRangePx = 0f
+
+    private val scrolledAwayState = derivedStateOf { scrollAwayPx > 0f && scrollAwayPx >= scrollAwayRangePx / 2f }
+
+    /** True while more than half of the video has scrolled off the window; flips, never tracks. */
+    val isScrolledAway: Boolean get() = scrolledAwayState.value
+
+    internal fun scrollAwayTo(
+        value: Float,
+        range: Float,
+    ) {
+        scrollAwayRangePx = range
+        scrollAwayPx = value.coerceIn(0f, range.coerceAtLeast(0f))
+    }
+
+    internal fun resetScrollAway() {
+        scrollAwayPx = 0f
+    }
+
     /** True only while no finger is down and nothing on the sheet is still moving. */
     val isSettled: Boolean
         get() =
