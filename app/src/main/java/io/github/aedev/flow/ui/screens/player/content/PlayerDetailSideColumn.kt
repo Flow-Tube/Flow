@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
@@ -30,6 +32,7 @@ import io.github.aedev.flow.ui.screens.player.dialogs.PlayerQueueSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSettingsSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSleepTimerSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerTranscriptSheetHost
+import io.github.aedev.flow.ui.screens.player.state.BindRelatedFocus
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
@@ -238,8 +241,16 @@ internal fun PlayerDetailSideColumn(
                             }
 
                             else -> {
+                                val relatedListState = rememberLazyListState()
+                                BindRelatedFocus(
+                                    focus = screenState.relatedFocus,
+                                    listState = relatedListState,
+                                    firstIndex = if (uiState.isLiveChatAvailable) 1 else 0,
+                                    enabled = !showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty(),
+                                )
                                 LazyColumn(
                                     modifier = paneModifier,
+                                    state = relatedListState,
                                     contentPadding = PaddingValues(bottom = 80.dp),
                                 ) {
                                     if (uiState.isLiveChatAvailable) {
@@ -254,6 +265,7 @@ internal fun PlayerDetailSideColumn(
                                             relatedVideos = uiState.relatedVideos,
                                             onVideoClick = onVideoClick,
                                             cardStyle = relatedCardStyle,
+                                            firstCardModifier = Modifier.focusRequester(screenState.relatedFocus.firstCard),
                                         )
                                     }
                                 }

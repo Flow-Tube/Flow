@@ -42,7 +42,8 @@ internal class TvPlayerInput(
         repeatCount: Int,
     ): Boolean {
         TvPlayerKeyMapper.map(keyCode)?.let {
-            perform(it, repeatCount)
+            // A held Space or play key would flicker between play and pause.
+            if (it != TvPlayerAction.TOGGLE_PLAYBACK || repeatCount == 0) perform(it, repeatCount)
             return true
         }
         val mode = overlayMode()

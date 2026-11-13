@@ -11,6 +11,8 @@ import io.github.aedev.flow.ui.components.videoplayer.subtitle.SubtitleStyle
 // Every property is snapshot state, so composables taking this instance can skip on identity.
 @Stable
 class PlayerScreenState {
+    internal val relatedFocus = PlayerRelatedFocus()
+
     // UI Visibility States
     var showControls by mutableStateOf(true)
     var showStatsForNerds by mutableStateOf(false)

@@ -4992,6 +4992,8 @@
     <string name="keyboard_shortcut_exit_fullscreen">Exit fullscreen</string>
     <string name="keyboard_shortcut_faster">Faster</string>
     <string name="keyboard_shortcut_slower">Slower</string>
+    <string name="keyboard_shortcut_related_videos">Related videos</string>
+    <string name="keyboard_shortcut_back_to_player">Back to the player</string>
     <string name="session_lyric_repeated">%1$s (x%2$d)</string>
     <string name="settings_security_title">Security</string>
     <string name="settings_security_summary">App lock</string>

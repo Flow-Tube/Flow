@@ -42,6 +42,8 @@ import io.github.aedev.flow.player.PipQueueNavigation
 import io.github.aedev.flow.sync2.service.LinkedSyncWorker
 import io.github.aedev.flow.ui.IncomingIntents
 import io.github.aedev.flow.ui.IncomingLinks
+import io.github.aedev.flow.ui.components.shared.HardwareKeyboardState
+import io.github.aedev.flow.ui.components.shared.LocalHardwareKeyboard
 import io.github.aedev.flow.ui.startup.FlowRoot
 import io.github.aedev.flow.ui.startup.SplashController
 import io.github.aedev.flow.ui.startup.ThemeSettings
@@ -61,6 +63,7 @@ private const val PORTRAIT_REEL_ASPECT_RATIO = 9f / 16f
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val links = IncomingLinks()
+    private val hardwareKeyboard = HardwareKeyboardState()
 
     @Inject
     lateinit var originalTitles: OriginalTitleRepository
@@ -204,16 +207,18 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch { dataManager.themeSettings(appFontPreferences).collect { storedTheme.value = it } }
 
         setContent {
-            FlowRoot(
-                storedTheme = storedTheme,
-                links = links,
-                splashController = splashController,
-                originalTitles = originalTitles,
-                deArrow = deArrow,
-                appIconController = appIconController,
-                appLock = appLock,
-                onUiRoot = { cachedAppUiRoot = it },
-            )
+            CompositionLocalProvider(LocalHardwareKeyboard provides hardwareKeyboard) {
+                FlowRoot(
+                    storedTheme = storedTheme,
+                    links = links,
+                    splashController = splashController,
+                    originalTitles = originalTitles,
+                    deArrow = deArrow,
+                    appIconController = appIconController,
+                    appLock = appLock,
+                    onUiRoot = { cachedAppUiRoot = it },
+                )
+            }
         }
     }
 
@@ -354,6 +359,11 @@ class MainActivity : ComponentActivity() {
         PictureInPictureHelper.dismissPopup(this)
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        hardwareKeyboard.onKeyEvent(event)
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onKeyDown(
         keyCode: Int,
         event: KeyEvent,
@@ -366,7 +376,7 @@ class MainActivity : ComponentActivity() {
         ) {
             return true
         }
-        return super.onKeyDown(keyCode, event)
+        return hardwareKeyboard.onUnhandledKeyDown(event, window::superDispatchKeyEvent) || super.onKeyDown(keyCode, event)
     }
 
     override fun onProvideKeyboardShortcuts(
