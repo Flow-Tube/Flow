@@ -7,14 +7,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CropSquare
+import androidx.compose.material.icons.outlined.BorderOuter
+import androidx.compose.material.icons.outlined.CropDin
+import androidx.compose.material.icons.outlined.CropFree
+import androidx.compose.material.icons.outlined.CropPortrait
 import androidx.compose.material.icons.outlined.FilterFrames
 import androidx.compose.material.icons.outlined.FormatAlignCenter
 import androidx.compose.material.icons.outlined.FormatAlignLeft
@@ -67,6 +72,8 @@ internal fun ColumnScope.LyricsShareStyler(
     onAlignChange: (TextAlign) -> Unit,
     frame: LyricsCardFrame,
     onFrameChange: (LyricsCardFrame) -> Unit,
+    aspect: LyricsCardAspect,
+    onAspectChange: (LyricsCardAspect) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -100,6 +107,7 @@ internal fun ColumnScope.LyricsShareStyler(
         }
     val chooserTitle = stringResource(R.string.lyrics_share)
 
+    val cardHeight = aspect.height(LyricsCardWidth)
     Box(
         modifier =
             Modifier
@@ -113,7 +121,7 @@ internal fun ColumnScope.LyricsShareStyler(
                 LyricsFramedCard(
                     frame = frame,
                     backdrop = backdrop,
-                    modifier = Modifier.width(LyricsCardWidth).captureInto(layer),
+                    modifier = Modifier.width(LyricsCardWidth).then(cardHeight?.let { Modifier.height(it) } ?: Modifier).captureInto(layer),
                 ) { shape ->
                     LyricsShareCard(
                         title = title,
@@ -123,7 +131,8 @@ internal fun ColumnScope.LyricsShareStyler(
                         colors = colors,
                         textAlign = align,
                         shape = shape,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = if (cardHeight != null) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
+                        fill = cardHeight != null,
                         cover = cover.takeIf { style == LyricsCardStyle.COLORFUL },
                     )
                 }
@@ -150,7 +159,18 @@ internal fun ColumnScope.LyricsShareStyler(
     FlowConnectedToggleGroup(
         options =
             listOf(
-                FlowToggleOption(LyricsCardFrame.SQUARE, stringResource(R.string.lyrics_share_frame_square), Icons.Outlined.CropSquare),
+                FlowToggleOption(LyricsCardAspect.FIT, stringResource(R.string.lyrics_share_size_fit), Icons.Outlined.CropFree),
+                FlowToggleOption(LyricsCardAspect.SQUARE, stringResource(R.string.lyrics_share_size_square), Icons.Outlined.CropDin),
+                FlowToggleOption(LyricsCardAspect.STORY, stringResource(R.string.lyrics_share_size_story), Icons.Outlined.CropPortrait),
+            ),
+        selected = aspect,
+        onSelected = onAspectChange,
+        modifier = Modifier.padding(start = EdgePadding, end = EdgePadding, top = ControlSpacing),
+    )
+    FlowConnectedToggleGroup(
+        options =
+            listOf(
+                FlowToggleOption(LyricsCardFrame.SQUARE, stringResource(R.string.lyrics_share_frame_square), Icons.Outlined.BorderOuter),
                 FlowToggleOption(
                     LyricsCardFrame.BACKDROP,
                     stringResource(R.string.lyrics_share_frame_backdrop),

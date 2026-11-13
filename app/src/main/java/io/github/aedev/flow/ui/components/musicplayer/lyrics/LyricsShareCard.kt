@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -149,6 +150,7 @@ internal fun LyricsShareCard(
     textAlign: TextAlign,
     shape: Shape,
     modifier: Modifier = Modifier,
+    fill: Boolean = false,
     cover: LyricsCover? = null,
 ) {
     val context = LocalContext.current
@@ -165,7 +167,7 @@ internal fun LyricsShareCard(
         if (cover != null) {
             LyricsCoverLayer(cover = cover, moving = false, running = false, modifier = Modifier.matchParentSize())
         }
-        LyricsShareCardContent(title, artist, artwork, lines, colors, textAlign)
+        LyricsShareCardContent(title, artist, artwork, lines, colors, textAlign, fill)
     }
 }
 
@@ -177,9 +179,10 @@ private fun LyricsShareCardContent(
     lines: List<String>,
     colors: LyricsCardColors,
     textAlign: TextAlign,
+    fill: Boolean,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(CardPadding),
+        modifier = Modifier.fillMaxWidth().then(if (fill) Modifier.fillMaxHeight() else Modifier).padding(CardPadding),
         verticalArrangement = Arrangement.spacedBy(CardSpacing),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(HeaderSpacing)) {
@@ -208,14 +211,19 @@ private fun LyricsShareCardContent(
             }
         }
         HorizontalDivider(color = colors.ink.copy(alpha = DIVIDER_INK))
-        lines.forEach { line ->
-            Text(
-                text = line,
-                modifier = Modifier.fillMaxWidth(),
-                style = lyricsShareLineStyle(MaterialTheme.typography.headlineSmall),
-                color = colors.ink,
-                textAlign = textAlign,
-            )
+        Column(
+            modifier = if (fill) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(CardSpacing, Alignment.CenterVertically),
+        ) {
+            lines.forEach { line ->
+                Text(
+                    text = line,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = lyricsShareLineStyle(MaterialTheme.typography.headlineSmall),
+                    color = colors.ink,
+                    textAlign = textAlign,
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LogoSpacing)) {
             FlowLogo(modifier = Modifier.width(LogoWidth), shapeColor = colors.ink, glyphColor = colors.ground)

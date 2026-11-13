@@ -62,6 +62,7 @@ internal fun LyricsShareSheet(
     var style by remember { mutableStateOf(LyricsCardStyle.ARTWORK) }
     var align by remember { mutableStateOf(initialAlign) }
     var frame by remember { mutableStateOf(LyricsCardFrame.SQUARE) }
+    var aspect by remember { mutableStateOf(LyricsCardAspect.FIT) }
     val styling = customising && selected.isNotEmpty()
     val sheetState = rememberFlowSheetState()
     val scope = rememberCoroutineScope()
@@ -94,6 +95,8 @@ internal fun LyricsShareSheet(
                 onAlignChange = { align = it },
                 frame = frame,
                 onFrameChange = { frame = it },
+                aspect = aspect,
+                onAspectChange = { aspect = it },
             )
         } else {
             LyricsSharePicker(
