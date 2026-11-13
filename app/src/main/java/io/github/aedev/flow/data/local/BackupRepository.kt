@@ -26,6 +26,7 @@ import io.github.aedev.flow.data.profile.SlicePart
 import io.github.aedev.flow.data.profile.seedFor
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.notification.AutoBackupWorker
 import io.github.aedev.flow.platform.AppIconEntryPoint
 import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
 import io.github.aedev.flow.util.AppIcons
@@ -1750,6 +1751,7 @@ class BackupRepository(
             localDataManager.restoreData(settings)
             searchHistoryRepo.restoreSettings(settings)
             appFontPreferences.restoreSettings(settings)
+            AutoBackupWorker.applySchedule(context)
             val savedIconSuffix = settings.strings["app_icon_suffix"]
             if (!savedIconSuffix.isNullOrEmpty() && AppIcons.ALL_SUFFIXES.contains(savedIconSuffix)) {
                 appIconController.apply(savedIconSuffix)
