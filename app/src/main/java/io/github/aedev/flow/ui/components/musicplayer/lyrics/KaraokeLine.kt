@@ -20,8 +20,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
@@ -42,6 +44,7 @@ import kotlinx.coroutines.isActive
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -267,6 +270,54 @@ private fun frontBrush(
 )
 
 /**
+ * A translucent unsung colour can't be drawn glyph by glyph: where glyphs overlap, as Indic letters
+ * do along their headline, the overlap takes the alpha twice and shows as light seams (#1484, #2028).
+ * Such a line draws its unsung text opaque in one layer that carries the alpha instead.
+ */
+internal fun needsUnsungLayer(unsungColor: Color): Boolean = unsungColor.alpha < 1f
+
+private inline fun DrawScope.withAlphaLayer(
+    alpha: Float,
+    overscan: Float,
+    block: DrawScope.() -> Unit,
+) {
+    val canvas = drawContext.canvas.nativeCanvas
+    val saved = canvas.saveLayerAlpha(0f, -overscan, size.width, size.height + overscan, (alpha * 255f).roundToInt())
+    try {
+        block()
+    } finally {
+        canvas.restoreToCount(saved)
+    }
+}
+
+private fun wordFillProgress(
+    geometry: KaraokeGeometry,
+    cell: KaraokeCell,
+    word: KaraokeWord?,
+    position: Long,
+    isCurrent: Boolean,
+): Float =
+    when {
+        !isCurrent -> 0f
+        word == null -> if (position >= (geometry.words.getOrNull(cell.wordBefore)?.endMs ?: Long.MAX_VALUE)) 1f else 0f
+        position < word.startMs -> 0f
+        position >= word.endMs -> 1f
+        else -> (position - word.startMs).toFloat() / (word.endMs - word.startMs).coerceAtLeast(1)
+    }
+
+private fun cellFillProgress(
+    cell: KaraokeCell,
+    progress: Float,
+): Float = ((progress - cell.startFraction) / cell.widthFraction).coerceIn(0f, 1f)
+
+private fun wordLiftPx(
+    word: KaraokeWord?,
+    liftClock: Long,
+    liftPx: Float,
+    lift: Float,
+): Float = if (word == null || liftClock == Long.MIN_VALUE) 0f else liftPx * lift * wordLiftProgress(liftClock - word.startMs)
+
+/**
  * One lyric line sung word by word. Every layer is drawn from a single text layout, so the lit and
  * unlit parts always match: a word fills behind a soft gradient front, lifts a few dp on a spring
  * as it starts and settles, and long held notes glow while they last. Nothing is allocated per
@@ -336,8 +387,12 @@ internal fun KaraokeLine(
         val feather = fontPx * FEATHER_EM
         val liftPx = with(density) { WordLift.toPx() }
         val glowPx = with(density) { GlowRadius.toPx() }
-        val forward = remember(sungColor, unsungColor, feather) { frontBrush(feather, sungColor, unsungColor) }
-        val backward = remember(sungColor, unsungColor, feather) { frontBrush(feather, unsungColor, sungColor) }
+        val layered = needsUnsungLayer(unsungColor)
+        val solidUnsung = unsungColor.copy(alpha = 1f)
+        // Layered, the unsung text is already under the front, so the front fades the sung colour out.
+        val frontEnd = if (layered) sungColor.copy(alpha = 0f) else unsungColor
+        val forward = remember(sungColor, frontEnd, feather) { frontBrush(feather, sungColor, frontEnd) }
+        val backward = remember(sungColor, frontEnd, feather) { frontBrush(feather, frontEnd, sungColor) }
         val glows =
             remember(sungColor, glowPx) {
                 // Only the strength moves. A changing blur radius is what made the glow visibly step.
@@ -361,28 +416,39 @@ internal fun KaraokeLine(
                 }
             if (position != Long.MIN_VALUE) lastSungPosition[0] = position
             val lift = lineLift.value
+            // The lift's spring overshoots, so the clip has to reach past its resting height.
+            val overscan = liftPx * 2f
             if (!isCurrent && lift == 0f) {
-                drawText(layout, color = unsungColor)
+                if (layered) {
+                    withAlphaLayer(unsungColor.alpha, overscan) { drawText(layout, color = solidUnsung) }
+                } else {
+                    drawText(layout, color = unsungColor)
+                }
                 return@Canvas
             }
             // Words keep their lift while an ended line settles back, but their fill turns unsung.
             val liftClock = if (isCurrent) position else lastSungPosition[0]
-            // The lift's spring overshoots, so the clip has to reach past its resting height.
-            val overscan = liftPx * 2f
+            if (layered) {
+                withAlphaLayer(unsungColor.alpha, overscan) {
+                    geometry.cells.forEach { cell ->
+                        val word = geometry.words.getOrNull(cell.word)
+                        val progress = wordFillProgress(geometry, cell, word, position, isCurrent)
+                        if (cellFillProgress(cell, progress) >= 1f) return@forEach
+                        val wordLift = wordLiftPx(word, liftClock, liftPx, lift)
+                        clipRect(left = cell.clipLeft, top = -overscan, right = cell.clipRight, bottom = size.height + overscan) {
+                            translate(top = geometry.rows[cell.row].dy - wordLift) {
+                                drawText(geometry.rows[cell.row].layout, color = solidUnsung)
+                            }
+                        }
+                    }
+                }
+            }
             geometry.cells.forEach { cell ->
                 val row = geometry.rows[cell.row]
                 val word = geometry.words.getOrNull(cell.word)
-                val progress =
-                    when {
-                        !isCurrent -> 0f
-                        word == null -> if (position >= (geometry.words.getOrNull(cell.wordBefore)?.endMs ?: Long.MAX_VALUE)) 1f else 0f
-                        position < word.startMs -> 0f
-                        position >= word.endMs -> 1f
-                        else -> (position - word.startMs).toFloat() / (word.endMs - word.startMs).coerceAtLeast(1)
-                    }
-                val cellProgress = ((progress - cell.startFraction) / cell.widthFraction).coerceIn(0f, 1f)
-                val wordLift =
-                    if (word == null || liftClock == Long.MIN_VALUE) 0f else liftPx * lift * wordLiftProgress(liftClock - word.startMs)
+                val progress = wordFillProgress(geometry, cell, word, position, isCurrent)
+                val cellProgress = cellFillProgress(cell, progress)
+                val wordLift = wordLiftPx(word, liftClock, liftPx, lift)
                 val front =
                     if (cell.rtl) {
                         cell.inkRight - (cell.inkRight - cell.inkLeft) * cellProgress
@@ -408,7 +474,7 @@ internal fun KaraokeLine(
                             }
 
                             cellProgress <= 0f -> {
-                                drawText(row.layout, color = unsungColor)
+                                if (!layered) drawText(row.layout, color = unsungColor)
                             }
 
                             else -> {
