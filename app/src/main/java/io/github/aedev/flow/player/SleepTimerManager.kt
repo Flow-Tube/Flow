@@ -1,17 +1,21 @@
 package io.github.aedev.flow.player
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import io.github.aedev.flow.player.error.PlayerDiagnostics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private const val TAG = "SleepTimer"
 
 /**
  * Shared sleep timer for both music and video playback.
@@ -145,6 +149,9 @@ object SleepTimerManager {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun firePause() {
+        val message = if (closeAppOnExpiry) "sleep timer closed the app" else "sleep timer paused playback"
+        Log.w(TAG, message)
+        PlayerDiagnostics.logWarning(TAG, message)
         if (closeAppOnExpiry) exitCallback?.invoke() else pauseCallback?.invoke()
         cancel()
     }
