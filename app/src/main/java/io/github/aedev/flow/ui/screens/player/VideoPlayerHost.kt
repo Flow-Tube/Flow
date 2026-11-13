@@ -132,6 +132,7 @@ fun VideoPlayerHost(
             adaptivePlayerSizeEnabled = prefs.adaptivePlayerSizeEnabled,
             videoAspectRatio = videoAspectRatio,
             sheetsHostedBesideVideo = playerLayoutMode == PlayerLayoutMode.WIDE,
+            coversPlayer = playerSheetState.isScrolledAway,
         )
     val effectiveVideoAspectRatio = mediaSheetGeometry.effectiveVideoAspectRatio
     var expandedPlayerBottom by remember { mutableStateOf(0.dp) }
