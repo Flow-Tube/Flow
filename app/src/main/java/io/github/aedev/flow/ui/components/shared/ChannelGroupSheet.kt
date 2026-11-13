@@ -1,4 +1,4 @@
-package io.github.aedev.flow.ui.screens.channel
+package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
@@ -7,11 +7,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.SubscriptionGroup
-import io.github.aedev.flow.ui.components.shared.CollectionSheetEntry
-import io.github.aedev.flow.ui.components.shared.SaveToCollectionSheet
 
 @Composable
-internal fun ChannelGroupSheet(
+fun ChannelGroupSheet(
     groups: List<SubscriptionGroup>,
     channelId: String,
     onToggle: (String, Boolean) -> Unit,
