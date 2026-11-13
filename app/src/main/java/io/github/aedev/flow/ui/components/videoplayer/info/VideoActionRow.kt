@@ -74,9 +74,11 @@ internal fun VideoActionRow(
     onNoteClick: (() -> Unit)? = null,
     hasNote: Boolean = false,
     isDeviceFile: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(ActionSpacing),
+        contentPadding = contentPadding,
         modifier = Modifier.fillMaxWidth(),
     ) {
         if (isDeviceFile) {
