@@ -6,6 +6,7 @@ import io.github.aedev.flow.innertube.models.Artist
 import io.github.aedev.flow.innertube.models.ArtistItem
 import io.github.aedev.flow.innertube.models.BrowseEndpoint
 import io.github.aedev.flow.innertube.models.MusicCarouselShelfRenderer
+import io.github.aedev.flow.innertube.models.MusicMultiRowListItemRenderer
 import io.github.aedev.flow.innertube.models.MusicTwoRowItemRenderer
 import io.github.aedev.flow.innertube.models.PlaylistItem
 import io.github.aedev.flow.innertube.models.SectionListRenderer
@@ -49,12 +50,13 @@ data class HomePage(
     ) {
         companion object {
             /**
-             * [includeSongRows] keeps a shelf's list rows, which is how a chip's Quick picks arrives. The
-             * normal home composes its own Quick picks, so it asks only for the two-row cards.
+             * A [chipPage] keeps a shelf's list rows, which is how a chip's Quick picks arrives, and its
+             * podcast episodes and shows. The normal home composes its own Quick picks, so it asks only
+             * for the two-row cards.
              */
             fun fromMusicCarouselShelfRenderer(
                 renderer: MusicCarouselShelfRenderer,
-                includeSongRows: Boolean = false,
+                chipPage: Boolean = false,
             ): Section? {
                 return Section(
                     title =
@@ -81,13 +83,77 @@ data class HomePage(
                     items =
                         renderer.contents
                             .mapNotNull { content ->
-                                content.musicTwoRowItemRenderer?.let(::fromMusicTwoRowItemRenderer)
-                                    ?: content.musicResponsiveListItemRenderer
-                                        ?.takeIf { includeSongRows }
-                                        ?.let(RelatedPage::fromMusicResponsiveListItemRenderer)
+                                if (chipPage) {
+                                    fromChipPageContent(
+                                        content,
+                                    )
+                                } else {
+                                    content.musicTwoRowItemRenderer?.let(::fromMusicTwoRowItemRenderer)
+                                }
                             }.ifEmpty {
                                 return null
                             },
+                )
+            }
+
+            private fun fromChipPageContent(content: MusicCarouselShelfRenderer.Content): YTItem? =
+                content.musicTwoRowItemRenderer?.let { renderer ->
+                    if (renderer.isPodcast) fromPodcastTwoRow(renderer) else fromMusicTwoRowItemRenderer(renderer)
+                }
+                    ?: content.musicResponsiveListItemRenderer?.let(RelatedPage::fromMusicResponsiveListItemRenderer)
+                    ?: content.musicMultiRowListItemRenderer?.let(::fromMusicMultiRowListItemRenderer)
+
+            /** An episode plays like a song; its show stands in for the artist. */
+            internal fun fromMusicMultiRowListItemRenderer(renderer: MusicMultiRowListItemRenderer): SongItem? {
+                val watchEndpoint = renderer.onTap?.watchEndpoint ?: return null
+                return SongItem(
+                    id = watchEndpoint.videoId ?: return null,
+                    title =
+                        renderer.title.runs
+                            ?.firstOrNull()
+                            ?.text ?: return null,
+                    artists =
+                        listOfNotNull(
+                            renderer.secondTitle
+                                ?.runs
+                                ?.firstOrNull()
+                                ?.let { Artist(name = it.text, id = null) },
+                        ),
+                    musicVideoType = renderer.onTap.musicVideoType,
+                    thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                )
+            }
+
+            /** A podcast is a playlist of its episodes: `MPSP` + the playlist id. */
+            private fun fromPodcastTwoRow(renderer: MusicTwoRowItemRenderer): PlaylistItem? {
+                val playEndpoint =
+                    renderer.thumbnailOverlay
+                        ?.musicItemThumbnailOverlayRenderer
+                        ?.content
+                        ?.musicPlayButtonRenderer
+                        ?.playNavigationEndpoint
+                        ?.watchPlaylistEndpoint
+                return PlaylistItem(
+                    id =
+                        playEndpoint?.playlistId
+                            ?: renderer.navigationEndpoint.browseEndpoint
+                                ?.browseId
+                                ?.removePrefix("MPSP")
+                            ?: return null,
+                    title =
+                        renderer.title.runs
+                            ?.firstOrNull()
+                            ?.text ?: return null,
+                    author =
+                        renderer.subtitle
+                            ?.runs
+                            ?.firstOrNull { it.navigationEndpoint?.browseEndpoint != null }
+                            ?.let { Artist(name = it.text, id = null) },
+                    songCountText = null,
+                    thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl(),
+                    playEndpoint = playEndpoint,
+                    shuffleEndpoint = null,
+                    radioEndpoint = null,
                 )
             }
 
