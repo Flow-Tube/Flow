@@ -127,7 +127,7 @@ fun FlowColorPickerDialog(
                     isError = !hexValid,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().dpadVerticalFocusExit(),
                 )
                 ColorSlider(R.string.appearance_color_hue, hue, 0f..MAX_HUE) {
                     hue = it
@@ -167,7 +167,7 @@ private fun ColorSlider(
 ) {
     Column {
         Text(text = stringResource(label), style = MaterialTheme.typography.labelMedium)
-        Slider(value = value, onValueChange = onChange, valueRange = range)
+        Slider(value = value, onValueChange = onChange, valueRange = range, modifier = Modifier.dpadVerticalFocusExit())
     }
 }
 

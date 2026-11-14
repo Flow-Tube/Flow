@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.shared.FlowBadgedTitle
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
+import io.github.aedev.flow.ui.components.shared.dpadVerticalFocusExit
 
 private val ControlRowHorizontalPadding = 16.dp
 private val ControlRowVerticalPadding = 14.dp
@@ -98,6 +99,7 @@ fun SettingsSliderRow(
                 onValueChange = { draft = it },
                 onValueChangeFinished = { onValueCommitted(draft) },
                 enabled = enabled,
+                modifier = Modifier.dpadVerticalFocusExit(),
                 track = { SliderDefaults.CenteredTrack(it, enabled = enabled) },
             )
         } else {
@@ -108,6 +110,7 @@ fun SettingsSliderRow(
                 valueRange = valueRange,
                 steps = steps,
                 enabled = enabled,
+                modifier = Modifier.dpadVerticalFocusExit(),
             )
         }
     }

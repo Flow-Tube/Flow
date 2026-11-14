@@ -34,6 +34,8 @@ import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.shared.FlowChoice
 import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.skipDpadFocus
 import io.github.aedev.flow.ui.screens.settings.index.IntegrationsIndex
 import io.github.aedev.flow.ui.theme.defaultSponsorBlockColor
 import io.github.aedev.flow.utils.sponsorCategoryLabelRes
@@ -123,15 +125,8 @@ private fun SegmentRow(
         shapes = ListItemDefaults.shapes(shape = shape),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         leadingContent = {
-            IconButton(onClick = onPickColour) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(SwatchSize)
-                            .clip(CircleShape)
-                            .background(colour)
-                            .border(SwatchBorder, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                )
+            IconButton(onClick = onPickColour, modifier = Modifier.skipDpadFocus()) {
+                SegmentSwatch(colour)
             }
         },
         supportingContent = { Text(segmentActionLabel(category, action)) },
@@ -148,8 +143,37 @@ private fun SegmentRow(
             selected = action,
             onSelect = onActionSelected,
             onDismiss = { menuOpen = false },
+            // A remote can't reach the swatch inside the row, so the colour is offered here instead.
+            footer =
+                if (LocalDpadNavigation.current) {
+                    {
+                        FlowNavRow(
+                            title = stringResource(R.string.settings_segment_colour, label),
+                            onClick = {
+                                menuOpen = false
+                                onPickColour()
+                            },
+                            leadingContent = { SegmentSwatch(colour) },
+                            shape = MaterialTheme.shapes.large,
+                        )
+                    }
+                } else {
+                    null
+                },
         )
     }
+}
+
+@Composable
+private fun SegmentSwatch(colour: Color) {
+    Box(
+        modifier =
+            Modifier
+                .size(SwatchSize)
+                .clip(CircleShape)
+                .background(colour)
+                .border(SwatchBorder, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+    )
 }
 
 @Composable
