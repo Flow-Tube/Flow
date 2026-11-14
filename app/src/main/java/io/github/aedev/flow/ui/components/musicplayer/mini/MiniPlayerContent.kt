@@ -54,6 +54,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.MiniBarButton
+import io.github.aedev.flow.data.local.MiniCoverTap
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.SYNCED_LINE_UNSUNG_ALPHA
@@ -86,6 +88,7 @@ internal fun MiniPlayerContent(
     onOpen: (() -> Unit)? = null,
     lyrics: SyncedLines? = null,
     look: MiniPlayerLook = MiniPlayerLook.Plain,
+    actions: MiniBarActions? = null,
 ) {
     val playerState by EnhancedMusicPlayerManager.playerState.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
@@ -148,6 +151,19 @@ internal fun MiniPlayerContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 MiniPlayerCover(
+                    modifier =
+                        if (look.coverTap == MiniCoverTap.PLAY_PAUSE) {
+                            Modifier.clickable(
+                                interactionSource = null,
+                                indication = ripple(bounded = false),
+                                onClickLabel = stringResource(R.string.mini_button_play_pause),
+                            ) {
+                                haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                EnhancedMusicPlayerManager.togglePlayPause()
+                            }
+                        } else {
+                            Modifier
+                        },
                     thumbnailUrl = track.listThumbnailUrl,
                     trackId = track.videoId,
                     isPlaying = playerState.isPlaying,
@@ -226,30 +242,12 @@ internal fun MiniPlayerContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (elsewhere != null) PlayOnButton()
-                if (showPrevious) {
-                    IconButton(onClick = { EnhancedMusicPlayerManager.playPrevious() }) {
-                        Icon(
-                            imageVector = Icons.Rounded.SkipPrevious,
-                            contentDescription = stringResource(R.string.previous),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                MediaPlayPauseButton(
+                MiniBarButtons(
+                    buttons = barButtons(look.buttons, showPrevious),
                     isPlaying = playerState.isPlaying,
                     isBuffering = playerState.isBuffering && animationsEnabled,
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                        EnhancedMusicPlayerManager.togglePlayPause()
-                    },
+                    actions = actions,
                 )
-                IconButton(onClick = { EnhancedMusicPlayerManager.playNext() }) {
-                    Icon(
-                        imageVector = Icons.Rounded.SkipNext,
-                        contentDescription = stringResource(R.string.next),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
     }
@@ -287,3 +285,9 @@ internal fun ringStepGlides(
     toFraction: Float,
     durationMillis: Long,
 ): Boolean = durationMillis <= 0 || abs(toFraction - fromFraction) * durationMillis >= RING_GLIDE_MIN_JUMP_MILLIS
+
+/** The buttons to show: the user's, with Previous put first on a window wide enough to have shown it before. */
+internal fun barButtons(
+    chosen: List<MiniBarButton>,
+    showPrevious: Boolean,
+): List<MiniBarButton> = if (showPrevious && MiniBarButton.PREVIOUS !in chosen) listOf(MiniBarButton.PREVIOUS) + chosen else chosen

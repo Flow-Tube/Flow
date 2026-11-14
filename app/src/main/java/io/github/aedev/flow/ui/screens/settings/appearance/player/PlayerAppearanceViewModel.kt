@@ -5,13 +5,17 @@ import io.github.aedev.flow.data.local.CoverShape
 import io.github.aedev.flow.data.local.DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.DefaultCoverShapes
+import io.github.aedev.flow.data.local.DefaultMiniBarButtons
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
+import io.github.aedev.flow.data.local.MiniBarButton
 import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
 import io.github.aedev.flow.data.local.MiniCoverMotion
 import io.github.aedev.flow.data.local.MiniCoverShape
+import io.github.aedev.flow.data.local.MiniCoverTap
+import io.github.aedev.flow.data.local.MiniLongPress
 import io.github.aedev.flow.data.local.MusicPlainControlColors
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.local.PlayerOverlayPreferences
@@ -54,6 +58,9 @@ class PlayerAppearanceViewModel
         val miniCoverPausedShape = preferences.miniCoverPausedShape.asState(CoverShape.CIRCLE)
         val miniBarProgress = preferences.miniBarProgress.asState(MiniBarProgress.NONE)
         val miniCoverRing = preferences.miniCoverRing.asState(true)
+        val miniBarButtons = preferences.miniBarButtons.asState(DefaultMiniBarButtons)
+        val miniCoverTap = preferences.miniCoverTap.asState(MiniCoverTap.OPEN)
+        val miniLongPress = preferences.miniLongPress.asState(MiniLongPress.NOTHING)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -125,6 +132,12 @@ class PlayerAppearanceViewModel
         fun setMiniBarProgress(value: MiniBarProgress) = write { preferences.setMiniBarProgress(value) }
 
         fun setMiniCoverRing(value: Boolean) = write { preferences.setMiniCoverRing(value) }
+
+        fun setMiniBarButtons(value: List<MiniBarButton>) = write { preferences.setMiniBarButtons(value) }
+
+        fun setMiniCoverTap(value: MiniCoverTap) = write { preferences.setMiniCoverTap(value) }
+
+        fun setMiniLongPress(value: MiniLongPress) = write { preferences.setMiniLongPress(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 

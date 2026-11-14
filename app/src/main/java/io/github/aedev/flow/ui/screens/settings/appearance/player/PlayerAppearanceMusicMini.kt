@@ -26,9 +26,12 @@ import io.github.aedev.flow.data.local.CoverShape
 import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniCoverMotion
 import io.github.aedev.flow.data.local.MiniCoverShape
+import io.github.aedev.flow.data.local.MiniCoverTap
+import io.github.aedev.flow.data.local.MiniLongPress
 import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarProgressLine
 import io.github.aedev.flow.ui.components.musicplayer.mini.coverShapeLabel
 import io.github.aedev.flow.ui.components.musicplayer.mini.isLine
+import io.github.aedev.flow.ui.components.musicplayer.mini.labelRes
 import io.github.aedev.flow.ui.components.musicplayer.mini.miniBarProgress
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
 import io.github.aedev.flow.ui.components.settings.SettingsPreviewSheet
@@ -39,7 +42,7 @@ import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.screens.settings.index.PlayerAppearanceIndex
 
-internal enum class MusicMiniSheet { COVER_SHAPES, COVER_PAUSED, BAR_PROGRESS }
+internal enum class MusicMiniSheet { COVER_SHAPES, COVER_PAUSED, BAR_PROGRESS, BUTTONS }
 
 /**
  * What the music mini player group shows and which of its sheets is open. Every field is state, so
@@ -55,6 +58,9 @@ internal class MusicMiniSettings {
     var coverShapesLabel by mutableStateOf("")
     var pausedShapeLabel by mutableStateOf("")
     var barProgressLabel by mutableStateOf("")
+    var buttonsLabel by mutableStateOf("")
+    var coverTapOptions by mutableStateOf(emptyList<FlowToggleOption<MiniCoverTap>>())
+    var longPressOptions by mutableStateOf(emptyList<FlowToggleOption<MiniLongPress>>())
     var sheet by mutableStateOf<MusicMiniSheet?>(null)
 }
 
@@ -82,6 +88,21 @@ internal fun rememberMusicMiniSettings(viewModel: PlayerAppearanceViewModel): Mu
     settings.pausedShapeLabel = stringResource(pausedShape?.let { coverShapeLabel(it) } ?: R.string.player_appearance_cover_paused_keep)
     val barProgress by viewModel.miniBarProgress.collectAsStateWithLifecycle()
     settings.barProgressLabel = stringResource(barProgressLabel(barProgress))
+    val buttons by viewModel.miniBarButtons.collectAsStateWithLifecycle()
+    val buttonNames = buttons.map { stringResource(it.labelRes()) }
+    settings.buttonsLabel = buttonNames.joinToString(", ").ifEmpty { stringResource(R.string.player_appearance_mini_buttons_none) }
+    settings.coverTapOptions =
+        listOf(
+            FlowToggleOption(MiniCoverTap.OPEN, stringResource(R.string.player_appearance_mini_cover_tap_open)),
+            FlowToggleOption(MiniCoverTap.PLAY_PAUSE, stringResource(R.string.player_appearance_mini_cover_tap_play)),
+        )
+    settings.longPressOptions =
+        listOf(
+            FlowToggleOption(MiniLongPress.NOTHING, stringResource(R.string.player_appearance_mini_long_press_nothing)),
+            FlowToggleOption(MiniLongPress.OPTIONS, stringResource(R.string.player_appearance_mini_long_press_options)),
+            FlowToggleOption(MiniLongPress.LIKE, stringResource(R.string.player_appearance_mini_long_press_like)),
+            FlowToggleOption(MiniLongPress.QUEUE, stringResource(R.string.player_appearance_mini_long_press_queue)),
+        )
     return settings
 }
 
@@ -114,6 +135,9 @@ internal fun SettingsListScope.musicMiniGroup(
         onClick = { settings.sheet = MusicMiniSheet.BAR_PROGRESS },
     )
     switch(PlayerAppearanceIndex.miniCoverRing, viewModel.miniCoverRing, viewModel::setMiniCoverRing)
+    nav(PlayerAppearanceIndex.miniButtons, value = settings.buttonsLabel, onClick = { settings.sheet = MusicMiniSheet.BUTTONS })
+    toggleGroup(PlayerAppearanceIndex.miniCoverTap, settings.coverTapOptions, viewModel.miniCoverTap, viewModel::setMiniCoverTap)
+    toggleGroup(PlayerAppearanceIndex.miniLongPress, settings.longPressOptions, viewModel.miniLongPress, viewModel::setMiniLongPress)
 }
 
 @Composable
@@ -143,6 +167,11 @@ internal fun MusicMiniSheets(
                 onDismiss = { settings.sheet = null },
                 keepTrackShape = true,
             )
+        }
+
+        MusicMiniSheet.BUTTONS -> {
+            val buttons by viewModel.miniBarButtons.collectAsStateWithLifecycle()
+            MiniButtonsSheet(chosen = buttons, onChange = viewModel::setMiniBarButtons, onDismiss = { settings.sheet = null })
         }
 
         MusicMiniSheet.BAR_PROGRESS -> {

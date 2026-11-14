@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.components.musicplayer.sheet
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.MutatorMutex
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -62,6 +63,15 @@ class MusicPlayerSheetState internal constructor(
 
     fun expand() = moveTo(ANCHOR_EXPANDED)
 
+    /** A panel the full player opens once it is up, asked for from the mini player. */
+    internal var panelRequest by mutableStateOf<PlayerPanel?>(null)
+
+    /** Opens the player on [panel]: its queue or its lyrics. */
+    internal fun expandTo(panel: PlayerPanel) {
+        panelRequest = panel
+        expand()
+    }
+
     fun collapse() = moveTo(ANCHOR_COLLAPSED)
 
     fun dismiss() = moveTo(ANCHOR_DISMISSED)
@@ -104,5 +114,23 @@ fun rememberMusicPlayerSheetState(): MusicPlayerSheetState {
             initialAnchor = savedAnchor,
             onAnchorPersist = { savedAnchor = it },
         )
+    }
+}
+
+/** The panels the full player can be asked to open on. */
+internal enum class PlayerPanel { QUEUE, LYRICS }
+
+/** Opens [request] with [open] once the player is [expanded], then reports it [onHandled]. */
+@Composable
+internal fun PlayerPanelRequestEffect(
+    request: PlayerPanel?,
+    expanded: Boolean,
+    onHandled: () -> Unit,
+    open: (PlayerPanel) -> Unit,
+) {
+    LaunchedEffect(request, expanded) {
+        val panel = request?.takeIf { expanded } ?: return@LaunchedEffect
+        open(panel)
+        onHandled()
     }
 }

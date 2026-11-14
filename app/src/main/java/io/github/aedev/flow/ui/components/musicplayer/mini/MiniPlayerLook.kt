@@ -8,9 +8,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import io.github.aedev.flow.data.local.CoverShape
 import io.github.aedev.flow.data.local.DefaultCoverShapes
+import io.github.aedev.flow.data.local.DefaultMiniBarButtons
+import io.github.aedev.flow.data.local.MiniBarButton
 import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniCoverMotion
 import io.github.aedev.flow.data.local.MiniCoverShape
+import io.github.aedev.flow.data.local.MiniCoverTap
+import io.github.aedev.flow.data.local.MiniLongPress
 import io.github.aedev.flow.data.local.PlayerPreferences
 
 /** How the music mini player looks, as chosen in Appearance › Player. */
@@ -22,6 +26,9 @@ internal data class MiniPlayerLook(
     val pausedShape: CoverShape? = CoverShape.CIRCLE,
     val barProgress: MiniBarProgress = MiniBarProgress.NONE,
     val coverRing: Boolean = true,
+    val buttons: List<MiniBarButton> = DefaultMiniBarButtons,
+    val coverTap: MiniCoverTap = MiniCoverTap.OPEN,
+    val longPress: MiniLongPress = MiniLongPress.NOTHING,
 ) {
     companion object {
         /** Today's bar, for hosts with no choices of their own, such as TV. */
@@ -40,7 +47,10 @@ internal fun rememberMiniPlayerLook(): MiniPlayerLook {
     val pausedShape by preferences.miniCoverPausedShape.collectAsState(initial = CoverShape.CIRCLE)
     val barProgress by preferences.miniBarProgress.collectAsState(initial = MiniBarProgress.NONE)
     val coverRing by preferences.miniCoverRing.collectAsState(initial = true)
-    return remember(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing) {
-        MiniPlayerLook(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing)
+    val buttons by preferences.miniBarButtons.collectAsState(initial = DefaultMiniBarButtons)
+    val coverTap by preferences.miniCoverTap.collectAsState(initial = MiniCoverTap.OPEN)
+    val longPress by preferences.miniLongPress.collectAsState(initial = MiniLongPress.NOTHING)
+    return remember(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing, buttons, coverTap, longPress) {
+        MiniPlayerLook(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing, buttons, coverTap, longPress)
     }
 }

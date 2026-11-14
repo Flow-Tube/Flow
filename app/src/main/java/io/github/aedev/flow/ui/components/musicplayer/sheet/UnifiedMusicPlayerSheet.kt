@@ -6,7 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,7 +49,9 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.common.rememberMusicPlayerAppearance
 import io.github.aedev.flow.ui.components.musicplayer.full.FullMusicPlayerContent
+import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarActionSheets
 import io.github.aedev.flow.ui.components.musicplayer.mini.MiniPlayerContent
+import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniBarActions
 import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLook
 import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLyrics
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSheetDragGestureHandler
@@ -120,6 +122,7 @@ internal fun UnifiedMusicPlayerSheet(
     val playerScheme = appearance.playerScheme
     val controlScheme = appearance.controlScheme
     val miniLook = rememberMiniPlayerLook()
+    val miniActions = rememberMiniBarActions(state, onDismiss)
 
     val motionController =
         remember(state) {
@@ -377,10 +380,11 @@ internal fun UnifiedMusicPlayerSheet(
                         ).musicSheetVerticalDragGesture(
                             enabled = true,
                             handler = dragHandler,
-                        ).clickable(
+                        ).combinedClickable(
                             enabled = state.isCollapsed,
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
+                            onLongClick = miniActions.longPress(miniLook.longPress),
                         ) {
                             state.expand()
                         },
@@ -427,6 +431,7 @@ internal fun UnifiedMusicPlayerSheet(
                             showPrevious = !isCompactWidth,
                             lyrics = if (lyricsInMiniPlayer) rememberMiniPlayerLyrics(displayTrack.videoId) else null,
                             look = miniLook,
+                            actions = miniActions,
                         )
                     }
                 }
@@ -468,10 +473,13 @@ internal fun UnifiedMusicPlayerSheet(
                             sleepTimerButton = appearance.sleepTimerButton,
                             controlScheme = controlScheme,
                             onLyricsShownChange = { state.isLyricsShown = it },
+                            panelRequest = state.panelRequest,
+                            onPanelRequestHandled = { state.panelRequest = null },
                         )
                     }
                 }
             }
         }
     }
+    MiniBarActionSheets(miniActions, displayTrack)
 }

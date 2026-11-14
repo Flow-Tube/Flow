@@ -150,6 +150,9 @@ class PlayerPreferences(
         val MINI_COVER_PAUSED_SHAPE = stringPreferencesKey("mini_cover_paused_shape")
         val MINI_BAR_PROGRESS = stringPreferencesKey("mini_bar_progress")
         val MINI_COVER_RING = booleanPreferencesKey("mini_cover_ring")
+        val MINI_BAR_BUTTONS = stringPreferencesKey("mini_bar_buttons")
+        val MINI_COVER_TAP = stringPreferencesKey("mini_cover_tap")
+        val MINI_LONG_PRESS = stringPreferencesKey("mini_long_press")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
@@ -1175,6 +1178,45 @@ class PlayerPreferences(
     suspend fun setMiniCoverRing(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MINI_COVER_RING] = enabled
+        }
+    }
+
+    /** The music mini player's buttons, in their order; empty when every one is off. */
+    val miniBarButtons: Flow<List<MiniBarButton>> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> parseMiniBarButtons(preferences[Keys.MINI_BAR_BUTTONS]) }
+
+    suspend fun setMiniBarButtons(buttons: List<MiniBarButton>) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_BAR_BUTTONS] = buttons.joinToString(",") { it.name }
+        }
+    }
+
+    /** What a tap on the mini player's cover does. */
+    val miniCoverTap: Flow<MiniCoverTap> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniCoverTap.valueOf(preferences[Keys.MINI_COVER_TAP] ?: MiniCoverTap.OPEN.name) }
+                    .getOrDefault(MiniCoverTap.OPEN)
+            }
+
+    suspend fun setMiniCoverTap(tap: MiniCoverTap) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_TAP] = tap.name
+        }
+    }
+
+    /** What holding the mini player does. */
+    val miniLongPress: Flow<MiniLongPress> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniLongPress.valueOf(preferences[Keys.MINI_LONG_PRESS] ?: MiniLongPress.NOTHING.name) }
+                    .getOrDefault(MiniLongPress.NOTHING)
+            }
+
+    suspend fun setMiniLongPress(press: MiniLongPress) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_LONG_PRESS] = press.name
         }
     }
 
@@ -5180,6 +5222,52 @@ enum class MiniBarProgress {
     EDGE,
     LINE,
     WAVY_LINE,
+}
+
+/** A button the music mini player can show. Stored by name, in the user's order. */
+enum class MiniBarButton {
+    PREVIOUS,
+    PLAY_PAUSE,
+    NEXT,
+    LIKE,
+    ADD_TO_PLAYLIST,
+    SHUFFLE,
+    REPEAT,
+    QUEUE,
+    LYRICS,
+    SLEEP_TIMER,
+    BACK_10,
+    FORWARD_10,
+    CLOSE,
+}
+
+/** How many buttons a mini player shows at most; a wide window adds Previous on top when it's left out. */
+const val MAX_MINI_BAR_BUTTONS = 3
+
+/** Today's buttons, until the user picks their own. */
+val DefaultMiniBarButtons = listOf(MiniBarButton.PLAY_PAUSE, MiniBarButton.NEXT)
+
+/** Stored button names back as buttons: unknown names skipped, at most [MAX_MINI_BAR_BUTTONS]; nothing stored means the defaults. */
+internal fun parseMiniBarButtons(stored: String?): List<MiniBarButton> =
+    stored
+        ?.split(',')
+        ?.mapNotNull { name -> runCatching { MiniBarButton.valueOf(name) }.getOrNull() }
+        ?.distinct()
+        ?.take(MAX_MINI_BAR_BUTTONS)
+        ?: DefaultMiniBarButtons
+
+/** What a tap on the mini player's cover does: open the player as the rest of the bar does, or play and pause. */
+enum class MiniCoverTap {
+    OPEN,
+    PLAY_PAUSE,
+}
+
+/** What holding the mini player does. Stored by name. */
+enum class MiniLongPress {
+    NOTHING,
+    OPTIONS,
+    LIKE,
+    QUEUE,
 }
 
 /** When a morphing cover moves: as playback starts, stops and changes track, all the time it plays, or never. Stored by name. */
