@@ -2982,7 +2982,6 @@
     <string name="sync_devices_title">Sync devices</string>
     <string name="linked_title">Linked devices</string>
     <string name="play_on_title">Play on</string>
-    <string name="play_on_subtitle">Choose where it plays</string>
     <string name="play_on_button">Play on another device</string>
     <string name="play_on_playing_on">Playing on %1$s</string>
     <string name="play_on_nothing">Nothing is playing on your devices</string>
@@ -3007,7 +3006,11 @@
     <string name="play_on_move_failed">Couldn\'t move playback</string>
     <string name="play_on_not_available">Not available</string>
     <string name="play_on_manage">Manage linked devices</string>
-    <string name="play_on_manage_summary">Rename devices and choose which can play here</string>
+    <string name="play_on_paused_on">Paused on %1$s</string>
+    <string name="play_on_playing_here">Playing here</string>
+    <string name="play_on_paused_here">Paused here</string>
+    <string name="play_on_status_playing_short">Playing</string>
+    <string name="play_on_status_paused_short">Paused</string>
     <string name="linked_consent_title">Playback from this device</string>
     <string name="linked_consent_ask">Ask each time</string>
     <string name="linked_consent_allowed">Allowed</string>

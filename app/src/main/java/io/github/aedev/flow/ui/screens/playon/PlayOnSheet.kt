@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,7 +69,7 @@ fun PlayOnButton(
 /**
  * The shell's part of "Play on": the sheet when it is open, the consent question when a device
  * first asks, and a note when another device takes over playback here. [onManageDevices] opens
- * Linked devices from the sheet; without it the sheet has no such row.
+ * Linked devices from the sheet's header; without it the header has no such button.
  */
 @Composable
 fun PlayOnHost(onManageDevices: (() -> Unit)? = null) {
@@ -129,14 +130,20 @@ internal fun PlayOnContent(
     LaunchedEffect(viewModel) { viewModel.watch() }
     FlowSheetHeader(
         title = stringResource(R.string.play_on_title),
-        subtitle = stringResource(R.string.play_on_subtitle),
         onClose = null,
         showDragHandle = false,
         dividerAlpha = null,
+        actions = {
+            if (onManageDevices != null) {
+                IconButton(onClick = onManageDevices) {
+                    Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.play_on_manage))
+                }
+            }
+        },
     )
     val cardModifier = Modifier.fillMaxWidth().padding(horizontal = SheetPadding)
-    val current = session
-    if (current != null && current.now.video != null) {
+    val current = session?.takeIf { it.now.video != null }
+    if (current != null) {
         PlayOnNowCard(
             session = current,
             buffering = busy && movingTo == null,
@@ -148,8 +155,7 @@ internal fun PlayOnContent(
     }
     DeviceList(
         devices = devices,
-        state = PlayOnRowState(active = active, movingTo = movingTo, failed = failed),
+        state = PlayOnRowState(active = active, movingTo = movingTo, failed = failed, carded = current?.device?.did),
         onPick = viewModel::playOn,
-        onManage = onManageDevices,
     )
 }
