@@ -38,7 +38,13 @@ class SearchRouteTest {
     fun `a search page's route carries the words, the filters and how deep it is`() {
         val route = searchRoute("daft punk & co", SearchFilter.DEFAULT, depth = 3)
 
-        assertThat(route).startsWith("search?query=daft+punk+%26+co&filters=")
+        assertThat(route).startsWith("search?query=daft%20punk%20%26%20co&filters=")
         assertThat(route).endsWith("&depth=3")
+    }
+
+    @Test
+    fun `a plus sign in the words stays a plus sign`() {
+        assertThat(searchRoute("c++ tutorial", SearchFilter.DEFAULT, depth = 1))
+            .startsWith("search?query=c%2B%2B%20tutorial&filters=")
     }
 }

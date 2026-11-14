@@ -28,9 +28,12 @@ internal fun searchRoute(
     filters: SearchFilter,
     depth: Int,
 ): String =
-    "search?$SEARCH_QUERY_ARG=${URLEncoder.encode(query, Charsets.UTF_8.name())}" +
-        "&$SEARCH_FILTERS_ARG=${URLEncoder.encode(filters.toRouteArg(), Charsets.UTF_8.name())}" +
+    "search?$SEARCH_QUERY_ARG=${routeEncode(query)}" +
+        "&$SEARCH_FILTERS_ARG=${routeEncode(filters.toRouteArg())}" +
         "&$SEARCH_DEPTH_ARG=$depth"
+
+// Navigation decodes arguments with Uri.decode, which leaves URLEncoder's "+" for a space as a literal "+".
+private fun routeEncode(value: String): String = URLEncoder.encode(value, Charsets.UTF_8.name()).replace("+", "%20")
 
 private const val FIELD_SEPARATOR = "|"
 private const val FEATURE_SEPARATOR = ","
