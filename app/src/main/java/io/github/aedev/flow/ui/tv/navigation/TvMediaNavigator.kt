@@ -2,13 +2,14 @@ package io.github.aedev.flow.ui.tv.navigation
 
 import androidx.navigation.NavHostController
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
+import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.utils.YouTubeLink
 import java.net.URLDecoder
 
 /**
- * The TV shell's [MediaNavigator], so a card's channel, a menu's "Go to artist" and a link in a
- * description open the TV page for it. [beforeNavigate] closes a full-screen player, which would
- * otherwise cover the page. A player a link opened at launch covers a shell that has never set its
+ * The TV shell's [MediaNavigator], so a card's channel, a menu's "Go to artist", a link in a
+ * description and a settings shortcut such as "Play on"'s Manage linked devices open the TV page
+ * for it. [beforeNavigate] closes a full-screen player, which would otherwise cover the page. A player a link opened at launch covers a shell that has never set its
  * graph, so its page goes to [navigateWhenReady]. TV has no equalizer page, so that request does nothing.
  */
 internal class TvMediaNavigator(
@@ -26,6 +27,9 @@ internal class TvMediaNavigator(
     override fun openMusicPlaylist(playlistId: String) = openCollection(playlistId)
 
     override fun openEqualizer() = Unit
+
+    override fun openSettings(target: SettingsTarget) =
+        open(target.encode(), TvRoutes.SETTINGS_PAGE, TvRoutes.SETTINGS_PAGE_ARG) { TvRoutes.settingsPage(target) }
 
     override fun openLink(link: YouTubeLink): Boolean {
         when (link) {

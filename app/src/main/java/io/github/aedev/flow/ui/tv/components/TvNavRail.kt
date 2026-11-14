@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +67,9 @@ import io.github.aedev.flow.ui.tv.navigation.TV_SETTINGS_ROUTE
  * Focus enters on the selected destination when it comes from the screen edge the rail sits on (a
  * D-pad press, or the shell's Back); that edge is the right one in a right-to-left language. Any other entry is Compose handing out initial focus after the focused item went away, which
  * would otherwise land here as the first item on screen, so it goes to [onOtherEntry] when that takes it.
+ *
+ * While the TV drives another device, [playingOnDevice] names it and its entry, which opens "Play on"
+ * through [onOpenPlayOn], takes Now playing's place.
  */
 @Composable
 fun TvNavRail(
@@ -78,6 +82,9 @@ fun TvNavRail(
     modifier: Modifier = Modifier,
     nowPlayingTitle: String? = null,
     onOpenNowPlaying: () -> Unit = {},
+    playingOnDevice: String? = null,
+    playingOnTitle: String = "",
+    onOpenPlayOn: () -> Unit = {},
     profile: @Composable (expanded: Boolean) -> Unit,
 ) {
     val state = rememberWideNavigationRailState()
@@ -126,7 +133,9 @@ fun TvNavRail(
                     onClick = { onSelect(tab.route) },
                     modifier = if (selected) Modifier.focusRequester(selectedRequester) else Modifier,
                 )
-                if (tab == nowPlayingAfter && nowPlayingTitle != null) {
+                if (tab == nowPlayingAfter && playingOnDevice != null) {
+                    TvRailPlayingOnItem(device = playingOnDevice, title = playingOnTitle, expanded = expanded, onClick = onOpenPlayOn)
+                } else if (tab == nowPlayingAfter && nowPlayingTitle != null) {
                     TvRailNowPlayingItem(title = nowPlayingTitle, expanded = expanded, onClick = onOpenNowPlaying)
                 }
             }
@@ -185,17 +194,53 @@ private fun TvRailNowPlayingItem(
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
-    val heading = stringResource(R.string.tv_rail_now_playing)
-    val description = stringResource(R.string.tv_rail_now_playing_description, title)
+    TvRailSessionItem(
+        heading = stringResource(R.string.tv_rail_now_playing),
+        title = title,
+        description = stringResource(R.string.tv_rail_now_playing_description, title),
+        expanded = expanded,
+        onClick = onClick,
+    ) {
+        PlayingWaveform(color = MaterialTheme.colorScheme.primary, animate = LocalMusicNowPlayingAnimates.current)
+    }
+}
+
+/** The rail's entry for the device the TV drives: its icon in the accent colour, and "Playing on <name>" over what plays. */
+@Composable
+private fun TvRailPlayingOnItem(
+    device: String,
+    title: String,
+    expanded: Boolean,
+    onClick: () -> Unit,
+) {
+    TvRailSessionItem(
+        heading = stringResource(R.string.play_on_playing_on, device),
+        title = title,
+        description = stringResource(R.string.tv_rail_playing_on_description, device, title),
+        expanded = expanded,
+        onClick = onClick,
+    ) {
+        Icon(Icons.Outlined.Devices, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/** A rail entry for something playing: [icon] in the icons' box, then [heading] in the accent colour over [title]. */
+@Composable
+private fun TvRailSessionItem(
+    heading: String,
+    title: String,
+    description: String,
+    expanded: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+) {
     TvRailItemLayout(
         selected = false,
         expanded = expanded,
         onClick = onClick,
         modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = description },
         icon = {
-            Box(modifier = Modifier.size(NowPlayingIconSize), contentAlignment = Alignment.Center) {
-                PlayingWaveform(color = MaterialTheme.colorScheme.primary, animate = LocalMusicNowPlayingAnimates.current)
-            }
+            Box(modifier = Modifier.size(NowPlayingIconSize), contentAlignment = Alignment.Center) { icon() }
         },
     ) {
         Column {
@@ -204,6 +249,7 @@ private fun TvRailNowPlayingItem(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = title,
