@@ -3127,6 +3127,9 @@
     <string name="linked_add_scan_code_hint">For a device showing a code, like a TV</string>
     <string name="linked_join_request_hint">Accept only if this is your device.</string>
     <string name="linked_remove_from_group">Remove from group</string>
+    <string name="linked_auto_sync">Sync automatically</string>
+    <string name="linked_auto_sync_on">On open, on leaving, every hour and when your devices meet</string>
+    <string name="linked_auto_sync_off">Only when you tap Sync now. Until this device syncs, the server keeps everything your other devices send.</string>
     <string name="linked_leave_title">Leave the group?</string>
     <string name="linked_leave_body">This device leaves the group and deletes its keys and its copy of the group\'s data. Your other devices keep everything and switch to new keys without it. To link it again, pair it as a new device.</string>
     <string name="linked_leave_failed_title">Your other devices couldn\'t be told</string>

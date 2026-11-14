@@ -11,6 +11,7 @@ import io.github.aedev.flow.sync2.linking.RestoreDevice
 import io.github.aedev.flow.sync2.live.LiveConsent
 import io.github.aedev.flow.sync2.live.LiveDevices
 import io.github.aedev.flow.sync2.live.deviceKind
+import io.github.aedev.flow.sync2.service.AutoSync
 import io.github.aedev.flow.sync2.service.LastSync
 import io.github.aedev.flow.sync2.service.LinkPhase
 import io.github.aedev.flow.sync2.service.LinkedActions
@@ -95,6 +96,7 @@ internal class LinkedDevicesViewModel
         private val actions: LinkedActions,
         private val linkedProfiles: LinkedProfiles,
         private val liveConsent: LiveConsent,
+        private val autoSync: AutoSync,
         live: LiveDevices,
     ) : ViewModel() {
         private val ownKind = deviceKind(context)
@@ -151,6 +153,13 @@ internal class LinkedDevicesViewModel
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LinkedUiState())
 
         val link: StateFlow<LinkPhase> = actions.link
+
+        /** Whether this device syncs on its own. */
+        val autoSyncOn: StateFlow<Boolean> = autoSync.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+        fun setAutoSync(on: Boolean) {
+            viewModelScope.launch { autoSync.set(on) }
+        }
 
         val profiles: StateFlow<ProfileChoices> =
             linkedProfiles.choices.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileChoices())

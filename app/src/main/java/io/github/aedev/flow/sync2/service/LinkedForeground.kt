@@ -39,6 +39,7 @@ class LinkedForeground
         private val handoff: Handoff,
         private val remote: RemoteDriver,
         private val push: LinkedPush,
+        private val autoSync: AutoSync,
         @ApplicationScope private val scope: CoroutineScope,
     ) : DefaultLifecycleObserver {
         private val foreground = MutableStateFlow(false)
@@ -52,7 +53,11 @@ class LinkedForeground
                     .collectLatest { active -> if (active) runLive() }
             }
             scope.launch {
-                combine(foreground, db.groups().observeGroup().map { it != null }) { shown, linked -> shown && linked }
+                combine(
+                    foreground,
+                    db.groups().observeGroup().map { it != null },
+                    autoSync.enabled,
+                ) { shown, linked, auto -> shown && linked && auto }
                     .distinctUntilChanged()
                     .collectLatest { pushing -> if (pushing) push.run() }
             }
@@ -79,6 +84,6 @@ class LinkedForeground
 
         override fun onStop(owner: LifecycleOwner) {
             foreground.value = false
-            scope.launch { if (db.groups().group() != null) LinkedSyncWorker.syncSoon(context) }
+            scope.launch { if (db.groups().group() != null) LinkedSyncWorker.syncSoon(context, automatic = true) }
         }
     }
