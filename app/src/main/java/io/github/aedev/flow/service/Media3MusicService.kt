@@ -1503,12 +1503,22 @@ class Media3MusicService : MediaLibraryService() {
      */
     @OptIn(UnstableApi::class)
     override fun onTaskRemoved(rootIntent: Intent?) {
+        val root = rootIntent?.component?.className
+        if (isSideTaskRemoval(root)) {
+            taskRemovalLog("onTaskRemoved ignored, side task $root")
+            return
+        }
         val keepsPlaying =
             ::player.isInitialized &&
                 player.keepsPlayingOnTaskRemoved(lifecyclePlaybackPreferences.settings.keepPlayingAfterSwipe, isPlaybackOngoing())
-        PlayerDiagnostics.logInfo(TAG, "onTaskRemoved keepsPlaying=$keepsPlaying ${taskRemovalSnapshot()}")
+        taskRemovalLog("onTaskRemoved root=$root keepsPlaying=$keepsPlaying ${taskRemovalSnapshot()}")
         if (keepsPlaying) return
         pauseAllPlayersAndStopSelf()
+    }
+
+    private fun taskRemovalLog(message: String) {
+        Log.w(TAG, message)
+        PlayerDiagnostics.logWarning(TAG, message)
     }
 
     private fun taskRemovalSnapshot(): String {
