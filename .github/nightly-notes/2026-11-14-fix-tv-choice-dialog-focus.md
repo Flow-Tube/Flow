@@ -1,2 +1,2 @@
 ## Fixed
-- On TV, choice dialogs open with focus on the selected option (#2062)
+- On TV, choice dialogs such as video quality show which option is focused and start on the selected one (#2062)
