@@ -71,4 +71,21 @@ class SubtitleLoadDiagnosticsTest {
         assertThat(line).contains("expire=absent")
         assertThat(line).doesNotContain("offline_subtitles")
     }
+
+    @Test
+    fun `a translation says which track it came from`() {
+        assertThat(SubtitleLoadDiagnostics.describe(translatedUrl, IOException(), now)).contains("source=asr")
+        assertThat(SubtitleLoadDiagnostics.describe(translatedUrl.replace("&kind=asr", ""), IOException(), now))
+            .contains("source=authored")
+    }
+
+    @Test
+    fun `a loaded translation is logged with its shape and size only`() {
+        assertThat(SubtitleLoadDiagnostics.isTranslated(translatedUrl)).isTrue()
+        assertThat(SubtitleLoadDiagnostics.isTranslated("https://www.youtube.com/api/timedtext?v=x&lang=en&fmt=vtt")).isFalse()
+
+        val line = SubtitleLoadDiagnostics.describeTranslatedLoad(translatedUrl, bytes = 4_096)
+
+        assertThat(line).isEqualTo("fmt=srv3 source=asr bytes=4096")
+    }
 }

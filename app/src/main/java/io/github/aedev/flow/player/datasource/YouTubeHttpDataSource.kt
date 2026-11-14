@@ -36,9 +36,7 @@ class YouTubeHttpDataSource private constructor(
 
     class Factory : HttpDataSource.Factory {
         private val requestProperties = HashMap<String, String>()
-        private var userAgent =
-            "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        private var userAgent = DEFAULT_USER_AGENT
 
         override fun createDataSource(): HttpDataSource = YouTubeHttpDataSource(userAgent, requestProperties.toMap())
 
@@ -51,6 +49,9 @@ class YouTubeHttpDataSource private constructor(
 
     companion object {
         private const val TAG = "YouTubeHttpDataSource"
+        internal const val DEFAULT_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         private val clientLock = Any()
 
         @Volatile
@@ -186,8 +187,12 @@ class YouTubeHttpDataSource private constructor(
     private fun resolveYouTubeUserAgent(uri: Uri): String = GoogleVideoRequestPolicy.userAgent(uri.getQueryParameter("c"), userAgent)
 
     private fun youtubeHeaders(dataSpec: DataSpec): Map<String, String> =
-        GoogleVideoRequestPolicy.headers(
-            clientName = dataSpec.uri.getQueryParameter("c"),
-            allowGzip = dataSpec.isFlagSet(DataSpec.FLAG_ALLOW_GZIP),
-        )
+        if (GoogleVideoRequestPolicy.isCaptionRequest(dataSpec.uri.path)) {
+            GoogleVideoRequestPolicy.captionHeaders()
+        } else {
+            GoogleVideoRequestPolicy.headers(
+                clientName = dataSpec.uri.getQueryParameter("c"),
+                allowGzip = dataSpec.isFlagSet(DataSpec.FLAG_ALLOW_GZIP),
+            )
+        }
 }

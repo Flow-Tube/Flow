@@ -243,4 +243,41 @@ class CaptionTrackAutoTranslationTest {
         assertEquals(CaptionFormat.VTT, translated.format)
         assertTrue(translated.url.contains("fmt=vtt"))
     }
+
+    @Test
+    fun `the speech track is translated before an authored one, as YouTube's apps do`() {
+        val resolved =
+            CaptionTrackResolver.resolveTracklist(
+                tracklistWithTranslations(
+                    listOf(translatable("en"), translatable("en", kind = "asr").copy(baseUrl = "$BASE_URL&kind=asr")),
+                    listOf("ar"),
+                ),
+                translateTo = "ar",
+            )
+
+        val translated = resolved.last()
+        assertTrue("the asr track should be the source: ${translated.url}", translated.url.contains("kind=asr"))
+        assertEquals(CaptionFormat.VTT, translated.format)
+    }
+
+    @Test
+    fun `an auto dub transcript is not the translation source`() {
+        val dub = translatable("de", kind = "asr").copy(baseUrl = "$BASE_URL&variant=timing-optimized")
+        val speech = translatable("en", kind = "asr").copy(baseUrl = "$BASE_URL&kind=asr")
+        val resolved =
+            CaptionTrackResolver.resolveTracklist(tracklistWithTranslations(listOf(dub, speech), listOf("ar")), translateTo = "ar")
+
+        assertFalse(resolved.last().url.contains("variant=timing-optimized"))
+    }
+
+    @Test
+    fun `an authored only source is still asked for as vtt`() {
+        val resolved =
+            CaptionTrackResolver.resolveTracklist(tracklistWithTranslations(listOf(translatable("en")), listOf("ar")), translateTo = "ar")
+
+        val translated = resolved.last()
+        assertEquals(CaptionFormat.VTT, translated.format)
+        assertTrue(translated.url.contains("fmt=vtt"))
+        assertFalse(translated.url.contains("fmt=srv3"))
+    }
 }
