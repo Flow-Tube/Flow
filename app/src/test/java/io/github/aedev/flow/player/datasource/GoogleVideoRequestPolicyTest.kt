@@ -45,4 +45,11 @@ class GoogleVideoRequestPolicyTest {
         val browserOnly = listOf("Origin", "Referer", "Sec-Fetch-Mode", "Sec-Fetch-Site", "Sec-Fetch-Dest", "Accept-Encoding")
         assertThat(GoogleVideoRequestPolicy.captionHeaders().keys).containsNoneIn(browserOnly)
     }
+
+    @Test
+    fun `captions go over the platform engine unless the app proxy is on (#1369)`() {
+        assertThat(GoogleVideoRequestPolicy.captionsOverPlatformCronet("/api/timedtext", proxied = false)).isTrue()
+        assertThat(GoogleVideoRequestPolicy.captionsOverPlatformCronet("/api/timedtext", proxied = true)).isFalse()
+        assertThat(GoogleVideoRequestPolicy.captionsOverPlatformCronet("/videoplayback", proxied = false)).isFalse()
+    }
 }

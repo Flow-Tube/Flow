@@ -28,10 +28,21 @@ object GoogleVideoRequestPolicy {
     /**
      * A caption URL carries no `c=`, so [headers] would take it for a web page's request and add
      * Origin, Referer and `Sec-Fetch-*`, which no browser sends without the web player's PO token.
-     * NewTube fetches the same signed URL with none of them, and users report its translations load where Flow's
-     * were refused with 429 (#1369). Encoding is left to OkHttp: caption text compresses well.
+     * NewTube fetches the same signed URL with none of them. Encoding is left to the transport:
+     * caption text compresses well.
      */
     fun captionHeaders(): Map<String, String> = mapOf("Accept" to "*/*")
+
+    /**
+     * Whether a caption at [path] goes over Android's own Cronet rather than OkHttp. A phone A/B on
+     * one network and video got a translated caption over it 3 times out of 3 and a 429 over OkHttp
+     * every time (#1369). The platform engine takes no proxy, so with the app proxy on ([proxied])
+     * captions stay on OkHttp rather than leave the device outside it.
+     */
+    fun captionsOverPlatformCronet(
+        path: String?,
+        proxied: Boolean,
+    ): Boolean = !proxied && isCaptionRequest(path)
 
     fun userAgent(
         clientName: String?,
