@@ -149,6 +149,7 @@ class PlayerPreferences(
         val MINI_COVER_SHAPES = stringPreferencesKey("mini_cover_shapes")
         val MINI_COVER_PAUSED_SHAPE = stringPreferencesKey("mini_cover_paused_shape")
         val MINI_BAR_PROGRESS = stringPreferencesKey("mini_bar_progress")
+        val MINI_BAR_BACKGROUND = stringPreferencesKey("mini_bar_background")
         val MINI_COVER_RING = booleanPreferencesKey("mini_cover_ring")
         val MINI_BAR_BUTTONS = stringPreferencesKey("mini_bar_buttons")
         val MINI_COVER_TAP = stringPreferencesKey("mini_cover_tap")
@@ -1167,6 +1168,20 @@ class PlayerPreferences(
     suspend fun setMiniBarProgress(progress: MiniBarProgress) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MINI_BAR_PROGRESS] = progress.name
+        }
+    }
+
+    /** What the music mini player is painted with. */
+    val miniBarBackground: Flow<MiniBarBackground> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniBarBackground.valueOf(preferences[Keys.MINI_BAR_BACKGROUND] ?: MiniBarBackground.TINTED.name) }
+                    .getOrDefault(MiniBarBackground.TINTED)
+            }
+
+    suspend fun setMiniBarBackground(background: MiniBarBackground) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_BAR_BACKGROUND] = background.name
         }
     }
 
@@ -5212,6 +5227,16 @@ internal fun parsePausedCoverShape(stored: String?): CoverShape? =
         else -> runCatching { CoverShape.valueOf(stored) }.getOrDefault(CoverShape.CIRCLE)
     }
 
+/** The music mini player's paint: the cover's tone on a quiet container (today), or one of the other looks. */
+enum class MiniBarBackground {
+    TINTED,
+    VIVID,
+    APP_THEME,
+    COVER_COLOURS,
+    BLACK,
+    OUTLINED,
+}
+
 /**
  * How the music mini player's bar shows progress: a tonal fill behind it, a line around its edge, a
  * line along its bottom, a wavy one, or nothing. Stored by name.
@@ -5295,6 +5320,11 @@ enum class MusicPlayerBackgroundStyle {
     GRADIENT,
     IMMERSIVE,
     DEFAULT,
+    COLOR,
+    COVER_COLOURS,
+    MOVING_COLOURS,
+    SHAPES,
+    BLACK,
 }
 
 /** Which side of the fullscreen player a vertical swipe changes the playback speed on, in place of brightness or volume. */

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.CoverShape
+import io.github.aedev.flow.data.local.MiniBarBackground
 import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniCoverMotion
 import io.github.aedev.flow.data.local.MiniCoverShape
@@ -42,7 +43,7 @@ import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.screens.settings.index.PlayerAppearanceIndex
 
-internal enum class MusicMiniSheet { COVER_SHAPES, COVER_PAUSED, BAR_PROGRESS, BUTTONS }
+internal enum class MusicMiniSheet { COVER_SHAPES, COVER_PAUSED, BAR_PROGRESS, BUTTONS, BACKGROUND }
 
 /**
  * What the music mini player group shows and which of its sheets is open. Every field is state, so
@@ -59,6 +60,7 @@ internal class MusicMiniSettings {
     var pausedShapeLabel by mutableStateOf("")
     var barProgressLabel by mutableStateOf("")
     var buttonsLabel by mutableStateOf("")
+    var backgroundLabel by mutableStateOf("")
     var coverTapOptions by mutableStateOf(emptyList<FlowToggleOption<MiniCoverTap>>())
     var longPressOptions by mutableStateOf(emptyList<FlowToggleOption<MiniLongPress>>())
     var sheet by mutableStateOf<MusicMiniSheet?>(null)
@@ -88,6 +90,8 @@ internal fun rememberMusicMiniSettings(viewModel: PlayerAppearanceViewModel): Mu
     settings.pausedShapeLabel = stringResource(pausedShape?.let { coverShapeLabel(it) } ?: R.string.player_appearance_cover_paused_keep)
     val barProgress by viewModel.miniBarProgress.collectAsStateWithLifecycle()
     settings.barProgressLabel = stringResource(barProgressLabel(barProgress))
+    val background by viewModel.miniBarBackground.collectAsStateWithLifecycle()
+    settings.backgroundLabel = stringResource(miniBackgroundLabel(background))
     val buttons by viewModel.miniBarButtons.collectAsStateWithLifecycle()
     val buttonNames = buttons.map { stringResource(it.labelRes()) }
     settings.buttonsLabel = buttonNames.joinToString(", ").ifEmpty { stringResource(R.string.player_appearance_mini_buttons_none) }
@@ -135,6 +139,7 @@ internal fun SettingsListScope.musicMiniGroup(
         onClick = { settings.sheet = MusicMiniSheet.BAR_PROGRESS },
     )
     switch(PlayerAppearanceIndex.miniCoverRing, viewModel.miniCoverRing, viewModel::setMiniCoverRing)
+    nav(PlayerAppearanceIndex.miniBackground, value = settings.backgroundLabel, onClick = { settings.sheet = MusicMiniSheet.BACKGROUND })
     nav(PlayerAppearanceIndex.miniButtons, value = settings.buttonsLabel, onClick = { settings.sheet = MusicMiniSheet.BUTTONS })
     toggleGroup(PlayerAppearanceIndex.miniCoverTap, settings.coverTapOptions, viewModel.miniCoverTap, viewModel::setMiniCoverTap)
     toggleGroup(PlayerAppearanceIndex.miniLongPress, settings.longPressOptions, viewModel.miniLongPress, viewModel::setMiniLongPress)
@@ -172,6 +177,20 @@ internal fun MusicMiniSheets(
         MusicMiniSheet.BUTTONS -> {
             val buttons by viewModel.miniBarButtons.collectAsStateWithLifecycle()
             MiniButtonsSheet(chosen = buttons, onChange = viewModel::setMiniBarButtons, onDismiss = { settings.sheet = null })
+        }
+
+        MusicMiniSheet.BACKGROUND -> {
+            val selected by viewModel.miniBarBackground.collectAsStateWithLifecycle()
+            SettingsPreviewSheet(
+                title = stringResource(R.string.player_appearance_mini_background_title),
+                subtitle = stringResource(R.string.player_appearance_mini_background_subtitle),
+                options = MiniBarBackground.entries,
+                selected = selected,
+                label = { stringResource(miniBackgroundLabel(it)) },
+                onSelect = viewModel::setMiniBarBackground,
+                onDismiss = { settings.sheet = null },
+                preview = { MiniBackgroundPreview(it) },
+            )
         }
 
         MusicMiniSheet.BAR_PROGRESS -> {

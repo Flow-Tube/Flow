@@ -50,6 +50,7 @@ import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.common.rememberMusicPlayerAppearance
 import io.github.aedev.flow.ui.components.musicplayer.full.FullMusicPlayerContent
 import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarActionSheets
+import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarSurface
 import io.github.aedev.flow.ui.components.musicplayer.mini.MiniPlayerContent
 import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniBarActions
 import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLook
@@ -274,6 +275,7 @@ internal fun UnifiedMusicPlayerSheet(
     }
     val shouldRenderFullPlayer = rememberShouldRenderFullPlayer(state)
 
+    val appScheme = MaterialTheme.colorScheme
     MaterialTheme(
         colorScheme = playerScheme,
         motionScheme = MotionScheme.expressive(),
@@ -424,7 +426,7 @@ internal fun UnifiedMusicPlayerSheet(
                                 }
                             }.zIndex(miniZIndex),
                 ) {
-                    MaterialTheme(colorScheme = controlScheme) {
+                    MiniBarSurface(miniLook.background, displayTrack.listThumbnailUrl, controlScheme, appScheme) {
                         MiniPlayerContent(
                             track = displayTrack,
                             animationsEnabled = miniAnimationsEnabled,

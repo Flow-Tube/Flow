@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import io.github.aedev.flow.data.local.CoverShape
 import io.github.aedev.flow.data.local.DefaultCoverShapes
 import io.github.aedev.flow.data.local.DefaultMiniBarButtons
+import io.github.aedev.flow.data.local.MiniBarBackground
 import io.github.aedev.flow.data.local.MiniBarButton
 import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniCoverMotion
@@ -29,6 +30,7 @@ internal data class MiniPlayerLook(
     val buttons: List<MiniBarButton> = DefaultMiniBarButtons,
     val coverTap: MiniCoverTap = MiniCoverTap.OPEN,
     val longPress: MiniLongPress = MiniLongPress.NOTHING,
+    val background: MiniBarBackground = MiniBarBackground.TINTED,
 ) {
     companion object {
         /** Today's bar, for hosts with no choices of their own, such as TV. */
@@ -50,7 +52,8 @@ internal fun rememberMiniPlayerLook(): MiniPlayerLook {
     val buttons by preferences.miniBarButtons.collectAsState(initial = DefaultMiniBarButtons)
     val coverTap by preferences.miniCoverTap.collectAsState(initial = MiniCoverTap.OPEN)
     val longPress by preferences.miniLongPress.collectAsState(initial = MiniLongPress.NOTHING)
-    return remember(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing, buttons, coverTap, longPress) {
-        MiniPlayerLook(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing, buttons, coverTap, longPress)
+    val background by preferences.miniBarBackground.collectAsState(initial = MiniBarBackground.TINTED)
+    return remember(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing, buttons, coverTap, longPress, background) {
+        MiniPlayerLook(coverShape, coverMotion, coverShapes, pausedShape, barProgress, coverRing, buttons, coverTap, longPress, background)
     }
 }

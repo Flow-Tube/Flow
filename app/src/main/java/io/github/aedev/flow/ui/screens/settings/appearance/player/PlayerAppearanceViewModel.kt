@@ -9,6 +9,7 @@ import io.github.aedev.flow.data.local.DefaultMiniBarButtons
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
+import io.github.aedev.flow.data.local.MiniBarBackground
 import io.github.aedev.flow.data.local.MiniBarButton
 import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
@@ -61,6 +62,7 @@ class PlayerAppearanceViewModel
         val miniBarButtons = preferences.miniBarButtons.asState(DefaultMiniBarButtons)
         val miniCoverTap = preferences.miniCoverTap.asState(MiniCoverTap.OPEN)
         val miniLongPress = preferences.miniLongPress.asState(MiniLongPress.NOTHING)
+        val miniBarBackground = preferences.miniBarBackground.asState(MiniBarBackground.TINTED)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -138,6 +140,8 @@ class PlayerAppearanceViewModel
         fun setMiniCoverTap(value: MiniCoverTap) = write { preferences.setMiniCoverTap(value) }
 
         fun setMiniLongPress(value: MiniLongPress) = write { preferences.setMiniLongPress(value) }
+
+        fun setMiniBarBackground(value: MiniBarBackground) = write { preferences.setMiniBarBackground(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 

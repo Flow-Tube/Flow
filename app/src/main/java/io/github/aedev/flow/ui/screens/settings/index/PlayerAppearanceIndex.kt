@@ -162,6 +162,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_appearance_cover_ring_subtitle,
             R.string.settings_section_music_mini_player,
         )
+    val miniBackground =
+        entry(
+            "mini_background",
+            R.string.player_appearance_mini_background_title,
+            R.string.player_appearance_mini_background_subtitle,
+            R.string.settings_section_music_mini_player,
+        )
     val miniButtons =
         entry(
             "mini_buttons",
@@ -320,6 +327,7 @@ internal object PlayerAppearanceIndex {
             miniCoverPausedShape,
             miniBarProgress,
             miniCoverRing,
+            miniBackground,
             miniButtons,
             miniCoverTap,
             miniLongPress,

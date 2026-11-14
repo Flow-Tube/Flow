@@ -376,11 +376,11 @@ internal fun FullMusicPlayerContent(
             artworkAtStart = layout == MusicPlayerLayout.WIDE || layout == MusicPlayerLayout.SPLIT,
             animatedArtwork = animatedArtwork.takeIf { immersiveBackground },
             preloadCovers =
-                if (immersiveBackground && isPlayerSheetExpanded) {
-                    listOfNotNull(nextTrack?.highResThumbnailUrl, previousTrack?.highResThumbnailUrl)
-                } else {
-                    emptyList()
-                },
+                listOfNotNull(nextTrack?.highResThumbnailUrl, previousTrack?.highResThumbnailUrl)
+                    .takeIf { immersiveBackground && isPlayerSheetExpanded }
+                    .orEmpty(),
+            trackId = track.videoId,
+            motionRunning = isPlayerSheetExpanded && uiState.isPlaying && !showLyricsSheet && !queueCoversArtwork,
         )
 
         val sideSwipes = rememberMusicSideSwipes(layout, isPlayerSheetExpanded) { queueState.fraction() > 0f || showLyricsSheet }
