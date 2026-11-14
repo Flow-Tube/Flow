@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,14 +57,14 @@ internal fun DlnaDevicePickerDialog(
         },
         text = {
             Column {
-                if (!isCasting && devices.isEmpty() && !isDiscovering) {
+                if (!isCasting && devices.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.dlna_no_devices),
+                        text = stringResource(if (isDiscovering) R.string.dlna_searching else R.string.dlna_no_devices),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                } else if (!isCasting && devices.isEmpty()) {
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        text = stringResource(R.string.dlna_searching),
+                        text = stringResource(R.string.dlna_google_cast_unsupported),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 } else if (isCasting) {
