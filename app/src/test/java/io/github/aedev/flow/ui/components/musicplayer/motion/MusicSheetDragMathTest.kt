@@ -137,20 +137,26 @@ class MusicSheetDragMathTest {
         assertThat(collapseInitialSquashForFraction(1f)).isEqualTo(0.97f)
     }
 
+    private fun closes(
+        startedCollapsed: Boolean,
+        pulled: Float,
+        velocity: Float,
+    ) = shouldCloseMusicMiniDownward(startedCollapsed, pulled, miniHeightPx = 64f, verticalVelocity = velocity, closeFlingVelocity = 800f)
+
     @Test
     fun `a collapsed bar pulled half its height down closes`() {
-        assertThat(shouldCloseMusicMiniDownward(true, accumulatedDragY = 40f, miniHeightPx = 64f, verticalVelocity = 0f)).isTrue()
-        assertThat(shouldCloseMusicMiniDownward(true, accumulatedDragY = 20f, miniHeightPx = 64f, verticalVelocity = 0f)).isFalse()
+        assertThat(closes(true, pulled = 40f, velocity = 0f)).isTrue()
+        assertThat(closes(true, pulled = 20f, velocity = 0f)).isFalse()
     }
 
     @Test
     fun `a downward flick on the collapsed bar closes it`() {
-        assertThat(shouldCloseMusicMiniDownward(true, accumulatedDragY = 10f, miniHeightPx = 64f, verticalVelocity = 1200f)).isTrue()
+        assertThat(closes(true, pulled = 10f, velocity = 1200f)).isTrue()
     }
 
     @Test
     fun `a drag from the expanded player never closes`() {
-        assertThat(shouldCloseMusicMiniDownward(false, accumulatedDragY = 900f, miniHeightPx = 64f, verticalVelocity = 3000f)).isFalse()
+        assertThat(closes(false, pulled = 900f, velocity = 3000f)).isFalse()
     }
 
     @Test
