@@ -130,6 +130,84 @@ class ChannelHeaderParserTest {
         assertTrue(header.links.isEmpty())
     }
 
+    private fun pageHeader(
+        rows: String,
+        title: String = "{ \"content\": \"Canal\" }",
+        label: String = "Canal",
+    ) = """
+        {
+          "header": { "pageHeaderRenderer": { "content": { "pageHeaderViewModel": {
+            "title": { "dynamicTextViewModel": {
+              "text": $title,
+              "rendererContext": { "accessibilityContext": { "label": "$label" } }
+            } },
+            "metadata": { "contentMetadataViewModel": { "metadataRows": $rows } }
+          } } } }
+        }
+        """.trimIndent()
+
+    @Test
+    fun `reads the counts in Spanish, where neither part says subscriber or video (2058)`() {
+        val header =
+            parse(
+                pageHeader(
+                    """
+                    [
+                      { "metadataParts": [ { "text": { "content": "@KPOP_STUFFF" } } ] },
+                      { "metadataParts": [
+                        { "text": { "content": "89,7 K suscriptores" }, "accessibilityLabel": "89,7 mil suscriptores" },
+                        { "text": { "content": "279 vídeos" } }
+                      ] }
+                    ]
+                    """.trimIndent(),
+                ),
+            )
+
+        assertEquals("@KPOP_STUFFF", header.handle)
+        assertEquals("89,7 K suscriptores", header.subscriberCountText)
+        assertEquals(89_700L, header.subscriberCount)
+        assertEquals("279 vídeos", header.videoCountText)
+    }
+
+    @Test
+    fun `reads the counts in Japanese, where the number comes last`() {
+        val header =
+            parse(
+                pageHeader(
+                    """
+                    [
+                      { "metadataParts": [ { "text": { "content": "@MrBeast" } } ] },
+                      { "metadataParts": [
+                        { "text": { "content": "チャンネル登録者数 5.26億人" }, "accessibilityLabel": "チャンネル登録者数 5.26億人" },
+                        { "text": { "content": "1013 本の動画" } }
+                      ] }
+                    ]
+                    """.trimIndent(),
+                ),
+            )
+
+        assertEquals("チャンネル登録者数 5.26億人", header.subscriberCountText)
+        assertEquals("1013 本の動画", header.videoCountText)
+    }
+
+    @Test
+    fun `a lone count without a label is the video count of a channel that hides its subscribers`() {
+        val header =
+            parse(
+                pageHeader(
+                    """
+                    [
+                      { "metadataParts": [ { "text": { "content": "@quiet" } } ] },
+                      { "metadataParts": [ { "text": { "content": "12 vídeos" } } ] }
+                    ]
+                    """.trimIndent(),
+                ),
+            )
+
+        assertNull(header.subscriberCountText)
+        assertEquals("12 vídeos", header.videoCountText)
+    }
+
     @Test
     fun `keeps the requested id when the response carries none`() {
         assertEquals("UCrequested", parse("""{"contents":{}}""").id)
