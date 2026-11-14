@@ -83,6 +83,32 @@ class SaveSongViewModel
             }
         }
 
+        /** Adds [tracks] to the playlist in their order; songs already in it stay where they are. */
+        fun addAll(
+            tracks: List<MusicTrack>,
+            playlistId: String,
+        ) {
+            viewModelScope.launch {
+                val now = System.currentTimeMillis()
+                repository.addVideosToPlaylist(playlistId, tracks.mapIndexed { i, track -> track.toPlaylistVideo(now + i) })
+                _savedIds.update { it + playlistId }
+            }
+        }
+
+        fun createAndAddAll(
+            tracks: List<MusicTrack>,
+            name: String,
+            description: String,
+        ) {
+            viewModelScope.launch {
+                val playlistId = UUID.randomUUID().toString()
+                repository.createPlaylist(playlistId, name, description, isPrivate = false, isMusic = true)
+                val now = System.currentTimeMillis()
+                repository.addVideosToPlaylist(playlistId, tracks.mapIndexed { i, track -> track.toPlaylistVideo(now + i) })
+                _savedIds.update { it + playlistId }
+            }
+        }
+
         fun createAndAdd(
             track: MusicTrack,
             name: String,

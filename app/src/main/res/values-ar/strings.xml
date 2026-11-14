@@ -5358,4 +5358,17 @@
     <string name="disk_read_ahead_whole_video">الفيديو بالكامل</string>
     <string name="disk_read_ahead_unmetered_only">عبر Wi-Fi فقط</string>
     <string name="disk_read_ahead_unmetered_only_summary">ليس عبر بيانات الهاتف أو الشبكات محدودة الاستخدام</string>
+    <string name="lyrics_in_mini_player_summary">عرض المقطع الغنائي بدلًا من اسم الفنان</string>
+    <string name="lyrics_share">مشاركة كلمات الأغنية</string>
+    <string name="lyrics_share_selected">تم تحديد %1$d من %2$d سطر</string>
+    <string name="lyrics_share_align_left">يسار</string>
+    <string name="lyrics_share_align_center">وسط</string>
+    <string name="lyrics_share_align_right">يمين</string>
+    <string name="lyrics_share_frame_square">مربع</string>
+    <string name="lyrics_share_frame_backdrop">داخل إطار</string>
+    <string name="lyrics_share_size_fit">ملاءمة</string>
+    <string name="lyrics_share_size_square">1:1</string>
+    <string name="lyrics_share_size_story">قصة</string>
+    <string name="lyrics_share_layout_classic">كلاسيكي</string>
+    <string name="lyrics_share_layout_poster">‌ملصق</string>
 </resources>

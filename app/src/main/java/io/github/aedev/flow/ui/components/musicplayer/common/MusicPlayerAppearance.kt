@@ -25,6 +25,7 @@ internal class MusicPlayerAppearance(
     val backgroundStyle: MusicPlayerBackgroundStyle,
     val hideArtwork: Boolean,
     val sleepTimerButton: Boolean,
+    val splitTransport: Boolean,
     val playerScheme: ColorScheme,
     val controlScheme: ColorScheme,
 )
@@ -46,6 +47,7 @@ internal fun rememberMusicPlayerAppearance(
     val backgroundStyle = style ?: chosenStyle
     val hideArtwork by playerPreferences.hideMusicPlayerArtwork.collectAsState(initial = false)
     val sleepTimerButton by playerPreferences.musicSleepTimerButton.collectAsState(initial = false)
+    val splitTransport by playerPreferences.musicSplitTransport.collectAsState(initial = true)
     val followLightTheme by playerPreferences.musicPlayerFollowLightTheme.collectAsState(initial = false)
     val palette = rememberMediaPalette(thumbnailUrl)
     val lightPlayer = musicPlayerTurnsLight(backgroundStyle, followLightTheme, MaterialTheme.colorScheme.surface)
@@ -61,7 +63,17 @@ internal fun rememberMusicPlayerAppearance(
         backgroundStyle = backgroundStyle,
         hideArtwork = hideArtwork,
         sleepTimerButton = sleepTimerButton,
+        splitTransport = splitTransport,
         playerScheme = playerScheme,
         controlScheme = controlScheme,
     )
+}
+
+/** Whether the transport draws as a split button, for a host that reads nothing else of the player's look. */
+@Composable
+internal fun rememberSplitTransport(): Boolean {
+    val context = LocalContext.current
+    val preferences = remember(context) { PlayerPreferences(context) }
+    val split by preferences.musicSplitTransport.collectAsState(initial = true)
+    return split
 }

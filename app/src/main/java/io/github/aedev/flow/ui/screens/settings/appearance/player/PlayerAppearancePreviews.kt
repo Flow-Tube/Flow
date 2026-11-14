@@ -15,8 +15,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,9 +53,11 @@ import io.github.aedev.flow.ui.components.shared.icon
 import io.github.aedev.flow.ui.components.shared.isDestructive
 import io.github.aedev.flow.ui.components.shared.labelRes
 import io.github.aedev.flow.ui.theme.PlayerGround
+import kotlinx.coroutines.delay
 
 private const val PREVIEW_PROGRESS = 0.4f
 private const val PREVIEW_DURATION = 100f
+private const val PREVIEW_WAVE_MILLIS = 2_400L
 private const val SEEKBAR_PREVIEW_PROGRESS = 0.36f
 private val SeekbarPreviewHeight = 44.dp
 private val SeekbarPreviewInset = 8.dp
@@ -60,11 +65,16 @@ private val SeekbarTrackHeight = 4.dp
 private val BackgroundPreviewHeight = 72.dp
 private val GesturePreviewHeight = 184.dp
 
-/** The real player slider in [style], parked at 40 %. */
+/** The real player slider in [style], parked at 40 %. A wave moves for a moment, then holds still. */
 @Composable
 internal fun SliderStylePreview(style: SliderStyle) {
     val position = PREVIEW_DURATION * PREVIEW_PROGRESS
     val range = 0f..PREVIEW_DURATION
+    var waveMoving by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        delay(PREVIEW_WAVE_MILLIS)
+        waveMoving = false
+    }
     when (style) {
         SliderStyle.SQUIGGLY -> {
             SquigglySlider(
@@ -73,6 +83,7 @@ internal fun SliderStylePreview(style: SliderStyle) {
                 onValueChangeFinished = {},
                 valueRange = range,
                 isPlaying = true,
+                waveMoving = waveMoving,
             )
         }
 
@@ -83,6 +94,7 @@ internal fun SliderStylePreview(style: SliderStyle) {
                 onValueChangeFinished = {},
                 valueRange = range,
                 isPlaying = true,
+                waveMoving = waveMoving,
             )
         }
 

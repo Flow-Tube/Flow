@@ -144,6 +144,7 @@ class PlayerPreferences(
         val VIDEO_ARTWORK_COLORS = booleanPreferencesKey("video_artwork_colors")
         val MUSIC_PLAIN_CONTROL_COLORS = stringPreferencesKey("music_plain_control_colors")
         val MUSIC_SLEEP_TIMER_BUTTON = booleanPreferencesKey("music_sleep_timer_button")
+        val MUSIC_SPLIT_TRANSPORT = booleanPreferencesKey("music_split_transport")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
@@ -1094,6 +1095,17 @@ class PlayerPreferences(
     suspend fun setMusicSleepTimerButton(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MUSIC_SLEEP_TIMER_BUTTON] = enabled
+        }
+    }
+
+    /** Whether previous and next sit flat against play/pause as a split button, or stand apart as pills. */
+    val musicSplitTransport: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_SPLIT_TRANSPORT] ?: true }
+
+    suspend fun setMusicSplitTransport(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_SPLIT_TRANSPORT] = enabled
         }
     }
 

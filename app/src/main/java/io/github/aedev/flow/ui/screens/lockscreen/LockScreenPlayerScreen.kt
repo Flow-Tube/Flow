@@ -124,6 +124,7 @@ internal fun LockScreenPlayerScreen(
                         onPreviousClick = EnhancedMusicPlayerManager::playPrevious,
                         onPlayPauseToggle = EnhancedMusicPlayerManager::togglePlayPause,
                         onNextClick = EnhancedMusicPlayerManager::playNext,
+                        split = appearance.splitTransport,
                     )
                     Spacer(Modifier.height(16.dp))
                     LockScreenActionGroup()
