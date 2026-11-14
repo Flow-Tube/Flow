@@ -6,7 +6,6 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -47,24 +46,18 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.MiniBarButton
+import io.github.aedev.flow.data.local.MiniCoverTap
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
-import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.SYNCED_LINE_UNSUNG_ALPHA
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.SyncedLines
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.SyncedLyricLine
@@ -72,22 +65,16 @@ import io.github.aedev.flow.ui.components.shared.MediaPlayPauseButton
 import io.github.aedev.flow.ui.components.shared.titleMarquee
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
 import io.github.aedev.flow.ui.screens.playon.PlayOnButton
-import io.github.aedev.flow.ui.theme.ArtworkScrimContent
-import io.github.aedev.flow.ui.theme.ArtworkScrimNowPlaying
 import kotlinx.coroutines.flow.conflate
 import kotlin.math.abs
 
 private const val RING_GLIDE_MILLIS = 900
 private const val RING_GLIDE_MIN_JUMP_MILLIS = 5_000f
 
-private val ArtworkRingSize = 52.dp
-private val ArtworkSize = 43.dp
-private val ProgressRingStroke = 2.5.dp
-
 /**
  * The collapsed player: cover in a progress ring, title and artist, then the transport. Wider
  * windows give the card room for Previous as well. With [lyrics] the line being sung takes the
- * artist's place while a line is up.
+ * artist's place while a line is up. [look] is everything the user chose about the bar.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -100,6 +87,8 @@ internal fun MiniPlayerContent(
     showPrevious: Boolean = false,
     onOpen: (() -> Unit)? = null,
     lyrics: SyncedLines? = null,
+    look: MiniPlayerLook = MiniPlayerLook.Plain,
+    actions: MiniBarActions? = null,
 ) {
     val playerState by EnhancedMusicPlayerManager.playerState.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
@@ -122,174 +111,142 @@ internal fun MiniPlayerContent(
             animationsEnabled = animationsEnabled,
         )
 
-    Row(
+    val progressColor = MaterialTheme.colorScheme.primary
+    val progressTrack = MaterialTheme.colorScheme.onSurface
+    Box(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .miniBarProgress(look.barProgress, { ringProgress.value }, progressColor, progressTrack),
     ) {
-        // With [onOpen] the cover and titles are one target of their own, beside the transport buttons,
-        // so a remote reaches each of them; a touch host opens the player from the whole bar instead.
         Row(
             modifier =
                 Modifier
-                    .weight(1f)
-                    .then(
-                        if (onOpen == null) {
-                            Modifier
-                        } else {
-                            Modifier
-                                .fillMaxHeight()
-                                .clip(CircleShape)
-                                .clickable(interactionSource = null, indication = ripple(focusRingShape = CircleShape), onClick = onOpen)
-                        },
-                    ),
+                    .fillMaxSize()
+                    .padding(start = 8.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val ringTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-            val ringFillColor = MaterialTheme.colorScheme.primary
-            Box(
+            // With [onOpen] the cover and titles are one target of their own, beside the transport buttons,
+            // so a remote reaches each of them; a touch host opens the player from the whole bar instead.
+            Row(
                 modifier =
                     Modifier
-                        .size(ArtworkRingSize)
-                        .drawBehind {
-                            val stroke = ProgressRingStroke.toPx()
-                            val inset = stroke / 2f
-                            val arcSize = Size(size.width - stroke, size.height - stroke)
-                            drawArc(
-                                color = ringTrackColor,
-                                startAngle = -90f,
-                                sweepAngle = 360f,
-                                useCenter = false,
-                                topLeft = Offset(inset, inset),
-                                size = arcSize,
-                                style = Stroke(width = stroke, cap = StrokeCap.Round),
-                            )
-                            val progress = ringProgress.value
-                            if (progress > 0f) {
-                                drawArc(
-                                    color = ringFillColor,
-                                    startAngle = -90f,
-                                    sweepAngle = 360f * progress,
-                                    useCenter = false,
-                                    topLeft = Offset(inset, inset),
-                                    size = arcSize,
-                                    style = Stroke(width = stroke, cap = StrokeCap.Round),
-                                )
-                            }
-                        },
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(ArtworkSize)
-                            .clip(CircleShape),
-                ) {
-                    AsyncImage(
-                        model = track.listThumbnailUrl,
-                        contentDescription = stringResource(R.string.album_art),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                    if (playerState.isPlaying && animationsEnabled) {
-                        Box(
-                            modifier =
+                        .weight(1f)
+                        .then(
+                            if (onOpen == null) {
                                 Modifier
-                                    .fillMaxSize()
-                                    .background(ArtworkScrimNowPlaying),
-                            contentAlignment = Alignment.Center,
+                            } else {
+                                Modifier
+                                    .fillMaxHeight()
+                                    .clip(CircleShape)
+                                    .clickable(
+                                        interactionSource = null,
+                                        indication = ripple(focusRingShape = CircleShape),
+                                        onClick = onOpen,
+                                    )
+                            },
+                        ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                MiniPlayerCover(
+                    modifier =
+                        if (look.coverTap == MiniCoverTap.PLAY_PAUSE) {
+                            Modifier.clickable(
+                                interactionSource = null,
+                                indication = ripple(bounded = false),
+                                onClickLabel = stringResource(R.string.mini_button_play_pause),
+                            ) {
+                                haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                EnhancedMusicPlayerManager.togglePlayPause()
+                            }
+                        } else {
+                            Modifier
+                        },
+                    thumbnailUrl = track.listThumbnailUrl,
+                    trackId = track.videoId,
+                    isPlaying = playerState.isPlaying,
+                    look = look,
+                    animationsEnabled = animationsEnabled,
+                    ringProgress = { ringProgress.value },
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    key(track.videoId) {
+                        Text(
+                            text = track.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = if (animationsEnabled) Modifier.titleMarquee() else Modifier,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    val artistColor =
+                        if (elsewhere !=
+                            null
                         ) {
-                            PlayingWaveform(
-                                color = ArtworkScrimContent,
-                                barCount = 3,
-                                barWidth = 2.5.dp,
-                                barSpacing = 1.5.dp,
-                                staggerMillis = 120,
-                            )
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         }
+                    val artistLine: @Composable () -> Unit = {
+                        Text(
+                            text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = artistColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (lyrics != null && elsewhere == null) {
+                        val style = MaterialTheme.typography.labelLarge
+                        val sung = MaterialTheme.colorScheme.onSurface
+                        SyncedLyricLine(
+                            lyrics = lyrics,
+                            isPlaying = playerState.isPlaying,
+                            positionKey = playerState.position / 1000L,
+                            style = style,
+                            sungColor = sung,
+                            unsungColor = sung.copy(alpha = SYNCED_LINE_UNSUNG_ALPHA),
+                            // As tall as a lyric line either way, so the title doesn't move when the artist comes back.
+                            modifier = Modifier.fillMaxWidth().heightIn(min = with(LocalDensity.current) { style.lineHeight.toDp() }),
+                            active = animationsEnabled,
+                            clearInGaps = true,
+                            singleLine = true,
+                            contentAlignment = Alignment.CenterStart,
+                            empty = artistLine,
+                        )
+                    } else {
+                        artistLine()
+                    }
+                    if (look.barProgress.isLine()) {
+                        MiniBarProgressLine(
+                            style = look.barProgress,
+                            progress = { ringProgress.value },
+                            isPlaying = playerState.isPlaying,
+                            animationsEnabled = animationsEnabled,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
                     }
                 }
             }
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                key(track.videoId) {
-                    Text(
-                        text = track.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = if (animationsEnabled) Modifier.titleMarquee() else Modifier,
-                    )
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                val artistLine: @Composable () -> Unit = {
-                    Text(
-                        text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (elsewhere != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (lyrics != null && elsewhere == null) {
-                    val style = MaterialTheme.typography.labelLarge
-                    val sung = MaterialTheme.colorScheme.onSurface
-                    SyncedLyricLine(
-                        lyrics = lyrics,
-                        isPlaying = playerState.isPlaying,
-                        positionKey = playerState.position / 1000L,
-                        style = style,
-                        sungColor = sung,
-                        unsungColor = sung.copy(alpha = SYNCED_LINE_UNSUNG_ALPHA),
-                        // As tall as a lyric line either way, so the title doesn't move when the artist comes back.
-                        modifier = Modifier.fillMaxWidth().heightIn(min = with(LocalDensity.current) { style.lineHeight.toDp() }),
-                        active = animationsEnabled,
-                        clearInGaps = true,
-                        singleLine = true,
-                        contentAlignment = Alignment.CenterStart,
-                        empty = artistLine,
-                    )
-                } else {
-                    artistLine()
-                }
-            }
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (elsewhere != null) PlayOnButton()
-            if (showPrevious) {
-                IconButton(onClick = { EnhancedMusicPlayerManager.playPrevious() }) {
-                    Icon(
-                        imageVector = Icons.Rounded.SkipPrevious,
-                        contentDescription = stringResource(R.string.previous),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            MediaPlayPauseButton(
-                isPlaying = playerState.isPlaying,
-                isBuffering = playerState.isBuffering && animationsEnabled,
-                onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                    EnhancedMusicPlayerManager.togglePlayPause()
-                },
-            )
-            IconButton(onClick = { EnhancedMusicPlayerManager.playNext() }) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipNext,
-                    contentDescription = stringResource(R.string.next),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                if (elsewhere != null) PlayOnButton()
+                MiniBarButtons(
+                    buttons = barButtons(look.buttons, showPrevious),
+                    isPlaying = playerState.isPlaying,
+                    isBuffering = playerState.isBuffering && animationsEnabled,
+                    actions = actions,
                 )
             }
         }
@@ -328,3 +285,9 @@ internal fun ringStepGlides(
     toFraction: Float,
     durationMillis: Long,
 ): Boolean = durationMillis <= 0 || abs(toFraction - fromFraction) * durationMillis >= RING_GLIDE_MIN_JUMP_MILLIS
+
+/** The buttons to show: the user's, with Previous put first on a window wide enough to have shown it before. */
+internal fun barButtons(
+    chosen: List<MiniBarButton>,
+    showPrevious: Boolean,
+): List<MiniBarButton> = if (showPrevious && MiniBarButton.PREVIOUS !in chosen) listOf(MiniBarButton.PREVIOUS) + chosen else chosen

@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
+import io.github.aedev.flow.data.local.MiniBarBackground
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.local.SeekbarPaddingMode
 import io.github.aedev.flow.data.local.ShortsPlayerUiMode
@@ -32,6 +33,11 @@ internal fun musicBackgroundLabel(style: MusicPlayerBackgroundStyle): Int =
         MusicPlayerBackgroundStyle.GRADIENT -> R.string.player_background_style_gradient
         MusicPlayerBackgroundStyle.IMMERSIVE -> R.string.player_background_style_immersive
         MusicPlayerBackgroundStyle.DEFAULT -> R.string.player_background_style_default
+        MusicPlayerBackgroundStyle.COLOR -> R.string.player_background_style_color
+        MusicPlayerBackgroundStyle.COVER_COLOURS -> R.string.player_background_style_cover_colours
+        MusicPlayerBackgroundStyle.MOVING_COLOURS -> R.string.player_background_style_moving_colours
+        MusicPlayerBackgroundStyle.SHAPES -> R.string.player_background_style_shapes
+        MusicPlayerBackgroundStyle.BLACK -> R.string.player_background_style_black
     }
 
 @StringRes
@@ -75,4 +81,15 @@ internal fun miniPlayerSizeLabel(size: MiniPlayerSize): Int =
         MiniPlayerSize.SMALL -> R.string.mini_player_small
         MiniPlayerSize.NORMAL -> R.string.mini_player_normal
         MiniPlayerSize.LARGE -> R.string.mini_player_large
+    }
+
+@StringRes
+internal fun miniBackgroundLabel(background: MiniBarBackground): Int =
+    when (background) {
+        MiniBarBackground.TINTED -> R.string.mini_background_tinted
+        MiniBarBackground.VIVID -> R.string.mini_background_vivid
+        MiniBarBackground.APP_THEME -> R.string.mini_background_app_theme
+        MiniBarBackground.COVER_COLOURS -> R.string.mini_background_cover_colours
+        MiniBarBackground.BLACK -> R.string.mini_background_black
+        MiniBarBackground.OUTLINED -> R.string.mini_background_outlined
     }

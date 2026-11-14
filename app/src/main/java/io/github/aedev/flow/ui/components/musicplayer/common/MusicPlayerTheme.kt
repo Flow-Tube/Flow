@@ -40,12 +40,14 @@ fun rememberMusicPlayerColorScheme(
     }
 }
 
-/** The artwork styles that have a light version. Immersive keeps its dark scrim over the photo. */
+/** The artwork styles that have a light version. Immersive and the cover's colours keep a dark scrim; black stays black. */
 val MusicPlayerBackgroundStyle.canTurnLight: Boolean
     get() =
         this == MusicPlayerBackgroundStyle.GRADIENT ||
             this == MusicPlayerBackgroundStyle.BLUR ||
-            this == MusicPlayerBackgroundStyle.BLUR_GRADIENT
+            this == MusicPlayerBackgroundStyle.BLUR_GRADIENT ||
+            this == MusicPlayerBackgroundStyle.COLOR ||
+            this == MusicPlayerBackgroundStyle.SHAPES
 
 /** Whether the player draws its artwork style light: the switch is on and the app theme is light. */
 fun musicPlayerTurnsLight(

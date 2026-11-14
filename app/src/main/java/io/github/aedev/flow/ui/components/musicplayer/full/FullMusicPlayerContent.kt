@@ -47,6 +47,8 @@ import io.github.aedev.flow.ui.components.musicplayer.queue.QueuePullUpSheet
 import io.github.aedev.flow.ui.components.musicplayer.queue.QueueSheet
 import io.github.aedev.flow.ui.components.musicplayer.queue.queuePullUpGesture
 import io.github.aedev.flow.ui.components.musicplayer.queue.rememberQueuePullUpState
+import io.github.aedev.flow.ui.components.musicplayer.sheet.PlayerPanel
+import io.github.aedev.flow.ui.components.musicplayer.sheet.PlayerPanelRequestEffect
 import io.github.aedev.flow.ui.components.shared.MediaPalette
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackControls
 import io.github.aedev.flow.ui.components.shared.MediaSleepTimerSheet
@@ -72,6 +74,8 @@ internal fun FullMusicPlayerContent(
     // The transport, seek bar, like and download and the action row draw with this scheme.
     controlScheme: ColorScheme = MaterialTheme.colorScheme,
     onLyricsShownChange: (Boolean) -> Unit = {},
+    panelRequest: PlayerPanel? = null,
+    onPanelRequestHandled: () -> Unit = {},
     viewModel: MusicPlayerViewModel = sharedMusicPlayerViewModel(),
     videoSwitch: MusicVideoSwitchViewModel = hiltViewModel(),
 ) {
@@ -193,6 +197,17 @@ internal fun FullMusicPlayerContent(
             )
         LaunchedEffect(isPlayerSheetExpanded) {
             if (!isPlayerSheetExpanded) showLyricsSheet = false
+        }
+        PlayerPanelRequestEffect(panelRequest, isPlayerSheetExpanded, onPanelRequestHandled) { panel ->
+            val queue = panel == PlayerPanel.QUEUE
+            val tab = if (queue) PlayerSidePaneTab.UP_NEXT else PlayerSidePaneTab.LYRICS
+            if (isWide) {
+                selectSidePaneTab(tab)
+            } else if (queue) {
+                queueState.open()
+            } else {
+                openLyricsSheet()
+            }
         }
         val queueCoversArtwork by remember(queueState) { derivedStateOf { queueState.fraction() > QUEUE_COVERS_ARTWORK } }
         val animatedArtwork =
@@ -339,11 +354,11 @@ internal fun FullMusicPlayerContent(
             artworkAtStart = layout == MusicPlayerLayout.WIDE || layout == MusicPlayerLayout.SPLIT,
             animatedArtwork = animatedArtwork.takeIf { immersiveBackground },
             preloadCovers =
-                if (immersiveBackground && isPlayerSheetExpanded) {
-                    listOfNotNull(nextTrack?.highResThumbnailUrl, previousTrack?.highResThumbnailUrl)
-                } else {
-                    emptyList()
-                },
+                listOfNotNull(nextTrack?.highResThumbnailUrl, previousTrack?.highResThumbnailUrl)
+                    .takeIf { immersiveBackground && isPlayerSheetExpanded }
+                    .orEmpty(),
+            trackId = track.videoId,
+            motionRunning = isPlayerSheetExpanded && uiState.isPlaying && !showLyricsSheet && !queueCoversArtwork,
         )
 
         val sideSwipes = rememberMusicSideSwipes(layout, isPlayerSheetExpanded) { queueState.fraction() > 0f || showLyricsSheet }
@@ -432,6 +447,7 @@ internal fun FullMusicPlayerContent(
             )
         }
 
+        val largeLyrics = layout == MusicPlayerLayout.WIDE || layout == MusicPlayerLayout.PORTRAIT_LARGE
         NowPlayingLyricsSheet(
             uiState = uiState,
             viewModel = viewModel,
@@ -443,14 +459,7 @@ internal fun FullMusicPlayerContent(
             fallbackArtist = track.artist,
             artworkUrl = thumbnailUrl,
             positionState = positionState,
-            baseTextSize =
-                if (layout == MusicPlayerLayout.WIDE ||
-                    layout == MusicPlayerLayout.PORTRAIT_LARGE
-                ) {
-                    LARGE_LYRICS_TEXT_SIZE
-                } else {
-                    DEFAULT_LYRICS_TEXT_SIZE
-                },
+            baseTextSize = if (largeLyrics) LARGE_LYRICS_TEXT_SIZE else DEFAULT_LYRICS_TEXT_SIZE,
             onDismiss = { showLyricsSheet = false },
         )
 

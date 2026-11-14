@@ -144,6 +144,16 @@ class PlayerPreferences(
         val VIDEO_ARTWORK_COLORS = booleanPreferencesKey("video_artwork_colors")
         val MUSIC_PLAIN_CONTROL_COLORS = stringPreferencesKey("music_plain_control_colors")
         val MUSIC_SLEEP_TIMER_BUTTON = booleanPreferencesKey("music_sleep_timer_button")
+        val MINI_COVER_SHAPE = stringPreferencesKey("mini_cover_shape")
+        val MINI_COVER_MOTION = stringPreferencesKey("mini_cover_motion")
+        val MINI_COVER_SHAPES = stringPreferencesKey("mini_cover_shapes")
+        val MINI_COVER_PAUSED_SHAPE = stringPreferencesKey("mini_cover_paused_shape")
+        val MINI_BAR_PROGRESS = stringPreferencesKey("mini_bar_progress")
+        val MINI_BAR_BACKGROUND = stringPreferencesKey("mini_bar_background")
+        val MINI_COVER_RING = booleanPreferencesKey("mini_cover_ring")
+        val MINI_BAR_BUTTONS = stringPreferencesKey("mini_bar_buttons")
+        val MINI_COVER_TAP = stringPreferencesKey("mini_cover_tap")
+        val MINI_LONG_PRESS = stringPreferencesKey("mini_long_press")
         val MUSIC_SPLIT_TRANSPORT = booleanPreferencesKey("music_split_transport")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
@@ -1097,6 +1107,134 @@ class PlayerPreferences(
     suspend fun setMusicSleepTimerButton(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MUSIC_SLEEP_TIMER_BUTTON] = enabled
+        }
+    }
+
+    /** How the music mini player cuts out its cover. */
+    val miniCoverShape: Flow<MiniCoverShape> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniCoverShape.valueOf(preferences[Keys.MINI_COVER_SHAPE] ?: MiniCoverShape.MORPHING.name) }
+                    .getOrDefault(MiniCoverShape.MORPHING)
+            }
+
+    suspend fun setMiniCoverShape(shape: MiniCoverShape) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_SHAPE] = shape.name
+        }
+    }
+
+    /** When a morphing mini player cover changes shape. */
+    val miniCoverMotion: Flow<MiniCoverMotion> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniCoverMotion.valueOf(preferences[Keys.MINI_COVER_MOTION] ?: MiniCoverMotion.ON_PLAY.name) }
+                    .getOrDefault(MiniCoverMotion.ON_PLAY)
+            }
+
+    suspend fun setMiniCoverMotion(motion: MiniCoverMotion) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_MOTION] = motion.name
+        }
+    }
+
+    /** The shapes tracks draw their mini player cover from, in the order they were stored. */
+    val miniCoverShapes: Flow<List<CoverShape>> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> parseCoverShapes(preferences[Keys.MINI_COVER_SHAPES]) }
+
+    suspend fun setMiniCoverShapes(shapes: List<CoverShape>) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_SHAPES] = shapes.joinToString(",") { it.name }
+        }
+    }
+
+    /** The shape a paused morphing cover rests in; null keeps the track's own shape. */
+    val miniCoverPausedShape: Flow<CoverShape?> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> parsePausedCoverShape(preferences[Keys.MINI_COVER_PAUSED_SHAPE]) }
+
+    suspend fun setMiniCoverPausedShape(shape: CoverShape?) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_PAUSED_SHAPE] = shape?.name ?: KEEP_TRACK_SHAPE
+        }
+    }
+
+    /** How the music mini player's bar shows how far the song is, beside or instead of the cover's ring. */
+    val miniBarProgress: Flow<MiniBarProgress> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniBarProgress.valueOf(preferences[Keys.MINI_BAR_PROGRESS] ?: MiniBarProgress.NONE.name) }
+                    .getOrDefault(MiniBarProgress.NONE)
+            }
+
+    suspend fun setMiniBarProgress(progress: MiniBarProgress) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_BAR_PROGRESS] = progress.name
+        }
+    }
+
+    /** What the music mini player is painted with. */
+    val miniBarBackground: Flow<MiniBarBackground> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniBarBackground.valueOf(preferences[Keys.MINI_BAR_BACKGROUND] ?: MiniBarBackground.TINTED.name) }
+                    .getOrDefault(MiniBarBackground.TINTED)
+            }
+
+    suspend fun setMiniBarBackground(background: MiniBarBackground) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_BAR_BACKGROUND] = background.name
+        }
+    }
+
+    /** Whether the mini player's cover keeps its progress ring. */
+    val miniCoverRing: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MINI_COVER_RING] ?: true }
+
+    suspend fun setMiniCoverRing(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_RING] = enabled
+        }
+    }
+
+    /** The music mini player's buttons, in their order; empty when every one is off. */
+    val miniBarButtons: Flow<List<MiniBarButton>> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> parseMiniBarButtons(preferences[Keys.MINI_BAR_BUTTONS]) }
+
+    suspend fun setMiniBarButtons(buttons: List<MiniBarButton>) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_BAR_BUTTONS] = buttons.joinToString(",") { it.name }
+        }
+    }
+
+    /** What a tap on the mini player's cover does. */
+    val miniCoverTap: Flow<MiniCoverTap> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniCoverTap.valueOf(preferences[Keys.MINI_COVER_TAP] ?: MiniCoverTap.OPEN.name) }
+                    .getOrDefault(MiniCoverTap.OPEN)
+            }
+
+    suspend fun setMiniCoverTap(tap: MiniCoverTap) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_TAP] = tap.name
+        }
+    }
+
+    /** What holding the mini player does. */
+    val miniLongPress: Flow<MiniLongPress> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniLongPress.valueOf(preferences[Keys.MINI_LONG_PRESS] ?: MiniLongPress.NOTHING.name) }
+                    .getOrDefault(MiniLongPress.NOTHING)
+            }
+
+    suspend fun setMiniLongPress(press: MiniLongPress) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_LONG_PRESS] = press.name
         }
     }
 
@@ -5049,6 +5187,154 @@ enum class MusicPlainControlColors {
     APP_THEME,
 }
 
+/** The music mini player's cover: cut out with a shape that changes with the music, or a plain circle. Stored by name. */
+enum class MiniCoverShape {
+    MORPHING,
+    CIRCLE,
+}
+
+/**
+ * The Material 3 Expressive shapes a mini player cover can take, by their MaterialShapes name. [roomy]
+ * is false for shapes that leave much of a square cover out. Stored by name.
+ */
+enum class CoverShape(
+    val roomy: Boolean = true,
+) {
+    CIRCLE,
+    SQUARE,
+    SLANTED(roomy = false),
+    ARCH(roomy = false),
+    FAN(roomy = false),
+    ARROW(roomy = false),
+    SEMI_CIRCLE(roomy = false),
+    OVAL,
+    PILL,
+    TRIANGLE(roomy = false),
+    DIAMOND,
+    CLAM_SHELL,
+    PENTAGON,
+    GEM,
+    SUNNY,
+    VERY_SUNNY,
+    COOKIE_4,
+    COOKIE_6,
+    COOKIE_7,
+    COOKIE_9,
+    COOKIE_12,
+    GHOSTISH,
+    CLOVER_4,
+    CLOVER_8,
+    BURST,
+    SOFT_BURST,
+    BOOM,
+    SOFT_BOOM,
+    FLOWER,
+    PUFFY,
+    PUFFY_DIAMOND,
+    PIXEL_CIRCLE,
+    PIXEL_TRIANGLE,
+    BUN,
+    HEART,
+}
+
+/** The shapes a morphing cover uses until the user picks their own. */
+val DefaultCoverShapes =
+    listOf(CoverShape.COOKIE_9, CoverShape.CLOVER_4, CoverShape.COOKIE_6, CoverShape.FLOWER, CoverShape.SUNNY, CoverShape.SOFT_BURST)
+
+private const val KEEP_TRACK_SHAPE = "TRACK"
+
+/** Stored shape names back as shapes; unknown names are skipped, and an empty result means the defaults. */
+internal fun parseCoverShapes(stored: String?): List<CoverShape> =
+    stored
+        ?.split(',')
+        ?.mapNotNull { name -> runCatching { CoverShape.valueOf(name) }.getOrNull() }
+        ?.distinct()
+        ?.takeIf { it.isNotEmpty() }
+        ?: DefaultCoverShapes
+
+/** The stored paused shape: a circle by default, null when the track keeps its own shape. */
+internal fun parsePausedCoverShape(stored: String?): CoverShape? =
+    when (stored) {
+        null -> CoverShape.CIRCLE
+        KEEP_TRACK_SHAPE -> null
+        else -> runCatching { CoverShape.valueOf(stored) }.getOrDefault(CoverShape.CIRCLE)
+    }
+
+/** The music mini player's paint: the cover's tone on a quiet container (today), or one of the other looks. */
+enum class MiniBarBackground {
+    TINTED,
+    VIVID,
+    APP_THEME,
+    COVER_COLOURS,
+    BLACK,
+    OUTLINED,
+}
+
+/**
+ * How the music mini player's bar shows progress: a tonal fill behind it, a line around its edge, a
+ * line along its bottom, a wavy one, or nothing. Stored by name.
+ */
+enum class MiniBarProgress {
+    NONE,
+    FILL,
+    EDGE,
+    LINE,
+    WAVY_LINE,
+}
+
+/** A button the music mini player can show. Stored by name, in the user's order. */
+enum class MiniBarButton {
+    PREVIOUS,
+    PLAY_PAUSE,
+    NEXT,
+    LIKE,
+    ADD_TO_PLAYLIST,
+    SHUFFLE,
+    REPEAT,
+    QUEUE,
+    LYRICS,
+    SLEEP_TIMER,
+    BACK_10,
+    FORWARD_10,
+    CLOSE,
+}
+
+/** How many buttons a mini player shows at most; a wide window adds Previous on top when it's left out. */
+const val MAX_MINI_BAR_BUTTONS = 3
+
+/** Today's buttons, until the user picks their own. */
+val DefaultMiniBarButtons = listOf(MiniBarButton.PLAY_PAUSE, MiniBarButton.NEXT)
+
+/** Stored button names back as buttons: unknown names skipped, at most [MAX_MINI_BAR_BUTTONS]; nothing stored means the defaults. */
+internal fun parseMiniBarButtons(stored: String?): List<MiniBarButton> =
+    stored
+        ?.split(',')
+        ?.mapNotNull { name -> runCatching { MiniBarButton.valueOf(name) }.getOrNull() }
+        ?.distinct()
+        ?.take(MAX_MINI_BAR_BUTTONS)
+        ?: DefaultMiniBarButtons
+
+/** What a tap on the mini player's cover does: open the player as the rest of the bar does, or play and pause. */
+enum class MiniCoverTap {
+    OPEN,
+    PLAY_PAUSE,
+}
+
+/** What holding the mini player does. Stored by name. */
+enum class MiniLongPress {
+    NOTHING,
+    OPTIONS,
+    LIKE,
+    QUEUE,
+}
+
+/** When a morphing cover moves: as playback starts, stops and changes track, all the time it plays, or never. Stored by name. */
+enum class MiniCoverMotion {
+    ON_PLAY,
+    ALWAYS,
+    STILL,
+}
+
 /**
  * How a synced line moves as it is sung: letters that rise with the fill, held notes that swell and
  * syllable runs that climb (Cadence); words that lift as they fill (Classic); or the fill alone (Calm).
@@ -5086,6 +5372,11 @@ enum class MusicPlayerBackgroundStyle {
     GRADIENT,
     IMMERSIVE,
     DEFAULT,
+    COLOR,
+    COVER_COLOURS,
+    MOVING_COLOURS,
+    SHAPES,
+    BLACK,
 }
 
 /** Which side of the fullscreen player a vertical swipe changes the playback speed on, in place of brightness or volume. */

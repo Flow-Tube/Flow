@@ -45,3 +45,6 @@ val PlayerHeatmapCurvePeak = PlayerScrimContent.copy(alpha = 0.70f)
 
 /** The line along the top of the curve; the fill alone washes out over bright video. */
 val PlayerHeatmapCurveEdge = PlayerScrimContent.copy(alpha = 0.55f)
+
+/** The music player's and mini player's true-black look, for OLED screens. */
+val MusicPlayerTrueBlack = Color.Black
