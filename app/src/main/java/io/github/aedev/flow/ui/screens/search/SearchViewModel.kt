@@ -113,7 +113,7 @@ class SearchViewModel
             WatchedVideoLookup { videos ->
                 if (videos.isEmpty()) return@WatchedVideoLookup emptySet()
                 val progress = watchHistoryDao.getProgressFor(videos.map { it.id }.distinct())
-                watchedVideoIds(videos, progress, preferences.watchedThreshold.first())
+                watchedVideoIds(videos, progress, preferences.watchedThreshold.first(), preferences.countImportedAsWatched.first())
             }
 
         fun shortsShelfSource(

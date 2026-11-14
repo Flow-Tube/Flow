@@ -41,6 +41,7 @@ class ContentSettingsViewModel
         val hideWatchedShorts = preferences.hideWatchedShorts.asState(true)
         val removeWatchedWatchLater = preferences.removeWatchedFromWatchLater.asState(false)
         val watchedThreshold = preferences.watchedThreshold.asState(WatchedThreshold.ALMOST_FINISHED)
+        val countImportedAsWatched = preferences.countImportedAsWatched.asState(false)
         val sharedLinkAction = preferences.sharedLinkAction.asState(SharedLinkAction.ASK_WHILE_PLAYING)
 
         val notes = preferences.notesEnabled.asState(true)
@@ -97,6 +98,8 @@ class ContentSettingsViewModel
         fun setRemoveWatchedWatchLater(value: Boolean) = write { preferences.setRemoveWatchedFromWatchLater(value) }
 
         fun setWatchedThreshold(value: WatchedThreshold) = write { preferences.setWatchedThreshold(value) }
+
+        fun setCountImportedAsWatched(value: Boolean) = write { preferences.setCountImportedAsWatched(value) }
 
         fun setSharedLinkAction(value: SharedLinkAction) = write { preferences.setSharedLinkAction(value) }
 

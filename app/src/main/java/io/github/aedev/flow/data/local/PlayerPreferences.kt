@@ -332,6 +332,7 @@ class PlayerPreferences(
         val HIDE_WATCHED_SUBSCRIPTIONS = booleanPreferencesKey("hide_watched_subscriptions")
         val HIDE_WATCHED_SHORTS = booleanPreferencesKey("hide_watched_shorts")
         val WATCHED_THRESHOLD = stringPreferencesKey("watched_threshold")
+        val COUNT_IMPORTED_AS_WATCHED = booleanPreferencesKey("count_imported_as_watched")
         val SHARED_LINK_ACTION = stringPreferencesKey("shared_link_action")
         val DISABLE_SHORTS_PLAYER = booleanPreferencesKey("disable_shorts_player")
         val SHOW_SHORTS_PLAYER_PROMPT = booleanPreferencesKey("show_shorts_player_prompt")
@@ -3468,6 +3469,17 @@ class PlayerPreferences(
     suspend fun setWatchedThreshold(threshold: WatchedThreshold) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.WATCHED_THRESHOLD] = threshold.name
+        }
+    }
+
+    /** Rows from a YouTube history import count as watched, though Takeout doesn't say how far they were watched (#2060). */
+    val countImportedAsWatched: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.COUNT_IMPORTED_AS_WATCHED] ?: false }
+
+    suspend fun setCountImportedAsWatched(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.COUNT_IMPORTED_AS_WATCHED] = enabled
         }
     }
 
