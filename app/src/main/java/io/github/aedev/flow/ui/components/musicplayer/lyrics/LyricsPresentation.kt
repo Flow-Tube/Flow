@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.local.LyricsBackgroundStyle
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.WordTimestamp
@@ -126,6 +127,7 @@ internal data class LyricsDisplayOptions(
     val keepScreenOn: Boolean = false,
     val blurOtherLines: Boolean = true,
     val background: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,
+    val animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.CADENCE,
 )
 
 /**

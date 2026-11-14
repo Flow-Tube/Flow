@@ -1,8 +1,10 @@
 package io.github.aedev.flow.ui.components.musicplayer.lyrics
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,8 +34,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.lyrics.WordTimestamp
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import kotlinx.coroutines.isActive
@@ -45,12 +49,17 @@ private const val GLOW_PEAK_ALPHA = 0.5f
 private val GlowRadius = 10.dp
 
 /** A gradient shader made once and slid into place for each frame through its local matrix. */
-private class FrontBrush(
+internal class FrontBrush(
     private val shader: android.graphics.LinearGradient,
 ) : ShaderBrush() {
     private val matrix = android.graphics.Matrix()
 
+    /** Where the front was last moved to. */
+    var x = 0f
+        private set
+
     fun moveTo(x: Float) {
+        this.x = x
         matrix.setTranslate(x, 0f)
         shader.setLocalMatrix(matrix)
     }
@@ -58,7 +67,7 @@ private class FrontBrush(
     override fun createShader(size: Size): Shader = shader
 }
 
-private fun frontBrush(
+internal fun frontBrush(
     feather: Float,
     from: Color,
     to: Color,
@@ -81,7 +90,7 @@ private fun frontBrush(
  */
 internal fun needsUnsungLayer(unsungColor: Color): Boolean = unsungColor.alpha < 1f
 
-private inline fun DrawScope.withAlphaLayer(
+internal inline fun DrawScope.withAlphaLayer(
     alpha: Float,
     overscan: Float,
     block: DrawScope.() -> Unit,
@@ -98,7 +107,8 @@ private inline fun DrawScope.withAlphaLayer(
 /**
  * One lyric line sung word by word. Every layer is drawn from a single text layout, so the lit and
  * unlit parts always match: a word fills behind a soft gradient front, lifts a few dp on a spring
- * as it starts and settles, and long held notes glow while they last. Nothing is allocated per
+ * as it starts and settles, and long held notes glow while they last. [animationStyle] Cadence
+ * moves letters instead (see [drawCadenceLine]); Calm keeps only the fill. Nothing is allocated per
  * frame; only the active line runs a frame loop, and only while music plays.
  */
 @Composable
@@ -115,7 +125,10 @@ internal fun KaraokeLine(
     positionProvider: () -> Long,
     motionEnabled: Boolean,
     modifier: Modifier = Modifier,
+    animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.CLASSIC,
 ) {
+    val moving = motionEnabled && animationStyle != LyricsAnimationStyle.CALM
+    val cadence = motionEnabled && animationStyle == LyricsAnimationStyle.CADENCE
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val latestOffset by rememberUpdatedState(syncOffsetMs)
@@ -123,6 +136,9 @@ internal fun KaraokeLine(
     // Plain holder, written from draw: the last position the line was drawn at while current.
     val lastSungPosition = remember { LongArray(1) { Long.MIN_VALUE } }
     val lineLift = remember { Animatable(0f) }
+    // 1 when the line is not letting go: Cadence runs it from 0 once the next line starts.
+    val exit = remember { Animatable(1f) }
+    val wasCurrent = remember { BooleanArray(1) }
 
     LaunchedEffect(isCurrent, isPlaying) {
         if (!isCurrent || !isPlaying) {
@@ -142,9 +158,19 @@ internal fun KaraokeLine(
             }
         }
     }
-    LaunchedEffect(isCurrent, motionEnabled) {
+    LaunchedEffect(isCurrent, cadence) {
+        val letGo = cadence && !isCurrent && wasCurrent[0]
+        wasCurrent[0] = isCurrent
+        if (!letGo) {
+            exit.snapTo(1f)
+            return@LaunchedEffect
+        }
+        exit.snapTo(0f)
+        exit.animateTo(1f, tween(CADENCE_EXIT_MS, easing = LinearEasing))
+    }
+    LaunchedEffect(isCurrent, moving) {
         lineLift.animateTo(
-            targetValue = if (isCurrent && motionEnabled) 1f else 0f,
+            targetValue = if (isCurrent && moving) 1f else 0f,
             animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
         )
     }
@@ -160,7 +186,11 @@ internal fun KaraokeLine(
                 )
             }
         val ranges = remember(text, words, isBackground) { wordCharRanges(text, words, isBackground) }
-        val geometry = remember(layout, words, ranges) { buildKaraokeGeometry(measurer, layout, style, words, ranges) }
+        val splitLetters = cadence && !isBackground
+        val geometry =
+            remember(layout, words, ranges, splitLetters) {
+                buildKaraokeGeometry(measurer, layout, style, words, ranges, splitLetters)
+            }
         val fontPx = with(density) { style.fontSize.toPx() }
         val feather = fontPx * FEATHER_EM
         val liftPx = with(density) { WordLift.toPx() }
@@ -177,6 +207,28 @@ internal fun KaraokeLine(
                 Array(GLOW_LEVELS) { level ->
                     Shadow(color = sungColor.copy(alpha = GLOW_PEAK_ALPHA * (level + 1f) / GLOW_LEVELS), blurRadius = glowPx)
                 }
+            }
+        val cadenceInk =
+            remember(sungColor, unsungColor, feather, glows, cadence) {
+                if (!cadence) {
+                    null
+                } else {
+                    val clear = sungColor.copy(alpha = 0f)
+                    CadenceInk(
+                        sung = sungColor,
+                        unsung = unsungColor,
+                        forward = forward,
+                        backward = backward,
+                        fadeForward = frontBrush(feather, sungColor, clear),
+                        fadeBackward = frontBrush(feather, clear, sungColor),
+                        glows = glows,
+                    )
+                }
+            }
+        val frame = remember { CadenceFrame() }
+        val anchor =
+            remember(layout, style) {
+                reflowAnchor(style.textAlign, layout.getParagraphDirection(0) == ResolvedTextDirection.Rtl)
             }
 
         Canvas(
@@ -196,6 +248,20 @@ internal fun KaraokeLine(
             val lift = lineLift.value
             // The lift's spring overshoots, so the clip has to reach past its resting height.
             val overscan = liftPx * 2f
+            if (cadenceInk != null && (isCurrent || lift != 0f || exit.value < 1f)) {
+                frame.position = if (isCurrent) position else lastSungPosition[0]
+                frame.liftClock = frame.position
+                frame.exit = if (isCurrent) -1f else exit.value
+                frame.lineLift = lift
+                frame.peakPx = fontPx * CADENCE_PEAK_EM
+                frame.featherPx = feather
+                frame.anchor = anchor
+                // Grown words reach above the row as well as the lift does.
+                frame.overscan = liftPx * 2f + fontPx * 0.25f
+                frame.glow = true
+                drawCadenceLine(geometry, cadenceInk, frame)
+                return@Canvas
+            }
             if (!isCurrent && lift == 0f) {
                 if (layered) {
                     withAlphaLayer(unsungColor.alpha, overscan) { drawText(layout, color = solidUnsung) }
@@ -235,7 +301,7 @@ internal fun KaraokeLine(
                     }
                 val glowLayout = cell.glow
                 val glowLevel = heldNoteGlowLevel(progress)
-                if (motionEnabled && glowLayout != null && glowLevel >= 0) {
+                if (moving && glowLayout != null && glowLevel >= 0) {
                     translate(
                         left = cell.inkLeft - glowLayout.getBoundingBox(0).left,
                         top = row.dy + row.layout.firstBaseline - glowLayout.firstBaseline - wordLift,
