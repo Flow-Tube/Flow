@@ -6,9 +6,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
@@ -50,8 +51,7 @@ internal class MusicSheetDragGestureHandler(
     }
 
     fun onVerticalDrag(
-        uptimeMillis: Long,
-        position: Offset,
+        change: PointerInputChange,
         dragAmount: Float,
     ) {
         accumulatedDragY += dragAmount
@@ -74,7 +74,9 @@ internal class MusicSheetDragGestureHandler(
                     expansionFractionValue = frame.expansionFraction,
                 )
             }
-        velocityTracker.addPosition(uptimeMillis, position)
+        // The bar moves with the finger, so its local positions barely change; the change's own
+        // deltas give the finger's real speed (#2064).
+        velocityTracker.addPointerInputChange(change)
     }
 
     fun onDragEnd() {
@@ -85,7 +87,15 @@ internal class MusicSheetDragGestureHandler(
         val verticalVelocity = velocityTracker.calculateVelocity().y
         val currentFraction = expansionFraction.value
         val startedCollapsed = initialFractionOnDragStart == 0f
-        if (shouldCloseMusicMiniDownward(startedCollapsed, accumulatedDragY, miniHeightPxProvider(), verticalVelocity)) {
+        val closeFlingVelocity = with(densityProvider()) { CLOSE_FLING_DP_PER_SECOND.dp.toPx() }
+        if (shouldCloseMusicMiniDownward(
+                startedCollapsed,
+                accumulatedDragY,
+                miniHeightPxProvider(),
+                verticalVelocity,
+                closeFlingVelocity,
+            )
+        ) {
             accumulatedDragY = 0f
             onCloseDownward()
             return
@@ -125,11 +135,7 @@ internal fun Modifier.musicSheetVerticalDragGesture(
             onDragStart = { handler.onDragStart() },
             onVerticalDrag = { change, dragAmount ->
                 change.consume()
-                handler.onVerticalDrag(
-                    uptimeMillis = change.uptimeMillis,
-                    position = change.position,
-                    dragAmount = dragAmount,
-                )
+                handler.onVerticalDrag(change = change, dragAmount = dragAmount)
             },
             onDragEnd = { handler.onDragEnd() },
             onDragCancel = { handler.onDragCancel() },

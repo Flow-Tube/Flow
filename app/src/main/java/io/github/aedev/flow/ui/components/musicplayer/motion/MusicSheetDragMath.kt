@@ -7,7 +7,9 @@ import kotlin.math.abs
 /** How far below its resting place a collapsed bar can be pulled, in bar heights, while closing it. */
 private const val CLOSE_PULL_LIMIT_HEIGHTS = 1.5f
 private const val CLOSE_PULL_HEIGHTS = 0.5f
-private const val CLOSE_FLING_VELOCITY = 800f
+
+/** How fast, in dp per second, a downward flick on the collapsed bar has to be to close it. */
+internal const val CLOSE_FLING_DP_PER_SECOND = 300f
 
 internal data class MusicSheetDragFrame(
     val translationY: Float,
@@ -61,10 +63,11 @@ internal fun shouldCloseMusicMiniDownward(
     accumulatedDragY: Float,
     miniHeightPx: Float,
     verticalVelocity: Float,
+    closeFlingVelocity: Float,
 ): Boolean =
     startedCollapsed &&
         accumulatedDragY > 0f &&
-        (accumulatedDragY > miniHeightPx * CLOSE_PULL_HEIGHTS || verticalVelocity > CLOSE_FLING_VELOCITY)
+        (accumulatedDragY > miniHeightPx * CLOSE_PULL_HEIGHTS || verticalVelocity > closeFlingVelocity)
 
 internal fun collapseSpringDampingForFraction(currentFraction: Float): Float =
     lerp(
