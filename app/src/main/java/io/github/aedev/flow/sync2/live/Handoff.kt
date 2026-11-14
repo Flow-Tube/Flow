@@ -11,8 +11,11 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** A device that hasn't answered by then didn't take the request. */
-private const val RESULT_MS = 15_000L
+/**
+ * A device that hasn't answered by then didn't take the request. Longer than the 20 s a receiving device waits
+ * for playback to start, so a slow start is never reported as a failure while that device goes on to play it.
+ */
+private const val RESULT_MS = 25_000L
 
 /**
  * Handoff and remote control between the group's devices, like a single active player (spec/live.md,
