@@ -5370,4 +5370,5 @@
     <string name="lyrics_share_size_square">1:1</string>
     <string name="lyrics_share_size_story">قصة</string>
     <string name="lyrics_share_layout_classic">كلاسيكي</string>
+    <string name="lyrics_share_layout_poster">‌ملصق</string>
 </resources>
