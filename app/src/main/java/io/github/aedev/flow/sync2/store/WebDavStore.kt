@@ -25,9 +25,6 @@ private val XML = "application/xml; charset=utf-8".toMediaType()
 private fun propfind(property: String) =
     """<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:$property/></d:prop></d:propfind>"""
 
-/** Servers whose folder ETags change with anything inside: Nextcloud and ownCloud. */
-private val PROPAGATING = setOf("http://nextcloud.org/ns", "http://owncloud.org/ns")
-
 /**
  * A WebDAV folder as a file store (spec/store.md, WebDAV): `PUT`, `GET`, `MKCOL` and `PROPFIND` with
  * `Depth` always explicit. A 401 stops every later request with the same credentials, because
@@ -160,6 +157,20 @@ class WebDavStore private constructor(
         return multistatus(bytes).takeIf { it.propagates }?.etags?.firstOrNull()
     }
 
+    /** When each device last wrote here, from one `PROPFIND` of `dev/` ([deviceTimes]). */
+    suspend fun seen(): Map<String, Long> {
+        val (code, bytes) = send("PROPFIND", "dev/", propfind("getlastmodified").toRequestBody(XML), mapOf("Depth" to "1"))
+        if (code == 404) return emptyMap()
+        if (code != 207) refusal(code)
+        val times =
+            try {
+                readDavTimes(parser(bytes))
+            } catch (_: Exception) {
+                throw StoreException.Malformed()
+            }
+        return deviceTimes(times)
+    }
+
     /**
      * Makes the store's folder, then writes, reads back and deletes a probe file, so wrong
      * credentials or a read-only folder show up before anything else is written (spec/store.md,
@@ -187,13 +198,18 @@ class WebDavStore private constructor(
         val propagates: Boolean,
     )
 
+    private fun parser(bytes: ByteArray): XmlPullParser =
+        Xml.newPullParser().apply {
+            setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true)
+            setInput(bytes.inputStream(), null)
+        }
+
     private fun multistatus(bytes: ByteArray): Multistatus {
         val hrefs = ArrayList<String>()
         val etags = ArrayList<String>()
         var propagates = false
         try {
-            val parser = Xml.newPullParser().apply { setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true) }
-            parser.setInput(bytes.inputStream(), null)
+            val parser = parser(bytes)
             while (parser.next() != XmlPullParser.END_DOCUMENT) {
                 if (parser.eventType != XmlPullParser.START_TAG) continue
                 for (i in parser.getNamespaceCount(parser.depth - 1) until parser.getNamespaceCount(parser.depth)) {
