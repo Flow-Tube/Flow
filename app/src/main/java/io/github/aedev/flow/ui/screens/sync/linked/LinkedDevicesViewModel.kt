@@ -44,6 +44,8 @@ internal data class LinkedUiState(
     val requests: List<JoinRequest> = emptyList(),
     /** Devices met on this network while the app runs. */
     val nearby: Map<String, Long> = emptyMap(),
+    /** The other devices the live channel reaches now, with what each plays. */
+    val presence: Map<String, DevicePresence> = emptyMap(),
     /** What each device told it is ("phone", "tv"…), this one included, for its icon. */
     val kinds: Map<String, String> = emptyMap(),
     /** Recovery words to show once, until the user proves they wrote them down. */
@@ -126,8 +128,10 @@ internal class LinkedDevicesViewModel
                 actions.lastSync,
                 actions.nearby,
                 actions.syncing,
-                combine(local, live.devices) { l, peers -> l to peers },
-            ) { group, lastSync, nearby, syncing, (l, peers) ->
+                combine(local, live.devices, live.online) { l, peers, reachable ->
+                    Triple(l, peers, devicePresence(peers, reachable, System.currentTimeMillis(), live::isOnline))
+                },
+            ) { group, lastSync, nearby, syncing, (l, peers, presence) ->
                 val kinds = peers.mapNotNull { (did, peer) -> peer.kind?.let { did to it } }.toMap()
                 val own = l.devices?.firstOrNull { it.thisDevice }?.id
                 LinkedUiState(
@@ -137,6 +141,7 @@ internal class LinkedDevicesViewModel
                     l.devices,
                     l.requests,
                     nearby,
+                    presence,
                     if (own != null) kinds + (own to ownKind) else kinds,
                     l.words,
                     l.restore?.devices,

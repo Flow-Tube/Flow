@@ -75,6 +75,7 @@ internal fun LinkedOverview(
     LinkedStatusCard(state, onSyncNow)
     LinkedDeviceRows(
         devices = state.devices.orEmpty(),
+        presence = state.presence,
         nearby = state.nearby,
         kinds = state.kinds,
         busy = state.busy,
