@@ -4947,4 +4947,7 @@
     <string name="comments_timed_next">Növbəti şərh %1$s \'də</string>
     <string name="comments_timed_end">Bu videoda artıq zamanlı şərhlər yoxdur</string>
     <string name="dlna_google_cast_unsupported">Chromecast və digər Google Cast cihazları dəstəklənmir.</string>
+    <string name="content_settings_count_imported_watched_title">İzlənilən kimi idxal edilmiş tarixçəni hesabla</string>
+    <string name="content_settings_count_imported_watched_subtitle">YouTube tarixçəsindən idxal edilən videolar izlənildi kimi göstərilir</string>
+    <string name="settings_keywords_count_imported_watched">takeout, idxal, youtube tarixçəsi, görülüb</string>
 </resources>

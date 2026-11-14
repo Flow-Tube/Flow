@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.SliderStyle
 import io.github.aedev.flow.sync2.live.LiveMessage
+import io.github.aedev.flow.ui.components.musicplayer.common.rememberSplitTransport
 import io.github.aedev.flow.ui.components.musicplayer.controls.ExpressivePlayerSlider
 import io.github.aedev.flow.ui.components.musicplayer.controls.expressiveSliderSpec
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
@@ -87,6 +88,7 @@ internal fun PlayOnNowCard(
                 onPreviousClick = { onControl("previous", null) },
                 onPlayPauseToggle = { onControl(if (playing) "pause" else "play", null) },
                 onNextClick = { onControl("next", null) },
+                split = rememberSplitTransport(),
             )
             VolumeBar(session.device.did, now.vol) { onControl("volume", it) }
         }

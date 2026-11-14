@@ -154,6 +154,7 @@ class PlayerPreferences(
         val MINI_BAR_BUTTONS = stringPreferencesKey("mini_bar_buttons")
         val MINI_COVER_TAP = stringPreferencesKey("mini_cover_tap")
         val MINI_LONG_PRESS = stringPreferencesKey("mini_long_press")
+        val MUSIC_SPLIT_TRANSPORT = booleanPreferencesKey("music_split_transport")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
@@ -1232,6 +1233,17 @@ class PlayerPreferences(
     suspend fun setMiniLongPress(press: MiniLongPress) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MINI_LONG_PRESS] = press.name
+        }
+    }
+
+    /** Whether previous and next sit flat against play/pause as a split button, or stand apart as pills. */
+    val musicSplitTransport: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_SPLIT_TRANSPORT] ?: true }
+
+    suspend fun setMusicSplitTransport(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_SPLIT_TRANSPORT] = enabled
         }
     }
 
@@ -5300,6 +5312,17 @@ enum class MiniCoverMotion {
     ON_PLAY,
     ALWAYS,
     STILL,
+}
+
+/**
+ * How a synced line moves as it is sung: letters that rise with the fill, held notes that swell and
+ * syllable runs that climb (Cadence); words that lift as they fill (Classic); or the fill alone (Calm).
+ * Stored by name.
+ */
+enum class LyricsAnimationStyle {
+    CADENCE,
+    CLASSIC,
+    CALM,
 }
 
 /** What the full-screen lyrics draw on. Stored by name. */

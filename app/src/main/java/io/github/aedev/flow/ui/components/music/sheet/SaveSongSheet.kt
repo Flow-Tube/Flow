@@ -68,3 +68,53 @@ fun SaveSongSheet(
         )
     }
 }
+
+/**
+ * Adds several songs to a playlist at once. Each playlist picked gets them all, once; a playlist that
+ * already had some keeps those where they were.
+ */
+@Composable
+fun SaveSongsSheet(
+    tracks: List<MusicTrack>,
+    onDismiss: () -> Unit,
+    viewModel: SaveSongViewModel = hiltViewModel(),
+) {
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val savedIds by viewModel.savedIds.collectAsStateWithLifecycle()
+    var showCreateDialog by remember { mutableStateOf(false) }
+
+    val entries =
+        playlists.map { playlist ->
+            CollectionSheetEntry(
+                id = playlist.id,
+                name = playlist.name,
+                supporting = pluralStringResource(R.plurals.songs_count_template, playlist.videoCount, playlist.videoCount),
+                thumbnailUrl = playlist.thumbnailUrl,
+                isSaved = playlist.id in savedIds,
+            )
+        }
+
+    SaveToCollectionSheet(
+        title = pluralStringResource(R.plurals.add_songs_to_playlist_title, tracks.size, tracks.size),
+        entries = entries,
+        placeholderIcon = Icons.Default.MusicNote,
+        createLabel = stringResource(R.string.create_new_playlist),
+        emptyLabel = stringResource(R.string.empty_playlists_dialog),
+        onToggle = { entry -> if (!entry.isSaved) viewModel.addAll(tracks, entry.id) },
+        onCreateNew = { showCreateDialog = true },
+        onDismiss = onDismiss,
+    )
+
+    if (showCreateDialog) {
+        CollectionEditDialog(
+            title = stringResource(R.string.title_create_playlist),
+            confirmLabel = stringResource(R.string.action_create),
+            icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+            onDismiss = { showCreateDialog = false },
+            onConfirm = { name, description ->
+                viewModel.createAndAddAll(tracks, name, description)
+                showCreateDialog = false
+            },
+        )
+    }
+}

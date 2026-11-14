@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
 import androidx.compose.material.icons.automirrored.outlined.QueueMusic
 import androidx.compose.material.icons.outlined.PlaylistRemove
+import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +70,7 @@ private val QueueRowMenuAction.icon: ImageVector
             QueueRowMenuAction.MOVE_UP -> Icons.Rounded.KeyboardArrowUp
             QueueRowMenuAction.MOVE_DOWN -> Icons.Rounded.KeyboardArrowDown
             QueueRowMenuAction.REMOVE -> Icons.Outlined.PlaylistRemove
+            QueueRowMenuAction.SELECT -> Icons.Rounded.Checklist
         }
 
 private val QueueRowMenuAction.labelRes: Int
@@ -80,4 +82,5 @@ private val QueueRowMenuAction.labelRes: Int
             QueueRowMenuAction.MOVE_DOWN -> R.string.move_down
             QueueRowMenuAction.MOVE_TO_END -> R.string.queue_move_to_end
             QueueRowMenuAction.REMOVE -> R.string.remove_from_queue
+            QueueRowMenuAction.SELECT -> R.string.select_songs
         }

@@ -63,6 +63,7 @@ class PlayerAppearanceViewModel
         val miniCoverTap = preferences.miniCoverTap.asState(MiniCoverTap.OPEN)
         val miniLongPress = preferences.miniLongPress.asState(MiniLongPress.NOTHING)
         val miniBarBackground = preferences.miniBarBackground.asState(MiniBarBackground.TINTED)
+        val splitTransport = preferences.musicSplitTransport.asState(true)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -142,6 +143,7 @@ class PlayerAppearanceViewModel
         fun setMiniLongPress(value: MiniLongPress) = write { preferences.setMiniLongPress(value) }
 
         fun setMiniBarBackground(value: MiniBarBackground) = write { preferences.setMiniBarBackground(value) }
+        fun setSplitTransport(value: Boolean) = write { preferences.setMusicSplitTransport(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 

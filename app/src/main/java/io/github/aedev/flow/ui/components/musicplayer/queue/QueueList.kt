@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.musicplayer.queue
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -30,7 +32,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,6 +59,9 @@ import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.RepeatMode
+import io.github.aedev.flow.ui.components.layout.FlowBottomInsets
+import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
+import io.github.aedev.flow.ui.components.shared.FlowSelectionToolbar
 import io.github.aedev.flow.ui.components.shared.FlowSwitch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -73,11 +80,16 @@ internal class QueueActions(
     val onToggleEndlessRadio: (Boolean) -> Unit,
     val onShuffleQueue: () -> Unit,
     val onCycleRepeat: () -> Unit,
+    val onRemoveTracks: (List<Int>) -> Unit,
+    val onDownloadTracks: (List<MusicTrack>) -> Unit,
+    val onSaveTracks: (List<MusicTrack>) -> Unit,
 )
 
 /**
  * The queue itself: hold and drag a row to reorder, swipe a row either way for what [swipes] sets
- * for that side, then the endless-radio toggle and its suggestions.
+ * for that side, then the endless-radio toggle and its suggestions. While [selection] is active a
+ * tap picks a row instead, and the picked songs can be moved, saved, downloaded or removed together.
+ * [selectEntry] adds a Select row for a host with no header of its own.
  */
 @Composable
 internal fun QueueList(
@@ -92,6 +104,8 @@ internal fun QueueList(
     actions: QueueActions,
     modifier: Modifier = Modifier,
     clearNavigationBar: Boolean = true,
+    selection: QueueSelection = remember { QueueSelection() },
+    selectEntry: Boolean = false,
 ) {
     val listState = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
@@ -101,14 +115,17 @@ internal fun QueueList(
     LaunchedEffect(queue) {
         localQueue.clear()
         localQueue.addAll(queue)
-        val seen = HashMap<String, Int>()
         localKeys.clear()
-        queue.forEach { track ->
-            val occurrence = (seen[track.videoId] ?: 0) + 1
-            seen[track.videoId] = occurrence
-            localKeys.add("${track.videoId}#$occurrence")
-        }
+        localKeys.addAll(queueKeys(queue))
+        selection.retain(localKeys)
     }
+    val selecting = selection.active
+    BackHandler(enabled = selecting) { selection.end() }
+    val picked = selection.keys.orEmpty()
+
+    fun pickedIndices(): List<Int> = localKeys.indices.filter { localKeys[it] in picked }
+
+    fun pickedTracks(): List<MusicTrack> = pickedIndices().mapNotNull { localQueue.getOrNull(it) }
 
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState =
@@ -179,6 +196,10 @@ internal fun QueueList(
             QueueRowMenuAction.REMOVE -> {
                 actions.onRemoveFromQueue(index)
             }
+
+            QueueRowMenuAction.SELECT -> {
+                selection.start(localKeys.getOrNull(index))
+            }
         }
     }
 
@@ -186,140 +207,197 @@ internal fun QueueList(
     val moveToEndLabel = stringResource(R.string.queue_move_to_end)
     val removeLabel = stringResource(R.string.remove_from_queue)
 
-    LazyColumn(
-        state = listState,
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        itemsIndexed(localQueue, key = { index, _ -> localKeys.getOrNull(index) ?: index }) { index, track ->
-            ReorderableItem(
-                state = reorderableState,
-                key = localKeys.getOrNull(index) ?: index,
-            ) { isDragging ->
-                val scale by animateFloatAsState(
-                    targetValue = if (isDragging) 1.02f else 1f,
-                    animationSpec =
-                        spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow,
-                        ),
-                    label = "queueRowLift",
+    Box(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (selecting) {
+                QueueSelectionBar(
+                    count = picked.size,
+                    allPicked = localKeys.isNotEmpty() && picked.containsAll(localKeys),
+                    onToggleAll = { selection.toggleAll(localKeys.toList()) },
+                    onClose = selection::end,
+                    modifier = Modifier.padding(horizontal = 14.dp),
                 )
-                val isCurrent = index == currentIndex
-                QueueTrackRow(
-                    track = track,
-                    isCurrent = isCurrent,
-                    isPlaying = isPlaying,
-                    isRadioItem = false,
-                    isDragging = isDragging,
-                    swipeEnabled = !isCurrent && !isDragging,
-                    isDownloaded = downloadedTrackIds.contains(track.videoId),
-                    leftSwipe = swipes.left.rowSwipe,
-                    rightSwipe = swipes.right.rowSwipe,
-                    rowKey = localKeys.getOrNull(index) ?: track.videoId,
-                    onClick = { actions.onTrackClick(index) },
-                    onSwipe = { swipe -> onQueueSwipe(swipe, index) },
-                    onMenu = if (isCurrent) null else ({ menuTarget = QueueMenuTarget(track, index, isRadioItem = false) }),
-                    modifier =
-                        Modifier
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                            }.semantics {
-                                if (!isCurrent) {
-                                    customActions =
-                                        listOf(
-                                            playNextLabel to QueueRowSwipe.PLAY_NEXT,
-                                            moveToEndLabel to QueueRowSwipe.MOVE_TO_END,
-                                            removeLabel to QueueRowSwipe.REMOVE,
-                                        ).map { (label, swipe) ->
-                                            CustomAccessibilityAction(label) {
-                                                onQueueSwipe(swipe, index)
-                                                true
-                                            }
-                                        }
-                                }
-                            }.longPressDraggableHandle(
-                                onDragStarted = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                },
-                                onDragStopped = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                },
-                            ),
-                )
+            } else if (selectEntry) {
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp), contentAlignment = Alignment.CenterEnd) {
+                    TextButton(onClick = { selection.start() }) { Text(stringResource(R.string.select_songs)) }
+                }
             }
-        }
-
-        item(key = "endless_radio_toggle") {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .animateItem()
-                        .padding(top = 10.dp, bottom = 4.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .clickable { actions.onToggleEndlessRadio(!endlessRadioEnabled) }
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentPadding = PaddingValues(horizontal = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Sensors,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(22.dp),
-                )
-                Text(
-                    text = stringResource(R.string.music_endless_radio_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                FlowSwitch(
-                    checked = endlessRadioEnabled,
-                    onCheckedChange = actions.onToggleEndlessRadio,
-                )
-            }
-        }
+                itemsIndexed(localQueue, key = { index, _ -> localKeys.getOrNull(index) ?: index }) { index, track ->
+                    ReorderableItem(
+                        state = reorderableState,
+                        key = localKeys.getOrNull(index) ?: index,
+                        enabled = !selecting,
+                    ) { isDragging ->
+                        val scale by animateFloatAsState(
+                            targetValue = if (isDragging) 1.02f else 1f,
+                            animationSpec =
+                                spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                ),
+                            label = "queueRowLift",
+                        )
+                        val isCurrent = index == currentIndex
+                        val key = localKeys.getOrNull(index) ?: track.videoId
+                        QueueTrackRow(
+                            track = track,
+                            isCurrent = isCurrent,
+                            isPlaying = isPlaying,
+                            isRadioItem = false,
+                            isDragging = isDragging,
+                            swipeEnabled = !isCurrent && !isDragging && !selecting,
+                            isDownloaded = downloadedTrackIds.contains(track.videoId),
+                            leftSwipe = swipes.left.rowSwipe,
+                            rightSwipe = swipes.right.rowSwipe,
+                            rowKey = localKeys.getOrNull(index) ?: track.videoId,
+                            onClick = { if (selecting) selection.toggle(key) else actions.onTrackClick(index) },
+                            onSwipe = { swipe -> onQueueSwipe(swipe, index) },
+                            onMenu = if (isCurrent || selecting) null else ({ menuTarget = QueueMenuTarget(track, index, false) }),
+                            selected = if (selecting) key in picked else null,
+                            modifier =
+                                Modifier
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                    }.semantics {
+                                        if (!isCurrent) {
+                                            customActions =
+                                                listOf(
+                                                    playNextLabel to QueueRowSwipe.PLAY_NEXT,
+                                                    moveToEndLabel to QueueRowSwipe.MOVE_TO_END,
+                                                    removeLabel to QueueRowSwipe.REMOVE,
+                                                ).map { (label, swipe) ->
+                                                    CustomAccessibilityAction(label) {
+                                                        onQueueSwipe(swipe, index)
+                                                        true
+                                                    }
+                                                }
+                                        }
+                                    }.longPressDraggableHandle(
+                                        onDragStarted = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        },
+                                        onDragStopped = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                        },
+                                    ),
+                        )
+                    }
+                }
 
-        if (endlessRadioEnabled) {
-            itemsIndexed(radioTracks, key = { _, track -> "radio:${track.videoId}" }) { _, track ->
-                Box(modifier = Modifier.animateItem()) {
-                    QueueTrackRow(
-                        track = track,
-                        isCurrent = false,
-                        isPlaying = isPlaying,
-                        isRadioItem = true,
-                        isDragging = false,
-                        swipeEnabled = true,
-                        isDownloaded = downloadedTrackIds.contains(track.videoId),
-                        leftSwipe = QueueRowSwipe.PLAY_NEXT,
-                        rightSwipe = QueueRowSwipe.ADD_TO_QUEUE,
-                        rowKey = "radio:${track.videoId}",
-                        onClick = { actions.onRadioTrackClick(track) },
-                        onSwipe = { swipe ->
-                            if (swipe == QueueRowSwipe.PLAY_NEXT) actions.onPlayNextRadio(track) else actions.onAddRadioToQueue(track)
-                        },
-                        onMenu = { menuTarget = QueueMenuTarget(track, index = -1, isRadioItem = true) },
+                if (!selecting) {
+                    item(key = "endless_radio_toggle") {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .animateItem()
+                                    .padding(top = 10.dp, bottom = 4.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable { actions.onToggleEndlessRadio(!endlessRadioEnabled) }
+                                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Sensors,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.music_endless_radio_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
+                            FlowSwitch(
+                                checked = endlessRadioEnabled,
+                                onCheckedChange = actions.onToggleEndlessRadio,
+                            )
+                        }
+                    }
+
+                    if (endlessRadioEnabled) {
+                        itemsIndexed(radioTracks, key = { _, track -> "radio:${track.videoId}" }) { _, track ->
+                            Box(modifier = Modifier.animateItem()) {
+                                QueueTrackRow(
+                                    track = track,
+                                    isCurrent = false,
+                                    isPlaying = isPlaying,
+                                    isRadioItem = true,
+                                    isDragging = false,
+                                    swipeEnabled = true,
+                                    isDownloaded = downloadedTrackIds.contains(track.videoId),
+                                    leftSwipe = QueueRowSwipe.PLAY_NEXT,
+                                    rightSwipe = QueueRowSwipe.ADD_TO_QUEUE,
+                                    rowKey = "radio:${track.videoId}",
+                                    onClick = { actions.onRadioTrackClick(track) },
+                                    onSwipe = { swipe ->
+                                        if (swipe == QueueRowSwipe.PLAY_NEXT) {
+                                            actions.onPlayNextRadio(track)
+                                        } else {
+                                            actions.onAddRadioToQueue(track)
+                                        }
+                                    },
+                                    onMenu = { menuTarget = QueueMenuTarget(track, index = -1, isRadioItem = true) },
+                                )
+                            }
+                        }
+                        if (isRadioLoading && radioTracks.isEmpty()) {
+                            item(key = "radio_loading") {
+                                RadioLoadingRow()
+                            }
+                        }
+                    }
+                }
+
+                item(key = "bottom_spacer") {
+                    Spacer(
+                        modifier =
+                            Modifier
+                                .then(if (clearNavigationBar) Modifier.navigationBarsPadding() else Modifier)
+                                .height(if (selecting) SelectionToolbarRoom else 28.dp),
                     )
                 }
             }
-            if (isRadioLoading && radioTracks.isEmpty()) {
-                item(key = "radio_loading") {
-                    RadioLoadingRow()
-                }
-            }
         }
-
-        item(key = "bottom_spacer") {
-            Spacer(
+        // The toolbar floats over the queue's own bottom edge, not above the app's bars under the player.
+        CompositionLocalProvider(LocalFlowBottomInsets provides FlowBottomInsets.None) {
+            FlowSelectionToolbar(
+                visible = selecting && picked.isNotEmpty(),
+                summary = pluralStringResource(R.plurals.selected_count_template, picked.size, picked.size),
+                actions =
+                    queueSelectionActions(
+                        onPlayNext = {
+                            val moves = playNextMoves(pickedIndices(), currentIndex, localQueue.size)
+                            moves.forEach { (from, to) -> actions.onMoveTrack(from, to) }
+                            selection.end()
+                        },
+                        onAddToPlaylist = {
+                            actions.onSaveTracks(pickedTracks())
+                            selection.end()
+                        },
+                        onDownload = {
+                            actions.onDownloadTracks(pickedTracks())
+                            selection.end()
+                        },
+                        onRemove = {
+                            actions.onRemoveTracks(removalOrder(pickedIndices(), currentIndex))
+                            selection.end()
+                        },
+                    ),
                 modifier =
                     Modifier
-                        .then(if (clearNavigationBar) Modifier.navigationBarsPadding() else Modifier)
-                        .height(28.dp),
+                        .align(Alignment.BottomCenter)
+                        .then(if (clearNavigationBar) Modifier.navigationBarsPadding() else Modifier),
             )
         }
     }
@@ -334,119 +412,12 @@ internal fun QueueList(
     }
 }
 
+/** Room under the last row so the selection toolbar never covers it. */
+private val SelectionToolbarRoom = 96.dp
+
 /** The row a queue menu is open for; a radio row has no queue index. */
 private class QueueMenuTarget(
     val track: MusicTrack,
     val index: Int,
     val isRadioItem: Boolean,
 )
-
-/** Title, track count, and the shuffle and repeat pair shared by the sheet and the side pane. */
-@Composable
-internal fun QueueHeader(
-    trackCount: Int,
-    shuffleEnabled: Boolean,
-    repeatMode: RepeatMode,
-    onShuffleQueue: () -> Unit,
-    onCycleRepeat: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val haptics = LocalHapticFeedback.current
-    Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.up_next),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = pluralStringResource(R.plurals.queue_track_count, trackCount, trackCount),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            FilledTonalIconButton(
-                onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    onShuffleQueue()
-                },
-                modifier = Modifier.size(width = 52.dp, height = 42.dp),
-                shape =
-                    RoundedCornerShape(
-                        topStart = 21.dp,
-                        bottomStart = 21.dp,
-                        topEnd = 6.dp,
-                        bottomEnd = 6.dp,
-                    ),
-                colors =
-                    IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor =
-                            if (shuffleEnabled) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            },
-                        contentColor =
-                            if (shuffleEnabled) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            },
-                    ),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Shuffle,
-                    contentDescription = stringResource(R.string.shuffle),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            val repeatActive = repeatMode != RepeatMode.OFF
-            FilledTonalIconButton(
-                onClick = onCycleRepeat,
-                modifier = Modifier.size(width = 52.dp, height = 42.dp),
-                shape =
-                    RoundedCornerShape(
-                        topStart = 6.dp,
-                        bottomStart = 6.dp,
-                        topEnd = 21.dp,
-                        bottomEnd = 21.dp,
-                    ),
-                colors =
-                    IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor =
-                            if (repeatActive) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            },
-                        contentColor =
-                            if (repeatActive) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
-                            },
-                    ),
-            ) {
-                Icon(
-                    imageVector =
-                        if (repeatMode == RepeatMode.ONE) {
-                            Icons.Rounded.RepeatOne
-                        } else {
-                            Icons.Rounded.Repeat
-                        },
-                    contentDescription = stringResource(R.string.repeat),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-    }
-}
