@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -140,6 +141,8 @@ fun <T> FlowChoiceDialog(
                                 supportingText = option.supportingText,
                                 selected = option.value == selected,
                                 showSelectedContainer = false,
+                                // A full-width rectangle on the dialog's own colour showed no focus ring on TV (#2062).
+                                shape = if (dpad) MaterialTheme.shapes.large else RectangleShape,
                                 modifier = if (dpad && option.value == focusValue) Modifier.focusRequester(initialFocus) else Modifier,
                                 onClick = {
                                     onSelect(option.value)
