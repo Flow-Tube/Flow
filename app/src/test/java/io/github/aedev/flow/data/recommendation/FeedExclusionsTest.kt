@@ -7,6 +7,8 @@
 package io.github.aedev.flow.data.recommendation
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListSets
 import io.github.aedev.flow.data.model.Video
 import org.junit.Test
 
@@ -78,6 +80,29 @@ class FeedExclusionsTest {
         assertThat(widened.hidesFromRecommendations(video("v5", "UCother"))).isFalse()
         assertThat(base.hidingChannels(emptySet())).isSameInstanceAs(base)
     }
+
+    @Test
+    fun `an AI-listed channel leaves recommendations but not Subscriptions`() {
+        val exclusions = FeedExclusions(ai = aiList(blockedId = "UCslopslopslopslopslop00"))
+        val listed = video("v1", "UCslopslopslopslopslop00")
+
+        assertThat(exclusions.hidesFromRecommendations(listed)).isTrue()
+        assertThat(exclusions.hidesAsAi(listed)).isTrue()
+        assertThat(exclusions.hides(listed)).isFalse()
+        assertThat(exclusions.isEmpty).isFalse()
+        assertThat(exclusions.hidingChannels(setOf("UCsub")).hidesAsAi(listed)).isTrue()
+    }
+
+    private fun aiList(blockedId: String) =
+        AiListMatcher(
+            blockEnabled = true,
+            warnEnabled = false,
+            block = AiListSets(handles = emptySet(), ids = setOf(blockedId)),
+            warn = AiListSets.EMPTY,
+            exemptChannelIds = emptySet(),
+            exemptHandles = emptySet(),
+            index = null,
+        )
 
     private fun video(
         id: String,

@@ -9,6 +9,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import dagger.hilt.android.HiltAndroidApp
 import io.github.aedev.flow.applock.AppLock
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.profile.ActiveProfile
@@ -18,6 +19,7 @@ import io.github.aedev.flow.data.profile.ProfileFiles
 import io.github.aedev.flow.data.profile.ProfileSlices
 import io.github.aedev.flow.data.profile.ProfileWebView
 import io.github.aedev.flow.data.profile.ProfileWorkReconciler
+import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.repository.NewPipeDownloader
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.discord.DiscordPresenceRuntime
@@ -115,6 +117,9 @@ class FlowApplication :
     @Inject
     lateinit var linkedSync: dagger.Lazy<LinkedSync>
 
+    @Inject
+    lateinit var aiList: AiListRepository
+
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
 
     companion object {
@@ -199,6 +204,7 @@ class FlowApplication :
             if (linkedProfiles.get().catchingUp()) linkedSync.get().syncNow()
         }
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            FlowNeuroEngine.getInstance(this@FlowApplication).aiListMatcher = aiList::currentMatcher
             launch { profileWorkReconciler.reconcile() }
             launch { AutoBackupWorker.keepScheduled(this@FlowApplication) }
             launch { postSwitchWork.runIfSwitched() }

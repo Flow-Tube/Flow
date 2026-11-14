@@ -58,7 +58,7 @@ private val CustomButtonSpacing = 12.dp
 private const val ARGB_MASK = 0xFFFFFFFFL
 private const val LIGHT_SWATCH_LUMINANCE = 0.5f
 
-internal enum class IntegrationsDialog { USER_ID, DISCORD_RISK, SKIP_BUTTON_STYLE }
+internal enum class IntegrationsDialog { USER_ID, DISCORD_RISK, SKIP_BUTTON_STYLE, AI_LIST_SOURCE, AI_REPORT_NAME }
 
 @StringRes
 private fun skipButtonStyleDetail(style: SponsorBlockSkipButtonStyle): Int =
@@ -73,6 +73,8 @@ internal fun IntegrationsDialogs(
     dialog: IntegrationsDialog?,
     userId: String?,
     skipButtonStyle: SponsorBlockSkipButtonStyle,
+    aiListSourceInput: Pair<String?, String?>,
+    aiReportName: String,
     viewModel: IntegrationsViewModel,
     onDismiss: () -> Unit,
 ) {
@@ -129,6 +131,19 @@ internal fun IntegrationsDialogs(
                 },
                 dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
             )
+        }
+
+        IntegrationsDialog.AI_LIST_SOURCE -> {
+            AiListSourceDialog(
+                initialUrl = aiListSourceInput.first,
+                initialKey = aiListSourceInput.second,
+                onSave = viewModel::saveAiListSource,
+                onDismiss = onDismiss,
+            )
+        }
+
+        IntegrationsDialog.AI_REPORT_NAME -> {
+            AiReportNameDialog(initial = aiReportName, onSave = viewModel::setAiReportName, onDismiss = onDismiss)
         }
 
         null -> {

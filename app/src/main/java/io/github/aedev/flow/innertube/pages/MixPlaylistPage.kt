@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube.pages
 
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.innertube.pages.renderer.browseHandle
 import io.github.aedev.flow.innertube.pages.renderer.parseDurationText
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.serialization.json.JsonElement
@@ -71,6 +72,7 @@ private fun JsonObject.toMixVideo(): Video? {
                 ?.get("browseId")
                 .stringOrNull()
                 .orEmpty(),
+        channelHandle = channel?.get("navigationEndpoint").objectOrNull()?.browseHandle(),
         thumbnailUrl = ThumbnailUrlResolver.normalizeVideoThumbnail(id, null),
         duration = parseDurationText(this["lengthText"].youtubeText()) ?: 0,
         viewCount = 0L,

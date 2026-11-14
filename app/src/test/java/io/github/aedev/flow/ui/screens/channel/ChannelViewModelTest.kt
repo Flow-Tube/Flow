@@ -2,6 +2,8 @@ package io.github.aedev.flow.ui.screens.channel
 
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.notes.NotesRepository
@@ -13,6 +15,7 @@ import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -29,6 +32,7 @@ class ChannelViewModelTest {
     private val subscriptionRepository: SubscriptionRepository = mockk(relaxed = true)
     private val notesRepository: NotesRepository = mockk(relaxed = true)
     private val playerPreferences: PlayerPreferences = mockk(relaxed = true)
+    private val aiList: AiListRepository = mockk(relaxed = true) { every { matcher } returns MutableStateFlow(AiListMatcher.NONE) }
 
     private lateinit var viewModel: ChannelViewModel
 
@@ -46,6 +50,7 @@ class ChannelViewModelTest {
                 subscriptionRepository = subscriptionRepository,
                 notesRepository = notesRepository,
                 playerPreferences = playerPreferences,
+                aiList = aiList,
             )
     }
 

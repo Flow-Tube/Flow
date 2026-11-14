@@ -472,6 +472,7 @@ class YouTubeRepository
                         title = info.name ?: "Unknown Title",
                         channelName = info.uploaderName ?: "Unknown Channel",
                         channelId = extractChannelId(info.uploaderUrl),
+                        channelHandle = extractChannelHandle(info.uploaderUrl),
                         thumbnailUrl = bestThumbnail,
                         duration = info.duration.toInt(),
                         viewCount = info.viewCount,
@@ -929,6 +930,7 @@ class YouTubeRepository
                 title = name ?: "Unknown Title",
                 channelName = uploaderName ?: "Unknown Channel",
                 channelId = extractChannelId(uploaderUrl),
+                channelHandle = extractChannelHandle(uploaderUrl),
                 thumbnailUrl = bestThumbnail,
                 duration = durationSecs,
                 viewCount = viewCount,
@@ -968,6 +970,8 @@ class YouTubeRepository
                 isMusic = looksLikeMusicVideo(name.orEmpty(), uploaderName.orEmpty()),
             )
         }
+
+        private fun extractChannelHandle(uploaderUrl: String?): String? = uploaderUrl?.takeIf { "/@" in it }
 
         private fun extractChannelId(uploaderUrl: String?): String {
             if (uploaderUrl.isNullOrBlank()) return ""
@@ -1187,6 +1191,7 @@ internal object WatchMetadataVideoMapper {
                 // Parse the real age; 0 means unknown (callers fall back to text).
                 timestamp = RelativeUploadDateParser.parse(uploadDateText, YouTube.locale.hl) ?: 0L,
                 isLive = isLive,
+                channelHandle = cv.channelHandle,
             )
         }
 }

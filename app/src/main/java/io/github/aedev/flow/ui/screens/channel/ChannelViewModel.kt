@@ -8,6 +8,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.community.PostCommentsLoader
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
+import io.github.aedev.flow.data.contentfilter.aislist.AllowedAiChannel
 import io.github.aedev.flow.data.local.ChannelSubscription
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -44,6 +48,7 @@ class ChannelViewModel
         private val subscriptionRepository: SubscriptionRepository,
         private val notesRepository: NotesRepository,
         private val playerPreferences: PlayerPreferences,
+        private val aiList: AiListRepository,
     ) : ViewModel() {
         /** Which channels the user follows, so a featured-channel row can show its real state. */
         val subscribedChannelIds: StateFlow<Set<String>> =
@@ -111,6 +116,22 @@ class ChannelViewModel
 
         private val _uiState = MutableStateFlow(ChannelUiState())
         val uiState: StateFlow<ChannelUiState> = _uiState.asStateFlow()
+
+        /** Whether this channel is on the AI list, for the banner under its name. */
+        val aiVerdict: StateFlow<AiVerdict> =
+            combine(_uiState.map { it.header }.distinctUntilChanged(), aiList.matcher) { header, matcher ->
+                header?.let {
+                    matcher.learn(it.id, it.handle)
+                    matcher.verdict(it.id, it.handle)
+                } ?: AiVerdict.NONE
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(GROUPS_SUBSCRIPTION_TIMEOUT_MS), AiVerdict.NONE)
+
+        /** Shows this channel's videos again despite the AI list; Hidden from you can undo it. */
+        fun showAiChannel() {
+            val header = _uiState.value.header ?: return
+            viewModelScope.launch { aiList.allow(AllowedAiChannel(id = header.id, name = header.title, handle = header.handle)) }
+        }
+
         private val communityController = ChannelCommunityController(viewModelScope)
         private var requestedChannelUrl: String? = null
         internal val communityUiState: StateFlow<ChannelCommunityUiState> = communityController.state

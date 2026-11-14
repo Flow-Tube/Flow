@@ -82,6 +82,58 @@ internal object IntegrationsIndex {
             section = R.string.player_settings_dearrow,
             destination = page,
         )
+    val aiListBlock =
+        SettingEntry(
+            key = "integrations.ai_list.block",
+            title = R.string.ai_list_block_title,
+            summary = R.string.ai_list_block_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiListWarn =
+        SettingEntry(
+            key = "integrations.ai_list.warn",
+            title = R.string.ai_list_warn_title,
+            summary = R.string.ai_list_warn_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiListServer =
+        SettingEntry(
+            key = "integrations.ai_list.server",
+            title = R.string.ai_list_source_title,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiReport =
+        SettingEntry(
+            key = "integrations.ai_list.report",
+            title = R.string.ai_report_enabled_title,
+            summary = R.string.ai_report_enabled_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_report_header,
+            destination = page,
+        )
+    val aiReportName =
+        SettingEntry(
+            key = "integrations.ai_list.report_name",
+            title = R.string.ai_report_name_title,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_report_header,
+            destination = page,
+        )
+    val aiListSource =
+        SettingEntry(
+            key = "integrations.ai_list.source",
+            title = R.string.ai_list_attribution_title,
+            summary = R.string.ai_list_attribution_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
     val dislikes =
         SettingEntry(
             key = "integrations.dislikes",
@@ -120,6 +172,12 @@ internal object IntegrationsIndex {
             deArrow,
             deArrowRandomFrame,
             deArrowBadge,
+            aiListBlock,
+            aiListWarn,
+            aiListServer,
+            aiListSource,
+            aiReport,
+            aiReportName,
             dislikes,
             discord,
             discordAccount,

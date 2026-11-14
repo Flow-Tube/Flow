@@ -134,6 +134,7 @@ fun ChannelScreen(
     val subscribedChannelIds by viewModel.subscribedChannelIds.collectAsStateWithLifecycle()
     val notifyingChannelIds by viewModel.notifyingChannelIds.collectAsStateWithLifecycle()
     val channelNote by viewModel.channelNote.collectAsStateWithLifecycle()
+    val aiVerdict by viewModel.aiVerdict.collectAsStateWithLifecycle()
     val notesEnabled by viewModel.notesEnabled.collectAsStateWithLifecycle()
     val showShortsTab by viewModel.showShortsTab.collectAsStateWithLifecycle()
 
@@ -242,6 +243,8 @@ fun ChannelScreen(
                             onChannelNotificationChange = viewModel::setChannelNotifications,
                             channelNote = channelNote.takeIf { notesEnabled },
                             onEditNote = organize.onAddNote,
+                            aiVerdict = aiVerdict,
+                            onShowAiChannel = viewModel::showAiChannel,
                             onSubscribeChannel = viewModel::setChannelSubscription,
                             onVideoClick = onVideoClick,
                             onChannelClick = onChannelClick,

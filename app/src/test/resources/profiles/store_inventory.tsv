@@ -91,6 +91,7 @@ files_dir	local_embedded_tags.json	main:data/localmedia/LocalEmbeddedTags.kt	DEV
 files_dir	local_subtitles.json	main:data/localmedia/LocalSubtitleStore.kt	DEVICE	-	Subtitle choices for local media.
 files_dir	fake_stream_wall, fake_stream_wall_all	main:player/datasource/FakeStreamWallDataSource.kt	DEVICE	-	Debug switch files.
 no_backup_dir	headphone_resume_off	main:service/HeadphoneResume.kt	DEVICE	-	Player control; written during a switch so no headset resumes.
+no_backup_dir	aislist/	main:data/contentfilter/aislist/AiListRepository.kt	DEVICE	-	AiSList channel list and its handle index; re-downloadable, the same for every profile, never backed up or synced.
 cache_dir	innertube_http_cache/	main:FlowApplication.kt	CACHE	-	Deleted at switch: suggestion and sw.js_data GETs might be stored.
 cache_dir	recap/, lyrics/	main:utils/SharedFiles.kt	CACHE	-	Share images from the active profile; deleted at switch.
 cache_dir	image_cache/	main:di/AppModule.kt	CACHE	-	Thumbnails; shared.

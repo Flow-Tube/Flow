@@ -2,6 +2,8 @@ package io.github.aedev.flow.data.paging
 
 import androidx.paging.PagingSource
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListSets
 import io.github.aedev.flow.data.local.ContentType
 import io.github.aedev.flow.data.local.Duration
 import io.github.aedev.flow.data.local.SearchFilter
@@ -308,6 +310,36 @@ class SearchPagingSourceTest {
             )
 
         assertThat(visible).containsExactly(channel)
+    }
+
+    @Test
+    fun `an AI-listed channel's videos leave the results, its channel card stays`() {
+        val listed = "UCslopslopslopslopslop00"
+        val item = SearchResultItem.VideoResult(video(channelId = listed))
+        val strip =
+            SearchResultItem.ShelfResult(
+                id = "s1",
+                title = "Latest",
+                kind = SearchShelfKind.VIDEOS,
+                videos = listOf(video(channelId = listed)),
+            )
+        val channel =
+            SearchResultItem.ChannelResult(
+                io.github.aedev.flow.data.model
+                    .Channel(id = listed, name = "Slop", thumbnailUrl = "", subscriberCount = 0L),
+            )
+        val ai =
+            AiListMatcher(
+                blockEnabled = true,
+                warnEnabled = false,
+                block = AiListSets(handles = emptySet(), ids = setOf(listed)),
+                warn = AiListSets.EMPTY,
+                exemptChannelIds = emptySet(),
+                exemptHandles = emptySet(),
+                index = null,
+            )
+
+        assertThat(listOf(item, strip, channel).withoutHidden(FeedExclusions(ai = ai))).containsExactly(channel)
     }
 
     @Test
