@@ -20,6 +20,7 @@ class QueueRowMenuActionsTest {
                 QueueRowMenuAction.MOVE_DOWN,
                 QueueRowMenuAction.MOVE_TO_END,
                 QueueRowMenuAction.REMOVE,
+                QueueRowMenuAction.SELECT,
             ).inOrder()
     }
 
@@ -27,7 +28,7 @@ class QueueRowMenuActionsTest {
     fun `the first row can't move up and the last can't move down`() {
         assertThat(queueRowMenuActions(isRadioItem = false, index = 0, lastIndex = 3)).doesNotContain(QueueRowMenuAction.MOVE_UP)
         assertThat(queueRowMenuActions(isRadioItem = false, index = 3, lastIndex = 3))
-            .containsExactly(QueueRowMenuAction.PLAY_NEXT, QueueRowMenuAction.MOVE_UP, QueueRowMenuAction.REMOVE)
+            .containsExactly(QueueRowMenuAction.PLAY_NEXT, QueueRowMenuAction.MOVE_UP, QueueRowMenuAction.REMOVE, QueueRowMenuAction.SELECT)
             .inOrder()
     }
 }

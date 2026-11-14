@@ -8,6 +8,7 @@ internal enum class QueueRowMenuAction {
     MOVE_DOWN,
     MOVE_TO_END,
     REMOVE,
+    SELECT,
 }
 
 /** A radio suggestion can only join the queue; a queued row moves within it or leaves it. */
@@ -27,5 +28,6 @@ internal fun queueRowMenuActions(
                 add(QueueRowMenuAction.MOVE_TO_END)
             }
             add(QueueRowMenuAction.REMOVE)
+            add(QueueRowMenuAction.SELECT)
         }
     }
