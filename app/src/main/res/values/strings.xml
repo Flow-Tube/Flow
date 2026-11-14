@@ -3131,6 +3131,11 @@
     <string name="linked_auto_sync">Sync automatically</string>
     <string name="linked_auto_sync_on">On open, on leaving, every hour and when your devices meet</string>
     <string name="linked_auto_sync_off">Only when you tap Sync now. Until this device syncs, the server keeps everything your other devices send.</string>
+    <string name="linked_sync_choice">What this device syncs</string>
+    <string name="linked_sync_choice_body">Off: this device stops sending it and ignores it from your other devices. Turning one back on catches up from the group. The server clears old data only while at least one of your devices syncs everything.</string>
+    <string name="linked_sync_choice_all">Everything</string>
+    <string name="linked_sync_choice_except">Everything except %1$s</string>
+    <string name="linked_sync_choice_count">%1$d of %2$d</string>
     <string name="linked_leave_title">Leave the group?</string>
     <string name="linked_leave_body">This device leaves the group and deletes its keys and its copy of the group\'s data. Your other devices keep everything and switch to new keys without it. To link it again, pair it as a new device.</string>
     <string name="linked_leave_failed_title">Your other devices couldn\'t be told</string>

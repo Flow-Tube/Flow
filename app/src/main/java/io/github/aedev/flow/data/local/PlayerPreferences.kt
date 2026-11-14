@@ -434,6 +434,8 @@ class PlayerPreferences(
 
         val DEFAULT_QUALITY_WIFI = device(stringPreferencesKey("default_quality_wifi"))
         val LINKED_AUTO_SYNC = device(booleanPreferencesKey("linked_auto_sync"))
+        val LINKED_LEFT_OUT = device(stringSetPreferencesKey("linked_left_out"))
+        val LINKED_TAKEN_BACK = device(stringSetPreferencesKey("linked_taken_back"))
         val DEFAULT_QUALITY_CELLULAR = device(stringPreferencesKey("default_quality_cellular"))
         val DEFAULT_VIDEO_CODEC = device(stringPreferencesKey("default_video_codec"))
         val FALLBACK_VIDEO_CODEC = device(stringPreferencesKey("fallback_video_codec"))
@@ -1309,6 +1311,33 @@ class PlayerPreferences(
     suspend fun setLinkedAutoSync(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.LINKED_AUTO_SYNC] = enabled
+        }
+    }
+
+    /** The linked-devices collections this device leaves out (spec/protocol.md, Leaving collections out). */
+    val linkedLeftOut: Flow<Set<String>> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.LINKED_LEFT_OUT].orEmpty() }
+
+    /** Saves what is left out and what was taken back and still has to catch up, together. */
+    suspend fun setLinkedLeftOut(
+        collections: Set<String>,
+        takenBack: Set<String>,
+    ) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.LINKED_LEFT_OUT] = collections
+            preferences[DeviceKeys.LINKED_TAKEN_BACK] = takenBack
+        }
+    }
+
+    /** Collections taken back that are still catching up from the links' snapshots. */
+    val linkedTakenBack: Flow<Set<String>> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.LINKED_TAKEN_BACK].orEmpty() }
+
+    suspend fun clearLinkedTakenBack(caughtUp: Set<String>) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.LINKED_TAKEN_BACK] = preferences[DeviceKeys.LINKED_TAKEN_BACK].orEmpty() - caughtUp
         }
     }
 

@@ -423,6 +423,7 @@ class RestoreChoiceTest {
         mockk(),
         mockk<LinkedProfiles> { coEvery { links(any()) } returns null },
         mockk(),
+        mockk(),
     )
 
     @Test
