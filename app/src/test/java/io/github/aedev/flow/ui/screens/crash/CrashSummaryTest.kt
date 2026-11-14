@@ -142,7 +142,7 @@ class CrashSummaryTest {
         val logs = URLDecoder.decode(summary.issueUrl().substringAfter("&logs="), Charsets.UTF_8.name())
 
         assertThat(summary.headline).isEqualTo("AnchoredDraggableUninitializedException")
-        assertThat(summary.location).isEqualTo("r8-map-id-6b62:79")
+        assertThat(summary.location).isEqualTo("PlaylistQueueItemKt.QueueRow")
         assertThat(logs).contains("Caused by: androidx.compose.material3.internal.AnchoredDraggableUninitializedException: offset NaN")
         assertThat(logs).contains("PlaylistQueueItemKt.QueueRow")
         assertThat(logs).doesNotContain("Method.invoke")
@@ -171,6 +171,64 @@ class CrashSummaryTest {
 
         assertThat(logs.length).isAtMost(1_500)
         assertThat(logs).endsWith("Caused by: java.io.IOException: disk\nat some.Inner.read(Inner.kt:1)")
+    }
+
+    private fun releaseCrash(stackTrace: String) =
+        FlowCrashReportFormatter.build(
+            FlowCrashReportSnapshot(
+                timestampMs = 0,
+                threadName = "main",
+                threadId = 2,
+                exceptionClass = "java.lang.IllegalArgumentException",
+                exceptionMessage = "LayoutNode 1232 not found in RectList",
+                stackTrace = stackTrace,
+                deviceInfo = "  App Version: 3.0.0 (300)",
+                memoryInfo = "",
+                breadcrumbs = emptyList(),
+            ),
+        )
+
+    @Test
+    fun `a release crash outside Flow is titled by its method, not the shared throw helper (2049)`() {
+        val summary =
+            parseCrashSummary(
+                releaseCrash(
+                    """
+                    java.lang.IllegalArgumentException: LayoutNode 1232 not found in RectList
+                    	at androidx.compose.ui.internal.InlineClassHelperKt.throwIllegalArgumentException(r8-map-id-1bc4:3)
+                    	at androidx.compose.ui.spatial.RectManager.indexInRectList(r8-map-id-1bc4:84)
+                    	at androidx.compose.ui.spatial.RectManager.recalculateRectIfDirty(r8-map-id-1bc4:325)
+                    """.trimIndent(),
+                ),
+            )
+
+        assertThat(summary.location).isEqualTo("RectManager.indexInRectList")
+        assertThat(
+            summary.issueUrl(),
+        ).contains("&title=%5BBug%5D%3A%20IllegalArgumentException%20in%20RectManager.indexInRectList%20%283.0.0%29&")
+    }
+
+    @Test
+    fun `a debug build keeps the file and line`() {
+        assertThat(parseCrashSummary(report).location).isEqualTo("PlayerBottomBar.kt:212")
+    }
+
+    @Test
+    fun `the logs keep Flow's first frame even when it comes after the first few (2055)`() {
+        val framework = (1..10).joinToString("\n") { "\tat androidx.datastore.core.Frame$it.run(r8-map-id-1bc4:$it)" }
+        val summary =
+            parseCrashSummary(
+                releaseCrash(
+                    "java.lang.IllegalArgumentException: boom\n$framework\n" +
+                        "\tat io.github.aedev.flow.data.local.PlayerPreferences.read(r8-map-id-1bc4:40)",
+                ),
+            )
+        val logs = URLDecoder.decode(summary.issueUrl().substringAfter("&logs="), Charsets.UTF_8.name())
+
+        assertThat(summary.location).isEqualTo("PlayerPreferences.read")
+        assertThat(logs).contains("Frame6.run")
+        assertThat(logs).doesNotContain("Frame7.run")
+        assertThat(logs).endsWith("...\nat io.github.aedev.flow.data.local.PlayerPreferences.read(r8-map-id-1bc4:40)")
     }
 
     @Test

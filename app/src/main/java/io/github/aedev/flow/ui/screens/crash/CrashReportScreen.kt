@@ -2,8 +2,11 @@
 
 package io.github.aedev.flow.ui.screens.crash
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +51,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.shared.FlowActionButton
 import io.github.aedev.flow.ui.components.shared.FlowMaxContentWidth
@@ -64,6 +68,29 @@ private val CardPadding = 16.dp
 private val LabelWidth = 88.dp
 private val BarPadding = 20.dp
 private const val CLIP_LABEL = "Flow crash report"
+private const val BROWSER_PROBE = "https://"
+
+// A github.com link can be caught by the GitHub app; crash issues that skipped the form arrive as a bare title (#2055).
+private fun Context.openInBrowser(
+    url: String,
+    fallback: (String) -> Unit,
+) {
+    val probe = Intent(Intent.ACTION_VIEW, BROWSER_PROBE.toUri()).addCategory(Intent.CATEGORY_BROWSABLE)
+    val browsers = packageManager.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY).map { it.activityInfo.packageName }
+    val browser =
+        packageManager
+            .resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo
+            ?.packageName
+            ?.takeIf { it in browsers }
+            ?: browsers.firstOrNull()
+            ?: return fallback(url)
+    try {
+        startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addCategory(Intent.CATEGORY_BROWSABLE).setPackage(browser))
+    } catch (_: ActivityNotFoundException) {
+        fallback(url)
+    }
+}
 
 /**
  * Shown instead of the app after a crash: what happened in plain terms first, the full report
@@ -103,7 +130,7 @@ fun CrashReportScreen(
                         onClick = {
                             copy()
                             scope.launch { snackbar.showSnackbar(copiedMessage) }
-                            uriHandler.openUri(summary.issueUrl())
+                            context.openInBrowser(summary.issueUrl(), uriHandler::openUri)
                         },
                         shapes = ButtonDefaults.shapesFor(ButtonDefaults.MediumContainerHeight),
                         contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MediumContainerHeight, hasStartIcon = true),
