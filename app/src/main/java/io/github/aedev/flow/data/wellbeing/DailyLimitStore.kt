@@ -73,5 +73,9 @@ class DailyLimitStore
 
             /** The keys a settings backup carries. */
             val SETTING_NAMES: Set<String> = setOf(ENABLED.name, MINUTES.name, COUNT_MUSIC.name)
+
+            /** Today's running count, which a backup leaves behind. */
+            val TALLY_NAMES: Set<String> =
+                setOf(TALLY_DAY.name, TALLY_PLAYED_MS.name, TALLY_EXTRA_MS.name, TALLY_WARNED.name, TALLY_REACHED.name)
         }
     }

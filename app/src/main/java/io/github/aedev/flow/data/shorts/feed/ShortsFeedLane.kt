@@ -43,4 +43,5 @@ data class ShortsFeedFilters(
     val suppressedIds: Set<String> = emptySet(),
     val excludedChannelIds: Set<String> = emptySet(),
     val isBlockedText: (title: String, channelName: String) -> Boolean = { _, _ -> false },
+    val isAiBlocked: (channelId: String) -> Boolean = { false },
 )

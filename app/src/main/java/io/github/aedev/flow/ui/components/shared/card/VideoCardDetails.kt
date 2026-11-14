@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
@@ -87,6 +88,17 @@ internal fun MembersOnlyLabel(video: Video) {
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+/**
+ * "Suspected AI" for a channel on the AI warn list. It takes the reason slot over the feed's own
+ * reason, since it matters more than why the feed picked the video.
+ */
+@Composable
+internal fun rememberAiListLabel(video: Video): String? {
+    val matcher = LocalAiListMatcher.current
+    val warned = remember(matcher, video.channelId, video.channelHandle) { matcher.verdict(video) == AiVerdict.WARN }
+    return if (warned) stringResource(R.string.ai_list_label) else null
 }
 
 /** Why the feed shows this video, such as "From a channel you watch". */

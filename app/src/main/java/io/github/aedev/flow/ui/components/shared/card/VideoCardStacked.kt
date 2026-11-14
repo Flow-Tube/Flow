@@ -161,7 +161,7 @@ private fun StackedCardText(
         )
 
         MembersOnlyLabel(video)
-        reason?.let { CardReasonLabel(it) }
+        (rememberAiListLabel(video) ?: reason)?.let { CardReasonLabel(it) }
     }
 }
 

@@ -96,6 +96,51 @@ class LocalDataManager
                     UPDATE_NOTIFIED_VERSION.name,
                     AUTO_BACKUP_LAST_RUN.name,
                 )
+
+            /** Theme names restore rebuilds itself, normalising old theme modes and folding legacy palettes into one theme. */
+            private val ThemeRestoreNames =
+                setOf(
+                    THEME_MODE.name,
+                    THEME_VARIANT.name,
+                    ACCENT_COLOR.name,
+                    CUSTOM_THEME_COLORS.name,
+                    CUSTOM_THEME_PALETTES.name,
+                    CUSTOM_THEMES.name,
+                    ACTIVE_CUSTOM_THEME.name,
+                    SYSTEM_LIGHT_THEME_MODE.name,
+                    SYSTEM_DARK_THEME_MODE.name,
+                    SYSTEM_DARK_THEME_VARIANT.name,
+                )
+
+            /**
+             * The settings this store carries in a backup and takes back on restore. Every key the
+             * code declares is either here or in [NOT_BACKED_UP], and `SettingsBackupCoverageTest`
+             * fails otherwise; a key an older version left in the file belongs to neither and stays.
+             */
+            internal val BACKED_UP_NAMES: Set<String> =
+                ThemeRestoreNames +
+                    setOf(
+                        BEDTIME_REMINDER.name,
+                        BEDTIME_START_HOUR.name,
+                        BEDTIME_START_MINUTE.name,
+                        BEDTIME_END_HOUR.name,
+                        BEDTIME_END_MINUTE.name,
+                        BREAK_REMINDER.name,
+                        BREAK_FREQUENCY.name,
+                        SKELETON_GRADIENT.name,
+                        MARQUEE_ENABLED.name,
+                        CLASSIC_LOADING_INDICATOR.name,
+                    ) +
+                    DailyLimitStore.SETTING_NAMES
+
+            /** Keys in this store a backup leaves out, each with the reason. */
+            internal val NOT_BACKED_UP: Map<String, String> =
+                listOf(SUBSCRIPTIONS, WATCH_HISTORY, LIKED_VIDEOS, PLAYLISTS, SEARCH_HISTORY)
+                    .associate { it.name to "legacy library copy; the backup carries the library itself" } +
+                    listOf(VIDEO_QUALITY_WIFI, VIDEO_QUALITY_CELLULAR, BACKGROUND_PLAY, TRENDING_REGION)
+                        .associate { it.name to "legacy; the player settings own these names now" } +
+                    DEVICE_KEY_NAMES.associateWith { "device state, kept in the device store" } +
+                    DailyLimitStore.TALLY_NAMES.associateWith { "today's watch time, not a setting" }
         }
 
         enum class AutoBackupFrequency { NONE, DAILY, WEEKLY, MONTHLY }
@@ -541,32 +586,14 @@ class LocalDataManager
 
         suspend fun getExportData(): SettingsBackup {
             val prefs = context.dataStore.data.first()
-            val strings = mutableMapOf<String, String>()
-            val booleans = mutableMapOf<String, Boolean>()
-            val ints = mutableMapOf<String, Int>()
-            val floats = mutableMapOf<String, Float>()
-            val longs = mutableMapOf<String, Long>()
-
-            prefs.asMap().entries.forEach { (key, value) ->
-                val name = key.name
-                if (name == "theme_mode" || name == "theme_variant" || name == "accent_color" ||
-                    name == "custom_theme_colors" || name == "custom_theme_palettes_v2" ||
-                    name == "custom_themes" || name == "custom_theme_id" ||
-                    name == "system_light_theme_mode" || name == "system_dark_theme_mode" ||
-                    name == "system_dark_theme_variant" ||
-                    name == "bedtime_reminder" || name == "break_reminder" ||
-                    name.startsWith("bedtime_") || name == "break_frequency" ||
-                    name in DailyLimitStore.SETTING_NAMES
-                ) {
-                    when (value) {
-                        is String -> strings[name] = value
-                        is Boolean -> booleans[name] = value
-                        is Int -> ints[name] = value
-                        is Float -> floats[name] = value
-                        is Long -> longs[name] = value
-                    }
-                }
-            }
+            val exported =
+                settingsBackupOf(
+                    prefs
+                        .asMap()
+                        .mapKeys { (key, _) -> key.name }
+                        .filterKeys { it in BACKED_UP_NAMES },
+                )
+            val strings = exported.strings.toMutableMap()
 
             strings[THEME_MODE.name] = parseThemeMode(prefs[THEME_MODE], ThemeMode.SYSTEM).name
             strings[THEME_VARIANT.name] =
@@ -579,7 +606,7 @@ class LocalDataManager
             strings[SYSTEM_DARK_THEME_VARIANT.name] =
                 parseThemeVariant(prefs[SYSTEM_DARK_THEME_VARIANT], systemDarkFallbackVariant(prefs[SYSTEM_DARK_THEME_MODE])).name
             strings[CUSTOM_THEMES.name] = CustomThemeCodec.encodeList(readCustomThemes(prefs))
-            return SettingsBackup(strings, booleans, ints, floats, longs)
+            return exported.copy(strings = strings)
         }
 
         suspend fun restoreData(backup: SettingsBackup) {
@@ -623,22 +650,7 @@ class LocalDataManager
                     prefs[CUSTOM_THEMES] = CustomThemeCodec.encodeList(merged.take(CustomTheme.MAX_COUNT))
                 }
                 backup.strings["custom_theme_id"]?.let { prefs[ACTIVE_CUSTOM_THEME] = it }
-                backup.booleans.forEach { (k, v) ->
-                    if (k == "bedtime_reminder" || k == "break_reminder" || k in DailyLimitStore.SETTING_NAMES) {
-                        prefs[
-                            androidx.datastore.preferences.core
-                                .booleanPreferencesKey(k),
-                        ] = v
-                    }
-                }
-                backup.ints.forEach { (k, v) ->
-                    if (k.startsWith("bedtime_") || k == "break_frequency" || k in DailyLimitStore.SETTING_NAMES) {
-                        prefs[
-                            androidx.datastore.preferences.core
-                                .intPreferencesKey(k),
-                        ] = v
-                    }
-                }
+                prefs.putAll(backup.filterNames { it in BACKED_UP_NAMES && it !in ThemeRestoreNames })
             }
         }
 

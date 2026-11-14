@@ -1,0 +1,8 @@
+{
+  "public_key": "8GY6AyR+w4a7cFsXckyieBLNl7CRVAlZ4X/aYevW3N0=",
+  "envelope": {
+    "key_id": "test-node",
+    "payload": "eyJzY2hlbWEiOjEsImxpc3QiOiJhaXNsaXN0IiwidmVyc2lvbiI6NywiZ2VuZXJhdGVkX2F0IjoiMjAyNi0xMS0xM1QwMzoxNzowMFoiLCJzbmFwc2hvdCI6eyJwYXRoIjoic25hcHNob3QvNy5qc29uIiwic2hhMjU2IjoiMDAiLCJieXRlcyI6Mn0sImRlbHRhcyI6W10sIm1heF9kZWx0YV9jaGFpbiI6MTQsIm5vdGUiOiJub24tQVNDSUkgw6kg44GCIn0=",
+    "sig": "LTtwN8Bclgv07otwezRsbJ4i/aqhB7jG7hEv6kSvA5q53fbh5qms95DTgPhPH3JHzRN6tg0K2RdPL4IPfGVvDg=="
+  }
+}

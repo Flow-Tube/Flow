@@ -251,6 +251,13 @@ class PlayerPreferences(
         val DEARROW_BADGE_ENABLED = booleanPreferencesKey("dearrow_badge_enabled")
         val DEARROW_RANDOM_FRAME = booleanPreferencesKey("dearrow_random_frame")
 
+        // AI channel list
+        val AI_LIST_BLOCK_ENABLED = booleanPreferencesKey("ai_list_block_enabled")
+        val AI_LIST_WARN_ENABLED = booleanPreferencesKey("ai_list_warn_enabled")
+        val AI_LIST_ALLOWED = stringPreferencesKey("ai_list_allowed")
+        val AI_LIST_REPORT_ENABLED = booleanPreferencesKey("ai_list_report_enabled")
+        val AI_LIST_REPORT_NAME = stringPreferencesKey("ai_list_report_name")
+
         // Notification preferences
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val NOTIF_NEW_VIDEOS_ENABLED = booleanPreferencesKey("notif_new_videos_enabled")
@@ -575,6 +582,10 @@ class PlayerPreferences(
         val SETTINGS_FIRST_SEEN = device(stringPreferencesKey("settings_first_seen"))
         val NEW_SETTINGS_HIGHLIGHT = device(booleanPreferencesKey("new_settings_highlight"))
         val NEW_SETTINGS_HIGHLIGHT_DAYS = device(intPreferencesKey("new_settings_highlight_days"))
+
+        // AI channel list source: device-wide, like the list file it decides
+        val AI_LIST_SOURCE_URL = device(stringPreferencesKey("ai_list_source_url"))
+        val AI_LIST_SOURCE_KEY = device(stringPreferencesKey("ai_list_source_key"))
 
         val NAMES: Set<String> = names
     }
@@ -2180,6 +2191,75 @@ class PlayerPreferences(
     suspend fun setDeArrowRandomFrame(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.DEARROW_RANDOM_FRAME] = enabled
+        }
+    }
+
+    // AI channel list
+    val aiListBlockEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_BLOCK_ENABLED] ?: false }
+
+    suspend fun setAiListBlockEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_BLOCK_ENABLED] = enabled
+        }
+    }
+
+    val aiListWarnEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_WARN_ENABLED] ?: false }
+
+    suspend fun setAiListWarnEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_WARN_ENABLED] = enabled
+        }
+    }
+
+    /** The channels shown despite the AI list, as the JSON its repository writes. */
+    val aiListAllowed: Flow<String?> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_ALLOWED] }
+
+    suspend fun updateAiListAllowed(transform: (String?) -> String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_ALLOWED] = transform(preferences[Keys.AI_LIST_ALLOWED])
+        }
+    }
+
+    /** The custom list source as entered, URL then public key; both null means Flow's own mirror. */
+    val aiListSource: Flow<Pair<String?, String?>> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.AI_LIST_SOURCE_URL] to preferences[DeviceKeys.AI_LIST_SOURCE_KEY] }
+            .distinctUntilChanged()
+
+    suspend fun setAiListSource(
+        url: String?,
+        key: String?,
+    ) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            if (url.isNullOrBlank()) preferences.remove(DeviceKeys.AI_LIST_SOURCE_URL) else preferences[DeviceKeys.AI_LIST_SOURCE_URL] = url
+            if (key.isNullOrBlank()) preferences.remove(DeviceKeys.AI_LIST_SOURCE_KEY) else preferences[DeviceKeys.AI_LIST_SOURCE_KEY] = key
+        }
+    }
+
+    val aiListReportEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_REPORT_ENABLED] ?: false }
+
+    suspend fun setAiListReportEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_REPORT_ENABLED] = enabled
+        }
+    }
+
+    /** The name AiSList shows beside this viewer's reports on its public leaderboard. */
+    val aiListReportName: Flow<String> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_REPORT_NAME].orEmpty() }
+
+    suspend fun setAiListReportName(name: String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            if (name.isBlank()) preferences.remove(Keys.AI_LIST_REPORT_NAME) else preferences[Keys.AI_LIST_REPORT_NAME] = name.trim()
         }
     }
 
@@ -4725,10 +4805,18 @@ class PlayerPreferences(
         return SettingsBackup(strings, booleans, ints, floats, longs, stringSets)
     }
 
-    suspend fun restoreData(backup: SettingsBackup) {
-        val (deviceBackup, profileBackup) = backup.splitBy { it in DeviceKeys.NAMES }
-        context.playerPreferencesDataStore.edit { prefs -> prefs.restore(profileBackup) }
-        context.devicePreferencesDataStore.edit { prefs -> prefs.restore(deviceBackup) }
+    /**
+     * @param ownedElsewhere names another store restores itself. A backup is one flat map of every
+     *   store's settings, so without this each of them would also be written into this store.
+     */
+    suspend fun restoreData(
+        backup: SettingsBackup,
+        ownedElsewhere: Set<String> = emptySet(),
+    ) {
+        val restorable = backup.filterNames { it !in BackupExcludedKeys && it !in ownedElsewhere }
+        val isDevice = { name: String -> name in DeviceKeys.NAMES || name in LocalDataManager.DEVICE_KEY_NAMES }
+        context.playerPreferencesDataStore.edit { prefs -> prefs.putAll(restorable.filterNames { !isDevice(it) }) }
+        context.devicePreferencesDataStore.edit { prefs -> prefs.putAll(restorable.filterNames(isDevice)) }
         // The UI language belongs to the language manager; written here alone it would never show,
         // while YouTube's language follows what is shown (#1277).
         backup.strings[DeviceKeys.APP_LANGUAGE.name]
@@ -4746,34 +4834,6 @@ internal fun exportedPreferences(
     device: Map<Preferences.Key<*>, Any>,
     deviceNames: Set<String>,
 ): Map<Preferences.Key<*>, Any> = profile.filterKeys { it.name !in deviceNames } + device
-
-private fun SettingsBackup.splitBy(predicate: (String) -> Boolean): Pair<SettingsBackup, SettingsBackup> =
-    SettingsBackup(
-        strings.filterKeys(predicate),
-        booleans.filterKeys(predicate),
-        ints.filterKeys(predicate),
-        floats.filterKeys(predicate),
-        longs.filterKeys(predicate),
-        stringSets.filterKeys(predicate),
-    ) to
-        SettingsBackup(
-            strings.filterKeys { !predicate(it) },
-            booleans.filterKeys { !predicate(it) },
-            ints.filterKeys { !predicate(it) },
-            floats.filterKeys { !predicate(it) },
-            longs.filterKeys { !predicate(it) },
-            stringSets.filterKeys { !predicate(it) },
-        )
-
-private fun MutablePreferences.restore(backup: SettingsBackup) {
-    fun <T> Map<String, T>.restorable() = filterKeys { it !in BackupExcludedKeys }
-    backup.strings.restorable().forEach { (k, v) -> this[stringPreferencesKey(k)] = v }
-    backup.booleans.restorable().forEach { (k, v) -> this[booleanPreferencesKey(k)] = v }
-    backup.ints.restorable().forEach { (k, v) -> this[intPreferencesKey(k)] = v }
-    backup.floats.restorable().forEach { (k, v) -> this[floatPreferencesKey(k)] = v }
-    backup.longs.restorable().forEach { (k, v) -> this[longPreferencesKey(k)] = v }
-    backup.stringSets.restorable().forEach { (k, v) -> this[stringSetPreferencesKey(k)] = v }
-}
 
 const val DEFAULT_NEW_SETTINGS_HIGHLIGHT = false
 const val DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS = 7

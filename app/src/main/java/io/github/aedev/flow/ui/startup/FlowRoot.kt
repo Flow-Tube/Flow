@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.github.aedev.flow.applock.AppLock
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.AppUiModePreferences
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
@@ -66,6 +67,7 @@ internal fun FlowRoot(
     splashController: SplashController,
     originalTitles: OriginalTitleRepository,
     deArrow: DeArrowRepository,
+    aiList: AiListRepository,
     appIconController: AppIconController,
     appLock: AppLock,
     onUiRoot: (AppUiRoot) -> Unit,
@@ -135,7 +137,7 @@ internal fun FlowRoot(
                     // Card preferences and watch progress are collected once here. Cards used to
                     // collect them individually, so a feed of ten opened ten Room observers and
                     // fifty DataStore collectors.
-                    ProvideVideoCardState(originalTitles, deArrow) {
+                    ProvideVideoCardState(originalTitles, deArrow, aiList) {
                         Box(
                             modifier =
                                 Modifier

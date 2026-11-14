@@ -14,6 +14,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import io.github.aedev.flow.data.local.ViewHistory
@@ -30,6 +32,7 @@ import io.github.aedev.flow.ui.components.shared.LocalThumbnailQuality
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.utils.rememberIsOnWifi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -58,6 +61,9 @@ data class VideoCardPreferences(
  * rare write invalidates the subtree wholesale instead of being tracked per reader.
  */
 val LocalVideoCardPreferences = staticCompositionLocalOf { VideoCardPreferences() }
+
+/** The AI channel list's matcher; static for the same reason, it changes only with the list or a setting. */
+val LocalAiListMatcher = staticCompositionLocalOf { AiListMatcher.NONE }
 
 /**
  * Watch progress for every video in history, backed by one Room observer.
@@ -123,6 +129,7 @@ val LocalVideoCardActions = staticCompositionLocalOf { VideoCardActions.None }
 fun ProvideVideoCardState(
     originalTitles: OriginalTitleRepository?,
     deArrow: DeArrowRepository?,
+    aiList: AiListRepository? = null,
     quickActions: QuickActionsViewModel = sharedQuickActionsViewModel(),
     content: @Composable () -> Unit,
 ) {
@@ -167,6 +174,8 @@ fun ProvideVideoCardState(
     val isWifi = rememberIsOnWifi()
     val thumbnailQuality = thumbnailQualities?.let { (wifi, cellular) -> ThumbnailQuality.effective(isWifi, wifi, cellular) }
     val artworkColors by playerPreferences.videoArtworkColors.collectAsStateWithLifecycle(true)
+    val aiMatcherFlow = remember(aiList) { aiList?.matcher ?: MutableStateFlow(AiListMatcher.NONE) }
+    val aiMatcher by aiMatcherFlow.collectAsStateWithLifecycle()
 
     val progressFlow =
         remember(context) {
@@ -187,6 +196,7 @@ fun ProvideVideoCardState(
         LocalArtworkColors provides artworkColors,
         LocalOriginalTitles provides originalTitles,
         LocalDeArrow provides deArrow,
+        LocalAiListMatcher provides aiMatcher,
         content = content,
     )
 }

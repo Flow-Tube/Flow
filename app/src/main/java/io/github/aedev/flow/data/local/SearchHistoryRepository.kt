@@ -68,6 +68,16 @@ class SearchHistoryRepository
             private val AUTO_DELETE_HISTORY_KEY = booleanPreferencesKey("auto_delete_history")
             private val HISTORY_RETENTION_DAYS_KEY = intPreferencesKey("history_retention_days")
 
+            /** The settings [getSettingsBackup] carries. */
+            internal val SETTING_NAMES: Set<String> =
+                setOf(
+                    SEARCH_HISTORY_ENABLED_KEY.name,
+                    SEARCH_SUGGESTIONS_ENABLED_KEY.name,
+                    AUTO_DELETE_HISTORY_KEY.name,
+                    MAX_HISTORY_SIZE_KEY.name,
+                    HISTORY_RETENTION_DAYS_KEY.name,
+                )
+
             private const val DEFAULT_MAX_HISTORY_SIZE = 50
             private const val DEFAULT_RETENTION_DAYS = 90
 
