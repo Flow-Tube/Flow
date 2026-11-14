@@ -25,11 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.music.model.MusicTrack
@@ -44,7 +42,6 @@ import io.github.aedev.flow.ui.components.musicplayer.lyrics.lyricsBackdrop
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSideSwipeHud
 import io.github.aedev.flow.ui.components.musicplayer.motion.musicSideSwipes
 import io.github.aedev.flow.ui.components.musicplayer.motion.rememberMusicSideSwipes
-import io.github.aedev.flow.ui.components.musicplayer.queue.QueueActions
 import io.github.aedev.flow.ui.components.musicplayer.queue.QueueList
 import io.github.aedev.flow.ui.components.musicplayer.queue.QueuePullUpSheet
 import io.github.aedev.flow.ui.components.musicplayer.queue.QueueSheet
@@ -54,8 +51,6 @@ import io.github.aedev.flow.ui.components.shared.MediaPalette
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackControls
 import io.github.aedev.flow.ui.components.shared.MediaSleepTimerSheet
 import io.github.aedev.flow.ui.components.shared.SkipDirection
-import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionUndo
-import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.screens.music.MusicPlayerViewModel
 import io.github.aedev.flow.ui.screens.music.MusicVideoSwitchViewModel
 import io.github.aedev.flow.ui.screens.music.sharedMusicPlayerViewModel
@@ -153,27 +148,8 @@ internal fun FullMusicPlayerContent(
         }
     }
 
-    val quickActions = sharedQuickActionsViewModel()
-    val removedFromQueue = stringResource(R.string.removed_from_queue)
     val queueSwipes by viewModel.queueSwipes.collectAsState()
-    val queueActions =
-        remember(viewModel, removedFromQueue) {
-            QueueActions(
-                onTrackClick = { viewModel.playFromQueue(it) },
-                onMoveTrack = { from, to -> viewModel.moveTrack(from, to) },
-                onPlayNextFromQueue = { viewModel.playNextFromQueuePosition(it) },
-                onSendQueueTrackToEnd = { viewModel.moveQueueTrackToEnd(it) },
-                onRemoveFromQueue = { index ->
-                    viewModel.removeFromQueue(index)?.let { quickActions.announce(removedFromQueue, QuickActionUndo.MusicQueueRemoval(it)) }
-                },
-                onRadioTrackClick = { viewModel.playRadioTrack(it) },
-                onPlayNextRadio = { viewModel.playNextFromRadio(it) },
-                onAddRadioToQueue = { viewModel.addRadioTrackToQueue(it) },
-                onToggleEndlessRadio = { viewModel.setEndlessRadioEnabled(it) },
-                onShuffleQueue = { viewModel.toggleShuffle() },
-                onCycleRepeat = { viewModel.toggleRepeat() },
-            )
-        }
+    val queueActions = rememberPlayerQueueActions(viewModel, sheets)
 
     val immersiveBackground = backgroundStyle == MusicPlayerBackgroundStyle.IMMERSIVE
     val displayTitle = previewTrack?.title ?: uiState.currentTrack?.title ?: track.title
@@ -410,6 +386,7 @@ internal fun FullMusicPlayerContent(
                                 swipes = queueSwipes,
                                 actions = queueActions,
                                 clearNavigationBar = false,
+                                selectEntry = true,
                             )
                         },
                         lyrics = {
