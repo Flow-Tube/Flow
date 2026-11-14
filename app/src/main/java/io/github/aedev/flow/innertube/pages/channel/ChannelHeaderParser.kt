@@ -4,6 +4,7 @@ import io.github.aedev.flow.innertube.pages.arrayOrNull
 import io.github.aedev.flow.innertube.pages.objectOrNull
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.renderer.findRenderers
+import io.github.aedev.flow.innertube.pages.renderer.forEachObject
 import io.github.aedev.flow.innertube.pages.renderer.largestImageUrl
 import io.github.aedev.flow.innertube.pages.stringOrNull
 import io.github.aedev.flow.innertube.pages.youtubeText
@@ -155,15 +156,18 @@ private fun JsonObject.descriptionPreview(): String? =
         .youtubeText()
 
 /**
- * The badge is not a field — it only ever shows up in the accessibility label the title carries,
- * which is why a structural search for a verified badge comes back empty on modern payloads.
+ * The badge is drawn as an image attached to the title text, and named again in the title's
+ * accessibility label. The image name is the same in every language; the label is the fallback.
  */
 private fun JsonObject.isVerified(): Boolean {
+    val title = this["title"].objectOrNull()?.get("dynamicTextViewModel").objectOrNull()
+    var badge = false
+    title?.get("text").forEachObject { node ->
+        if (node["imageName"].stringOrNull() == VERIFIED_IMAGE) badge = true
+    }
+    if (badge) return true
     val label =
-        this["title"]
-            .objectOrNull()
-            ?.get("dynamicTextViewModel")
-            .objectOrNull()
+        title
             ?.get("rendererContext")
             .objectOrNull()
             ?.get("accessibilityContext")
@@ -187,3 +191,5 @@ private fun JsonObject.hasVerifiedBadge(): Boolean =
                 .stringOrNull()
                 ?.contains("VERIFIED", ignoreCase = true) == true
         }
+
+private const val VERIFIED_IMAGE = "CHECK_CIRCLE_FILLED"

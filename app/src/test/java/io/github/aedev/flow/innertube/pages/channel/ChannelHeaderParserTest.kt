@@ -2,6 +2,7 @@ package io.github.aedev.flow.innertube.pages.channel
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -206,6 +207,30 @@ class ChannelHeaderParserTest {
 
         assertNull(header.subscriberCountText)
         assertEquals("12 vídeos", header.videoCountText)
+    }
+
+    @Test
+    fun `the verified badge is read from its image in any language`() {
+        val header =
+            parse(
+                pageHeader(
+                    rows = "[]",
+                    title =
+                        """
+                        { "content": "MrBeast", "attachmentRuns": [ { "startIndex": 7, "length": 0, "element": { "type": { "imageType": {
+                          "image": { "sources": [ { "clientResource": { "imageName": "CHECK_CIRCLE_FILLED" }, "width": 24, "height": 24 } ] }
+                        } } } } ] }
+                        """.trimIndent(),
+                    label = "MrBeast, verificado",
+                ),
+            )
+
+        assertTrue(header.isVerified)
+    }
+
+    @Test
+    fun `a title without the badge image or an English label is not verified`() {
+        assertFalse(parse(pageHeader(rows = "[]")).isVerified)
     }
 
     @Test
