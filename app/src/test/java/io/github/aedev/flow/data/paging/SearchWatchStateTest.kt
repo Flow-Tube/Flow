@@ -42,4 +42,13 @@ class SearchWatchStateTest {
 
         assertThat(watchedVideoIds(videos, history, WatchedThreshold.PERCENT_99)).containsExactly("s")
     }
+
+    @Test
+    fun `an imported video counts as watched only when the viewer asks`() {
+        val videos = listOf(video("imported"), video("never"))
+        val history = listOf(progress("imported", 0L, 0L))
+
+        assertThat(watchedVideoIds(videos, history, WatchedThreshold.ALMOST_FINISHED)).isEmpty()
+        assertThat(watchedVideoIds(videos, history, WatchedThreshold.ALMOST_FINISHED, countImported = true)).containsExactly("imported")
+    }
 }

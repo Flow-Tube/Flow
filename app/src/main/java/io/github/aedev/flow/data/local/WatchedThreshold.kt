@@ -27,3 +27,19 @@ enum class WatchedThreshold(
         return percent >= minPercent && durationMs - positionMs <= maxRemainingMs
     }
 }
+
+/**
+ * A row from a YouTube history import: Takeout lists what was watched but not how far, so the row
+ * has neither a position nor a duration (#2060). A live stream opened in Flow looks the same.
+ */
+fun isImportedWatch(
+    positionMs: Long,
+    durationMs: Long,
+): Boolean = positionMs == 0L && durationMs == 0L
+
+/** [WatchedThreshold.isWatched], plus imported rows when the viewer counts those as watched. */
+fun WatchedThreshold.isWatched(
+    positionMs: Long,
+    durationMs: Long,
+    countImported: Boolean,
+): Boolean = isWatched(positionMs, durationMs) || (countImported && isImportedWatch(positionMs, durationMs))

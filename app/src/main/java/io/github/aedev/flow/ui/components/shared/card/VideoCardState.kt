@@ -20,6 +20,7 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.local.dao.WatchProgress
+import io.github.aedev.flow.data.local.isImportedWatch
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.repository.DeArrowRepository
@@ -35,7 +36,6 @@ import io.github.aedev.flow.ui.utils.rememberIsOnWifi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 
 /**
  * Card settings that are identical for every card on screen.
@@ -178,11 +178,11 @@ fun ProvideVideoCardState(
     val aiMatcher by aiMatcherFlow.collectAsStateWithLifecycle()
 
     val progressFlow =
-        remember(context) {
+        remember(context, playerPreferences) {
             ViewHistory
                 .getInstance(context)
                 .getAllWatchProgress()
-                .map { entries -> entries.toWatchProgressMap() }
+                .combine(playerPreferences.countImportedAsWatched) { entries, countImported -> entries.toWatchProgressMap(countImported) }
                 .distinctUntilChanged()
         }
     val progressEntries = progressFlow.collectAsStateWithLifecycle(emptyMap())
@@ -203,11 +203,16 @@ fun ProvideVideoCardState(
 
 /**
  * Below 3% a video counts as not started, and at 90% the bar is filled rather than left a sliver
- * short of the end. Mirrors what each card computed for itself before.
+ * short of the end. Mirrors what each card computed for itself before. With [countImported], a video
+ * from a YouTube history import fills the bar too; music and local files never do.
  */
-internal fun List<WatchProgress>.toWatchProgressMap(): Map<String, Float> =
+internal fun List<WatchProgress>.toWatchProgressMap(countImported: Boolean = false): Map<String, Float> =
     buildMap {
         this@toWatchProgressMap.forEach { entry ->
+            if (countImported && !entry.isMusic && !entry.isLocal && isImportedWatch(entry.position, entry.duration)) {
+                put(entry.videoId, 1f)
+                return@forEach
+            }
             if (entry.duration <= 0) return@forEach
             val percentage = entry.position.toFloat() / entry.duration.toFloat() * 100f
             if (percentage >= 3f) {

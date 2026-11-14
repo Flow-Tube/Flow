@@ -211,6 +211,15 @@ internal object ContentIndex {
             section = R.string.settings_section_watched,
             destination = page,
         )
+    val countImportedAsWatched =
+        SettingEntry(
+            key = "content.watched.count_imported",
+            title = R.string.content_settings_count_imported_watched_title,
+            summary = R.string.content_settings_count_imported_watched_subtitle,
+            keywords = R.string.settings_keywords_count_imported_watched,
+            section = R.string.settings_section_watched,
+            destination = page,
+        )
     val notes =
         SettingEntry(
             key = "content.notes.enabled",
@@ -287,6 +296,7 @@ internal object ContentIndex {
             hideWatchedShorts,
             removeWatchedWatchLater,
             watchedThreshold,
+            countImportedAsWatched,
             notes,
             channelNotes,
             videoNotes,

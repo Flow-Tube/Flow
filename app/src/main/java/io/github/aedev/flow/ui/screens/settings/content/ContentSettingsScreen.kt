@@ -105,13 +105,14 @@ internal fun ContentSettingsScreen(
         group(key = "content.watch_later", header = R.string.watch_later) {
             switch(ContentIndex.removeWatchedWatchLater, viewModel.removeWatchedWatchLater, viewModel::setRemoveWatchedWatchLater)
         }
-        if (hideWatchedHome || hideWatchedSubs || hideWatchedShorts || removeWatchedWatchLater) {
-            group(key = "content.watched", header = R.string.settings_section_watched) {
+        group(key = "content.watched", header = R.string.settings_section_watched) {
+            if (hideWatchedHome || hideWatchedSubs || hideWatchedShorts || removeWatchedWatchLater) {
                 choice(ContentIndex.watchedThreshold, onClick = { showThresholdDialog = true }) {
                     val threshold by viewModel.watchedThreshold.collectAsStateWithLifecycle()
                     watchedThresholdLabel(threshold)
                 }
             }
+            switch(ContentIndex.countImportedAsWatched, viewModel.countImportedAsWatched, viewModel::setCountImportedAsWatched)
         }
         group(key = "content.notes", header = R.string.content_settings_notes_title) {
             switch(ContentIndex.notes, viewModel.notes, viewModel::setNotes)

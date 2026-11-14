@@ -27,4 +27,13 @@ class WatchLaterCleanupTest {
     fun `history of videos not in Watch later is ignored`() {
         assertThat(watchedIds(listOf(video("a")), listOf(entry("b", 600_000L)), WatchedThreshold.PERCENT_90)).isEmpty()
     }
+
+    @Test
+    fun `imported history is swept only when counted as watched`() {
+        val watchLater = listOf(video("imported"))
+        val history = listOf(entry("imported", 0L, durationMs = 0L))
+
+        assertThat(watchedIds(watchLater, history, WatchedThreshold.ALMOST_FINISHED)).isEmpty()
+        assertThat(watchedIds(watchLater, history, WatchedThreshold.ALMOST_FINISHED, countImported = true)).containsExactly("imported")
+    }
 }

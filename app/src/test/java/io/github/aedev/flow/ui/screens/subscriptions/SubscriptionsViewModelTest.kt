@@ -75,6 +75,7 @@ class SubscriptionsViewModelTest {
         coEvery { playerPreferences.hideWatchedVideosFromSubscriptions } returns flowOf(false)
         coEvery { playerPreferences.hideWatchedShorts } returns flowOf(true)
         coEvery { playerPreferences.watchedThreshold } returns flowOf(mockk(relaxed = true))
+        coEvery { playerPreferences.countImportedAsWatched } returns flowOf(false)
         coEvery { database.downloadDao().getVideoDownloads() } returns flowOf(emptyList())
         coEvery { playerPreferences.unplayableVideoIds } returns flowOf(emptySet())
         coEvery { playerPreferences.hideUnplayableVideosFromSubscriptions } returns flowOf(false)
