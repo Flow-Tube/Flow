@@ -180,6 +180,8 @@
     <string name="player_appearance_video_artwork_colors_subtitle">Tint description and comments</string>
     <string name="player_appearance_follow_light_theme_title">Light in light theme</string>
     <string name="player_appearance_follow_light_theme_subtitle">Artwork backgrounds turn light</string>
+    <string name="player_appearance_split_transport_title">Split buttons</string>
+    <string name="player_appearance_split_transport_subtitle">Previous and next sit flat against play/pause</string>
     <string name="player_appearance_sleep_timer_button_title">Sleep timer button</string>
     <string name="player_appearance_sleep_timer_button_subtitle">Show it next to the queue button</string>
     <string name="player_appearance_plain_control_colors_title">Control colors</string>

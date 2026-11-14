@@ -73,6 +73,7 @@ internal fun FullMusicPlayerContent(
     backgroundStyle: MusicPlayerBackgroundStyle,
     hideArtwork: Boolean,
     sleepTimerButton: Boolean,
+    splitTransport: Boolean = false,
     // The transport, seek bar, like and download and the action row draw with this scheme.
     controlScheme: ColorScheme = MaterialTheme.colorScheme,
     onLyricsShownChange: (Boolean) -> Unit = {},
@@ -330,6 +331,7 @@ internal fun FullMusicPlayerContent(
                             onNextClick = { viewModel.skipToNext() },
                             modifier = modifier,
                             onPreviewDirectionChange = { previewDirection = it },
+                            split = splitTransport,
                         )
                     }
                 },
