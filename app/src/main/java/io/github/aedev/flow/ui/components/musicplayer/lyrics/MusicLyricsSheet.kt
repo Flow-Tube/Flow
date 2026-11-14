@@ -106,8 +106,6 @@ internal fun MusicLyricsSheet(
     var showSyncControls by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     var pendingSaveText by remember { mutableStateOf<String?>(null) }
-    // A sheet over the lyrics hides most of them; their motion would cost every frame of its drag (#2065).
-    val coveredBySheet = showActionsSheet || showSourcesSheet || showShareSheet || showEditDialog
     val visibleState = rememberUpdatedState(visible)
     val onDismissState = rememberUpdatedState(onDismiss)
     val scope = rememberCoroutineScope()
@@ -225,7 +223,7 @@ internal fun MusicLyricsSheet(
             LyricsCoverLayer(
                 cover = cover,
                 moving = display.background == LyricsBackgroundStyle.MOVING,
-                running = visible && isPlaying && !coveredBySheet,
+                running = visible && isPlaying,
             )
         }
         Column(modifier = Modifier.fillMaxSize()) {
@@ -274,7 +272,7 @@ internal fun MusicLyricsSheet(
                             // Retention keeps the panel composed for an instant reopen; the
                             // position loops must still pause while the sheet is hidden.
                             active = visible,
-                            isPlaying = isPlaying && !coveredBySheet,
+                            isPlaying = isPlaying,
                             backdropColor = backdropColor,
                             baseTextSize = baseTextSize,
                             display = display,

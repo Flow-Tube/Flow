@@ -1,3 +1,3 @@
-## Improved
+## Fixed
 
-- Lyrics: the lyrics hold still while their menu or another sheet is open over them, so dragging the sheet stays smooth (#2065)
+- Music player: the seek bar's wave no longer keeps moving behind the full screen lyrics or the queue, so dragging a sheet over the lyrics stays smooth and less battery is used (#2065)
