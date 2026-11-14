@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsUtils
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
@@ -89,6 +90,7 @@ internal fun SyncedLyricLine(
     clearInGaps: Boolean = false,
     singleLine: Boolean = false,
     contentAlignment: Alignment = Alignment.BottomStart,
+    animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.CADENCE,
     empty: @Composable () -> Unit,
 ) {
     val lines = lyrics.lines
@@ -147,6 +149,7 @@ internal fun SyncedLyricLine(
                 syncOffsetMs = lyrics.offsetMs,
                 positionProvider = EnhancedMusicPlayerManager::getCurrentPosition,
                 motionEnabled = motionEnabled,
+                animationStyle = animationStyle,
             )
         }
         if (singleLine) {

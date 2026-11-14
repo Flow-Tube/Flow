@@ -5016,6 +5016,17 @@ enum class MusicPlainControlColors {
     APP_THEME,
 }
 
+/**
+ * How a synced line moves as it is sung: letters that rise with the fill, held notes that swell and
+ * syllable runs that climb (Cadence); words that lift as they fill (Classic); or the fill alone (Calm).
+ * Stored by name.
+ */
+enum class LyricsAnimationStyle {
+    CADENCE,
+    CLASSIC,
+    CALM,
+}
+
 /** What the full-screen lyrics draw on. Stored by name. */
 enum class LyricsBackgroundStyle {
     SOLID,
