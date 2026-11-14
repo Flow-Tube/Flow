@@ -260,14 +260,15 @@ class HomeViewModel
                 combine(
                     viewHistory.getVideoHistoryFlow(),
                     playerPreferences.hideWatchedVideosFromHome,
-                    playerPreferences.watchedThreshold,
+                    playerPreferences.watchedThreshold.combine(playerPreferences.countImportedAsWatched, ::Pair),
                     playerPreferences.continueWatchingEnabled,
                     playerPreferences.hideWatchedShorts,
-                ) { history, hideWatched, threshold, continueWatchingEnabled, hideWatchedShorts ->
+                ) { history, hideWatched, (threshold, countImported), continueWatchingEnabled, hideWatchedShorts ->
                     filterHomeHistory(
                         history = history,
                         hideWatchedVideos = hideWatched,
                         watchedThreshold = threshold,
+                        countImported = countImported,
                         continueWatchingEnabled = continueWatchingEnabled,
                         hideWatchedShorts = hideWatchedShorts,
                     )

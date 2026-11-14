@@ -1312,6 +1312,9 @@
     <string name="content_settings_hide_unplayable_subscriptions_title">Hide Unplayable Videos from Subscriptions</string>
     <string name="content_settings_hide_unplayable_subscriptions_subtitle">Hide private, removed and restricted videos that fail to play</string>
     <string name="content_settings_watched_threshold_title">Mark as watched when</string>
+    <string name="content_settings_count_imported_watched_title">Count imported history as watched</string>
+    <string name="content_settings_count_imported_watched_subtitle">Videos from a YouTube history import show as watched</string>
+    <string name="settings_keywords_count_imported_watched">takeout, import, youtube history, seen</string>
     <string name="content_settings_watched_threshold_dialog_body">How much of a video you need to watch before it counts as watched.</string>
     <string name="content_settings_watched_threshold_90">90% played</string>
     <string name="content_settings_watched_threshold_95">95% played</string>

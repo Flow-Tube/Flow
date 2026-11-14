@@ -116,4 +116,23 @@ class HomeHistoryFilterTest {
         thumbnailUrl = "",
         isShort = isShort,
     )
+
+    @Test
+    fun `imported history is hidden only when counted as watched`() {
+        val history = listOf(entry("imported", position = 0, duration = 0, timestamp = 2), entry("fresh", 0, 600_000, timestamp = 1))
+
+        fun watched(countImported: Boolean) =
+            filterHomeHistory(
+                history = history,
+                hideWatchedVideos = true,
+                watchedThreshold = WatchedThreshold.ALMOST_FINISHED,
+                continueWatchingEnabled = true,
+                hideWatchedShorts = false,
+                countImported = countImported,
+            )
+
+        assertThat(watched(countImported = false).watchedVideoIds).isEmpty()
+        assertThat(watched(countImported = true).watchedVideoIds).containsExactly("imported")
+        assertThat(watched(countImported = true).continueWatchingVideos).isEmpty()
+    }
 }

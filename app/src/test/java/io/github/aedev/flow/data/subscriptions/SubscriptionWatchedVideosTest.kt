@@ -26,6 +26,7 @@ class SubscriptionWatchedVideosTest {
         hideWatchedVideos: Boolean,
         threshold: WatchedThreshold = WatchedThreshold.ALMOST_FINISHED,
         rows: List<WatchProgress> = history,
+        countImported: Boolean = false,
     ): SubscriptionWatchedVideos {
         val viewHistory: ViewHistory = mockk(relaxed = true)
         every { viewHistory.getVideoWatchProgress() } returns flowOf(rows)
@@ -33,6 +34,7 @@ class SubscriptionWatchedVideosTest {
         every { preferences.hideWatchedShorts } returns flowOf(hideWatchedShorts)
         every { preferences.hideWatchedVideosFromSubscriptions } returns flowOf(hideWatchedVideos)
         every { preferences.watchedThreshold } returns flowOf(threshold)
+        every { preferences.countImportedAsWatched } returns flowOf(countImported)
         val database: AppDatabase = mockk(relaxed = true)
         every { database.downloadDao().getVideoDownloads() } returns flowOf(emptyList())
         return SubscriptionWatchedVideos(viewHistory, preferences, database)
@@ -61,5 +63,16 @@ class SubscriptionWatchedVideosTest {
 
             assertThat(watched.shortIds.first()).isEmpty()
             assertThat(watched.ids.first()).containsExactly("finished-reel")
+        }
+
+    @Test
+    fun `imported videos are hidden only when counted as watched`() =
+        runTest {
+            val rows = listOf(WatchProgress("imported", position = 0L, duration = 0L, timestamp = 0L))
+
+            assertThat(watched(hideWatchedShorts = false, hideWatchedVideos = true, rows = rows).ids.first()).isEmpty()
+            assertThat(
+                watched(hideWatchedShorts = false, hideWatchedVideos = true, rows = rows, countImported = true).ids.first(),
+            ).containsExactly("imported")
         }
 }
