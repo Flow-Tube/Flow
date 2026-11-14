@@ -2,7 +2,9 @@ package io.github.aedev.flow.ui.screens.music
 
 import android.content.Context
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.local.LyricsBackgroundStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
 import io.github.aedev.flow.data.localmedia.LocalLyricsSource
@@ -70,6 +72,12 @@ internal class MusicPlayerLyrics(
         scope.launch { playerPreferences.lyricsRomanizationOnly.collect { on -> uiState.update { it.copy(lyricsRomanizationOnly = on) } } }
         scope.launch { playerPreferences.lyricsKeepScreenOn.collect { on -> uiState.update { it.copy(lyricsKeepScreenOn = on) } } }
         scope.launch { playerPreferences.lyricsBlurOtherLines.collect { on -> uiState.update { it.copy(lyricsBlurOtherLines = on) } } }
+        scope.launch {
+            playerPreferences.lyricsAnimationStyle.collect { style ->
+                uiState.update { it.copy(lyricsAnimationStyle = style) }
+            }
+        }
+        scope.launch { playerPreferences.lyricsGlow.collect { glow -> uiState.update { it.copy(lyricsGlow = glow) } } }
         scope.launch { playerPreferences.lyricsBackground.collect { style -> uiState.update { it.copy(lyricsBackground = style) } } }
     }
 
@@ -107,6 +115,14 @@ internal class MusicPlayerLyrics(
 
     fun setBlurOtherLines(enabled: Boolean) {
         scope.launch { playerPreferences.setLyricsBlurOtherLines(enabled) }
+    }
+
+    fun setAnimationStyle(style: LyricsAnimationStyle) {
+        scope.launch { playerPreferences.setLyricsAnimationStyle(style) }
+    }
+
+    fun setGlow(glow: LyricsGlow) {
+        scope.launch { playerPreferences.setLyricsGlow(glow) }
     }
 
     private fun cleanName(name: String): String =

@@ -3,7 +3,9 @@ package io.github.aedev.flow.ui.screens.music
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.local.LyricsBackgroundStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalLyrics
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
@@ -58,6 +60,8 @@ class MusicPlayerLyricsTest {
             every { lyricsKeepScreenOn } returns flowOf(false)
             every { lyricsBlurOtherLines } returns flowOf(true)
             every { lyricsBackground } returns flowOf(LyricsBackgroundStyle.SOLID)
+            every { lyricsAnimationStyle } returns flowOf(LyricsAnimationStyle.CADENCE)
+            every { lyricsGlow } returns flowOf(LyricsGlow.NORMAL)
         }
     private val reader =
         mockk<LocalLyricsReader> {

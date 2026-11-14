@@ -1,7 +1,9 @@
 package io.github.aedev.flow.ui.screens.music
 
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_CENTER
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.local.LyricsBackgroundStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.music.model.MusicTrack
@@ -38,6 +40,8 @@ data class MusicPlayerUiState(
     val lyricsRomanizationOnly: Boolean = false,
     val lyricsKeepScreenOn: Boolean = false,
     val lyricsBlurOtherLines: Boolean = true,
+    val lyricsAnimationStyle: LyricsAnimationStyle = LyricsAnimationStyle.CADENCE,
+    val lyricsGlow: LyricsGlow = LyricsGlow.NORMAL,
     val lyricsBackground: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,
     val lyricsCandidates: List<LyricsCandidate> = emptyList(),
     val isBrowsingLyrics: Boolean = false,
