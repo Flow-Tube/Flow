@@ -1,0 +1,11 @@
+[
+  { "input": "@DPCartoon%C3%80i-v6k", "normalized": "dpcartoonài-v6k" },
+  { "input": "@HFY_en_Español", "normalized": "hfy_en_español" },
+  { "input": "@소소한작업실-z8d", "normalized": "소소한작업실-z8d" },
+  { "input": "@ELTÍOFRONTAL", "normalized": "eltíofrontal" },
+  { "input": "/@LinusTechTips/shorts", "normalized": "linustechtips" },
+  { "input": "@M%C3%BAsicaB%C3%ADblicaInstrumental", "normalized": "músicabíblicainstrumental" },
+  { "input": " @Some.Channel_1 ", "normalized": "some.channel_1" },
+  { "input": "@Aiomo%E3%81%82%E3%81%84%E3%81%8A%E3%82%82", "normalized": "aiomoあいおも" },
+  { "input": "@Bad%ZZname", "normalized": null }
+]

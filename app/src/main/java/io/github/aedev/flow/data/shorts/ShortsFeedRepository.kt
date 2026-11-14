@@ -3,6 +3,8 @@ package io.github.aedev.flow.data.shorts
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.data.local.CachedHomeVideo
 import io.github.aedev.flow.data.local.HomeFeedCacheFilters
 import io.github.aedev.flow.data.local.HomeFeedCacheRepository
@@ -55,6 +57,7 @@ class ShortsFeedRepository
         private val playlistRepository: PlaylistRepository,
         private val playerPreferences: PlayerPreferences,
         private val homeFeedCache: HomeFeedCacheRepository,
+        private val aiList: AiListRepository,
     ) {
         private val lock = Mutex()
         private var pager: ShortsFeedPager? = null
@@ -128,6 +131,7 @@ class ShortsFeedRepository
             channelName: String,
         ): Boolean {
             if (channelId.isNotBlank() && channelId in excludedChannelIds()) return true
+            if (aiList.currentMatcher().verdict(channelId, null) == AiVerdict.BLOCK) return true
             return blockedTextMatcher()(title, channelName)
         }
 
@@ -203,12 +207,14 @@ class ShortsFeedRepository
 
                 override suspend fun filters(): ShortsFeedFilters {
                     val brain = runCatching { FlowNeuroEngine.getBrainSnapshot() }.getOrNull()
+                    val aiMatcher = aiList.currentMatcher()
                     return ShortsFeedFilters(
                         watchedIds = watchedReelIds(),
                         seenIds = runCatching { FlowNeuroEngine.getRecentlySeenShorts() }.getOrDefault(emptySet()),
                         suppressedIds = brain?.suppressedVideoIds?.keys.orEmpty(),
                         excludedChannelIds = excludedChannelIds(),
                         isBlockedText = blockedTextMatcher(),
+                        isAiBlocked = { channelId -> aiMatcher.verdict(channelId, null) == AiVerdict.BLOCK },
                     )
                 }
 

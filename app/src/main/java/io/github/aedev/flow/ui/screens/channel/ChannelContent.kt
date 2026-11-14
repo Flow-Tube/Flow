@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
@@ -88,6 +89,8 @@ internal fun ChannelContent(
     onChannelNotificationChange: (String, Boolean) -> Unit,
     channelNote: String?,
     onEditNote: (() -> Unit)?,
+    aiVerdict: AiVerdict,
+    onShowAiChannel: () -> Unit,
     onSubscribeChannel: (io.github.aedev.flow.data.model.Channel, Boolean) -> Unit,
     onVideoClick: (Video) -> Unit,
     onChannelClick: (String) -> Unit,
@@ -435,6 +438,8 @@ internal fun ChannelContent(
                     onManageGroups = onManageGroups.takeIf { uiState.isSubscribed },
                     note = channelNote,
                     onEditNote = onEditNote,
+                    aiVerdict = aiVerdict,
+                    onShowAiChannel = onShowAiChannel,
                 )
             }
 

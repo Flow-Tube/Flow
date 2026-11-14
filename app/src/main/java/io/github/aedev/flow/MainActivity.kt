@@ -22,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.aedev.flow.applock.AppLock
 import io.github.aedev.flow.applock.hideFromRecentsWhenAsked
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.data.playlist.PlaylistTransfer
@@ -70,6 +71,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var deArrow: DeArrowRepository
+
+    @Inject
+    lateinit var aiList: AiListRepository
 
     @Inject
     lateinit var lifecyclePlaybackPreferences: LifecyclePlaybackPreferences
@@ -214,6 +218,7 @@ class MainActivity : ComponentActivity() {
                     splashController = splashController,
                     originalTitles = originalTitles,
                     deArrow = deArrow,
+                    aiList = aiList,
                     appIconController = appIconController,
                     appLock = appLock,
                     onUiRoot = { cachedAppUiRoot = it },

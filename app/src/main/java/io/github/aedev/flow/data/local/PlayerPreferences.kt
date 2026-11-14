@@ -251,6 +251,13 @@ class PlayerPreferences(
         val DEARROW_BADGE_ENABLED = booleanPreferencesKey("dearrow_badge_enabled")
         val DEARROW_RANDOM_FRAME = booleanPreferencesKey("dearrow_random_frame")
 
+        // AI channel list
+        val AI_LIST_BLOCK_ENABLED = booleanPreferencesKey("ai_list_block_enabled")
+        val AI_LIST_WARN_ENABLED = booleanPreferencesKey("ai_list_warn_enabled")
+        val AI_LIST_ALLOWED = stringPreferencesKey("ai_list_allowed")
+        val AI_LIST_REPORT_ENABLED = booleanPreferencesKey("ai_list_report_enabled")
+        val AI_LIST_REPORT_NAME = stringPreferencesKey("ai_list_report_name")
+
         // Notification preferences
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val NOTIF_NEW_VIDEOS_ENABLED = booleanPreferencesKey("notif_new_videos_enabled")
@@ -575,6 +582,10 @@ class PlayerPreferences(
         val SETTINGS_FIRST_SEEN = device(stringPreferencesKey("settings_first_seen"))
         val NEW_SETTINGS_HIGHLIGHT = device(booleanPreferencesKey("new_settings_highlight"))
         val NEW_SETTINGS_HIGHLIGHT_DAYS = device(intPreferencesKey("new_settings_highlight_days"))
+
+        // AI channel list source: device-wide, like the list file it decides
+        val AI_LIST_SOURCE_URL = device(stringPreferencesKey("ai_list_source_url"))
+        val AI_LIST_SOURCE_KEY = device(stringPreferencesKey("ai_list_source_key"))
 
         val NAMES: Set<String> = names
     }
@@ -2180,6 +2191,75 @@ class PlayerPreferences(
     suspend fun setDeArrowRandomFrame(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.DEARROW_RANDOM_FRAME] = enabled
+        }
+    }
+
+    // AI channel list
+    val aiListBlockEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_BLOCK_ENABLED] ?: false }
+
+    suspend fun setAiListBlockEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_BLOCK_ENABLED] = enabled
+        }
+    }
+
+    val aiListWarnEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_WARN_ENABLED] ?: false }
+
+    suspend fun setAiListWarnEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_WARN_ENABLED] = enabled
+        }
+    }
+
+    /** The channels shown despite the AI list, as the JSON its repository writes. */
+    val aiListAllowed: Flow<String?> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_ALLOWED] }
+
+    suspend fun updateAiListAllowed(transform: (String?) -> String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_ALLOWED] = transform(preferences[Keys.AI_LIST_ALLOWED])
+        }
+    }
+
+    /** The custom list source as entered, URL then public key; both null means Flow's own mirror. */
+    val aiListSource: Flow<Pair<String?, String?>> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.AI_LIST_SOURCE_URL] to preferences[DeviceKeys.AI_LIST_SOURCE_KEY] }
+            .distinctUntilChanged()
+
+    suspend fun setAiListSource(
+        url: String?,
+        key: String?,
+    ) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            if (url.isNullOrBlank()) preferences.remove(DeviceKeys.AI_LIST_SOURCE_URL) else preferences[DeviceKeys.AI_LIST_SOURCE_URL] = url
+            if (key.isNullOrBlank()) preferences.remove(DeviceKeys.AI_LIST_SOURCE_KEY) else preferences[DeviceKeys.AI_LIST_SOURCE_KEY] = key
+        }
+    }
+
+    val aiListReportEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_REPORT_ENABLED] ?: false }
+
+    suspend fun setAiListReportEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_LIST_REPORT_ENABLED] = enabled
+        }
+    }
+
+    /** The name AiSList shows beside this viewer's reports on its public leaderboard. */
+    val aiListReportName: Flow<String> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_LIST_REPORT_NAME].orEmpty() }
+
+    suspend fun setAiListReportName(name: String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            if (name.isBlank()) preferences.remove(Keys.AI_LIST_REPORT_NAME) else preferences[Keys.AI_LIST_REPORT_NAME] = name.trim()
         }
     }
 
