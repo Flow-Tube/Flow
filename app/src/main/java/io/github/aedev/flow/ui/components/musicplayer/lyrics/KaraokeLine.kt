@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.local.LyricsAnimationStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.lyrics.WordTimestamp
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import kotlinx.coroutines.isActive
@@ -45,8 +46,27 @@ import kotlin.math.roundToInt
 
 private val WordLift = 3.dp
 private const val FEATHER_EM = 0.9f
-private const val GLOW_PEAK_ALPHA = 0.5f
-private val GlowRadius = 10.dp
+private const val SOFT_GLOW_ALPHA = 0.3f
+private const val NORMAL_GLOW_ALPHA = 0.5f
+private const val BRIGHT_GLOW_ALPHA = 0.8f
+private val SoftGlowRadius = 8.dp
+private val NormalGlowRadius = 10.dp
+private val BrightGlowRadius = 14.dp
+
+private fun glowPeakAlpha(glow: LyricsGlow): Float =
+    when (glow) {
+        LyricsGlow.OFF -> 0f
+        LyricsGlow.SOFT -> SOFT_GLOW_ALPHA
+        LyricsGlow.NORMAL -> NORMAL_GLOW_ALPHA
+        LyricsGlow.BRIGHT -> BRIGHT_GLOW_ALPHA
+    }
+
+private fun glowRadius(glow: LyricsGlow) =
+    when (glow) {
+        LyricsGlow.SOFT -> SoftGlowRadius
+        LyricsGlow.BRIGHT -> BrightGlowRadius
+        else -> NormalGlowRadius
+    }
 
 /** A gradient shader made once and slid into place for each frame through its local matrix. */
 internal class FrontBrush(
@@ -126,6 +146,7 @@ internal fun KaraokeLine(
     motionEnabled: Boolean,
     modifier: Modifier = Modifier,
     animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.CLASSIC,
+    glow: LyricsGlow = LyricsGlow.NORMAL,
 ) {
     val moving = motionEnabled && animationStyle != LyricsAnimationStyle.CALM
     val cadence = motionEnabled && animationStyle == LyricsAnimationStyle.CADENCE
@@ -194,7 +215,8 @@ internal fun KaraokeLine(
         val fontPx = with(density) { style.fontSize.toPx() }
         val feather = fontPx * FEATHER_EM
         val liftPx = with(density) { WordLift.toPx() }
-        val glowPx = with(density) { GlowRadius.toPx() }
+        val glowPx = with(density) { glowRadius(glow).toPx() }
+        val glowAlpha = glowPeakAlpha(glow)
         val layered = needsUnsungLayer(unsungColor)
         val solidUnsung = unsungColor.copy(alpha = 1f)
         // Layered, the unsung text is already under the front, so the front fades the sung colour out.
@@ -202,10 +224,10 @@ internal fun KaraokeLine(
         val forward = remember(sungColor, frontEnd, feather) { frontBrush(feather, sungColor, frontEnd) }
         val backward = remember(sungColor, frontEnd, feather) { frontBrush(feather, frontEnd, sungColor) }
         val glows =
-            remember(sungColor, glowPx) {
+            remember(sungColor, glowPx, glowAlpha) {
                 // Only the strength moves. A changing blur radius is what made the glow visibly step.
                 Array(GLOW_LEVELS) { level ->
-                    Shadow(color = sungColor.copy(alpha = GLOW_PEAK_ALPHA * (level + 1f) / GLOW_LEVELS), blurRadius = glowPx)
+                    Shadow(color = sungColor.copy(alpha = glowAlpha * (level + 1f) / GLOW_LEVELS), blurRadius = glowPx)
                 }
             }
         val cadenceInk =
@@ -258,7 +280,7 @@ internal fun KaraokeLine(
                 frame.anchor = anchor
                 // Grown words reach above the row as well as the lift does.
                 frame.overscan = liftPx * 2f + fontPx * 0.25f
-                frame.glow = true
+                frame.glow = glow != LyricsGlow.OFF
                 drawCadenceLine(geometry, cadenceInk, frame)
                 return@Canvas
             }
@@ -301,7 +323,7 @@ internal fun KaraokeLine(
                     }
                 val glowLayout = cell.glow
                 val glowLevel = heldNoteGlowLevel(progress)
-                if (moving && glowLayout != null && glowLevel >= 0) {
+                if (moving && glow != LyricsGlow.OFF && glowLayout != null && glowLevel >= 0) {
                     translate(
                         left = cell.inkLeft - glowLayout.getBoundingBox(0).left,
                         top = row.dy + row.layout.firstBaseline - glowLayout.firstBaseline - wordLift,

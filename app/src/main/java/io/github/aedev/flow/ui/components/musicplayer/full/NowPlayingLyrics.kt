@@ -109,6 +109,8 @@ private fun MusicPlayerUiState.lyricsDisplay() =
         keepScreenOn = lyricsKeepScreenOn,
         blurOtherLines = lyricsBlurOtherLines,
         background = lyricsBackground,
+        animationStyle = lyricsAnimationStyle,
+        glow = lyricsGlow,
     )
 
 private fun MusicPlayerViewModel.applyLyricsDisplay(
@@ -122,4 +124,6 @@ private fun MusicPlayerViewModel.applyLyricsDisplay(
     if (new.keepScreenOn != old.keepScreenOn) setLyricsKeepScreenOn(new.keepScreenOn)
     if (new.blurOtherLines != old.blurOtherLines) setLyricsBlurOtherLines(new.blurOtherLines)
     if (new.background != old.background) setLyricsBackground(new.background)
+    if (new.animationStyle != old.animationStyle) setLyricsAnimationStyle(new.animationStyle)
+    if (new.glow != old.glow) setLyricsGlow(new.glow)
 }
