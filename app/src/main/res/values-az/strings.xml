@@ -4946,4 +4946,5 @@
     <string name="comments_timed_waiting">Video oynadıldıqca izlədiyinizlə bağlı şərhlər burada görünür. Növbəti şərh: %1$s.</string>
     <string name="comments_timed_next">Növbəti şərh %1$s \'də</string>
     <string name="comments_timed_end">Bu videoda artıq zamanlı şərhlər yoxdur</string>
+    <string name="dlna_google_cast_unsupported">Chromecast və digər Google Cast cihazları dəstəklənmir.</string>
 </resources>
