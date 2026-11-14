@@ -167,7 +167,7 @@ private fun ColorSlider(
 ) {
     Column {
         Text(text = stringResource(label), style = MaterialTheme.typography.labelMedium)
-        Slider(value = value, onValueChange = onChange, valueRange = range)
+        Slider(value = value, onValueChange = onChange, valueRange = range, modifier = Modifier.dpadVerticalFocusExit())
     }
 }
 
