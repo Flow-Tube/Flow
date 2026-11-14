@@ -2812,6 +2812,7 @@
     <string name="dlna_cast_to_device">Cast to Device</string>
     <string name="dlna_no_devices">No DLNA/UPnP renderers found on this network.\n\nMake sure your TV or media player (VLC, Kodi, etc.) is on the same Wi-Fi network and has media renderer mode enabled.</string>
     <string name="dlna_searching">Searching for DLNA devices...</string>
+    <string name="dlna_google_cast_unsupported">Chromecast and other Google Cast devices aren\'t supported.</string>
     <string name="dlna_now_casting">Now casting: %1$s</string>
     <string name="dlna_stop_casting">Stop Casting</string>
     <!-- Subtitle customization -->
