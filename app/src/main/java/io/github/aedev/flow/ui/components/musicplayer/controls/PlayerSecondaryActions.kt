@@ -148,7 +148,7 @@ internal fun RowScope.PlayerToggleButton(
                 .weight(1f)
                 .fillMaxHeight(),
         colors =
-            ToggleButtonDefaults.toggleButtonColors(
+            ToggleButtonDefaults.colors(
                 containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 checkedContainerColor = checkedContainerColor,

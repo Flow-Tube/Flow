@@ -412,7 +412,7 @@ private fun TvPlayerUtilityButton(
             checked = utility.checked,
             onCheckedChange = { utility.onClick() },
             shapes = shapes,
-            colors = FilledTonalToggleButtonDefaults.filledTonalToggleButtonColors(),
+            colors = FilledTonalToggleButtonDefaults.colors(),
             contentPadding = PaddingValues(0.dp),
             interactionSource = interactionSource,
             modifier = Modifier.size(width = UtilityButtonWidth, height = UtilityButtonHeight),

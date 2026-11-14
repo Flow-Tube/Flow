@@ -58,18 +58,13 @@ private fun GraphicBand(
     modifier: Modifier = Modifier,
 ) {
     val max = GraphicEq.MAX_GAIN.toFloat()
-    val state = remember { SliderState(value = gain.toFloat(), valueRange = -max..max) }
+    val state = remember { SliderState(value = gain.toFloat(), trackRange = -max..max) }
     val latest by rememberUpdatedState(onGainChange)
     val interactions = remember { MutableInteractionSource() }
     val label = formatFrequencyShort(frequency)
     val spoken = formatFrequency(frequency)
 
     LaunchedEffect(gain) { if (!state.isDragging) state.value = gain.toFloat() }
-    state.onValueChange = { raw ->
-        val snapped = (raw / GraphicEq.STEP).roundToInt() * GraphicEq.STEP
-        state.value = snapped.toFloat()
-        latest(snapped)
-    }
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -80,6 +75,11 @@ private fun GraphicBand(
         )
         VerticalSlider(
             state = state,
+            onValueChange = { raw ->
+                val snapped = (raw / GraphicEq.STEP).roundToInt() * GraphicEq.STEP
+                state.value = snapped.toFloat()
+                latest(snapped)
+            },
             topToBottom = false,
             interactionSource = interactions,
             thumb = { SliderDefaults.Thumb(interactionSource = interactions, isVertical = true, thumbSize = ThumbSize) },

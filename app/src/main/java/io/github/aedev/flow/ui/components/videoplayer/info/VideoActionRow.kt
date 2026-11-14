@@ -306,7 +306,7 @@ private fun ActionButton(
  */
 @Composable
 private fun actionToggleColors() =
-    ToggleButtonDefaults.toggleButtonColors(
+    ToggleButtonDefaults.colors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
         checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,

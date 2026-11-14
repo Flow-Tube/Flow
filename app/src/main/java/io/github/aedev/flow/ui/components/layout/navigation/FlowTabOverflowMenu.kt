@@ -2,10 +2,10 @@ package io.github.aedev.flow.ui.components.layout.navigation
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,7 +36,7 @@ internal fun FlowTabOverflowMenu(
     DropdownMenuPopup(expanded = expanded, onDismissRequest = onDismissRequest) {
         DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 1)) {
             tabs.forEachIndexed { index, tab ->
-                DropdownMenuItem(
+                SelectableDropdownMenuItem(
                     selected = tab == selectedTab,
                     onClick = {
                         onDismissRequest()

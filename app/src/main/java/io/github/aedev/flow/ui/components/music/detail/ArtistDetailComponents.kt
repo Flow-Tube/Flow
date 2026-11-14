@@ -155,7 +155,7 @@ fun ArtistHero(
                 onCheckedChange = { onFollowClick() },
                 shapes = ToggleButtonDefaults.shapesFor(ButtonDefaults.MinHeight),
                 colors =
-                    OutlinedToggleButtonDefaults.outlinedToggleButtonColors(
+                    OutlinedToggleButtonDefaults.colors(
                         checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                         checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     ),
