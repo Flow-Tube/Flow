@@ -3011,6 +3011,8 @@
     <string name="play_on_paused_here">Paused here</string>
     <string name="play_on_status_playing_short">Playing</string>
     <string name="play_on_status_paused_short">Paused</string>
+    <string name="play_on_play_here">Play here</string>
+    <string name="play_on_control_device">Control %1$s</string>
     <string name="linked_consent_title">Playback from this device</string>
     <string name="linked_consent_ask">Ask each time</string>
     <string name="linked_consent_allowed">Allowed</string>

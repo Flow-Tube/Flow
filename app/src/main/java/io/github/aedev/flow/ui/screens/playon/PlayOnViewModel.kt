@@ -25,6 +25,7 @@ import io.github.aedev.flow.sync2.live.TrackDetails
 import io.github.aedev.flow.sync2.live.deviceKind
 import io.github.aedev.flow.sync2.service.LinkedActions
 import io.github.aedev.flow.sync2.service.LinkedDevice
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +39,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -110,6 +113,7 @@ class PlayOnViewModel
         private val target = MutableStateFlow<String?>(null)
         private val failure = MutableStateFlow<String?>(null)
         private val me = MutableStateFlow<String?>(null)
+        private val closedHints = MutableStateFlow<Map<String, String?>>(emptyMap())
 
         private val names = MutableStateFlow<Map<String, String>>(emptyMap())
 
@@ -127,6 +131,35 @@ class PlayOnViewModel
             combine(remote.did, live.devices, names) { did, peers, known ->
                 did?.let { peers[it]?.now }?.takeIf { it.video != null }?.let { Elsewhere(did, known[did] ?: did.take(8), it) }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /**
+         * Another device playing on its own while the user drives none, which the mini player slot
+         * offers when this device plays nothing. It goes when that device's `now` grows stale, checked
+         * once at that moment rather than on a timer.
+         */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        val playingElsewhere: StateFlow<Elsewhere?> =
+            combine(remote.did, live.devices, closedHints) { did, peers, closed ->
+                { at: Long -> findPlayingElsewhere(peers, did, closed, at) }
+            }.transformLatest { find ->
+                val found = find(System.currentTimeMillis())
+                emit(found)
+                if (found != null) {
+                    delay(found.expiresAt - System.currentTimeMillis())
+                    emit(find(System.currentTimeMillis()))
+                }
+            }.combine(names) { found, known ->
+                found?.peer?.let { peer -> peer.now?.let { Elsewhere(peer.did, known[peer.did] ?: peer.did.take(8), it) } }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** Drives the device [hint] shows, so the players show and control it. */
+        fun drive(hint: Elsewhere) = remote.choose(hint.did)
+
+        /** Brings what [hint] shows here: that device pauses and this one starts where it was. */
+        fun playHere(hint: Elsewhere) = act { handoff.pull(hint.did) }
+
+        /** Hides [hint] until its device plays another track. */
+        fun closeHint(hint: Elsewhere) = closedHints.update { withClosedHint(it, hint.did, hint.now.video) }
 
         /** Drives the device the players show as playing elsewhere. */
         fun controlElsewhere(cmd: String) {
@@ -251,6 +284,9 @@ class PlayOnViewModel
 
         /** A song's album art from the music service. */
         suspend fun musicArt(video: String): String? = details.songs(listOf(video))[video]?.highResThumbnailUrl
+
+        /** A song's album art when the music service already told it. */
+        fun knownMusicArt(video: String): String? = details.knownSong(video)?.highResThumbnailUrl
 
         fun answer(
             request: ConsentRequest,

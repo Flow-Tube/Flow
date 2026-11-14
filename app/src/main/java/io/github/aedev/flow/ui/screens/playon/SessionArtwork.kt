@@ -28,7 +28,9 @@ private const val LOOKING = ""
 
 /**
  * A session's artwork at its own aspect ratio: a song's album art, a video's frame. [byHeight] sizes
- * it from the height it is given instead of the width.
+ * it from the height it is given instead of the width. Without [lookUpArt], a song shows the album
+ * art only when it is already known, and its video's frame otherwise, so nothing is asked of the
+ * music service.
  */
 @Composable
 internal fun SessionArtwork(
@@ -36,11 +38,17 @@ internal fun SessionArtwork(
     shape: Shape,
     modifier: Modifier = Modifier,
     byHeight: Boolean = false,
+    lookUpArt: Boolean = true,
 ) {
     val video = now.video ?: return
     val playOn = LocalPlayOn.current
-    val art by produceState<String?>(if (now.music) LOOKING else null, video, now.music) {
-        value = if (now.music) playOn?.musicArt(video) else null
+    val art by produceState<String?>(if (now.music && lookUpArt) LOOKING else null, video, now.music, lookUpArt) {
+        value =
+            when {
+                !now.music -> null
+                lookUpArt -> playOn?.musicArt(video)
+                else -> playOn?.knownMusicArt(video)
+            }
     }
     var ratio by remember(art) { mutableFloatStateOf(if (art == null) VIDEO_RATIO else ALBUM_RATIO) }
     val sized = modifier.aspectRatio(ratio, matchHeightConstraintsFirst = byHeight).clip(shape)

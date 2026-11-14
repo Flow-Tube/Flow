@@ -35,3 +35,30 @@ internal fun resolveActiveMiniPlayer(
         hasMusic && !musicSuppressed -> ActiveMiniPlayer.Music
         else -> ActiveMiniPlayer.None
     }
+
+/**
+ * What "Play on" may put in the mini player slot: [session], a video on the device the user drives
+ * from here; [offered], another device playing on its own.
+ */
+internal data class RemoteSlot(
+    val session: Boolean,
+    val offered: Boolean,
+) {
+    /**
+     * Whether the remote bar shows: for the driven device's video, or to offer the other device where
+     * nothing here shows (a song this device holds only while its player is dismissed), never over
+     * the Shorts player.
+     */
+    fun shows(
+        active: ActiveMiniPlayer,
+        hasVideo: Boolean,
+        musicDismissed: Boolean,
+        onShortsPlayer: Boolean,
+    ): Boolean =
+        when (active) {
+            ActiveMiniPlayer.Remote -> true
+            ActiveMiniPlayer.None -> offered && !hasVideo && !onShortsPlayer
+            ActiveMiniPlayer.Music -> offered && musicDismissed && !hasVideo && !onShortsPlayer
+            else -> false
+        }
+}

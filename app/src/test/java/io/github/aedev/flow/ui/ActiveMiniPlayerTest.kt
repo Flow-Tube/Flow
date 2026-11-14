@@ -54,6 +54,31 @@ class ActiveMiniPlayerTest {
         assertThat(resolve(hasVideo = true, videoInBackground = true, onShortsPlayer = true)).isEqualTo(ActiveMiniPlayer.None)
     }
 
+    private fun shows(
+        active: ActiveMiniPlayer,
+        session: Boolean = false,
+        offered: Boolean = true,
+        hasVideo: Boolean = false,
+        musicDismissed: Boolean = false,
+        onShortsPlayer: Boolean = false,
+    ) = RemoteSlot(session, offered).shows(active, hasVideo, musicDismissed, onShortsPlayer)
+
+    @Test
+    fun `another device playing is offered only where nothing here shows`() {
+        assertThat(shows(ActiveMiniPlayer.None)).isTrue()
+        assertThat(shows(ActiveMiniPlayer.Music, musicDismissed = true)).isTrue()
+        assertThat(shows(ActiveMiniPlayer.Music)).isFalse()
+        assertThat(shows(ActiveMiniPlayer.None, hasVideo = true)).isFalse()
+        assertThat(shows(ActiveMiniPlayer.None, onShortsPlayer = true)).isFalse()
+        assertThat(shows(ActiveMiniPlayer.VideoBar, hasVideo = true)).isFalse()
+        assertThat(shows(ActiveMiniPlayer.None, offered = false)).isFalse()
+    }
+
+    @Test
+    fun `the driven device's video always shows the remote bar`() {
+        assertThat(shows(ActiveMiniPlayer.Remote, session = true, offered = false)).isTrue()
+    }
+
     @Test
     fun `the restored setting only hides a restored queue`() {
         assertThat(hidesRestoredMusicMiniPlayer(showRestored = false, isRestoredQueue = true)).isTrue()
