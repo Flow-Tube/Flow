@@ -404,9 +404,10 @@ class InnerTube {
         channelId: String,
         query: String,
         continuation: String? = null,
+        searchLocale: YouTubeLocale = locale,
     ) = webBrowse(client) { requestVisitorData ->
         BrowseBody(
-            context = client.toContext(locale, requestVisitorData, null),
+            context = client.toContext(searchLocale, requestVisitorData, null),
             browseId = if (continuation == null) channelId else null,
             params = if (continuation == null) "EgZzZWFyY2jyBgQKAloA" else null,
             query = if (continuation == null) query else null,

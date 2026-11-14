@@ -74,6 +74,7 @@ import io.github.aedev.flow.innertube.pages.VideoCommentsPanelHeader
 import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.VideoPlaylistPage
+import io.github.aedev.flow.innertube.pages.channel.CHANNEL_SEARCH_FALLBACK_LANGUAGE
 import io.github.aedev.flow.innertube.pages.channel.ChannelAbout
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.channel.ChannelPage
@@ -83,6 +84,7 @@ import io.github.aedev.flow.innertube.pages.channel.ChannelTabContent
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.innertube.pages.channel.channelAboutContinuation
 import io.github.aedev.flow.innertube.pages.channel.channelSortOptions
+import io.github.aedev.flow.innertube.pages.channel.shouldSearchChannelInEnglish
 import io.github.aedev.flow.innertube.pages.channel.toChannelAbout
 import io.github.aedev.flow.innertube.pages.channel.toChannelHeader
 import io.github.aedev.flow.innertube.pages.channel.toChannelShortsPage
@@ -605,15 +607,22 @@ object YouTube {
         query: String,
     ): Result<ChannelVideoSearchResult> =
         runCatching {
-            val httpResponse = innerTube.channelSearch(currentWebClient(), channelId, query)
-            val rawBody = httpResponse.bodyAsText()
-            val lenientJson =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }
-            val response = lenientJson.decodeFromString<io.github.aedev.flow.innertube.models.response.ChannelSearchResponse>(rawBody)
-            parseChannelSearchResponse(response, channelId, channelName, channelThumbnailUrl)
+            suspend fun search(searchLocale: YouTubeLocale): ChannelVideoSearchResult {
+                val httpResponse = innerTube.channelSearch(currentWebClient(), channelId, query, searchLocale = searchLocale)
+                val rawBody = httpResponse.bodyAsText()
+                val lenientJson =
+                    Json {
+                        ignoreUnknownKeys = true
+                        explicitNulls = false
+                    }
+                val response = lenientJson.decodeFromString<io.github.aedev.flow.innertube.models.response.ChannelSearchResponse>(rawBody)
+                return parseChannelSearchResponse(response, channelId, channelName, channelThumbnailUrl)
+            }
+            val searchLocale = locale
+            val first = search(searchLocale)
+            if (!shouldSearchChannelInEnglish(first.videos.size, searchLocale.hl)) return@runCatching first
+            Log.d("ChannelSearch", "no videos with hl=${searchLocale.hl}, asking again in English")
+            search(searchLocale.copy(hl = CHANNEL_SEARCH_FALLBACK_LANGUAGE))
         }
 
     suspend fun channelSearchContinuation(
