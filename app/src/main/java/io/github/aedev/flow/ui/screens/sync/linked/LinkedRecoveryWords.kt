@@ -104,35 +104,17 @@ internal fun LinkedRecoveryWords(
     )
 }
 
-/** Swaps in new recovery words after asking, for words that were lost or seen. */
+/** Asks before swapping in new recovery words, for words that were lost or seen. */
 @Composable
-internal fun ReplaceRecoveryWords(
-    busy: Boolean,
+internal fun ReplaceWordsDialog(
+    onDismiss: () -> Unit,
     onReplace: () -> Unit,
 ) {
-    var confirm by rememberSaveable { mutableStateOf(false) }
-    SyncRowGroup(count = 1) { _, shape ->
-        FlowNavRow(
-            title = stringResource(R.string.linked_replace_words),
-            onClick = { confirm = true },
-            supportingText = stringResource(R.string.linked_replace_words_hint),
-            leadingIcon = Icons.Outlined.Key,
-            enabled = !busy,
-            shape = shape,
-        )
-    }
-    if (confirm) {
-        AlertDialog(
-            onDismissRequest = { confirm = false },
-            title = { Text(stringResource(R.string.linked_replace_words_title)) },
-            text = { Text(stringResource(R.string.linked_replace_words_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirm = false
-                    onReplace()
-                }) { Text(stringResource(R.string.linked_replace)) }
-            },
-            dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.linked_cancel)) } },
-        )
-    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.linked_replace_words_title)) },
+        text = { Text(stringResource(R.string.linked_replace_words_body)) },
+        confirmButton = { TextButton(onClick = onReplace) { Text(stringResource(R.string.linked_replace)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.linked_cancel)) } },
+    )
 }

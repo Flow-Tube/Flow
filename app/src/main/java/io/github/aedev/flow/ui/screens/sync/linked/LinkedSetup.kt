@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -36,6 +37,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.sync2.device.WebDavLogin
 import io.github.aedev.flow.sync2.linking.RestoreDevice
 import io.github.aedev.flow.sync2.service.LinkedError
+import io.github.aedev.flow.ui.components.settings.SettingsNotice
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncCard
 import io.github.aedev.flow.ui.screens.sync.SyncManualEntryContent
@@ -89,9 +91,7 @@ internal fun LinkedSetup(
     val back = { setup = Setup.CHOOSE }
     val join = if (hostOnly) Setup.JOIN_PASTE else Setup.JOIN_SCAN
     if (error != null && error != LinkedError.SERVER_HAS_GROUP) {
-        SyncCard(containerColor = MaterialTheme.colorScheme.errorContainer) {
-            Text(error.message(), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer)
-        }
+        SettingsNotice(text = error.message(), icon = Icons.Outlined.ErrorOutline, isWarning = true)
     }
     if (restoreDevices != null) {
         RestoreChoice(restoreDevices, busy, onConfirmRestore, onCancelRestore)
@@ -99,49 +99,13 @@ internal fun LinkedSetup(
     }
     when (setup) {
         Setup.CHOOSE -> {
-            SyncStepHeader(
-                icon = Icons.Outlined.Devices,
-                title = stringResource(R.string.linked_title),
-                body = stringResource(R.string.linked_always_intro),
-            )
-            SyncOptions(
-                listOf(
-                    SyncOption(
-                        Icons.Outlined.AddLink,
-                        stringResource(R.string.linked_create_title),
-                        stringResource(R.string.linked_create_body),
-                    ) {
-                        setup = Setup.CREATE_WHERE
-                    },
-                    SyncOption(
-                        Icons.Outlined.QrCodeScanner,
-                        stringResource(R.string.linked_join_title),
-                        stringResource(R.string.linked_join_body),
-                    ) {
-                        setup = join
-                    },
-                    SyncOption(
-                        Icons.Outlined.Dns,
-                        stringResource(R.string.linked_join_admin_title),
-                        stringResource(R.string.linked_join_admin_body),
-                    ) {
-                        setup = Setup.JOIN_ADMIN
-                    },
-                    SyncOption(
-                        Icons.Outlined.QrCode2,
-                        stringResource(R.string.linked_show_code_title),
-                        stringResource(R.string.linked_show_code_body),
-                    ) {
-                        onShowCode()
-                    },
-                    SyncOption(
-                        Icons.Outlined.Key,
-                        stringResource(R.string.linked_restore_title),
-                        stringResource(R.string.linked_restore_body),
-                    ) {
-                        setup = Setup.RESTORE_WHERE
-                    },
-                ),
+            LinkedStart(
+                hostOnly = hostOnly,
+                onCreate = { setup = Setup.CREATE_WHERE },
+                onJoin = { setup = join },
+                onJoinWithAdmin = { setup = Setup.JOIN_ADMIN },
+                onShowCode = onShowCode,
+                onRestore = { setup = Setup.RESTORE_WHERE },
             )
         }
 

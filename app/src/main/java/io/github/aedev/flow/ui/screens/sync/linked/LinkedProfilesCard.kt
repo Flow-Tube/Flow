@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.sync.linked
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
@@ -22,10 +23,11 @@ import io.github.aedev.flow.data.profile.ProfileRegistry
 import io.github.aedev.flow.sync2.service.LocalProfile
 import io.github.aedev.flow.sync2.service.OtherProfile
 import io.github.aedev.flow.sync2.service.ProfileChoices
+import io.github.aedev.flow.ui.components.settings.SettingsNotice
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
-import io.github.aedev.flow.ui.screens.sync.SyncInfoRow
 import io.github.aedev.flow.ui.screens.sync.SyncRowGroup
+import io.github.aedev.flow.ui.screens.sync.SyncSection
 
 /** Which profiles sync (spec/protocol.md, Profiles): a switch per profile here, and the synced ones it can add. */
 @Composable
@@ -48,36 +50,43 @@ internal fun LinkedProfilesCard(
     val label = { other: OtherProfile -> other.name?.ifBlank { defaultName } ?: unnamed }
     val linkedCount = choices.local.count { it.link != null }
 
-    Text(stringResource(R.string.linked_profiles), Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium)
-    if (linkedCount == 0) SyncInfoRow(icon = Icons.Outlined.Info, text = stringResource(R.string.linked_profiles_none))
-    SyncRowGroup(count = choices.local.size + choices.others.size) { index, shape ->
-        val profile = choices.local.getOrNull(index)
-        if (profile != null) {
-            FlowSwitchRow(
-                title = profile.name,
-                checked = profile.link != null,
-                onCheckedChange = { on ->
-                    when {
-                        !on -> stopping = profile.id
-                        profile.running -> starting = profile.id
-                        else -> switching = profile.id
-                    }
-                },
-                supportingText =
-                    stringResource(if (profile.link != null) R.string.profiles_default_syncs else R.string.linked_profile_local),
-                // A device in a group keeps one profile syncing.
-                enabled = !busy && !(profile.link != null && linkedCount == 1),
-                shape = shape,
+    SyncSection(stringResource(R.string.linked_profiles)) {
+        if (linkedCount == 0) {
+            SettingsNotice(
+                text = stringResource(R.string.linked_profiles_none),
+                icon = Icons.Outlined.Info,
+                modifier = Modifier.padding(bottom = 8.dp),
             )
-        } else {
-            val other = choices.others[index - choices.local.size]
-            FlowNavRow(
-                title = label(other),
-                onClick = { adding = other.link },
-                supportingText = stringResource(R.string.linked_profile_other),
-                enabled = !busy,
-                shape = shape,
-            )
+        }
+        SyncRowGroup(count = choices.local.size + choices.others.size) { index, shape ->
+            val profile = choices.local.getOrNull(index)
+            if (profile != null) {
+                FlowSwitchRow(
+                    title = profile.name,
+                    checked = profile.link != null,
+                    onCheckedChange = { on ->
+                        when {
+                            !on -> stopping = profile.id
+                            profile.running -> starting = profile.id
+                            else -> switching = profile.id
+                        }
+                    },
+                    supportingText =
+                        stringResource(if (profile.link != null) R.string.profiles_default_syncs else R.string.linked_profile_local),
+                    // A device in a group keeps one profile syncing.
+                    enabled = !busy && !(profile.link != null && linkedCount == 1),
+                    shape = shape,
+                )
+            } else {
+                val other = choices.others[index - choices.local.size]
+                FlowNavRow(
+                    title = label(other),
+                    onClick = { adding = other.link },
+                    supportingText = stringResource(R.string.linked_profile_other),
+                    enabled = !busy,
+                    shape = shape,
+                )
+            }
         }
     }
 
