@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.util.Log
+import androidx.compose.material3.ComposeMaterial3Flags
+import androidx.compose.material3.ExperimentalMaterial3Api
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -133,10 +135,13 @@ class FlowApplication :
         super.attachBaseContext(AppLanguageManager.wrapContext(base, AppLanguageManager.resolveLanguageTag(base)))
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    @OptIn(ExperimentalCoroutinesApi::class, ExperimentalMaterial3Api::class)
     override fun onCreate() {
         ProfileWebView.applySuffix(this)
         super.onCreate()
+        // A sheet re-anchored mid-animation (a menu that became shorter than half the window) throws
+        // AnchoredDraggableUninitializedException with this on; off, M3 places it a frame later (#2065).
+        ComposeMaterial3Flags.isAnchoredDraggableComponentsStrictOffsetCheckEnabled = false
         appContext = applicationContext
         linkedForeground.install()
         breakReminderTimer.install()
