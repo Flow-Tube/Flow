@@ -38,13 +38,15 @@ class LockScreenPlayerActivity : ComponentActivity() {
     @Inject
     lateinit var appFontPreferences: AppFontPreferences
 
-    private val unlocked =
+    private val screenEvents =
         object : BroadcastReceiver() {
             override fun onReceive(
                 context: Context,
                 intent: Intent,
             ) {
-                finish()
+                // A screen that comes on without a lock (none set, or within the lock delay) never
+                // reaches onResume's check while interactive, so the player stayed over the user's app.
+                if (intent.action == Intent.ACTION_USER_PRESENT || !keyguardLocked()) finish()
             }
         }
 
@@ -58,7 +60,12 @@ class LockScreenPlayerActivity : ComponentActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
         }
         enableEdgeToEdge()
-        ContextCompat.registerReceiver(this, unlocked, IntentFilter(Intent.ACTION_USER_PRESENT), ContextCompat.RECEIVER_NOT_EXPORTED)
+        val screenFilter =
+            IntentFilter().apply {
+                addAction(Intent.ACTION_USER_PRESENT)
+                addAction(Intent.ACTION_SCREEN_ON)
+            }
+        ContextCompat.registerReceiver(this, screenEvents, screenFilter, ContextCompat.RECEIVER_NOT_EXPORTED)
         finishWhenMusicStops()
 
         val theme = LocalDataManager(applicationContext).themeSettings(appFontPreferences)
@@ -74,11 +81,11 @@ class LockScreenPlayerActivity : ComponentActivity() {
         super.onResume()
         // Woken without a lock (no lock screen, or within the lock delay): nothing to sit over.
         val interactive = getSystemService(PowerManager::class.java).isInteractive
-        if (interactive && !getSystemService(KeyguardManager::class.java).isKeyguardLocked) finish()
+        if (interactive && !keyguardLocked()) finish()
     }
 
     override fun onDestroy() {
-        unregisterReceiver(unlocked)
+        unregisterReceiver(screenEvents)
         super.onDestroy()
     }
 
@@ -91,6 +98,8 @@ class LockScreenPlayerActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun keyguardLocked() = getSystemService(KeyguardManager::class.java).isKeyguardLocked
 
     private fun unlock() {
         getSystemService(KeyguardManager::class.java).requestDismissKeyguard(
