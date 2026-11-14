@@ -26,7 +26,11 @@ import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
 import io.github.aedev.flow.ui.youtubeChannelBrowseId
 import io.github.aedev.flow.ui.youtubeChannelUrl
 import io.github.aedev.flow.utils.PerformanceDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -173,6 +177,7 @@ class ChannelViewModel
 
         companion object {
             private const val TAG = "ChannelViewModel"
+            private const val CHANNEL_SEARCH_DEBOUNCE_MS = 400L
             private const val GROUPS_SUBSCRIPTION_TIMEOUT_MS = 5_000L
         }
 
@@ -330,6 +335,7 @@ class ChannelViewModel
         // ── Channel search ────────────────────────────────────────────────────────
 
         fun setSearchActive(active: Boolean) {
+            if (!active) searchJob?.cancel()
             _uiState.update {
                 it.copy(
                     searchActive = active,
@@ -340,7 +346,11 @@ class ChannelViewModel
             }
         }
 
+        private var searchJob: Job? = null
+
+        /** Search as you type: each change replaces the search before it, so a slower, older answer never lands last. */
         fun searchInChannel(query: String) {
+            searchJob?.cancel()
             val channelId = _uiState.value.channelId ?: return
             val header = _uiState.value.header ?: return
             val trimmed = query.trim()
@@ -357,57 +367,71 @@ class ChannelViewModel
                 return
             }
 
-            viewModelScope.launch(PerformanceDispatcher.networkIO) {
-                _uiState.update { it.copy(isSearching = true) }
-                try {
-                    val result =
-                        YouTube.channelSearch(
-                            channelId = channelId,
-                            channelName = header.title,
-                            channelThumbnailUrl = header.avatarUrl,
-                            query = trimmed,
-                        )
-                    result.fold(
-                        onSuccess = { page ->
-                            _uiState.update {
-                                it.copy(
-                                    searchResults = page.videos.distinctByNonBlankKey(Video::id),
-                                    searchContinuation = page.continuation,
-                                    isSearching = false,
-                                    searchErrorLog = null,
-                                )
-                            }
-                        },
-                        onFailure = { e ->
-                            Log.e(TAG, "Channel search failed", e)
-                            _uiState.update {
-                                it.copy(
-                                    isSearching = false,
-                                    searchErrorLog =
-                                        buildChannelRequestErrorLog(
-                                            operation = "channel_search",
-                                            channelId = channelId,
-                                            query = trimmed,
-                                            error = e,
-                                        ),
-                                )
-                            }
-                        },
+            searchJob =
+                viewModelScope.launch(PerformanceDispatcher.networkIO) {
+                    _uiState.update { it.copy(isSearching = true) }
+                    delay(CHANNEL_SEARCH_DEBOUNCE_MS)
+                    runChannelSearch(channelId, header.title, header.avatarUrl, trimmed)
+                }
+        }
+
+        private suspend fun runChannelSearch(
+            channelId: String,
+            channelName: String,
+            channelThumbnailUrl: String,
+            trimmed: String,
+        ) {
+            try {
+                val result =
+                    YouTube.channelSearch(
+                        channelId = channelId,
+                        channelName = channelName,
+                        channelThumbnailUrl = channelThumbnailUrl,
+                        query = trimmed,
                     )
-                } catch (e: Exception) {
-                    Log.e(TAG, "Channel search error", e)
-                    _uiState.update {
-                        it.copy(
-                            isSearching = false,
-                            searchErrorLog =
-                                buildChannelRequestErrorLog(
-                                    operation = "channel_search",
-                                    channelId = channelId,
-                                    query = trimmed,
-                                    error = e,
-                                ),
-                        )
-                    }
+                currentCoroutineContext().ensureActive()
+                result.fold(
+                    onSuccess = { page ->
+                        _uiState.update {
+                            it.copy(
+                                searchResults = page.videos.distinctByNonBlankKey(Video::id),
+                                searchContinuation = page.continuation,
+                                isSearching = false,
+                                searchErrorLog = null,
+                            )
+                        }
+                    },
+                    onFailure = { e ->
+                        Log.e(TAG, "Channel search failed", e)
+                        _uiState.update {
+                            it.copy(
+                                isSearching = false,
+                                searchErrorLog =
+                                    buildChannelRequestErrorLog(
+                                        operation = "channel_search",
+                                        channelId = channelId,
+                                        query = trimmed,
+                                        error = e,
+                                    ),
+                            )
+                        }
+                    },
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Channel search error", e)
+                _uiState.update {
+                    it.copy(
+                        isSearching = false,
+                        searchErrorLog =
+                            buildChannelRequestErrorLog(
+                                operation = "channel_search",
+                                channelId = channelId,
+                                query = trimmed,
+                                error = e,
+                            ),
+                    )
                 }
             }
         }
