@@ -51,7 +51,9 @@ fun translatedLocaleTags(): List<String> =
 
 android {
     namespace = "io.github.aedev.flow"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) { minorApiLevel = 1 }
+    }
 
     defaultConfig {
         applicationId = "io.github.aedev.flow"

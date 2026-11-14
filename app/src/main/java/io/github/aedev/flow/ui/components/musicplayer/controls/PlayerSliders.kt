@@ -79,11 +79,12 @@ fun ExpressivePlayerSlider(
             activeTrackColor = MaterialTheme.colorScheme.primary,
             inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
         )
+    val sliderState = remember(valueRange) { SliderState(value, trackRange = valueRange) }
+    sliderState.value = value
     Slider(
-        value = value,
+        state = sliderState,
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
-        valueRange = valueRange,
         interactionSource = interactionSource,
         thumb = {
             if (thumbHeight > 0.dp) {
@@ -237,11 +238,12 @@ fun SquigglySlider(
     val density = LocalDensity.current
     val stroke = remember(density) { Stroke(width = with(density) { WavyStrokeWidth.toPx() }, cap = StrokeCap.Round) }
 
+    val sliderState = remember(valueRange) { SliderState(value, trackRange = valueRange) }
+    sliderState.value = value
     Slider(
-        value = value,
+        state = sliderState,
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
-        valueRange = valueRange,
         interactionSource = interactionSource,
         thumb = {
             SliderDefaults.Thumb(

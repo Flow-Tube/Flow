@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -90,12 +91,12 @@ fun SettingsSliderRow(
             )
         }
         if (centered) {
+            val sliderState = remember(steps, valueRange) { SliderState(draft, steps, valueRange) }
+            sliderState.value = draft
             Slider(
-                value = draft,
+                state = sliderState,
                 onValueChange = { draft = it },
                 onValueChangeFinished = { onValueCommitted(draft) },
-                valueRange = valueRange,
-                steps = steps,
                 enabled = enabled,
                 track = { SliderDefaults.CenteredTrack(it, enabled = enabled) },
             )

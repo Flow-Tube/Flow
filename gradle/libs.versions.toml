@@ -6,7 +6,7 @@ conscrypt = "2.6.1"
 bouncycastle = "1.86"
 kotlinBip39 = "1.0.9"
 activityCompose = "1.13.0"
-composeBom = "2026.08.00"
+composeBom = "2026.11.00"
 navigationCompose = "2.10.0"
 lifecycle = "2.11.0"
 androidxWindow = "1.5.0"
@@ -57,7 +57,7 @@ androidxTestCore = "1.7.0"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-# Alpha BOM: pins material3 1.5.0-alpha26 (M3 Expressive) + compose 1.13.0-alpha01 consistently.
+# Alpha BOM: pins material3 1.5.0-rc01 (M3 Expressive) + compose 1.13.0-rc01 consistently.
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom-alpha", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }

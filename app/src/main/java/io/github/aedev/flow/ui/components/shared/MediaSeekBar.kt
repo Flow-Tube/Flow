@@ -144,8 +144,6 @@ fun MediaSeekBar(
                 Unit
             }
         }
-    sliderState.onValueChange = onScrub
-    sliderState.onValueChangeFinished = onScrubFinished
 
     // Animated in the draw phase rather than through Modifier.height: the track used to grow by
     // animating a layout constraint, which forced a layout pass on every frame of the touch
@@ -211,6 +209,8 @@ fun MediaSeekBar(
                     @OptIn(ExperimentalMaterial3Api::class)
                     Slider(
                         state = sliderState,
+                        onValueChange = onScrub,
+                        onValueChangeFinished = onScrubFinished,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = enabled,
                         interactionSource = interactionSource,
