@@ -5079,4 +5079,27 @@
     <string name="player_appearance_chapter_skip_gesture_title">Doble toque con dos dedos para los capítulos</string>
     <string name="player_appearance_chapter_skip_gesture_subtitle">Doble toque con dos dedos para saltar al capítulo siguiente o al anterior</string>
     <string name="player_chapter_number">Capítulo %1$d</string>
+    <string name="lyrics_share_frame_square">Cuadrado</string>
+    <string name="lyrics_share_frame_backdrop">Enmarcado</string>
+    <string name="lyrics_share_frame_clear">Transparente</string>
+    <string name="lyrics_share_size_fit">Ajustado</string>
+    <string name="lyrics_share_size_square">1:1</string>
+    <string name="lyrics_share_size_story">Historia</string>
+    <string name="lyrics_share_layout_classic">Clásico</string>
+    <string name="lyrics_share_layout_poster">Póster</string>
+    <string name="quality_auto_with_resolution">Automático (%1$s)</string>
+    <string name="comments_timed_waiting">Los comentarios sobre lo que estás viendo aparecen aquí mientras se reproduce el vídeo. El siguiente es en %1$s.</string>
+    <string name="comments_timed_next">Siguiente comentario en %1$s</string>
+    <string name="comments_timed_end">No hay más comentarios cronometrados en este vídeo</string>
+    <string name="comments_turned_off">Los comentarios están desactivados</string>
+    <string name="stats_speed">Velocidad</string>
+    <string name="stats_skip_silence">Saltar silencios</string>
+    <string name="playlist_swipe_left">Deslizar la lista a la izquierda</string>
+    <string name="playlist_swipe_right">Deslizar la lista a la derecha</string>
+    <string name="playlist_swipe_subtitle">Para los vídeos de tus listas</string>
+    <string name="playlist_move_to_top">Mover al principio</string>
+    <string name="playlist_move_to_bottom">Mover al final</string>
+    <string name="player_fullscreen_zoom_to_fill_title">Ampliar para ocupar toda la pantalla</string>
+    <string name="player_fullscreen_zoom_to_fill_subtitle">Recorta los bordes para que no haya barras negras</string>
+    <string name="player_scroll_away_title">Desplaza el reproductor fuera de la vista</string>
 </resources>
