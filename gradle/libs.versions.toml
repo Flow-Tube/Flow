@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"
+agp = "9.3.2"
 kotlin = "2.4.10"
 coreKtx = "1.19.0"
 conscrypt = "2.6.1"
