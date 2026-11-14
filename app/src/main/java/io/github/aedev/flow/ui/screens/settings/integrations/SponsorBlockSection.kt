@@ -154,6 +154,7 @@ private fun SegmentRow(
                                 onPickColour()
                             },
                             leadingContent = { SegmentSwatch(colour) },
+                            shape = MaterialTheme.shapes.large,
                         )
                     }
                 } else {

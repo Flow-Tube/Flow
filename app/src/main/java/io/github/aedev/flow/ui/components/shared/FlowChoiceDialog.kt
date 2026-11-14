@@ -116,7 +116,8 @@ fun <T> FlowChoiceDialog(
                     )
                     Spacer(Modifier.height(SearchSpacing))
                 }
-                Box {
+                // Shrinks before the footer does, so a footer under a long list stays on screen (#2061).
+                Box(Modifier.weight(1f, fill = false)) {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.heightIn(max = listMaxHeight),
