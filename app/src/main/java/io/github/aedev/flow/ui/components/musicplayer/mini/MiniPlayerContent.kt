@@ -108,118 +108,148 @@ internal fun MiniPlayerContent(
             animationsEnabled = animationsEnabled,
         )
 
-    Row(
+    val progressColor = MaterialTheme.colorScheme.primary
+    val progressTrack = MaterialTheme.colorScheme.onSurface
+    Box(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .miniBarProgress(look.barProgress, { ringProgress.value }, progressColor, progressTrack),
     ) {
-        // With [onOpen] the cover and titles are one target of their own, beside the transport buttons,
-        // so a remote reaches each of them; a touch host opens the player from the whole bar instead.
         Row(
             modifier =
                 Modifier
-                    .weight(1f)
-                    .then(
-                        if (onOpen == null) {
-                            Modifier
-                        } else {
-                            Modifier
-                                .fillMaxHeight()
-                                .clip(CircleShape)
-                                .clickable(interactionSource = null, indication = ripple(focusRingShape = CircleShape), onClick = onOpen)
-                        },
-                    ),
+                    .fillMaxSize()
+                    .padding(start = 8.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            MiniPlayerCover(
-                thumbnailUrl = track.listThumbnailUrl,
-                trackId = track.videoId,
-                isPlaying = playerState.isPlaying,
-                look = look,
-                animationsEnabled = animationsEnabled,
-                ringProgress = { ringProgress.value },
-            )
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center,
+            // With [onOpen] the cover and titles are one target of their own, beside the transport buttons,
+            // so a remote reaches each of them; a touch host opens the player from the whole bar instead.
+            Row(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .then(
+                            if (onOpen == null) {
+                                Modifier
+                            } else {
+                                Modifier
+                                    .fillMaxHeight()
+                                    .clip(CircleShape)
+                                    .clickable(
+                                        interactionSource = null,
+                                        indication = ripple(focusRingShape = CircleShape),
+                                        onClick = onOpen,
+                                    )
+                            },
+                        ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                key(track.videoId) {
-                    Text(
-                        text = track.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = if (animationsEnabled) Modifier.titleMarquee() else Modifier,
-                    )
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                val artistLine: @Composable () -> Unit = {
-                    Text(
-                        text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (elsewhere != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (lyrics != null && elsewhere == null) {
-                    val style = MaterialTheme.typography.labelLarge
-                    val sung = MaterialTheme.colorScheme.onSurface
-                    SyncedLyricLine(
-                        lyrics = lyrics,
-                        isPlaying = playerState.isPlaying,
-                        positionKey = playerState.position / 1000L,
-                        style = style,
-                        sungColor = sung,
-                        unsungColor = sung.copy(alpha = SYNCED_LINE_UNSUNG_ALPHA),
-                        // As tall as a lyric line either way, so the title doesn't move when the artist comes back.
-                        modifier = Modifier.fillMaxWidth().heightIn(min = with(LocalDensity.current) { style.lineHeight.toDp() }),
-                        active = animationsEnabled,
-                        clearInGaps = true,
-                        singleLine = true,
-                        contentAlignment = Alignment.CenterStart,
-                        empty = artistLine,
-                    )
-                } else {
-                    artistLine()
+                MiniPlayerCover(
+                    thumbnailUrl = track.listThumbnailUrl,
+                    trackId = track.videoId,
+                    isPlaying = playerState.isPlaying,
+                    look = look,
+                    animationsEnabled = animationsEnabled,
+                    ringProgress = { ringProgress.value },
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    key(track.videoId) {
+                        Text(
+                            text = track.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = if (animationsEnabled) Modifier.titleMarquee() else Modifier,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    val artistColor =
+                        if (elsewhere !=
+                            null
+                        ) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    val artistLine: @Composable () -> Unit = {
+                        Text(
+                            text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: track.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = artistColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (lyrics != null && elsewhere == null) {
+                        val style = MaterialTheme.typography.labelLarge
+                        val sung = MaterialTheme.colorScheme.onSurface
+                        SyncedLyricLine(
+                            lyrics = lyrics,
+                            isPlaying = playerState.isPlaying,
+                            positionKey = playerState.position / 1000L,
+                            style = style,
+                            sungColor = sung,
+                            unsungColor = sung.copy(alpha = SYNCED_LINE_UNSUNG_ALPHA),
+                            // As tall as a lyric line either way, so the title doesn't move when the artist comes back.
+                            modifier = Modifier.fillMaxWidth().heightIn(min = with(LocalDensity.current) { style.lineHeight.toDp() }),
+                            active = animationsEnabled,
+                            clearInGaps = true,
+                            singleLine = true,
+                            contentAlignment = Alignment.CenterStart,
+                            empty = artistLine,
+                        )
+                    } else {
+                        artistLine()
+                    }
+                    if (look.barProgress.isLine()) {
+                        MiniBarProgressLine(
+                            style = look.barProgress,
+                            progress = { ringProgress.value },
+                            isPlaying = playerState.isPlaying,
+                            animationsEnabled = animationsEnabled,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
                 }
             }
-        }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (elsewhere != null) PlayOnButton()
-            if (showPrevious) {
-                IconButton(onClick = { EnhancedMusicPlayerManager.playPrevious() }) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (elsewhere != null) PlayOnButton()
+                if (showPrevious) {
+                    IconButton(onClick = { EnhancedMusicPlayerManager.playPrevious() }) {
+                        Icon(
+                            imageVector = Icons.Rounded.SkipPrevious,
+                            contentDescription = stringResource(R.string.previous),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                MediaPlayPauseButton(
+                    isPlaying = playerState.isPlaying,
+                    isBuffering = playerState.isBuffering && animationsEnabled,
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        EnhancedMusicPlayerManager.togglePlayPause()
+                    },
+                )
+                IconButton(onClick = { EnhancedMusicPlayerManager.playNext() }) {
                     Icon(
-                        imageVector = Icons.Rounded.SkipPrevious,
-                        contentDescription = stringResource(R.string.previous),
+                        imageVector = Icons.Rounded.SkipNext,
+                        contentDescription = stringResource(R.string.next),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
-            MediaPlayPauseButton(
-                isPlaying = playerState.isPlaying,
-                isBuffering = playerState.isBuffering && animationsEnabled,
-                onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                    EnhancedMusicPlayerManager.togglePlayPause()
-                },
-            )
-            IconButton(onClick = { EnhancedMusicPlayerManager.playNext() }) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipNext,
-                    contentDescription = stringResource(R.string.next),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

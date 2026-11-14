@@ -1,26 +1,45 @@
 package io.github.aedev.flow.ui.screens.settings.appearance.player
 
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.CoverShape
+import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniCoverMotion
 import io.github.aedev.flow.data.local.MiniCoverShape
+import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarProgressLine
 import io.github.aedev.flow.ui.components.musicplayer.mini.coverShapeLabel
+import io.github.aedev.flow.ui.components.musicplayer.mini.isLine
+import io.github.aedev.flow.ui.components.musicplayer.mini.miniBarProgress
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
+import io.github.aedev.flow.ui.components.settings.SettingsPreviewSheet
 import io.github.aedev.flow.ui.components.settings.nav
+import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.settings.toggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
+import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.screens.settings.index.PlayerAppearanceIndex
 
-internal enum class MusicMiniSheet { COVER_SHAPES, COVER_PAUSED }
+internal enum class MusicMiniSheet { COVER_SHAPES, COVER_PAUSED, BAR_PROGRESS }
 
 /**
  * What the music mini player group shows and which of its sheets is open. Every field is state, so
@@ -35,6 +54,7 @@ internal class MusicMiniSettings {
     var coverMotionOptions by mutableStateOf(emptyList<FlowToggleOption<MiniCoverMotion>>())
     var coverShapesLabel by mutableStateOf("")
     var pausedShapeLabel by mutableStateOf("")
+    var barProgressLabel by mutableStateOf("")
     var sheet by mutableStateOf<MusicMiniSheet?>(null)
 }
 
@@ -60,6 +80,8 @@ internal fun rememberMusicMiniSettings(viewModel: PlayerAppearanceViewModel): Mu
         )
     settings.coverShapesLabel = pluralStringResource(R.plurals.player_appearance_cover_shapes_count, coverShapes.size, coverShapes.size)
     settings.pausedShapeLabel = stringResource(pausedShape?.let { coverShapeLabel(it) } ?: R.string.player_appearance_cover_paused_keep)
+    val barProgress by viewModel.miniBarProgress.collectAsStateWithLifecycle()
+    settings.barProgressLabel = stringResource(barProgressLabel(barProgress))
     return settings
 }
 
@@ -86,6 +108,12 @@ internal fun SettingsListScope.musicMiniGroup(
             onClick = { settings.sheet = MusicMiniSheet.COVER_PAUSED },
         )
     }
+    nav(
+        PlayerAppearanceIndex.miniBarProgress,
+        value = settings.barProgressLabel,
+        onClick = { settings.sheet = MusicMiniSheet.BAR_PROGRESS },
+    )
+    switch(PlayerAppearanceIndex.miniCoverRing, viewModel.miniCoverRing, viewModel::setMiniCoverRing)
 }
 
 @Composable
@@ -117,8 +145,58 @@ internal fun MusicMiniSheets(
             )
         }
 
+        MusicMiniSheet.BAR_PROGRESS -> {
+            val selected by viewModel.miniBarProgress.collectAsStateWithLifecycle()
+            SettingsPreviewSheet(
+                title = stringResource(R.string.player_appearance_bar_progress_title),
+                subtitle = stringResource(R.string.player_appearance_bar_progress_subtitle),
+                options = MiniBarProgress.entries,
+                selected = selected,
+                label = { stringResource(barProgressLabel(it)) },
+                onSelect = viewModel::setMiniBarProgress,
+                onDismiss = { settings.sheet = null },
+                preview = { BarProgressPreview(it) },
+            )
+        }
+
         null -> {
             Unit
+        }
+    }
+}
+
+@StringRes
+private fun barProgressLabel(style: MiniBarProgress): Int =
+    when (style) {
+        MiniBarProgress.NONE -> R.string.player_appearance_bar_progress_none
+        MiniBarProgress.FILL -> R.string.player_appearance_bar_progress_fill
+        MiniBarProgress.EDGE -> R.string.player_appearance_bar_progress_edge
+        MiniBarProgress.LINE -> R.string.player_appearance_bar_progress_line
+        MiniBarProgress.WAVY_LINE -> R.string.player_appearance_bar_progress_wavy
+    }
+
+private const val PREVIEW_PROGRESS = 0.4f
+
+/** A mini bar's shape at 40 % in [style], still: the line styles show their resting look. */
+@Composable
+private fun BarProgressPreview(style: MiniBarProgress) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(MediaMiniBarDefaults.Height)
+                .clip(RoundedCornerShape(MediaMiniBarDefaults.CornerRadius))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .miniBarProgress(style, { PREVIEW_PROGRESS }, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onSurface),
+    ) {
+        if (style.isLine()) {
+            MiniBarProgressLine(
+                style = style,
+                progress = { PREVIEW_PROGRESS },
+                isPlaying = false,
+                animationsEnabled = false,
+                modifier = Modifier.align(Alignment.CenterStart).padding(start = 72.dp, end = 120.dp, top = 30.dp),
+            )
         }
     }
 }

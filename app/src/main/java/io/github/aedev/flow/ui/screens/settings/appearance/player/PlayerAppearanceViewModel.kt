@@ -8,6 +8,7 @@ import io.github.aedev.flow.data.local.DefaultCoverShapes
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
+import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
 import io.github.aedev.flow.data.local.MiniCoverMotion
 import io.github.aedev.flow.data.local.MiniCoverShape
@@ -51,6 +52,8 @@ class PlayerAppearanceViewModel
         val miniCoverMotion = preferences.miniCoverMotion.asState(MiniCoverMotion.ON_PLAY)
         val miniCoverShapes = preferences.miniCoverShapes.asState(DefaultCoverShapes)
         val miniCoverPausedShape = preferences.miniCoverPausedShape.asState(CoverShape.CIRCLE)
+        val miniBarProgress = preferences.miniBarProgress.asState(MiniBarProgress.NONE)
+        val miniCoverRing = preferences.miniCoverRing.asState(true)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -118,6 +121,10 @@ class PlayerAppearanceViewModel
             }
 
         fun setMiniCoverPausedShape(shape: CoverShape?) = write { preferences.setMiniCoverPausedShape(shape) }
+
+        fun setMiniBarProgress(value: MiniBarProgress) = write { preferences.setMiniBarProgress(value) }
+
+        fun setMiniCoverRing(value: Boolean) = write { preferences.setMiniCoverRing(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 

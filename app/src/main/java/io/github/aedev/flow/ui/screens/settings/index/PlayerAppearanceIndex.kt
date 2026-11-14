@@ -148,6 +148,20 @@ internal object PlayerAppearanceIndex {
             section = R.string.settings_section_music_mini_player,
             revealVia = miniCoverShape.key,
         )
+    val miniBarProgress =
+        entry(
+            "mini_bar_progress",
+            R.string.player_appearance_bar_progress_title,
+            R.string.player_appearance_bar_progress_subtitle,
+            R.string.settings_section_music_mini_player,
+        )
+    val miniCoverRing =
+        entry(
+            "mini_cover_ring",
+            R.string.player_appearance_cover_ring_title,
+            R.string.player_appearance_cover_ring_subtitle,
+            R.string.settings_section_music_mini_player,
+        )
     val queueSwipeLeft =
         entry("queue_swipe_left", R.string.queue_swipe_left, R.string.queue_swipe_subtitle, R.string.settings_section_music_player)
     val queueSwipeRight =
@@ -293,6 +307,8 @@ internal object PlayerAppearanceIndex {
             miniCoverMotion,
             miniCoverShapes,
             miniCoverPausedShape,
+            miniBarProgress,
+            miniCoverRing,
             queueSwipeLeft,
             queueSwipeRight,
             adaptiveSize,

@@ -148,6 +148,8 @@ class PlayerPreferences(
         val MINI_COVER_MOTION = stringPreferencesKey("mini_cover_motion")
         val MINI_COVER_SHAPES = stringPreferencesKey("mini_cover_shapes")
         val MINI_COVER_PAUSED_SHAPE = stringPreferencesKey("mini_cover_paused_shape")
+        val MINI_BAR_PROGRESS = stringPreferencesKey("mini_bar_progress")
+        val MINI_COVER_RING = booleanPreferencesKey("mini_cover_ring")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
@@ -1148,6 +1150,31 @@ class PlayerPreferences(
     suspend fun setMiniCoverPausedShape(shape: CoverShape?) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MINI_COVER_PAUSED_SHAPE] = shape?.name ?: KEEP_TRACK_SHAPE
+        }
+    }
+
+    /** How the music mini player's bar shows how far the song is, beside or instead of the cover's ring. */
+    val miniBarProgress: Flow<MiniBarProgress> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniBarProgress.valueOf(preferences[Keys.MINI_BAR_PROGRESS] ?: MiniBarProgress.NONE.name) }
+                    .getOrDefault(MiniBarProgress.NONE)
+            }
+
+    suspend fun setMiniBarProgress(progress: MiniBarProgress) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_BAR_PROGRESS] = progress.name
+        }
+    }
+
+    /** Whether the mini player's cover keeps its progress ring. */
+    val miniCoverRing: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MINI_COVER_RING] ?: true }
+
+    suspend fun setMiniCoverRing(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_RING] = enabled
         }
     }
 
@@ -5142,6 +5169,18 @@ internal fun parsePausedCoverShape(stored: String?): CoverShape? =
         KEEP_TRACK_SHAPE -> null
         else -> runCatching { CoverShape.valueOf(stored) }.getOrDefault(CoverShape.CIRCLE)
     }
+
+/**
+ * How the music mini player's bar shows progress: a tonal fill behind it, a line around its edge, a
+ * line along its bottom, a wavy one, or nothing. Stored by name.
+ */
+enum class MiniBarProgress {
+    NONE,
+    FILL,
+    EDGE,
+    LINE,
+    WAVY_LINE,
+}
 
 /** When a morphing cover moves: as playback starts, stops and changes track, all the time it plays, or never. Stored by name. */
 enum class MiniCoverMotion {

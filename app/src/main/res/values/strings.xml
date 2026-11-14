@@ -232,6 +232,15 @@
         <item quantity="one">%d shape</item>
         <item quantity="other">%d shapes</item>
     </plurals>
+    <string name="player_appearance_bar_progress_title">Bar progress</string>
+    <string name="player_appearance_bar_progress_subtitle">How the bar shows where the song is</string>
+    <string name="player_appearance_bar_progress_none">None</string>
+    <string name="player_appearance_bar_progress_fill">Fill</string>
+    <string name="player_appearance_bar_progress_edge">Edge</string>
+    <string name="player_appearance_bar_progress_line">Line</string>
+    <string name="player_appearance_bar_progress_wavy">Wavy line</string>
+    <string name="player_appearance_cover_ring_title">Ring around the cover</string>
+    <string name="player_appearance_cover_ring_subtitle">Show progress around the cover too</string>
     <string name="player_appearance_cover_paused_title">When paused</string>
     <string name="player_appearance_cover_paused_subtitle">The shape the cover rests in</string>
     <string name="player_appearance_cover_paused_keep">Keep the song\'s shape</string>

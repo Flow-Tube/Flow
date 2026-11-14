@@ -109,7 +109,7 @@ internal fun MiniPlayerCover(
     val ringTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
     val ringFillColor = MaterialTheme.colorScheme.primary
     if (look.coverShape == MiniCoverShape.CIRCLE) {
-        CircleCover(thumbnailUrl, isPlaying, animationsEnabled, ringProgress, ringTrackColor, ringFillColor, modifier)
+        CircleCover(thumbnailUrl, isPlaying, animationsEnabled, look.coverRing, ringProgress, ringTrackColor, ringFillColor, modifier)
     } else {
         MorphingCover(thumbnailUrl, trackId, isPlaying, look, animationsEnabled, ringProgress, ringTrackColor, ringFillColor, modifier)
     }
@@ -120,6 +120,7 @@ private fun CircleCover(
     thumbnailUrl: String?,
     isPlaying: Boolean,
     animationsEnabled: Boolean,
+    showRing: Boolean,
     ringProgress: () -> Float,
     ringTrackColor: Color,
     ringFillColor: Color,
@@ -130,6 +131,7 @@ private fun CircleCover(
             modifier
                 .size(ArtworkRingSize)
                 .drawBehind {
+                    if (!showRing) return@drawBehind
                     val stroke = ProgressRingStroke.toPx()
                     val inset = stroke / 2f
                     val arcSize = Size(size.width - stroke, size.height - stroke)
@@ -315,6 +317,7 @@ private fun MorphingCover(
                     // The fill is revealed by a wedge from 12 o'clock: a path's start point moves between shapes.
                     val wedgeBounds = Rect(size.center, size.maxDimension)
                     onDrawBehind {
+                        if (!look.coverRing) return@onDrawBehind
                         shapeAt(outline, matrix, size.minDimension - stroke, stroke / 2f, center)
                         drawPath(outline, ringTrackColor, style = style)
                         val progress = ringProgress()
