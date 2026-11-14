@@ -46,4 +46,18 @@ class TaskRemovalPolicyTest {
     fun `a service that is not in the foreground always stops`() {
         assertThat(keeps(ongoing = false)).isFalse()
     }
+
+    @Test
+    fun `the lock screen player and widget setup ending are not the app being swiped away`() {
+        assertThat(isSideTaskRemoval("io.github.aedev.flow.ui.screens.lockscreen.LockScreenPlayerActivity")).isTrue()
+        assertThat(isSideTaskRemoval("io.github.aedev.flow.widget.config.WidgetConfigActivity")).isTrue()
+    }
+
+    @Test
+    fun `the app's own task, its launcher aliases and an unknown root still count as a swipe`() {
+        assertThat(isSideTaskRemoval("io.github.aedev.flow.MainActivity")).isFalse()
+        assertThat(isSideTaskRemoval("io.github.aedev.flow.IconAmoled")).isFalse()
+        assertThat(isSideTaskRemoval("io.github.aedev.flow.TvActivity")).isFalse()
+        assertThat(isSideTaskRemoval(null)).isFalse()
+    }
 }
