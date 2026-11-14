@@ -26,7 +26,9 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.zIndex
 
 /**
@@ -124,6 +126,30 @@ fun Modifier.onMenuKey(onMenu: () -> Unit): Modifier =
         }
     } else {
         this
+    }
+
+/**
+ * Lets a remote leave a control that keeps Up and Down for itself, such as an M3 [androidx.compose.material3.Slider],
+ * which steps its value on all four arrows: Up and Down move focus to the next control instead, while
+ * Left and Right still change the value. A no-op unless [LocalDpadNavigation] is on.
+ */
+@Composable
+fun Modifier.dpadVerticalFocusExit(): Modifier {
+    if (!LocalDpadNavigation.current) return this
+    val focusManager = LocalFocusManager.current
+    return onPreviewKeyEvent { event ->
+        val direction = dpadVerticalExitDirection(event.key) ?: return@onPreviewKeyEvent false
+        if (event.type == KeyEventType.KeyDown) focusManager.moveFocus(direction)
+        true
+    }
+}
+
+/** The focus move a vertical arrow asks for; null for every other key. */
+internal fun dpadVerticalExitDirection(key: Key): FocusDirection? =
+    when (key) {
+        Key.DirectionUp -> FocusDirection.Up
+        Key.DirectionDown -> FocusDirection.Down
+        else -> null
     }
 
 /**
