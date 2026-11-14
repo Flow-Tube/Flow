@@ -1,33 +1,47 @@
-
-
 // ============================================================================
 // THIS IMPLEMENTATION WAS INSPIRED BY METROLIST
 // ============================================================================
 
 package io.github.aedev.flow.ui.components.musicplayer.controls
 
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
+import androidx.compose.material3.WavyProgressIndicatorDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.local.SliderStyle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlin.math.PI
+import kotlin.math.sin
 
 // ============================================================================
 // EXPRESSIVE SLIDER (M3 handle thumb + gapped track + stop indicator)
@@ -107,12 +121,114 @@ fun ExpressivePlayerSlider(
     )
 }
 
-private val WavyStrokeWidth = 5.dp
+// ============================================================================
+// WAVY SLIDERS (M3 Slider with a wave drawn as its track)
+// ============================================================================
 
-// ============================================================================
-// EXPRESSIVE WAVY SLIDER (seekable LinearWavyProgressIndicator + round thumb)
-// ============================================================================
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private val WavyStrokeWidth = 5.dp
+private val WaveAmplitude = 3.dp
+private val SquigglyWavelength = 32.dp
+private val SquigglyWaveSpeed = 8.dp
+private val SquigglyThumbSize = DpSize(width = 5.dp, height = 20.dp)
+private const val SQUIGGLY_INACTIVE_TRACK_ALPHA = 0.3f
+private const val EXPRESSIVE_INACTIVE_TRACK_ALPHA = 0.24f
+private val ExpressiveThumbSize = 14.dp
+private val ExpressiveThumbPressedSize = 20.dp
+private val ExpressiveThumbGap = 4.dp
+private val StopDotSize = 4.dp
+
+/** Points along the wave per pixel of track; enough for a smooth curve at any density. */
+private const val WAVE_STEP_PX = 2f
+
+/**
+ * Where a wave stands: its phase moves only while music plays and nobody drags the thumb, and its
+ * height eases to flat when music stops. Once paused and flat nothing is left to draw, so the
+ * frame loop is gone too. M3's LinearWavyProgressIndicator can't do this: its wave keeps moving
+ * whatever the amplitude, and stopping its speed snaps the phase back, so a frozen wave would jump.
+ */
+private class WaveMotion {
+    val phase = mutableFloatStateOf(0f)
+}
+
+@Composable
+private fun rememberWaveMotion(
+    isPlaying: Boolean,
+    isMoving: Boolean,
+    wavelength: Dp,
+    speed: Dp,
+): Pair<WaveMotion, () -> Float> {
+    val motion = remember { WaveMotion() }
+    val amplitude by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0f,
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+        label = "waveAmplitude",
+    )
+    val cyclesPerSecond = speed / wavelength
+    LaunchedEffect(isPlaying, isMoving, cyclesPerSecond) {
+        if (!isPlaying || !isMoving) return@LaunchedEffect
+        var last = withFrameNanos { it }
+        while (isActive) {
+            withFrameNanos { now ->
+                motion.phase.floatValue = (motion.phase.floatValue + (now - last) / 1_000_000_000f * cyclesPerSecond) % 1f
+                last = now
+            }
+        }
+    }
+    return motion to { amplitude }
+}
+
+/**
+ * A track whose played part is a wave and whose rest is a straight line, both with round caps.
+ * Everything that moves is read here, in draw, so a playing wave never recomposes the slider.
+ */
+private fun Modifier.wavyTrack(
+    fraction: () -> Float,
+    motion: WaveMotion,
+    amplitude: () -> Float,
+    wavelength: Dp,
+    gap: Dp,
+    activeColor: Color,
+    inactiveColor: Color,
+    stopDot: Boolean,
+): Modifier =
+    drawWithCache {
+        val strokePx = WavyStrokeWidth.toPx()
+        val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
+        val wavelengthPx = wavelength.toPx()
+        val amplitudePx = WaveAmplitude.toPx()
+        val gapPx = gap.toPx()
+        val dotRadius = StopDotSize.toPx() / 2f
+        val path = Path()
+        onDrawBehind {
+            val mid = size.height / 2f
+            val edge = strokePx / 2f
+            val end = size.width - edge
+            val at = edge + (end - edge) * fraction().coerceIn(0f, 1f)
+            val waveEnd = at - gapPx
+            val restStart = at + gapPx
+            if (restStart < end) {
+                drawLine(inactiveColor, Offset(restStart, mid), Offset(end, mid), strokeWidth = strokePx, cap = StrokeCap.Round)
+            }
+            if (stopDot) drawCircle(activeColor, radius = dotRadius, center = Offset(end, mid))
+            if (waveEnd <= edge) return@onDrawBehind
+            val height = amplitudePx * amplitude()
+            val shift = motion.phase.floatValue * 2f * PI.toFloat()
+            path.rewind()
+            var x = edge
+            path.moveTo(x, mid + height * sin(x / wavelengthPx * 2f * PI.toFloat() - shift))
+            while (x < waveEnd) {
+                x = minOf(x + WAVE_STEP_PX, waveEnd)
+                path.lineTo(x, mid + height * sin(x / wavelengthPx * 2f * PI.toFloat() - shift))
+            }
+            drawPath(path, activeColor, style = stroke)
+        }
+    }
+
+/**
+ * The seek bar with the round thumb, shown as "Squiggly": a wave that grows its thumb while dragged.
+ * [waveMoving] false holds the wave still without flattening it, for previews.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExpressiveWavySlider(
     value: Float,
@@ -121,91 +237,67 @@ fun ExpressiveWavySlider(
     valueRange: ClosedFloatingPointRange<Float>,
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    waveMoving: Boolean = true,
 ) {
-    val range = (valueRange.endInclusive - valueRange.start).coerceAtLeast(0.001f)
-    var isDragging by remember { mutableStateOf(false) }
-    var dragFraction by remember { mutableFloatStateOf(0f) }
-    val fraction =
-        if (isDragging) {
-            dragFraction
-        } else {
-            ((value - valueRange.start) / range).coerceIn(0f, 1f)
-        }
-    val animatedAmplitude by animateFloatAsState(
-        targetValue = if (isPlaying && !isDragging) 1f else 0f,
-        label = "expressiveWaveAmplitude",
-    )
+    val isDragged by interactionSource.collectIsDraggedAsState()
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val wavelength = WavyProgressIndicatorDefaults.LinearDeterminateWavelength
+    val (motion, amplitude) = rememberWaveMotion(isPlaying, waveMoving && !isDragged, wavelength, speed = wavelength)
     val activeColor = MaterialTheme.colorScheme.primary
-    val inactiveColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
-    val density = LocalDensity.current
-    val thumbRadius = 7.dp
-    val stroke = remember(density) { Stroke(width = with(density) { WavyStrokeWidth.toPx() }, cap = StrokeCap.Round) }
-
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .pointerInput(valueRange) {
-                    detectTapGestures { offset ->
-                        val tapped = (offset.x / size.width).coerceIn(0f, 1f)
-                        onValueChange(valueRange.start + tapped * range)
-                        onValueChangeFinished()
-                    }
-                }.pointerInput(valueRange) {
-                    detectHorizontalDragGestures(
-                        onDragStart = { offset ->
-                            isDragging = true
-                            dragFraction = (offset.x / size.width).coerceIn(0f, 1f)
-                            onValueChange(valueRange.start + dragFraction * range)
-                        },
-                        onDragEnd = {
-                            isDragging = false
-                            onValueChangeFinished()
-                        },
-                        onDragCancel = { isDragging = false },
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            dragFraction = (dragFraction + dragAmount / size.width).coerceIn(0f, 1f)
-                            onValueChange(valueRange.start + dragFraction * range)
-                        },
-                    )
-                },
-        contentAlignment = Alignment.Center,
-    ) {
-        LinearWavyProgressIndicator(
-            progress = { fraction },
-            modifier = Modifier.fillMaxWidth(),
-            color = activeColor,
-            trackColor = inactiveColor,
-            stroke = stroke,
-            trackStroke = stroke,
-            gapSize = thumbRadius + 4.dp,
-            amplitude = { progress -> if (progress > 0f) animatedAmplitude else 0f },
-        )
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(
-                color = activeColor,
-                radius = thumbRadius.toPx(),
-                center = Offset(size.width * fraction, size.height / 2f),
+    val inactiveColor = activeColor.copy(alpha = EXPRESSIVE_INACTIVE_TRACK_ALPHA)
+    val thumbSize by animateDpAsState(
+        targetValue = if (isDragged || isPressed) ExpressiveThumbPressedSize else ExpressiveThumbSize,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "wavyThumb",
+    )
+    val sliderState = remember(valueRange) { SliderState(value, trackRange = valueRange) }
+    sliderState.value = value
+    Slider(
+        state = sliderState,
+        onValueChange = onValueChange,
+        onValueChangeFinished = onValueChangeFinished,
+        interactionSource = interactionSource,
+        thumb = {
+            Box(
+                Modifier
+                    .size(ExpressiveThumbPressedSize)
+                    .wrapThumb(thumbSize, activeColor),
             )
-        }
-    }
+        },
+        track = { state ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(WavyStrokeWidth + WaveAmplitude * 2)
+                    .wavyTrack(
+                        fraction = { state.coercedValueAsFraction },
+                        motion = motion,
+                        amplitude = amplitude,
+                        wavelength = wavelength,
+                        gap = ExpressiveThumbPressedSize / 2 + ExpressiveThumbGap,
+                        activeColor = activeColor,
+                        inactiveColor = inactiveColor,
+                        stopDot = true,
+                    ),
+            )
+        },
+        modifier = modifier.fillMaxWidth().height(48.dp),
+    )
 }
 
-// ============================================================================
-// SQUIGGLY SLIDER (M3 Slider with a wavy track and a bar thumb)
-// ============================================================================
-private val SquigglyWaveAmplitude = 3.dp
-private val SquigglyWavelength = 32.dp
-private val SquigglyWaveSpeed = 8.dp
-private val SquigglyThumbSize = DpSize(width = 5.dp, height = 20.dp)
-private const val SQUIGGLY_INACTIVE_TRACK_ALPHA = 0.3f
+/** A round thumb [diameter] across, centred in its fixed slot so growing it never moves the track. */
+private fun Modifier.wrapThumb(
+    diameter: Dp,
+    color: Color,
+): Modifier =
+    drawWithCache {
+        onDrawBehind {
+            drawCircle(color, radius = diameter.toPx().coerceAtLeast(0f) / 2f)
+        }
+    }
 
-// How long LinearWavyProgressIndicator takes to flatten. Its wave phase snaps to 0 as soon as the
-// speed reaches 0, so the speed has to outlast the flattening or the wave hops on pause.
-private const val SQUIGGLY_FLATTEN_MILLIS = 500L
-
+/** The seek bar with the bar thumb, shown as "Wavy": a slower, tighter wave. [waveMoving] as above. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SquigglySlider(
@@ -216,28 +308,16 @@ fun SquigglySlider(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    waveMoving: Boolean = true,
 ) {
     val isDragged by interactionSource.collectIsDraggedAsState()
-    // A State, because the indicator reads amplitude in its draw cache and only a state read refreshes it.
-    val isWaving by rememberUpdatedState(isPlaying && !isDragged)
-    var waveSpeed by remember { mutableStateOf(if (isWaving) SquigglyWaveSpeed else 0.dp) }
-    LaunchedEffect(isWaving) {
-        if (isWaving) {
-            waveSpeed = SquigglyWaveSpeed
-        } else {
-            delay(SQUIGGLY_FLATTEN_MILLIS)
-            waveSpeed = 0.dp
-        }
-    }
+    val (motion, amplitude) = rememberWaveMotion(isPlaying, waveMoving && !isDragged, SquigglyWavelength, SquigglyWaveSpeed)
     val colors =
         SliderDefaults.colors(
             thumbColor = MaterialTheme.colorScheme.primary,
             activeTrackColor = MaterialTheme.colorScheme.primary,
             inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = SQUIGGLY_INACTIVE_TRACK_ALPHA),
         )
-    val density = LocalDensity.current
-    val stroke = remember(density) { Stroke(width = with(density) { WavyStrokeWidth.toPx() }, cap = StrokeCap.Round) }
-
     val sliderState = remember(valueRange) { SliderState(value, trackRange = valueRange) }
     sliderState.value = value
     Slider(
@@ -252,24 +332,21 @@ fun SquigglySlider(
                 thumbSize = SquigglyThumbSize,
             )
         },
-        track = { sliderState ->
-            LinearWavyProgressIndicator(
-                progress = { sliderState.coercedValueAsFraction },
-                // The Slider already reports the value and takes seeks; this would be a second, read-only node.
-                modifier =
-                    Modifier
-                        .clearAndSetSemantics {}
-                        .fillMaxWidth()
-                        .height(WavyStrokeWidth + SquigglyWaveAmplitude * 2),
-                color = colors.activeTrackColor,
-                trackColor = colors.inactiveTrackColor,
-                stroke = stroke,
-                trackStroke = stroke,
-                gapSize = 0.dp,
-                stopSize = 0.dp,
-                amplitude = { if (isWaving) 1f else 0f },
-                wavelength = SquigglyWavelength,
-                waveSpeed = waveSpeed,
+        track = { state ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(WavyStrokeWidth + WaveAmplitude * 2)
+                    .wavyTrack(
+                        fraction = { state.coercedValueAsFraction },
+                        motion = motion,
+                        amplitude = amplitude,
+                        wavelength = SquigglyWavelength,
+                        gap = 0.dp,
+                        activeColor = colors.activeTrackColor,
+                        inactiveColor = colors.inactiveTrackColor,
+                        stopDot = false,
+                    ),
             )
         },
         modifier = modifier.fillMaxWidth().height(48.dp),

@@ -220,6 +220,7 @@ internal fun PlayerAppearanceScreen(
                     viewModel::setPlainControlColors,
                 )
             }
+            switch(PlayerAppearanceIndex.splitTransport, viewModel.splitTransport, viewModel::setSplitTransport)
             switch(PlayerAppearanceIndex.sleepTimerButton, sleepTimerButton, viewModel::setSleepTimerButton)
             toggleGroup(PlayerAppearanceIndex.miniCoverShape, coverShapeOptions, miniCoverShape, viewModel::setMiniCoverShape)
             if (miniCoverShape == MiniCoverShape.MORPHING) {

@@ -14,6 +14,7 @@ import io.github.aedev.flow.ui.components.music.sheet.CrossfadePauseRow
 import io.github.aedev.flow.ui.components.music.sheet.MusicArtistsSheet
 import io.github.aedev.flow.ui.components.music.sheet.MusicQuickActionsSheet
 import io.github.aedev.flow.ui.components.music.sheet.SaveSongSheet
+import io.github.aedev.flow.ui.components.music.sheet.SaveSongsSheet
 import io.github.aedev.flow.ui.components.musicplayer.sheet.AudioSettingsSheet
 import io.github.aedev.flow.ui.screens.music.CrossfadePauseViewModel
 
@@ -22,6 +23,7 @@ import io.github.aedev.flow.ui.screens.music.CrossfadePauseViewModel
 internal class FullPlayerSheetState {
     var moreOptions by mutableStateOf(false)
     var save by mutableStateOf(false)
+    var saveTracks by mutableStateOf(emptyList<MusicTrack>())
     var audioSettings by mutableStateOf(false)
     var sleepTimer by mutableStateOf(false)
     var artists by mutableStateOf(emptyList<MusicArtist>())
@@ -37,6 +39,13 @@ internal fun FullPlayerSheets(
         SaveSongSheet(
             track = currentTrack,
             onDismiss = { state.save = false },
+        )
+    }
+
+    if (state.saveTracks.isNotEmpty()) {
+        SaveSongsSheet(
+            tracks = state.saveTracks,
+            onDismiss = { state.saveTracks = emptyList() },
         )
     }
 

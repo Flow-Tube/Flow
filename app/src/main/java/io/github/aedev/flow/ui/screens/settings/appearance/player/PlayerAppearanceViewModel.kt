@@ -47,6 +47,7 @@ class PlayerAppearanceViewModel
         val sleepTimerButton = preferences.musicSleepTimerButton.asState(false)
         val miniCoverShape = preferences.miniCoverShape.asState(MiniCoverShape.MORPHING)
         val miniCoverMotion = preferences.miniCoverMotion.asState(MiniCoverMotion.ON_PLAY)
+        val splitTransport = preferences.musicSplitTransport.asState(true)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -104,6 +105,8 @@ class PlayerAppearanceViewModel
         fun setMiniCoverShape(value: MiniCoverShape) = write { preferences.setMiniCoverShape(value) }
 
         fun setMiniCoverMotion(value: MiniCoverMotion) = write { preferences.setMiniCoverMotion(value) }
+
+        fun setSplitTransport(value: Boolean) = write { preferences.setMusicSplitTransport(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 

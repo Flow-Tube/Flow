@@ -146,6 +146,7 @@ class PlayerPreferences(
         val MUSIC_SLEEP_TIMER_BUTTON = booleanPreferencesKey("music_sleep_timer_button")
         val MINI_COVER_SHAPE = stringPreferencesKey("mini_cover_shape")
         val MINI_COVER_MOTION = stringPreferencesKey("mini_cover_motion")
+        val MUSIC_SPLIT_TRANSPORT = booleanPreferencesKey("music_split_transport")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
@@ -1124,6 +1125,17 @@ class PlayerPreferences(
     suspend fun setMiniCoverMotion(motion: MiniCoverMotion) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MINI_COVER_MOTION] = motion.name
+        }
+    }
+
+    /** Whether previous and next sit flat against play/pause as a split button, or stand apart as pills. */
+    val musicSplitTransport: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.MUSIC_SPLIT_TRANSPORT] ?: true }
+
+    suspend fun setMusicSplitTransport(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MUSIC_SPLIT_TRANSPORT] = enabled
         }
     }
 

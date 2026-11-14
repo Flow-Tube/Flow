@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Explicit
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -99,6 +100,7 @@ internal fun QueueTrackRow(
     onSwipe: (QueueRowSwipe) -> Unit,
     modifier: Modifier = Modifier,
     onMenu: (() -> Unit)? = null,
+    selected: Boolean? = null,
 ) {
     val scope = rememberCoroutineScope()
     val dpad = LocalDpadNavigation.current
@@ -185,7 +187,9 @@ internal fun QueueTrackRow(
                     ),
             shape = RoundedCornerShape(rowCorner),
             color =
-                if (isCurrent) {
+                if (selected == true) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else if (isCurrent) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {
                     MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.55f)
@@ -225,6 +229,21 @@ internal fun QueueTrackRow(
                                 barWidth = 2.5.dp,
                                 barSpacing = 1.5.dp,
                                 staggerMillis = 120,
+                            )
+                        }
+                    }
+                    if (selected == true) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Check,
+                                contentDescription = stringResource(R.string.queue_row_selected),
+                                tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                     }
