@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.LyricsAnimationStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import kotlin.math.PI
 import kotlin.math.abs
@@ -172,6 +173,7 @@ internal fun LyricsLine(
     motionEnabled: Boolean,
     blurOtherLines: Boolean,
     animationStyle: LyricsAnimationStyle,
+    glow: LyricsGlow,
     onSizeChanged: (Int) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -253,6 +255,7 @@ internal fun LyricsLine(
                 romanizationOnly = romanizationOnly,
                 motionEnabled = motionEnabled,
                 animationStyle = animationStyle,
+                glow = glow,
             )
         }
 
@@ -288,6 +291,7 @@ private fun LyricBody(
     romanizationOnly: Boolean,
     motionEnabled: Boolean,
     animationStyle: LyricsAnimationStyle,
+    glow: LyricsGlow,
 ) {
     val lineDistance = abs(index - displayedCurrentLineIndex)
     val alignment =
@@ -375,6 +379,7 @@ private fun LyricBody(
                 positionProvider = positionProvider,
                 motionEnabled = motionEnabled,
                 animationStyle = animationStyle,
+                glow = glow,
             )
         } else {
             Text(

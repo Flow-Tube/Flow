@@ -148,6 +148,7 @@ internal fun PlayerAppearanceScreen(
     val swipeRightLabel = stringResource(miniBarSwipeRight.labelRes)
     val queueSwipeLeftLabel = stringResource(queueSwipeLeft.rowSwipe.labelRes)
     val queueSwipeRightLabel = stringResource(queueSwipeRight.rowSwipe.labelRes)
+    val lyricsOptions = rememberLyricsLookOptions()
 
     SettingsPage(
         title = stringResource(R.string.player_appearance_title),
@@ -221,6 +222,7 @@ internal fun PlayerAppearanceScreen(
             nav(PlayerAppearanceIndex.queueSwipeRight, value = queueSwipeRightLabel, onClick = { sheet = PreviewSheet.QUEUE_SWIPE_RIGHT })
         }
         musicMiniGroup(musicMini, viewModel)
+        lyricsLookGroup(viewModel, lyricsOptions)
         group(key = "player_appearance.video", header = R.string.settings_section_video_player) {
             switch(PlayerAppearanceIndex.adaptiveSize, adaptiveSize, viewModel::setAdaptivePlayerSize)
             switch(PlayerAppearanceIndex.fullscreenZoomToFill, viewModel.fullscreenZoomToFill, viewModel::setFullscreenZoomToFill)

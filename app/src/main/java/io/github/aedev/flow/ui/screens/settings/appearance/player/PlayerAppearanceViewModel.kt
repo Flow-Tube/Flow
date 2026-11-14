@@ -9,6 +9,10 @@ import io.github.aedev.flow.data.local.DefaultMiniBarButtons
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
+import io.github.aedev.flow.data.local.LYRICS_ALIGN_CENTER
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.local.MiniBarBackground
 import io.github.aedev.flow.data.local.MiniBarButton
 import io.github.aedev.flow.data.local.MiniBarProgress
@@ -63,6 +67,11 @@ class PlayerAppearanceViewModel
         val miniCoverTap = preferences.miniCoverTap.asState(MiniCoverTap.OPEN)
         val miniLongPress = preferences.miniLongPress.asState(MiniLongPress.NOTHING)
         val miniBarBackground = preferences.miniBarBackground.asState(MiniBarBackground.TINTED)
+        val lyricsAnimationStyle = preferences.lyricsAnimationStyle.asState(LyricsAnimationStyle.CADENCE)
+        val lyricsGlow = preferences.lyricsGlow.asState(LyricsGlow.NORMAL)
+        val lyricsBlurOtherLines = preferences.lyricsBlurOtherLines.asState(true)
+        val lyricsBackground = preferences.lyricsBackground.asState(LyricsBackgroundStyle.SOLID)
+        val lyricsTextAlign = preferences.lyricsTextAlign.asState(LYRICS_ALIGN_CENTER)
         val splitTransport = preferences.musicSplitTransport.asState(true)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
@@ -143,6 +152,17 @@ class PlayerAppearanceViewModel
         fun setMiniLongPress(value: MiniLongPress) = write { preferences.setMiniLongPress(value) }
 
         fun setMiniBarBackground(value: MiniBarBackground) = write { preferences.setMiniBarBackground(value) }
+
+        fun setLyricsAnimationStyle(value: LyricsAnimationStyle) = write { preferences.setLyricsAnimationStyle(value) }
+
+        fun setLyricsGlow(value: LyricsGlow) = write { preferences.setLyricsGlow(value) }
+
+        fun setLyricsBlurOtherLines(value: Boolean) = write { preferences.setLyricsBlurOtherLines(value) }
+
+        fun setLyricsBackground(value: LyricsBackgroundStyle) = write { preferences.setLyricsBackground(value) }
+
+        fun setLyricsTextAlign(value: String) = write { preferences.setLyricsTextAlign(value) }
+
         fun setSplitTransport(value: Boolean) = write { preferences.setMusicSplitTransport(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }

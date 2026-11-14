@@ -202,6 +202,8 @@ class PlayerPreferences(
         val LYRICS_ROMANIZATION_ONLY = booleanPreferencesKey("lyrics_romanization_only")
         val LYRICS_KEEP_SCREEN_ON = booleanPreferencesKey("lyrics_keep_screen_on")
         val LYRICS_BLUR_OTHER_LINES = booleanPreferencesKey("lyrics_blur_other_lines")
+        val LYRICS_ANIMATION_STYLE = stringPreferencesKey("lyrics_animation_style")
+        val LYRICS_GLOW = stringPreferencesKey("lyrics_glow")
         val LYRICS_BACKGROUND = stringPreferencesKey("lyrics_background")
         val LYRICS_PROVIDER_ENABLED_BETTERLYRICS = booleanPreferencesKey("lyrics_provider_enabled_betterlyrics")
         val LYRICS_PROVIDER_ENABLED_SIMPMUSIC = booleanPreferencesKey("lyrics_provider_enabled_simpmusic")
@@ -4632,6 +4634,25 @@ class PlayerPreferences(
         context.playerPreferencesDataStore.edit { it[Keys.LYRICS_BLUR_OTHER_LINES] = enabled }
     }
 
+    val lyricsAnimationStyle: Flow<LyricsAnimationStyle> =
+        context.playerPreferencesDataStore.data.map { preferences ->
+            runCatching { LyricsAnimationStyle.valueOf(preferences[Keys.LYRICS_ANIMATION_STYLE] ?: LyricsAnimationStyle.CADENCE.name) }
+                .getOrDefault(LyricsAnimationStyle.CADENCE)
+        }
+
+    suspend fun setLyricsAnimationStyle(style: LyricsAnimationStyle) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_ANIMATION_STYLE] = style.name }
+    }
+
+    val lyricsGlow: Flow<LyricsGlow> =
+        context.playerPreferencesDataStore.data.map { preferences ->
+            runCatching { LyricsGlow.valueOf(preferences[Keys.LYRICS_GLOW] ?: LyricsGlow.NORMAL.name) }.getOrDefault(LyricsGlow.NORMAL)
+        }
+
+    suspend fun setLyricsGlow(glow: LyricsGlow) {
+        context.playerPreferencesDataStore.edit { it[Keys.LYRICS_GLOW] = glow.name }
+    }
+
     // ========== MINI PLAYER PREFERENCES ==========
 
     val miniPlayerScale: Flow<Float> =
@@ -5323,6 +5344,14 @@ enum class LyricsAnimationStyle {
     CADENCE,
     CLASSIC,
     CALM,
+}
+
+/** How strongly a long held note glows while it is sung. Normal is how it always glowed. Stored by name. */
+enum class LyricsGlow {
+    OFF,
+    SOFT,
+    NORMAL,
+    BRIGHT,
 }
 
 /** What the full-screen lyrics draw on. Stored by name. */

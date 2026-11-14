@@ -1,6 +1,5 @@
 package io.github.aedev.flow.ui.components.musicplayer.lyrics
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,10 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Abc
+import androidx.compose.material.icons.outlined.Animation
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BlurOn
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Flare
 import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.FormatAlignCenter
 import androidx.compose.material.icons.outlined.FormatAlignLeft
@@ -52,7 +53,9 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_CENTER
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_LEFT
 import io.github.aedev.flow.data.local.LYRICS_ALIGN_RIGHT
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.local.LyricsBackgroundStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
 import io.github.aedev.flow.ui.components.shared.FlowChoice
 import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
@@ -85,6 +88,29 @@ internal fun LyricsActionsSheet(
     onDismiss: () -> Unit,
 ) {
     var showBackgroundChoice by remember { mutableStateOf(false) }
+    var showAnimationChoice by remember { mutableStateOf(false) }
+    var showGlowChoice by remember { mutableStateOf(false) }
+    if (showAnimationChoice) {
+        FlowChoiceDialog(
+            title = stringResource(R.string.lyrics_animation),
+            options =
+                LyricsAnimationStyle.entries.map {
+                    FlowChoice(it, stringResource(lyricsAnimationLabel(it)), stringResource(lyricsAnimationDetail(it)))
+                },
+            selected = display.animationStyle,
+            onSelect = { onDisplayChange(display.copy(animationStyle = it)) },
+            onDismiss = { showAnimationChoice = false },
+        )
+    }
+    if (showGlowChoice) {
+        FlowChoiceDialog(
+            title = stringResource(R.string.lyrics_glow),
+            options = LyricsGlow.entries.map { FlowChoice(it, stringResource(lyricsGlowLabel(it))) },
+            selected = display.glow,
+            onSelect = { onDisplayChange(display.copy(glow = it)) },
+            onDismiss = { showGlowChoice = false },
+        )
+    }
     if (showBackgroundChoice) {
         FlowChoiceDialog(
             title = stringResource(R.string.lyrics_background),
@@ -251,6 +277,20 @@ internal fun LyricsActionsSheet(
                         onCheckedChange = { onDisplayChange(display.copy(blurOtherLines = it)) },
                     ) +
                     lyricsRow(
+                        key = "animation",
+                        icon = Icons.Outlined.Animation,
+                        title = stringResource(R.string.lyrics_animation),
+                        supporting = stringResource(lyricsAnimationLabel(display.animationStyle)),
+                        onClick = { showAnimationChoice = true },
+                    ) +
+                    lyricsRow(
+                        key = "glow",
+                        icon = Icons.Outlined.Flare,
+                        title = stringResource(R.string.lyrics_glow),
+                        supporting = stringResource(lyricsGlowLabel(display.glow)),
+                        onClick = { showGlowChoice = true },
+                    ) +
+                    lyricsRow(
                         key = "background",
                         icon = Icons.Outlined.Wallpaper,
                         title = stringResource(R.string.lyrics_background),
@@ -277,22 +317,6 @@ internal fun LyricsActionsSheet(
         )
     }
 }
-
-@StringRes
-private fun lyricsBackgroundLabel(style: LyricsBackgroundStyle): Int =
-    when (style) {
-        LyricsBackgroundStyle.SOLID -> R.string.lyrics_background_solid
-        LyricsBackgroundStyle.COLORFUL -> R.string.lyrics_background_colorful
-        LyricsBackgroundStyle.MOVING -> R.string.lyrics_background_moving
-    }
-
-@StringRes
-private fun lyricsBackgroundDetail(style: LyricsBackgroundStyle): Int =
-    when (style) {
-        LyricsBackgroundStyle.SOLID -> R.string.lyrics_background_solid_detail
-        LyricsBackgroundStyle.COLORFUL -> R.string.lyrics_background_colorful_detail
-        LyricsBackgroundStyle.MOVING -> R.string.lyrics_background_moving_detail
-    }
 
 private fun lyricsRow(
     key: String,

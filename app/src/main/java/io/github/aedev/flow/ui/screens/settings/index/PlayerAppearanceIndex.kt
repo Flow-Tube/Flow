@@ -310,6 +310,22 @@ internal object PlayerAppearanceIndex {
             R.string.settings_section_mini_player,
         )
 
+    val lyricsAnimation =
+        entry("lyrics_animation", R.string.lyrics_animation, R.string.lyrics_animation_summary, R.string.settings_section_lyrics)
+    val lyricsGlow =
+        entry("lyrics_glow", R.string.lyrics_glow, R.string.lyrics_glow_summary, R.string.settings_section_lyrics)
+    val lyricsBlurOtherLines =
+        entry(
+            "lyrics_blur_other_lines",
+            R.string.lyrics_blur_other_lines,
+            R.string.lyrics_blur_other_lines_summary,
+            R.string.settings_section_lyrics,
+        )
+    val lyricsBackground =
+        entry("lyrics_background", R.string.lyrics_background, section = R.string.settings_section_lyrics)
+    val lyricsAlignment =
+        entry("lyrics_alignment", R.string.lyrics_alignment, section = R.string.settings_section_lyrics)
+
     val all =
         listOf(
             sliderStyle,
@@ -360,5 +376,10 @@ internal object PlayerAppearanceIndex {
             miniPlayerNextPrev,
             miniBarSwipeLeft,
             miniBarSwipeRight,
+            lyricsAnimation,
+            lyricsGlow,
+            lyricsBlurOtherLines,
+            lyricsBackground,
+            lyricsAlignment,
         )
 }
