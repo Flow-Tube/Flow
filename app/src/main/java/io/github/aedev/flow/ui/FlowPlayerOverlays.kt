@@ -26,6 +26,8 @@ import androidx.navigation.NavHostController
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.audio.eq.EqState
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
+import io.github.aedev.flow.data.local.MiniCoverMotion
+import io.github.aedev.flow.data.local.MiniCoverShape
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
@@ -226,6 +228,8 @@ internal fun FlowPlayerOverlays(
     val swipeLeftAction by playerPreferences.miniBarSwipeLeftAction.collectAsState(initial = MiniBarSwipeAction.CLOSE)
     val swipeRightAction by playerPreferences.miniBarSwipeRightAction.collectAsState(initial = MiniBarSwipeAction.CLOSE)
     val lyricsInMiniPlayer by playerPreferences.lyricsInMiniPlayer.collectAsState(initial = false)
+    val miniCoverShape by playerPreferences.miniCoverShape.collectAsState(initial = MiniCoverShape.MORPHING)
+    val miniCoverMotion by playerPreferences.miniCoverMotion.collectAsState(initial = MiniCoverMotion.ON_PLAY)
     val quickActions = sharedQuickActionsViewModel()
     val removedFromQueue = stringResource(R.string.removed_from_queue)
     val scope = rememberCoroutineScope()
@@ -343,6 +347,8 @@ internal fun FlowPlayerOverlays(
                 swipeLeftAction = swipeLeftAction,
                 swipeRightAction = swipeRightAction,
                 lyricsInMiniPlayer = lyricsInMiniPlayer,
+                miniCoverShape = miniCoverShape,
+                miniCoverMotion = miniCoverMotion,
                 onDismiss = {
                     EnhancedMusicPlayerManager.stop()
                     EnhancedMusicPlayerManager.clearCurrentTrack()

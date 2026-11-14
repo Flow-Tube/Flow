@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
+import io.github.aedev.flow.data.local.MiniCoverMotion
+import io.github.aedev.flow.data.local.MiniCoverShape
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.common.rememberMusicPlayerAppearance
@@ -95,6 +97,8 @@ internal fun UnifiedMusicPlayerSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     lyricsInMiniPlayer: Boolean = false,
+    miniCoverShape: MiniCoverShape = MiniCoverShape.CIRCLE,
+    miniCoverMotion: MiniCoverMotion = MiniCoverMotion.ON_PLAY,
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -424,6 +428,8 @@ internal fun UnifiedMusicPlayerSheet(
                             animationsEnabled = miniAnimationsEnabled,
                             showPrevious = !isCompactWidth,
                             lyrics = if (lyricsInMiniPlayer) rememberMiniPlayerLyrics(displayTrack.videoId) else null,
+                            coverShape = miniCoverShape,
+                            coverMotion = miniCoverMotion,
                         )
                     }
                 }

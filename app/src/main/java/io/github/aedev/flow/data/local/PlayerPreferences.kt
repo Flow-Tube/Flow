@@ -144,6 +144,8 @@ class PlayerPreferences(
         val VIDEO_ARTWORK_COLORS = booleanPreferencesKey("video_artwork_colors")
         val MUSIC_PLAIN_CONTROL_COLORS = stringPreferencesKey("music_plain_control_colors")
         val MUSIC_SLEEP_TIMER_BUTTON = booleanPreferencesKey("music_sleep_timer_button")
+        val MINI_COVER_SHAPE = stringPreferencesKey("mini_cover_shape")
+        val MINI_COVER_MOTION = stringPreferencesKey("mini_cover_motion")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
@@ -1094,6 +1096,34 @@ class PlayerPreferences(
     suspend fun setMusicSleepTimerButton(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MUSIC_SLEEP_TIMER_BUTTON] = enabled
+        }
+    }
+
+    /** How the music mini player cuts out its cover. */
+    val miniCoverShape: Flow<MiniCoverShape> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniCoverShape.valueOf(preferences[Keys.MINI_COVER_SHAPE] ?: MiniCoverShape.MORPHING.name) }
+                    .getOrDefault(MiniCoverShape.MORPHING)
+            }
+
+    suspend fun setMiniCoverShape(shape: MiniCoverShape) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_SHAPE] = shape.name
+        }
+    }
+
+    /** When a morphing mini player cover changes shape. */
+    val miniCoverMotion: Flow<MiniCoverMotion> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                runCatching { MiniCoverMotion.valueOf(preferences[Keys.MINI_COVER_MOTION] ?: MiniCoverMotion.ON_PLAY.name) }
+                    .getOrDefault(MiniCoverMotion.ON_PLAY)
+            }
+
+    suspend fun setMiniCoverMotion(motion: MiniCoverMotion) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_MOTION] = motion.name
         }
     }
 
@@ -5014,6 +5044,19 @@ enum class AutoDownloadMode {
 enum class MusicPlainControlColors {
     MONOCHROME,
     APP_THEME,
+}
+
+/** The music mini player's cover: cut out with a shape that changes with the music, or a plain circle. Stored by name. */
+enum class MiniCoverShape {
+    MORPHING,
+    CIRCLE,
+}
+
+/** When a morphing cover moves: as playback starts, stops and changes track, all the time it plays, or never. Stored by name. */
+enum class MiniCoverMotion {
+    ON_PLAY,
+    ALWAYS,
+    STILL,
 }
 
 /** What the full-screen lyrics draw on. Stored by name. */

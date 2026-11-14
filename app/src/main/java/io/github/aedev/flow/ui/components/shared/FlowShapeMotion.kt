@@ -30,6 +30,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.TransformResult
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 
@@ -37,6 +39,18 @@ private const val PORTRAIT_MORPH_SHARE = 0.3f
 private const val STAGGER_MS = 70L
 
 private val PortraitMorph: Morph by lazy { Morph(MaterialShapes.Circle.normalized(), MaterialShapes.Cookie9Sided.normalized()) }
+
+/**
+ * This shape scaled and centred in the unit square so that its farthest point touches the edge at
+ * every rotation: turning or morphing between fitted shapes never leaves the slot or changes size.
+ */
+fun RoundedPolygon.fittedToCircle(): RoundedPolygon {
+    val bounds = calculateMaxBounds()
+    val centerX = (bounds[0] + bounds[2]) / 2f
+    val centerY = (bounds[1] + bounds[3]) / 2f
+    val scale = 1f / (bounds[2] - bounds[0])
+    return transformed { x, y -> TransformResult((x - centerX) * scale + 0.5f, (y - centerY) * scale + 0.5f) }
+}
 
 /**
  * Draws [morph] at [progress], [extent] across, centred on [center] and turned by [degrees]. [path]

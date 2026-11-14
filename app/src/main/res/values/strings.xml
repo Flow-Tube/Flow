@@ -182,6 +182,14 @@
     <string name="player_appearance_follow_light_theme_subtitle">Artwork backgrounds turn light</string>
     <string name="player_appearance_sleep_timer_button_title">Sleep timer button</string>
     <string name="player_appearance_sleep_timer_button_subtitle">Show it next to the queue button</string>
+    <string name="player_appearance_mini_cover_title">Mini player cover</string>
+    <string name="player_appearance_mini_cover_subtitle">Shape of the cover in the mini player</string>
+    <string name="player_appearance_mini_cover_morphing">Morphing</string>
+    <string name="player_appearance_mini_cover_circle">Circle</string>
+    <string name="player_appearance_mini_cover_motion_title">Cover motion</string>
+    <string name="player_appearance_mini_cover_motion_on_play">On play</string>
+    <string name="player_appearance_mini_cover_motion_always">Always</string>
+    <string name="player_appearance_mini_cover_motion_still">Still</string>
     <string name="player_appearance_plain_control_colors_title">Control colors</string>
     <string name="player_appearance_plain_control_colors_monochrome">Black and white</string>
     <string name="player_appearance_plain_control_colors_app">App theme</string>

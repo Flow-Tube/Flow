@@ -18,6 +18,8 @@ import io.github.aedev.flow.data.local.IdleProgressBar
 import io.github.aedev.flow.data.local.MAX_FULLSCREEN_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.MAX_PORTRAIT_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
+import io.github.aedev.flow.data.local.MiniCoverMotion
+import io.github.aedev.flow.data.local.MiniCoverShape
 import io.github.aedev.flow.data.local.MusicPlainControlColors
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.local.QueueSwipeAction
@@ -73,6 +75,7 @@ internal fun PlayerAppearanceScreen(
     val animatedArtwork by viewModel.animatedArtwork.collectAsStateWithLifecycle()
     val plainControlColors by viewModel.plainControlColors.collectAsStateWithLifecycle()
     val sleepTimerButton by viewModel.sleepTimerButton.collectAsStateWithLifecycle()
+    val miniCoverShape by viewModel.miniCoverShape.collectAsStateWithLifecycle()
     val adaptiveSize by viewModel.adaptivePlayerSize.collectAsStateWithLifecycle()
     val scrollAway by viewModel.playerScrollAway.collectAsStateWithLifecycle()
     val ambientMode by viewModel.ambientMode.collectAsStateWithLifecycle()
@@ -127,6 +130,17 @@ internal fun PlayerAppearanceScreen(
                 stringResource(R.string.player_appearance_plain_control_colors_monochrome),
             ),
             FlowToggleOption(MusicPlainControlColors.APP_THEME, stringResource(R.string.player_appearance_plain_control_colors_app)),
+        )
+    val coverShapeOptions =
+        listOf(
+            FlowToggleOption(MiniCoverShape.MORPHING, stringResource(R.string.player_appearance_mini_cover_morphing)),
+            FlowToggleOption(MiniCoverShape.CIRCLE, stringResource(R.string.player_appearance_mini_cover_circle)),
+        )
+    val coverMotionOptions =
+        listOf(
+            FlowToggleOption(MiniCoverMotion.ON_PLAY, stringResource(R.string.player_appearance_mini_cover_motion_on_play)),
+            FlowToggleOption(MiniCoverMotion.ALWAYS, stringResource(R.string.player_appearance_mini_cover_motion_always)),
+            FlowToggleOption(MiniCoverMotion.STILL, stringResource(R.string.player_appearance_mini_cover_motion_still)),
         )
     val sidePanelOptions = FullscreenSidePanelWidth.entries.map { FlowToggleOption(it, stringResource(sidePanelWidthLabel(it))) }
     val miniPlayerOptions = MiniPlayerSize.entries.map { FlowToggleOption(it, stringResource(miniPlayerSizeLabel(it))) }
@@ -207,6 +221,15 @@ internal fun PlayerAppearanceScreen(
                 )
             }
             switch(PlayerAppearanceIndex.sleepTimerButton, sleepTimerButton, viewModel::setSleepTimerButton)
+            toggleGroup(PlayerAppearanceIndex.miniCoverShape, coverShapeOptions, miniCoverShape, viewModel::setMiniCoverShape)
+            if (miniCoverShape == MiniCoverShape.MORPHING) {
+                toggleGroup(
+                    PlayerAppearanceIndex.miniCoverMotion,
+                    coverMotionOptions,
+                    viewModel.miniCoverMotion,
+                    viewModel::setMiniCoverMotion,
+                )
+            }
             nav(PlayerAppearanceIndex.queueSwipeLeft, value = queueSwipeLeftLabel, onClick = { sheet = PreviewSheet.QUEUE_SWIPE_LEFT })
             nav(PlayerAppearanceIndex.queueSwipeRight, value = queueSwipeRightLabel, onClick = { sheet = PreviewSheet.QUEUE_SWIPE_RIGHT })
         }

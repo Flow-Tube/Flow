@@ -7,6 +7,8 @@ import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
+import io.github.aedev.flow.data.local.MiniCoverMotion
+import io.github.aedev.flow.data.local.MiniCoverShape
 import io.github.aedev.flow.data.local.MusicPlainControlColors
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.local.PlayerOverlayPreferences
@@ -43,6 +45,8 @@ class PlayerAppearanceViewModel
         val animatedArtworkWifiOnly = preferences.animatedArtworkWifiOnly.asState(true)
         val plainControlColors = preferences.musicPlainControlColors.asState(MusicPlainControlColors.MONOCHROME)
         val sleepTimerButton = preferences.musicSleepTimerButton.asState(false)
+        val miniCoverShape = preferences.miniCoverShape.asState(MiniCoverShape.MORPHING)
+        val miniCoverMotion = preferences.miniCoverMotion.asState(MiniCoverMotion.ON_PLAY)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -96,6 +100,10 @@ class PlayerAppearanceViewModel
         fun setPlainControlColors(value: MusicPlainControlColors) = write { preferences.setMusicPlainControlColors(value) }
 
         fun setSleepTimerButton(value: Boolean) = write { preferences.setMusicSleepTimerButton(value) }
+
+        fun setMiniCoverShape(value: MiniCoverShape) = write { preferences.setMiniCoverShape(value) }
+
+        fun setMiniCoverMotion(value: MiniCoverMotion) = write { preferences.setMiniCoverMotion(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 
