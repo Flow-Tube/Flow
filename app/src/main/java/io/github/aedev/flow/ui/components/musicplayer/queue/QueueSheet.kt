@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,7 @@ internal fun QueueSheet(
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier,
 ) {
+    val selection = remember { QueueSelection() }
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -77,6 +79,7 @@ internal fun QueueSheet(
                     repeatMode = repeatMode,
                     onShuffleQueue = actions.onShuffleQueue,
                     onCycleRepeat = actions.onCycleRepeat,
+                    onSelect = { selection.start() },
                 )
             }
 
@@ -91,6 +94,7 @@ internal fun QueueSheet(
                 swipes = swipes,
                 actions = actions,
                 modifier = Modifier.weight(1f),
+                selection = selection,
             )
         }
     }

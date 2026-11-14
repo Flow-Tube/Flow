@@ -194,6 +194,8 @@
     <string name="player_appearance_video_artwork_colors_subtitle">Tint description and comments</string>
     <string name="player_appearance_follow_light_theme_title">Light in light theme</string>
     <string name="player_appearance_follow_light_theme_subtitle">Artwork backgrounds turn light</string>
+    <string name="player_appearance_split_transport_title">Split buttons</string>
+    <string name="player_appearance_split_transport_subtitle">Previous and next sit flat against play/pause</string>
     <string name="player_appearance_sleep_timer_button_title">Sleep timer button</string>
     <string name="player_appearance_sleep_timer_button_subtitle">Show it next to the queue button</string>
     <string name="player_appearance_plain_control_colors_title">Control colors</string>
@@ -4212,6 +4214,15 @@
     <string name="fallback_more_results">More results</string>
     <string name="remove_from_queue">Remove from queue</string>
     <string name="removed_from_queue">Removed from queue</string>
+    <plurals name="songs_removed_from_queue">
+        <item quantity="one">Removed %d song from the queue</item>
+        <item quantity="other">Removed %d songs from the queue</item>
+    </plurals>
+    <string name="queue_row_selected">Selected</string>
+    <plurals name="add_songs_to_playlist_title">
+        <item quantity="one">Add %d song to a playlist</item>
+        <item quantity="other">Add %d songs to a playlist</item>
+    </plurals>
     <string name="queue_after_this_template">%1$s after this</string>
     <string name="reorder_queue_item">Reorder queue item</string>
     <string name="music_chip_load_failed">Couldn\'t load %1$s</string>

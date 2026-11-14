@@ -113,6 +113,13 @@ internal object PlayerAppearanceIndex {
             section = R.string.settings_section_music_player,
             revealVia = artworkControlColors.key,
         )
+    val splitTransport =
+        entry(
+            "music_split_transport",
+            R.string.player_appearance_split_transport_title,
+            R.string.player_appearance_split_transport_subtitle,
+            R.string.settings_section_music_player,
+        )
     val sleepTimerButton =
         entry(
             "music_sleep_timer_button",
@@ -276,6 +283,7 @@ internal object PlayerAppearanceIndex {
             animatedArtworkWifiOnly,
             artworkControlColors,
             plainControlColors,
+            splitTransport,
             sleepTimerButton,
             queueSwipeLeft,
             queueSwipeRight,

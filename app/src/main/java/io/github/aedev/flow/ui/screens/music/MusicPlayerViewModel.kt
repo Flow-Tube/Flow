@@ -570,6 +570,8 @@ class MusicPlayerViewModel
 
         fun downloadTrack(track: MusicTrack? = null) = trackActions.downloadTrack(track)
 
+        fun downloadTracks(tracks: List<MusicTrack>) = trackActions.downloadTracks(tracks)
+
         fun ensureLyricsLoaded(track: MusicTrack) = lyrics.ensureLoaded(track)
 
         fun warmLyrics(track: MusicTrack) = lyrics.warm(track)

@@ -52,6 +52,7 @@ class PlayerAppearanceViewModel
         val lyricsBlurOtherLines = preferences.lyricsBlurOtherLines.asState(true)
         val lyricsBackground = preferences.lyricsBackground.asState(LyricsBackgroundStyle.SOLID)
         val lyricsTextAlign = preferences.lyricsTextAlign.asState(LYRICS_ALIGN_CENTER)
+        val splitTransport = preferences.musicSplitTransport.asState(true)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -115,6 +116,8 @@ class PlayerAppearanceViewModel
         fun setLyricsBackground(value: LyricsBackgroundStyle) = write { preferences.setLyricsBackground(value) }
 
         fun setLyricsTextAlign(value: String) = write { preferences.setLyricsTextAlign(value) }
+
+        fun setSplitTransport(value: Boolean) = write { preferences.setMusicSplitTransport(value) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 

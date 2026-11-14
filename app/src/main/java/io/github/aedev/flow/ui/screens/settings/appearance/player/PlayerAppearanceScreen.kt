@@ -207,6 +207,7 @@ internal fun PlayerAppearanceScreen(
                     viewModel::setPlainControlColors,
                 )
             }
+            switch(PlayerAppearanceIndex.splitTransport, viewModel.splitTransport, viewModel::setSplitTransport)
             switch(PlayerAppearanceIndex.sleepTimerButton, sleepTimerButton, viewModel::setSleepTimerButton)
             nav(PlayerAppearanceIndex.queueSwipeLeft, value = queueSwipeLeftLabel, onClick = { sheet = PreviewSheet.QUEUE_SWIPE_LEFT })
             nav(PlayerAppearanceIndex.queueSwipeRight, value = queueSwipeRightLabel, onClick = { sheet = PreviewSheet.QUEUE_SWIPE_RIGHT })
