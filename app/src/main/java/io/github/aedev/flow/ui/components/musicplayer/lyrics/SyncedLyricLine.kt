@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.components.musicplayer.lyrics
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -113,7 +114,9 @@ internal fun SyncedLyricLine(
     val fade = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
     AnimatedContent(
         targetState = index,
-        transitionSpec = { fadeIn(fade) togetherWith fadeOut(fade) },
+        // Unclipped: vowel signs above the line box (Devanagari) and lifted sung words were cut off for
+        // as long as each change ran (#2044).
+        transitionSpec = { (fadeIn(fade) togetherWith fadeOut(fade)) using SizeTransform(clip = false) },
         modifier = modifier,
         contentAlignment = contentAlignment,
         label = "syncedLyricLine",
