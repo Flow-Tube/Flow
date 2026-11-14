@@ -26,7 +26,16 @@ class KuGouLyricsProvider(
         withContext(Dispatchers.IO) {
             runCatching {
                 val lrc = kuGou.getLyrics(title, artist, duration, album).getOrThrow()
-                LyricsUtils.parseLyrics(lrc)
+                val entries = LyricsUtils.parseLyrics(lrc)
+                if (isInstrumentalNotice(entries)) emptyList() else entries
             }
         }
+
+    internal companion object {
+        // KuGou answers instrumentals with one line, "纯音乐，请欣赏" ("pure music, please enjoy"), not with no lyrics.
+        private val INSTRUMENTAL_NOTICE = "纯音乐[，,]?\\s*请欣赏".toRegex()
+
+        fun isInstrumentalNotice(entries: List<LyricsEntry>): Boolean =
+            entries.isNotEmpty() && entries.all { it.text.trim().matches(INSTRUMENTAL_NOTICE) }
+    }
 }
