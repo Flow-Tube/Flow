@@ -3,6 +3,7 @@ package io.github.aedev.flow.sync2.service
 import android.os.SystemClock
 import android.util.Log
 import io.github.aedev.flow.sync.crypto.SyncBytes
+import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.changes.COLLECTION_TABLES
 import io.github.aedev.flow.sync2.changes.LocalChanges
 import io.github.aedev.flow.sync2.changes.PushSchedule
@@ -55,7 +56,8 @@ class LinkedPush
             try {
                 coroutineScope {
                     // What a sync applies is another device's change coming in, not one to send back.
-                    launch { changes.stored.collect { if (!sync.syncing.value) onLocalChange(it) } }
+                    launch { changes.stored().collect { if (!sync.syncing.value) onLocalChange(it) } }
+                    launch { changes.historySettles().collect { onLocalChange(SyncCollection.WATCH_HISTORY) } }
                     // The server lists this device among those connected, so only another one counts.
                     pushes.run(ready = { devices.online.first { (it - me).isNotEmpty() } }, push = ::push)
                 }
