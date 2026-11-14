@@ -146,6 +146,8 @@ class PlayerPreferences(
         val MUSIC_SLEEP_TIMER_BUTTON = booleanPreferencesKey("music_sleep_timer_button")
         val MINI_COVER_SHAPE = stringPreferencesKey("mini_cover_shape")
         val MINI_COVER_MOTION = stringPreferencesKey("mini_cover_motion")
+        val MINI_COVER_SHAPES = stringPreferencesKey("mini_cover_shapes")
+        val MINI_COVER_PAUSED_SHAPE = stringPreferencesKey("mini_cover_paused_shape")
         val MUSIC_PLAYER_FOLLOW_LIGHT_THEME = booleanPreferencesKey("music_player_follow_light_theme")
         val SHORTS_PLAYER_UI_MODE = stringPreferencesKey("shorts_player_ui_mode")
         val GESTURE_OVERLAY_STYLE = stringPreferencesKey("gesture_overlay_style")
@@ -1124,6 +1126,28 @@ class PlayerPreferences(
     suspend fun setMiniCoverMotion(motion: MiniCoverMotion) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.MINI_COVER_MOTION] = motion.name
+        }
+    }
+
+    /** The shapes tracks draw their mini player cover from, in the order they were stored. */
+    val miniCoverShapes: Flow<List<CoverShape>> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> parseCoverShapes(preferences[Keys.MINI_COVER_SHAPES]) }
+
+    suspend fun setMiniCoverShapes(shapes: List<CoverShape>) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_SHAPES] = shapes.joinToString(",") { it.name }
+        }
+    }
+
+    /** The shape a paused morphing cover rests in; null keeps the track's own shape. */
+    val miniCoverPausedShape: Flow<CoverShape?> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> parsePausedCoverShape(preferences[Keys.MINI_COVER_PAUSED_SHAPE]) }
+
+    suspend fun setMiniCoverPausedShape(shape: CoverShape?) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.MINI_COVER_PAUSED_SHAPE] = shape?.name ?: KEEP_TRACK_SHAPE
         }
     }
 
@@ -5051,6 +5075,73 @@ enum class MiniCoverShape {
     MORPHING,
     CIRCLE,
 }
+
+/**
+ * The Material 3 Expressive shapes a mini player cover can take, by their MaterialShapes name. [roomy]
+ * is false for shapes that leave much of a square cover out. Stored by name.
+ */
+enum class CoverShape(
+    val roomy: Boolean = true,
+) {
+    CIRCLE,
+    SQUARE,
+    SLANTED(roomy = false),
+    ARCH(roomy = false),
+    FAN(roomy = false),
+    ARROW(roomy = false),
+    SEMI_CIRCLE(roomy = false),
+    OVAL,
+    PILL,
+    TRIANGLE(roomy = false),
+    DIAMOND,
+    CLAM_SHELL,
+    PENTAGON,
+    GEM,
+    SUNNY,
+    VERY_SUNNY,
+    COOKIE_4,
+    COOKIE_6,
+    COOKIE_7,
+    COOKIE_9,
+    COOKIE_12,
+    GHOSTISH,
+    CLOVER_4,
+    CLOVER_8,
+    BURST,
+    SOFT_BURST,
+    BOOM,
+    SOFT_BOOM,
+    FLOWER,
+    PUFFY,
+    PUFFY_DIAMOND,
+    PIXEL_CIRCLE,
+    PIXEL_TRIANGLE,
+    BUN,
+    HEART,
+}
+
+/** The shapes a morphing cover uses until the user picks their own. */
+val DefaultCoverShapes =
+    listOf(CoverShape.COOKIE_9, CoverShape.CLOVER_4, CoverShape.COOKIE_6, CoverShape.FLOWER, CoverShape.SUNNY, CoverShape.SOFT_BURST)
+
+private const val KEEP_TRACK_SHAPE = "TRACK"
+
+/** Stored shape names back as shapes; unknown names are skipped, and an empty result means the defaults. */
+internal fun parseCoverShapes(stored: String?): List<CoverShape> =
+    stored
+        ?.split(',')
+        ?.mapNotNull { name -> runCatching { CoverShape.valueOf(name) }.getOrNull() }
+        ?.distinct()
+        ?.takeIf { it.isNotEmpty() }
+        ?: DefaultCoverShapes
+
+/** The stored paused shape: a circle by default, null when the track keeps its own shape. */
+internal fun parsePausedCoverShape(stored: String?): CoverShape? =
+    when (stored) {
+        null -> CoverShape.CIRCLE
+        KEEP_TRACK_SHAPE -> null
+        else -> runCatching { CoverShape.valueOf(stored) }.getOrDefault(CoverShape.CIRCLE)
+    }
 
 /** When a morphing cover moves: as playback starts, stops and changes track, all the time it plays, or never. Stored by name. */
 enum class MiniCoverMotion {

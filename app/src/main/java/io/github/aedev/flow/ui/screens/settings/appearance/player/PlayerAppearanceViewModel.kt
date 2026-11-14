@@ -1,8 +1,10 @@
 package io.github.aedev.flow.ui.screens.settings.appearance.player
 
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.aedev.flow.data.local.CoverShape
 import io.github.aedev.flow.data.local.DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP
+import io.github.aedev.flow.data.local.DefaultCoverShapes
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.IdleProgressBar
@@ -47,6 +49,8 @@ class PlayerAppearanceViewModel
         val sleepTimerButton = preferences.musicSleepTimerButton.asState(false)
         val miniCoverShape = preferences.miniCoverShape.asState(MiniCoverShape.MORPHING)
         val miniCoverMotion = preferences.miniCoverMotion.asState(MiniCoverMotion.ON_PLAY)
+        val miniCoverShapes = preferences.miniCoverShapes.asState(DefaultCoverShapes)
+        val miniCoverPausedShape = preferences.miniCoverPausedShape.asState(CoverShape.CIRCLE)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
         val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
@@ -104,6 +108,16 @@ class PlayerAppearanceViewModel
         fun setMiniCoverShape(value: MiniCoverShape) = write { preferences.setMiniCoverShape(value) }
 
         fun setMiniCoverMotion(value: MiniCoverMotion) = write { preferences.setMiniCoverMotion(value) }
+
+        /** Adds or removes [shape]; the last one left can't be removed. */
+        fun toggleMiniCoverShape(shape: CoverShape) =
+            write {
+                val current = miniCoverShapes.value
+                val next = if (shape in current) current - shape else current + shape
+                if (next.isNotEmpty()) preferences.setMiniCoverShapes(next)
+            }
+
+        fun setMiniCoverPausedShape(shape: CoverShape?) = write { preferences.setMiniCoverPausedShape(shape) }
 
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
 

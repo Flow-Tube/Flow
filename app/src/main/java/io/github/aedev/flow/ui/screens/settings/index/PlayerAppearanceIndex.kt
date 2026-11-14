@@ -125,13 +125,27 @@ internal object PlayerAppearanceIndex {
             "mini_cover_shape",
             R.string.player_appearance_mini_cover_title,
             R.string.player_appearance_mini_cover_subtitle,
-            R.string.settings_section_music_player,
+            R.string.settings_section_music_mini_player,
         )
     val miniCoverMotion =
         entry(
             "mini_cover_motion",
             R.string.player_appearance_mini_cover_motion_title,
-            section = R.string.settings_section_music_player,
+            section = R.string.settings_section_music_mini_player,
+            revealVia = miniCoverShape.key,
+        )
+    val miniCoverShapes =
+        entry(
+            "mini_cover_shapes",
+            R.string.player_appearance_cover_shapes_title,
+            section = R.string.settings_section_music_mini_player,
+            revealVia = miniCoverShape.key,
+        )
+    val miniCoverPausedShape =
+        entry(
+            "mini_cover_paused_shape",
+            R.string.player_appearance_cover_paused_title,
+            section = R.string.settings_section_music_mini_player,
             revealVia = miniCoverShape.key,
         )
     val queueSwipeLeft =
@@ -277,6 +291,8 @@ internal object PlayerAppearanceIndex {
             sleepTimerButton,
             miniCoverShape,
             miniCoverMotion,
+            miniCoverShapes,
+            miniCoverPausedShape,
             queueSwipeLeft,
             queueSwipeRight,
             adaptiveSize,

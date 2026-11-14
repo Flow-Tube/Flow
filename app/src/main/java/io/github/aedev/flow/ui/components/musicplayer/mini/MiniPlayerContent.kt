@@ -54,8 +54,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
-import io.github.aedev.flow.data.local.MiniCoverMotion
-import io.github.aedev.flow.data.local.MiniCoverShape
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.SYNCED_LINE_UNSUNG_ALPHA
@@ -74,7 +72,7 @@ private const val RING_GLIDE_MIN_JUMP_MILLIS = 5_000f
 /**
  * The collapsed player: cover in a progress ring, title and artist, then the transport. Wider
  * windows give the card room for Previous as well. With [lyrics] the line being sung takes the
- * artist's place while a line is up. [coverShape] and [coverMotion] choose how the cover is cut out.
+ * artist's place while a line is up. [look] is everything the user chose about the bar.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -87,8 +85,7 @@ internal fun MiniPlayerContent(
     showPrevious: Boolean = false,
     onOpen: (() -> Unit)? = null,
     lyrics: SyncedLines? = null,
-    coverShape: MiniCoverShape = MiniCoverShape.CIRCLE,
-    coverMotion: MiniCoverMotion = MiniCoverMotion.ON_PLAY,
+    look: MiniPlayerLook = MiniPlayerLook.Plain,
 ) {
     val playerState by EnhancedMusicPlayerManager.playerState.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
@@ -142,8 +139,7 @@ internal fun MiniPlayerContent(
                 thumbnailUrl = track.listThumbnailUrl,
                 trackId = track.videoId,
                 isPlaying = playerState.isPlaying,
-                shape = coverShape,
-                motion = coverMotion,
+                look = look,
                 animationsEnabled = animationsEnabled,
                 ringProgress = { ringProgress.value },
             )

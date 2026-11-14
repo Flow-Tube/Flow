@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.toPath
 import androidx.compose.runtime.Composable
@@ -47,10 +46,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.CoverShape
 import io.github.aedev.flow.data.local.MiniCoverMotion
 import io.github.aedev.flow.data.local.MiniCoverShape
 import io.github.aedev.flow.ui.components.PlayingWaveform
-import io.github.aedev.flow.ui.components.shared.fittedToCircle
 import io.github.aedev.flow.ui.theme.ArtworkScrimContent
 import io.github.aedev.flow.ui.theme.ArtworkScrimNowPlaying
 import kotlinx.coroutines.coroutineScope
@@ -69,23 +68,8 @@ private const val ALWAYS_HOLD_SECONDS = 1.6f
 private const val ALWAYS_MORPH_SECONDS = 0.9f
 private const val ALWAYS_CYCLE_SECONDS = ALWAYS_HOLD_SECONDS + ALWAYS_MORPH_SECONDS
 
-private val RestShape: RoundedPolygon by lazy { MaterialShapes.Circle.fittedToCircle() }
-
-private val TrackShapes: List<RoundedPolygon> by lazy {
-    listOf(
-        MaterialShapes.Cookie9Sided,
-        MaterialShapes.Clover4Leaf,
-        MaterialShapes.Cookie6Sided,
-        MaterialShapes.Flower,
-        MaterialShapes.Sunny,
-        MaterialShapes.SoftBurst,
-    ).map { it.fittedToCircle() }
-}
-
-/** Each track shape morphing into the next one, for a cover that keeps moving. */
-private val CycleMorphs: List<Morph> by lazy {
-    TrackShapes.indices.map { Morph(TrackShapes[it], TrackShapes[(it + 1) % TrackShapes.size]) }
-}
+/** The shape a pose starts from before anything has been shown. */
+private val StartShape: RoundedPolygon get() = CoverShape.CIRCLE.coverPolygon()
 
 /** Which track shape a track gets: the same one every time it plays. */
 internal fun miniCoverShapeIndex(
@@ -109,26 +93,25 @@ internal fun alwaysMovingFraction(seconds: Float): Float {
 
 /**
  * The mini player's cover in its progress ring. A circle draws as it always has; a morphing cover is
- * cut out with a shape that its ring follows. Nothing here runs per frame unless [motion] is
- * [MiniCoverMotion.ALWAYS], the music plays, the bar is shown and the activity is started.
+ * cut out with a shape that its ring follows. Nothing here runs per frame unless the look's motion
+ * is [MiniCoverMotion.ALWAYS], the music plays, the bar is shown and the activity is started.
  */
 @Composable
 internal fun MiniPlayerCover(
     thumbnailUrl: String?,
     trackId: String,
     isPlaying: Boolean,
-    shape: MiniCoverShape,
-    motion: MiniCoverMotion,
+    look: MiniPlayerLook,
     animationsEnabled: Boolean,
     ringProgress: () -> Float,
     modifier: Modifier = Modifier,
 ) {
     val ringTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
     val ringFillColor = MaterialTheme.colorScheme.primary
-    if (shape == MiniCoverShape.CIRCLE) {
+    if (look.coverShape == MiniCoverShape.CIRCLE) {
         CircleCover(thumbnailUrl, isPlaying, animationsEnabled, ringProgress, ringTrackColor, ringFillColor, modifier)
     } else {
-        MorphingCover(thumbnailUrl, trackId, isPlaying, motion, animationsEnabled, ringProgress, ringTrackColor, ringFillColor, modifier)
+        MorphingCover(thumbnailUrl, trackId, isPlaying, look, animationsEnabled, ringProgress, ringTrackColor, ringFillColor, modifier)
     }
 }
 
@@ -210,11 +193,11 @@ private fun CircleCover(
 /** The shape a morphing cover is in: a morph between two shapes, how far along it is, and its turn. */
 @Stable
 private class CoverPose {
-    var morph by mutableStateOf(Morph(RestShape, RestShape))
+    var morph by mutableStateOf(Morph(StartShape, StartShape))
     val progress = Animatable(1f)
     val turn = Animatable(0f)
-    var from: RoundedPolygon = RestShape
-    var settled: RoundedPolygon = RestShape
+    var from: RoundedPolygon = StartShape
+    var settled: RoundedPolygon = StartShape
     var trackId: String? = null
     var alwaysSeconds by mutableFloatStateOf(0f)
     var alwaysDegrees by mutableFloatStateOf(0f)
@@ -225,14 +208,15 @@ private fun restingShape(
     motion: MiniCoverMotion,
     isPlaying: Boolean,
     trackShape: RoundedPolygon,
-): RoundedPolygon = if (motion == MiniCoverMotion.ON_PLAY && !isPlaying) RestShape else trackShape
+    pausedShape: RoundedPolygon,
+): RoundedPolygon = if (motion == MiniCoverMotion.ON_PLAY && !isPlaying) pausedShape else trackShape
 
 @Composable
 private fun MorphingCover(
     thumbnailUrl: String?,
     trackId: String,
     isPlaying: Boolean,
-    motion: MiniCoverMotion,
+    look: MiniPlayerLook,
     animationsEnabled: Boolean,
     ringProgress: () -> Float,
     ringTrackColor: Color,
@@ -240,8 +224,12 @@ private fun MorphingCover(
     modifier: Modifier,
 ) {
     val pose = remember { CoverPose() }
-    val shapeIndex = remember(trackId) { miniCoverShapeIndex(trackId, TrackShapes.size) }
-    val target = restingShape(motion, isPlaying, TrackShapes[shapeIndex])
+    val motion = look.coverMotion
+    val shapes = remember(look.coverShapes) { look.coverShapes.map { it.coverPolygon() } }
+    val cycle = remember(shapes) { shapes.indices.map { Morph(shapes[it], shapes[(it + 1) % shapes.size]) } }
+    val shapeIndex = remember(trackId, shapes.size) { miniCoverShapeIndex(trackId, shapes.size) }
+    val trackShape = shapes[shapeIndex]
+    val target = restingShape(motion, isPlaying, trackShape, look.pausedShape?.coverPolygon() ?: trackShape)
     val spatial = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val shown = animationsEnabled && lifecycle.isAtLeast(Lifecycle.State.STARTED)
@@ -260,7 +248,7 @@ private fun MorphingCover(
             when {
                 motion == MiniCoverMotion.STILL -> 0f
                 newTrack -> TRACK_TURN_DEGREES
-                target === RestShape -> -PLAY_TURN_DEGREES
+                !isPlaying -> -PLAY_TURN_DEGREES
                 else -> PLAY_TURN_DEGREES
             }
         if (firstShow || !shown || motion == MiniCoverMotion.STILL) {
@@ -302,7 +290,7 @@ private fun MorphingCover(
         val degrees =
             if (motion == MiniCoverMotion.ALWAYS) {
                 val seconds = pose.alwaysSeconds
-                CycleMorphs[alwaysMovingShape(shapeIndex, seconds, TrackShapes.size)].toPath(alwaysMovingFraction(seconds), into)
+                cycle[alwaysMovingShape(shapeIndex, seconds, shapes.size)].toPath(alwaysMovingFraction(seconds), into)
                 pose.alwaysDegrees
             } else {
                 pose.morph.toPath(pose.progress.value.coerceIn(0f, 1f), into)

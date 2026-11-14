@@ -45,13 +45,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
-import io.github.aedev.flow.data.local.MiniCoverMotion
-import io.github.aedev.flow.data.local.MiniCoverShape
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.common.rememberMusicPlayerAppearance
 import io.github.aedev.flow.ui.components.musicplayer.full.FullMusicPlayerContent
 import io.github.aedev.flow.ui.components.musicplayer.mini.MiniPlayerContent
+import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLook
 import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLyrics
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSheetDragGestureHandler
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSheetMotionController
@@ -97,8 +96,6 @@ internal fun UnifiedMusicPlayerSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     lyricsInMiniPlayer: Boolean = false,
-    miniCoverShape: MiniCoverShape = MiniCoverShape.CIRCLE,
-    miniCoverMotion: MiniCoverMotion = MiniCoverMotion.ON_PLAY,
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -122,6 +119,7 @@ internal fun UnifiedMusicPlayerSheet(
     val appearance = rememberMusicPlayerAppearance(displayTrack.highResThumbnailUrl)
     val playerScheme = appearance.playerScheme
     val controlScheme = appearance.controlScheme
+    val miniLook = rememberMiniPlayerLook()
 
     val motionController =
         remember(state) {
@@ -428,8 +426,7 @@ internal fun UnifiedMusicPlayerSheet(
                             animationsEnabled = miniAnimationsEnabled,
                             showPrevious = !isCompactWidth,
                             lyrics = if (lyricsInMiniPlayer) rememberMiniPlayerLyrics(displayTrack.videoId) else null,
-                            coverShape = miniCoverShape,
-                            coverMotion = miniCoverMotion,
+                            look = miniLook,
                         )
                     }
                 }
