@@ -24,9 +24,6 @@ private const val NIGHTLY_RELEASE_API = "https://api.github.com/repos/Flow-Tube/
 private const val NIGHTLY_CHANNEL = "nightly"
 private const val GITHUB_JSON = "application/vnd.github+json"
 
-/** Where an automatic check may surface a release; each announces a version once. */
-enum class UpdateAnnouncement { LAUNCH_PAGE, NOTIFICATION }
-
 /** How the automatic checks space themselves out and which releases they may show. */
 internal object UpdateSchedule {
     val COOLDOWN_MS: Long = TimeUnit.HOURS.toMillis(12)
@@ -41,6 +38,20 @@ internal object UpdateSchedule {
         skippedVersion: String?,
         announcedVersion: String?,
     ): Boolean = version != skippedVersion && version != announcedVersion
+
+    /** The update page opens on every launch until the user skips the version or its download starts. */
+    fun shouldOpenOnLaunch(
+        version: String,
+        skippedVersion: String?,
+        download: UpdateDownload,
+    ): Boolean = version != skippedVersion && (download is UpdateDownload.Idle || download is UpdateDownload.Failed)
+
+    /** A launch reuses what this process already learned from GitHub and fetches only when it has asked nothing yet. */
+    suspend fun <T> releaseForLaunch(
+        alreadyFetched: Boolean,
+        known: T?,
+        fetch: suspend () -> T?,
+    ): T? = if (alreadyFetched) known else fetch()
 }
 
 /**
@@ -58,6 +69,7 @@ class UpdateRepository
         private val mutex = Mutex()
         private val isNightly = BuildConfig.UPDATE_CHANNEL == NIGHTLY_CHANNEL
         private val _latest = MutableStateFlow<AppRelease?>(null)
+        private var fetchedThisProcess = false
 
         /** The newest release found this process, or null when none is known or this build is current. */
         val latest: StateFlow<AppRelease?> = _latest.asStateFlow()
@@ -65,33 +77,35 @@ class UpdateRepository
         /** Asks GitHub now. Throws when the request fails, so a check the user started can say so. */
         suspend fun fetch(): AppRelease? = mutex.withLock { fetchLocked() }
 
+        /** For the launch page: the release this process already knows, or one fetch when it knows none. Null when it fails. */
+        suspend fun releaseForLaunch(): AppRelease? =
+            mutex.withLock {
+                UpdateSchedule.releaseForLaunch(fetchedThisProcess, _latest.value) { runCatching { fetchLocked() }.getOrNull() }
+            }
+
         /**
-         * For the automatic checks: fetches only once the cooldown has passed, and returns a release
-         * only if [announcement] has not shown this version before and the user has not skipped it.
+         * For the background notification: fetches only once the cooldown has passed, and returns a release only if
+         * it was not announced before and the user has not skipped it.
          */
-        suspend fun releaseToAnnounce(
-            announcement: UpdateAnnouncement,
-            nowMs: Long = System.currentTimeMillis(),
-        ): AppRelease? =
+        suspend fun releaseToNotify(nowMs: Long = System.currentTimeMillis()): AppRelease? =
             mutex.withLock {
                 if (!UpdateSchedule.isDue(dataManager.lastUpdateCheck.first(), nowMs)) return@withLock null
                 val release = runCatching { fetchLocked() }.getOrNull() ?: return@withLock null
-                val announced =
-                    when (announcement) {
-                        UpdateAnnouncement.LAUNCH_PAGE -> dataManager.promptedUpdateVersion.first()
-                        UpdateAnnouncement.NOTIFICATION -> dataManager.notifiedUpdateVersion.first()
-                    }
-                if (!UpdateSchedule.mayAnnounce(release.version, dataManager.skippedUpdateVersion.first(), announced)) {
+                if (!UpdateSchedule.mayAnnounce(
+                        release.version,
+                        dataManager.skippedUpdateVersion.first(),
+                        dataManager.notifiedUpdateVersion.first(),
+                    )
+                ) {
                     return@withLock null
                 }
-                when (announcement) {
-                    UpdateAnnouncement.LAUNCH_PAGE -> dataManager.setPromptedUpdateVersion(release.version)
-                    UpdateAnnouncement.NOTIFICATION -> dataManager.setNotifiedUpdateVersion(release.version)
-                }
+                dataManager.setNotifiedUpdateVersion(release.version)
                 release
             }
 
         suspend fun skip(version: String) = dataManager.setSkippedUpdateVersion(version)
+
+        suspend fun skippedVersion(): String? = dataManager.skippedUpdateVersion.first()
 
         private suspend fun fetchLocked(): AppRelease? {
             val body =
@@ -117,6 +131,7 @@ class UpdateRepository
                 }
             dataManager.setLastUpdateCheck(System.currentTimeMillis())
             _latest.value = release
+            fetchedThisProcess = true
             return release
         }
     }
