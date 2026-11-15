@@ -44,6 +44,7 @@ import io.github.aedev.flow.player.analytics.SphericalVideoListener
 import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
 import io.github.aedev.flow.player.audio.AudioFeaturesManager
 import io.github.aedev.flow.player.audio.AudioSessionAnnouncer
+import io.github.aedev.flow.player.audio.VideoMutePause
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
 import io.github.aedev.flow.player.cache.DiskReadAhead
 import io.github.aedev.flow.player.cache.PlayerCacheManager
@@ -840,6 +841,7 @@ class EnhancedPlayerManager private constructor() {
         audioFeaturesManager?.observeVolumeNormalizationPreference(context, built)
 
         val prefs = PlayerPreferences(context)
+        player?.let { VideoMutePause.attach(it, prefs.pauseVideoWhenMuted, built) }
         built.launch {
             prefs.sponsorBlockEnabled.collect { isEnabled ->
                 sponsorBlockHandler?.setEnabled(isEnabled)

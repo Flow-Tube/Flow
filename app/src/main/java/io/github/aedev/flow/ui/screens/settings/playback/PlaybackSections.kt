@@ -70,6 +70,7 @@ internal fun SettingsListScope.playbackSections(
         switch(PlaybackIndex.loopAll, viewModel.loopAll, viewModel::setLoopAll)
         switch(PlaybackIndex.skipSilence, viewModel.skipSilence, viewModel::setSkipSilence)
         switch(PlaybackIndex.playDuringCalls, viewModel.playDuringCalls, viewModel::setPlayDuringCalls)
+        switch(PlaybackIndex.pauseVideoWhenMuted, viewModel.pauseVideoWhenMuted, viewModel::setPauseVideoWhenMuted)
     }
     group(key = "playback.sound", header = R.string.eq_settings_section) {
         nav(
