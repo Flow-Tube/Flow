@@ -69,6 +69,7 @@ import io.github.aedev.flow.ui.screens.notifications.NotificationViewModel
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
 import io.github.aedev.flow.ui.screens.playon.PlayOnHost
+import io.github.aedev.flow.ui.screens.playon.remoteSlot
 import io.github.aedev.flow.ui.screens.settings.wellbeing.TIMES_UP_ROUTE
 import io.github.aedev.flow.ui.screens.settings.wellbeing.TimesUpLaunchEffect
 import io.github.aedev.flow.ui.screens.sync.linked.LinkedSyncAlerts
@@ -331,13 +332,7 @@ fun FlowApp(
             }
         }
 
-        val remoteSession =
-            playOn
-                ?.elsewhere
-                ?.collectAsStateWithLifecycle()
-                ?.value
-                ?.now
-                ?.music == false
+        val remote = remoteSlot()
         val activeMiniPlayer =
             resolveActiveMiniPlayer(
                 hasVideo = playerUiState.cachedVideo != null,
@@ -346,7 +341,7 @@ fun FlowApp(
                 onShortsPlayer = isShortsPlayerRoute,
                 hasMusic = currentMusicTrack != null,
                 musicSuppressed = suppressMusicMiniAfterVideo,
-                remoteSession = remoteSession,
+                remoteSession = remote.session,
             )
         val isMusicSheetShown = activeMiniPlayer == ActiveMiniPlayer.Music
         val isPlayerCoveringContent =
@@ -365,7 +360,8 @@ fun FlowApp(
                 currentDestinationRoute != "onboarding" &&
                 !(currentDestinationRoute == SHORTS_ROUTE_PATTERN && currentTab == null)
         val showVideoBar = activeMiniPlayer == ActiveMiniPlayer.VideoBar && !isInPipMode
-        val showRemoteBar = activeMiniPlayer == ActiveMiniPlayer.Remote && !isInPipMode
+        val showRemoteBar =
+            !isInPipMode && remote.shows(activeMiniPlayer, activeVideo != null, musicPlayerSheetState.isDismissed, isShortsPlayerRoute)
         val isMiniBarObscuringContent =
             (isMusicSheetShown && !musicPlayerSheetState.isDismissed && !musicPlayerSheetState.isExpanded) || showVideoBar || showRemoteBar
         val motionScheme = MaterialTheme.motionScheme
