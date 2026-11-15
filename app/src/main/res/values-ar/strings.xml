@@ -5453,7 +5453,7 @@
     </plurals>
     <string name="keyboard_shortcut_related_videos">فيديوهات ذات صلة</string>
     <string name="keyboard_shortcut_back_to_player">العودة إلى المشغّل</string>
-    <string name="ai_list_title">قنوات الذكاء الاصطناعي</string>
+    <string name="ai_list_title">محتوى الذكاء الاصطناعي</string>
     <string name="ai_list_block_title">إخفاء قنوات الذكاء الاصطناعي</string>
     <string name="ai_list_block_summary">يستخدم قائمة المجتمع AiSList</string>
     <string name="ai_list_warn_title">وضع علامة على القنوات المشتبه بأنها مولّدة بالذكاء الاصطناعي</string>
@@ -5463,7 +5463,7 @@
     <string name="ai_list_status_pending">لم يتم تنزيلها بعد</string>
     <string name="ai_list_attribution_title">القائمة من AiSList</string>
     <string name="ai_list_attribution_summary">CC BY-NC 4.0</string>
-    <string name="ai_list_footer">يُنزّل قائمة عامة مرة واحدة يوميًا. لا يُرسَل أي شيء.</string>
+    <string name="ai_list_footer">يُنزّل قوائم عامة مرة واحدة يوميًا. لا يتم إرسال أي بيانات.</string>
     <string name="ai_list_label">مشتبه بأنها مولّدة بالذكاء الاصطناعي</string>
     <string name="ai_list_channel_blocked">هذه القناة موجودة في قائمة الحظر الخاصة بـ AiSList</string>
     <string name="ai_list_channel_warned">هذه القناة موجودة في قائمة التحذير الخاصة بـ AiSList</string>
@@ -5635,4 +5635,30 @@
     <string name="linked_sync_choice_except">كل شيء باستثناء %1$s</string>
     <string name="linked_sync_choice_count">%1$d من %2$d</string>
     <string name="tv_rail_playing_on_description">يتم التشغيل على %1$s: %2$s</string>
+    <string name="notification_new_video_live">مباشر الآن: %1$s</string>
+    <string name="notification_new_video_scheduled">مباشر عند %1$s: %2$s</string>
+    <string name="notification_new_video_premiere">العرض الأول عند %1$s: %2$s</string>
+    <string name="settings_keywords_nav_labels">التسميات، الأسماء، الأيقونات فقط، النصوص</string>
+    <string name="settings_nav_labels_title">تسميات علامات التبويب</string>
+    <string name="settings_nav_labels_summary">الأسماء أسفل الأيقونات في الشريط السفلي</string>
+    <string name="settings_nav_labels_always">دائماً</string>
+    <string name="settings_nav_labels_selected">محدد</string>
+    <string name="settings_nav_labels_never">أبداً</string>
+    <string name="settings_keywords_nav_style">عائم، كبسولة، نمط، شريط سفلي</string>
+    <string name="settings_nav_style_title">نمط الشريط</string>
+    <string name="settings_nav_style_summary">بعرض كامل، أو عائم فوق الصفحة</string>
+    <string name="settings_nav_style_standard">قياسي</string>
+    <string name="settings_nav_style_floating">عائم</string>
+    <string name="ai_music_block_title">إخفاء الموسيقى المولّدة بالذكاء الاصطناعي</string>
+    <string name="ai_music_artist_listed">هذا الفنان مدرج في قائمة الموسيقى المولّدة بالذكاء الاصطناعي</string>
+    <string name="ai_music_artist_show">‌عرض موسيقاه</string>
+    <string name="ai_music_block_summary">أغاني وألبومات لفنانين مولّدين بالذكاء الاصطناعي</string>
+    <string name="ai_music_status_count">%1$s فنان، آخر تحديث %2$s</string>
+    <string name="ai_music_status_count_now">%1$s فنان، تم التحديث للتو</string>
+    <string name="ai_lists_status_count">%1$s قناة و%2$s فنان، آخر تحديث %3$s</string>
+    <string name="ai_lists_status_count_now">%1$s قناة و%2$s فنان، تم التحديث للتو</string>
+    <string name="ai_music_attribution_soul_title">قائمة الموسيقى من Soul Over AI</string>
+    <string name="ai_music_attribution_soul_summary">رخصة CC BY 4.0، مع تعديلات من Flow</string>
+    <string name="ai_music_attribution_blocker_title">قائمة الموسيقى من Spotify AI Blocker</string>
+    <string name="ai_music_attribution_blocker_summary">MIT, © CennoxX</string>
 </resources>
