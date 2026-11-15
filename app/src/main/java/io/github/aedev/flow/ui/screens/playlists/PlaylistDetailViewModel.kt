@@ -16,7 +16,6 @@ import io.github.aedev.flow.data.local.PlaylistRepository
 import io.github.aedev.flow.data.local.PlaylistSwipes
 import io.github.aedev.flow.data.local.WatchLaterCleanup
 import io.github.aedev.flow.data.local.dao.DownloadCollectionSummary
-import io.github.aedev.flow.data.local.entity.DownloadCollectionKind
 import io.github.aedev.flow.data.migration.WatchLaterMetadataMigrator
 import io.github.aedev.flow.data.model.PlaylistInfo
 import io.github.aedev.flow.data.model.Video
@@ -29,7 +28,6 @@ import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.repository.walkPlaylistPages
 import io.github.aedev.flow.data.video.BackgroundDownloadQueuer
 import io.github.aedev.flow.data.video.DownloadBatch
-import io.github.aedev.flow.data.video.downloader.collection.CollectionSpec
 import io.github.aedev.flow.data.video.downloader.collection.DownloadedCollections
 import io.github.aedev.flow.ui.components.library.PlaylistSortOrder
 import io.github.aedev.flow.ui.components.library.sortedForPlaylist
@@ -44,8 +42,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -118,37 +114,17 @@ class PlaylistDetailViewModel
                 .getUserCreatedVideoPlaylistsFlow()
                 .stateIn(viewModelScope, sharing, emptyList())
 
+        private val downloads =
+            PlaylistDownloads(viewModelScope, playlistId, downloadQueuer, playlistRepository, collections) { _messages.send(it) }
+
         /** This playlist as a downloaded collection, or null when it was never downloaded as one. */
-        val downloadedCollection: StateFlow<DownloadCollectionSummary?> =
-            collections
-                .observe(
-                    playlistId,
-                ).stateIn(viewModelScope, sharing, null)
+        val downloadedCollection: StateFlow<DownloadCollectionSummary?> get() = downloads.downloaded
 
         /** The running or just-finished "Download all" for this playlist. */
-        val downloadBatch: StateFlow<DownloadBatch?> =
-            downloadQueuer.batches
-                .map { it[playlistId] }
-                .stateIn(viewModelScope, sharing, null)
+        val downloadBatch: StateFlow<DownloadBatch?> get() = downloads.batch
 
         init {
             loadPlaylist()
-            viewModelScope.launch {
-                downloadQueuer.batches
-                    .map { it[playlistId] }
-                    .filterNotNull()
-                    .filter { it.isFinished }
-                    .collect { batch ->
-                        _messages.send(
-                            if (batch.queued > 0) {
-                                PlaylistUiMessage(stringRes = R.string.playlist_downloads_queued, args = listOf(batch.queued, batch.total))
-                            } else {
-                                PlaylistUiMessage(stringRes = R.string.playlist_download_queue_empty)
-                            },
-                        )
-                        downloadQueuer.clearBatch(playlistId)
-                    }
-            }
         }
 
         fun setSortOrder(order: PlaylistSortOrder) {
@@ -290,32 +266,9 @@ class PlaylistDetailViewModel
             return transfer.shareableCopy(state.playlistName, state.description, state.videos)
         }
 
-        /**
-         * Downloads the whole playlist as one item in its own folder, once every page has arrived;
-         * a second download picks up only what is new.
-         */
+        /** Downloads the whole playlist once every page has arrived; see [PlaylistDownloads.download]. */
         fun downloadPlaylist() {
-            viewModelScope.launch {
-                val state = _uiState.first { !it.isLoading && !it.isLoadingMore }
-                val videos = state.videos
-                if (videos.isEmpty()) {
-                    _messages.send(PlaylistUiMessage(stringRes = R.string.ui_playlist_empty))
-                    return@launch
-                }
-                _messages.send(
-                    PlaylistUiMessage(pluralRes = R.plurals.ui_downloading_videos, count = videos.size, args = listOf(videos.size)),
-                )
-                val isLocal = state.isLocalPlaylist || state.isWatchLater || state.isLikes
-                val spec =
-                    CollectionSpec(
-                        id = playlistId,
-                        kind = if (isLocal) DownloadCollectionKind.LOCAL_PLAYLIST else DownloadCollectionKind.VIDEO_PLAYLIST,
-                        title = state.playlistName,
-                        author = state.ownerName,
-                        thumbnailUrl = state.thumbnailUrl.ifBlank { videos.first().thumbnailUrl },
-                    )
-                downloadQueuer.queueCollection(spec, videos, complete = isLocal || playlistRepository.cachedComplete(playlistId) != null)
-            }
+            viewModelScope.launch { downloads.download(_uiState.first { !it.isLoading && !it.isLoadingMore }) }
         }
 
         private fun loadPlaylist() {
