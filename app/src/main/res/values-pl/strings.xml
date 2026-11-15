@@ -4835,4 +4835,5 @@
     <string name="subscriptions_pinned_section">Przypięte</string>
     <string name="subscriptions_pin_channel">Przypnij na początek</string>
     <string name="subscriptions_unpin_channel">Odepnij</string>
+    <string name="autoplay_countdown_mini_label">Następne w %1$d</string>
 </resources>
