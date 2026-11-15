@@ -81,6 +81,16 @@ class GitHubReleaseTest {
     }
 
     @Test
+    fun `nightly release notes are filtered to runs newer than the installed one`() {
+        val body = "Built from abc by run 1430.\n\n# Run 1430\n\n## Fixed\n- New fix (#2)\n\n# Run 1427\n\n## New\n- Old feature (#1)"
+        val nightly = GitHubRelease(tagName = "nightly", body = body, assets = listOf(asset("flow-nightly-1430.apk")))
+
+        val notes = nightly.toNightlyReleaseIfNewer(currentRun = 1428)?.notes
+
+        assertThat(notes).isEqualTo("Built from abc by run 1430.\n\n## Fixed\n- New fix (#2)")
+    }
+
+    @Test
     fun `a nightly is dated by its apk because the rolling release keeps its first date`() {
         val apk = GitHubAsset("flow-nightly-1430.apk", "https://example.test/a", 1, null, updatedAt = "2026-11-04T13:32:28Z")
         val nightly = GitHubRelease(tagName = "nightly", publishedAt = "2026-09-29T11:39:22Z", assets = listOf(apk))
