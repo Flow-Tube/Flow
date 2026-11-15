@@ -5286,4 +5286,6 @@
     <string name="ai_report_rate_limited">Demasiados informes enviados, intentarlo más tarde.</string>
     <string name="ai_report_rejected">AiSList rechazó el informe</string>
     <string name="ai_report_failed">Error al enviar el informe, comprueba tu conexión</string>
+    <string name="play_on_paused_on">En pausa en %1$s</string>
+    <string name="play_on_playing_here">Reproduciendo aquí</string>
 </resources>
