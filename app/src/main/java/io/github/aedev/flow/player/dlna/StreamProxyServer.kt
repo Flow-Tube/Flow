@@ -3,17 +3,6 @@ package io.github.aedev.flow.player.dlna
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.util.Log
-import androidx.annotation.OptIn
-import androidx.media3.common.C
-import androidx.media3.common.Format
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.okhttp.OkHttpDataSource
-import androidx.media3.exoplayer.dash.DashUtil
-import androidx.media3.exoplayer.dash.manifest.BaseUrl
-import androidx.media3.exoplayer.dash.manifest.RangedUri
-import androidx.media3.exoplayer.dash.manifest.Representation
-import androidx.media3.exoplayer.dash.manifest.SegmentBase
-import androidx.media3.extractor.ChunkIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,11 +15,9 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
-import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.ceil
 
 /**
  * Local HTTP proxy server that relays YouTube streams to DLNA renderers.
@@ -67,38 +54,6 @@ class StreamProxyServer private constructor() {
         private const val TAG = "StreamProxy"
         private const val BUFFER_SIZE = 64 * 1024 // 64KB chunks
         private const val MAX_CONNECTIONS = 8
-
-        internal fun segmentFileExtension(contentType: String): String =
-            when {
-                contentType.startsWith("audio/") && contentType.contains("webm") -> "weba"
-                contentType.startsWith("audio/") -> "m4a"
-                contentType.contains("webm") -> "webm"
-                else -> "mp4"
-            }
-
-        /** fMP4 HLS media playlist: the init segment at [init], then one byte-range segment per [index] entry. */
-        @OptIn(UnstableApi::class)
-        internal fun segmentedMediaPlaylist(
-            proxyStreamUrl: String,
-            init: LongRange,
-            index: ChunkIndex,
-        ): String {
-            val durations = index.durationsUs.map { it / 1_000_000.0 }
-            return buildString {
-                appendLine("#EXTM3U")
-                // EXT-X-MAP outside I-frame playlists requires protocol version 6.
-                appendLine("#EXT-X-VERSION:6")
-                appendLine("#EXT-X-TARGETDURATION:${ceil(durations.max()).toLong()}")
-                appendLine("#EXT-X-PLAYLIST-TYPE:VOD")
-                appendLine("#EXT-X-MAP:URI=\"$proxyStreamUrl\",BYTERANGE=\"${init.length}@${init.first}\"")
-                for (i in 0 until index.length) {
-                    appendLine("#EXTINF:${"%.3f".format(Locale.ROOT, durations[i])},")
-                    appendLine("#EXT-X-BYTERANGE:${index.sizes[i]}@${index.offsets[i]}")
-                    appendLine(proxyStreamUrl)
-                }
-                appendLine("#EXT-X-ENDLIST")
-            }
-        }
 
         @Volatile
         private var instance: StreamProxyServer? = null
@@ -215,7 +170,7 @@ class StreamProxyServer private constructor() {
                 .randomUUID()
                 .toString()
                 .take(8)
-        val path = "/s/$pathId.${segmentFileExtension(contentType)}"
+        val path = "/s/$pathId.${CastPlaylists.segmentFileExtension(contentType)}"
 
         val contentLength = probeContentLength(realUrl)
 
@@ -264,8 +219,8 @@ class StreamProxyServer private constructor() {
         val proxyAudioUrl = registerStream(audioUrl, audioMime)
         val audioMediaPath = "/h/audio_$sessionId.m3u8"
         val audioMediaPlaylist =
-            audioSegmentRanges?.let { buildSegmentedMediaPlaylist(proxyAudioUrl, audioUrl, audioMime, it) }
-                ?: buildMediaPlaylist(proxyAudioUrl, durationSec, targetDuration)
+            audioSegmentRanges?.let { CastPlaylists.buildSegmentedMediaPlaylist(http, proxyAudioUrl, audioUrl, audioMime, it) }
+                ?: CastPlaylists.buildMediaPlaylist(proxyAudioUrl, durationSec, targetDuration)
         hlsPlaylists[audioMediaPath] = audioMediaPlaylist
 
         val audioMediaUrl = "http://$localAddress:$localPort$audioMediaPath"
@@ -281,8 +236,9 @@ class StreamProxyServer private constructor() {
                 val proxyVideoUrl = registerStream(variant.url, variant.mime)
                 val videoMediaPath = "/h/v${variant.height}p_${sessionId}_$index.m3u8"
                 val videoMediaPlaylist =
-                    variant.segmentRanges?.let { buildSegmentedMediaPlaylist(proxyVideoUrl, variant.url, variant.mime, it) }
-                        ?: buildMediaPlaylist(proxyVideoUrl, durationSec, targetDuration)
+                    variant.segmentRanges?.let {
+                        CastPlaylists.buildSegmentedMediaPlaylist(http, proxyVideoUrl, variant.url, variant.mime, it)
+                    } ?: CastPlaylists.buildMediaPlaylist(proxyVideoUrl, durationSec, targetDuration)
                 hlsPlaylists[videoMediaPath] = videoMediaPlaylist
 
                 val videoMediaUrl = "http://$localAddress:$localPort$videoMediaPath"
@@ -290,7 +246,7 @@ class StreamProxyServer private constructor() {
             }
 
         val masterPlaylist =
-            buildMasterPlaylist(
+            CastPlaylists.buildMasterPlaylist(
                 variantEntries = variantEntries.map { Triple(it.mediaUrl, it.variant, it.proxyUrl) },
                 audioMediaUrl = audioMediaUrl,
                 audioBitrate = audioBitrate,
@@ -315,105 +271,6 @@ class StreamProxyServer private constructor() {
         }
 
         return masterUrl
-    }
-
-    /**
-     * Builds an HLS media playlist for a single stream (video or audio).
-     * Uses a single segment covering the entire file since YouTube streams
-     * are progressive MP4 downloads, not segmented.
-     */
-    private fun buildMediaPlaylist(
-        proxyStreamUrl: String,
-        durationSeconds: Long,
-        targetDuration: Long,
-    ): String =
-        buildString {
-            appendLine("#EXTM3U")
-            appendLine("#EXT-X-VERSION:3")
-            appendLine("#EXT-X-TARGETDURATION:$targetDuration")
-            appendLine("#EXT-X-PLAYLIST-TYPE:VOD")
-            appendLine("#EXTINF:$durationSeconds.0,")
-            appendLine(proxyStreamUrl)
-            appendLine("#EXT-X-ENDLIST")
-        }
-
-    /**
-     * Builds an fMP4 HLS media playlist with one byte-range segment per sidx entry, so the renderer
-     * can start after the first few seconds instead of downloading the whole file. Throws when the
-     * segment index can't be loaded, so a segmented cast fails instead of downloading the whole file.
-     */
-    @OptIn(UnstableApi::class)
-    private fun buildSegmentedMediaPlaylist(
-        proxyStreamUrl: String,
-        realUrl: String,
-        contentType: String,
-        ranges: CastSegmentRanges,
-    ): String {
-        val representation =
-            Representation.newInstance(
-                0,
-                Format.Builder().setContainerMimeType(contentType).build(),
-                listOf(BaseUrl(realUrl)),
-                SegmentBase.SingleSegmentBase(
-                    RangedUri(null, ranges.init.first, ranges.init.length),
-                    1,
-                    0,
-                    ranges.index.first,
-                    ranges.index.length,
-                ),
-            )
-        val trackType = if (contentType.startsWith("audio/")) C.TRACK_TYPE_AUDIO else C.TRACK_TYPE_VIDEO
-        val index =
-            DashUtil
-                .loadChunkIndex(OkHttpDataSource.Factory(http).createDataSource(), trackType, representation)
-                ?.takeIf { it.length > 0 } ?: error("No segment index in $contentType stream")
-
-        return segmentedMediaPlaylist(proxyStreamUrl, ranges.init, index)
-    }
-
-    /**
-     * Builds the HLS master playlist with:
-     * - Audio declared via #EXT-X-MEDIA
-     * - Video variants declared via #EXT-X-STREAM-INF (sorted by resolution)
-     */
-    private fun buildMasterPlaylist(
-        variantEntries: List<Triple<String, CastStreamVariant, String>>,
-        audioMediaUrl: String,
-        audioBitrate: Int,
-        audioCodec: String,
-    ): String {
-        val sorted = variantEntries.sortedBy { it.second.height }
-
-        return buildString {
-            appendLine("#EXTM3U")
-            // EXT-X-MEDIA rendition groups require protocol version 4.
-            appendLine("#EXT-X-VERSION:4")
-            appendLine()
-
-            // Audio group
-            appendLine(
-                "#EXT-X-MEDIA:TYPE=AUDIO," +
-                    "GROUP-ID=\"audio\"," +
-                    "NAME=\"Default\"," +
-                    "DEFAULT=YES," +
-                    "AUTOSELECT=YES," +
-                    "URI=\"$audioMediaUrl\"",
-            )
-            appendLine()
-
-            // Video variants
-            for ((mediaUrl, variant, _) in sorted) {
-                val totalBandwidth = variant.bitrate + audioBitrate
-                appendLine(
-                    "#EXT-X-STREAM-INF:" +
-                        "BANDWIDTH=$totalBandwidth," +
-                        "RESOLUTION=${variant.width}x${variant.height}," +
-                        "CODECS=\"${variant.codec},$audioCodec\"," +
-                        "AUDIO=\"audio\"",
-                )
-                appendLine(mediaUrl)
-            }
-        }
     }
 
     // ── Request Handling ──────────────────────────────────────────────────────
