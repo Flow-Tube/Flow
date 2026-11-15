@@ -4072,6 +4072,9 @@
     </plurals>
     <string name="notification_more">+%1$d more</string>
     <string name="notification_new_videos">New videos</string>
+    <string name="notification_new_video_live">Live now: %1$s</string>
+    <string name="notification_new_video_scheduled">Live at %1$s: %2$s</string>
+    <string name="notification_new_video_premiere">Premiere at %1$s: %2$s</string>
     <plurals name="notification_new_videos_from_subscriptions">
         <item quantity="one">%1$d new video from your subscriptions</item>
         <item quantity="other">%1$d new videos from your subscriptions</item>

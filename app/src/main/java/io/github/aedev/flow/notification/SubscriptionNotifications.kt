@@ -13,6 +13,7 @@ import io.github.aedev.flow.notification.NotificationHelper.CHANNEL_SUBSCRIPTION
 import io.github.aedev.flow.notification.NotificationHelper.NOTIFICATION_NEW_VIDEO
 import io.github.aedev.flow.notification.NotificationHelper.NOTIFICATION_NEW_VIDEO_SUMMARY
 import kotlinx.coroutines.flow.first
+import java.time.ZoneId
 
 /** The new-upload notifications from a subscription check: one per video, grouped under a summary. */
 object SubscriptionNotifications {
@@ -26,6 +27,7 @@ object SubscriptionNotifications {
         val videoTitle: String,
         val videoId: String,
         val thumbnailUrl: String?,
+        val kind: NewVideoKind = NewVideoKind.Upload,
     )
 
     /**
@@ -54,6 +56,15 @@ object SubscriptionNotifications {
 
         val manager = NotificationManagerCompat.from(context)
         val multiple = videos.size > 1
+        val locale = context.resources.configuration.locales[0]
+        val now = System.currentTimeMillis()
+        val text = { v: NewVideoEntry ->
+            v.kind.text(
+                title = v.videoTitle,
+                startText = { startTimeText(it, now, ZoneId.systemDefault(), locale) },
+                string = { res, args -> context.getString(res, *args) },
+            )
+        }
 
         videos.forEach { v ->
             val notifId = NOTIFICATION_NEW_VIDEO + v.videoId.hashCode().and(0xFFFF)
@@ -76,7 +87,7 @@ object SubscriptionNotifications {
                     .Builder(context, CHANNEL_SUBSCRIPTIONS)
                     .setSmallIcon(R.drawable.ic_notification_logo)
                     .setContentTitle(v.channelName)
-                    .setContentText(v.videoTitle)
+                    .setContentText(text(v))
                     .setContentIntent(watchPendingIntent)
                     .setAutoCancel(true)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -117,7 +128,7 @@ object SubscriptionNotifications {
                     ),
                 )
         videos.take(6).forEach { v ->
-            inboxStyle.addLine("${v.channelName}: ${v.videoTitle}")
+            inboxStyle.addLine("${v.channelName}: ${text(v)}")
         }
         if (videos.size > 6) {
             inboxStyle.setSummaryText(context.getString(R.string.notification_more, videos.size - 6))

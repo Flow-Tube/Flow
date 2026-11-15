@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.subscriptions
 
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.subscriptions.fetchSubscriptionPlayerMetadata
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
