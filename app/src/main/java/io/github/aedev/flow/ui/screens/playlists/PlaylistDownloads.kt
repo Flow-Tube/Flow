@@ -23,7 +23,7 @@ internal class PlaylistDownloads(
     private val playlistId: String,
     private val queuer: BackgroundDownloadQueuer,
     private val playlistRepository: YouTubePlaylistRepository,
-    collections: DownloadedCollections,
+    private val collections: DownloadedCollections,
     private val send: suspend (PlaylistUiMessage) -> Unit,
 ) {
     private val sharing = SharingStarted.WhileSubscribed(SHARING_TIMEOUT_MS)
@@ -54,16 +54,31 @@ internal class PlaylistDownloads(
     }
 
     /**
-     * Downloads the whole playlist in [state] as one item in its own folder; a second download picks
-     * up only what is new. [state] must have every page loaded.
+     * The videos a download starts with unpicked: those left out last time, or none when that would
+     * leave nothing of [state] picked. Null, with a message, when the playlist is empty.
      */
-    suspend fun download(state: PlaylistDetailUiState) {
-        val videos = state.videos
-        if (videos.isEmpty()) {
+    suspend fun leftOutLastTime(state: PlaylistDetailUiState): Set<String>? {
+        if (state.videos.isEmpty()) {
             send(PlaylistUiMessage(stringRes = R.string.ui_playlist_empty))
-            return
+            return null
         }
-        send(PlaylistUiMessage(pluralRes = R.plurals.ui_downloading_videos, count = videos.size, args = listOf(videos.size)))
+        val leftOut = collections.excludedIds(playlistId)
+        return if (state.videos.all { it.id in leftOut }) emptySet() else leftOut
+    }
+
+    /**
+     * Downloads the playlist in [state] as one item in its own folder, only its [picked] videos; the
+     * rest stay out of it until picked. A second download picks up only what is new. [state] must
+     * have every page loaded.
+     */
+    suspend fun download(
+        state: PlaylistDetailUiState,
+        picked: Set<String>,
+    ) {
+        val videos = state.videos
+        val count = videos.count { it.id in picked }
+        if (count == 0) return
+        send(PlaylistUiMessage(pluralRes = R.plurals.ui_downloading_videos, count = count, args = listOf(count)))
         val isLocal = state.isLocalPlaylist || state.isWatchLater || state.isLikes
         val spec =
             CollectionSpec(
@@ -73,7 +88,7 @@ internal class PlaylistDownloads(
                 author = state.ownerName,
                 thumbnailUrl = state.thumbnailUrl.ifBlank { videos.first().thumbnailUrl },
             )
-        queuer.queueCollection(spec, videos, complete = isLocal || playlistRepository.cachedComplete(playlistId) != null)
+        queuer.queueCollection(spec, videos, complete = isLocal || playlistRepository.cachedComplete(playlistId) != null, picked = picked)
     }
 
     private companion object {

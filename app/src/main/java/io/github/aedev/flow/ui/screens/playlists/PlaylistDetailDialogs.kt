@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,8 +31,6 @@ internal sealed interface PlaylistDialog {
     data object Delete : PlaylistDialog
 
     data object AddAll : PlaylistDialog
-
-    data object DownloadAll : PlaylistDialog
 
     data class RemoveSelected(
         val ids: Set<String>,
@@ -110,25 +107,6 @@ internal fun PlaylistDetailDialogs(
                     },
                 )
             }
-        }
-
-        PlaylistDialog.DownloadAll -> {
-            val count = uiState.videos.size
-            FlowAlertDialog(
-                onDismissRequest = onDismiss,
-                icon = { Icon(Icons.Default.Download, contentDescription = null) },
-                title = { Text(stringResource(R.string.download_all)) },
-                text = { Text(pluralStringResource(R.plurals.download_all_confirmation, count, count)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.downloadPlaylist()
-                            onDismiss()
-                        },
-                    ) { Text(stringResource(R.string.download)) }
-                },
-                dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-            )
         }
 
         is PlaylistDialog.RemoveSelected -> {

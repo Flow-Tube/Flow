@@ -266,10 +266,23 @@ class PlaylistDetailViewModel
             return transfer.shareableCopy(state.playlistName, state.description, state.videos)
         }
 
-        /** Downloads the whole playlist once every page has arrived; see [PlaylistDownloads.download]. */
-        fun downloadPlaylist() {
-            viewModelScope.launch { downloads.download(_uiState.first { !it.isLoading && !it.isLoadingMore }) }
+        /** The videos a "Download all" starts with unpicked, once the first page is in; null for an empty playlist. */
+        suspend fun downloadLeftOut(): Set<String>? = downloads.leftOutLastTime(_uiState.first { !it.isLoading })
+
+        /** Downloads every video but [leftOut], including pages still loading. */
+        fun downloadAllExcept(leftOut: Set<String>) {
+            viewModelScope.launch {
+                val state = loadedState()
+                downloads.download(state, state.videos.mapTo(HashSet()) { it.id } - leftOut)
+            }
         }
+
+        /** Downloads the [picked] videos as the playlist; see [PlaylistDownloads.download]. */
+        fun downloadVideos(picked: Set<String>) {
+            viewModelScope.launch { downloads.download(loadedState(), picked) }
+        }
+
+        private suspend fun loadedState(): PlaylistDetailUiState = _uiState.first { !it.isLoading && !it.isLoadingMore }
 
         private fun loadPlaylist() {
             viewModelScope.launch {

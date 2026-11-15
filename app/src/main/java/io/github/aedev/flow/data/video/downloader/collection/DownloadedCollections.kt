@@ -60,11 +60,13 @@ class DownloadedCollections
         /**
          * Records [spec] with [ids] as its current list and returns the videos to queue. The folder
          * name is fixed the first time, so a renamed playlist keeps writing into the same folder.
+         * [picked] narrows the download to those videos; see [CollectionPlan.of].
          */
         suspend fun prepare(
             spec: CollectionSpec,
             ids: List<String>,
             complete: Boolean,
+            picked: Set<String>? = null,
         ): List<String> {
             val storedId = storedId(spec)
             val existing = collectionDao.getCollection(storedId)
@@ -92,6 +94,7 @@ class DownloadedCollections
                     isDownloaded = { it in downloaded },
                     complete = complete,
                     now = System.currentTimeMillis(),
+                    picked = picked,
                 )
             collectionDao.upsertWithItems(collection, plan.members)
             return plan.toQueue
@@ -114,6 +117,12 @@ class DownloadedCollections
         }
 
         suspend fun collection(id: String): DownloadCollectionEntity? = find(id)?.asPage()
+
+        /** The videos left out of the collection of playlist [id] the last time it was downloaded. */
+        suspend fun excludedIds(id: String): Set<String> {
+            val stored = find(id) ?: return emptySet()
+            return collectionDao.itemsOf(stored.id).filter { it.state == CollectionItemState.EXCLUDED }.mapTo(HashSet()) { it.videoId }
+        }
 
         /**
          * Removes the collection. With [deleteFiles], a download goes only when this collection
