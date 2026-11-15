@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
+import io.github.aedev.flow.data.local.NavBarLook
+import io.github.aedev.flow.data.local.NavBarStyle
 import io.github.aedev.flow.ui.utils.LocalWindowIsLandscape
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
 import io.github.aedev.flow.ui.utils.isExpandedWidth
@@ -78,6 +80,7 @@ fun FlowNavigationChrome(
     railVisible: Boolean,
     modifier: Modifier = Modifier,
     barScrollState: FlowNavigationScrollState? = null,
+    barLook: NavBarLook = NavBarLook(),
     onBarHeightChanged: (Dp) -> Unit = {},
     onRailWidthChanged: (Dp) -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
@@ -120,6 +123,7 @@ fun FlowNavigationChrome(
                     onTabSelected = onTabSelected,
                     visible = barVisible,
                     scrollState = barScrollState,
+                    look = barLook,
                     onHeightChanged = onBarHeightChanged,
                 )
             }
@@ -134,6 +138,7 @@ private fun BoxScope.NavigationBarSlot(
     onTabSelected: (FlowTab) -> Unit,
     visible: Boolean,
     scrollState: FlowNavigationScrollState?,
+    look: NavBarLook,
     onHeightChanged: (Dp) -> Unit,
 ) {
     val density = LocalDensity.current
@@ -145,17 +150,33 @@ private fun BoxScope.NavigationBarSlot(
         enter = slideInVertically(motion.defaultSpatialSpec()) { it } + fadeIn(motion.defaultEffectsSpec()),
         exit = slideOutVertically(motion.fastSpatialSpec()) { it } + fadeOut(motion.fastEffectsSpec()),
     ) {
-        FlowNavigationBar(
-            tabs = tabs,
-            selectedTab = selectedTab,
-            onTabSelected = onTabSelected,
-            modifier =
-                Modifier
-                    .testTag(FLOW_NAV_BAR_TAG)
-                    .onSizeChanged {
-                        onHeightChanged(with(density) { (it.height - bottomInsetPx).toDp() })
-                        scrollState?.setBarHeight(it.height.toFloat())
-                    }.offset { IntOffset(0, scrollState?.offsetPx?.roundToInt() ?: 0) },
-        )
+        val barModifier =
+            Modifier
+                .testTag(FLOW_NAV_BAR_TAG)
+                .onSizeChanged {
+                    onHeightChanged(with(density) { (it.height - bottomInsetPx).toDp() })
+                    scrollState?.setBarHeight(it.height.toFloat())
+                }.offset { IntOffset(0, scrollState?.offsetPx?.roundToInt() ?: 0) }
+        when (look.style) {
+            NavBarStyle.STANDARD -> {
+                FlowNavigationBar(
+                    tabs = tabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = onTabSelected,
+                    labels = look.labels,
+                    modifier = barModifier,
+                )
+            }
+
+            NavBarStyle.FLOATING -> {
+                FlowFloatingNavigationBar(
+                    tabs = tabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = onTabSelected,
+                    labels = look.labels,
+                    modifier = barModifier,
+                )
+            }
+        }
     }
 }

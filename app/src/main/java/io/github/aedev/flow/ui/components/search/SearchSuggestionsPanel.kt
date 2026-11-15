@@ -34,6 +34,7 @@ import io.github.aedev.flow.data.local.SearchType
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
 import io.github.aedev.flow.ui.components.shared.DeepFlowState
+import io.github.aedev.flow.ui.components.shared.FlowConfirmDialog
 import io.github.aedev.flow.ui.components.shared.FlowSuggestionRow
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.deepFlowStatus
@@ -117,22 +118,7 @@ fun LazyListScope.searchHistoryItems(
 ) {
     if (history.isEmpty()) return
     val shown = history.shownHistory(showAll)
-    item(key = "history:header") {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = HeaderStartPadding, end = HeaderEndPadding),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.recent_searches),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            TextButton(onClick = onClearHistory) {
-                Text(stringResource(R.string.clear_search_history))
-            }
-        }
-    }
+    item(key = "history:header") { SearchHistoryHeader(onClearHistory) }
     items(shown, key = { "history:${it.id}" }) { item ->
         FlowSuggestionRow(
             text = item.query,
@@ -154,6 +140,37 @@ fun LazyListScope.searchHistoryItems(
                 Text(stringResource(R.string.recent_searches_show_all))
             }
         }
+    }
+}
+
+@Composable
+private fun SearchHistoryHeader(onClearHistory: () -> Unit) {
+    var confirming by rememberSaveable { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = HeaderStartPadding, end = HeaderEndPadding),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.recent_searches),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = { confirming = true }) {
+            Text(stringResource(R.string.clear_search_history))
+        }
+    }
+    if (confirming) {
+        FlowConfirmDialog(
+            title = stringResource(R.string.clear_history_dialog_title),
+            text = stringResource(R.string.clear_history_dialog_text),
+            confirmLabel = stringResource(R.string.clear),
+            onConfirm = {
+                confirming = false
+                onClearHistory()
+            },
+            onDismiss = { confirming = false },
+        )
     }
 }
 

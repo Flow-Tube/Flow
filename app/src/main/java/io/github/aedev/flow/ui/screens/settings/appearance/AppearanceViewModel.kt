@@ -10,6 +10,8 @@ import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.HomeViewMode
 import io.github.aedev.flow.data.local.LocalDataManager
+import io.github.aedev.flow.data.local.NavBarLabels
+import io.github.aedev.flow.data.local.NavBarStyle
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.platform.AppIconController
 import io.github.aedev.flow.platform.AppUiMode
@@ -70,6 +72,8 @@ class AppearanceViewModel
             }.combine(preferences.downloadsNavigationEnabled) { visibility, downloads -> visibility.copy(downloads = downloads) }
                 .asState(NavigationVisibility())
         val hideNavOnScroll = preferences.bottomNavHideOnScroll.asState(true)
+        val navLabels = preferences.bottomNavLabels.asState(NavBarLabels.ALWAYS)
+        val navStyle = preferences.bottomNavStyle.asState(NavBarStyle.STANDARD)
         val searchShowsNavBar = preferences.searchShowsNavBar.asState(false)
         val innerPagesShowNavBar = preferences.innerPagesShowNavBar.asState(false)
         val navTabOrder = preferences.navTabOrder.asState(DEFAULT_NAV_TAB_ORDER)
@@ -145,6 +149,10 @@ class AppearanceViewModel
         fun setDownloadsTab(enabled: Boolean) = write { preferences.setDownloadsNavigationEnabled(enabled) }
 
         fun setHideNavOnScroll(enabled: Boolean) = write { preferences.setBottomNavHideOnScroll(enabled) }
+
+        fun setNavLabels(labels: NavBarLabels) = write { preferences.setBottomNavLabels(labels) }
+
+        fun setNavStyle(style: NavBarStyle) = write { preferences.setBottomNavStyle(style) }
 
         fun setSearchShowsNavBar(enabled: Boolean) = write { preferences.setSearchShowsNavBar(enabled) }
 

@@ -22,6 +22,7 @@ import io.github.aedev.flow.data.subscriptions.SubscriptionWatchedVideos
 import io.github.aedev.flow.data.subscriptions.channelsWithNewUploads
 import io.github.aedev.flow.data.subscriptions.parseChannelSeenAt
 import io.github.aedev.flow.data.subscriptions.withHighQualityThumbnails
+import io.github.aedev.flow.data.subscriptions.withPlayerMetadata
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.formatYouTubeRelativeTime

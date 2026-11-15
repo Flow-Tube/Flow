@@ -4074,6 +4074,9 @@
     </plurals>
     <string name="notification_more">+%1$d more</string>
     <string name="notification_new_videos">New videos</string>
+    <string name="notification_new_video_live">Live now: %1$s</string>
+    <string name="notification_new_video_scheduled">Live at %1$s: %2$s</string>
+    <string name="notification_new_video_premiere">Premiere at %1$s: %2$s</string>
     <plurals name="notification_new_videos_from_subscriptions">
         <item quantity="one">%1$d new video from your subscriptions</item>
         <item quantity="other">%1$d new videos from your subscriptions</item>
@@ -4440,6 +4443,17 @@
     <string name="settings_keywords_app_icon">launcher, home screen icon, logo</string>
     <string name="settings_keywords_interface_mode">tv, television, leanback, tablet layout</string>
     <string name="settings_keywords_nav_bar">bottom bar, tabs, navigation rail</string>
+    <string name="settings_keywords_nav_labels">labels, names, icons only, text</string>
+    <string name="settings_nav_labels_title">Tab labels</string>
+    <string name="settings_nav_labels_summary">Names under the icons in the bottom bar</string>
+    <string name="settings_nav_labels_always">Always</string>
+    <string name="settings_nav_labels_selected">Selected</string>
+    <string name="settings_nav_labels_never">Never</string>
+    <string name="settings_keywords_nav_style">floating, pill, style, bottom bar</string>
+    <string name="settings_nav_style_title">Bar style</string>
+    <string name="settings_nav_style_summary">Full width, or floating above the page</string>
+    <string name="settings_nav_style_standard">Standard</string>
+    <string name="settings_nav_style_floating">Floating</string>
     <string name="settings_apply">Apply</string>
     <string name="settings_custom_theme_saved">Custom theme saved</string>
     <string name="settings_custom_theme_use">Use it</string>
