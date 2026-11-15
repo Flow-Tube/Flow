@@ -29,6 +29,7 @@ import io.github.aedev.flow.ui.components.music.common.ProvideMusicPlaybackState
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.MusicMenuSheets
 import io.github.aedev.flow.ui.components.music.sheet.rememberMusicMenus
+import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.DpadReturnFocus
 import io.github.aedev.flow.ui.components.shared.LocalDpadReturnFocus
@@ -78,9 +79,6 @@ fun FlowTvApp(
     LaunchedEffect(musicPlayerState.isPlaying) {
         if (musicPlayerState.isPlaying) musicSessionActive = true
     }
-    // Handoffs from other devices: the consent question, who took over, and the devices list.
-    PlayOnHost()
-
     // The shell leaves composition while a player covers it; this keeps its pages' scroll and saved state,
     // and the played card takes focus again when it comes back.
     val shellState = rememberSaveableStateHolder()
@@ -155,6 +153,9 @@ fun FlowTvApp(
         playById(videoId, isShort)
         onDeeplinkConsumed()
     }
+
+    // Handoffs from other devices: the consent question, who took over, and the devices list.
+    PlayOnHost(onManageDevices = { mediaNavigator.openSettings(SettingsTarget(SettingsDestination.SYNC)) })
 
     val musicMenus = rememberMusicMenus()
 

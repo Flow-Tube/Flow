@@ -3850,6 +3850,7 @@
     <string name="tv_guide_player_back">Close a panel or the controls first; press again to leave the player.</string>
     <string name="tv_rail_now_playing">Now playing</string>
     <string name="tv_rail_now_playing_description">Now playing: %1$s</string>
+    <string name="tv_rail_playing_on_description">Playing on %1$s: %2$s</string>
     <!-- Home-screen widgets -->
     <string name="widget_now_playing_label">Now Playing</string>
     <string name="widget_now_playing_description">Control the music that\'s playing in Flow</string>
