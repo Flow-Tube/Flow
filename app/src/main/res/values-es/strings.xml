@@ -5236,7 +5236,7 @@
     </plurals>
     <string name="keyboard_shortcut_related_videos">Vídeos relacionados</string>
     <string name="keyboard_shortcut_back_to_player">Volver al reproductor</string>
-    <string name="ai_list_title">Canales de IA</string>
+    <string name="ai_list_title">Contenido de IA</string>
     <string name="ai_list_block_title">Ocultar canales de IA</string>
     <string name="ai_list_block_summary">Usa la lista comunitaria AiSList</string>
     <string name="ai_list_warn_title">Etiquetar los canales sospechosos de ser de IA</string>
@@ -5246,7 +5246,7 @@
     <string name="ai_list_status_pending">Aún no descargado</string>
     <string name="ai_list_attribution_title">Lista de AiSList</string>
     <string name="ai_list_attribution_summary">CC BY-NC 4.0</string>
-    <string name="ai_list_footer">Descarga una lista pública una vez al día. No se envía nada.</string>
+    <string name="ai_list_footer">Descarga listas públicas una vez al día. No se envía nada.</string>
     <string name="ai_list_label">Posible IA</string>
     <string name="ai_list_channel_blocked">Este canal está en la lista de bloqueo de AiSList</string>
     <string name="ai_list_channel_warned">Este canal está en la lista de advertencias de AiSList</string>
@@ -5321,4 +5321,16 @@
     <string name="linked_sync_choice_except">Todo excepto %1$s</string>
     <string name="linked_sync_choice_count">%1$d de %2$d</string>
     <string name="tv_rail_playing_on_description">Reproduciendo en %1$s: %2$s</string>
+    <string name="ai_music_block_title">Ocultar música de IA</string>
+    <string name="ai_music_artist_listed">Este artista está en la lista de música de IA</string>
+    <string name="ai_music_artist_show">Mostrar su música</string>
+    <string name="ai_music_block_summary">Canciones y álbumes de artistas de IA</string>
+    <string name="ai_music_status_count">%1$s artistas, actualizado %2$s</string>
+    <string name="ai_music_status_count_now">%1$s artistas, actualizado ahora mismo</string>
+    <string name="ai_lists_status_count">%1$s canales y %2$s artistas, actualizado %3$s</string>
+    <string name="ai_lists_status_count_now">%1$s canales y %2$s artistas, actualizado ahora mismo</string>
+    <string name="ai_music_attribution_soul_title">Lista de música de Soul Over AI</string>
+    <string name="ai_music_attribution_soul_summary">CC BY 4.0, modificado por Flow</string>
+    <string name="ai_music_attribution_blocker_title">Lista de música de Spotify AI Blocker</string>
+    <string name="ai_music_attribution_blocker_summary">MIT, © CennoxX</string>
 </resources>
