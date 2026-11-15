@@ -182,6 +182,7 @@ class PlayerPreferences(
         val HOME_NAVIGATION_ENABLED = booleanPreferencesKey("home_navigation_enabled")
         val SHORTS_NAVIGATION_ENABLED = booleanPreferencesKey("shorts_navigation_enabled")
         val BOTTOM_NAV_HIDE_ON_SCROLL = booleanPreferencesKey("bottom_nav_hide_on_scroll")
+        val BOTTOM_NAV_LABELS = stringPreferencesKey("bottom_nav_labels")
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
         val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
@@ -1663,6 +1664,20 @@ class PlayerPreferences(
     suspend fun setBottomNavHideOnScroll(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.BOTTOM_NAV_HIDE_ON_SCROLL] = enabled
+        }
+    }
+
+    val bottomNavLabels: Flow<NavBarLabels> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.BOTTOM_NAV_LABELS]
+                    ?.let { stored -> runCatching { NavBarLabels.valueOf(stored) }.getOrNull() }
+                    ?: NavBarLabels.ALWAYS
+            }.distinctUntilChanged()
+
+    suspend fun setBottomNavLabels(labels: NavBarLabels) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_LABELS] = labels.name
         }
     }
 
@@ -5611,6 +5626,13 @@ enum class HomeFeedColumns(
 enum class PlayerRelatedCardStyle {
     COMPACT,
     FULL_WIDTH,
+}
+
+/** When the bottom bar names its tabs under their icons. */
+enum class NavBarLabels {
+    ALWAYS,
+    SELECTED,
+    NEVER,
 }
 
 enum class SharedLinkAction {
