@@ -1,8 +1,10 @@
 # Nightly notes
 
 Every pull request with a change users can notice adds one file here. On each push to `main`, CI
-merges all of them into the body of the rolling `nightly` release, which the in-app update screen
-shows to nightly testers.
+merges all of them into the body of the rolling `nightly` release, grouped under `# Run N` by the
+nightly that first shipped each file. The in-app update screen shows nightly testers only the runs
+newer than the build they have installed. The run map lives in the release asset
+`nightly-note-runs.json`.
 
 - Name the file `YYYY-MM-DD-<branch>.md`: the date the PR is opened, then the branch name in
   lowercase with `/` replaced by `-`. One file per PR, and never edit another PR's file, so open
