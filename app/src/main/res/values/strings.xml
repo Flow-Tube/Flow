@@ -5212,6 +5212,8 @@
     <string name="settings_keywords_ai_list">AI, slop, generated, AiSList, filter, block</string>
     <string name="ai_list_status_count_now">%1$s channels, updated just now</string>
     <string name="ai_music_block_title">Hide AI music</string>
+    <string name="ai_music_artist_listed">This artist is on the AI music list</string>
+    <string name="ai_music_artist_show">Show their music</string>
     <string name="ai_music_block_summary">Songs and albums by AI artists</string>
     <string name="ai_music_status_count">%1$s artists, updated %2$s</string>
     <string name="ai_music_status_count_now">%1$s artists, updated just now</string>

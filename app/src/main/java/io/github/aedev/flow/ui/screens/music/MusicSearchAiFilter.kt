@@ -34,11 +34,12 @@ internal fun MusicSearchUiState.withoutAiMusic(ai: AiListMatcher): MusicSearchUi
 }
 
 internal fun List<YTItem>.withoutAiMusic(ai: AiListMatcher): List<YTItem> {
-    val filtered = filterNot { item -> ai.hidesMusic(item.creditedIds()) }
+    val filtered = filterNot { item -> ai.hidesMusic(item.aiCreditedIds()) }
     return if (filtered.size == size) this else filtered
 }
 
-private fun YTItem.creditedIds(): List<String> =
+/** The IDs an item credits, which the AI filter checks: artists of songs and albums, a playlist's author. */
+internal fun YTItem.aiCreditedIds(): List<String> =
     when (this) {
         is SongItem -> artists.mapNotNull { it.id }
         is AlbumItem -> artists.orEmpty().mapNotNull { it.id }
