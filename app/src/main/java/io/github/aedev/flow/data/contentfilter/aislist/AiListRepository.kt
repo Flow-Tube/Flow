@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -42,32 +41,54 @@ data class AllowedAiChannel(
     val handle: String? = null,
 )
 
-/** How much of the list the device holds, for the settings status row. */
+/**
+ * How much of each list the device holds, for the settings status row. A count is null while its
+ * switch is off or until that list has been downloaded on this device.
+ */
 data class AiListStatus(
-    val channelCount: Int,
+    val channelCount: Int?,
+    val artistCount: Int?,
     val updatedAtMs: Long,
 )
 
 internal data class AiListSettings(
     val blockEnabled: Boolean,
     val warnEnabled: Boolean,
+    val musicEnabled: Boolean,
     val allowed: List<AllowedAiChannel>,
 ) {
-    val isOn: Boolean get() = blockEnabled || warnEnabled
+    /** The AiSList channel list is needed. */
+    val channelsOn: Boolean get() = blockEnabled || warnEnabled
+
+    val isOn: Boolean get() = channelsOn || musicEnabled
 }
 
-/** The list as lookup sets, built once per stored version and kept in memory while a switch is on. */
+/** The two lists the app follows: AiSList channels and AI music artists. */
+internal enum class AiListKind(
+    val listId: String,
+    val fileName: String,
+) {
+    CHANNELS(AI_LIST_ID, AiListStore.FILE_NAME),
+    MUSIC(AI_MUSIC_LIST_ID, AiListStore.MUSIC_FILE_NAME),
+    ;
+
+    fun isOn(settings: AiListSettings): Boolean = if (this == CHANNELS) settings.channelsOn else settings.musicEnabled
+}
+
+/** A list as lookup sets, built once per stored version and kept in memory while a switch is on. */
 private class AiListData(
     val block: AiListSets,
     val warn: AiListSets,
-    val status: AiListStatus,
+    val count: Int,
+    val updatedAtMs: Long,
     val sourceId: String,
 )
 
 /**
- * The AiSList channel filter (issue #865). Off by default: while both switches are off nothing is
- * read, fetched or scheduled. The list itself is device-wide and never backed up or synced; the
- * switches and the allowlist are ordinary per-profile settings.
+ * The AI content filter: AiSList channels (issue #865) and AI music artists. Off by default: while
+ * every switch is off nothing is read, fetched or scheduled, and each list is fetched only while
+ * its own switch is on. The lists are device-wide and never backed up or synced; the switches and
+ * the allowlist are ordinary per-profile settings.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
@@ -81,15 +102,20 @@ class AiListRepository
         @ApplicationScope private val scope: CoroutineScope,
     ) {
         private val directory = File(context.noBackupFilesDir, DIRECTORY)
-        private val store = AiListStore(directory)
+        private val stores = AiListKind.entries.associateWith { AiListStore(directory, it.fileName) }
         private val index = ChannelHandleIndex(directory, scope)
-        private val data = MutableStateFlow<AiListData?>(null)
+        private val data = AiListKind.entries.associateWith { MutableStateFlow<AiListData?>(null) }
         private val loadLock = Mutex()
         private var loadedFromDisk = false
 
         internal val settings: Flow<AiListSettings> =
-            combine(preferences.aiListBlockEnabled, preferences.aiListWarnEnabled, preferences.aiListAllowed) { block, warn, allowed ->
-                AiListSettings(block, warn, decodeAllowed(allowed))
+            combine(
+                preferences.aiListBlockEnabled,
+                preferences.aiListWarnEnabled,
+                preferences.aiMusicBlockEnabled,
+                preferences.aiListAllowed,
+            ) { block, warn, music, allowed ->
+                AiListSettings(block, warn, music, decodeAllowed(allowed))
             }.distinctUntilChanged()
 
         /** Where the list is downloaded from; Flow's own mirror unless the viewer set another. */
@@ -118,7 +144,13 @@ class AiListRepository
                             ensureLoaded()
                             emit(Unit)
                         }.flatMapLatest {
-                            combine(data.filterNotNull(), subscribedIds) { list, subscribed -> build(settings, list, subscribed) }
+                            combine(data.getValue(AiListKind.CHANNELS), data.getValue(AiListKind.MUSIC), subscribedIds) {
+                                channels,
+                                music,
+                                subscribed,
+                                ->
+                                build(settings, channels, music, subscribed)
+                            }
                         }
                     }
                 }.flowOn(Dispatchers.Default)
@@ -128,21 +160,36 @@ class AiListRepository
 
         val warnEnabled: Flow<Boolean> = preferences.aiListWarnEnabled
 
+        val musicEnabled: Flow<Boolean> = preferences.aiMusicBlockEnabled
+
         val allowedChannels: Flow<List<AllowedAiChannel>> = settings.map { it.allowed }.distinctUntilChanged()
 
-        /** Null while the filter is off or until a list has been downloaded on this device. */
+        /** Null while every switch is off or until a list in use has been downloaded on this device. */
         val status: Flow<AiListStatus?> =
             settings
-                .map { it.isOn }
+                .map { it.channelsOn to it.musicEnabled }
                 .distinctUntilChanged()
-                .flatMapLatest { on ->
-                    if (!on) {
+                .flatMapLatest { (channelsOn, musicOn) ->
+                    if (!channelsOn && !musicOn) {
                         flowOf(null)
                     } else {
                         flow {
                             ensureLoaded()
                             emit(Unit)
-                        }.flatMapLatest { data.map { it?.status } }
+                        }.flatMapLatest {
+                            combine(data.getValue(AiListKind.CHANNELS), data.getValue(AiListKind.MUSIC)) { channels, music ->
+                                val shown = listOfNotNull(channels.takeIf { channelsOn }, music.takeIf { musicOn })
+                                if (shown.isEmpty()) {
+                                    null
+                                } else {
+                                    AiListStatus(
+                                        channelCount = channels?.count?.takeIf { channelsOn },
+                                        artistCount = music?.count?.takeIf { musicOn },
+                                        updatedAtMs = shown.maxOf { it.updatedAtMs },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }.flowOn(Dispatchers.IO)
 
@@ -156,6 +203,8 @@ class AiListRepository
         suspend fun setBlockEnabled(enabled: Boolean) = preferences.setAiListBlockEnabled(enabled)
 
         suspend fun setWarnEnabled(enabled: Boolean) = preferences.setAiListWarnEnabled(enabled)
+
+        suspend fun setMusicEnabled(enabled: Boolean) = preferences.setAiMusicBlockEnabled(enabled)
 
         suspend fun allow(channel: AllowedAiChannel) =
             preferences.updateAiListAllowed { raw ->
@@ -192,24 +241,39 @@ class AiListRepository
             handle: String?,
         ): AiVerdict {
             ensureLoaded()
-            val list = data.value ?: return AiVerdict.NONE
+            val list = data.getValue(AiListKind.CHANNELS).value ?: return AiVerdict.NONE
             return AiListMatcher(true, true, list.block, list.warn, emptySet(), emptySet(), index).verdict(channelId, handle)
         }
 
-        /** One update run, for the worker. Makes no request while both switches are off. */
+        /**
+         * One update run of every list whose switch is on, for the worker. Makes no request while
+         * every switch is off. Asks for a retry when any list's run does.
+         */
         internal suspend fun refresh(): AiListOutcome {
-            if (!settings.first().isOn) return AiListOutcome.UP_TO_DATE
+            val current = settings.first()
+            if (!current.isOn) return AiListOutcome.UP_TO_DATE
             ensureLoaded()
+            val outcomes = AiListKind.entries.filter { it.isOn(current) }.map { refresh(it) }
+            return if (AiListOutcome.RETRY in outcomes) AiListOutcome.RETRY else outcomes.first()
+        }
+
+        private suspend fun refresh(kind: AiListKind): AiListOutcome {
             val current = source.first()
             val update =
-                withContext(Dispatchers.IO) { AiListUpdater(OkHttpAiListFetcher(client, current.baseUrl), store, current).run() }
-            Log.d(TAG, "Refresh ${update.outcome} at version ${update.list?.version}${update.reason?.let { ": $it" }.orEmpty()}")
+                withContext(Dispatchers.IO) {
+                    AiListUpdater(OkHttpAiListFetcher(client, current.baseUrl), stores.getValue(kind), current, kind.listId).run()
+                }
+            Log.d(
+                TAG,
+                "Refresh ${kind.listId} ${update.outcome} at version ${update.list?.version}" +
+                    update.reason?.let { ": $it" }.orEmpty(),
+            )
             val committed =
                 update.outcome == AiListOutcome.SNAPSHOT ||
                     update.outcome == AiListOutcome.DELTAS ||
                     update.outcome == AiListOutcome.FALLBACK_SNAPSHOT
             if (committed && source.first() == current) {
-                update.list?.let { data.value = withContext(Dispatchers.Default) { it.toData() } }
+                update.list?.let { list -> data.getValue(kind).value = withContext(Dispatchers.Default) { list.toData() } }
             }
             return update.outcome
         }
@@ -221,26 +285,44 @@ class AiListRepository
                 withContext(Dispatchers.IO) {
                     index.load()
                     val current = source.first()
-                    store
-                        .load()
-                        ?.takeIf { (it.source ?: AiListSource.DEFAULT.id) == current.id }
-                        ?.let { stored -> if (data.value == null) data.value = stored.toData() }
+                    for (kind in AiListKind.entries) {
+                        val held = data.getValue(kind)
+                        stores
+                            .getValue(kind)
+                            .load()
+                            ?.takeIf { (it.source ?: AiListSource.DEFAULT.id) == current.id }
+                            ?.let { stored -> if (held.value == null) held.value = stored.toData() }
+                    }
                 }
             }
         }
 
+        /**
+         * Runs the worker while any switch is on. A list switched on downloads at once; at app start
+         * only a list that is on but was never downloaded does.
+         */
         private suspend fun followSchedule() {
-            var first = true
+            var previous: Set<AiListKind>? = null
             settings
-                .map { it.isOn }
+                .map { settings -> AiListKind.entries.filterTo(HashSet()) { it.isOn(settings) } }
                 .distinctUntilChanged()
                 .collect { on ->
+                    val before = previous
+                    previous = on
                     when {
-                        !on -> if (!first) AiListRefreshWorker.cancel(context)
-                        first -> AiListRefreshWorker.schedule(context, refreshNow = !withContext(Dispatchers.IO) { store.exists() })
-                        else -> AiListRefreshWorker.schedule(context, refreshNow = true)
+                        on.isEmpty() -> {
+                            if (before != null) AiListRefreshWorker.cancel(context)
+                        }
+
+                        before == null -> {
+                            val missing = withContext(Dispatchers.IO) { on.any { !stores.getValue(it).exists() } }
+                            AiListRefreshWorker.schedule(context, refreshNow = missing)
+                        }
+
+                        else -> {
+                            AiListRefreshWorker.schedule(context, refreshNow = (on - before).isNotEmpty())
+                        }
                     }
-                    first = false
                 }
         }
 
@@ -251,31 +333,35 @@ class AiListRepository
                 val changed = previous != null && previous != current
                 previous = current
                 if (!changed) return@collect
-                if (data.value?.sourceId != current.id) data.value = null
+                for (held in data.values) if (held.value?.sourceId != current.id) held.value = null
                 if (settings.first().isOn) AiListRefreshWorker.schedule(context, refreshNow = true)
             }
         }
 
         private fun build(
             settings: AiListSettings,
-            list: AiListData,
+            channels: AiListData?,
+            music: AiListData?,
             subscribed: Set<String>,
         ): AiListMatcher =
             AiListMatcher(
                 blockEnabled = settings.blockEnabled,
                 warnEnabled = settings.warnEnabled,
-                block = list.block,
-                warn = list.warn,
+                block = channels?.block ?: AiListSets.EMPTY,
+                warn = channels?.warn ?: AiListSets.EMPTY,
                 exemptChannelIds = subscribed + settings.allowed.map { it.id },
                 exemptHandles = settings.allowed.mapNotNullTo(HashSet()) { channel -> channel.handle?.let(AiHandle::normalize) },
                 index = index,
+                musicEnabled = settings.musicEnabled,
+                music = music?.block ?: AiListSets.EMPTY,
             )
 
         private fun StoredAiList.toData() =
             AiListData(
                 block = AiListSets(block.handles.toHashSet(), block.ids.toHashSet()),
                 warn = AiListSets(warn.handles.toHashSet(), warn.ids.toHashSet()),
-                status = AiListStatus(channelCount, updatedAtMs),
+                count = channelCount,
+                updatedAtMs = updatedAtMs,
                 sourceId = this.source ?: AiListSource.DEFAULT.id,
             )
 

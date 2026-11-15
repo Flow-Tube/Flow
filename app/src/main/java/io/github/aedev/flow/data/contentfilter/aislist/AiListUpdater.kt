@@ -51,11 +51,12 @@ internal class AiListUpdater(
     private val fetcher: AiListFetcher,
     private val storage: AiListStorage,
     private val source: AiListSource = AiListSource.DEFAULT,
+    private val listId: String = AI_LIST_ID,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun run(): AiListUpdate {
         val stored = storage.load()?.takeIf { (it.source ?: AiListSource.DEFAULT.id) == source.id }
-        val base = "v1/$AI_LIST_ID/"
+        val base = "v1/$listId/"
         val response =
             try {
                 fetcher.get(base + "manifest.json", stored?.etag)
@@ -74,7 +75,7 @@ internal class AiListUpdater(
             runCatching { aiListJson.decodeFromString(AiListManifest.serializer(), payload.decodeToString()) }
                 .getOrNull() ?: return refused(stored, "manifest payload does not parse")
         if (manifest.schema > AI_LIST_SCHEMA) return refused(stored, "schema ${manifest.schema}")
-        if (manifest.list != AI_LIST_ID) return refused(stored, "list ${manifest.list}")
+        if (manifest.list != listId) return refused(stored, "list ${manifest.list}")
         if (stored != null && manifest.version < stored.version) return refused(stored, "older version")
         if (stored != null && manifest.version == stored.version) return AiListUpdate(AiListOutcome.UP_TO_DATE, stored)
 
@@ -131,7 +132,7 @@ internal class AiListUpdater(
             val ref = refs.getValue(version)
             val delta =
                 decode(fetchVerified(base, ref.path, ref.sha256)) { aiListJson.decodeFromString(AiListDeltaFile.serializer(), it) }
-            if (delta.list != AI_LIST_ID || delta.from != version - 1 || delta.to != version) {
+            if (delta.list != listId || delta.from != version - 1 || delta.to != version) {
                 throw FileRejected("delta $version has the wrong range")
             }
             working = working.applying(delta)
@@ -147,7 +148,7 @@ internal class AiListUpdater(
             decode(fetchVerified(base, manifest.snapshot.path, manifest.snapshot.sha256)) {
                 aiListJson.decodeFromString(AiListSnapshotFile.serializer(), it)
             }
-        if (snapshot.list != AI_LIST_ID || snapshot.version != manifest.version) {
+        if (snapshot.list != listId || snapshot.version != manifest.version) {
             throw FileRejected("snapshot does not match the manifest")
         }
         return StoredAiList(version = snapshot.version, block = snapshot.block, warn = snapshot.warn)

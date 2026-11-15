@@ -10,8 +10,9 @@ import java.io.File
  */
 internal class AiListStore(
     directory: File,
+    fileName: String = FILE_NAME,
 ) : AiListStorage {
-    private val file = AtomicFile(File(directory, FILE_NAME))
+    private val file = AtomicFile(File(directory, fileName))
 
     fun exists(): Boolean = file.baseFile.exists()
 
@@ -31,7 +32,8 @@ internal class AiListStore(
         }
     }
 
-    private companion object {
+    companion object {
         const val FILE_NAME = "list.json"
+        const val MUSIC_FILE_NAME = "music.json"
     }
 }

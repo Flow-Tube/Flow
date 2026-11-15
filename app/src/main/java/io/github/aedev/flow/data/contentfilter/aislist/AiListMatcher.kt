@@ -1,6 +1,9 @@
 package io.github.aedev.flow.data.contentfilter.aislist
 
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.music.model.ArtistDetails
+import io.github.aedev.flow.data.music.model.MusicPlaylist
+import io.github.aedev.flow.data.music.model.MusicTrack
 
 enum class AiVerdict { NONE, WARN, BLOCK }
 
@@ -15,11 +18,14 @@ internal class AiListSets(
 }
 
 /**
- * The answer for every surface, rebuilt whenever the list, a switch, the allowlist or the
+ * The answer for every surface, rebuilt whenever a list, a switch, the allowlist or the
  * subscriptions change; a lookup never touches the disk or the network.
  *
  * A subscribed or allowed channel is never flagged. With hiding off, a block-list channel is still
  * labelled when labels are on: it is the more certain of the two lists.
+ *
+ * Video surfaces use AiSList only. Music surfaces also use the AI music artist list, which has
+ * IDs only and no warn tier, so it can only hide.
  */
 class AiListMatcher internal constructor(
     private val blockEnabled: Boolean,
@@ -29,10 +35,15 @@ class AiListMatcher internal constructor(
     private val exemptChannelIds: Set<String>,
     private val exemptHandles: Set<String>,
     private val index: ChannelHandleIndex?,
+    private val musicEnabled: Boolean = false,
+    private val music: AiListSets = AiListSets.EMPTY,
 ) {
     val isActive: Boolean =
         (blockEnabled || warnEnabled) &&
             (block.handles.isNotEmpty() || block.ids.isNotEmpty() || warn.handles.isNotEmpty() || warn.ids.isNotEmpty())
+
+    /** True when any music lookup can flag something: AiSList IDs or the music artist list. */
+    val isMusicActive: Boolean = isActive || (musicEnabled && music.ids.isNotEmpty())
 
     fun verdict(video: Video): AiVerdict = verdict(video.channelId, video.channelHandle)
 
@@ -54,6 +65,38 @@ class AiListMatcher internal constructor(
         if (onBlock && blockEnabled) return AiVerdict.BLOCK
         val onWarn = onBlock || (key != null && key in warn.handles) || (id != null && id in warn.ids)
         return if (onWarn && warnEnabled) AiVerdict.WARN else AiVerdict.NONE
+    }
+
+    /**
+     * A music row: its uploader and every credited artist. One listed, non-exempt ID is enough, so
+     * a collaboration with a listed artist is flagged too.
+     */
+    fun verdict(track: MusicTrack): AiVerdict {
+        if (!isMusicActive) return AiVerdict.NONE
+        return musicVerdict(track.artists.mapNotNull { it.id } + track.channelId)
+    }
+
+    fun hides(track: MusicTrack): Boolean = verdict(track) == AiVerdict.BLOCK
+
+    /** An album or playlist card, by its structured author. */
+    fun hides(album: MusicPlaylist): Boolean = isMusicActive && musicVerdict(listOfNotNull(album.authorId)) == AiVerdict.BLOCK
+
+    fun hides(artist: ArtistDetails): Boolean = isMusicActive && musicVerdict(listOf(artist.channelId)) == AiVerdict.BLOCK
+
+    /** An artist page: which list it is on, for the banner. */
+    fun artistVerdict(channelId: String): AiVerdict = if (isMusicActive) musicVerdict(listOf(channelId)) else AiVerdict.NONE
+
+    private fun musicVerdict(ids: List<String>): AiVerdict {
+        var result = AiVerdict.NONE
+        for (raw in ids) {
+            val id = raw.takeIf { it.isChannelId() } ?: continue
+            if (id in exemptChannelIds) continue
+            if (musicEnabled && id in music.ids) return AiVerdict.BLOCK
+            val listed = if (isActive) verdict(id, null) else AiVerdict.NONE
+            if (listed == AiVerdict.BLOCK) return AiVerdict.BLOCK
+            if (listed == AiVerdict.WARN) result = AiVerdict.WARN
+        }
+        return result
     }
 
     /** Records a pair seen outside a video row, such as a channel search result or a channel page. */

@@ -63,13 +63,13 @@ internal fun aiListStatusText(
         }
 
         System.currentTimeMillis() - status.updatedAtMs < DateUtils.MINUTE_IN_MILLIS -> {
-            stringResource(R.string.ai_list_status_count_now, NumberFormat.getIntegerInstance().format(status.channelCount))
+            stringResource(R.string.ai_list_status_count_now, NumberFormat.getIntegerInstance().format(status.channelCount ?: 0))
         }
 
         else -> {
             stringResource(
                 R.string.ai_list_status_count,
-                NumberFormat.getIntegerInstance().format(status.channelCount),
+                NumberFormat.getIntegerInstance().format(status.channelCount ?: 0),
                 DateUtils.getRelativeTimeSpanString(status.updatedAtMs, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS),
             )
         }

@@ -264,6 +264,24 @@ class AiListUpdaterTest {
         }
 
     @Test
+    fun `the music list is read from its own folder and another list's manifest is refused there`() =
+        runTest {
+            val host = Host().apply { publish(1, snapshot(1, listOf("alpha"))) }
+            val storage = MemoryStorage()
+            val music = AiListUpdater(host, storage, source, AI_MUSIC_LIST_ID, now = { 0L })
+
+            assertThat(music.run().outcome).isEqualTo(AiListOutcome.REFUSED)
+            assertThat(host.requested).containsExactly("v1/aimusic/manifest.json")
+
+            host.files.toMap().forEach { (path, bytes) -> host.files[path.replace(base, "v1/aimusic/")] = bytes }
+            val update = music.run()
+
+            assertThat(update.outcome).isEqualTo(AiListOutcome.REFUSED)
+            assertThat(update.reason).isEqualTo("list aislist")
+            assertThat(storage.commits).isEqualTo(0)
+        }
+
+    @Test
     fun `an offline device retries later and keeps its list`() =
         runTest {
             val storage = MemoryStorage(StoredAiList(version = 1))

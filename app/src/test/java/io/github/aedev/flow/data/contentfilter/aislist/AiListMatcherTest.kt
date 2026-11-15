@@ -2,6 +2,10 @@ package io.github.aedev.flow.data.contentfilter.aislist
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.music.model.ArtistDetails
+import io.github.aedev.flow.data.music.model.MusicArtist
+import io.github.aedev.flow.data.music.model.MusicPlaylist
+import io.github.aedev.flow.data.music.model.MusicTrack
 import org.junit.Test
 
 class AiListMatcherTest {
@@ -110,5 +114,102 @@ class AiListMatcherTest {
         assertThat(index.handleFor("a")).isEqualTo("one")
         assertThat(index.handleFor("b")).isNull()
         assertThat(index.handleFor("c")).isEqualTo("three")
+    }
+}
+
+class AiListMatcherMusicTest {
+    private val aiArtist = "UCaiaiaiaiaiaiaiaiaiaiai"
+    private val realArtist = "UCrealrealrealrealrealre"
+    private val listedUploader = "UCbbbbbbbbbbbbbbbbbbbbbb"
+    private val warnUploader = "UCwwwwwwwwwwwwwwwwwwwwww"
+
+    private fun matcher(
+        block: Boolean = false,
+        warn: Boolean = false,
+        music: Boolean = true,
+        exemptIds: Set<String> = emptySet(),
+    ) = AiListMatcher(
+        blockEnabled = block,
+        warnEnabled = warn,
+        block = AiListSets(handles = emptySet(), ids = setOf(listedUploader)),
+        warn = AiListSets(handles = emptySet(), ids = setOf(warnUploader)),
+        exemptChannelIds = exemptIds,
+        exemptHandles = emptySet(),
+        index = null,
+        musicEnabled = music,
+        music = AiListSets(handles = emptySet(), ids = setOf(aiArtist)),
+    )
+
+    private fun track(
+        vararg artistIds: String?,
+        channelId: String = "",
+    ) = MusicTrack(
+        videoId = "v",
+        title = "t",
+        artist = "a",
+        thumbnailUrl = "",
+        duration = 0,
+        channelId = channelId,
+        artists = artistIds.map { MusicArtist(name = "n", id = it) },
+    )
+
+    @Test
+    fun `a song by a listed artist is hidden, including a collaboration`() {
+        val matcher = matcher()
+
+        assertThat(matcher.hides(track(aiArtist))).isTrue()
+        assertThat(matcher.hides(track(realArtist, aiArtist))).isTrue()
+        assertThat(matcher.hides(track(realArtist, null))).isFalse()
+    }
+
+    @Test
+    fun `the music list does nothing while its switch is off, and never touches video verdicts`() {
+        assertThat(matcher(music = false).hides(track(aiArtist))).isFalse()
+        assertThat(matcher(music = false).isMusicActive).isFalse()
+        assertThat(matcher(block = true).verdict(aiArtist, null)).isEqualTo(AiVerdict.NONE)
+    }
+
+    @Test
+    fun `an AiSList channel id hides its uploads in Music only while hiding AI channels is on`() {
+        assertThat(matcher(music = false, block = true).hides(track(channelId = listedUploader))).isTrue()
+        assertThat(matcher(music = true, block = false).hides(track(channelId = listedUploader))).isFalse()
+        assertThat(matcher(music = false, block = false, warn = true).verdict(track(channelId = listedUploader)))
+            .isEqualTo(AiVerdict.WARN)
+        assertThat(matcher(music = false, warn = true).verdict(track(channelId = warnUploader))).isEqualTo(AiVerdict.WARN)
+    }
+
+    @Test
+    fun `an allowed or subscribed artist is exempt, but a listed co-artist still counts`() {
+        val matcher = matcher(exemptIds = setOf(aiArtist))
+
+        assertThat(matcher.hides(track(aiArtist))).isFalse()
+        assertThat(matcher.artistVerdict(aiArtist)).isEqualTo(AiVerdict.NONE)
+        assertThat(matcher(block = true, exemptIds = setOf(aiArtist)).hides(track(aiArtist, channelId = listedUploader))).isTrue()
+    }
+
+    @Test
+    fun `albums and artist cards match by their structured id`() {
+        val matcher = matcher()
+        val album =
+            MusicPlaylist(
+                id = "MPRE",
+                title = "t",
+                thumbnailUrl = "",
+                author = "2026",
+                authorId = aiArtist,
+            )
+        val artist =
+            ArtistDetails(
+                name = "n",
+                channelId = aiArtist,
+                thumbnailUrl = "",
+                subscriberCount = 0,
+            )
+
+        assertThat(matcher.hides(album)).isTrue()
+        assertThat(matcher.hides(album.copy(authorId = null))).isFalse()
+        assertThat(matcher.hides(artist)).isTrue()
+        assertThat(matcher.artistVerdict(aiArtist)).isEqualTo(AiVerdict.BLOCK)
+        assertThat(AiListMatcher.NONE.hides(artist)).isFalse()
     }
 }

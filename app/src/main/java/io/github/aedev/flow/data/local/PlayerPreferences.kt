@@ -270,6 +270,7 @@ class PlayerPreferences(
         val AI_LIST_ALLOWED = stringPreferencesKey("ai_list_allowed")
         val AI_LIST_REPORT_ENABLED = booleanPreferencesKey("ai_list_report_enabled")
         val AI_LIST_REPORT_NAME = stringPreferencesKey("ai_list_report_name")
+        val AI_MUSIC_BLOCK_ENABLED = booleanPreferencesKey("ai_music_block_enabled")
 
         // Notification preferences
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
@@ -2396,6 +2397,16 @@ class PlayerPreferences(
     suspend fun setAiListBlockEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.AI_LIST_BLOCK_ENABLED] = enabled
+        }
+    }
+
+    val aiMusicBlockEnabled: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AI_MUSIC_BLOCK_ENABLED] ?: false }
+
+    suspend fun setAiMusicBlockEnabled(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.AI_MUSIC_BLOCK_ENABLED] = enabled
         }
     }
 
