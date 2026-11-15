@@ -36,10 +36,6 @@ class SponsorBlockHandler(
 ) {
     companion object {
         private const val TAG = "SponsorBlockHandler"
-
-        /** A skip only re-arms for a rewind this far before the segment, so a seek that lands slightly
-         * short of the requested end (SABR rebuilds at a segment boundary) cannot loop the skip. */
-        private const val SEEK_BACK_REARM_MARGIN_SEC = 1f
         private const val VISIBLE_SEGMENTS_STOP_MS = 5_000L
     }
 
@@ -61,7 +57,9 @@ class SponsorBlockHandler(
     val toastEvent: SharedFlow<SponsorBlockSegment> = _toastEvent.asSharedFlow()
 
     private var loadJob: Job? = null
-    private var lastSkippedSegmentUuid: String? = null
+
+    /** Segments already acted on (skipped, jumped over or announced) until playback rewinds before them. */
+    private val handledUuids = mutableSetOf<String>()
     private var currentMutedSegmentUuid: String? = null
     private var currentVideoId: String? = null
 
@@ -117,7 +115,7 @@ class SponsorBlockHandler(
             } else {
                 loadJob?.cancel()
                 _sponsorSegments.value = emptyList()
-                lastSkippedSegmentUuid = null
+                handledUuids.clear()
                 releaseMute()
             }
         }
@@ -134,7 +132,7 @@ class SponsorBlockHandler(
     ) {
         startVideo(videoId)
         loadJob?.cancel()
-        lastSkippedSegmentUuid = null
+        handledUuids.clear()
         offlineSegments = segments
         _sponsorSegments.value = if (isEnabled) segments else emptyList()
         Log.d(TAG, "Loaded ${segments.size} offline SponsorBlock segments for video $videoId")
@@ -151,7 +149,7 @@ class SponsorBlockHandler(
         // Cancel previous load and clear state
         loadJob?.cancel()
         _sponsorSegments.value = emptyList()
-        lastSkippedSegmentUuid = null
+        handledUuids.clear()
 
         loadJob =
             scope.launch {
@@ -201,7 +199,7 @@ class SponsorBlockHandler(
     fun reset() {
         loadJob?.cancel()
         _sponsorSegments.value = emptyList()
-        lastSkippedSegmentUuid = null
+        handledUuids.clear()
         releaseMute()
         currentVideoId = null
         offlineSegments = emptyList()
@@ -221,9 +219,10 @@ class SponsorBlockHandler(
         if (disabled) {
             releaseMute()
         } else {
-            val posSec = currentPositionMs / 1000f
-            lastSkippedSegmentUuid =
-                _sponsorSegments.value.find { posSec >= it.startTime && posSec < it.endTime }?.uuid
+            handledUuids.clear()
+            SponsorBlockSegmentResolver
+                .segmentsAt(_sponsorSegments.value, currentPositionMs / 1000f)
+                .mapTo(handledUuids) { it.uuid }
         }
     }
 
@@ -258,19 +257,15 @@ class SponsorBlockHandler(
 
         val posSec = currentPositionMs / 1000f
 
-        // Handle seek-back: reset last skipped/muted segment if we've gone before it
-        if (lastSkippedSegmentUuid != null) {
-            val lastSegment = segments.find { it.uuid == lastSkippedSegmentUuid }
-            if (lastSegment != null && posSec < lastSegment.startTime - SEEK_BACK_REARM_MARGIN_SEC) {
-                Log.d(TAG, "Seek back detected, resetting last skipped segment: ${lastSegment.category}")
-                lastSkippedSegmentUuid = null
-            }
+        if (handledUuids.isNotEmpty()) {
+            segments
+                .filter { it.uuid in handledUuids && SponsorBlockSegmentResolver.isRewoundBefore(posSec, it) }
+                .forEach {
+                    Log.d(TAG, "Seek back detected, re-arming segment: ${it.category}")
+                    handledUuids -= it.uuid
+                }
         }
 
-        // Find a segment overlapping current position
-        val segment = segments.find { posSec >= it.startTime && posSec < it.endTime }
-
-        // Handle mute-segment exit
         if (currentMutedSegmentUuid != null) {
             val mutedSeg = segments.find { it.uuid == currentMutedSegmentUuid }
             if (mutedSeg == null || posSec >= mutedSeg.endTime || posSec < mutedSeg.startTime) {
@@ -280,29 +275,26 @@ class SponsorBlockHandler(
             }
         }
 
-        if (segment != null && segment.uuid != lastSkippedSegmentUuid) {
-            val action = SponsorBlockActionPolicy.actionFor(segment, categoryActions)
-            Log.d(TAG, "Segment hit: ${segment.category} action=$action")
-
-            if (SponsorBlockActionPolicy.skipsAutomatically(action, segment.uuid in _skippedOnce.value)) {
-                return skip(segment, action)
+        val hit =
+            SponsorBlockSegmentResolver.resolve(segments, posSec, categoryActions, _skippedOnce.value, handledUuids)
+                ?: return null
+        Log.d(TAG, "Segment hit: ${hit.segment.category} action=${hit.action}")
+        if (hit.skipsAutomatically) return skip(hit)
+        when (hit.action) {
+            SponsorBlockAction.MUTE -> {
+                if (currentMutedSegmentUuid != hit.segment.uuid) {
+                    currentMutedSegmentUuid = hit.segment.uuid
+                    _muteEvent.tryEmit(true)
+                }
             }
-            when (action) {
-                SponsorBlockAction.MUTE -> {
-                    if (currentMutedSegmentUuid != segment.uuid) {
-                        currentMutedSegmentUuid = segment.uuid
-                        _muteEvent.tryEmit(true)
-                    }
-                }
 
-                SponsorBlockAction.SHOW_TOAST -> {
-                    lastSkippedSegmentUuid = segment.uuid
-                    _toastEvent.tryEmit(segment)
-                }
+            SponsorBlockAction.SHOW_TOAST -> {
+                handledUuids += hit.segment.uuid
+                _toastEvent.tryEmit(hit.segment)
+            }
 
-                else -> {
-                    Unit
-                }
+            else -> {
+                Unit
             }
         }
 
@@ -314,30 +306,29 @@ class SponsorBlockHandler(
      * automatically, or null to seek as asked. The tick's re-arm can't cover this: a segment at the very
      * start of a video has no position before it, and the tick would show a second of the segment first.
      */
-    fun skipTargetForSeek(targetMs: Long): Long? {
-        val segment = autoSkipSegmentAt(targetMs) ?: return null
-        return skip(segment, SponsorBlockActionPolicy.actionFor(segment, categoryActions))
-    }
+    fun skipTargetForSeek(targetMs: Long): Long? = autoSkipAt(targetMs)?.let(::skip)
 
     /** Where [skipTargetForSeek] would land, without skipping anything. */
-    fun seekLandingFor(targetMs: Long): Long? = autoSkipSegmentAt(targetMs)?.let { (it.endTime * 1000).toLong() }
+    fun seekLandingFor(targetMs: Long): Long? = autoSkipAt(targetMs)?.targetMs
 
-    private fun autoSkipSegmentAt(targetMs: Long): SponsorBlockSegment? {
+    private fun autoSkipAt(targetMs: Long): SponsorBlockResolution? {
         if (!isEnabled || _disabledForCurrentVideo.value) return null
-        val posSec = targetMs / 1000f
-        val segment = _sponsorSegments.value.find { posSec >= it.startTime && posSec < it.endTime } ?: return null
-        val action = SponsorBlockActionPolicy.actionFor(segment, categoryActions)
-        return segment.takeIf { SponsorBlockActionPolicy.skipsAutomatically(action, segment.uuid in _skippedOnce.value) }
+        return SponsorBlockSegmentResolver
+            .resolve(_sponsorSegments.value, targetMs / 1000f, categoryActions, _skippedOnce.value)
+            ?.takeIf { it.skipsAutomatically }
     }
 
-    private fun skip(
-        segment: SponsorBlockSegment,
-        action: SponsorBlockAction,
-    ): Long {
-        lastSkippedSegmentUuid = segment.uuid
-        if (action == SponsorBlockAction.SKIP_ONCE) _skippedOnce.value += segment.uuid
-        _skipEvent.tryEmit(SponsorBlockSkip(segment, firstInVideo = skippedInVideo.add(segment.uuid)))
-        return (segment.endTime * 1000).toLong()
+    private fun skip(resolution: SponsorBlockResolution): Long {
+        resolution.covered.mapTo(handledUuids) { it.uuid }
+        val skippedOnce =
+            resolution.chain.filter {
+                SponsorBlockActionPolicy.actionFor(it, categoryActions) == SponsorBlockAction.SKIP_ONCE
+            }
+        if (skippedOnce.isNotEmpty()) _skippedOnce.value += skippedOnce.map { it.uuid }
+        val firstInVideo = skippedInVideo.add(resolution.segment.uuid)
+        resolution.chain.forEach { skippedInVideo.add(it.uuid) }
+        _skipEvent.tryEmit(SponsorBlockSkip(resolution.segment, firstInVideo))
+        return resolution.targetMs
     }
 
     /**

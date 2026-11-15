@@ -178,4 +178,21 @@ class SponsorBlockSkipPolicyTest {
 
         assertThat(active).isEqualTo(highlight)
     }
+
+    @Test
+    fun `no button for a manual segment while an overlapping one skips by itself`() {
+        val intro = SponsorBlockSegment("intro", listOf(0f, 36.996f), "intro-id", "skip")
+        val nonMusic = SponsorBlockSegment("music_offtopic", listOf(0f, 36.983f), "music-id", "skip")
+
+        val active =
+            findActiveManualSponsorSegment(
+                sponsorSegments = listOf(intro, nonMusic),
+                currentPositionMs = 500L,
+                skippedUuids = emptySet(),
+                categoryActions = mapOf("intro" to SponsorBlockAction.SKIP_BUTTON),
+                playbackEnded = false,
+            )
+
+        assertThat(active).isNull()
+    }
 }
