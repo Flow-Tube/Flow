@@ -105,7 +105,7 @@ internal fun NavGraphBuilder.linkPlaybackRoutes(
         // Use passed state
         val playerUiState = playerUiStateResult.value
         LaunchedEffect(effectiveVideoId) {
-            if (!playerUiState.shouldExpandInsteadOfPlaying(effectiveVideoId)) {
+            if (!playerUiState.shouldExpandInsteadOfPlaying(effectiveVideoId, GlobalPlayerState.playerState.value.currentVideoId)) {
                 val video =
                     playerUiState.cachedVideo?.takeIf { it.id == effectiveVideoId }
                         ?: linkedVideo(effectiveVideoId)
