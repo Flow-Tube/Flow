@@ -4893,7 +4893,7 @@
     <string name="player_settings_spherical_drag_speed">Ətrafa baxış sürəti</string>
     <string name="keyboard_shortcut_related_videos">Əlaqəli videolar</string>
     <string name="keyboard_shortcut_back_to_player">Oynadıcıya qayıt</string>
-    <string name="ai_list_title">Süni intellekt kanalları</string>
+    <string name="ai_list_title">Sİ məzmunu</string>
     <string name="ai_list_block_title">Süni intellekt kanallarını gizlət</string>
     <string name="ai_list_block_summary">AiSList icma siyahısından istifadə edir</string>
     <string name="ai_list_warn_title">Şübhəli süni intellekt kanallarını etiketlə</string>
@@ -4903,7 +4903,7 @@
     <string name="ai_list_status_pending">Hələ yüklənməyib</string>
     <string name="ai_list_attribution_title">AiSList tərəfindən siyahı</string>
     <string name="ai_list_attribution_summary">CC BY-NC 4.0</string>
-    <string name="ai_list_footer">Hər gün bir dəfə ictimai siyahını yükləyir. Heç bir məlumat göndərilmir.</string>
+    <string name="ai_list_footer">Gündə bir dəfə ictimai siyahıları yükləyir. Heç nə göndərilmir.</string>
     <string name="ai_list_label">Şübhəli Süni İntellekt</string>
     <string name="ai_list_channel_blocked">Bu kanal AiSList blok siyahısındadır</string>
     <string name="ai_list_channel_warned">Bu kanal AiSList xəbərdarlıq siyahısındadır</string>
@@ -5107,4 +5107,16 @@
     <string name="play_on_control_device">%1$s-ı idarə et</string>
     <string name="linked_device_online">%1$s, onlayn</string>
     <string name="tv_rail_playing_on_description">%1$s-da oynadılır: %2$s</string>
+    <string name="ai_music_block_title">Sİ musiqilərini gizlət</string>
+    <string name="ai_music_block_summary">Sİ ifaçılarından mahnılar və albomlar</string>
+    <string name="ai_music_status_count">%1$s ifaçı, yeniləndi: %2$s</string>
+    <string name="ai_music_status_count_now">%1$s ifaçı, indicə yeniləndi</string>
+    <string name="ai_lists_status_count">%1$s kanal və %2$s ifaçı, yeniləndi: %3$s</string>
+    <string name="ai_lists_status_count_now">%1$s kanal və %2$s ifaçı, indicə yeniləndi</string>
+    <string name="ai_music_attribution_soul_title">Soul Over AI tərəfindən musiqi siyahısı</string>
+    <string name="ai_music_attribution_soul_summary">CC BY 4.0, Flow tərəfindən dəyişdirilib</string>
+    <string name="ai_music_attribution_blocker_title">Spotify AI Blocker tərəfindən musiqi siyahısı</string>
+    <string name="ai_music_attribution_blocker_summary">MIT, © CennoxX</string>
+    <string name="ai_music_artist_listed">Bu sənətçi Sİ musiqi siyahısındadır</string>
+    <string name="ai_music_artist_show">Onların musiqisini göstər</string>
 </resources>
