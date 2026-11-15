@@ -4830,4 +4830,9 @@
     <string name="keyboard_shortcut_exit_fullscreen">Wyjdź z pełnego ekranu</string>
     <string name="keyboard_shortcut_faster">Szybciej</string>
     <string name="keyboard_shortcut_slower">Wolniej</string>
+    <string name="subscriptions_sort_most_watched">Najczęściej oglądane</string>
+    <string name="subscriptions_open_channel">Otwórz kanał</string>
+    <string name="subscriptions_pinned_section">Przypięte</string>
+    <string name="subscriptions_pin_channel">Przypnij na początek</string>
+    <string name="subscriptions_unpin_channel">Odepnij</string>
 </resources>
