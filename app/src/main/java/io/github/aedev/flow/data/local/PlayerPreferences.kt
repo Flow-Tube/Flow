@@ -183,6 +183,7 @@ class PlayerPreferences(
         val SHORTS_NAVIGATION_ENABLED = booleanPreferencesKey("shorts_navigation_enabled")
         val BOTTOM_NAV_HIDE_ON_SCROLL = booleanPreferencesKey("bottom_nav_hide_on_scroll")
         val BOTTOM_NAV_LABELS = stringPreferencesKey("bottom_nav_labels")
+        val BOTTOM_NAV_STYLE = stringPreferencesKey("bottom_nav_style")
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
         val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
@@ -1680,6 +1681,23 @@ class PlayerPreferences(
             preferences[Keys.BOTTOM_NAV_LABELS] = labels.name
         }
     }
+
+    val bottomNavStyle: Flow<NavBarStyle> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.BOTTOM_NAV_STYLE]
+                    ?.let { stored -> runCatching { NavBarStyle.valueOf(stored) }.getOrNull() }
+                    ?: NavBarStyle.STANDARD
+            }.distinctUntilChanged()
+
+    suspend fun setBottomNavStyle(style: NavBarStyle) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_STYLE] = style.name
+        }
+    }
+
+    val bottomNavLook: Flow<NavBarLook> =
+        combine(bottomNavStyle, bottomNavLabels) { style, labels -> NavBarLook(style, labels) }.distinctUntilChanged()
 
     // Search keeps its full-screen layout unless this is on.
     val searchShowsNavBar: Flow<Boolean> =
@@ -5634,6 +5652,17 @@ enum class NavBarLabels {
     SELECTED,
     NEVER,
 }
+
+/** A full-width bottom bar, or one floating above the content. */
+enum class NavBarStyle {
+    STANDARD,
+    FLOATING,
+}
+
+data class NavBarLook(
+    val style: NavBarStyle = NavBarStyle.STANDARD,
+    val labels: NavBarLabels = NavBarLabels.ALWAYS,
+)
 
 enum class SharedLinkAction {
     /** Play the video straight away, replacing what plays. */

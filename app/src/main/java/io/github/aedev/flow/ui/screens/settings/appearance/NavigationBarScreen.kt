@@ -22,6 +22,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.NavBarLabels
+import io.github.aedev.flow.data.local.NavBarStyle
 import io.github.aedev.flow.ui.components.layout.navigation.resolveDefaultFlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.visibleFlowTabs
 import io.github.aedev.flow.ui.components.settings.SettingsPage
@@ -41,6 +42,7 @@ internal fun NavigationBarScreen(
     val shortsContent by viewModel.shortsContent.collectAsStateWithLifecycle()
     val hideOnScroll by viewModel.hideNavOnScroll.collectAsStateWithLifecycle()
     val labels by viewModel.navLabels.collectAsStateWithLifecycle()
+    val style by viewModel.navStyle.collectAsStateWithLifecycle()
     val searchShowsBar by viewModel.searchShowsNavBar.collectAsStateWithLifecycle()
     val innerPagesShowBar by viewModel.innerPagesShowNavBar.collectAsStateWithLifecycle()
     val order by viewModel.navTabOrder.collectAsStateWithLifecycle()
@@ -50,6 +52,11 @@ internal fun NavigationBarScreen(
     val visibleTabs = visibleFlowTabs(order, effectiveVisibility)
     val defaultTab = resolveDefaultFlowTab(defaultIndex, order, effectiveVisibility)
     val shortsHiddenSummary = stringResource(R.string.settings_shorts_tab_disabled_summary)
+    val styleOptions =
+        listOf(
+            FlowToggleOption(NavBarStyle.STANDARD, stringResource(R.string.settings_nav_style_standard)),
+            FlowToggleOption(NavBarStyle.FLOATING, stringResource(R.string.settings_nav_style_floating)),
+        )
     val labelOptions =
         listOf(
             FlowToggleOption(NavBarLabels.ALWAYS, stringResource(R.string.settings_nav_labels_always)),
@@ -63,6 +70,7 @@ internal fun NavigationBarScreen(
         highlight = highlight,
     ) {
         group(key = "navigation_bar.style", header = R.string.settings_section_style) {
+            toggleGroup(NavigationBarIndex.style, styleOptions, style, viewModel::setNavStyle)
             toggleGroup(NavigationBarIndex.labels, labelOptions, labels, viewModel::setNavLabels)
         }
         group(key = "navigation_bar.tabs", header = R.string.settings_section_tabs) {
