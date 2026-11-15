@@ -63,7 +63,7 @@ internal fun GitHubRelease.toNightlyReleaseIfNewer(currentRun: Int): AppRelease?
     return AppRelease(
         version = AppVersions.nightly(run),
         tag = tagName,
-        notes = body.orEmpty(),
+        notes = filterNightlyNotes(body.orEmpty(), installedRun = currentRun),
         // The rolling release is edited in place, so its published_at never moves; the APK is new each run.
         publishedAt = (apk.updatedAt ?: publishedAt)?.let { runCatching { Instant.parse(it) }.getOrNull() },
         pageUrl = htmlUrl,
