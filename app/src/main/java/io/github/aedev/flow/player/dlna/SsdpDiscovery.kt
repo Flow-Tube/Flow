@@ -4,92 +4,136 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.SystemClock
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.net.DatagramPacket
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.MulticastSocket
+import java.net.NetworkInterface
+import java.net.SocketTimeoutException
 import java.net.URI
 import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Finds DLNA renderers: sends an SSDP M-SEARCH to 239.255.255.250:1900, collects the AVTransport
- * responses, and fetches each device description to locate its AVTransport control URL.
+ * Finds DLNA renderers: sends SSDP M-SEARCHes to 239.255.255.250:1900 from every local network a
+ * renderer could be on, collects the answers, and fetches each device description to locate its
+ * AVTransport control URL.
  */
 internal class SsdpDiscovery(
     private val http: OkHttpClient,
     private val scope: CoroutineScope,
 ) {
-    private var multicastLock: WifiManager.MulticastLock? = null
-
     /** Searches for [DISCOVERY_TIMEOUT_MS] ms and hands every resolved renderer to [onResolved]. */
-    suspend fun discover(onResolved: (DlnaDevice) -> Unit) {
-        val found = LinkedHashMap<String, DlnaDevice>()
-        val mSearchQuery =
-            buildString {
-                append("M-SEARCH * HTTP/1.1\r\n")
-                append("HOST: $SSDP_ADDR:$SSDP_PORT\r\n")
-                append("MAN: \"ssdp:discover\"\r\n")
-                append("MX: 3\r\n")
-                append("ST: urn:schemas-upnp-org:service:AVTransport:1\r\n")
-                append("\r\n")
-            }.toByteArray(Charsets.UTF_8)
-
+    suspend fun discover(
+        context: Context,
+        onResolved: (DlnaDevice) -> Unit,
+    ) {
+        val lock = acquireMulticastLock(context)
         try {
-            withTimeout(DISCOVERY_TIMEOUT_MS + 1_000L) {
-                MulticastSocket(0).use { socket ->
-                    socket.soTimeout = DISCOVERY_TIMEOUT_MS.toInt()
-                    val group = InetAddress.getByName(SSDP_ADDR)
-                    socket.joinGroup(group)
-
-                    socket.send(
-                        DatagramPacket(mSearchQuery, mSearchQuery.size, group, SSDP_PORT),
-                    )
-
-                    val buf = ByteArray(4096)
-                    val packet = DatagramPacket(buf, buf.size)
-                    val stop = SystemClock.elapsedRealtime() + DISCOVERY_TIMEOUT_MS
-                    while (SystemClock.elapsedRealtime() < stop) {
-                        try {
-                            socket.receive(packet)
-                            val response = String(packet.data, 0, packet.length, Charsets.UTF_8)
-                            parseSSDP(response)?.let { raw ->
-                                if (!found.containsKey(raw.usn)) {
-                                    found[raw.usn] = raw
-                                    scope.launch { resolveDevice(raw)?.let(onResolved) }
-                                }
-                            }
-                        } catch (_: Exception) {
-                            // timeout on receive is normal
-                        }
+            val sources = CastNetwork.discoveryInterfaces(CastNetwork.localAddresses())
+            Log.i(TAG, "SSDP search on ${sources.joinToString { "${it.interfaceName}=${it.ip}" }.ifEmpty { "default route" }}")
+            val found = ConcurrentHashMap<String, DlnaDevice>()
+            withTimeoutOrNull(DISCOVERY_TIMEOUT_MS + 1_000L) {
+                coroutineScope {
+                    sources.ifEmpty { listOf(null) }.forEach { source ->
+                        launch { searchFrom(source, found, onResolved) }
                     }
-                    socket.leaveGroup(group)
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "SSDP discovery error: ${e.message}")
+        } finally {
+            lock?.let { if (it.isHeld) it.release() }
         }
     }
 
-    fun acquireMulticastLock(context: Context) {
-        val wifiManager =
-            context.applicationContext
-                .getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
-        multicastLock =
-            wifiManager.createMulticastLock("flow_dlna_discovery").also {
-                it.setReferenceCounted(true)
-                it.acquire()
+    private suspend fun searchFrom(
+        source: LocalIpv4?,
+        found: ConcurrentHashMap<String, DlnaDevice>,
+        onResolved: (DlnaDevice) -> Unit,
+    ) {
+        try {
+            val socket =
+                source?.let { MulticastSocket(InetSocketAddress(InetAddress.getByName(it.ip), 0)) } ?: MulticastSocket(0)
+            try {
+                source?.let { NetworkInterface.getByName(it.interfaceName) }?.let(socket::setNetworkInterface)
+                socket.soTimeout = RECEIVE_POLL_MS
+                receiveAnswers(socket, source, found, onResolved)
+            } finally {
+                socket.close()
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "SSDP discovery error on ${source?.interfaceName ?: "default route"}: ${e.message}")
+        }
     }
 
-    fun releaseMulticastLock() {
-        multicastLock?.let { if (it.isHeld) it.release() }
-        multicastLock = null
+    private suspend fun receiveAnswers(
+        socket: MulticastSocket,
+        source: LocalIpv4?,
+        found: ConcurrentHashMap<String, DlnaDevice>,
+        onResolved: (DlnaDevice) -> Unit,
+    ) {
+        val group = InetAddress.getByName(SSDP_ADDR)
+        val buffer = ByteArray(4096)
+        val packet = DatagramPacket(buffer, buffer.size)
+        val start = SystemClock.elapsedRealtime()
+        var sent = 0
+        while (SystemClock.elapsedRealtime() < start + DISCOVERY_TIMEOUT_MS) {
+            currentCoroutineContext().ensureActive()
+            // Resent because a single UDP packet is easily lost on a busy hotspot.
+            if (sent < SEARCH_ROUNDS && SystemClock.elapsedRealtime() >= start + sent * SEARCH_INTERVAL_MS) {
+                SEARCH_TARGETS.forEach { target ->
+                    val query = mSearch(target)
+                    socket.send(DatagramPacket(query, query.size, group, SSDP_PORT))
+                }
+                sent++
+            }
+            val response =
+                try {
+                    // receive() shrinks the packet to the last answer, which would cut longer ones.
+                    packet.length = buffer.size
+                    socket.receive(packet)
+                    String(packet.data, 0, packet.length, Charsets.UTF_8)
+                } catch (_: SocketTimeoutException) {
+                    null
+                }
+            val raw = response?.let(::parseSSDP)?.copy(localHost = source?.ip)
+            // A renderer answers every round and every search target, under one uuid.
+            if (raw != null && found.putIfAbsent(raw.usn.substringBefore("::"), raw) == null) {
+                scope.launch { resolveDevice(raw)?.let(onResolved) }
+            }
+        }
+    }
+
+    private fun mSearch(target: String): ByteArray =
+        buildString {
+            append("M-SEARCH * HTTP/1.1\r\n")
+            append("HOST: $SSDP_ADDR:$SSDP_PORT\r\n")
+            append("MAN: \"ssdp:discover\"\r\n")
+            append("MX: 3\r\n")
+            append("ST: $target\r\n")
+            append("\r\n")
+        }.toByteArray(Charsets.UTF_8)
+
+    private fun acquireMulticastLock(context: Context): WifiManager.MulticastLock? {
+        val wifiManager =
+            context.applicationContext
+                .getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return null
+        return wifiManager.createMulticastLock("flow_dlna_discovery").also {
+            it.setReferenceCounted(false)
+            it.acquire()
+        }
     }
 
     private fun parseSSDP(response: String): DlnaDevice? {
@@ -215,5 +259,15 @@ internal class SsdpDiscovery(
         const val SSDP_ADDR = "239.255.255.250"
         const val SSDP_PORT = 1900
         const val DISCOVERY_TIMEOUT_MS = 5_000L
+        const val RECEIVE_POLL_MS = 250
+        const val SEARCH_ROUNDS = 3
+        const val SEARCH_INTERVAL_MS = 1_000L
+
+        // Some renderers answer only the device type, others only the service.
+        val SEARCH_TARGETS =
+            listOf(
+                "urn:schemas-upnp-org:service:AVTransport:1",
+                "urn:schemas-upnp-org:device:MediaRenderer:1",
+            )
     }
 }

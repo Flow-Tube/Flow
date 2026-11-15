@@ -1,7 +1,5 @@
 package io.github.aedev.flow.player.dlna
 
-import android.content.Context
-import android.net.wifi.WifiManager
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,11 +40,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Usage:
  *   val proxy = StreamProxyServer.getInstance()
- *   proxy.start(context)
+ *   proxy.start()
  *   // Single stream:
- *   val localUrl = proxy.registerStream(youtubeStreamUrl, contentType)
+ *   val localUrl = proxy.registerStream(youtubeStreamUrl, host, contentType)
  *   // HLS (multiple video qualities + audio):
- *   val m3u8 = proxy.registerHlsCast(videoVariants, audioUrl, ...)
+ *   val m3u8 = proxy.registerHlsCast(host, videoVariants, audioUrl, ...)
  *   proxy.stop()
  */
 class StreamProxyServer private constructor() {
@@ -77,7 +75,6 @@ class StreamProxyServer private constructor() {
 
     private var serverSocket: ServerSocket? = null
     private val isRunning = AtomicBoolean(false)
-    private var localAddress: String = "127.0.0.1"
     private var localPort: Int = 0
 
     /**
@@ -99,10 +96,8 @@ class StreamProxyServer private constructor() {
      * Starts the proxy server on a random available port.
      * Must be called before registerStream().
      */
-    fun start(context: Context) {
+    fun start() {
         if (isRunning.get()) return
-
-        localAddress = getDeviceIpAddress(context)
 
         scope.launch {
             try {
@@ -110,7 +105,7 @@ class StreamProxyServer private constructor() {
                 localPort = serverSocket!!.localPort
                 isRunning.set(true)
 
-                Log.i(TAG, "Proxy started at http://$localAddress:$localPort")
+                Log.i(TAG, "Proxy started on port $localPort")
 
                 while (isRunning.get()) {
                     try {
@@ -153,11 +148,13 @@ class StreamProxyServer private constructor() {
      * that can be sent to DLNA devices.
      *
      * @param realUrl The actual googlevideo.com stream URL
+     * @param host This phone's address on the renderer's network
      * @param contentType MIME type (e.g., "video/mp4", "audio/mp4")
      * @return Local URL like "http://192.168.1.5:8080/s/abc123.mp4"
      */
     fun registerStream(
         realUrl: String,
+        host: String,
         contentType: String = "video/mp4",
     ): String {
         if (!isRunning.get()) {
@@ -176,7 +173,7 @@ class StreamProxyServer private constructor() {
 
         streams[path] = StreamEntry(realUrl, contentType, contentLength)
 
-        val proxyUrl = "http://$localAddress:$localPort$path"
+        val proxyUrl = "http://$host:$localPort$path"
         Log.i(TAG, "Registered stream: $proxyUrl → ${realUrl.take(80)}...")
         return proxyUrl
     }
@@ -186,6 +183,7 @@ class StreamProxyServer private constructor() {
     /**
      * Registers multiple video quality variants + audio and generates an HLS
      * master playlist (.m3u8) that the DLNA renderer fetches.
+     * @param host          This phone's address on the renderer's network
      * @param videoVariants List of video quality options (360p, 720p, 1080p, etc.)
      * @param audioUrl      Direct audio-only stream URL (googlevideo.com)
      * @param audioMime     MIME type of the audio stream
@@ -195,6 +193,7 @@ class StreamProxyServer private constructor() {
      * @return Local URL to the generated master .m3u8 playlist
      */
     fun registerHlsCast(
+        host: String,
         videoVariants: List<CastStreamVariant>,
         audioUrl: String,
         audioMime: String = "audio/mp4",
@@ -216,14 +215,14 @@ class StreamProxyServer private constructor() {
         val durationSec = if (durationSeconds > 0) durationSeconds else 7200
         val targetDuration = durationSec + 1
 
-        val proxyAudioUrl = registerStream(audioUrl, audioMime)
+        val proxyAudioUrl = registerStream(audioUrl, host, audioMime)
         val audioMediaPath = "/h/audio_$sessionId.m3u8"
         val audioMediaPlaylist =
             audioSegmentRanges?.let { CastPlaylists.buildSegmentedMediaPlaylist(http, proxyAudioUrl, audioUrl, audioMime, it) }
                 ?: CastPlaylists.buildMediaPlaylist(proxyAudioUrl, durationSec, targetDuration)
         hlsPlaylists[audioMediaPath] = audioMediaPlaylist
 
-        val audioMediaUrl = "http://$localAddress:$localPort$audioMediaPath"
+        val audioMediaUrl = "http://$host:$localPort$audioMediaPath"
 
         data class VariantEntry(
             val mediaUrl: String,
@@ -233,7 +232,7 @@ class StreamProxyServer private constructor() {
 
         val variantEntries =
             videoVariants.mapIndexed { index, variant ->
-                val proxyVideoUrl = registerStream(variant.url, variant.mime)
+                val proxyVideoUrl = registerStream(variant.url, host, variant.mime)
                 val videoMediaPath = "/h/v${variant.height}p_${sessionId}_$index.m3u8"
                 val videoMediaPlaylist =
                     variant.segmentRanges?.let {
@@ -241,7 +240,7 @@ class StreamProxyServer private constructor() {
                     } ?: CastPlaylists.buildMediaPlaylist(proxyVideoUrl, durationSec, targetDuration)
                 hlsPlaylists[videoMediaPath] = videoMediaPlaylist
 
-                val videoMediaUrl = "http://$localAddress:$localPort$videoMediaPath"
+                val videoMediaUrl = "http://$host:$localPort$videoMediaPath"
                 VariantEntry(videoMediaUrl, variant, proxyVideoUrl)
             }
 
@@ -256,7 +255,7 @@ class StreamProxyServer private constructor() {
         val masterPath = "/h/master_$sessionId.m3u8"
         hlsPlaylists[masterPath] = masterPlaylist
 
-        val masterUrl = "http://$localAddress:$localPort$masterPath"
+        val masterUrl = "http://$host:$localPort$masterPath"
         Log.i(
             TAG,
             "Registered HLS cast: $masterUrl " +
@@ -537,46 +536,6 @@ class StreamProxyServer private constructor() {
             Log.d(TAG, "Content length probe failed: ${e.message}")
             -1
         }
-
-    private fun getDeviceIpAddress(context: Context): String {
-        try {
-            val wifiManager =
-                context.applicationContext
-                    .getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            val wifiInfo = wifiManager?.connectionInfo
-            val ip = wifiInfo?.ipAddress ?: 0
-            if (ip != 0) {
-                return String.format(
-                    "%d.%d.%d.%d",
-                    ip and 0xff,
-                    (ip shr 8) and 0xff,
-                    (ip shr 16) and 0xff,
-                    (ip shr 24) and 0xff,
-                )
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to get WiFi IP", e)
-        }
-
-        try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
-            while (interfaces.hasMoreElements()) {
-                val networkInterface = interfaces.nextElement()
-                if (networkInterface.isLoopback || !networkInterface.isUp) continue
-                val addresses = networkInterface.inetAddresses
-                while (addresses.hasMoreElements()) {
-                    val addr = addresses.nextElement()
-                    if (addr is java.net.Inet4Address && !addr.isLoopbackAddress) {
-                        return addr.hostAddress ?: continue
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to enumerate interfaces", e)
-        }
-
-        return "127.0.0.1"
-    }
 
     private fun readLine(input: InputStream): String? {
         val sb = StringBuilder()

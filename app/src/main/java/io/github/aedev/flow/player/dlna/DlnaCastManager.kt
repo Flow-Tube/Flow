@@ -21,6 +21,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.VideoStream
+import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
@@ -90,16 +91,14 @@ object DlnaCastManager {
         _devices.value = emptyList()
 
         // Start the proxy server when discovery begins
-        proxy.start(context)
+        proxy.start()
 
         discoveryJob =
             scope.launch {
                 _isDiscovering.value = true
-                discovery.acquireMulticastLock(context)
                 try {
-                    discovery.discover(::addResolvedDevice)
+                    discovery.discover(context, ::addResolvedDevice)
                 } finally {
-                    discovery.releaseMulticastLock()
                     _isDiscovering.value = false
                 }
             }
@@ -108,13 +107,12 @@ object DlnaCastManager {
     fun stopDiscovery() {
         discoveryJob?.cancel()
         discoveryJob = null
-        discovery.releaseMulticastLock()
         _isDiscovering.value = false
     }
 
     private fun addResolvedDevice(resolved: DlnaDevice) {
         val current = _devices.value.toMutableList()
-        val idx = current.indexOfFirst { it.usn == resolved.usn }
+        val idx = current.indexOfFirst { it.usn.substringBefore("::") == resolved.usn.substringBefore("::") }
         if (idx >= 0) current[idx] = resolved else current.add(resolved)
         _devices.value = current
     }
@@ -209,6 +207,7 @@ object DlnaCastManager {
         castJob?.cancel()
         castJob =
             scope.launch {
+                val host = castHost(device)
                 for (mode in ladder) {
                     val (variants, audioRanges) =
                         when (mode) {
@@ -223,11 +222,12 @@ object DlnaCastManager {
                             when (mode) {
                                 CastMode.MUXED -> {
                                     val type = guessContentType(muxedUrl!!, "video/mp4")
-                                    proxy.registerStream(muxedUrl, type) to type
+                                    proxy.registerStream(muxedUrl, host, type) to type
                                 }
 
                                 else -> {
                                     proxy.registerHlsCast(
+                                        host = host,
                                         videoVariants = variants,
                                         audioUrl = audioUrl!!,
                                         audioMime = audioMime,
@@ -259,6 +259,14 @@ object DlnaCastManager {
                 _currentDevice.value = null
             }
     }
+
+    /** The address the renderer can reach this phone on, for the stream URLs it is handed. */
+    private fun castHost(device: DlnaDevice): String =
+        CastNetwork.advertisedHostFor(
+            rendererIp = runCatching { URL(device.location).host }.getOrNull(),
+            addresses = CastNetwork.localAddresses(),
+            answeredOn = device.localHost,
+        ) ?: "127.0.0.1"
 
     private suspend fun startCast(
         device: DlnaDevice,
