@@ -40,6 +40,7 @@ internal fun ContentSettingsScreen(
     val hideWatchedHome by viewModel.hideWatchedHome.collectAsStateWithLifecycle()
     val hideWatchedSubs by viewModel.hideWatchedSubs.collectAsStateWithLifecycle()
     val hideWatchedShorts by viewModel.hideWatchedShorts.collectAsStateWithLifecycle()
+    val hideWatchedSuggestions by viewModel.hideWatchedSuggestions.collectAsStateWithLifecycle()
     val removeWatchedWatchLater by viewModel.removeWatchedWatchLater.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -106,7 +107,8 @@ internal fun ContentSettingsScreen(
             switch(ContentIndex.removeWatchedWatchLater, viewModel.removeWatchedWatchLater, viewModel::setRemoveWatchedWatchLater)
         }
         group(key = "content.watched", header = R.string.settings_section_watched) {
-            if (hideWatchedHome || hideWatchedSubs || hideWatchedShorts || removeWatchedWatchLater) {
+            switch(ContentIndex.hideWatchedSuggestions, viewModel.hideWatchedSuggestions, viewModel::setHideWatchedSuggestions)
+            if (hideWatchedHome || hideWatchedSubs || hideWatchedShorts || hideWatchedSuggestions || removeWatchedWatchLater) {
                 choice(ContentIndex.watchedThreshold, onClick = { showThresholdDialog = true }) {
                     val threshold by viewModel.watchedThreshold.collectAsStateWithLifecycle()
                     watchedThresholdLabel(threshold)

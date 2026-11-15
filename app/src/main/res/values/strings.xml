@@ -1413,6 +1413,8 @@
     <string name="content_settings_channel_shorts_tab_subtitle">Keep a channel\'s Shorts tab while Shorts are hidden</string>
     <string name="content_settings_hide_watched_shorts_title">Hide watched Shorts</string>
     <string name="content_settings_hide_watched_shorts_subtitle">Keep Shorts you finished out of shelves and the Shorts feed</string>
+    <string name="content_settings_hide_watched_suggestions_title">Hide watched videos from suggestions</string>
+    <string name="content_settings_hide_watched_suggestions_subtitle">Keep them out of Up next and autoplay</string>
     <string name="content_settings_header_content_components">Content Components</string>
     <string name="content_settings_restored_music_mini_player_title">Show restored music mini player</string>
     <string name="content_settings_restored_music_mini_player_subtitle">Show your last music session after it\'s restored</string>

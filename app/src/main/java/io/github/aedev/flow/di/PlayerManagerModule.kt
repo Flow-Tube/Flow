@@ -15,6 +15,8 @@ import io.github.aedev.flow.player.FeedExclusionsSource
 import io.github.aedev.flow.player.LocalCaptionSource
 import io.github.aedev.flow.player.LocalCaptions
 import io.github.aedev.flow.player.LocalCopySource
+import io.github.aedev.flow.player.WatchedSuggestions
+import io.github.aedev.flow.player.WatchedSuggestionsSource
 import io.github.aedev.flow.player.shorts.ShortsPlayerPool
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
@@ -42,6 +44,7 @@ object PlayerManagerModule {
         neuroEngine: Lazy<FlowNeuroEngine>,
         localSubtitles: Lazy<LocalSubtitles>,
         offlineSubtitleStore: Lazy<OfflineSubtitleStore>,
+        watchedSuggestions: Lazy<WatchedSuggestions>,
     ): EnhancedPlayerManager =
         EnhancedPlayerManager.getInstance().also {
             it.localCopySource =
@@ -56,6 +59,7 @@ object PlayerManagerModule {
                     LocalCaptions(own + subtitles.picked(videoId), subtitles.offsetMs(videoId))
                 }
             it.feedExclusionsSource = FeedExclusionsSource { neuroEngine.get().feedExclusions() }
+            it.watchedSuggestionsSource = WatchedSuggestionsSource { videos -> watchedSuggestions.get().watchedAmong(videos) }
         }
 
     @Provides

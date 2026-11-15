@@ -345,6 +345,7 @@ class PlayerPreferences(
         val HIDE_WATCHED_HOME_FEED = booleanPreferencesKey("hide_watched_home_feed")
         val HIDE_WATCHED_SUBSCRIPTIONS = booleanPreferencesKey("hide_watched_subscriptions")
         val HIDE_WATCHED_SHORTS = booleanPreferencesKey("hide_watched_shorts")
+        val HIDE_WATCHED_SUGGESTIONS = booleanPreferencesKey("hide_watched_suggestions")
         val WATCHED_THRESHOLD = stringPreferencesKey("watched_threshold")
         val COUNT_IMPORTED_AS_WATCHED = booleanPreferencesKey("count_imported_as_watched")
         val SHARED_LINK_ACTION = stringPreferencesKey("shared_link_action")
@@ -3659,6 +3660,17 @@ class PlayerPreferences(
     suspend fun setHideWatchedShorts(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.HIDE_WATCHED_SHORTS] = enabled
+        }
+    }
+
+    /** Watched videos leave the suggestions under the player, and with them autoplay and the queue. */
+    val hideWatchedSuggestions: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.HIDE_WATCHED_SUGGESTIONS] ?: false }
+
+    suspend fun setHideWatchedSuggestions(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.HIDE_WATCHED_SUGGESTIONS] = enabled
         }
     }
 
