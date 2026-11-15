@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
+import io.github.aedev.flow.data.local.NavBarLabels
 import io.github.aedev.flow.ui.utils.LocalWindowIsLandscape
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
 import io.github.aedev.flow.ui.utils.isExpandedWidth
@@ -78,6 +79,7 @@ fun FlowNavigationChrome(
     railVisible: Boolean,
     modifier: Modifier = Modifier,
     barScrollState: FlowNavigationScrollState? = null,
+    barLabels: NavBarLabels = NavBarLabels.ALWAYS,
     onBarHeightChanged: (Dp) -> Unit = {},
     onRailWidthChanged: (Dp) -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
@@ -120,6 +122,7 @@ fun FlowNavigationChrome(
                     onTabSelected = onTabSelected,
                     visible = barVisible,
                     scrollState = barScrollState,
+                    labels = barLabels,
                     onHeightChanged = onBarHeightChanged,
                 )
             }
@@ -134,6 +137,7 @@ private fun BoxScope.NavigationBarSlot(
     onTabSelected: (FlowTab) -> Unit,
     visible: Boolean,
     scrollState: FlowNavigationScrollState?,
+    labels: NavBarLabels,
     onHeightChanged: (Dp) -> Unit,
 ) {
     val density = LocalDensity.current
@@ -149,6 +153,7 @@ private fun BoxScope.NavigationBarSlot(
             tabs = tabs,
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
+            labels = labels,
             modifier =
                 Modifier
                     .testTag(FLOW_NAV_BAR_TAG)

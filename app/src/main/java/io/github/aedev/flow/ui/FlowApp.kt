@@ -124,6 +124,7 @@ fun FlowApp(
     val defaultNavTabIndex by preferences.defaultNavTabIndex.collectAsState(initial = 0)
     val subscriptionRefreshOnStartup by preferences.subscriptionRefreshOnStartup.collectAsState(initial = false)
     val bottomNavHideOnScroll by preferences.bottomNavHideOnScroll.collectAsState(initial = true)
+    val bottomNavLabels by preferences.bottomNavLabels.collectAsState(initial = io.github.aedev.flow.data.local.NavBarLabels.ALWAYS)
     val searchShowsNavBar by preferences.searchShowsNavBar.collectAsState(initial = false)
     val innerPagesShowNavBar by preferences.innerPagesShowNavBar.collectAsState(initial = false)
     val sleepTimerCloseAppOnExpiry by preferences.sleepTimerCloseAppOnExpiry.collectAsState(
@@ -438,6 +439,7 @@ fun FlowApp(
             },
             barVisible = showBottomNav,
             barScrollState = navScrollState,
+            barLabels = bottomNavLabels,
             railVisible = isNavigationRailVisible,
             onBarHeightChanged = { navigationBarHeight = it },
             onRailWidthChanged = { navigationRailWidth = it },
