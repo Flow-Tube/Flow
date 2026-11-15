@@ -4,8 +4,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** The list id the app asks for; it is inside the signed payload, so another list cannot stand in for it. */
+/** The list ids the app asks for; each is inside its signed payload, so one list cannot stand in for another. */
 internal const val AI_LIST_ID = "aislist"
+internal const val AI_MUSIC_LIST_ID = "aimusic"
 
 /** The highest manifest schema this client understands. */
 internal const val AI_LIST_SCHEMA = 1
@@ -91,8 +92,12 @@ internal data class StoredAiList(
     val block: AiListEntries = AiListEntries(),
     val warn: AiListEntries = AiListEntries(),
 ) {
+    /**
+     * Entries per list, counting a channel once although the pipeline publishes both its handle and
+     * its resolved ID: the larger of the two sets, so a list of IDs only (the music list) counts too.
+     */
     val channelCount: Int
-        get() = block.handles.size + block.ids.size + warn.handles.size + warn.ids.size
+        get() = maxOf(block.handles.size, block.ids.size) + maxOf(warn.handles.size, warn.ids.size)
 }
 
 /** Removes first, then adds, as the contract orders; applying a delta twice changes nothing. */

@@ -45,3 +45,19 @@ class AiListStoreTest {
         assertThat(store.exists()).isFalse()
     }
 }
+
+class StoredAiListCountTest {
+    @Test
+    fun `a channel listed by handle and resolved id counts once, and an id-only list counts its ids`() {
+        val channels =
+            StoredAiList(
+                version = 1,
+                block = AiListEntries(handles = listOf("a", "b", "c"), ids = listOf("UC1", "UC2")),
+                warn = AiListEntries(handles = listOf("d")),
+            )
+        val music = StoredAiList(version = 1, block = AiListEntries(ids = listOf("UC1", "UC2")))
+
+        assertThat(channels.channelCount).isEqualTo(4)
+        assertThat(music.channelCount).isEqualTo(2)
+    }
+}
