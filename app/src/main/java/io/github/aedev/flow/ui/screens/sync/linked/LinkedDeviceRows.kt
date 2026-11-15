@@ -27,6 +27,7 @@ private enum class AddWay { SHOW_CODE, SCAN_CODE }
 @Composable
 internal fun LinkedDeviceRows(
     devices: List<LinkedDevice>,
+    presence: Map<String, DevicePresence>,
     nearby: Map<String, Long>,
     kinds: Map<String, String>,
     busy: Boolean,
@@ -48,7 +49,7 @@ internal fun LinkedDeviceRows(
                 FlowNavRow(
                     title = device.name,
                     onClick = { open = device.id },
-                    supportingText = deviceStatus(device, nearby),
+                    supportingText = deviceStatus(device, presence, nearby),
                     leadingIcon = deviceKindIcon(kinds[device.id], device.platform),
                     enabled = !busy,
                     shape = shape,
@@ -99,7 +100,7 @@ internal fun LinkedDeviceRows(
     devices.firstOrNull { it.id == open }?.let { device ->
         LinkedDeviceSheet(
             device = device,
-            status = deviceStatus(device, nearby),
+            status = deviceStatus(device, presence, nearby),
             icon = deviceKindIcon(kinds[device.id], device.platform),
             devices = devices,
             consent = consent[device.id],
@@ -112,17 +113,41 @@ internal fun LinkedDeviceRows(
     }
 }
 
-/** One line on what a device is and when it last synced. */
+/** One line on what a device is doing, or when it last synced. */
 @Composable
 internal fun deviceStatus(
     device: LinkedDevice,
+    presence: Map<String, DevicePresence>,
     nearby: Map<String, Long>,
 ): String =
-    when {
-        device.thisDevice -> stringResource(R.string.linked_this_device)
-        device.id in nearby -> stringResource(R.string.linked_device_nearby, device.platform, synced(nearby.getValue(device.id)))
-        device.seen != null -> stringResource(R.string.linked_device_synced, device.platform, synced(device.seen))
-        else -> device.platform
+    when (val status = deviceStatusOf(device, presence, nearby)) {
+        DeviceStatus.ThisDevice -> {
+            stringResource(R.string.linked_this_device)
+        }
+
+        is DeviceStatus.Playing -> {
+            if (status.title.isBlank()) {
+                stringResource(R.string.status_playing)
+            } else {
+                stringResource(R.string.play_on_status_playing, status.title)
+            }
+        }
+
+        is DeviceStatus.Online -> {
+            stringResource(R.string.linked_device_online, status.platform)
+        }
+
+        is DeviceStatus.Nearby -> {
+            stringResource(R.string.linked_device_nearby, status.platform, synced(status.at))
+        }
+
+        is DeviceStatus.Synced -> {
+            stringResource(R.string.linked_device_synced, status.platform, synced(status.at))
+        }
+
+        is DeviceStatus.Platform -> {
+            status.platform
+        }
     }
 
 internal fun synced(atMs: Long): String = DateUtils.getRelativeTimeSpanString(atMs).toString()

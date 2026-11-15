@@ -88,6 +88,7 @@ class LanSync
         private val live: LiveChannel,
         private val devices: LiveDevices,
         private val autoSync: AutoSync,
+        private val met: LanMet,
         @ApplicationScope private val scope: CoroutineScope,
     ) {
         private val open = ConcurrentHashMap.newKeySet<String>()
@@ -372,9 +373,13 @@ class LanSync
             envelope: ByteArray? = null,
         ): LanLink {
             converse(link, session, envelope = envelope)
-            seen.update { it + (link.peer to System.currentTimeMillis()) }
+            val at = System.currentTimeMillis()
+            seen.update { it + (link.peer to at) }
             Log.i(TAG, said)
-            if (autoSync.allows(SyncTrigger.LAN_MEETING)) sync.syncNow()
+            if (autoSync.allows(SyncTrigger.LAN_MEETING)) {
+                sync.syncNow()
+                group?.let { met.met(it, link.peer, at) }
+            }
             return link
         }
 

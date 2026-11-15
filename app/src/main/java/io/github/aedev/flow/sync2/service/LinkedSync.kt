@@ -116,10 +116,22 @@ class LinkedSync
             record: GroupRecord,
             device: MemberSecrets,
         ): Remote? {
-            val folder = record.webDavUrl ?: return server(record, device)
-            val login = credentials.webDav()?.takeIf { !it.refused } ?: throw StoreException.LoginRefused()
-            return FileLayout(WebDavStore.connect(folder, login.user, login.password, login.conditional), SyncBytes.toHex(device.did))
+            val folder = folder(record) ?: return server(record, device)
+            return FileLayout(folder, SyncBytes.toHex(device.did))
         }
+
+        /** The group's WebDAV folder with the saved login, or null for a group elsewhere. */
+        private suspend fun folder(record: GroupRecord): WebDavStore? {
+            val url = record.webDavUrl ?: return null
+            val login = credentials.webDav()?.takeIf { !it.refused } ?: throw StoreException.LoginRefused()
+            return WebDavStore.connect(url, login.user, login.password, login.conditional)
+        }
+
+        /** When the group's store last heard from each device: its Flow server, or its WebDAV folder; null for a group with neither. */
+        suspend fun seen(
+            record: GroupRecord,
+            device: MemberSecrets,
+        ): Map<String, Long>? = folder(record)?.seen() ?: server(record, device)?.seen()
 
         suspend fun groupStore(
             record: GroupRecord,

@@ -20,6 +20,7 @@ import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.contestSides
 import io.github.aedev.flow.sync2.engine.loginWaiting
+import io.github.aedev.flow.sync2.lan.LanMet
 import io.github.aedev.flow.sync2.lan.LanSync
 import io.github.aedev.flow.sync2.lan.lanPort
 import io.github.aedev.flow.sync2.linking.Code
@@ -102,7 +103,7 @@ data class LinkedDevice(
     val thisDevice: Boolean,
     /** It set the current recovery key, so its leaving stops the others writing. */
     val setRecoveryKey: Boolean = false,
-    /** When the server last heard from it; null in a group without a server. */
+    /** When it last synced, as far as this device knows: its group's server or WebDAV folder, or a session on this network. */
     val seen: Long? = null,
 )
 
@@ -118,6 +119,7 @@ class LinkedActions
         private val identity: DeviceIdentity,
         private val local: LocalStore,
         lan: LanSync,
+        private val lanMet: LanMet,
         private val reset: LinkedReset,
         private val credentials: StoreCredentials,
         private val profiles: LinkedProfiles,
@@ -161,16 +163,18 @@ class LinkedActions
             // The status is extra; the devices still show without it.
             val seen =
                 try {
-                    sync.server(session.record, session.device)?.seen()
+                    sync.seen(session.record, session.device)
                 } catch (_: StoreException) {
                     null
                 }.orEmpty()
+            val met = lanMet.times(session.record.groupId)
             val installer = recoveryMember(session.state.members)?.value?.installer
             return session.state.members
                 .filterValues { it.role == Role.DEVICE }
                 .keys
                 .map { id ->
-                    LinkedDevice(id, names[id]?.name.orEmpty(), names[id]?.platform.orEmpty(), id == me, id == installer, seen[id])
+                    val synced = listOfNotNull(seen[id], met[id]).maxOrNull()
+                    LinkedDevice(id, names[id]?.name.orEmpty(), names[id]?.platform.orEmpty(), id == me, id == installer, synced)
                 }.sortedByDescending { it.thisDevice }
         }
 

@@ -33,7 +33,7 @@ internal fun LinkedDevicesSection(
     val consent by viewModel.consent.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val autoSync by viewModel.autoSyncOn.collectAsStateWithLifecycle()
-    // Each finished sync may have changed the devices and when the server last heard from them.
+    // Each finished sync may have changed the devices and when each last synced.
     LaunchedEffect(state.linked, state.lastSync?.atMs) { if (state.linked) viewModel.refreshDevices() }
     // Devices asking to join with the admin token show up while this screen is open.
     LaunchedEffect(state.linked, state.storeUrl) {
