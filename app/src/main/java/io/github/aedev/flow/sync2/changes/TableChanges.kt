@@ -3,7 +3,11 @@ package io.github.aedev.flow.sync2.changes
 import androidx.room.InvalidationTracker
 import io.github.aedev.flow.data.local.AppDatabase
 import io.github.aedev.flow.di.ProfileDb
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.update
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -21,6 +25,7 @@ class TableChanges
     ) {
         private val changed = MutableStateFlow(COLLECTION_TABLES.keys)
         private val watching = AtomicBoolean(false)
+        private val invalidated = MutableSharedFlow<Set<String>>(extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
         private val observer =
             object : InvalidationTracker.Observer(
                 COLLECTION_TABLES.values
@@ -29,13 +34,22 @@ class TableChanges
                     .toTypedArray(),
             ) {
                 override fun onInvalidated(tables: Set<String>) {
-                    changed.update { it + collectionsOf(tables) }
+                    val collections = collectionsOf(tables)
+                    changed.update { it + collections }
+                    invalidated.tryEmit(collections)
                 }
             }
 
+        /** The tracked collections whose tables change, as they change. */
+        val changes: Flow<Set<String>> = invalidated.onSubscription { watch() }
+
+        private fun watch() {
+            if (watching.compareAndSet(false, true)) db.invalidationTracker.addObserver(observer)
+        }
+
         /** The tracked collections whose tables stayed as they were since their last export. */
         fun unchanged(): Set<String> {
-            if (watching.compareAndSet(false, true)) db.invalidationTracker.addObserver(observer)
+            watch()
             return COLLECTION_TABLES.keys - changed.value
         }
 

@@ -17,14 +17,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Ties linked sync to the app being in use. Live messages, the live socket and LAN sessions run while
- * the app is in the foreground or playing, and stop otherwise to spare the battery; what changed here
- * leaves as soon as the app goes to the background.
+ * the app is in the foreground or playing, and stop otherwise to spare the battery. What changes here
+ * goes out soon after while the app is in the foreground, and the rest as soon as it goes to the background.
  */
 @Singleton
 class LinkedForeground
@@ -37,6 +38,7 @@ class LinkedForeground
         private val now: NowPlaying,
         private val handoff: Handoff,
         private val remote: RemoteDriver,
+        private val push: LinkedPush,
         @ApplicationScope private val scope: CoroutineScope,
     ) : DefaultLifecycleObserver {
         private val foreground = MutableStateFlow(false)
@@ -48,6 +50,11 @@ class LinkedForeground
                 combine(foreground, now.playing) { shown, playing -> shown || playing }
                     .distinctUntilChanged()
                     .collectLatest { active -> if (active) runLive() }
+            }
+            scope.launch {
+                combine(foreground, db.groups().observeGroup().map { it != null }) { shown, linked -> shown && linked }
+                    .distinctUntilChanged()
+                    .collectLatest { pushing -> if (pushing) push.run() }
             }
         }
 
