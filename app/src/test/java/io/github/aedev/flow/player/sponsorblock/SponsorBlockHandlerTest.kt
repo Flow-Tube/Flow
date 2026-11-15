@@ -48,6 +48,26 @@ class SponsorBlockHandlerTest {
         assertThat(handler.checkForSkip(156_700L)).isEqualTo(157_200L)
     }
 
+    @Test
+    fun `overlapping opening segments skip together and again after a rewind to the start`() {
+        val handler =
+            SponsorBlockHandler(CoroutineScope(UnconfinedTestDispatcher())).apply {
+                setEnabled(true)
+                loadSegmentsFromList(
+                    "9b8erWuBA44",
+                    listOf(
+                        SponsorBlockSegment("intro", listOf(0f, 36.996f), "intro-id", "skip"),
+                        SponsorBlockSegment("music_offtopic", listOf(0f, 36.983f), "music-id", "skip"),
+                    ),
+                )
+                categoryActions = mapOf("intro" to SponsorBlockAction.SKIP_BUTTON)
+            }
+
+        assertThat(handler.checkForSkip(0L)).isEqualTo(36_996L)
+        assertThat(handler.checkForSkip(36_990L)).isNull()
+        assertThat(handler.checkForSkip(200L)).isEqualTo(36_996L)
+    }
+
     private fun segment(
         category: String,
         start: Float,
