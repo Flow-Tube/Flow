@@ -1,6 +1,5 @@
-package io.github.aedev.flow.sync
+package io.github.aedev.flow.utils
 
-import io.github.aedev.flow.sync.transport.LanAddress
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

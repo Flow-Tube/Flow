@@ -6,27 +6,27 @@ import androidx.media3.extractor.ChunkIndex
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
-class StreamProxyServerTest {
+class CastPlaylistsTest {
     @Test
     fun `video streams get an mp4 segment extension`() {
-        assertThat(StreamProxyServer.segmentFileExtension("video/mp4")).isEqualTo("mp4")
+        assertThat(CastPlaylists.segmentFileExtension("video/mp4")).isEqualTo("mp4")
     }
 
     @Test
     fun `audio streams get an m4a segment extension`() {
-        assertThat(StreamProxyServer.segmentFileExtension("audio/mp4")).isEqualTo("m4a")
+        assertThat(CastPlaylists.segmentFileExtension("audio/mp4")).isEqualTo("m4a")
     }
 
     @Test
     fun `webm streams keep their own container extension`() {
-        assertThat(StreamProxyServer.segmentFileExtension("video/webm")).isEqualTo("webm")
-        assertThat(StreamProxyServer.segmentFileExtension("audio/webm")).isEqualTo("weba")
+        assertThat(CastPlaylists.segmentFileExtension("video/webm")).isEqualTo("webm")
+        assertThat(CastPlaylists.segmentFileExtension("audio/webm")).isEqualTo("weba")
     }
 
     @Test
     fun `unknown content types fall back to mp4`() {
-        assertThat(StreamProxyServer.segmentFileExtension("")).isEqualTo("mp4")
-        assertThat(StreamProxyServer.segmentFileExtension("application/octet-stream")).isEqualTo("mp4")
+        assertThat(CastPlaylists.segmentFileExtension("")).isEqualTo("mp4")
+        assertThat(CastPlaylists.segmentFileExtension("application/octet-stream")).isEqualTo("mp4")
     }
 
     /**
@@ -64,7 +64,7 @@ class StreamProxyServerTest {
                 "wav",
             )
         val hlsContentTypes = listOf("video/mp4", "audio/mp4")
-        assertThat(allowed).containsAtLeastElementsIn(hlsContentTypes.map(StreamProxyServer::segmentFileExtension))
+        assertThat(allowed).containsAtLeastElementsIn(hlsContentTypes.map(CastPlaylists::segmentFileExtension))
     }
 
     @OptIn(UnstableApi::class)
@@ -78,7 +78,7 @@ class StreamProxyServerTest {
                 longArrayOf(0, 6_000_000),
             )
 
-        val playlist = StreamProxyServer.segmentedMediaPlaylist("http://phone/s/v.mp4", 0L..741L, index)
+        val playlist = CastPlaylists.segmentedMediaPlaylist("http://phone/s/v.mp4", 0L..741L, index)
 
         assertThat(playlist).isEqualTo(
             """

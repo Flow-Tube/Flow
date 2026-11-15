@@ -1,7 +1,6 @@
 package io.github.aedev.flow.sync2.linking
 
 import io.github.aedev.flow.sync.qr.LocalNetworkAddress
-import io.github.aedev.flow.sync.transport.LanAddress
 import io.github.aedev.flow.sync.transport.SyncConnection
 import io.github.aedev.flow.sync.transport.WsClient
 import io.github.aedev.flow.sync.transport.WsServer
@@ -11,6 +10,7 @@ import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.lan.MAX_LAN_FRAME
 import io.github.aedev.flow.sync2.store.Mailbox
+import io.github.aedev.flow.utils.LanAddress
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
