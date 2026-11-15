@@ -190,7 +190,7 @@ class SubscriptionCheckWorker(
                 val announceReels = preferences.effectiveSubscriptionShowShorts.first()
                 val notifyShorts = preferences.notifShortsEnabled.first()
 
-                val newVideos = mutableListOf<NotificationHelper.NewVideoEntry>()
+                val newVideos = mutableListOf<SubscriptionNotifications.NewVideoEntry>()
                 subscriptions.chunked(CHANNEL_CHUNK_SIZE).forEach { chunk ->
                     coroutineScope {
                         chunk
@@ -212,7 +212,7 @@ class SubscriptionCheckWorker(
                 // A collaboration two followed channels both list must still notify once.
                 val uniqueVideos = newVideos.distinctBy { it.videoId }
                 if (uniqueVideos.isNotEmpty()) {
-                    NotificationHelper.showSubscriptionUpdates(applicationContext, uniqueVideos)
+                    SubscriptionNotifications.showSubscriptionUpdates(applicationContext, uniqueVideos)
                 }
 
                 Log.d(TAG, "Subscription check complete. Found ${newVideos.size} new videos.")
@@ -228,7 +228,7 @@ class SubscriptionCheckWorker(
         repository: SubscriptionRepository,
         announceReels: Boolean,
         notifyShorts: Boolean,
-    ): List<NotificationHelper.NewVideoEntry> {
+    ): List<SubscriptionNotifications.NewVideoEntry> {
         val feed =
             dependencies.channelRssClient().fetch(subscription.channelId).getOrElse { error ->
                 Log.w(TAG, "Failed to check RSS for ${subscription.channelName}: ${error.message}")
@@ -273,7 +273,7 @@ class SubscriptionCheckWorker(
                     notifyShorts = notifyShorts,
                 )
             }.map { video ->
-                NotificationHelper.NewVideoEntry(
+                SubscriptionNotifications.NewVideoEntry(
                     channelName = subscription.channelName,
                     videoTitle = video.title,
                     videoId = video.videoId,
