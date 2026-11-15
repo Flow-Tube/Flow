@@ -79,9 +79,12 @@ class AiListMatcher internal constructor(
     fun hides(track: MusicTrack): Boolean = verdict(track) == AiVerdict.BLOCK
 
     /** An album or playlist card, by its structured author. */
-    fun hides(album: MusicPlaylist): Boolean = isMusicActive && musicVerdict(listOfNotNull(album.authorId)) == AiVerdict.BLOCK
+    fun hides(album: MusicPlaylist): Boolean = hidesMusic(listOfNotNull(album.authorId))
 
-    fun hides(artist: ArtistDetails): Boolean = isMusicActive && musicVerdict(listOf(artist.channelId)) == AiVerdict.BLOCK
+    fun hides(artist: ArtistDetails): Boolean = hidesMusic(listOf(artist.channelId))
+
+    /** Any music item by the IDs it credits, such as a search result's artists. */
+    fun hidesMusic(ids: List<String>): Boolean = isMusicActive && musicVerdict(ids) == AiVerdict.BLOCK
 
     /** An artist page: which list it is on, for the banner. */
     fun artistVerdict(channelId: String): AiVerdict = if (isMusicActive) musicVerdict(listOf(channelId)) else AiVerdict.NONE

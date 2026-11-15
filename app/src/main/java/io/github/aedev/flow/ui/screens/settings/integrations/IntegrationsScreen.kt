@@ -48,7 +48,8 @@ internal fun IntegrationsScreen(
     val aiListBlock by viewModel.aiListBlock.collectAsStateWithLifecycle()
     val aiListWarn by viewModel.aiListWarn.collectAsStateWithLifecycle()
     val aiListStatus by viewModel.aiListStatus.collectAsStateWithLifecycle()
-    val aiListStatusText = aiListStatusText(isOn = aiListBlock || aiListWarn, status = aiListStatus)
+    val aiMusic by viewModel.aiMusic.collectAsStateWithLifecycle()
+    val aiListStatusText = aiListStatusText(isOn = aiListBlock || aiListWarn || aiMusic, status = aiListStatus)
     val aiListStatusTitle = stringResource(R.string.ai_list_status_title)
     val aiListSource by viewModel.aiListSource.collectAsStateWithLifecycle()
     val aiReport by viewModel.aiReport.collectAsStateWithLifecycle()
@@ -98,6 +99,7 @@ internal fun IntegrationsScreen(
             viewModel = viewModel,
             statusTitle = aiListStatusTitle,
             statusText = aiListStatusText,
+            musicOn = aiMusic,
             sourceLabel = aiListSourceLabel,
             reportName = aiReportNameLabel,
             reportEnabled = aiReport,

@@ -1,6 +1,8 @@
 package io.github.aedev.flow.innertube.pages
 
+import io.github.aedev.flow.innertube.models.Artist
 import io.github.aedev.flow.innertube.models.ArtistItem
+import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.innertube.pages.InnerTubeJson.ALBUM
 import io.github.aedev.flow.innertube.pages.InnerTubeJson.ARTIST
 import io.github.aedev.flow.innertube.pages.InnerTubeJson.ATV
@@ -75,6 +77,23 @@ class SearchSummaryPageTest {
         assertEquals(listOf("MPREb_a1"), page.summaries[4].items.map { it.id })
         assertEquals(listOf("PL1"), page.summaries[5].items.map { it.id })
         assertNull(page.continuation)
+    }
+
+    @Test
+    fun `songs under an artist's top result card are credited to that artist, not to their length`() {
+        val cardSong = songRow("c1", "Card song", ATV, listOf(run("Song"), separator(), run("4:38")))
+        val page =
+            SearchSummaryPage.fromSearchResponse(
+                InnerTubeJson.search(listOf(topResultArtistCard("Top result", acdc, "AC/DC", contents = listOf(cardSong, song("s1"))))),
+            )
+
+        val songs =
+            page.summaries
+                .single()
+                .items
+                .filterIsInstance<SongItem>()
+        assertEquals(listOf(Artist("AC/DC", acdc)), songs.single { it.id == "c1" }.artists)
+        assertEquals(listOf(Artist("AC/DC", acdc)), songs.single { it.id == "s1" }.artists)
     }
 
     @Test

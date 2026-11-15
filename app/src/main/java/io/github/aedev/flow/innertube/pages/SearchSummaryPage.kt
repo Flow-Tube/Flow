@@ -108,12 +108,14 @@ data class SearchSummaryPage(
         }
 
         private fun topResult(renderer: MusicCardShelfRenderer): SearchSummary? {
+            val card = fromMusicCardShelfRenderer(renderer)
             val items =
-                listOfNotNull(fromMusicCardShelfRenderer(renderer))
+                listOfNotNull(card)
                     .plus(
                         renderer.contents
                             ?.mapNotNull { it.musicResponsiveListItemRenderer }
                             ?.mapNotNull(::fromMusicResponsiveListItemRenderer)
+                            ?.map { it.creditedToCard(card) }
                             .orEmpty(),
                     ).distinctBy { it.id }
             if (items.isEmpty()) return null
@@ -129,6 +131,17 @@ data class SearchSummaryPage(
                 kind = SearchSummaryKind.TOP_RESULT,
             )
         }
+
+        /**
+         * A song under an artist's top result card names no artist: its only subtitle is the
+         * length, which the row parser would read as the artist. It is that artist's song.
+         */
+        private fun YTItem.creditedToCard(card: YTItem?): YTItem =
+            if (card is ArtistItem && this is SongItem && artists.none { it.id != null }) {
+                copy(artists = listOf(Artist(name = card.title, id = card.id)))
+            } else {
+                this
+            }
 
         private fun titledShelf(renderer: MusicShelfRenderer): SearchSummary? {
             val items =
