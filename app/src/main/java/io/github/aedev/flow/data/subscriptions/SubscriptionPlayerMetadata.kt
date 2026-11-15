@@ -1,4 +1,4 @@
-package io.github.aedev.flow.ui.screens.subscriptions
+package io.github.aedev.flow.data.subscriptions
 
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.YouTube
