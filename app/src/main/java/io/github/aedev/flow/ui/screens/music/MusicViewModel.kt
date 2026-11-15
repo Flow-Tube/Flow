@@ -77,6 +77,7 @@ class MusicViewModel
         private val playerPreferences: PlayerPreferences,
         private val musicGraph: MusicGraphStore,
         private val dailyMixStore: io.github.aedev.flow.data.recommendation.music.DailyMixStore,
+        private val aiList: io.github.aedev.flow.data.contentfilter.aislist.AiListRepository,
     ) : ViewModel() {
         companion object {
             /** Route prefix for synthesized Daily Mix playlist pages. */
@@ -110,8 +111,8 @@ class MusicViewModel
             )
 
         val uiState: StateFlow<MusicUiState> =
-            combine(_uiState, homeChipFeed.page, musicBrain.hiddenArtists) { state, chipPage, hidden ->
-                state.copy(homeChipPage = chipPage).withHiddenArtists(hidden).withUniqueLazyContent()
+            combine(_uiState, homeChipFeed.page, musicBrain.hiddenArtists, aiList.matcher) { state, chipPage, hidden, ai ->
+                state.copy(homeChipPage = chipPage).withHiddenArtists(hidden, ai).withUniqueLazyContent()
             }.flowOn(PerformanceDispatcher.parsing)
                 .stateIn(
                     scope = viewModelScope,

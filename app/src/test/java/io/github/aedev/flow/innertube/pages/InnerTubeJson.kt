@@ -129,6 +129,7 @@ internal object InnerTubeJson {
         header: String,
         browseId: String,
         name: String,
+        contents: List<String> = emptyList(),
     ): String {
         fun button(iconType: String) =
             """{"buttonRenderer":{"text":${runs(run(iconType))},"icon":{"iconType":"$iconType"},
@@ -136,7 +137,8 @@ internal object InnerTubeJson {
             """.trimMargin()
         return """{"musicCardShelfRenderer":{"header":{"musicCardShelfHeaderBasicRenderer":{"title":${runs(run(header))}}},
             |"title":${runs(run(name))},"subtitle":${runs(run("Artist"))},"thumbnail":${thumbnail(browseId, CIRCLE)},
-            |"buttons":[${button("MUSIC_SHUFFLE")},${button("MIX")}],"onTap":${browseEndpoint(browseId, ARTIST)}}}
+            |"buttons":[${button("MUSIC_SHUFFLE")},${button("MIX")}],"onTap":${browseEndpoint(browseId, ARTIST)},
+            |"contents":[${contents.joinToString(",")}]}}
             """.trimMargin()
     }
 

@@ -100,10 +100,37 @@ internal object IntegrationsIndex {
             section = R.string.ai_list_title,
             destination = page,
         )
+    val aiMusicBlock =
+        SettingEntry(
+            key = "integrations.ai_music.block",
+            title = R.string.ai_music_block_title,
+            summary = R.string.ai_music_block_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
     val aiListServer =
         SettingEntry(
             key = "integrations.ai_list.server",
             title = R.string.ai_list_source_title,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiMusicSoulSource =
+        SettingEntry(
+            key = "integrations.ai_music.source.soul",
+            title = R.string.ai_music_attribution_soul_title,
+            summary = R.string.ai_music_attribution_soul_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiMusicBlockerSource =
+        SettingEntry(
+            key = "integrations.ai_music.source.blocker",
+            title = R.string.ai_music_attribution_blocker_title,
+            summary = R.string.ai_music_attribution_blocker_summary,
             keywords = R.string.settings_keywords_ai_list,
             section = R.string.ai_list_title,
             destination = page,
@@ -174,8 +201,11 @@ internal object IntegrationsIndex {
             deArrowBadge,
             aiListBlock,
             aiListWarn,
+            aiMusicBlock,
             aiListServer,
             aiListSource,
+            aiMusicSoulSource,
+            aiMusicBlockerSource,
             aiReport,
             aiReportName,
             dislikes,

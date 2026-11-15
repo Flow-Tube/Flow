@@ -1,5 +1,7 @@
 package io.github.aedev.flow.ui.screens.music
 
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchHistoryRepository
 import io.github.aedev.flow.data.local.SearchHistoryScope
@@ -15,6 +17,7 @@ import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -40,6 +43,7 @@ class MusicSearchHistoryTest {
                 scrobbleDuringDeepFlow = { false },
             ),
             mockk(relaxed = true),
+            mockk<AiListRepository>().also { every { it.matcher } returns MutableStateFlow(AiListMatcher.NONE) },
         )
 
     @Before

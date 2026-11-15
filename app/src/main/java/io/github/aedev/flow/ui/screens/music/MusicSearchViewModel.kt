@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchHistoryItem
 import io.github.aedev.flow.data.local.SearchHistoryRepository
@@ -41,6 +42,7 @@ class MusicSearchViewModel
         private val searchHistory: SearchHistoryRepository,
         private val privacyGate: PrivacyGate,
         @ApplicationContext private val context: Context,
+        private val aiList: AiListRepository,
     ) : ViewModel() {
         private val _query = MutableStateFlow("")
         val query: StateFlow<String> = _query.asStateFlow()
@@ -57,7 +59,10 @@ class MusicSearchViewModel
 
         // One result request at a time: an answer for an older query or chip must not land over a newer one.
         private var resultsJob: Job? = null
-        val uiState: StateFlow<MusicSearchUiState> = _uiState.asStateFlow()
+        val uiState: StateFlow<MusicSearchUiState> =
+            combine(_uiState, aiList.matcher) { state, ai -> state.withoutAiMusic(ai) }
+                .flowOn(PerformanceDispatcher.parsing)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _uiState.value)
 
         init {
             // Handle search suggestions with debounce

@@ -9,6 +9,7 @@ package io.github.aedev.flow.data.recommendation.music
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.music.model.ArtistDetails
@@ -45,6 +46,7 @@ class MusicBrainEngine
     constructor(
         @ApplicationContext private val appContext: Context,
         private val backfill: MusicBrainBackfill,
+        private val aiList: AiListRepository,
     ) {
         companion object {
             private const val TAG = "MusicBrainEngine"
@@ -217,12 +219,14 @@ class MusicBrainEngine
         /**
          * Reorder candidates for a surface ("quick_picks", "radio", "similar",
          * "discover", …). A cold brain returns the input order unchanged; blocked
-         * artists are removed even from single-item lists.
+         * artists and tracks the AI filter hides are removed even from single-item lists.
          */
         suspend fun rankTracks(
-            tracks: List<MusicTrack>,
+            candidates: List<MusicTrack>,
             surface: String,
         ): List<MusicTrack> {
+            val ai = aiList.currentMatcher()
+            val tracks = if (ai.isMusicActive) candidates.filterNot(ai::hides) else candidates
             if (tracks.isEmpty()) return tracks
             ensureInitialized()
             return withContext(Dispatchers.Default) {

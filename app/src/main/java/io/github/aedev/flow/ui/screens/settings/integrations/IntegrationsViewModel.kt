@@ -43,6 +43,7 @@ class IntegrationsViewModel
         val dislikes = preferences.rytdEnabled.asState(true)
         val aiListBlock = aiList.blockEnabled.asState(false)
         val aiListWarn = aiList.warnEnabled.asState(false)
+        val aiMusic = aiList.musicEnabled.asState(false)
         val aiListStatus = aiList.status.asState(null)
         val aiListSource = aiList.source.asState(AiListSource.DEFAULT)
         val aiListSourceInput = preferences.aiListSource.asState(null to null)
@@ -99,6 +100,8 @@ class IntegrationsViewModel
         fun setAiListBlock(value: Boolean) = write { aiList.setBlockEnabled(value) }
 
         fun setAiListWarn(value: Boolean) = write { aiList.setWarnEnabled(value) }
+
+        fun setAiMusic(value: Boolean) = write { aiList.setMusicEnabled(value) }
 
         fun setAiReport(value: Boolean) = write { preferences.setAiListReportEnabled(value) }
 

@@ -5191,7 +5191,7 @@
     <string name="app_lock_screen_title">Flow is locked</string>
     <string name="app_lock_screen_body">Use your fingerprint, face or screen lock to open it</string>
     <string name="app_lock_unlock">Unlock</string>
-    <string name="ai_list_title">AI channels</string>
+    <string name="ai_list_title">AI content</string>
     <string name="ai_list_block_title">Hide AI channels</string>
     <string name="ai_list_block_summary">Uses the community list AiSList</string>
     <string name="ai_list_warn_title">Label suspected AI channels</string>
@@ -5201,7 +5201,7 @@
     <string name="ai_list_status_pending">Not downloaded yet</string>
     <string name="ai_list_attribution_title">List by AiSList</string>
     <string name="ai_list_attribution_summary">CC BY-NC 4.0</string>
-    <string name="ai_list_footer">Downloads a public list once a day. Nothing is sent.</string>
+    <string name="ai_list_footer">Downloads public lists once a day. Nothing is sent.</string>
     <string name="ai_list_label">Suspected AI</string>
     <string name="ai_list_channel_blocked">This channel is on the AiSList block list</string>
     <string name="ai_list_channel_warned">This channel is on the AiSList warn list</string>
@@ -5211,6 +5211,16 @@
     <string name="ai_list_hide_again_item">Hide %1$s again</string>
     <string name="settings_keywords_ai_list">AI, slop, generated, AiSList, filter, block</string>
     <string name="ai_list_status_count_now">%1$s channels, updated just now</string>
+    <string name="ai_music_block_title">Hide AI music</string>
+    <string name="ai_music_block_summary">Songs and albums by AI artists</string>
+    <string name="ai_music_status_count">%1$s artists, updated %2$s</string>
+    <string name="ai_music_status_count_now">%1$s artists, updated just now</string>
+    <string name="ai_lists_status_count">%1$s channels and %2$s artists, updated %3$s</string>
+    <string name="ai_lists_status_count_now">%1$s channels and %2$s artists, updated just now</string>
+    <string name="ai_music_attribution_soul_title">Music list by Soul Over AI</string>
+    <string name="ai_music_attribution_soul_summary">CC BY 4.0, changed by Flow</string>
+    <string name="ai_music_attribution_blocker_title">Music list by Spotify AI Blocker</string>
+    <string name="ai_music_attribution_blocker_summary">MIT, © CennoxX</string>
     <string name="ai_list_source_title">List source</string>
     <string name="ai_list_source_default">Flow</string>
     <string name="ai_list_source_dialog_body">Use another server that publishes the list, such as one you host. Leave the URL empty to use Flow\'s.</string>
