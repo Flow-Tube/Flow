@@ -52,6 +52,8 @@ internal fun LinkedOverview(
     onConsent: (id: String, allowed: Boolean?) -> Unit,
     onAccept: (id: String) -> Unit,
     onDecline: (id: String) -> Unit,
+    /** How this device itself syncs. */
+    thisDevice: @Composable () -> Unit,
     /** Which profiles sync here. */
     profiles: @Composable () -> Unit,
 ) {
@@ -84,6 +86,7 @@ internal fun LinkedOverview(
         addedBy = addedBy,
         onConsent = onConsent,
     )
+    thisDevice()
     profiles()
     LinkedGroupRows(
         state = state,

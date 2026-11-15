@@ -433,6 +433,7 @@ class PlayerPreferences(
         private fun <T> device(key: Preferences.Key<T>): Preferences.Key<T> = key.also { names += it.name }
 
         val DEFAULT_QUALITY_WIFI = device(stringPreferencesKey("default_quality_wifi"))
+        val LINKED_AUTO_SYNC = device(booleanPreferencesKey("linked_auto_sync"))
         val DEFAULT_QUALITY_CELLULAR = device(stringPreferencesKey("default_quality_cellular"))
         val DEFAULT_VIDEO_CODEC = device(stringPreferencesKey("default_video_codec"))
         val FALLBACK_VIDEO_CODEC = device(stringPreferencesKey("fallback_video_codec"))
@@ -1299,6 +1300,17 @@ class PlayerPreferences(
                     ?.let { stored -> runCatching { GestureOverlayStyle.valueOf(stored) }.getOrNull() }
                     ?: GestureOverlayStyle.CIRCULAR
             }
+
+    /** Whether this device syncs linked devices on its own, or only on Sync now. */
+    val linkedAutoSync: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.LINKED_AUTO_SYNC] ?: true }
+
+    suspend fun setLinkedAutoSync(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.LINKED_AUTO_SYNC] = enabled
+        }
+    }
 
     val hapticsEnabled: Flow<Boolean> =
         context.devicePreferencesDataStore.data

@@ -32,6 +32,7 @@ internal fun LinkedDevicesSection(
     val leaveFailed by viewModel.leaveFailed.collectAsStateWithLifecycle()
     val consent by viewModel.consent.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+    val autoSync by viewModel.autoSyncOn.collectAsStateWithLifecycle()
     // Each finished sync may have changed the devices and when the server last heard from them.
     LaunchedEffect(state.linked, state.lastSync?.atMs) { if (state.linked) viewModel.refreshDevices() }
     // Devices asking to join with the admin token show up while this screen is open.
@@ -90,6 +91,7 @@ internal fun LinkedDevicesSection(
                 onConsent = viewModel::setConsent,
                 onAccept = viewModel::accept,
                 onDecline = viewModel::decline,
+                thisDevice = { LinkedThisDeviceRows(autoSync, state.busy, viewModel::setAutoSync) },
             ) {
                 val switcher: ProfileSwitchViewModel = hiltViewModel()
                 SwitchRefusals(switcher)

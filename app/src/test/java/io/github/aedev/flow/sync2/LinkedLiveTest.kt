@@ -11,6 +11,7 @@ import io.github.aedev.flow.sync2.device.DeviceKeys
 import io.github.aedev.flow.sync2.live.LiveChannel
 import io.github.aedev.flow.sync2.live.LiveDevices
 import io.github.aedev.flow.sync2.live.LiveTransport
+import io.github.aedev.flow.sync2.service.AutoSync
 import io.github.aedev.flow.sync2.service.LastSync
 import io.github.aedev.flow.sync2.service.LinkedLive
 import io.github.aedev.flow.sync2.service.LinkedSync
@@ -118,7 +119,7 @@ class LinkedLiveTest {
                     coEvery { receive(any()) } coAnswers { received.value += listOf(firstArg<ByteArray>().toList()) }
                 }
             val devices = LiveDevices()
-            val live = LinkedLive(db, keys, sync, channel, devices, scope)
+            val live = LinkedLive(db, keys, sync, channel, devices, mockk<AutoSync> { coEvery { allows(any()) } returns true }, scope)
             live.start()
             withTimeout(10_000) { bearers.first { it.isNotEmpty() } }
             assertEquals(listOf("flow-sync.v1, bearer.t"), bearers.value)
