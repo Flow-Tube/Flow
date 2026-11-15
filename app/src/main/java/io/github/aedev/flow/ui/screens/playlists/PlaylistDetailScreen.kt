@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -182,7 +183,15 @@ fun PlaylistDetailScreen(
                     )
                 }
             },
-            onDownloadAll = { dialog = PlaylistDialog.DownloadAll },
+            onDownloadAll = {
+                scope.launch {
+                    val ids = viewModel.downloadableIds()
+                    if (ids.isNotEmpty()) {
+                        selectedIds = ids
+                        selectionMode = true
+                    }
+                }
+            },
             onSaveToggle = { if (uiState.isSaved) viewModel.unsaveFromLibrary() else viewModel.saveToLibrary() },
             onAddAll = { dialog = PlaylistDialog.AddAll },
             onShare = {
@@ -215,7 +224,7 @@ fun PlaylistDetailScreen(
                 inSelectionMode = selectionMode,
                 selectedCount = selectedIds.size,
                 allSelected = shownVideos.isNotEmpty() && shownVideos.all { it.id in selectedIds },
-                canSelect = canModify && displayVideos.isNotEmpty(),
+                canSelect = displayVideos.isNotEmpty(),
                 search =
                     PlaylistSearchBar(
                         query = searchQuery,
@@ -309,10 +318,14 @@ fun PlaylistDetailScreen(
                 visible = selectionMode && selectedIds.isNotEmpty(),
                 summary = pluralStringResource(R.plurals.selected_count_template, selectedIds.size, selectedIds.size),
                 actions =
-                    listOf(
+                    listOfNotNull(
+                        FlowSelectionAction(Icons.Outlined.Download, stringResource(R.string.download)) {
+                            viewModel.downloadVideos(selectedIds)
+                            exitSelection()
+                        },
                         FlowSelectionAction(Icons.Outlined.Delete, stringResource(R.string.remove)) {
                             dialog = PlaylistDialog.RemoveSelected(selectedIds)
-                        },
+                        }.takeIf { canModify },
                     ),
                 modifier = Modifier.align(Alignment.BottomCenter),
             )

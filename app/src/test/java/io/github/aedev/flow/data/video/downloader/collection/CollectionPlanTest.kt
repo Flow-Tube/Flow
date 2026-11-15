@@ -18,7 +18,8 @@ class CollectionPlanTest {
         existing: List<DownloadCollectionItemEntity> = emptyList(),
         downloaded: Set<String> = emptySet(),
         complete: Boolean = true,
-    ) = CollectionPlan.of("PL", ids, existing, { it in downloaded }, complete, now = 9L)
+        picked: Set<String>? = null,
+    ) = CollectionPlan.of("PL", ids, existing, { it in downloaded }, complete, now = 9L, picked = picked)
 
     @Test
     fun `a first download queues every video in list order`() {
@@ -94,5 +95,49 @@ class CollectionPlanTest {
 
         assertThat(result.members.map { it.videoId }).containsExactly("a", "b").inOrder()
         assertThat(result.toQueue).containsExactly("a", "b").inOrder()
+    }
+
+    @Test
+    fun `a picked download queues only the picked videos and excludes the rest`() {
+        val result = plan(listOf("a", "b", "c"), picked = setOf("a", "c"))
+
+        assertThat(result.toQueue).containsExactly("a", "c").inOrder()
+        val b = result.members.first { it.videoId == "b" }
+        assertThat(b.state).isEqualTo(CollectionItemState.EXCLUDED)
+        assertThat(b.ownsDownload).isFalse()
+    }
+
+    @Test
+    fun `picking an excluded video again makes it wanted and queues it`() {
+        val existing = listOf(member("a", 0), member("b", 1, CollectionItemState.EXCLUDED, ownsDownload = false))
+
+        val result = plan(listOf("a", "b"), existing, downloaded = setOf("a"), picked = setOf("a", "b"))
+
+        assertThat(result.toQueue).containsExactly("b")
+        val b = result.members.first { it.videoId == "b" }
+        assertThat(b.state).isEqualTo(CollectionItemState.WANTED)
+        assertThat(b.ownsDownload).isTrue()
+    }
+
+    @Test
+    fun `leaving out a downloaded video excludes it without touching its file`() {
+        val existing = listOf(member("a", 0), member("b", 1))
+
+        val result = plan(listOf("a", "b"), existing, downloaded = setOf("a", "b"), picked = setOf("a"))
+
+        assertThat(result.toQueue).isEmpty()
+        val b = result.members.first { it.videoId == "b" }
+        assertThat(b.state).isEqualTo(CollectionItemState.EXCLUDED)
+        assertThat(b.ownsDownload).isTrue()
+    }
+
+    @Test
+    fun `a video removed upstream and listed again follows the pick`() {
+        val existing = listOf(member("a", 0, CollectionItemState.REMOVED_UPSTREAM))
+
+        val result = plan(listOf("a"), existing, picked = emptySet())
+
+        assertThat(result.members.single().state).isEqualTo(CollectionItemState.EXCLUDED)
+        assertThat(result.toQueue).isEmpty()
     }
 }
