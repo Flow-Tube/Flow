@@ -22,7 +22,7 @@ import io.github.aedev.flow.data.local.NavBarLabels
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
 import io.github.aedev.flow.ui.utils.isMediumWidth
 
-private const val MAX_BAR_TABS = 5
+internal const val MAX_BAR_TABS = 5
 
 /**
  * The bottom navigation bar. Material allows at most five destinations in a bar, so a sixth and
@@ -48,45 +48,64 @@ internal fun FlowNavigationBar(
     ) {
         barTabs.forEach { tab ->
             val selected = tab == selectedTab
-            val name = stringResource(tab.labelRes)
-            val showsLabel = labels.shows(selected)
-            ShortNavigationBarItem(
+            FlowTabBarItem(
+                tab = tab,
                 selected = selected,
                 onClick = { onTabSelected(tab) },
-                icon = { Icon(imageVector = tab.icon(selected), contentDescription = if (showsLabel) null else name) },
-                label = if (showsLabel) ({ Text(text = name) }) else null,
+                showsLabel = labels.shows(selected),
                 iconPosition = iconPosition,
             )
         }
         if (overflowTabs.isNotEmpty()) {
-            OverflowItem(
+            FlowOverflowBarItem(
                 tabs = overflowTabs,
                 selectedTab = selectedTab,
                 onTabSelected = onTabSelected,
+                showsLabel = labels.shows(selectedTab in overflowTabs),
                 iconPosition = iconPosition,
-                labels = labels,
             )
         }
     }
 }
 
+/** One tab in a bottom bar; without its label the icon carries the tab's name for TalkBack. */
 @Composable
-private fun OverflowItem(
+internal fun FlowTabBarItem(
+    tab: FlowTab,
+    selected: Boolean,
+    onClick: () -> Unit,
+    showsLabel: Boolean,
+    iconPosition: NavigationItemIconPosition,
+    modifier: Modifier = Modifier,
+) {
+    val name = stringResource(tab.labelRes)
+    ShortNavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = { Icon(imageVector = tab.icon(selected), contentDescription = if (showsLabel) null else name) },
+        label = if (showsLabel) ({ Text(text = name) }) else null,
+        iconPosition = iconPosition,
+        modifier = modifier,
+    )
+}
+
+/** The "More" slot of a bottom bar, opening the tabs it had no room for. */
+@Composable
+internal fun FlowOverflowBarItem(
     tabs: List<FlowTab>,
     selectedTab: FlowTab?,
     onTabSelected: (FlowTab) -> Unit,
+    showsLabel: Boolean,
     iconPosition: NavigationItemIconPosition,
-    labels: NavBarLabels,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selected = selectedTab in tabs
     val name = stringResource(R.string.nav_more)
-    val showsLabel = labels.shows(selected)
     // One Box per bar slot: the bar measures every direct child as an item, and the menu's
     // popup anchor would otherwise count as one.
-    Box(propagateMinConstraints = true) {
+    Box(modifier = modifier, propagateMinConstraints = true) {
         ShortNavigationBarItem(
-            selected = selected,
+            selected = selectedTab in tabs,
             onClick = { expanded = true },
             icon = { Icon(imageVector = Icons.Filled.MoreHoriz, contentDescription = if (showsLabel) null else name) },
             label = if (showsLabel) ({ Text(text = name) }) else null,

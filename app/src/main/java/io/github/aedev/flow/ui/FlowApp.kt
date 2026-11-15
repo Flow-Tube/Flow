@@ -26,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.aedev.flow.MainActivity
+import io.github.aedev.flow.data.local.NavBarLook
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.profile.PendingSlice
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
@@ -124,7 +125,7 @@ fun FlowApp(
     val defaultNavTabIndex by preferences.defaultNavTabIndex.collectAsState(initial = 0)
     val subscriptionRefreshOnStartup by preferences.subscriptionRefreshOnStartup.collectAsState(initial = false)
     val bottomNavHideOnScroll by preferences.bottomNavHideOnScroll.collectAsState(initial = true)
-    val bottomNavLabels by preferences.bottomNavLabels.collectAsState(initial = io.github.aedev.flow.data.local.NavBarLabels.ALWAYS)
+    val bottomNavLook by preferences.bottomNavLook.collectAsState(initial = NavBarLook())
     val searchShowsNavBar by preferences.searchShowsNavBar.collectAsState(initial = false)
     val innerPagesShowNavBar by preferences.innerPagesShowNavBar.collectAsState(initial = false)
     val sleepTimerCloseAppOnExpiry by preferences.sleepTimerCloseAppOnExpiry.collectAsState(
@@ -439,7 +440,7 @@ fun FlowApp(
             },
             barVisible = showBottomNav,
             barScrollState = navScrollState,
-            barLabels = bottomNavLabels,
+            barLook = bottomNavLook,
             railVisible = isNavigationRailVisible,
             onBarHeightChanged = { navigationBarHeight = it },
             onRailWidthChanged = { navigationRailWidth = it },
