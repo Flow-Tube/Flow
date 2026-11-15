@@ -73,7 +73,7 @@ class AiListMatcher internal constructor(
      */
     fun verdict(track: MusicTrack): AiVerdict {
         if (!isMusicActive) return AiVerdict.NONE
-        return musicVerdict(track.artists.mapNotNull { it.id } + track.channelId)
+        return verdictOfIds(track.artists.mapNotNull { it.id } + track.channelId)
     }
 
     fun hides(track: MusicTrack): Boolean = verdict(track) == AiVerdict.BLOCK
@@ -84,12 +84,18 @@ class AiListMatcher internal constructor(
     fun hides(artist: ArtistDetails): Boolean = hidesMusic(listOf(artist.channelId))
 
     /** Any music item by the IDs it credits, such as a search result's artists. */
-    fun hidesMusic(ids: List<String>): Boolean = isMusicActive && musicVerdict(ids) == AiVerdict.BLOCK
+    fun hidesMusic(ids: List<String>): Boolean = musicVerdict(ids) == AiVerdict.BLOCK
+
+    /** [verdict] for a music item known only by the IDs it credits, such as an album or playlist row. */
+    fun musicVerdict(ids: List<String>): AiVerdict = if (isMusicActive) verdictOfIds(ids) else AiVerdict.NONE
 
     /** An artist page: which list it is on, for the banner. */
-    fun artistVerdict(channelId: String): AiVerdict = if (isMusicActive) musicVerdict(listOf(channelId)) else AiVerdict.NONE
+    fun artistVerdict(channelId: String): AiVerdict = musicVerdict(listOf(channelId))
 
-    private fun musicVerdict(ids: List<String>): AiVerdict {
+    /** True when the music artist list, rather than AiSList, is why [artistVerdict] flags this artist. */
+    fun isOnMusicList(channelId: String): Boolean = musicEnabled && channelId !in exemptChannelIds && channelId in music.ids
+
+    private fun verdictOfIds(ids: List<String>): AiVerdict {
         var result = AiVerdict.NONE
         for (raw in ids) {
             val id = raw.takeIf { it.isChannelId() } ?: continue

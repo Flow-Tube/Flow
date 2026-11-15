@@ -6,7 +6,6 @@ import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.MusicOff
-import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import io.github.aedev.flow.R
@@ -40,7 +39,7 @@ internal fun SettingsListScope.aiListSection(
     onEditReportName: () -> Unit,
 ) {
     group(key = "integrations.ai_list.group", header = R.string.ai_list_title, footer = R.string.ai_list_footer) {
-        switch(IntegrationsIndex.aiListBlock, viewModel.aiListBlock, viewModel::setAiListBlock, icon = Icons.Outlined.SmartToy)
+        switch(IntegrationsIndex.aiListBlock, viewModel.aiListBlock, viewModel::setAiListBlock, iconRes = R.drawable.ic_ai_content)
         switch(IntegrationsIndex.aiListWarn, viewModel.aiListWarn, viewModel::setAiListWarn)
         switch(IntegrationsIndex.aiMusicBlock, viewModel.aiMusic, viewModel::setAiMusic, icon = Icons.Outlined.MusicOff)
         if (statusText != null) info(key = "integrations.ai_list.status", title = statusTitle, value = statusText)

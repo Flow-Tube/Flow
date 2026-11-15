@@ -12,13 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,12 +23,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +41,7 @@ import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.FlowNoteCard
+import io.github.aedev.flow.ui.components.shared.FlowNoticeBanner
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FullSizeImageDialog
 import io.github.aedev.flow.ui.theme.extendedColors
@@ -145,9 +143,14 @@ internal fun ChannelHeaderSection(
             }
 
             if (aiVerdict != AiVerdict.NONE) {
-                AiChannelBanner(
-                    verdict = aiVerdict,
-                    onShow = onShowAiChannel,
+                FlowNoticeBanner(
+                    icon = ImageVector.vectorResource(R.drawable.ic_ai_content),
+                    message =
+                        stringResource(
+                            if (aiVerdict == AiVerdict.BLOCK) R.string.ai_list_channel_blocked else R.string.ai_list_channel_warned,
+                        ),
+                    actionLabel = stringResource(R.string.ai_list_channel_show),
+                    onAction = onShowAiChannel,
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
@@ -158,44 +161,6 @@ internal fun ChannelHeaderSection(
                     onEdit = onEditNote,
                     modifier = Modifier.padding(top = 8.dp),
                 )
-            }
-        }
-    }
-}
-
-/** Why this channel's videos are hidden or labelled elsewhere, with the way to show them again. */
-@Composable
-private fun AiChannelBanner(
-    verdict: AiVerdict,
-    onShow: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.SmartToy,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
-            )
-            Text(
-                text =
-                    stringResource(
-                        if (verdict == AiVerdict.BLOCK) R.string.ai_list_channel_blocked else R.string.ai_list_channel_warned,
-                    ),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = onShow) {
-                Text(stringResource(R.string.ai_list_channel_show))
             }
         }
     }

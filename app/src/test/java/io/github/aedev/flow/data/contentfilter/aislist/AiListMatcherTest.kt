@@ -188,6 +188,13 @@ class AiListMatcherMusicTest {
     }
 
     @Test
+    fun `an album or playlist row known only by its ids gets the warn verdict for a warn-list uploader`() {
+        assertThat(matcher(music = false, warn = true).musicVerdict(listOf(warnUploader))).isEqualTo(AiVerdict.WARN)
+        assertThat(matcher(music = true).musicVerdict(listOf(aiArtist))).isEqualTo(AiVerdict.BLOCK)
+        assertThat(AiListMatcher.NONE.musicVerdict(listOf(aiArtist))).isEqualTo(AiVerdict.NONE)
+    }
+
+    @Test
     fun `albums and artist cards match by their structured id`() {
         val matcher = matcher()
         val album =
@@ -211,5 +218,32 @@ class AiListMatcherMusicTest {
         assertThat(matcher.hides(artist)).isTrue()
         assertThat(matcher.artistVerdict(aiArtist)).isEqualTo(AiVerdict.BLOCK)
         assertThat(AiListMatcher.NONE.hides(artist)).isFalse()
+    }
+}
+
+class AiListMatcherArtistNoticeTest {
+    private val aiArtist = "UCaiaiaiaiaiaiaiaiaiaiai"
+
+    @Test
+    fun `the music list is named as the reason only while its switch is on and the artist is not allowed`() {
+        fun matcher(
+            music: Boolean,
+            exempt: Set<String> = emptySet(),
+        ) = AiListMatcher(
+            blockEnabled = true,
+            warnEnabled = false,
+            block = AiListSets(handles = emptySet(), ids = setOf(aiArtist)),
+            warn = AiListSets.EMPTY,
+            exemptChannelIds = exempt,
+            exemptHandles = emptySet(),
+            index = null,
+            musicEnabled = music,
+            music = AiListSets(handles = emptySet(), ids = setOf(aiArtist)),
+        )
+
+        assertThat(matcher(music = true).isOnMusicList(aiArtist)).isTrue()
+        assertThat(matcher(music = false).isOnMusicList(aiArtist)).isFalse()
+        assertThat(matcher(music = false).artistVerdict(aiArtist)).isEqualTo(AiVerdict.BLOCK)
+        assertThat(matcher(music = true, exempt = setOf(aiArtist)).isOnMusicList(aiArtist)).isFalse()
     }
 }

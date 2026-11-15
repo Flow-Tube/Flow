@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,12 +49,14 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.components.music.common.MusicNowPlayingOverlay
 import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
 import io.github.aedev.flow.ui.components.music.common.rememberMusicArtworkColors
 import io.github.aedev.flow.ui.components.shared.DownloadedBadge
 import io.github.aedev.flow.ui.components.shared.ExplicitBadge
+import io.github.aedev.flow.ui.components.shared.card.LocalAiListMatcher
 import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.theme.Dimensions
 import io.github.aedev.flow.utils.formatDuration
@@ -117,6 +120,8 @@ fun MusicTrackItem(
     val highlight = if (isPlaying) rememberMusicArtworkColors(track.thumbnailUrl) else null
     val rowColor = highlight?.container ?: containerColor
     val titleColor = highlight?.onContainer ?: scheme.onBackground
+    val aiMatcher = LocalAiListMatcher.current
+    val aiWarned = remember(aiMatcher, track) { aiMatcher.verdict(track) == AiVerdict.WARN }
     val subtitleColor = highlight?.onContainer?.copy(alpha = HIGHLIGHT_SUBTITLE_ALPHA) ?: scheme.onBackground.copy(alpha = SUBTITLE_ALPHA)
     val accentColor = highlight?.accent ?: scheme.onSurfaceVariant
 
@@ -204,6 +209,15 @@ fun MusicTrackItem(
             ) {
                 if (track.isExplicit == true) {
                     ExplicitBadge()
+                }
+
+                if (aiWarned) {
+                    Text(
+                        text = stringResource(R.string.ai_list_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = subtitleColor,
+                        maxLines = 1,
+                    )
                 }
 
                 Text(

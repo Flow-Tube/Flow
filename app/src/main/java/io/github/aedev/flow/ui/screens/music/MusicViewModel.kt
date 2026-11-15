@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.contentfilter.aislist.AllowedAiChannel
 import io.github.aedev.flow.data.local.LikedVideosRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.DownloadManager
@@ -77,7 +80,7 @@ class MusicViewModel
         private val playerPreferences: PlayerPreferences,
         private val musicGraph: MusicGraphStore,
         private val dailyMixStore: io.github.aedev.flow.data.recommendation.music.DailyMixStore,
-        private val aiList: io.github.aedev.flow.data.contentfilter.aislist.AiListRepository,
+        private val aiList: AiListRepository,
     ) : ViewModel() {
         companion object {
             /** Route prefix for synthesized Daily Mix playlist pages. */
@@ -121,6 +124,16 @@ class MusicViewModel
                 )
 
         private fun isUiVisible(): Boolean = _uiState.subscriptionCount.value > 0
+
+        /** The AI filter for the artist page banner; already hot in its repository. */
+        val aiMatcher: StateFlow<AiListMatcher> = aiList.matcher
+
+        /** "Show their music": the artist joins the allowlist shared with AI channels. */
+        fun showAiArtist(artist: ArtistDetails) {
+            viewModelScope.launch {
+                aiList.allow(AllowedAiChannel(id = artist.channelId, name = artist.name))
+            }
+        }
 
         init {
             loadMusicContent()
