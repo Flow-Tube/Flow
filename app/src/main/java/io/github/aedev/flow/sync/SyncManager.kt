@@ -24,11 +24,11 @@ import io.github.aedev.flow.sync.protocol.SyncProtocol
 import io.github.aedev.flow.sync.protocol.SyncRole
 import io.github.aedev.flow.sync.protocol.TransferSummary
 import io.github.aedev.flow.sync.qr.QrCodec
-import io.github.aedev.flow.sync.transport.LanAddress
 import io.github.aedev.flow.sync.transport.SyncConnection
 import io.github.aedev.flow.sync.transport.SyncForegroundService
 import io.github.aedev.flow.sync.transport.WsClient
 import io.github.aedev.flow.sync.transport.WsServer
+import io.github.aedev.flow.utils.LanAddress
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
