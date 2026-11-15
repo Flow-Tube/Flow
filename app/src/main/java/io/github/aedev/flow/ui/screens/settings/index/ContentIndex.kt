@@ -203,6 +203,15 @@ internal object ContentIndex {
             section = R.string.watch_later,
             destination = page,
         )
+    val hideWatchedSuggestions =
+        SettingEntry(
+            key = "content.watched.hide_suggestions",
+            title = R.string.content_settings_hide_watched_suggestions_title,
+            summary = R.string.content_settings_hide_watched_suggestions_subtitle,
+            keywords = R.string.settings_keywords_hide_watched,
+            section = R.string.settings_section_watched,
+            destination = page,
+        )
     val watchedThreshold =
         SettingEntry(
             key = "content.watched.threshold",
@@ -295,6 +304,7 @@ internal object ContentIndex {
             channelShortsTab,
             hideWatchedShorts,
             removeWatchedWatchLater,
+            hideWatchedSuggestions,
             watchedThreshold,
             countImportedAsWatched,
             notes,

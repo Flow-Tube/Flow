@@ -20,11 +20,14 @@ import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.data.local.ChannelSubscription
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
+import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.profile.ProfileWork
 import io.github.aedev.flow.data.shorts.ChannelReelIndex
 import io.github.aedev.flow.data.subscriptions.ChannelRssClient
 import io.github.aedev.flow.data.subscriptions.ChannelRssParser
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedRepository
+import io.github.aedev.flow.data.subscriptions.fetchSubscriptionPlayerMetadata
+import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -71,6 +74,9 @@ class SubscriptionCheckWorker(
 
         /** How many channels are polled concurrently. */
         private const val CHANNEL_CHUNK_SIZE = 10
+
+        /** How long one new video's player lookup may take before it is announced as an upload. */
+        private const val LOOKUP_TIMEOUT_MS = 5_000L
 
         /**
          * Schedules the periodic check; [BackgroundCheckScheduler] decides whether it should run at all. A check
@@ -190,7 +196,7 @@ class SubscriptionCheckWorker(
                 val announceReels = preferences.effectiveSubscriptionShowShorts.first()
                 val notifyShorts = preferences.notifShortsEnabled.first()
 
-                val newVideos = mutableListOf<NotificationHelper.NewVideoEntry>()
+                val newVideos = mutableListOf<SubscriptionNotifications.NewVideoEntry>()
                 subscriptions.chunked(CHANNEL_CHUNK_SIZE).forEach { chunk ->
                     coroutineScope {
                         chunk
@@ -210,9 +216,9 @@ class SubscriptionCheckWorker(
                 }
 
                 // A collaboration two followed channels both list must still notify once.
-                val uniqueVideos = newVideos.distinctBy { it.videoId }
+                val uniqueVideos = classifyNewVideos(newVideos.distinctBy { it.videoId }, PerformanceDispatcher.networkIO, ::lookUp)
                 if (uniqueVideos.isNotEmpty()) {
-                    NotificationHelper.showSubscriptionUpdates(applicationContext, uniqueVideos)
+                    SubscriptionNotifications.showSubscriptionUpdates(applicationContext, uniqueVideos)
                 }
 
                 Log.d(TAG, "Subscription check complete. Found ${newVideos.size} new videos.")
@@ -223,12 +229,29 @@ class SubscriptionCheckWorker(
             }
         }
 
+    /** The player endpoint's view of [entry], which tells a stream or premiere from an upload. */
+    private suspend fun lookUp(entry: SubscriptionNotifications.NewVideoEntry): Video? =
+        fetchSubscriptionPlayerMetadata(
+            Video(
+                id = entry.videoId,
+                title = entry.videoTitle,
+                channelName = entry.channelName,
+                channelId = "",
+                thumbnailUrl = entry.thumbnailUrl.orEmpty(),
+                duration = 0,
+                viewCount = 0,
+                uploadDate = "",
+                timestamp = 0L,
+            ),
+            LOOKUP_TIMEOUT_MS,
+        )?.enriched
+
     private suspend fun checkChannel(
         subscription: ChannelSubscription,
         repository: SubscriptionRepository,
         announceReels: Boolean,
         notifyShorts: Boolean,
-    ): List<NotificationHelper.NewVideoEntry> {
+    ): List<SubscriptionNotifications.NewVideoEntry> {
         val feed =
             dependencies.channelRssClient().fetch(subscription.channelId).getOrElse { error ->
                 Log.w(TAG, "Failed to check RSS for ${subscription.channelName}: ${error.message}")
@@ -273,7 +296,7 @@ class SubscriptionCheckWorker(
                     notifyShorts = notifyShorts,
                 )
             }.map { video ->
-                NotificationHelper.NewVideoEntry(
+                SubscriptionNotifications.NewVideoEntry(
                     channelName = subscription.channelName,
                     videoTitle = video.title,
                     videoId = video.videoId,

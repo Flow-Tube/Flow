@@ -240,6 +240,9 @@ class EnhancedPlayerManager private constructor() {
     @Volatile
     var feedExclusionsSource: FeedExclusionsSource? = null
 
+    @Volatile
+    var watchedSuggestionsSource: WatchedSuggestionsSource? = null
+
     // Coroutine scope
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val buildScope = PlayerBuildScope(scope)
@@ -2257,7 +2260,7 @@ class EnhancedPlayerManager private constructor() {
     private suspend fun visibleRelatedCandidates(videoId: String): List<Video> {
         val candidates = YouTubeRepository.getInstance().getRelatedCandidates(videoId)
         return withContext(Dispatchers.Default) {
-            PlayerRelatedVideosPolicy.sanitizeHidden(videoId, candidates, feedExclusionsSource)
+            PlayerRelatedVideosPolicy.sanitizeHidden(videoId, candidates, feedExclusionsSource, watchedSuggestionsSource)
         }
     }
 

@@ -182,6 +182,8 @@ class PlayerPreferences(
         val HOME_NAVIGATION_ENABLED = booleanPreferencesKey("home_navigation_enabled")
         val SHORTS_NAVIGATION_ENABLED = booleanPreferencesKey("shorts_navigation_enabled")
         val BOTTOM_NAV_HIDE_ON_SCROLL = booleanPreferencesKey("bottom_nav_hide_on_scroll")
+        val BOTTOM_NAV_LABELS = stringPreferencesKey("bottom_nav_labels")
+        val BOTTOM_NAV_STYLE = stringPreferencesKey("bottom_nav_style")
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
         val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
@@ -345,6 +347,7 @@ class PlayerPreferences(
         val HIDE_WATCHED_HOME_FEED = booleanPreferencesKey("hide_watched_home_feed")
         val HIDE_WATCHED_SUBSCRIPTIONS = booleanPreferencesKey("hide_watched_subscriptions")
         val HIDE_WATCHED_SHORTS = booleanPreferencesKey("hide_watched_shorts")
+        val HIDE_WATCHED_SUGGESTIONS = booleanPreferencesKey("hide_watched_suggestions")
         val WATCHED_THRESHOLD = stringPreferencesKey("watched_threshold")
         val COUNT_IMPORTED_AS_WATCHED = booleanPreferencesKey("count_imported_as_watched")
         val SHARED_LINK_ACTION = stringPreferencesKey("shared_link_action")
@@ -1666,6 +1669,37 @@ class PlayerPreferences(
             preferences[Keys.BOTTOM_NAV_HIDE_ON_SCROLL] = enabled
         }
     }
+
+    val bottomNavLabels: Flow<NavBarLabels> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.BOTTOM_NAV_LABELS]
+                    ?.let { stored -> runCatching { NavBarLabels.valueOf(stored) }.getOrNull() }
+                    ?: NavBarLabels.ALWAYS
+            }.distinctUntilChanged()
+
+    suspend fun setBottomNavLabels(labels: NavBarLabels) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_LABELS] = labels.name
+        }
+    }
+
+    val bottomNavStyle: Flow<NavBarStyle> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.BOTTOM_NAV_STYLE]
+                    ?.let { stored -> runCatching { NavBarStyle.valueOf(stored) }.getOrNull() }
+                    ?: NavBarStyle.STANDARD
+            }.distinctUntilChanged()
+
+    suspend fun setBottomNavStyle(style: NavBarStyle) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_STYLE] = style.name
+        }
+    }
+
+    val bottomNavLook: Flow<NavBarLook> =
+        combine(bottomNavStyle, bottomNavLabels) { style, labels -> NavBarLook(style, labels) }.distinctUntilChanged()
 
     // Search keeps its full-screen layout unless this is on.
     val searchShowsNavBar: Flow<Boolean> =
@@ -3674,6 +3708,17 @@ class PlayerPreferences(
         }
     }
 
+    /** Watched videos leave the suggestions under the player, and with them autoplay and the queue. */
+    val hideWatchedSuggestions: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.HIDE_WATCHED_SUGGESTIONS] ?: false }
+
+    suspend fun setHideWatchedSuggestions(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.HIDE_WATCHED_SUGGESTIONS] = enabled
+        }
+    }
+
     // Defaults to ALMOST_FINISHED so long videos only disappear in their final minute instead of at a flat 90%.
     val watchedThreshold: Flow<WatchedThreshold> =
         context.playerPreferencesDataStore.data
@@ -5624,6 +5669,24 @@ enum class PlayerRelatedCardStyle {
     COMPACT,
     FULL_WIDTH,
 }
+
+/** When the bottom bar names its tabs under their icons. */
+enum class NavBarLabels {
+    ALWAYS,
+    SELECTED,
+    NEVER,
+}
+
+/** A full-width bottom bar, or one floating above the content. */
+enum class NavBarStyle {
+    STANDARD,
+    FLOATING,
+}
+
+data class NavBarLook(
+    val style: NavBarStyle = NavBarStyle.STANDARD,
+    val labels: NavBarLabels = NavBarLabels.ALWAYS,
+)
 
 enum class SharedLinkAction {
     /** Play the video straight away, replacing what plays. */

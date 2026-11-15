@@ -1,4 +1,4 @@
-package io.github.aedev.flow.ui.screens.subscriptions
+package io.github.aedev.flow.data.subscriptions
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.innertube.YouTube

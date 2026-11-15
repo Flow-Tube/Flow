@@ -187,6 +187,45 @@ class PlayerRelatedVideosPolicyTest {
             assertThat(sanitized).containsExactlyElementsIn(candidates).inOrder()
         }
 
+    @Test
+    fun `watched suggestions are dropped`() {
+        val kept = PlayerRelatedVideosPolicy.withoutWatched(listOf(video("a"), video("b"), video("c")), setOf("b"))
+
+        assertThat(kept.map { it.id }).containsExactly("a", "c").inOrder()
+    }
+
+    @Test
+    fun `an all-watched list is kept whole so autoplay still has a next video`() {
+        val videos = listOf(video("a"), video("b"))
+
+        assertThat(PlayerRelatedVideosPolicy.withoutWatched(videos, setOf("a", "b"))).isEqualTo(videos)
+    }
+
+    @Test
+    fun `background autoplay skips what the watched source reports`() =
+        runTest {
+            val candidates = listOf(video("watched"), video("fresh"))
+
+            val kept =
+                PlayerRelatedVideosPolicy.sanitizeHidden(
+                    videoId = "playing",
+                    candidates = candidates,
+                    source = null,
+                    watched = { videos -> videos.filter { it.id == "watched" }.mapTo(HashSet()) { it.id } },
+                )
+
+            assertThat(kept.map { it.id }).containsExactly("fresh")
+        }
+
+    @Test
+    fun `a watched source that hides nothing leaves the list alone`() =
+        runTest {
+            val videos = listOf(video("a"))
+
+            assertThat(PlayerRelatedVideosPolicy.withoutWatched(videos, WatchedSuggestionsSource { emptySet() })).isEqualTo(videos)
+            assertThat(PlayerRelatedVideosPolicy.withoutWatched(videos, null as WatchedSuggestionsSource?)).isEqualTo(videos)
+        }
+
     private fun video(
         id: String,
         channelId: String = "channel-id",
