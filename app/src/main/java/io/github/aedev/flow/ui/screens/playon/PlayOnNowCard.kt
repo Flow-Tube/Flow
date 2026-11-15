@@ -39,11 +39,10 @@ import io.github.aedev.flow.ui.components.shared.deviceKindIcon
 
 private val CardPadding = 16.dp
 private val ArtHeight = 72.dp
-private val LabelHeight = 28.dp
-private val LabelIconSize = 16.dp
+private val PlaceIconSize = 18.dp
 
 /**
- * What plays on the active device: its art, title and artist, where it plays, the music player's
+ * What plays on the active device: where it plays, its art, title and artist, the music player's
  * own transport and the device's volume. [buffering] spins play/pause while a command is on its way.
  */
 @Composable
@@ -61,6 +60,7 @@ internal fun PlayOnNowCard(
         modifier = modifier,
     ) {
         Column(Modifier.padding(CardPadding), verticalArrangement = Arrangement.spacedBy(CardPadding)) {
+            SessionPlace(session.device, playing)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CardPadding)) {
                 SessionArtwork(now, MaterialTheme.shapes.medium, Modifier.height(ArtHeight), byHeight = true)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -79,7 +79,6 @@ internal fun PlayOnNowCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    DeviceLabel(session.device, Modifier.padding(top = 4.dp))
                 }
             }
             MediaPlaybackControls(
@@ -95,30 +94,33 @@ internal fun PlayOnNowCard(
     }
 }
 
-/** Where the session plays, as a label rather than a button: nothing happens on a tap. */
+/** "Playing on" or "Paused on" the session's device, behind its icon. */
 @Composable
-private fun DeviceLabel(
+private fun SessionPlace(
     device: PlayOnDevice,
-    modifier: Modifier = Modifier,
+    playing: Boolean,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = MaterialTheme.shapes.small,
-        modifier = modifier.height(LabelHeight),
-    ) {
-        Row(
-            Modifier.padding(start = 8.dp, end = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(deviceKindIcon(device.kind), contentDescription = null, modifier = Modifier.size(LabelIconSize))
-            Text(
-                deviceName(device),
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+    val text =
+        when {
+            device.thisDevice && playing -> stringResource(R.string.play_on_playing_here)
+            device.thisDevice -> stringResource(R.string.play_on_paused_here)
+            playing -> stringResource(R.string.play_on_playing_on, device.name)
+            else -> stringResource(R.string.play_on_paused_on, device.name)
         }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(
+            deviceKindIcon(device.kind),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(PlaceIconSize),
+        )
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

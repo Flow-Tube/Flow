@@ -4,13 +4,10 @@ import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -42,27 +39,29 @@ import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsGroup
 private val TileSize = 48.dp
 private val TileIconSize = 24.dp
 private val TrailingSize = 24.dp
-private val GroupGap = 12.dp
 
-/** What the rows show beyond the devices themselves: which one is checked, being moved to, or just failed. */
+/**
+ * What the rows show beyond the devices themselves: which one is checked, being moved to, or just
+ * failed, and [carded], the device whose session the card above names, so its row needn't.
+ */
 internal data class PlayOnRowState(
     val active: String?,
     val movingTo: String? = null,
     val failed: String? = null,
+    val carded: String? = null,
 ) {
     val moving: Boolean get() = movingTo != null
 }
 
 /**
  * The group's devices as Settings draws its rows: the [PlayOnRowState.active] one checked, offline
- * ones folded once there are a few, and a way to Linked devices when [onManage] is set.
+ * ones folded once there are a few.
  */
 @Composable
 internal fun DeviceList(
     devices: List<PlayOnDevice>,
     state: PlayOnRowState,
     onPick: (PlayOnDevice) -> Unit,
-    onManage: (() -> Unit)? = null,
 ) {
     val rows = playOnRows(devices, state.active)
     var showOffline by rememberSaveable { mutableStateOf(false) }
@@ -96,24 +95,6 @@ internal fun DeviceList(
                     },
                 ),
     )
-    if (onManage != null) {
-        Spacer(Modifier.height(GroupGap))
-        QuickActionsGroup(
-            title = null,
-            rows =
-                listOf(
-                    QuickActionRow("manage") { shape ->
-                        FlowNavRow(
-                            title = stringResource(R.string.play_on_manage),
-                            onClick = onManage,
-                            supportingText = stringResource(R.string.play_on_manage_summary),
-                            leadingContent = { DeviceTile(Icons.Outlined.Devices, active = false) },
-                            shape = shape,
-                        )
-                    },
-                ),
-        )
-    }
 }
 
 @Composable
@@ -128,7 +109,7 @@ private fun DeviceRow(
     FlowNavRow(
         title = deviceName(device),
         onClick = { if (!state.moving) onPick(device) },
-        supportingContent = { DeviceStatus(device, moving, failed = device.did == state.failed) },
+        supportingContent = { DeviceStatus(device, moving, failed = device.did == state.failed, carded = device.did == state.carded) },
         leadingContent = { DeviceTile(deviceKindIcon(device.kind), active) },
         showChevron = false,
         enabled = device.group != PlayOnGroup.OFFLINE || active,
@@ -175,12 +156,16 @@ private fun MovingIndicator() {
     FlowSpinner(modifier = Modifier.size(TrailingSize))
 }
 
-/** "Playing · title" behind a small waveform, "Paused · title", "Ready" or when it was last seen. */
+/**
+ * "Playing · title" behind a small waveform, "Paused · title", "Ready" or when it was last seen; just
+ * "Playing" or "Paused" when [carded], as the card above names the title.
+ */
 @Composable
 private fun DeviceStatus(
     device: PlayOnDevice,
     moving: Boolean,
     failed: Boolean,
+    carded: Boolean,
 ) {
     val title = device.now?.title.orEmpty()
     val playing = device.group == PlayOnGroup.PLAYING
@@ -194,6 +179,10 @@ private fun DeviceStatus(
                 stringResource(R.string.play_on_move_failed)
             }
 
+            playing && carded -> {
+                stringResource(R.string.play_on_status_playing_short)
+            }
+
             playing -> {
                 stringResource(R.string.play_on_status_playing, title)
             }
@@ -205,10 +194,10 @@ private fun DeviceStatus(
 
             else -> {
                 val status =
-                    if (device.now?.video != null) {
-                        stringResource(R.string.play_on_status_paused, title)
-                    } else {
-                        stringResource(R.string.play_on_status_ready)
+                    when {
+                        device.now?.video == null -> stringResource(R.string.play_on_status_ready)
+                        carded -> stringResource(R.string.play_on_status_paused_short)
+                        else -> stringResource(R.string.play_on_status_paused, title)
                     }
                 if (device.nearby) stringResource(R.string.play_on_status_nearby, status) else status
             }
