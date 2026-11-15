@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.components.videoplayer.overlay
 import io.github.aedev.flow.data.local.SponsorBlockAction
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.player.sponsorblock.SponsorBlockActionPolicy
+import io.github.aedev.flow.player.sponsorblock.SponsorBlockSegmentResolver
 
 /** How long after a video's content begins the jump to its highlight is offered. */
 private const val HIGHLIGHT_BUTTON_WINDOW_SEC = 10f
@@ -21,6 +22,9 @@ internal fun findActiveManualSponsorSegment(
     if (playbackEnded) return null
 
     val positionSeconds = currentPositionMs / 1000f
+    val autoSkip =
+        SponsorBlockSegmentResolver.resolve(sponsorSegments, positionSeconds, categoryActions, skippedOnceUuids)
+    if (autoSkip?.skipsAutomatically == true) return null
     val highlightWindowEnd = contentStart(sponsorSegments, categoryActions, skippedOnceUuids) + HIGHLIGHT_BUTTON_WINDOW_SEC
     return sponsorSegments.find { segment ->
         isManualWindow(segment, positionSeconds, highlightWindowEnd) &&

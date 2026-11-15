@@ -1,8 +1,6 @@
 package io.github.aedev.flow.player.dlna
 
 import android.content.Context
-import android.net.wifi.WifiManager
-import android.os.SystemClock
 import android.util.Log
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import kotlinx.coroutines.CancellationException
@@ -16,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -24,12 +21,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.VideoStream
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
-import java.net.DatagramPacket
-import java.net.InetAddress
-import java.net.MulticastSocket
-import java.net.URI
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -50,9 +41,6 @@ import java.util.concurrent.TimeUnit
  */
 object DlnaCastManager {
     private const val TAG = "DlnaCastManager"
-    private const val SSDP_ADDR = "239.255.255.250"
-    private const val SSDP_PORT = 1900
-    private const val DISCOVERY_TIMEOUT_MS = 5_000L
     private const val STOP_TIMEOUT_MS = 5_000L
     private const val SEGMENTED_START_TIMEOUT_MS = 10_000L
     private val SOAP_TYPE = "text/xml; charset=\"utf-8\"".toMediaType()
@@ -77,7 +65,7 @@ object DlnaCastManager {
     val isCasting: Boolean get() = _currentDevice.value != null
 
     private var discoveryJob: Job? = null
-    private var multicastLock: WifiManager.MulticastLock? = null
+    private val discovery = SsdpDiscovery(http, scope)
 
     private val proxy = StreamProxyServer.getInstance()
 
@@ -97,26 +85,20 @@ object DlnaCastManager {
 
     // ── Discovery ──────────────────────────────────────────────────────────────
 
-    /**
-     * Sends an SSDP M-SEARCH and collects AVTransport responses for
-     * [DISCOVERY_TIMEOUT_MS] ms, then resolves each device description to
-     * populate the control URL.
-     */
+    /** Searches the network with [SsdpDiscovery] and lists each renderer once it is resolved. */
     fun startDiscovery(context: Context) {
         discoveryJob?.cancel()
         _devices.value = emptyList()
 
         // Start the proxy server when discovery begins
-        proxy.start(context)
+        proxy.start()
 
         discoveryJob =
             scope.launch {
                 _isDiscovering.value = true
-                acquireMulticastLock(context)
                 try {
-                    discoverDevices()
+                    discovery.discover(context, ::addResolvedDevice)
                 } finally {
-                    releaseMulticastLock()
                     _isDiscovering.value = false
                 }
             }
@@ -125,166 +107,14 @@ object DlnaCastManager {
     fun stopDiscovery() {
         discoveryJob?.cancel()
         discoveryJob = null
-        releaseMulticastLock()
         _isDiscovering.value = false
     }
 
-    private suspend fun discoverDevices() {
-        val found = LinkedHashMap<String, DlnaDevice>()
-        val mSearchQuery =
-            buildString {
-                append("M-SEARCH * HTTP/1.1\r\n")
-                append("HOST: $SSDP_ADDR:$SSDP_PORT\r\n")
-                append("MAN: \"ssdp:discover\"\r\n")
-                append("MX: 3\r\n")
-                append("ST: urn:schemas-upnp-org:service:AVTransport:1\r\n")
-                append("\r\n")
-            }.toByteArray(Charsets.UTF_8)
-
-        try {
-            withTimeout(DISCOVERY_TIMEOUT_MS + 1_000L) {
-                MulticastSocket(0).use { socket ->
-                    socket.soTimeout = DISCOVERY_TIMEOUT_MS.toInt()
-                    val group = InetAddress.getByName(SSDP_ADDR)
-                    socket.joinGroup(group)
-
-                    socket.send(
-                        DatagramPacket(mSearchQuery, mSearchQuery.size, group, SSDP_PORT),
-                    )
-
-                    val buf = ByteArray(4096)
-                    val packet = DatagramPacket(buf, buf.size)
-                    val stop = SystemClock.elapsedRealtime() + DISCOVERY_TIMEOUT_MS
-                    while (SystemClock.elapsedRealtime() < stop) {
-                        try {
-                            socket.receive(packet)
-                            val response = String(packet.data, 0, packet.length, Charsets.UTF_8)
-                            parseSSDP(response)?.let { raw ->
-                                if (!found.containsKey(raw.usn)) {
-                                    found[raw.usn] = raw
-                                    scope.launch {
-                                        val resolved = resolveDevice(raw)
-                                        if (resolved != null) {
-                                            val current = _devices.value.toMutableList()
-                                            val idx = current.indexOfFirst { it.usn == resolved.usn }
-                                            if (idx >= 0) current[idx] = resolved else current.add(resolved)
-                                            _devices.value = current
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (_: Exception) {
-                            // timeout on receive is normal
-                        }
-                    }
-                    socket.leaveGroup(group)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "SSDP discovery error: ${e.message}")
-        }
-    }
-
-    private fun parseSSDP(response: String): DlnaDevice? {
-        var location: String? = null
-        var usn: String? = null
-        for (line in response.lines()) {
-            val lower = line.lowercase()
-            when {
-                lower.startsWith("location:") -> location = line.substringAfter(":").trim()
-                lower.startsWith("usn:") -> usn = line.substringAfter(":").trim()
-            }
-        }
-        if (location.isNullOrBlank()) return null
-        return DlnaDevice(
-            friendlyName = location,
-            location = location,
-            usn = usn ?: location,
-        )
-    }
-
-    private fun resolveDevice(device: DlnaDevice): DlnaDevice? {
-        return try {
-            val descriptionUrl = URL(device.location)
-            val xml =
-                http
-                    .newCall(Request.Builder().url(device.location).build())
-                    .execute()
-                    .use { it.body?.string() ?: "" }
-
-            var friendlyName = device.friendlyName
-            var urlBaseFromXml: String? = null
-            var avTransportControlPath: String? = null
-            var inAVTransport = false
-            var inServiceType = false
-            var inControlUrl = false
-
-            val factory = XmlPullParserFactory.newInstance()
-            val parser = factory.newPullParser()
-            parser.setInput(xml.reader())
-
-            var event = parser.eventType
-            while (event != XmlPullParser.END_DOCUMENT) {
-                when (event) {
-                    XmlPullParser.START_TAG -> {
-                        val tag = parser.name.lowercase()
-                        when (tag) {
-                            "friendlyname" -> {
-                                event = parser.next()
-                                if (event == XmlPullParser.TEXT) friendlyName = parser.text.trim()
-                            }
-
-                            "urlbase" -> {
-                                event = parser.next()
-                                if (event == XmlPullParser.TEXT) urlBaseFromXml = parser.text.trim()
-                            }
-
-                            "servicetype" -> {
-                                inServiceType = true
-                            }
-
-                            "controlurl" -> {
-                                if (inAVTransport) inControlUrl = true
-                            }
-                        }
-                    }
-
-                    XmlPullParser.TEXT -> {
-                        when {
-                            inServiceType -> {
-                                if (parser.text.lowercase().contains("avtransport")) inAVTransport = true
-                                inServiceType = false
-                            }
-
-                            inControlUrl -> {
-                                avTransportControlPath = parser.text.trim()
-                                inControlUrl = false
-                            }
-                        }
-                    }
-
-                    XmlPullParser.END_TAG -> {
-                        if (parser.name.lowercase() == "service") inAVTransport = false
-                    }
-                }
-                event = parser.next()
-            }
-
-            if (avTransportControlPath == null) {
-                Log.w(TAG, "No AVTransport service found at ${device.location}")
-                return null
-            }
-            val controlUrl =
-                resolveControlUrl(
-                    descriptionUrl = descriptionUrl,
-                    urlBase = urlBaseFromXml,
-                    controlPath = avTransportControlPath,
-                )
-            device.copy(friendlyName = friendlyName, avTransportUrl = controlUrl)
-        } catch (e: Exception) {
-            Log.e(TAG, "resolveDevice failed for ${device.location}: ${e.message}")
-            null
-        }
+    private fun addResolvedDevice(resolved: DlnaDevice) {
+        val current = _devices.value.toMutableList()
+        val idx = current.indexOfFirst { it.usn.substringBefore("::") == resolved.usn.substringBefore("::") }
+        if (idx >= 0) current[idx] = resolved else current.add(resolved)
+        _devices.value = current
     }
 
     // ── Control ────────────────────────────────────────────────────────────────
@@ -377,6 +207,7 @@ object DlnaCastManager {
         castJob?.cancel()
         castJob =
             scope.launch {
+                val host = castHost(device)
                 for (mode in ladder) {
                     val (variants, audioRanges) =
                         when (mode) {
@@ -391,11 +222,12 @@ object DlnaCastManager {
                             when (mode) {
                                 CastMode.MUXED -> {
                                     val type = guessContentType(muxedUrl!!, "video/mp4")
-                                    proxy.registerStream(muxedUrl, type) to type
+                                    proxy.registerStream(muxedUrl, host, type) to type
                                 }
 
                                 else -> {
                                     proxy.registerHlsCast(
+                                        host = host,
                                         videoVariants = variants,
                                         audioUrl = audioUrl!!,
                                         audioMime = audioMime,
@@ -427,6 +259,14 @@ object DlnaCastManager {
                 _currentDevice.value = null
             }
     }
+
+    /** The address the renderer can reach this phone on, for the stream URLs it is handed. */
+    private fun castHost(device: DlnaDevice): String =
+        CastNetwork.advertisedHostFor(
+            rendererIp = runCatching { URL(device.location).host }.getOrNull(),
+            addresses = CastNetwork.localAddresses(),
+            answeredOn = device.localHost,
+        ) ?: "127.0.0.1"
 
     private suspend fun startCast(
         device: DlnaDevice,
@@ -694,22 +534,6 @@ object DlnaCastManager {
         }
     }
 
-    private fun resolveControlUrl(
-        descriptionUrl: URL,
-        urlBase: String?,
-        controlPath: String,
-    ): String {
-        if (controlPath.startsWith("http://") || controlPath.startsWith("https://")) {
-            return controlPath
-        }
-        val base =
-            when {
-                !urlBase.isNullOrBlank() -> URI(urlBase)
-                else -> descriptionUrl.toURI()
-            }
-        return base.resolve(controlPath).toString()
-    }
-
     private fun soapAction(
         action: String,
         serviceType: String,
@@ -743,20 +567,4 @@ object DlnaCastManager {
             .replace(">", "&gt;")
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
-
-    private fun acquireMulticastLock(context: Context) {
-        val wifiManager =
-            context.applicationContext
-                .getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
-        multicastLock =
-            wifiManager.createMulticastLock("flow_dlna_discovery").also {
-                it.setReferenceCounted(true)
-                it.acquire()
-            }
-    }
-
-    private fun releaseMulticastLock() {
-        multicastLock?.let { if (it.isHeld) it.release() }
-        multicastLock = null
-    }
 }

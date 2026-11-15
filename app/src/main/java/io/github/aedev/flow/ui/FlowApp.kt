@@ -586,7 +586,9 @@ fun FlowApp(
                     },
         )
 
-        UpdateLaunchEffect(needsOnboarding = needsOnboarding, onOpenUpdate = { navController.navigate(UPDATE_ROUTE) })
+        UpdateLaunchEffect(needsOnboarding = needsOnboarding) {
+            navController.navigate(UPDATE_ROUTE) { launchSingleTop = true }
+        }
         TimesUpLaunchEffect(enabled = needsOnboarding == false && !isInPipMode) {
             collapseExpandedPlayers()
             navController.navigate(TIMES_UP_ROUTE) { launchSingleTop = true }

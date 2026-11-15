@@ -28,11 +28,7 @@ import io.github.aedev.flow.ui.components.shared.flowSegmentShape
 import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
 import io.github.aedev.flow.ui.components.shared.rememberMediaArtworkTint
 import io.github.aedev.flow.utils.formatDurationMillis
-import kotlinx.coroutines.delay
 import org.schabi.newpipe.extractor.stream.StreamSegment
-
-/** How long a tapped chapter keeps the highlight if the playhead never reports arriving. */
-private const val CHAPTER_SELECTION_GRACE_MS = 1_500L
 
 @Composable
 fun FlowChaptersBottomSheet(
@@ -56,22 +52,17 @@ fun FlowChaptersBottomSheet(
             .coerceAtLeast(0)
 
     // A tapped chapter is highlighted straight away instead of waiting for the playhead to report
-    // it (#978). The seek resolves to the nearest sync point, which can sit a few hundred
-    // milliseconds short of the boundary, so the position briefly still reads as the chapter before
-    // the one just tapped — and showed it as current, filled to the end.
-    var pendingChapterIndex by remember(chapters) { mutableStateOf<Int?>(null) }
-    LaunchedEffect(pendingChapterIndex, positionChapterIndex) {
-        val pending = pendingChapterIndex ?: return@LaunchedEffect
-        if (positionChapterIndex == pending) {
-            pendingChapterIndex = null
-        } else {
-            // The playhead never arrived — a scrub elsewhere, or a seek that failed. Let the real
-            // position take the highlight back rather than leaving it pinned.
-            delay(CHAPTER_SELECTION_GRACE_MS)
-            pendingChapterIndex = null
-        }
+    // it (#978), and keeps the highlight until the seek has really landed (#2104): see
+    // [isReleasedAt] for the readings in between that would otherwise light up the chapter before it.
+    var pendingSeek by remember(chapters) { mutableStateOf<PendingChapterSeek?>(null) }
+    val heldChapterIndex =
+        pendingSeek
+            ?.takeUnless { it.isReleasedAt(currentPosition, chapters.chapterStartMs(it.index + 1)) }
+            ?.index
+    LaunchedEffect(pendingSeek, heldChapterIndex) {
+        if (pendingSeek != null && heldChapterIndex == null) pendingSeek = null
     }
-    val activeChapterIndex = pendingChapterIndex ?: positionChapterIndex
+    val activeChapterIndex = heldChapterIndex ?: positionChapterIndex
     val initialActiveChapterIndex = remember(chapters) { positionChapterIndex }
     val chaptersListState =
         rememberLazyListState(
@@ -144,7 +135,7 @@ fun FlowChaptersBottomSheet(
                     shape = flowSegmentShape(index, chapters.size),
                     tint = tint,
                     onClick = {
-                        pendingChapterIndex = index
+                        pendingSeek = PendingChapterSeek(index, startTimeMs, currentPosition)
                         onChapterClick(startTimeMs)
                     },
                 )
@@ -152,6 +143,8 @@ fun FlowChaptersBottomSheet(
         }
     }
 }
+
+private fun List<StreamSegment>.chapterStartMs(index: Int): Long? = getOrNull(index)?.let { it.startTimeSeconds.toLong() * 1000L }
 
 @Composable
 private fun chaptersSubtitle(

@@ -45,7 +45,6 @@ class LocalDataManager
             private val TRENDING_REGION = stringPreferencesKey("trending_region")
             private val LAST_UPDATE_CHECK = stringPreferencesKey("last_update_check")
             private val UPDATE_SKIPPED_VERSION = stringPreferencesKey("update_skipped_version")
-            private val UPDATE_PROMPTED_VERSION = stringPreferencesKey("update_prompted_version")
             private val UPDATE_NOTIFIED_VERSION = stringPreferencesKey("update_notified_version")
             private val BEDTIME_REMINDER =
                 androidx.datastore.preferences.core
@@ -92,7 +91,6 @@ class LocalDataManager
                 setOf(
                     LAST_UPDATE_CHECK.name,
                     UPDATE_SKIPPED_VERSION.name,
-                    UPDATE_PROMPTED_VERSION.name,
                     UPDATE_NOTIFIED_VERSION.name,
                     AUTO_BACKUP_LAST_RUN.name,
                 )
@@ -163,12 +161,6 @@ class LocalDataManager
 
         suspend fun setSkippedUpdateVersion(version: String) {
             context.devicePreferencesDataStore.edit { it[UPDATE_SKIPPED_VERSION] = version }
-        }
-
-        val promptedUpdateVersion: Flow<String?> = context.devicePreferencesDataStore.data.map { it[UPDATE_PROMPTED_VERSION] }
-
-        suspend fun setPromptedUpdateVersion(version: String) {
-            context.devicePreferencesDataStore.edit { it[UPDATE_PROMPTED_VERSION] = version }
         }
 
         val notifiedUpdateVersion: Flow<String?> = context.devicePreferencesDataStore.data.map { it[UPDATE_NOTIFIED_VERSION] }
