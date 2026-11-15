@@ -2980,7 +2980,6 @@
     <string name="import_master_backup_failed">Failed to import master backup</string>
     <!-- Device Sync (FLOW-SYNC/1) -->
     <string name="sync_devices_title">Sync devices</string>
-    <string name="linked_title">Linked devices</string>
     <string name="play_on_title">Play on</string>
     <string name="play_on_button">Play on another device</string>
     <string name="play_on_playing_on">Playing on %1$s</string>
@@ -3015,7 +3014,6 @@
     <string name="linked_consent_ask">Ask each time</string>
     <string name="linked_consent_allowed">Allowed</string>
     <string name="linked_consent_declined">Not allowed</string>
-    <string name="linked_always_intro">Your devices stay in sync all the time through your own Flow sync server, a WebDAV folder, or your Wi-Fi network. Everything is end-to-end encrypted; no server can read it.</string>
     <string name="linked_create_title">Create a group</string>
     <string name="linked_create_body">Start linking on a Flow sync server, in a WebDAV folder, or on this network</string>
     <string name="linked_where_title">Where should your devices sync?</string>
@@ -3071,8 +3069,6 @@
     <string name="linked_restore_unknown_device">Unknown device (%1$s)</string>
     <string name="linked_back">Back</string>
     <string name="linked_scan_member_code">Scan the code on a linked device</string>
-    <string name="linked_server">Server</string>
-    <string name="linked_last_sync">This device: synced %1$s</string>
     <string name="linked_last_sync_never">This device hasn\'t synced yet</string>
     <string name="linked_sync_now">Sync now</string>
     <string name="linked_syncing">Syncing…</string>
@@ -3116,6 +3112,24 @@
     <string name="linked_done">Done</string>
     <string name="linked_forget">Forget the group on this device</string>
     <string name="linked_leave">Leave the group</string>
+    <string name="linked_intro_title">Keep your devices in sync</string>
+    <string name="linked_intro_body">History, playlists, likes and settings stay the same on your phone, TV and computer. End-to-end encrypted.</string>
+    <string name="linked_other_ways">Other ways in</string>
+    <string name="linked_store_server">Flow sync server</string>
+    <string name="linked_store_webdav">WebDAV folder</string>
+    <string name="linked_store_lan">This network</string>
+    <string name="linked_synced_at">Synced %1$s</string>
+    <string name="linked_group">Group</string>
+    <string name="linked_where_it_syncs">Where it syncs</string>
+    <string name="linked_recovery_words">Recovery words</string>
+    <string name="linked_add_device_hint">Show a code or scan one</string>
+    <string name="linked_add_device_show_hint">Show a code for the new device to scan</string>
+    <string name="linked_add_show_code">Show a code</string>
+    <string name="linked_add_show_code_hint">The new device scans it</string>
+    <string name="linked_add_scan_code">Scan its code</string>
+    <string name="linked_add_scan_code_hint">For a device showing a code, like a TV</string>
+    <string name="linked_join_request_hint">Accept only if this is your device.</string>
+    <string name="linked_remove_from_group">Remove from group</string>
     <string name="linked_leave_title">Leave the group?</string>
     <string name="linked_leave_body">This device leaves the group and deletes its keys and its copy of the group\'s data. Your other devices keep everything and switch to new keys without it. To link it again, pair it as a new device.</string>
     <string name="linked_leave_failed_title">Your other devices couldn\'t be told</string>
@@ -3217,7 +3231,6 @@
     <string name="sync_preparing">Preparing…</string>
     <string name="sync_connecting">Connecting…</string>
     <string name="sync_one_time_title">One-time transfer</string>
-    <string name="sync_one_time_body">Copy your library, history, likes and settings to another device once, over Wi-Fi. Nothing leaves your network.</string>
     <string name="sync_send_to_device">Send to a device</string>
     <string name="sync_receive_from_device">Receive from a device</string>
     <string name="sync_pairing_title">How should the devices pair?</string>

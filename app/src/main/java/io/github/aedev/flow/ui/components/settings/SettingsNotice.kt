@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.components.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,6 +24,7 @@ private val NoticeSpacing = 12.dp
 private val NoticeIconSize = 20.dp
 private val NoticeTopPadding = 8.dp
 private val NoticeLineSpacing = 2.dp
+private val NoticeActionsPadding = 8.dp
 
 /** Explanatory text under a group, lined up with the row titles above it. */
 @Composable
@@ -41,7 +43,8 @@ fun SettingsFootnote(
 /**
  * A standalone note on a page: what a setting costs, a restart it needs, a risk it carries. Drawn on
  * a neutral container so it reads as information, not as a control. [isWarning] switches it to the
- * error container for the few notes that describe something that can go wrong.
+ * error container for the few notes that describe something that can go wrong. [actions] puts text
+ * buttons under the note, end-aligned, for a note the user answers.
  */
 @Composable
 fun SettingsNotice(
@@ -50,6 +53,7 @@ fun SettingsNotice(
     icon: ImageVector? = null,
     title: String? = null,
     isWarning: Boolean = false,
+    actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     Surface(
@@ -58,24 +62,45 @@ fun SettingsNotice(
         color = if (isWarning) colors.errorContainer else colors.surfaceContainer,
         contentColor = if (isWarning) colors.onErrorContainer else colors.onSurfaceVariant,
     ) {
-        Row(
-            modifier = Modifier.padding(NoticePadding),
-            horizontalArrangement = Arrangement.spacedBy(NoticeSpacing),
-            verticalAlignment = if (title == null) Alignment.CenterVertically else Alignment.Top,
-        ) {
-            if (icon != null) {
-                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(NoticeIconSize))
+        Column {
+            NoticeBody(text, icon, title, isWarning, Modifier.padding(NoticePadding))
+            if (actions != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(end = NoticeActionsPadding, bottom = NoticeActionsPadding),
+                    horizontalArrangement = Arrangement.End,
+                    content = actions,
+                )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(NoticeLineSpacing)) {
-                if (title != null) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = if (isWarning) colors.onErrorContainer else colors.onSurface,
-                    )
-                }
-                Text(text = text, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun NoticeBody(
+    text: String,
+    icon: ImageVector?,
+    title: String?,
+    isWarning: Boolean,
+    modifier: Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(NoticeSpacing),
+        verticalAlignment = if (title == null) Alignment.CenterVertically else Alignment.Top,
+    ) {
+        if (icon != null) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(NoticeIconSize))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(NoticeLineSpacing)) {
+            if (title != null) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (isWarning) colors.onErrorContainer else colors.onSurface,
+                )
             }
+            Text(text = text, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
