@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.Tune
@@ -68,5 +69,6 @@ internal fun collectionIcon(key: String): ImageVector =
         SyncCollection.SUBSCRIPTIONS -> Icons.Outlined.Folder
         SyncCollection.SETTINGS -> Icons.Outlined.Tune
         SyncCollection.MUSIC_BRAIN -> Icons.Outlined.LibraryMusic
+        SyncCollection.NOTES -> Icons.Outlined.StickyNote2
         else -> Icons.Outlined.Psychology
     }

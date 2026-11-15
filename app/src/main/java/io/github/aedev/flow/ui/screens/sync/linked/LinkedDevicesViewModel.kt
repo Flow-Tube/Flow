@@ -13,6 +13,7 @@ import io.github.aedev.flow.sync2.live.LiveDevices
 import io.github.aedev.flow.sync2.live.deviceKind
 import io.github.aedev.flow.sync2.service.AutoSync
 import io.github.aedev.flow.sync2.service.LastSync
+import io.github.aedev.flow.sync2.service.LeftOut
 import io.github.aedev.flow.sync2.service.LinkPhase
 import io.github.aedev.flow.sync2.service.LinkedActions
 import io.github.aedev.flow.sync2.service.LinkedDevice
@@ -99,6 +100,7 @@ internal class LinkedDevicesViewModel
         private val linkedProfiles: LinkedProfiles,
         private val liveConsent: LiveConsent,
         private val autoSync: AutoSync,
+        private val leftOut: LeftOut,
         live: LiveDevices,
     ) : ViewModel() {
         private val ownKind = deviceKind(context)
@@ -164,6 +166,14 @@ internal class LinkedDevicesViewModel
 
         fun setAutoSync(on: Boolean) {
             viewModelScope.launch { autoSync.set(on) }
+        }
+
+        /** The collections this device leaves out of its links. */
+        val leftOutCollections: StateFlow<Set<String>> =
+            leftOut.collections.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+        fun setLeftOut(collections: Set<String>) {
+            viewModelScope.launch { leftOut.set(collections) }
         }
 
         val profiles: StateFlow<ProfileChoices> =

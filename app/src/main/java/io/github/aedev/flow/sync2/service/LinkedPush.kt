@@ -31,6 +31,7 @@ class LinkedPush
         private val tables: TableChanges,
         private val devices: LiveDevices,
         private val keys: DeviceKeys,
+        private val leftOut: LeftOut,
     ) {
         @Volatile
         private var schedule: PushSchedule? = null
@@ -68,7 +69,8 @@ class LinkedPush
 
         private suspend fun push(collections: Set<String>): Boolean {
             val unchanged = tables.unchanged()
-            val due = collections.filterNot { it in COLLECTION_TABLES && it in unchanged }
+            val left = leftOut.current()
+            val due = collections.filterNot { (it in COLLECTION_TABLES && it in unchanged) || it in left }
             if (due.isEmpty()) {
                 Log.d(TAG, "Nothing to push after a change to ${collections.joinToString()}")
                 return false

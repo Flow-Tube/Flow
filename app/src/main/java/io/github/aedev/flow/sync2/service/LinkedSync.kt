@@ -89,6 +89,7 @@ class LinkedSync
         private val tables: TableChanges,
         private val profiles: LinkedProfiles,
         private val kept: KeptBatches,
+        private val leaving: LeftOut,
     ) {
         private val running = Mutex()
         private val last = MutableStateFlow<LastSync?>(null)
@@ -210,9 +211,10 @@ class LinkedSync
         private suspend fun push(
             session: Session,
             link: String,
+            leftOut: Set<String>,
         ): Int {
             val lastSent = db.sent().lastSent(link).associate { it.collection to it.sentAt }
-            val collections = collectionsToPush(SyncCollection.ANDROID_SYNCABLE, tables.unchanged(), lastSent, System.currentTimeMillis())
+            val collections = collectionsToPush(sendable(leftOut), tables.unchanged(), lastSent, System.currentTimeMillis())
             val tracked = collections.filter { it in COLLECTION_TABLES }
             tables.exporting(tracked)
             return try {
@@ -282,6 +284,7 @@ class LinkedSync
             announce: Boolean,
         ) {
             val active = profiles.activeLink()
+            val leftOut = leaving.current()
             var names: Map<String, DeviceMeta>? = null
             val hlc = identity.newClock().now().encode()
             val counts = mutableMapOf<String, Int>()
@@ -290,8 +293,11 @@ class LinkedSync
 
             suspend fun apply(
                 sender: String,
-                batches: List<IncomingBatch>,
+                read: List<IncomingBatch>,
             ) {
+                // A collection this device leaves out is read and counts as consumed, but isn't merged.
+                val batches = read.filterNot { it.collection in leftOut }
+                if (batches.isEmpty()) return
                 val meta = (names ?: deviceNames(session).also { names = it })[sender]
                 applyBatches(db.sent(), checkNotNull(active), batches, System.currentTimeMillis(), ::export) { received ->
                     applier.applyPayload(PeerInfo(sender, meta?.name.orEmpty(), meta?.platform.orEmpty()), received, hlc, onceEach = false)
@@ -315,6 +321,16 @@ class LinkedSync
                 route(session.startReading(row.link) ?: continue)
                 db.profiles().caughtUp(row.link)
             }
+            // A collection taken back is read from each link's newest snapshot, as when a profile links to it, and sent
+            // again only once that read is done (spec/protocol.md, Leaving collections out).
+            val catchingUp = leaving.catchingUp()
+            var started = true
+            if (catchingUp.isNotEmpty() && db.profiles().reads().isEmpty()) {
+                for (row in links) {
+                    val read = session.startReading(row.link)
+                    if (read == null) started = false else route(read.only(catchingUp))
+                }
+            }
             if (active != null) {
                 while (true) {
                     val batch = kept.first(active) ?: break
@@ -322,12 +338,14 @@ class LinkedSync
                     kept.applied(batch)
                 }
             }
-            val pushed = (if (active != null) push(session, active) else 0) + session.push(profiles.export(), null)
+            val pushed = (if (active != null) push(session, active, leftOut + catchingUp) else 0) + session.push(profiles.export(), null)
             val pulled = session.pull(links.mapTo(HashSet<String?>()) { it.link } + null)
             if (pushed > 0 || merged > 0 || pulled.batches.isNotEmpty()) indicator.show()
             route(pulled.batches)
             pulled.login?.let { credentials.savePending(it) }
             session.finish(pulled)
+            // Finishing the pull is what drops the reads it completed.
+            if (catchingUp.isNotEmpty() && started && db.profiles().reads().isEmpty()) leaving.caughtUp(catchingUp)
             if (announce) {
                 counts.filterValues { it > 0 }.forEach { (sender, changes) ->
                     arrivals.tryEmit(Received(names?.get(sender)?.name.orEmpty(), changes))
@@ -338,8 +356,13 @@ class LinkedSync
             if (db.snapshots().isDue("", now)) session.writeSnapshot(profiles.export(), null)
             if (active == null) return
             db.snapshots().noteMerged(active, merged, now)
-            if (db.snapshots().isDue(active, now) && holdsAll(active)) session.writeSnapshot(export(), active)
+            // A snapshot must hold every collection of the link, so a device that leaves some out writes none.
+            if (leftOut.isEmpty() && db.snapshots().isDue(active, now) && holdsAll(active)) session.writeSnapshot(export(), active)
         }
+
+        /** The batches of [collections] only. */
+        private fun Map<String, List<IncomingBatch>>.only(collections: Set<String>) =
+            mapValues { (_, batches) -> batches.filter { it.collection in collections } }
 
         /** Whether everything this device read of [link] is merged: nothing kept for it, nothing left to catch up. */
         private suspend fun holdsAll(link: String): Boolean = kept.count(link) == 0 && db.profiles().reads().none { it.link == link }
