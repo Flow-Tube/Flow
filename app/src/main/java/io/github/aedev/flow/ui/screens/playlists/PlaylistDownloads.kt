@@ -54,17 +54,16 @@ internal class PlaylistDownloads(
     }
 
     /**
-     * The videos in [state] to start a download's selection with: all but those left out last time,
-     * or all when that leaves none. [state] must have every page loaded; empty, with a message, when
-     * the playlist is.
+     * The videos a download starts with unpicked: those left out last time, or none when that would
+     * leave nothing of [state] picked. Null, with a message, when the playlist is empty.
      */
-    suspend fun downloadableIds(state: PlaylistDetailUiState): Set<String> {
+    suspend fun leftOutLastTime(state: PlaylistDetailUiState): Set<String>? {
         if (state.videos.isEmpty()) {
             send(PlaylistUiMessage(stringRes = R.string.ui_playlist_empty))
-            return emptySet()
+            return null
         }
-        val all = state.videos.mapTo(LinkedHashSet()) { it.id }
-        return (all - collections.excludedIds(playlistId)).ifEmpty { all }
+        val leftOut = collections.excludedIds(playlistId)
+        return if (state.videos.all { it.id in leftOut }) emptySet() else leftOut
     }
 
     /**
