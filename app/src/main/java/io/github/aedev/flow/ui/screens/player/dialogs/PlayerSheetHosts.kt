@@ -93,7 +93,7 @@ internal fun PlayerChaptersSheetHost(
         currentPosition = chaptersPositionMs,
         durationMs = screenState.duration,
         onChapterClick = { newPosition ->
-            EnhancedPlayerManager.getInstance().seekTo(newPosition)
+            EnhancedPlayerManager.getInstance().seekTo(newPosition, exact = true)
         },
         onDismiss = onDismiss,
         thumbnailUrl = thumbnailUrl,
@@ -180,7 +180,7 @@ internal fun PlayerDescriptionSheetHost(
         onEditNote = { showNoteEditor = true }.takeIf { videoNotesEnabled },
         onChannelClick = onChannelClick,
         artworkUrl = video.thumbnailUrl,
-        onSeekMs = { EnhancedPlayerManager.getInstance().seekTo(it) },
+        onSeekMs = { EnhancedPlayerManager.getInstance().seekTo(it, exact = true) },
         expandedHeight = expandedHeight,
         collapsedHeight = collapsedHeight,
         enableVerticalDismiss = !asSidePanel,
@@ -235,7 +235,7 @@ internal fun PlayerTranscriptSheetHost(
         isLoading = transcript.isLoading,
         currentPositionMs = { screenState.currentPosition },
         artworkUrl = artworkUrl,
-        onSeekMs = { EnhancedPlayerManager.getInstance().seekTo(it) },
+        onSeekMs = { EnhancedPlayerManager.getInstance().seekTo(it, exact = true) },
         onDismiss = onDismiss,
         chapters = transcriptChapters,
         tracks = tracks,
@@ -328,7 +328,7 @@ internal fun PlayerCommentsPanelHost(
         onFilterChanged = { filter ->
             commentsUiState.selectCommentSort(filter, videoId, screenState, viewModel)
         },
-        onSeekMs = { EnhancedPlayerManager.getInstance().seekTo(it) },
+        onSeekMs = { EnhancedPlayerManager.getInstance().seekTo(it, exact = true) },
         onLoadReplies = { viewModel.loadCommentReplies(it) },
         onLoadMoreReplies = { viewModel.loadMoreCommentReplies(it) },
         onAuthorClick = { authorChannelRef ->

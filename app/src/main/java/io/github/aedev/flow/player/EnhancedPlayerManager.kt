@@ -2543,7 +2543,14 @@ class EnhancedPlayerManager private constructor() {
         p.setSeekParameters(SeekParameters.CLOSEST_SYNC)
     }
 
-    fun seekTo(position: Long) {
+    /**
+     * VOD seeks snap to the closest keyframe, which can land after a chapter start or a linked
+     * timestamp, so jumps to a named moment pass [exact] (#2149).
+     */
+    fun seekTo(
+        position: Long,
+        exact: Boolean = false,
+    ) {
         val p = player ?: return
         val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
         if (!isLive && !scrubPreviewing && skipSegmentAt(position)) return
@@ -2553,7 +2560,8 @@ class EnhancedPlayerManager private constructor() {
             sabrSeekTo(target)
             return
         }
-        if (isLive || isEndBoundary) {
+        val exactVod = !isLive && (isEndBoundary || exact)
+        if (isLive || exactVod) {
             p.setSeekParameters(SeekParameters.EXACT)
         }
         if (isLive) {
@@ -2562,7 +2570,7 @@ class EnhancedPlayerManager private constructor() {
         p.seekTo(target)
         if (isLive) {
             updateLiveEdgeState(p)
-        } else if (isEndBoundary) {
+        } else if (exactVod) {
             p.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         }
     }
