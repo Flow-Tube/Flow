@@ -39,6 +39,7 @@ class ContentSettingsViewModel
         val shortsContent = preferences.shortsContentEnabled.asState(true)
         val channelShortsTab = preferences.channelShortsTabWhenHidden.asState(false)
         val hideWatchedShorts = preferences.hideWatchedShorts.asState(true)
+        val hideWatchedSuggestions = preferences.hideWatchedSuggestions.asState(false)
         val removeWatchedWatchLater = preferences.removeWatchedFromWatchLater.asState(false)
         val watchedThreshold = preferences.watchedThreshold.asState(WatchedThreshold.ALMOST_FINISHED)
         val countImportedAsWatched = preferences.countImportedAsWatched.asState(false)
@@ -94,6 +95,8 @@ class ContentSettingsViewModel
         fun setChannelShortsTab(value: Boolean) = write { preferences.setChannelShortsTabWhenHidden(value) }
 
         fun setHideWatchedShorts(value: Boolean) = write { preferences.setHideWatchedShorts(value) }
+
+        fun setHideWatchedSuggestions(value: Boolean) = write { preferences.setHideWatchedSuggestions(value) }
 
         fun setRemoveWatchedWatchLater(value: Boolean) = write { preferences.setRemoveWatchedFromWatchLater(value) }
 
