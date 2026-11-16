@@ -107,7 +107,7 @@ internal class MusicCrossfader(
                     abort("the player moved while a skip waited for its tail")
                     return
                 }
-                if (changedSong && byHand && skip.beginSkipFade(left, oldPosition.positionMs)) return
+                if (changedSong && byHand && skip.beginSkipFade(left, oldPosition.mediaItemIndex, oldPosition.positionMs)) return
                 if (reason != Player.DISCONTINUITY_REASON_SEEK) return
                 if (stage != CrossfadeStage.IDLE) abort("a seek")
                 schedule()
@@ -133,6 +133,10 @@ internal class MusicCrossfader(
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 runIncomingClock(isPlaying)
+                if (isPlaying && (stage == CrossfadeStage.FADING || stage == CrossfadeStage.THROUGH_IN)) {
+                    handler.removeCallbacks(fadeStep)
+                    handler.post(fadeStep)
+                }
                 if (isPlaying) skip.nextSongPlaying()
             }
 
@@ -205,12 +209,18 @@ internal class MusicCrossfader(
         mediaId: String,
     ) = skip.skipTo(index, mediaId)
 
-    private fun startFade() {
+    private fun startFade(late: Boolean) {
         stage = CrossfadeStage.FADING
         val now = SystemClock.elapsedRealtime()
         outBeganAtMs = CrossfadePolicy.fadeBeganAtMs(now, fadeProgress, outClockMs)
-        inElapsedMs = (fadeProgress * inClockMs).toLong()
-        inRunningSinceMs = now
+        if (late) {
+            inClockMs = CrossfadePolicy.lateFadeInClockMs(inClockMs)
+            inElapsedMs = 0L
+            inRunningSinceMs = null
+        } else {
+            inElapsedMs = (fadeProgress * inClockMs).toLong()
+            inRunningSinceMs = now
+        }
         handler.post(fadeStep)
     }
 
@@ -398,7 +408,14 @@ internal class MusicCrossfader(
                     return
                 }
             }
-        if (done) finish() else handler.postDelayed(fadeStep, FADE_STEP_MS)
+        when {
+            done -> finish()
+
+            // Nothing moves until the next song plays, which steps the fade again.
+            stage != CrossfadeStage.THROUGH && tail == null && inRunningSinceMs == null -> Unit
+
+            else -> handler.postDelayed(fadeStep, FADE_STEP_MS)
+        }
     }
 
     /** Steps both songs; true once the old song is gone and the new one is at full volume. */
@@ -516,7 +533,20 @@ internal class MusicCrossfader(
             this@MusicCrossfader.stage = CrossfadeStage.WAITING_FOR_NEXT_SONG
         }
 
-        override fun startFade() = this@MusicCrossfader.startFade()
+        override fun startFade(late: Boolean) = this@MusicCrossfader.startFade(late)
+
+        override fun fadeNextSongIn(
+            reason: String,
+            index: Int?,
+        ) {
+            Log.d(CROSSFADE_TAG, "crossfade dropped: $reason, the next song fades in")
+            skipFade = false
+            cancelMessages()
+            releaseTail()
+            scaleSession(0f)
+            index?.let(this@MusicCrossfader::seekSession)
+            startQuickFadeIn()
+        }
 
         override fun holdFade() {
             if (this@MusicCrossfader.stage == CrossfadeStage.FADING) {

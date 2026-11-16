@@ -4,8 +4,10 @@ import android.os.Handler
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -25,7 +27,9 @@ internal data class SkipTarget(
  * runs with crossfade off too, as a [CrossfadePolicy.SKIP_BLEND_MS] overlap. A skip from the notification
  * or a headset has already changed the song by the time it gets here ([beginSkipFade]), so it only gets a
  * tail while the settings ask for a fade, and the next song stays muted until the tail plays. Either way
- * the fade runs once both are playing, on the [MusicCrossfader] that owns this.
+ * the fade runs once both are playing, on the [MusicCrossfader] that owns this. A next song still loading
+ * [CrossfadePolicy.LATE_NEXT_SONG_MS] after the hand-off doesn't hold the old one at full volume: that one
+ * fades out anyway, and the next one comes in quickly once it plays (#2076).
  */
 internal class CrossfadeSkip(
     private val session: ExoPlayer,
@@ -54,12 +58,19 @@ internal class CrossfadeSkip(
 
         fun waitForNextSong()
 
-        fun startFade()
+        /** Starts the fade; a [late] next song isn't playing yet and comes in over [CrossfadePolicy.lateFadeInClockMs]. */
+        fun startFade(late: Boolean)
 
         /** Holds the old song's volume where it is while the session moves to another song. */
         fun holdFade()
 
         fun seekSession(index: Int)
+
+        /** Drops the tail and brings the session's song in over [CrossfadePolicy.QUICK_FADE_IN_MS], at [index] if given. */
+        fun fadeNextSongIn(
+            reason: String,
+            index: Int?,
+        )
 
         fun abort(reason: String?)
 
@@ -77,6 +88,7 @@ internal class CrossfadeSkip(
     private var skipLeadMs = DEFAULT_SKIP_LEAD_MS
     private var skippedId: String? = null
     private var overlapMs = 0L
+    private var waitingSinceMs = 0L
 
     // A started player is heard a moment after it reports playing, and only this says the audio has begun.
     @OptIn(UnstableApi::class)
@@ -89,6 +101,7 @@ internal class CrossfadeSkip(
         }
 
     private val easeStep = Runnable { ease() }
+    private val lateSongStep = Runnable { nextSongLate() }
     private val skipTimeoutStep = Runnable { if (host.stage == CrossfadeStage.SKIP_STARTING) skipTailOutOfTime() }
 
     /** True while a skip waits for its tail, with the session still on the old song. */
@@ -109,6 +122,7 @@ internal class CrossfadeSkip(
     fun cancelSteps() {
         handler.removeCallbacks(easeStep)
         handler.removeCallbacks(skipTimeoutStep)
+        handler.removeCallbacks(lateSongStep)
     }
 
     /** Next or Previous from inside the app, which plays the song at [index] (still [mediaId]) whatever else happens. */
@@ -118,28 +132,43 @@ internal class CrossfadeSkip(
     ) {
         val target = SkipTarget(index, mediaId)
         val left = session.currentMediaItem
-        val resumeAt =
-            left?.takeIf { heldTarget == null && session.isPlaying }?.let { skipResumeAt(it, session.currentPosition) }
+        val durationMs = left?.let { durationOf(it, session.currentMediaItemIndex) }
+        val resumeAt = left?.takeIf { heldTarget == null && session.isPlaying }?.let { skipResumeAt(session.currentPosition, durationMs) }
         val press = CrossfadePolicy.onSkipPress(skipPhase(), session.currentMediaItemIndex == index, resumeAt != null)
         Log.d(CROSSFADE_TAG, "skip to $mediaId: $press")
         when (press) {
-            CrossfadePolicy.SkipPress.START_TAIL -> holdSkip(target, requireNotNull(left), requireNotNull(resumeAt))
-            CrossfadePolicy.SkipPress.MOVE_TARGET -> heldTarget = target
-            CrossfadePolicy.SkipPress.BACK_TO_PLAYING_SONG -> stayOnPlayingSong()
-            CrossfadePolicy.SkipPress.SEEK_UNDER_TAIL -> seekUnderTail(target)
-            CrossfadePolicy.SkipPress.PLAIN -> skipPlainly(target)
+            CrossfadePolicy.SkipPress.START_TAIL -> {
+                holdSkip(target, requireNotNull(left), requireNotNull(durationMs), requireNotNull(resumeAt))
+            }
+
+            CrossfadePolicy.SkipPress.MOVE_TARGET -> {
+                heldTarget = target
+            }
+
+            CrossfadePolicy.SkipPress.BACK_TO_PLAYING_SONG -> {
+                stayOnPlayingSong()
+            }
+
+            CrossfadePolicy.SkipPress.SEEK_UNDER_TAIL -> {
+                seekUnderTail(target)
+            }
+
+            CrossfadePolicy.SkipPress.PLAIN -> {
+                skipPlainly(target)
+            }
         }
     }
 
     private fun holdSkip(
         target: SkipTarget,
         left: MediaItem,
+        durationMs: Long,
         resumeAt: Long,
     ) {
         val gain = session.volume
         host.abort(null)
         heldTarget = target
-        startSkipTail(left, resumeAt, gain, tailVolume = 0f)
+        startSkipTail(left, durationMs, resumeAt, gain, tailVolume = 0f)
     }
 
     private fun stayOnPlayingSong() {
@@ -167,36 +196,49 @@ internal class CrossfadeSkip(
     }
 
     private fun skipResumeAt(
-        left: MediaItem,
         positionMs: Long,
+        durationMs: Long?,
     ): Long? {
         if (!session.playWhenReady || moment(host.settings).showsVideo) return null
-        return CrossfadePolicy.skipResumeMs(positionMs, skipLeadMs, left.mediaMetadata.durationMs, session.playerError != null)
+        return CrossfadePolicy.skipResumeMs(positionMs, skipLeadMs, durationMs, session.playerError != null)
+    }
+
+    /** Most songs carry their length; one that doesn't takes what the player found once it loaded the song at [index]. */
+    private fun durationOf(
+        item: MediaItem,
+        index: Int,
+    ): Long? {
+        val timeline = session.currentTimeline
+        val window = if (index in 0 until timeline.windowCount) timeline.getWindow(index, Timeline.Window()) else null
+        val playerMs = window?.takeIf { it.mediaItem.mediaId == item.mediaId }?.durationMs ?: C.TIME_UNSET
+        return CrossfadePolicy.knownDurationMs(item.mediaMetadata.durationMs, playerMs)
     }
 
     /** The song has already changed by hand: the old one returns on a tail from where it was and fades under the new one. */
     fun beginSkipFade(
         left: MediaItem,
+        leftIndex: Int,
         positionMs: Long,
     ): Boolean {
         if (!host.settings.fadesOnSkip) return false
-        val resumeAt = skipResumeAt(left, positionMs) ?: return false
+        val durationMs = durationOf(left, leftIndex)
+        val resumeAt = skipResumeAt(positionMs, durationMs) ?: return false
         val gain = session.volume
         host.abort(null)
         host.scaleSession(0f)
-        startSkipTail(left, resumeAt, gain, tailVolume = gain)
+        startSkipTail(left, requireNotNull(durationMs), resumeAt, gain, tailVolume = gain)
         return true
     }
 
     @OptIn(UnstableApi::class)
     private fun startSkipTail(
         item: MediaItem,
+        durationMs: Long,
         resumeAt: Long,
         gain: Float,
         tailVolume: Float,
     ) {
         skipPressedAtMs = SystemClock.elapsedRealtime()
-        val durationMs = item.mediaMetadata.durationMs ?: 0L
         val clockMs = CrossfadePolicy.skipClockMs(host.settings, resumeAt, durationMs, session.playbackParameters.speed)
         skippedId = item.mediaId
         overlapMs = clockMs
@@ -231,10 +273,19 @@ internal class CrossfadeSkip(
     private fun skipTailOutOfTime() {
         if (host.tail?.isPlaying == true) {
             skipTailPlaying()
-        } else {
+            return
+        }
+        val target = heldTarget
+        val index = target?.let(::indexOf)
+        if (target != null && index == null) {
             host.abort("the tail took too long after a skip")
             host.schedule()
+            return
         }
+        // Without a tail the old song can only fade by holding the skip back even longer, so the next one fades in instead.
+        heldTarget = null
+        easingTo = null
+        host.fadeNextSongIn("the tail took too long after a skip", index)
     }
 
     private fun skipTailPlaying() {
@@ -259,7 +310,27 @@ internal class CrossfadeSkip(
             host.scaleSession(0f)
             host.seekSession(index)
         }
-        if (session.isPlaying) startFade() else host.waitForNextSong()
+        if (session.isPlaying) {
+            startFade()
+        } else {
+            host.waitForNextSong()
+            waitForLateSong()
+        }
+    }
+
+    private fun waitForLateSong() {
+        waitingSinceMs = SystemClock.elapsedRealtime()
+        handler.removeCallbacks(lateSongStep)
+        handler.postDelayed(lateSongStep, CrossfadePolicy.LATE_NEXT_SONG_MS)
+    }
+
+    /** The next song is still loading, so the old one fades out now and the next one comes in quickly once it plays. */
+    private fun nextSongLate() {
+        if (heldTarget != null || easingTo != null || host.stage != CrossfadeStage.WAITING_FOR_NEXT_SONG || session.isPlaying) return
+        val waited = SystemClock.elapsedRealtime() - waitingSinceMs
+        Log.d(CROSSFADE_TAG, "the song after $skippedId is late, fading it out ${waited}ms after the hand-off")
+        handler.removeCallbacks(skipTimeoutStep)
+        host.startFade(late = true)
     }
 
     /** The next song has started: a tail already playing fades it in, and one still starting has [SKIP_START_TIMEOUT_MS] to. */
@@ -269,7 +340,8 @@ internal class CrossfadeSkip(
 
     private fun startFade() {
         handler.removeCallbacks(skipTimeoutStep)
-        host.startFade()
+        handler.removeCallbacks(lateSongStep)
+        host.startFade(late = false)
     }
 
     /**
@@ -308,6 +380,7 @@ internal class CrossfadeSkip(
         val index = indexOf(target) ?: return
         host.holdFade()
         host.seekSession(index)
+        if (host.stage == CrossfadeStage.WAITING_FOR_NEXT_SONG && !session.isPlaying) waitForLateSong()
     }
 
     fun indexOf(target: SkipTarget): Int? {

@@ -1,5 +1,6 @@
 package io.github.aedev.flow.player.crossfade
 
+import androidx.media3.common.C
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.CrossfadeCurve
 import org.junit.Test
@@ -382,5 +383,24 @@ class CrossfadePolicyTest {
     fun `the lead moves half way to how long the tail took to be heard`() {
         val waited = 700L
         assertThat(CrossfadePolicy.learnedHeadStartMs(headStartMs = 400L, deltaMs = 400L - waited)).isEqualTo(550L)
+    }
+
+    @Test
+    fun `a skipped-to song that comes late fades in quickly, never slower than the skip's own overlap`() {
+        assertThat(CrossfadePolicy.lateFadeInClockMs(6_000L)).isEqualTo(CrossfadePolicy.QUICK_FADE_IN_MS)
+        assertThat(CrossfadePolicy.lateFadeInClockMs(CrossfadePolicy.SKIP_BLEND_MS)).isEqualTo(CrossfadePolicy.SKIP_BLEND_MS)
+        assertThat(CrossfadePolicy.lateFadeInClockMs(0L)).isEqualTo(1L)
+    }
+
+    @Test
+    fun `a song with no length in its metadata takes the player's, so a skip still fades it`() {
+        assertThat(CrossfadePolicy.knownDurationMs(metadataMs = 200_000L, playerMs = 180_000L)).isEqualTo(200_000L)
+        assertThat(CrossfadePolicy.knownDurationMs(metadataMs = null, playerMs = 180_000L)).isEqualTo(180_000L)
+        assertThat(CrossfadePolicy.knownDurationMs(metadataMs = null, playerMs = C.TIME_UNSET)).isNull()
+        assertThat(CrossfadePolicy.knownDurationMs(metadataMs = null, playerMs = 0L)).isNull()
+
+        val fromPlayer = CrossfadePolicy.knownDurationMs(metadataMs = null, playerMs = 180_000L)
+        assertThat(CrossfadePolicy.skipResumeMs(30_000L, 400L, fromPlayer, failed = false)).isEqualTo(30_400L)
+        assertThat(CrossfadePolicy.skipResumeMs(30_000L, 400L, null, failed = false)).isNull()
     }
 }
