@@ -69,7 +69,7 @@ import kotlinx.coroutines.launch
 private enum class VideoMenuPage { Actions, Details, Collaborators, Save, ReportAi }
 
 /**
- * A video's menu. [title] and [thumbnailUrl] are what the card shows, so a DeArrow title stays the
+ * A video's menu. [title], [thumbnailUrl] and [youTubeFrames] are what the card shows, so a DeArrow title stays the
  * same in the menu. [showChannel] is false where the screen already is the channel. A playlist that
  * can drop the video passes [onRemoveFromCollection] with its [removeFromCollectionLabel] and icon;
  * it is the last row of the Options group. [whyShown] says why a feed shows
@@ -82,6 +82,7 @@ fun VideoQuickActionsBottomSheet(
     onDismiss: () -> Unit,
     title: String = rememberCardTitle(video),
     thumbnailUrl: String = video.thumbnailUrl,
+    youTubeFrames: Boolean = false,
     showChannel: Boolean = true,
     whyShown: String? = null,
     onRemoveFromCollection: (() -> Unit)? = null,
@@ -133,6 +134,7 @@ fun VideoQuickActionsBottomSheet(
                         width = QuickActionsDefaults.VideoArtworkWidth,
                         shape = MaterialTheme.shapes.medium,
                         showWatchProgress = LocalVideoCardPreferences.current.showWatchProgress,
+                        youTubeFrames = youTubeFrames,
                     )
                 }
                 VideoPrimaryActions(video, viewModel, onSave = { sheet.hideThen { page = VideoMenuPage.Save } }, onDismiss = close)

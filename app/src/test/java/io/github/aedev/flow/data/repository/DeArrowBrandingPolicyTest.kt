@@ -34,8 +34,24 @@ class DeArrowBrandingPolicyTest {
     }
 
     @Test
-    fun `no duration anywhere means no frame`() {
-        assertThat(resolve(DeArrowContent(randomTime = 0.5), duration = 0)).isNull()
+    fun `no duration anywhere still asks for youtube's frame instead of the uploader's thumbnail`() {
+        val result = resolve(DeArrowContent(randomTime = 0.5), duration = 0)
+
+        assertThat(result?.thumbnailUrl).isNull()
+        assertThat(result?.youTubeFrames).isTrue()
+    }
+
+    @Test
+    fun `a frame from DeArrow falls back to youtube's frames`() {
+        assertThat(resolve(DeArrowContent(randomTime = 0.5, videoDuration = 100.0))?.youTubeFrames).isTrue()
+        assertThat(resolve(DeArrowContent(thumbnails = listOf(DeArrowThumbnail(timestamp = 4.0, votes = 1))))?.youTubeFrames).isTrue()
+    }
+
+    @Test
+    fun `a title alone keeps the uploader's thumbnail`() {
+        val result = resolve(DeArrowContent(titles = listOf(DeArrowTitle("Calm title", votes = 1))), useRandomFrame = false)
+
+        assertThat(result?.youTubeFrames).isFalse()
     }
 
     @Test

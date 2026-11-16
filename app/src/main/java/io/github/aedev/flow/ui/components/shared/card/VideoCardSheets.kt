@@ -16,6 +16,7 @@ internal fun VideoCardSheets(
             video = state.video,
             title = state.title,
             thumbnailUrl = state.thumbnailUrl,
+            youTubeFrames = state.youTubeFrames,
             showChannel = showChannel,
             whyShown = whyShown,
             onDismiss = { sheets.showQuickActions = false },

@@ -35,7 +35,8 @@ internal fun VideoCardThumbnail(
     width: Dp = Dp.Unspecified,
 ) {
     val video = state.video
-    // DeArrow answers 204 for a frame it has not rendered yet, and the image falls back to YouTube's.
+    // DeArrow answers 204 for a frame it has not rendered yet, and the image falls back to YouTube's
+    // own frame, never the uploader's thumbnail.
     var deArrowFrameShown by remember(state.deArrowFrameUrl) { mutableStateOf(false) }
     MediaThumbnail(
         videoId = video.id,
@@ -44,6 +45,7 @@ internal fun VideoCardThumbnail(
         shape = shape,
         showWatchProgress = LocalVideoCardPreferences.current.showWatchProgress,
         onModelLoaded = state.deArrowFrameUrl?.let { frame -> { loaded -> deArrowFrameShown = loaded == frame } },
+        youTubeFrames = state.youTubeFrames,
         modifier = modifier,
     ) {
         val badgeModifier = Modifier.padding(MediaThumbnailDefaults.BadgePadding)

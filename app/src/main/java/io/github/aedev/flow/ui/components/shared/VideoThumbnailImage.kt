@@ -31,7 +31,10 @@ import io.github.aedev.flow.utils.ThumbnailUrlResolver
  */
 val LocalThumbnailQuality = staticCompositionLocalOf<ThumbnailQuality?> { ThumbnailQuality.HIGH }
 
-/** [portrait] marks a card that crops the frame to 9:16, which keeps it from the smallest tier. */
+/**
+ * [portrait] marks a card that crops the frame to 9:16, which keeps it from the smallest tier.
+ * [youTubeFrames] puts YouTube's automatic frames where the uploader's thumbnail tiers would go.
+ */
 @Composable
 fun VideoThumbnailImage(
     videoId: String,
@@ -43,17 +46,18 @@ fun VideoThumbnailImage(
     placeholderKey: MemoryCache.Key? = null,
     onImageKey: ((MemoryCache.Key?) -> Unit)? = null,
     onModelLoaded: ((Any) -> Unit)? = null,
+    youTubeFrames: Boolean = false,
 ) {
     val quality = LocalThumbnailQuality.current
     val models =
-        remember(videoId, model, quality, portrait) {
+        remember(videoId, model, quality, portrait, youTubeFrames) {
             when {
                 quality == null -> {
                     emptyList()
                 }
 
                 model is String || model == null -> {
-                    ThumbnailUrlResolver.resolveVideoThumbnailCandidates(videoId, model as? String, quality, portrait)
+                    ThumbnailUrlResolver.resolveVideoThumbnailCandidates(videoId, model as? String, quality, portrait, youTubeFrames)
                 }
 
                 else -> {
