@@ -309,6 +309,9 @@ class PlayerPreferences(
         val SUBS_UNGROUPED_ENABLED = booleanPreferencesKey("subs_ungrouped_enabled")
         val SUBS_UNGROUPED_POSITION = intPreferencesKey("subs_ungrouped_position")
         val SUBS_POSTS_CHIP = booleanPreferencesKey("subs_posts_chip")
+        val SUBS_HIDDEN_GROUPS = stringSetPreferencesKey("subs_hidden_groups")
+        val SUBS_GROUPS_OUT_OF_ALL = stringSetPreferencesKey("subs_groups_out_of_all")
+        val SUBS_ALL_CHIP = booleanPreferencesKey("subs_all_chip")
         val SUBS_PINNED_CHANNELS = stringPreferencesKey("subs_pinned_channels")
         val SUBS_CHANNEL_SEEN_AT = stringPreferencesKey("subs_channel_seen_at")
         val SUBS_NEW_VIDEOS_SINCE = longPreferencesKey("subs_new_videos_since")
@@ -3517,6 +3520,54 @@ class PlayerPreferences(
 
     suspend fun setSubscriptionPostsChip(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_POSTS_CHIP] = enabled }
+    }
+
+    val subscriptionAllChip: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_ALL_CHIP] ?: true }
+
+    suspend fun setSubscriptionAllChip(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences -> preferences[Keys.SUBS_ALL_CHIP] = enabled }
+    }
+
+    /** Group names whose chip is hidden; their channels are left out of All and its refreshes (#1387). */
+    val subscriptionHiddenGroups: Flow<Set<String>> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_HIDDEN_GROUPS].orEmpty() }
+
+    /** Group names that keep their chip but whose channels All leaves out (#1387). */
+    val subscriptionGroupsOutOfAll: Flow<Set<String>> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SUBS_GROUPS_OUT_OF_ALL].orEmpty() }
+
+    suspend fun setSubscriptionGroupHidden(
+        name: String,
+        hidden: Boolean,
+    ) = editGroupNames(Keys.SUBS_HIDDEN_GROUPS) { if (hidden) it + name else it - name }
+
+    suspend fun setSubscriptionGroupInAll(
+        name: String,
+        inAll: Boolean,
+    ) = editGroupNames(Keys.SUBS_GROUPS_OUT_OF_ALL) { if (inAll) it - name else it + name }
+
+    /** Carries a group's hidden and out-of-All flags over to [newName], or drops them when [newName] is null. */
+    suspend fun moveSubscriptionGroupFlags(
+        oldName: String,
+        newName: String?,
+    ) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            listOf(Keys.SUBS_HIDDEN_GROUPS, Keys.SUBS_GROUPS_OUT_OF_ALL).forEach { key ->
+                val names = preferences[key].orEmpty()
+                if (oldName in names) preferences[key] = names - oldName + listOfNotNull(newName)
+            }
+        }
+    }
+
+    private suspend fun editGroupNames(
+        key: Preferences.Key<Set<String>>,
+        change: (Set<String>) -> Set<String>,
+    ) {
+        context.playerPreferencesDataStore.edit { preferences -> preferences[key] = change(preferences[key].orEmpty()) }
     }
 
     /** Pinned channel ids in pin order, comma separated. */

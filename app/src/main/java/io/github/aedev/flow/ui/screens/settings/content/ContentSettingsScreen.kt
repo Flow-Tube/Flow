@@ -37,6 +37,8 @@ internal fun ContentSettingsScreen(
 ) {
     val shortsContent by viewModel.shortsContent.collectAsStateWithLifecycle()
     val channelShortsTab by viewModel.channelShortsTab.collectAsStateWithLifecycle()
+    val subsAllChip by viewModel.subsAllChip.collectAsStateWithLifecycle()
+    val subsHasGroupChip by viewModel.subsHasGroupChip.collectAsStateWithLifecycle()
     val hideWatchedHome by viewModel.hideWatchedHome.collectAsStateWithLifecycle()
     val hideWatchedSubs by viewModel.hideWatchedSubs.collectAsStateWithLifecycle()
     val hideWatchedShorts by viewModel.hideWatchedShorts.collectAsStateWithLifecycle()
@@ -83,6 +85,16 @@ internal fun ContentSettingsScreen(
             switch(ContentIndex.subsUpcoming, viewModel.subsUpcoming, viewModel::setSubsUpcoming)
             switch(ContentIndex.subsCollaborations, viewModel.subsCollaborations, viewModel::setSubsCollaborations)
             switch(ContentIndex.subsPostsChip, viewModel.subsPostsChip, viewModel::setSubsPostsChip)
+            row(ContentIndex.subsAllChip.key) { shape ->
+                FlowSwitchRow(
+                    title = stringResource(ContentIndex.subsAllChip.title),
+                    supportingText = stringResource(R.string.content_settings_subs_all_chip_subtitle),
+                    checked = subsAllChip || !subsHasGroupChip,
+                    onCheckedChange = viewModel::setSubsAllChip,
+                    enabled = subsHasGroupChip,
+                    shape = shape,
+                )
+            }
             switch(ContentIndex.subsUngrouped, viewModel.subsUngrouped, viewModel::setSubsUngrouped)
             switch(ContentIndex.hideWatchedSubs, viewModel.hideWatchedSubs, viewModel::setHideWatchedSubs)
             switch(ContentIndex.hideUnplayableSubs, viewModel.hideUnplayableSubs, viewModel::setHideUnplayableSubs)

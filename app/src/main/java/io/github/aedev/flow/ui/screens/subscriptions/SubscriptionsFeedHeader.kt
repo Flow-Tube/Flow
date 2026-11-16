@@ -93,11 +93,13 @@ internal fun SubscriptionsFeedHeader(
             }
             val chips = state.groupChips()
             val selected = state.selectedChip(chips)
-            FlowFilterChip(
-                label = stringResource(R.string.group_all),
-                selected = selected == null,
-                onClick = { onGroupSelected(null) },
-            )
+            if (state.allChipShown(chips)) {
+                FlowFilterChip(
+                    label = stringResource(R.string.group_all),
+                    selected = selected == null,
+                    onClick = { onGroupSelected(null) },
+                )
+            }
             chips.forEach { group ->
                 FlowFilterChip(
                     label = if (group.isUngrouped()) stringResource(R.string.group_ungrouped) else group.name,

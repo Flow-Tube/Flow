@@ -19,12 +19,18 @@ class SubscriptionGroupSelectionTest {
         groups: List<SubscriptionGroup> = listOf(tech, music),
         selected: String? = null,
         channels: List<String> = subscribed,
+        hidden: Set<String> = emptySet(),
+        outOfAll: Set<String> = emptySet(),
+        allChip: Boolean = true,
     ) = SubscriptionsUiState(
         subscribedChannels = channels.map(::channel),
         groups = groups,
         selectedGroupName = selected,
         ungroupedEnabled = enabled,
         ungroupedPosition = position,
+        hiddenGroups = hidden,
+        groupsOutOfAll = outOfAll,
+        showAllChip = allChip,
     )
 
     @Test
@@ -65,5 +71,45 @@ class SubscriptionGroupSelectionTest {
     fun `a named group keeps its own channels`() {
         assertThat(state(selected = "Tech").selectedGroupScope()).containsExactly("UCa", "UCb")
         assertThat(state(selected = "Gone").selectedGroupScope()).isNull()
+    }
+
+    @Test
+    fun `a hidden group has no chip but stays in Manage groups (1387)`() {
+        val hidden = state(hidden = setOf("Tech"))
+        assertThat(hidden.groupChips().map { it.name }).containsExactly("Music", UNGROUPED_GROUP_KEY).inOrder()
+        assertThat(hidden.managedGroups().map { it.name }).contains("Tech")
+    }
+
+    @Test
+    fun `All leaves out hidden and out-of-All groups, a group chip still shows its own`() {
+        assertThat(state(hidden = setOf("Tech")).selectedGroupScope()).containsExactly("UCc", "UCd", "UCe")
+        assertThat(state(outOfAll = setOf("Music")).selectedGroupScope()).containsExactly("UCa", "UCb", "UCd", "UCe")
+        assertThat(state(outOfAll = setOf("Music"), selected = "Music").selectedGroupScope()).containsExactly("UCc")
+    }
+
+    @Test
+    fun `a selected group that gets hidden falls back to All`() {
+        val hidden = state(selected = "Tech", hidden = setOf("Tech"))
+        assertThat(hidden.selectedChip()).isNull()
+        assertThat(hidden.selectedGroupScope()).containsExactly("UCc", "UCd", "UCe")
+    }
+
+    @Test
+    fun `with the All chip off the feed opens on the first chip`() {
+        val off = state(allChip = false)
+        assertThat(off.allChipShown()).isFalse()
+        assertThat(off.selectedChip()).isEqualTo("Tech")
+        assertThat(off.selectedGroupScope()).containsExactly("UCa", "UCb")
+        assertThat(state(allChip = false, selected = "Music").selectedChip()).isEqualTo("Music")
+    }
+
+    @Test
+    fun `with the All chip off and no other chip All still shows`() {
+        val noGroups = state(allChip = false, groups = emptyList())
+        assertThat(noGroups.allChipShown()).isTrue()
+        assertThat(noGroups.selectedChip()).isNull()
+        val allHidden = state(allChip = false, enabled = false, hidden = setOf("Tech", "Music"))
+        assertThat(allHidden.allChipShown()).isTrue()
+        assertThat(allHidden.selectedChip()).isNull()
     }
 }

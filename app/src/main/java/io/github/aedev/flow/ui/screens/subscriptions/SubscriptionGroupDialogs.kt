@@ -21,9 +21,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -38,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -56,6 +60,7 @@ import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
 import io.github.aedev.flow.ui.components.shared.FlowReorderButtons
 import io.github.aedev.flow.ui.components.shared.FlowSearchField
+import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import io.github.aedev.flow.ui.utils.flowWindowDpSize
@@ -69,14 +74,17 @@ private val ActionIconSize = 32.dp
 private val ActionGlyphSize = 16.dp
 private val ChannelAvatarSize = 32.dp
 private val ContentSpacing = 8.dp
+private const val HIDDEN_ROW_ALPHA = 0.38f
 
 @Composable
 internal fun SubscriptionGroupsManagerDialog(
     groups: List<SubscriptionGroup>,
+    hiddenGroups: Set<String>,
     onDismiss: () -> Unit,
     onCreateNew: () -> Unit,
     onEdit: (SubscriptionGroup) -> Unit,
     onDelete: (SubscriptionGroup) -> Unit,
+    onHiddenChange: (SubscriptionGroup, Boolean) -> Unit,
     onOrderChanged: (List<String>) -> Unit,
 ) {
     FlowAlertDialog(
@@ -93,8 +101,10 @@ internal fun SubscriptionGroupsManagerDialog(
             } else {
                 SubscriptionGroupsReorderList(
                     groups = groups,
+                    hiddenGroups = hiddenGroups,
                     onEdit = onEdit,
                     onDelete = onDelete,
+                    onHiddenChange = onHiddenChange,
                     onOrderChanged = onOrderChanged,
                 )
             }
@@ -121,8 +131,10 @@ internal fun SubscriptionGroupsManagerDialog(
 @Composable
 private fun SubscriptionGroupsReorderList(
     groups: List<SubscriptionGroup>,
+    hiddenGroups: Set<String>,
     onEdit: (SubscriptionGroup) -> Unit,
     onDelete: (SubscriptionGroup) -> Unit,
+    onHiddenChange: (SubscriptionGroup, Boolean) -> Unit,
     onOrderChanged: (List<String>) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -207,12 +219,14 @@ private fun SubscriptionGroupsReorderList(
                                 ReorderHandle()
                             }
                         }
+                        val hidden = group.name in hiddenGroups
+                        val labelAlpha = if (hidden) HIDDEN_ROW_ALPHA else 1f
                         Text(
                             text = if (group.isUngrouped()) stringResource(R.string.group_ungrouped) else group.name,
                             style = MaterialTheme.typography.bodyLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).alpha(labelAlpha),
                         )
                         Text(
                             text =
@@ -223,9 +237,17 @@ private fun SubscriptionGroupsReorderList(
                                 ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(end = ContentSpacing),
+                            modifier = Modifier.padding(end = ContentSpacing).alpha(labelAlpha),
                         )
                         if (!group.isUngrouped()) {
+                            IconButton(onClick = { onHiddenChange(group, !hidden) }, modifier = Modifier.size(ActionIconSize)) {
+                                Icon(
+                                    imageVector = if (hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = stringResource(if (hidden) R.string.group_unhide else R.string.group_hide),
+                                    modifier = Modifier.size(ActionGlyphSize),
+                                    tint = if (hidden) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                                )
+                            }
                             IconButton(onClick = { onEdit(group) }, modifier = Modifier.size(ActionIconSize)) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
@@ -253,10 +275,13 @@ private fun SubscriptionGroupsReorderList(
 internal fun SubscriptionCreateEditGroupDialog(
     existingGroup: SubscriptionGroup?,
     allChannels: List<Channel>,
+    hidden: Boolean,
+    initiallyInAll: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, channelIds: List<String>) -> Unit,
+    onConfirm: (name: String, channelIds: List<String>, inAll: Boolean) -> Unit,
 ) {
     var groupName by remember { mutableStateOf(existingGroup?.name.orEmpty()) }
+    var inAll by remember { mutableStateOf(initiallyInAll) }
     var selectedChannelIds by remember { mutableStateOf(existingGroup?.channelIds.orEmpty().toSet()) }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -284,6 +309,13 @@ internal fun SubscriptionCreateEditGroupDialog(
                     label = { Text(stringResource(R.string.group_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                )
+                FlowSwitchRow(
+                    title = stringResource(R.string.group_show_in_all),
+                    checked = inAll && !hidden,
+                    onCheckedChange = { inAll = it },
+                    enabled = !hidden,
+                    supportingText = if (hidden) stringResource(R.string.group_show_in_all_hidden) else null,
                 )
                 FlowSearchField(
                     query = searchQuery,
@@ -341,7 +373,7 @@ internal fun SubscriptionCreateEditGroupDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(groupName.trim(), selectedChannelIds.toList()) },
+                onClick = { onConfirm(groupName.trim(), selectedChannelIds.toList(), inAll) },
                 enabled = groupName.isNotBlank() && selectedChannelIds.isNotEmpty(),
             ) {
                 Text(stringResource(R.string.save))
@@ -371,6 +403,7 @@ internal fun SubscriptionGroupDialogsHost(
     if (!editing) {
         SubscriptionGroupsManagerDialog(
             groups = uiState.managedGroups(),
+            hiddenGroups = uiState.hiddenGroups,
             onDismiss = onDismiss,
             onCreateNew = {
                 editingGroup = null
@@ -381,19 +414,23 @@ internal fun SubscriptionGroupDialogsHost(
                 editing = true
             },
             onDelete = { group -> viewModel.deleteGroup(group.name) },
+            onHiddenChange = { group, hidden -> viewModel.setGroupHidden(group.name, hidden) },
             onOrderChanged = viewModel::setGroupOrder,
         )
     } else {
+        val existingName = editingGroup?.name.orEmpty()
         SubscriptionCreateEditGroupDialog(
             existingGroup = editingGroup,
             allChannels = uiState.subscribedChannels,
+            hidden = existingName in uiState.hiddenGroups,
+            initiallyInAll = existingName !in uiState.groupsOutOfAll,
             onDismiss = onDismiss,
-            onConfirm = { name, channelIds ->
+            onConfirm = { name, channelIds, inAll ->
                 val existing = editingGroup
                 if (existing == null) {
-                    viewModel.createGroup(name, channelIds)
+                    viewModel.createGroup(name, channelIds, inAll)
                 } else {
-                    viewModel.updateGroup(existing.name, name, channelIds)
+                    viewModel.updateGroup(existing.name, name, channelIds, inAll)
                 }
                 onDismiss()
             },

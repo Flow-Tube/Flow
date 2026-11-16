@@ -180,6 +180,19 @@ class SubscriptionsViewModel
             }
 
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                combine(
+                    playerPreferences.subscriptionHiddenGroups,
+                    playerPreferences.subscriptionGroupsOutOfAll,
+                    playerPreferences.subscriptionAllChip,
+                    ::Triple,
+                ).distinctUntilChanged()
+                    .collect { (hidden, outOfAll, allChip) ->
+                        _uiState.update { it.copy(hiddenGroups = hidden, groupsOutOfAll = outOfAll, showAllChip = allChip) }
+                        refreshVisibleFeed()
+                    }
+            }
+
+            viewModelScope.launch(PerformanceDispatcher.diskIO) {
                 playerPreferences.subscriptionPinnedChannels.collect { stored ->
                     _uiState.update { it.copy(pinnedChannelIds = parsePinnedChannels(stored)) }
                 }
@@ -299,12 +312,22 @@ class SubscriptionsViewModel
 
         /**
          * Fetches only the channels that are actually due, unless [force] (an explicit pull-to-refresh)
-         * asks for every channel. With a group selected, only that group's channels (#1099).
+         * asks for every channel. With a group selected, only that group's channels (#1099); on All,
+         * every channel except those only hidden or out-of-All groups hold (#1387).
          */
         private suspend fun runRefresh(
             force: Boolean,
             showLoading: Boolean,
-        ) = runRefresh(subscriptionFeedRepository.planRefresh(force, _uiState.value.selectedGroupScope()), showLoading)
+        ) {
+            val state = _uiState.value
+            val plan =
+                if (state.selectedChip() == null) {
+                    subscriptionFeedRepository.planAllRefresh(force)
+                } else {
+                    subscriptionFeedRepository.planRefresh(force, state.selectedGroupScope())
+                }
+            runRefresh(plan, showLoading)
+        }
 
         private suspend fun runRefresh(
             plan: SubscriptionRefreshPlan,
@@ -428,13 +451,20 @@ class SubscriptionsViewModel
         fun createGroup(
             name: String,
             channelIds: List<String>,
-        ) = groupEditor.create(name, channelIds)
+            inAll: Boolean,
+        ) = groupEditor.create(name, channelIds, inAll)
 
         fun updateGroup(
             oldName: String,
             newName: String,
             channelIds: List<String>,
-        ) = groupEditor.update(oldName, newName, channelIds)
+            inAll: Boolean,
+        ) = groupEditor.update(oldName, newName, channelIds, inAll)
+
+        fun setGroupHidden(
+            name: String,
+            hidden: Boolean,
+        ) = groupEditor.setHidden(name, hidden)
 
         fun deleteGroup(name: String) = groupEditor.delete(name)
 
