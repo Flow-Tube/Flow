@@ -3,6 +3,7 @@ package io.github.aedev.flow.sync2
 import io.github.aedev.flow.sync.apply.ReceivedCollection
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
+import io.github.aedev.flow.sync.protocol.SyncSerialization
 import io.github.aedev.flow.sync2.changes.Batch
 import io.github.aedev.flow.sync2.changes.applyBatches
 import io.github.aedev.flow.sync2.changes.markSent
@@ -130,6 +131,27 @@ class ChangeBatchesTest {
             }
             assertEquals(1200, applied.getValue(SyncCollection.WATCH_HISTORY).lines.size)
             assertEquals(0, sentLines(sent, history(*(1..1200).map { "v$it" to "t" }.toTypedArray())).size)
+        }
+
+    @Test
+    fun applying_exports_only_the_received_collections_once_before_and_once_after_the_merge() =
+        runTest {
+            val remote = outgoingBatches(MemorySent(), history("a" to "one"), head, "link-a", 0)
+            val exports = ArrayList<List<String>>()
+            var received: ReceivedCollection? = null
+            applyBatches(
+                MemorySent(),
+                "link-a",
+                remote.batches.map { parseBatch(it.content) },
+                0,
+                {
+                    exports += it
+                    history("a" to "one")
+                },
+            ) { received = it.getValue(SyncCollection.WATCH_HISTORY) }
+            assertEquals(listOf(listOf(SyncCollection.WATCH_HISTORY), listOf(SyncCollection.WATCH_HISTORY)), exports)
+            val lines = checkNotNull(received).lines
+            assertEquals(SyncSerialization.sha256Hex(lines.joinToString("\n")), checkNotNull(received).hash)
         }
 
     /** One device's watch history, exported in its own canonical form: Desktop orders the fields differently. */

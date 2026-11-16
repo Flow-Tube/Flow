@@ -27,10 +27,13 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class ReceivedCollection(
+/** A collection as received; its [hash] is worked out on first read, since only FLOW-SYNC/1's applied-once check needs it. */
+class ReceivedCollection(
     val lines: List<String>,
-    val hash: String,
-)
+    knownHash: String? = null,
+) {
+    val hash: String by lazy { knownHash ?: SyncSerialization.collectionHash(lines) }
+}
 
 /** Identifies the peer for the ledger/known-devices list. */
 data class PeerInfo(
