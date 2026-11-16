@@ -74,6 +74,8 @@ class AppearanceViewModel
         val hideNavOnScroll = preferences.bottomNavHideOnScroll.asState(true)
         val navLabels = preferences.bottomNavLabels.asState(NavBarLabels.ALWAYS)
         val navStyle = preferences.bottomNavStyle.asState(NavBarStyle.STANDARD)
+        val navScrub = preferences.bottomNavScrub.asState(true)
+        val navIconPop = preferences.bottomNavIconPop.asState(false)
         val searchShowsNavBar = preferences.searchShowsNavBar.asState(false)
         val innerPagesShowNavBar = preferences.innerPagesShowNavBar.asState(false)
         val navTabOrder = preferences.navTabOrder.asState(DEFAULT_NAV_TAB_ORDER)
@@ -153,6 +155,10 @@ class AppearanceViewModel
         fun setNavLabels(labels: NavBarLabels) = write { preferences.setBottomNavLabels(labels) }
 
         fun setNavStyle(style: NavBarStyle) = write { preferences.setBottomNavStyle(style) }
+
+        fun setNavScrub(enabled: Boolean) = write { preferences.setBottomNavScrub(enabled) }
+
+        fun setNavIconPop(enabled: Boolean) = write { preferences.setBottomNavIconPop(enabled) }
 
         fun setSearchShowsNavBar(enabled: Boolean) = write { preferences.setSearchShowsNavBar(enabled) }
 

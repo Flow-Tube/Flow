@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Animation
 import androidx.compose.material.icons.outlined.CallToAction
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Explore
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Slideshow
+import androidx.compose.material.icons.outlined.Swipe
 import androidx.compose.material.icons.outlined.UnfoldLess
 import androidx.compose.material.icons.outlined.WebAsset
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +45,8 @@ internal fun NavigationBarScreen(
     val hideOnScroll by viewModel.hideNavOnScroll.collectAsStateWithLifecycle()
     val labels by viewModel.navLabels.collectAsStateWithLifecycle()
     val style by viewModel.navStyle.collectAsStateWithLifecycle()
+    val scrub by viewModel.navScrub.collectAsStateWithLifecycle()
+    val iconPop by viewModel.navIconPop.collectAsStateWithLifecycle()
     val searchShowsBar by viewModel.searchShowsNavBar.collectAsStateWithLifecycle()
     val innerPagesShowBar by viewModel.innerPagesShowNavBar.collectAsStateWithLifecycle()
     val order by viewModel.navTabOrder.collectAsStateWithLifecycle()
@@ -72,6 +76,10 @@ internal fun NavigationBarScreen(
         group(key = "navigation_bar.style", header = R.string.settings_section_style) {
             toggleGroup(NavigationBarIndex.style, styleOptions, style, viewModel::setNavStyle)
             toggleGroup(NavigationBarIndex.labels, labelOptions, labels, viewModel::setNavLabels)
+            if (style == NavBarStyle.FLOATING) {
+                switch(NavigationBarIndex.scrub, scrub, viewModel::setNavScrub, icon = Icons.Outlined.Swipe)
+                switch(NavigationBarIndex.iconPop, iconPop, viewModel::setNavIconPop, icon = Icons.Outlined.Animation)
+            }
         }
         group(key = "navigation_bar.tabs", header = R.string.settings_section_tabs) {
             switch(NavigationBarIndex.home, visibility.home, viewModel::setHomeTab, icon = Icons.Outlined.Home)

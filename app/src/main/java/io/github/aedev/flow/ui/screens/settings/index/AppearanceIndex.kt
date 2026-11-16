@@ -251,6 +251,26 @@ internal object NavigationBarIndex {
             section = R.string.settings_section_style,
             destination = page,
         )
+    val scrub =
+        SettingEntry(
+            key = "navigation_bar.scrub",
+            title = R.string.settings_nav_scrub_title,
+            summary = R.string.settings_nav_scrub_summary,
+            keywords = R.string.settings_keywords_nav_style,
+            section = R.string.settings_section_style,
+            destination = page,
+            revealVia = style.key,
+        )
+    val iconPop =
+        SettingEntry(
+            key = "navigation_bar.icon_pop",
+            title = R.string.settings_nav_icon_pop_title,
+            summary = R.string.settings_nav_icon_pop_summary,
+            keywords = R.string.settings_keywords_nav_style,
+            section = R.string.settings_section_style,
+            destination = page,
+            revealVia = style.key,
+        )
     val showOnOtherPages =
         SettingEntry(
             key = "navigation_bar.show_on_other_pages",
@@ -269,7 +289,23 @@ internal object NavigationBarIndex {
             destination = page,
         )
 
-    val all = listOf(style, labels, home, shorts, music, search, explore, downloads, hideOnScroll, showOnSearch, showOnOtherPages, order)
+    val all =
+        listOf(
+            style,
+            labels,
+            scrub,
+            iconPop,
+            home,
+            shorts,
+            music,
+            search,
+            explore,
+            downloads,
+            hideOnScroll,
+            showOnSearch,
+            showOnOtherPages,
+            order,
+        )
 }
 
 internal object ThemeIndex {

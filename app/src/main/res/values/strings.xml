@@ -4455,6 +4455,10 @@
     <string name="settings_nav_style_summary">Full width, or floating above the page</string>
     <string name="settings_nav_style_standard">Standard</string>
     <string name="settings_nav_style_floating">Floating</string>
+    <string name="settings_nav_scrub_title">Drag to switch tabs</string>
+    <string name="settings_nav_scrub_summary">Slide along the floating bar to move between tabs</string>
+    <string name="settings_nav_icon_pop_title">Icon pop</string>
+    <string name="settings_nav_icon_pop_summary">The tab icon bounces when you open it</string>
     <string name="settings_apply">Apply</string>
     <string name="settings_custom_theme_saved">Custom theme saved</string>
     <string name="settings_custom_theme_use">Use it</string>

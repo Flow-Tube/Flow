@@ -173,7 +173,7 @@ private fun BoxScope.NavigationBarSlot(
                     tabs = tabs,
                     selectedTab = selectedTab,
                     onTabSelected = onTabSelected,
-                    labels = look.labels,
+                    look = look,
                     modifier = barModifier,
                 )
             }
