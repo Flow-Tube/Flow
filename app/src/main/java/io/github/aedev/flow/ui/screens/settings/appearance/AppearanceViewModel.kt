@@ -55,6 +55,8 @@ class AppearanceViewModel
         val libraryPreviews = preferences.libraryShelfPreviewsEnabled.asState(true)
         val separatePlaylists = preferences.separatePlaylistKinds.asState(false)
         val appLogo = preferences.showAppLogoIcon.asState(true)
+        val topBarProfile = preferences.showProfileInTopBar.asState(true)
+        val settingsInProfileMenu = preferences.settingsInProfileMenu.asState(false)
         val groupBadges = preferences.showChannelGroupBadges.asState(false)
         val cardLikeButtons = preferences.videoCardActionsEnabled.asState(false)
         val cardMarkWatched = preferences.videoCardMarkWatchedEnabled.asState(false)
@@ -132,6 +134,10 @@ class AppearanceViewModel
         fun setSeparatePlaylists(enabled: Boolean) = write { preferences.setSeparatePlaylistKinds(enabled) }
 
         fun setAppLogo(enabled: Boolean) = write { preferences.setShowAppLogoIcon(enabled) }
+
+        fun setTopBarProfile(enabled: Boolean) = write { preferences.setShowProfileInTopBar(enabled) }
+
+        fun setSettingsInProfileMenu(enabled: Boolean) = write { preferences.setSettingsInProfileMenu(enabled) }
 
         fun setGroupBadges(enabled: Boolean) = write { preferences.setShowChannelGroupBadges(enabled) }
 
