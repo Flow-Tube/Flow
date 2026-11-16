@@ -151,6 +151,35 @@ class GaplessPreloadControllerTest {
         }
 
     @Test
+    fun `a request with nothing to play next removes the appended video`() =
+        runTest {
+            var windows = 1
+            val player =
+                mockk<ExoPlayer>(relaxed = true) {
+                    every { getMediaItemCount() } answers { windows }
+                    every { getCurrentMediaItem() } returns mockk<MediaItem>()
+                    every { getCurrentMediaItemIndex() } returns 0
+                    every { addMediaSource(any<MediaSource>()) } answers { windows = 2 }
+                }
+            val harness =
+                Harness(
+                    backgroundScope,
+                    player = player,
+                    target = PreloadTarget(video("next"), fromQueue = false),
+                    resolve = { resolved("next") },
+                )
+            harness.controller.schedule()
+            runCurrent()
+            assertThat(harness.controller.preloaded).isNotNull()
+
+            harness.target = null
+            harness.controller.request("autoplay-off")
+
+            verify(exactly = 1) { player.removeMediaItem(1) }
+            assertThat(harness.controller.preloaded).isNull()
+        }
+
+    @Test
     fun `looping never preloads, because the same video repeats`() =
         runTest {
             val harness =

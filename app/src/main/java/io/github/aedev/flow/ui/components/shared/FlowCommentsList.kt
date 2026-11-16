@@ -1,6 +1,5 @@
 package io.github.aedev.flow.ui.components.shared
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,17 +13,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.distinctByNonBlankKey
+import kotlinx.coroutines.flow.drop
 
 @Composable
 fun FlowCommentsList(
@@ -50,13 +52,52 @@ fun FlowCommentsList(
     hasMore: Boolean,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = 32.dp),
-    @StringRes emptyMessageRes: Int = R.string.no_comments_yet,
     tint: MediaArtworkTint? = null,
+    timedFollow: CommentsTimedFollow? = null,
+    threadState: CommentThreadState? = null,
+    isDisabled: Boolean = false,
 ) {
+    val threads = threadState ?: rememberCommentThreadState(selectedFilter)
     val latestOnLoadMore by rememberUpdatedState(onLoadMore)
+    val currentFilter by rememberUpdatedState(selectedFilter)
+    LaunchedEffect(listState) {
+        snapshotFlow { currentFilter }.drop(1).collect { listState.scrollToItem(0) }
+    }
+    val timed = selectedFilter == CommentSortFilter.TIMED
     val uniqueComments =
         remember(comments) {
             comments.distinctByNonBlankKey(Comment::id)
+        }
+    val followPosition = timedFollow?.takeIf { timed && it.enabled && it.isSurfaceVisible }?.positionMs
+    val following = followPosition != null
+    val anchor = rememberTimedAnchor(uniqueComments, followPosition)
+    val pause = remember { TimedFollowPause() }
+    if (following) {
+        FollowTimedReveal(listState, anchor, pause)
+    }
+    // Read here, the anchor recomposes the list only when the video crosses a comment's time.
+    val reached = if (following) anchor.value else -1
+    val shown =
+        remember(uniqueComments, timed, following, reached) {
+            when {
+                !timed -> uniqueComments
+                following -> revealedTimedComments(uniqueComments, reached)
+                else -> uniqueComments.asReversed()
+            }
+        }
+    val seekAndResume: (Long) -> Unit =
+        remember(onSeekMs, pause) {
+            { positionMs ->
+                pause.resume()
+                onSeekMs(positionMs)
+            }
+        }
+    val loadRepliesAndPause: (Comment) -> Unit =
+        remember(onLoadReplies, pause) {
+            { comment ->
+                pause.afterOpeningReplies()
+                onLoadReplies(comment)
+            }
         }
     LazyColumn(
         state = listState,
@@ -69,7 +110,7 @@ fun FlowCommentsList(
                     repeat(6) { CommentSkeleton() }
                 }
             }
-        } else if (uniqueComments.isEmpty()) {
+        } else if (uniqueComments.isEmpty() && !(timed && isLoadingMore)) {
             item(key = "empty") {
                 Box(
                     modifier =
@@ -79,27 +120,54 @@ fun FlowCommentsList(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        stringResource(emptyMessageRes),
+                        stringResource(
+                            when {
+                                isDisabled -> R.string.comments_turned_off
+                                timed -> R.string.no_timed_comments
+                                else -> R.string.no_comments_yet
+                            },
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
+            if (timed && hasMore) item(key = "load_more_button") { CommentsLoadMoreButton(onLoadMore) }
         } else {
-            items(
-                items = uniqueComments,
-                key = { comment -> "${selectedFilter.name}_${comment.id}" },
-            ) { comment ->
-                FlowCommentItem(
-                    comment = comment,
-                    tint = tint,
-                    onSeekMs = onSeekMs,
-                    onLoadReplies = onLoadReplies,
-                    onLoadMoreReplies = onLoadMoreReplies,
-                    onAuthorClick = onAuthorClick,
-                    onAvatarClick = onAvatarClick,
-                )
+            itemsIndexed(
+                items = shown,
+                key = { _, comment -> "${selectedFilter.name}_${comment.id}" },
+            ) { index, comment ->
+                TimedCommentBackdrop(highlighted = following && index == 0) {
+                    FlowCommentItem(
+                        comment = comment,
+                        tint = tint,
+                        onSeekMs = seekAndResume,
+                        onLoadReplies = loadRepliesAndPause,
+                        onLoadMoreReplies = onLoadMoreReplies,
+                        onAuthorClick = onAuthorClick,
+                        onAvatarClick = onAvatarClick,
+                        isRepliesVisible = threads.isRepliesOpen(comment.id),
+                        onToggleReplies = { threads.toggleReplies(comment.id) },
+                        isExpanded = threads.isTextExpanded(comment.id),
+                        onExpand = { threads.expandText(comment.id) },
+                    )
+                }
             }
-            if (hasMore) {
+            if (following) {
+                item(key = "timed_next") {
+                    TimedCommentsNextRow(
+                        nextSeconds = nextTimedCommentSeconds(uniqueComments, reached),
+                        waiting = shown.isEmpty(),
+                        onSeekMs = seekAndResume,
+                    )
+                }
+            }
+            if (timed) {
+                when {
+                    isLoadingMore -> item(key = "load_more_progress") { CommentsLoadingMoreRow() }
+                    hasMore -> item(key = "load_more_button") { CommentsLoadMoreButton(onLoadMore) }
+                }
+            } else if (hasMore) {
                 item(key = "load_more_trigger") {
                     LaunchedEffect(comments.size) {
                         latestOnLoadMore()
@@ -117,6 +185,34 @@ fun FlowCommentsList(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CommentsLoadingMoreRow() {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+    }
+}
+
+@Composable
+private fun CommentsLoadMoreButton(onClick: () -> Unit) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        TextButton(onClick = onClick) {
+            Text(stringResource(R.string.comments_load_more))
         }
     }
 }

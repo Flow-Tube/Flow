@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -50,6 +51,9 @@ private val MenuWidth = 200.dp
 private val MenuLabelHorizontalPadding = 16.dp
 private val MenuLabelVerticalPadding = 8.dp
 
+// Material 3 rc01 made ToggleButtonDefaults.ContentPadding private; these are its values.
+private val SubscribeContentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+
 /**
  * How much room the control takes.
  *
@@ -76,8 +80,8 @@ enum class FlowSubscribeButtonSize {
  * Tapping while subscribed opens the menu rather than unsubscribing outright, so the destructive
  * action always needs a second, deliberate tap. A control that stands for several channels passes
  * [onSubscribedClick] instead: it then reads "Subscribed" with no bell or menu, since neither can
- * say which channel they act on. A list in which every row is already subscribed passes
- * [showSubscribedLabel] false to keep only the bell and the menu.
+ * say which channel they act on. A surface short on room, or a list in which every row is already
+ * subscribed, passes [showSubscribedLabel] false to keep only the bell and the menu.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -122,7 +126,7 @@ fun FlowSubscribeButton(
             ButtonDefaults.filledTonalButtonColors()
         }
     val subscribeColors =
-        ToggleButtonDefaults.toggleButtonColors(
+        ToggleButtonDefaults.colors(
             containerColor = tint?.onContainer ?: MaterialTheme.colorScheme.primary,
             contentColor = tint?.container ?: MaterialTheme.colorScheme.onPrimary,
         )
@@ -213,7 +217,7 @@ fun FlowSubscribeButton(
                 shapes = ToggleButtonShapes(CircleShape, CircleShape, CircleShape),
                 colors = subscribeColors,
                 contentPadding =
-                    if (compact) ButtonDefaults.ExtraSmallContentPadding else ToggleButtonDefaults.ContentPadding,
+                    if (compact) ButtonDefaults.ExtraSmallContentPadding else SubscribeContentPadding,
                 modifier = fill.heightIn(min = containerHeight),
             ) {
                 Text(text = stringResource(R.string.subscribe), maxLines = 1)

@@ -15,6 +15,9 @@ import io.github.aedev.flow.innertube.pages.renderer.videoOrNull
 import io.github.aedev.flow.innertube.pages.search.SearchHeader
 import io.github.aedev.flow.innertube.pages.search.SearchResultsPage
 import io.github.aedev.flow.innertube.pages.search.SearchSection
+import io.github.aedev.flow.utils.PerformanceDispatcher
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.CoroutineContext
 
 /**
  * One InnerTube request per page, and nothing after it.
@@ -33,6 +36,7 @@ class SearchPagingSource(
     private val onHeader: (SearchHeader) -> Unit = {},
     private val loadPage: SearchPageLoader = DefaultSearchPageLoader,
     private val watchedVideos: WatchedVideoLookup = WatchedVideoLookup { emptySet() },
+    private val loadContext: CoroutineContext = PerformanceDispatcher.networkIO,
     private val exclusions: suspend () -> FeedExclusions = { FeedExclusions.NONE },
 ) : PagingSource<String, SearchResultItem>() {
     override fun getRefreshKey(state: PagingState<String, SearchResultItem>): String? = null
@@ -44,6 +48,9 @@ class SearchPagingSource(
         filter.watchState.takeIf { filter.contentType.supportsVideoFilters() } ?: WatchState.ANY
 
     override suspend fun load(params: LoadParams<String>): LoadResult<String, SearchResultItem> =
+        withContext(loadContext) { loadPages(params) }
+
+    private suspend fun loadPages(params: LoadParams<String>): LoadResult<String, SearchResultItem> =
         try {
             val hidden = exclusions()
             val results = mutableListOf<SearchResultItem>()
@@ -161,7 +168,8 @@ internal fun SearchResultsPage.toShortsResults(shortsEnabled: Boolean): List<Sea
  * interested goes too. A strip left with nothing goes, rather than staying as a heading over a gap.
  *
  * Only what the viewer hid outright applies: a search is an explicit ask, so the engine's inferred
- * suppressions and blocked topics do not filter it.
+ * suppressions and blocked topics do not filter it. The AI channel list does, when its hide switch is
+ * on; a channel result stays, and only teaches the list which handle its id has.
  *
  * Community posts carry no channel id in the response, so a blocked creator's post survives here.
  */
@@ -171,10 +179,11 @@ internal fun List<SearchResultItem>.withoutHidden(exclusions: FeedExclusions): L
     return mapNotNull { item ->
         when (item) {
             is SearchResultItem.VideoResult -> {
-                item.takeUnless { exclusions.hides(it.video) }
+                item.takeUnless { exclusions.hides(it.video) || exclusions.hidesAsAi(it.video) }
             }
 
             is SearchResultItem.ChannelResult -> {
+                exclusions.ai.learn(item.channel.id, item.channel.handle)
                 item.takeUnless { exclusions.hidesChannel(it.channel.id) }
             }
 
@@ -183,7 +192,7 @@ internal fun List<SearchResultItem>.withoutHidden(exclusions: FeedExclusions): L
             }
 
             is SearchResultItem.ShelfResult -> {
-                val videos = item.videos.filterNot { exclusions.hides(it) }
+                val videos = item.videos.filterNot { exclusions.hides(it) || exclusions.hidesAsAi(it) }
                 when {
                     videos.isNotEmpty() -> item.copy(videos = videos)
                     item.posts.isNotEmpty() -> item

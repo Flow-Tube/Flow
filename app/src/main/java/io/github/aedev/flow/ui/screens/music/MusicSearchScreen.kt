@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.SearchType
+import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
@@ -147,4 +148,5 @@ internal fun convertSongToMusicTrack(item: SongItem): MusicTrack =
         channelId = item.artists.firstOrNull()?.id ?: "",
         isExplicit = item.explicit,
         isVideoSong = item.isVideoSong,
+        artists = item.artists.map { MusicArtist(it.name, it.id) },
     )

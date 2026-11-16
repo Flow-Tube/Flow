@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +67,7 @@ fun MediaDownloadSheet(
     innerTubeAudioFormats: List<Format>,
     video: Video,
     subtitles: List<SubtitleOption> = emptyList(),
+    replacesDownload: Boolean = false,
     slot: MediaSheetSlot? = null,
     onDismiss: () -> Unit,
 ) {
@@ -141,16 +143,12 @@ fun MediaDownloadSheet(
                 onClick = {
                     val started =
                         if (audioOnly != null) {
-                            DownloadLauncher.startAudioOnlyDownload(context, video, audioOnly).also { queued ->
-                                if (queued) {
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            context.getString(R.string.ui_started_download, video.title),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                }
-                            }
+                            DownloadLauncher.startAudioOnlyDownload(
+                                context = context,
+                                video = video,
+                                format = audioOnly,
+                                startedMessage = context.getString(R.string.ui_started_download, video.title),
+                            )
                         } else {
                             startVideo(context, video, format, videoAudio, subtitleOptions, subtitleChoice, prefs)
                         }
@@ -176,6 +174,10 @@ fun MediaDownloadSheet(
                 sheet.close()
             })
             return@DownloadSheetFrame
+        }
+
+        if (replacesDownload) {
+            DownloadReplacesNote(Modifier.padding(horizontal = DownloadSheetPadding, vertical = 8.dp))
         }
 
         if (qualities.isNotEmpty()) {
@@ -244,6 +246,28 @@ fun MediaDownloadSheet(
                 }
             }
         }
+    }
+}
+
+/** One file per video: picking anything for a video already downloaded replaces that file. */
+@Composable
+internal fun DownloadReplacesNote(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.download_replaces_existing),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

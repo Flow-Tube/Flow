@@ -4,41 +4,52 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.GestureOverlayStyle
+import io.github.aedev.flow.data.local.MiniBarBackground
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.local.QueueSwipeAction
 import io.github.aedev.flow.data.local.SliderStyle
 import io.github.aedev.flow.ui.components.musicplayer.common.musicPlayerTurnsLight
 import io.github.aedev.flow.ui.components.musicplayer.common.playerBackdropColors
+import io.github.aedev.flow.ui.components.musicplayer.common.rememberMusicPlayerAppearance
 import io.github.aedev.flow.ui.components.musicplayer.controls.ExpressivePlayerSlider
 import io.github.aedev.flow.ui.components.musicplayer.controls.ExpressiveWavySlider
 import io.github.aedev.flow.ui.components.musicplayer.controls.SquigglySlider
 import io.github.aedev.flow.ui.components.musicplayer.controls.expressiveSliderSpec
 import io.github.aedev.flow.ui.components.musicplayer.full.PlayerBackground
+import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarSurface
 import io.github.aedev.flow.ui.components.musicplayer.queue.containerColor
 import io.github.aedev.flow.ui.components.musicplayer.queue.contentColor
 import io.github.aedev.flow.ui.components.musicplayer.queue.icon
@@ -52,9 +63,11 @@ import io.github.aedev.flow.ui.components.shared.icon
 import io.github.aedev.flow.ui.components.shared.isDestructive
 import io.github.aedev.flow.ui.components.shared.labelRes
 import io.github.aedev.flow.ui.theme.PlayerGround
+import kotlinx.coroutines.delay
 
 private const val PREVIEW_PROGRESS = 0.4f
 private const val PREVIEW_DURATION = 100f
+private const val PREVIEW_WAVE_MILLIS = 2_400L
 private const val SEEKBAR_PREVIEW_PROGRESS = 0.36f
 private val SeekbarPreviewHeight = 44.dp
 private val SeekbarPreviewInset = 8.dp
@@ -62,25 +75,25 @@ private val SeekbarTrackHeight = 4.dp
 private val BackgroundPreviewHeight = 72.dp
 private val GesturePreviewHeight = 184.dp
 
-/** The real player slider in [style], parked at 40 %. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** The real player slider in [style], parked at 40 %. A wave moves for a moment, then holds still. */
 @Composable
 internal fun SliderStylePreview(style: SliderStyle) {
     val position = PREVIEW_DURATION * PREVIEW_PROGRESS
     val range = 0f..PREVIEW_DURATION
+    var waveMoving by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        delay(PREVIEW_WAVE_MILLIS)
+        waveMoving = false
+    }
     when (style) {
         SliderStyle.SQUIGGLY -> {
             SquigglySlider(
                 value = position,
                 onValueChange = {},
+                onValueChangeFinished = {},
                 valueRange = range,
-                colors =
-                    SliderDefaults.colors(
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                    ),
                 isPlaying = true,
+                waveMoving = waveMoving,
             )
         }
 
@@ -91,6 +104,7 @@ internal fun SliderStylePreview(style: SliderStyle) {
                 onValueChangeFinished = {},
                 valueRange = range,
                 isPlaying = true,
+                waveMoving = waveMoving,
             )
         }
 
@@ -237,3 +251,63 @@ internal fun QueueSwipePreview(
 
 private val QueueSwipePreviewHeight = 56.dp
 private val QueueSwipePreviewPadding = 20.dp
+
+/** A mini bar in [background], tinted from the app icon as the real bar is from a cover. */
+@Composable
+internal fun MiniBackgroundPreview(background: MiniBarBackground) {
+    val context = LocalContext.current
+    val artwork = remember { "android.resource://${context.packageName}/${R.drawable.ic_launcher_foreground}" }
+    val appScheme = MaterialTheme.colorScheme
+    val appearance = rememberMusicPlayerAppearance(artwork)
+    MaterialTheme(colorScheme = appearance.playerScheme) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(MediaMiniBarDefaults.Height)
+                    .clip(RoundedCornerShape(MediaMiniBarDefaults.CornerRadius))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        ) {
+            MiniBarSurface(background, artwork, appearance.controlScheme, appScheme) {
+                Row(
+                    modifier = Modifier.fillMaxHeight().padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(Modifier.size(MiniPreviewCover).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        PreviewTextBar(MiniPreviewTitleWidth, MaterialTheme.colorScheme.onSurface)
+                        PreviewTextBar(MiniPreviewArtistWidth, MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Box(
+                        modifier = Modifier.size(MiniPreviewButton).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+                    Icon(Icons.Rounded.SkipNext, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreviewTextBar(
+    width: Dp,
+    color: Color,
+) {
+    Box(
+        Modifier
+            .width(width)
+            .height(MiniPreviewTextHeight)
+            .clip(CircleShape)
+            .background(color),
+    )
+}
+
+private val MiniPreviewCover = 44.dp
+private val MiniPreviewButton = 40.dp
+private val MiniPreviewTitleWidth = 120.dp
+private val MiniPreviewArtistWidth = 72.dp
+private val MiniPreviewTextHeight = 8.dp

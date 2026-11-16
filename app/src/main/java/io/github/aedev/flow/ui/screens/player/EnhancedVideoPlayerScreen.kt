@@ -3,11 +3,11 @@ package io.github.aedev.flow.ui.screens.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.SupportingPaneScaffold
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
@@ -15,9 +15,11 @@ import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaf
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
@@ -25,7 +27,11 @@ import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
+import io.github.aedev.flow.ui.components.layout.flowWindowAdaptiveInfo
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameHolder
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientImmersiveLayer
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientPageGlow
 import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueueDock
 import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueueDockDefaults
 import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueuePaneCard
@@ -34,12 +40,16 @@ import io.github.aedev.flow.ui.screens.player.content.VideoInfoContent
 import io.github.aedev.flow.ui.screens.player.content.relatedListUsesGrid
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosContent
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosGridContent
+import io.github.aedev.flow.ui.screens.player.content.relatedVideosSkeleton
+import io.github.aedev.flow.ui.screens.player.content.rememberRelatedSkeleton
+import io.github.aedev.flow.ui.screens.player.state.BindRelatedFocus
 import io.github.aedev.flow.ui.screens.player.state.PlayerLayoutMode
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.QueueDockPlacement
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
 import io.github.aedev.flow.ui.screens.player.state.hasVisibleQueue
+import io.github.aedev.flow.ui.screens.player.state.keyboardReturnToPlayer
 import io.github.aedev.flow.ui.screens.player.state.nextQueueVideo
 import io.github.aedev.flow.ui.screens.player.state.playerLayoutModeFor
 import io.github.aedev.flow.ui.screens.player.state.queueDockPlacement
@@ -68,9 +78,12 @@ internal fun EnhancedVideoPlayerScreen(
     video: Video,
     alpha: () -> Float,
     videoPlayerHeightPx: () -> Float = { 0f },
+    offscreenBottomPx: () -> Float = { 0f },
     screenState: PlayerScreenState, // Shared screenState from FlowApp
     isFullscreenShown: Boolean,
     prefs: VideoPlayerPreferencesState,
+    ambientGlowFrames: AmbientFrameHolder? = null,
+    ambientImmersive: Boolean = false,
     onVideoClick: (Video) -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
@@ -90,12 +103,17 @@ internal fun EnhancedVideoPlayerScreen(
     val relatedCardStyle = prefs.relatedCardStyle
     val isInPipMode by GlobalPlayerState.isInPipMode.collectAsStateWithLifecycle()
     val playerState by EnhancedPlayerManager.getInstance().playerState.collectAsStateWithLifecycle()
+    val showsRelatedSkeleton = rememberRelatedSkeleton(video, uiState, screenState)
+    val immersive = ambientImmersive && ambientGlowFrames != null
+    val dimOnScroll by rememberUpdatedState(prefs.ambientImmersiveScrollDim)
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
                 .graphicsLayer { this.alpha = alpha() }
-                .background(MaterialTheme.colorScheme.background),
+                .keyboardReturnToPlayer()
+                // The immersive light paints the page colour itself, under its light.
+                .then(if (immersive) Modifier else Modifier.background(MaterialTheme.colorScheme.background)),
     ) {
         val layoutMode =
             playerLayoutModeFor(
@@ -127,7 +145,7 @@ internal fun EnhancedVideoPlayerScreen(
             // so the video row above the main pane and the scaffold's main pane keep one width.
             val navigator =
                 rememberSupportingPaneScaffoldNavigator(
-                    scaffoldDirective = calculatePaneScaffoldDirective(currentWindowAdaptiveInfo()),
+                    scaffoldDirective = calculatePaneScaffoldDirective(flowWindowAdaptiveInfo()),
                 )
             SupportingPaneScaffold(
                 directive = navigator.scaffoldDirective,
@@ -204,11 +222,30 @@ internal fun EnhancedVideoPlayerScreen(
         } else {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val relatedLayout = rememberFeedGridLayout(maxWidth, prefs.feedColumns)
+                val listState = rememberLazyListState()
+                BindRelatedFocus(
+                    focus = screenState.relatedFocus,
+                    listState = listState,
+                    firstIndex = 1,
+                    enabled = showRelatedVideos && !showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty() && !isInPipMode,
+                )
+                val firstRelatedCard = Modifier.focusRequester(screenState.relatedFocus.firstCard)
+                if (ambientGlowFrames != null && immersive) {
+                    AmbientImmersiveLayer(frames = ambientGlowFrames, isScrolling = { dimOnScroll && listState.isScrollInProgress })
+                } else if (ambientGlowFrames != null) {
+                    AmbientPageGlow(
+                        frames = ambientGlowFrames,
+                        scrolledPx = {
+                            if (listState.firstVisibleItemIndex > 0) Float.MAX_VALUE else listState.firstVisibleItemScrollOffset.toFloat()
+                        },
+                    )
+                }
                 // Kept through fullscreen: the layout hides the page there, and keeping the list
                 // means leaving fullscreen, or waiting for the turn into it, never shows it empty.
                 if (!isInPipMode) {
                     LazyColumn(
                         Modifier.fillMaxSize(),
+                        state = listState,
                         contentPadding = PaddingValues(bottom = maxOf(ListEndPadding, dockReserve + QueueDockGap)),
                     ) {
                         item {
@@ -228,18 +265,22 @@ internal fun EnhancedVideoPlayerScreen(
                             )
                         }
                         if (showRelatedVideos) {
-                            if (relatedListUsesGrid(isMediumLayout, relatedCardStyle, relatedLayout)) {
+                            if (showsRelatedSkeleton) {
+                                relatedVideosSkeleton(video.thumbnailUrl, relatedCardStyle)
+                            } else if (relatedListUsesGrid(isMediumLayout, relatedCardStyle, relatedLayout)) {
                                 relatedVideosGridContent(
                                     relatedVideos = uiState.relatedVideos,
                                     layout = relatedLayout,
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
+                                    firstCardModifier = firstRelatedCard,
                                 )
                             } else {
                                 relatedVideosContent(
                                     relatedVideos = uiState.relatedVideos,
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
+                                    firstCardModifier = firstRelatedCard,
                                 )
                             }
                         }
@@ -258,6 +299,7 @@ internal fun EnhancedVideoPlayerScreen(
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
+                        .offset { IntOffset(0, -offscreenBottomPx().roundToInt()) }
                         .padding(bottom = QueueDockMargin)
                         .widthIn(max = QueueDockMaxWidth),
             )
@@ -268,6 +310,7 @@ internal fun EnhancedVideoPlayerScreen(
             modifier =
                 Modifier
                     .align(Alignment.BottomCenter)
+                    .offset { IntOffset(0, -offscreenBottomPx().roundToInt()) }
                     .padding(bottom = dockReserve),
         )
     }

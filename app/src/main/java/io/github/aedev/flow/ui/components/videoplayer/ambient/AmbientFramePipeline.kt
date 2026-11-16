@@ -14,8 +14,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -34,7 +37,15 @@ private const val DECIMATION = 3
 
 private const val CAPTURE_MS_ASYNC = 900L
 private const val CAPTURE_MS_BLOCKING = 1800L
-private const val IDLE_MS = 1500L
+
+/** How often the frame is sampled: the bars and the glow change slowly, a lit page follows the picture. */
+internal enum class AmbientCadence { STANDARD, LIVELY }
+
+private const val LIVELY_CHANGING_MS = 250L
+private const val LIVELY_STILL_MS = 1000L
+
+/** How often a surface that is not ready yet is checked again, and how often a polled player is asked. */
+internal const val IDLE_MS = 1500L
 
 /**
  * Temporal smoothing. One exponential filter over the pixel buffer replaces what used to be three
@@ -58,7 +69,6 @@ private const val IDLE_MS = 1500L
  * reintroduces the hazard. If cuts feel soft, lower tau globally instead.
  */
 private const val SMOOTH_TICK_MS = 60L
-private const val SMOOTH_IDLE_TICK_MS = 200L
 private const val SMOOTH_TAU_MS = 600f
 
 /** Once every channel is within this of its target (linear units) the filter stops emitting. */
@@ -125,6 +135,8 @@ private val LINEAR_TO_SRGB =
  */
 internal class AmbientPipeline(
     private val pixelDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val pageStyle: () -> AmbientPageStyle? = { null },
+    private val capturePace: () -> AmbientCadence = { AmbientCadence.STANDARD },
 ) {
     private val sample = Bitmap.createBitmap(SAMPLE_W, SAMPLE_H, Bitmap.Config.ARGB_8888)
     private val samplePixels = IntArray(SAMPLE_W * SAMPLE_H)
@@ -152,26 +164,48 @@ internal class AmbientPipeline(
     private var supported = true
     private var consecutiveFailures = 0
 
+    /**
+     * Signalled whenever there is something new to publish. Conflated: the smoothing loop only
+     * needs to know that it should look, not how many times it was told.
+     */
+    private val wake = Channel<Unit>(Channel.CONFLATED)
+    private var restyled = false
+    private val pageRenderer by lazy { AmbientPageRenderer(DISPLAY_W, DISPLAY_H) }
+
+    /** Publishes the current light again, for a page whose style changed while the frame did not. */
+    fun requestPublish() {
+        restyled = true
+        wake.trySend(Unit)
+    }
+
     suspend fun runCapture(
         playerView: PlayerView,
-        isPlaying: () -> Boolean,
+        isPlaying: Flow<Boolean>,
     ) {
         while (currentCoroutineContext().isActive && supported) {
+            // Suspends while paused instead of polling, so a paused video costs nothing here.
+            isPlaying.first { it }
             val surface = playerView.videoSurfaceView
-            val playing = isPlaying()
             var cadence = IDLE_MS
-            if (playing && surface != null && surface.width > 0 && surface.height > 0) {
+            if (surface != null && surface.width > 0 && surface.height > 0) {
                 val base = if (surface is TextureView) CAPTURE_MS_BLOCKING else CAPTURE_MS_ASYNC
                 when (captureSurface(surface, sample, handler)) {
                     CAPTURE_OK -> {
                         consecutiveFailures = 0
-                        cadence = base
                         // Heavy work off Main; withContext joins before anything is published, so
                         // the staging buffers are never read concurrently.
                         val accepted = withContext(pixelDispatcher) { computeTarget() }
+                        // A TextureView readback blocks Main, so it keeps its slow pace whatever is asked.
+                        cadence =
+                            when {
+                                capturePace() == AmbientCadence.STANDARD || surface is TextureView -> base
+                                accepted -> LIVELY_CHANGING_MS
+                                else -> LIVELY_STILL_MS
+                            }
                         if (accepted) {
                             stagingGrid.copyInto(targetGrid)
                             hasTarget = true
+                            wake.trySend(Unit)
                         }
                     }
 
@@ -213,7 +247,7 @@ internal class AmbientPipeline(
         var last = SystemClock.elapsedRealtime()
         while (currentCoroutineContext().isActive) {
             if (!hasTarget) {
-                delay(SMOOTH_IDLE_TICK_MS)
+                wake.receive()
                 last = SystemClock.elapsedRealtime()
                 continue
             }
@@ -231,11 +265,12 @@ internal class AmbientPipeline(
             last = now
             val alpha = 1f - exp(-dt.toFloat() / SMOOTH_TAU_MS)
 
-            if (step(currentGrid, targetGrid, alpha)) {
+            if (step(currentGrid, targetGrid, alpha) || restyled) {
                 emit(publish())
                 delay(SMOOTH_TICK_MS)
             } else {
-                delay(SMOOTH_IDLE_TICK_MS)
+                // Converged: nothing changes until capture sets a new target.
+                wake.receive()
                 last = SystemClock.elapsedRealtime()
             }
         }
@@ -251,8 +286,16 @@ internal class AmbientPipeline(
      * that one *is* written by the capture loop.
      */
     internal suspend fun publish(): AmbientFrameState {
-        val frame = withContext(pixelDispatcher) { encodeFrame() }
-        return AmbientFrameState(frame = frame, supported = supported)
+        restyled = false
+        val style = pageStyle()
+        val isSupported = supported
+        return withContext(pixelDispatcher) {
+            AmbientFrameState(
+                frame = encodeFrame(),
+                supported = isSupported,
+                page = style?.let { pageRenderer.render(currentGrid, it) },
+            )
+        }
     }
 
     /** Runs on [pixelDispatcher]. */

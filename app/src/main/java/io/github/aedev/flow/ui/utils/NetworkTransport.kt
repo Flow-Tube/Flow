@@ -12,9 +12,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import io.github.aedev.flow.utils.NetworkState
+import io.github.aedev.flow.utils.isWifiOrEthernet
 
 /**
- * Wifi or not, kept current by the platform callback. Seeded synchronously rather than defaulting
+ * Wifi (or Ethernet) or not, kept current by the platform callback. Seeded synchronously rather than defaulting
  * to false: the Shorts prefetch reads the transport synchronously too, and the two must agree or
  * they key the playback-stream cache differently and the prefetch is wasted.
  */
@@ -26,7 +27,7 @@ fun rememberIsOnWifi(): Boolean {
         val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         fun update() {
-            isWifi = manager.getNetworkCapabilities(manager.activeNetwork)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+            isWifi = manager.getNetworkCapabilities(manager.activeNetwork).isWifiOrEthernet()
         }
         update()
         val callback =

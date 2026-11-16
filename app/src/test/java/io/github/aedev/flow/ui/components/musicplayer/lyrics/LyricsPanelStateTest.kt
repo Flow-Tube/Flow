@@ -59,6 +59,30 @@ class LyricsPanelStateTest {
     }
 
     @Test
+    fun `a panel opened during a break settles on the line coming up`() {
+        val withBreak =
+            listOf(LyricsEntry(0L, ""), LyricsEntry(1_000L, "sung"), LyricsEntry(70_000L, "after"), LyricsEntry(80_000L, "last"))
+        val state = tracking(30_000L)
+
+        state.advance(withBreak, 30_000L, hasWordTimings = false)
+
+        assertThat(state.activeLineIndices).isEmpty()
+        assertThat(state.scrollTargetIndex).isEqualTo(2)
+    }
+
+    @Test
+    fun `a seek back into a break settles on the line coming up`() {
+        val withBreak =
+            listOf(LyricsEntry(0L, ""), LyricsEntry(1_000L, "sung"), LyricsEntry(70_000L, "after"), LyricsEntry(80_000L, "last"))
+        val state = tracking(0L)
+        state.advance(withBreak, 85_000L, hasWordTimings = false)
+
+        state.advance(withBreak, 30_000L, hasWordTimings = false)
+
+        assertThat(state.scrollTargetIndex).isEqualTo(2)
+    }
+
+    @Test
     fun `a background vocal keeps its main line active`() {
         val withBackground =
             listOf(

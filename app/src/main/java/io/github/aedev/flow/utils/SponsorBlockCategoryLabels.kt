@@ -14,5 +14,7 @@ fun sponsorCategoryLabelRes(category: String): Int? =
         "filler" -> R.string.sb_category_filler
         "preview" -> R.string.sb_category_preview
         "exclusive_access" -> R.string.sb_category_exclusive_access
+        "hook" -> R.string.sb_category_hook
+        "poi_highlight" -> R.string.sb_category_highlight
         else -> null
     }

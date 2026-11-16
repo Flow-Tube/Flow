@@ -56,6 +56,22 @@ private val TopBarAvatarSize = 32.dp
 private val FooterPadding = 20.dp
 private val GroupSpacing = 16.dp
 
+/** Tells why a switch through [viewModel] didn't happen. */
+@Composable
+fun SwitchRefusals(viewModel: ProfileSwitchViewModel) {
+    val refused by viewModel.refused.collectAsStateWithLifecycle()
+    val snackbarHostState = LocalFlowSnackbarHostState.current
+    val refusedText = refused?.let { stringResource(switchRefusalText(it.reason)) }
+    LaunchedEffect(refused) {
+        if (refusedText == null) return@LaunchedEffect
+        try {
+            snackbarHostState?.showSnackbar(refusedText)
+        } finally {
+            viewModel.consumeRefused()
+        }
+    }
+}
+
 /**
  * The running profile's avatar as a top bar action, opening the way to switch, add or manage profiles. It shows with
  * a single profile too, so the feature can be found.
@@ -67,7 +83,6 @@ fun ProfileTopBarAction(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val refused by viewModel.refused.collectAsStateWithLifecycle()
     val running = state?.profiles?.firstOrNull { it.id == viewModel.runningId } ?: return
     var open by rememberSaveable { mutableStateOf(false) }
     val description = stringResource(R.string.profiles_action_description, running.displayName(context))
@@ -76,16 +91,7 @@ fun ProfileTopBarAction(
         ProfileAvatar(running, size = TopBarAvatarSize)
     }
 
-    val snackbarHostState = LocalFlowSnackbarHostState.current
-    val refusedText = refused?.let { stringResource(switchRefusalText(it.reason)) }
-    LaunchedEffect(refused) {
-        if (refusedText == null) return@LaunchedEffect
-        try {
-            snackbarHostState?.showSnackbar(refusedText)
-        } finally {
-            viewModel.consumeRefused()
-        }
-    }
+    SwitchRefusals(viewModel)
 
     if (open) {
         ProfileSwitchSheet(

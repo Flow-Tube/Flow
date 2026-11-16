@@ -34,6 +34,7 @@ enum class ExportKind(
         "json",
         timestamped = false,
     ),
+    PLAYLISTS(R.string.export_playlists_title, R.string.export_playlists_desc, ZIP, "flow_playlists", "zip"),
     ;
 
     fun fileName(now: Instant = Instant.now()): String =
@@ -49,6 +50,7 @@ enum class ExportKind(
         MUSIC_BRAIN -> coordinator.exportMusicBrain(uri)
         NEWPIPE_SUBSCRIPTIONS -> coordinator.exportNewPipeSubscriptions(uri)
         WATCH_HISTORY -> coordinator.exportWatchHistory(uri)
+        PLAYLISTS -> coordinator.exportPlaylists(uri)
     }
 }
 

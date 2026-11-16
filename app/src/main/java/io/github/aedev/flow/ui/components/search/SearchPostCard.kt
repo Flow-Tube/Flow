@@ -28,7 +28,7 @@ import io.github.aedev.flow.ui.components.shared.thumbnailUrlOrNull
  * One community post in the search strip, shaped like YouTube's: a fixed-width outlined card with
  * the author line, the text, and the attachment preview beside it.
  *
- * The full [io.github.aedev.flow.ui.components.channel.CommunityPostCard] is a full-width reading
+ * The full [io.github.aedev.flow.ui.components.shared.MediaPostCard] is a full-width reading
  * surface with actions; neither fits a horizontally scrolling strip.
  */
 @Composable

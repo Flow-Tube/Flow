@@ -1,31 +1,35 @@
 package io.github.aedev.flow.data.lyrics
 
+import io.github.aedev.flow.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * LyricsProvider wrapping the existing InnertubeMusicService.fetchLyrics.
- * This provider only returns plain text lyrics (no sync), so it's always lowest priority.
+ * YouTube Music's own lyrics, asked for by video id, so they can't belong to another song. Song
+ * rows have timed lines. Music video rows have none, and fall back to the Lyrics tab's plain text.
  */
 class YouTubeLyricsProvider : LyricsProvider {
-    override val name = "YouTube"
+    override val name = NAME
 
     override suspend fun getLyrics(
         id: String,
         title: String,
         artist: String,
         duration: Int,
-        album: String?
-    ): Result<List<LyricsEntry>> = withContext(Dispatchers.IO) {
-        try {
-            val lyrics = io.github.aedev.flow.data.newmusic.InnertubeMusicService.fetchLyrics(id)
-            if (lyrics != null) {
-                Result.success(listOf(LyricsEntry(time = 0L, text = lyrics)))
-            } else {
-                Result.failure(Exception("No YouTube lyrics found"))
+        album: String?,
+    ): Result<List<LyricsEntry>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val endpoint = YouTube.lyricsEndpoint(id).getOrThrow() ?: throw LyricsNotFoundException()
+                val timed = YouTube.timedLyrics(endpoint).getOrNull().orEmpty()
+                timed.map { LyricsEntry(time = it.startMs, text = it.text) }.ifEmpty {
+                    val plain = YouTube.lyrics(endpoint).getOrThrow() ?: throw LyricsNotFoundException()
+                    listOf(LyricsEntry(time = 0L, text = plain))
+                }
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
+
+    internal companion object {
+        const val NAME = "YouTube"
     }
 }

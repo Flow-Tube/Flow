@@ -7,6 +7,7 @@ import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.engine.Session
+import io.github.aedev.flow.sync2.linking.rotateEpoch
 import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.buildEntry
@@ -14,6 +15,7 @@ import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.memberSubject
 import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.GroupStore
+import io.github.aedev.flow.sync2.store.Remote
 import io.github.aedev.flow.sync2.store.StorePaths
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -81,6 +83,21 @@ class HeldStoreTest {
         }
 
     @Test
+    fun a_server_whose_cursor_never_moves_is_downloaded_once() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val a = SyncBytes.toHex(g.a.did)
+            Session.open(g.deviceDb(), g.store, g.a).push(
+                mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                LINK,
+            )
+            val db = g.deviceDb()
+            val store = GroupStore(heldStore(db), StuckPages(g.store))
+            assertEquals(0L, store.download(SyncBytes.toHex(g.b.did), 0, objects = true))
+            assertTrue(store.local.getObject(StorePaths.log(a, 1)) != null)
+        }
+
+    @Test
     fun a_server_group_syncs_through_what_each_device_holds() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
@@ -91,12 +108,49 @@ class HeldStoreTest {
             storeA.download(a, 0, objects = true)
             Session.open(dbA, storeA, g.a).push(
                 mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, "")),
+                LINK,
             )
             assertTrue("nothing reaches the server before the upload", g.store.objects.isEmpty())
             storeA.upload(a, 0)
             assertTrue(StorePaths.log(a, 1) in g.store.objects)
 
             storeB.download(b, 0, objects = true)
-            assertTrue(a in Session.open(dbB, storeB, g.b).pull().batches)
+            assertTrue(a in Session.open(dbB, storeB, g.b).pull(setOf(LINK)).batches)
         }
+
+    @Test
+    fun a_download_asks_only_for_keys_the_store_holds() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            check(rotateEpoch(Session.open(g.deviceDb(), g.store, g.a), g.a))
+            val state = g.store.head()
+            val c = newMember()
+            val add =
+                buildEntry(
+                    g.group,
+                    state,
+                    draft(Op.ADD, g.a).copy(add = listOf(memberSubject(c.sigPublic, c.kemPublic, Role.DEVICE))),
+                    listOf(g.a, c),
+                )
+            val current = Session.open(g.deviceDb(), g.store, g.a).currentKey()
+            check(g.store.appendRoster(state.head, add, wraps(g.group, 1, current, listOf(c)), null) == Appended.Done)
+            for (member in listOf(g.b, c)) {
+                val asked = AskedKeys(g.store)
+                GroupStore(heldStore(emptyDb()), asked).download(SyncBytes.toHex(member.did), 0, objects = false)
+                assertTrue("${asked.missing}", asked.missing.isEmpty())
+            }
+        }
+
+    /** Records each key a download asks for that the store doesn't hold. */
+    private class AskedKeys(
+        private val inner: MemoryStore,
+    ) : Remote by inner {
+        val missing = ArrayList<Pair<Int, String>>()
+
+        override suspend fun key(
+            epoch: Int,
+            kc: String,
+            name: String,
+        ) = inner.key(epoch, kc, name).also { if (it == null) missing += epoch to name }
+    }
 }

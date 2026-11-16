@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +30,7 @@ import io.github.aedev.flow.ui.components.shared.FlowQuickSearchChips
 import io.github.aedev.flow.ui.components.shared.FlowSearchField
 import io.github.aedev.flow.ui.components.shared.FlowSectionHeader
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.MediaChannelSubscribeRow
 import io.github.aedev.flow.ui.components.shared.dismissKeyboardOnPress
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
@@ -132,7 +132,7 @@ private fun LazyListScope.channelResults(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SearchLoading() {
-    LoadingIndicator(Modifier.size(SearchLoadingSize))
+    FlowSpinner(Modifier.size(SearchLoadingSize))
 }
 
 @Composable

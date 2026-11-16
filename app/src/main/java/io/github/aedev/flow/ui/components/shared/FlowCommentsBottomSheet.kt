@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -19,7 +20,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -45,8 +45,8 @@ fun FlowCommentsBottomSheet(
     selectedFilter: CommentSortFilter = CommentSortFilter.TOP,
     totalText: String? = null,
     artworkUrl: String? = null,
-    timedOnly: Boolean = false,
-    onTimedChange: ((Boolean) -> Unit)? = null,
+    showTimed: Boolean = false,
+    timedFollow: CommentsTimedFollow? = null,
     isLoadingMore: Boolean = false,
     onLoadMore: () -> Unit = {},
     hasMore: Boolean = false,
@@ -57,14 +57,12 @@ fun FlowCommentsBottomSheet(
     onSheetProgressChange: (Float) -> Unit = {},
     dismissOnOutsideTap: Boolean = false,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+    threadState: CommentThreadState? = null,
+    isDisabled: Boolean = false,
 ) {
     val sheetState = rememberFlowBottomSheetState()
-    val commentsListState = rememberLazyListState()
     val tint = rememberMediaArtworkTint(artworkUrl)
-
-    LaunchedEffect(selectedFilter) {
-        commentsListState.scrollToItem(0)
-    }
 
     FlowBottomSheet(
         onDismiss = onDismiss,
@@ -82,8 +80,8 @@ fun FlowCommentsBottomSheet(
             CommentsSheetHeader(
                 selectedFilter = selectedFilter,
                 totalText = totalText,
-                timedOnly = timedOnly,
-                onTimedChange = onTimedChange,
+                showTimed = showTimed,
+                timedFollow = timedFollow,
                 onFilterChanged = onFilterChanged,
                 onClose = { sheetState.dismiss() },
                 dragModifier = dragModifier,
@@ -93,7 +91,7 @@ fun FlowCommentsBottomSheet(
         FlowCommentsList(
             comments = comments,
             isLoading = isLoading,
-            listState = commentsListState,
+            listState = listState,
             selectedFilter = selectedFilter,
             onSeekMs = onSeekMs,
             onLoadReplies = onLoadReplies,
@@ -103,8 +101,10 @@ fun FlowCommentsBottomSheet(
             isLoadingMore = isLoadingMore,
             onLoadMore = onLoadMore,
             hasMore = hasMore,
-            emptyMessageRes = if (timedOnly) R.string.no_timed_comments else R.string.no_comments_yet,
             tint = tint,
+            timedFollow = timedFollow,
+            threadState = threadState,
+            isDisabled = isDisabled,
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -118,8 +118,8 @@ fun FlowCommentsBottomSheet(
 private fun CommentsSheetHeader(
     selectedFilter: CommentSortFilter,
     totalText: String?,
-    timedOnly: Boolean,
-    onTimedChange: ((Boolean) -> Unit)?,
+    showTimed: Boolean,
+    timedFollow: CommentsTimedFollow?,
     onFilterChanged: (CommentSortFilter) -> Unit,
     onClose: () -> Unit,
     dragModifier: Modifier,
@@ -170,10 +170,12 @@ private fun CommentsSheetHeader(
             CommentSortChips(
                 selected = selectedFilter,
                 onSelect = onFilterChanged,
-                timedOnly = timedOnly,
-                onTimedChange = onTimedChange,
+                showTimed = showTimed,
                 modifier = Modifier.padding(top = 2.dp),
             )
+        }
+        if (selectedFilter == CommentSortFilter.TIMED && timedFollow != null) {
+            CommentsTimedFollowRow(timedFollow)
         }
         HorizontalDivider(
             color =

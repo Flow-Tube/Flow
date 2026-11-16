@@ -20,6 +20,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.lyrics.LyricsEntry
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -48,6 +50,9 @@ internal fun LyricsListRow(
     isPlaying: Boolean,
     syncOffsetMs: Long,
     motionEnabled: Boolean,
+    blurOtherLines: Boolean,
+    animationStyle: LyricsAnimationStyle,
+    glow: LyricsGlow,
     indicatorColor: Color,
     positionProvider: () -> Long,
     onHeight: (Int) -> Unit,
@@ -135,7 +140,11 @@ internal fun LyricsListRow(
                     displayedCurrentLineIndex = state.deferredCurrentLineIndex,
                     showTranslation = presentation.showTranslation,
                     romanization = presentation.romanizations.getOrNull(index),
+                    romanizationOnly = presentation.romanizationOnly,
                     motionEnabled = motionEnabled,
+                    blurOtherLines = blurOtherLines,
+                    animationStyle = animationStyle,
+                    glow = glow,
                     onSizeChanged = onHeight,
                     onClick = { onLineClick(index, item) },
                 )

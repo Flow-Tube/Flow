@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.search
 
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -19,7 +20,7 @@ import io.github.aedev.flow.data.local.SearchHistoryRepository
 import io.github.aedev.flow.data.local.SearchHistoryScope
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.player.DeepFlowManager
-import io.github.aedev.flow.ui.components.search.matchingTyped
+import io.github.aedev.flow.ui.components.search.recentOrMatching
 import io.github.aedev.flow.ui.components.shared.DeepFlowState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
@@ -68,7 +69,7 @@ class SearchScreenState(
         get() = textFieldState.text.toString()
 
     val matchingHistory: List<SearchHistoryItem>
-        get() = allHistoryState.value.matchingTyped(query)
+        get() = allHistoryState.value.recentOrMatching(query)
 
     fun onSubmit(text: String) {
         suggestions = emptyList()
@@ -88,6 +89,12 @@ class SearchScreenState(
 
     fun stopTyping() {
         isTyping = false
+    }
+
+    /** Puts [query], the search this page shows, back in the field and closes the suggestions. */
+    fun returnTo(query: String) {
+        textFieldState.setTextAndPlaceCursorAtEnd(query)
+        onSubmit(query)
     }
 
     fun deleteHistoryItem(item: SearchHistoryItem) {

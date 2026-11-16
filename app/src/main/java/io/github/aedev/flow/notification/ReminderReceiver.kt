@@ -10,48 +10,36 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/** Posts a wellbeing reminder while it is still on in the running profile; the break reminder then arms the next one. */
+/**
+ * Posts the bedtime reminder while it is still on in the running profile. A break alarm armed by an older build lands
+ * here once and is ignored; [BreakReminderTimer] owns that reminder now.
+ */
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(
         context: Context,
         intent: Intent,
     ) {
-        val type = intent.getStringExtra("type") ?: return
+        if (intent.getStringExtra("type") != "bedtime") return
         val result = goAsync()
         val app = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                remind(app, type, LocalDataManager(app))
+                remindBedtime(app, LocalDataManager(app))
             } finally {
                 result.finish()
             }
         }
     }
 
-    private suspend fun remind(
+    private suspend fun remindBedtime(
         context: Context,
-        type: String,
         settings: LocalDataManager,
     ) {
-        when (type) {
-            "bedtime" -> {
-                if (!settings.bedtimeReminder.first()) return
-                NotificationHelper.showReminderNotification(
-                    context,
-                    context.getString(R.string.reminder_bedtime_title),
-                    context.getString(R.string.reminder_bedtime_body),
-                )
-            }
-
-            "break" -> {
-                if (!settings.breakReminder.first()) return
-                NotificationHelper.showReminderNotification(
-                    context,
-                    context.getString(R.string.reminder_break_title),
-                    context.getString(R.string.reminder_break_body),
-                )
-                ReminderManager.scheduleBreakReminder(context, settings.breakFrequency.first())
-            }
-        }
+        if (!settings.bedtimeReminder.first()) return
+        NotificationHelper.showReminderNotification(
+            context,
+            context.getString(R.string.reminder_bedtime_title),
+            context.getString(R.string.reminder_bedtime_body),
+        )
     }
 }

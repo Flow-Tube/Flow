@@ -18,6 +18,21 @@ class MusicMediaItemsTest {
     }
 
     @Test
+    fun `a song's item carries its album, and the queue read back keeps it`() {
+        val item = musicMediaItem(track(duration = 200).copy(album = "Album"), mockk<Uri>(), useCacheKey = false)
+
+        assertThat(item.mediaMetadata.albumTitle.toString()).isEqualTo("Album")
+        assertThat(adoptedQueue(listOf(item)).single().album).isEqualTo("Album")
+    }
+
+    @Test
+    fun `no album stays unset`() {
+        val item = musicMediaItem(track(duration = 200), mockk<Uri>(), useCacheKey = false)
+
+        assertThat(item.mediaMetadata.albumTitle).isNull()
+    }
+
+    @Test
     fun `an unknown duration stays unknown instead of zero`() {
         val item = musicMediaItem(track(duration = 0), mockk<Uri>(), useCacheKey = false)
 

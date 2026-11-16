@@ -50,4 +50,12 @@ class VideoCodecUtilsFrameRateTest {
         assertEquals(1080, VideoCodecUtils.qualityHeightFromStream(stream("1080p60")))
         assertEquals(2160, VideoCodecUtils.qualityHeightFromStream(stream("2160p60")))
     }
+
+    @Test
+    fun `a stream is HDR only when YouTube's label says so`() {
+        assertEquals(true, VideoCodecUtils.isHdr(stream("2160p60 HDR")))
+        assertEquals(true, VideoCodecUtils.isHdr(stream("480p60 HDR")))
+        assertEquals(false, VideoCodecUtils.isHdr(stream("2160p60")))
+        assertEquals(false, VideoCodecUtils.isHdr(stream("480p")))
+    }
 }

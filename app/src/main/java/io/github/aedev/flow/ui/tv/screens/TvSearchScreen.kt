@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.tv.screens
 
 import android.app.Activity
 import android.speech.RecognizerIntent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -93,6 +94,9 @@ fun TvSearchScreen(
     var kind by rememberSaveable { mutableStateOf(MediaKind.Videos) }
     val text = state.textFieldState
     val kinds = MediaKind.entries.map { FlowToggleOption(it, stringResource(it.labelRes), it.icon) }
+
+    // As on the phone: a query edited over finished results goes back to those results first.
+    BackHandler(enabled = kind != MediaKind.Music && state.isTyping && uiState.query.isNotBlank()) { state.stopTyping() }
 
     fun submit() {
         softwareKeyboard?.hide()

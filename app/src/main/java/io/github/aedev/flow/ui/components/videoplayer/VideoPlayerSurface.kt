@@ -1,10 +1,14 @@
 package io.github.aedev.flow.ui.components.videoplayer
 
+import android.app.Activity
 import android.content.Context
+import android.graphics.Matrix
+import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -19,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,23 +31,34 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onLayoutRectChanged
+import androidx.compose.ui.node.Ref
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
+import androidx.media3.exoplayer.video.spherical.SphericalGLSurfaceView
 import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PictureInPictureHelper
+import io.github.aedev.flow.player.PipBounds
 import io.github.aedev.flow.player.toDisplayAspectRatioOrNull
 import io.github.aedev.flow.ui.components.shared.clipToCornerRadius
 import io.github.aedev.flow.ui.components.shared.flowPlayerViewLayout
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameCaptureEffect
+import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameHolder
 import io.github.aedev.flow.ui.components.videoplayer.ambient.VideoAmbientBackground
-import io.github.aedev.flow.ui.components.videoplayer.ambient.rememberAmbientFrame
+import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
@@ -53,8 +69,18 @@ fun VideoPlayerSurface(
     onVideoAspectRatioChanged: ((Float) -> Unit)? = null,
     cornerRadiusDp: Float = 0f,
     ambientMode: Boolean = false,
+    ambientFrames: AmbientFrameHolder? = null,
+    ambientGlow: Boolean = false,
+    spherical: Boolean = false,
+    sphericalMotion: Boolean = true,
+    sphericalTouch: Boolean = false,
+    sphericalStill: Boolean = false,
+    sphericalZoom: () -> Float = { 1f },
+    sphericalDragSpeed: Float = 1f,
 ) {
-    val ambientActive = ambientMode && resizeMode == 0
+    val ambientActive = ambientMode && resizeMode == 0 && !spherical
+    val localAmbientFrames = remember { AmbientFrameHolder() }
+    val frames = ambientFrames ?: localAmbientFrames
     val context = LocalContext.current
     val density = LocalDensity.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -63,17 +89,22 @@ fun VideoPlayerSurface(
     var lastAudioOnlySkipLogKey by remember { mutableStateOf<Pair<Boolean, Boolean>?>(null) }
     val currentVideoId by rememberUpdatedState(video.id)
     var ambientVideoAspect by remember { mutableStateOf<Float?>(null) }
+    val currentSpherical by rememberUpdatedState(spherical)
+    val currentSphericalTouch by rememberUpdatedState(sphericalTouch)
+    val currentSphericalDragSpeed by rememberUpdatedState(sphericalDragSpeed)
+    // A 360 frame is the whole sphere unrolled; the viewer sees a window into it, framed like any video.
     val reportAspectRatio by
-        rememberUpdatedState<(Float) -> Unit> { ratio ->
+        rememberUpdatedState<(Float) -> Unit> { decoded ->
+            val ratio = if (currentSpherical) 16f / 9f else decoded
             ambientVideoAspect = ratio
             onVideoAspectRatioChanged?.invoke(ratio)
         }
     val cornerRadiusPx = with(density) { cornerRadiusDp.dp.toPx() }
 
     val playerView =
-        remember {
-            Log.d("EnhancedVideoPlayer", "Creating shared PlayerView (sdk=${Build.VERSION.SDK_INT})")
-            (LayoutInflater.from(context).inflate(flowPlayerViewLayout(), null) as PlayerView).apply {
+        remember(spherical) {
+            Log.d("EnhancedVideoPlayer", "Creating shared PlayerView (sdk=${Build.VERSION.SDK_INT} spherical=$spherical)")
+            (LayoutInflater.from(context).inflate(flowPlayerViewLayout(spherical), null) as PlayerView).apply {
                 layoutParams =
                     FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -84,8 +115,10 @@ fun VideoPlayerSurface(
             }
         }
 
+    val sphericalView = playerView.videoSurfaceView as? SphericalGLSurfaceView
+
     DisposableEffect(playerView) {
-        val surfaceView = playerView.videoSurfaceView as? SurfaceView
+        val surfaceView = playerView.videoSurfaceView?.takeUnless { it is SphericalGLSurfaceView } as? SurfaceView
         if (surfaceView == null) {
             return@DisposableEffect onDispose { }
         }
@@ -160,18 +193,45 @@ fun VideoPlayerSurface(
     }
 
     DisposableEffect(playerView) {
-        val rect = android.graphics.Rect()
-        val updateHint = {
-            if (playerView.getGlobalVisibleRect(rect) && !rect.isEmpty) {
-                PictureInPictureHelper.sourceRectHint = android.graphics.Rect(rect)
+        onDispose { PictureInPictureHelper.setVideoViewBounds(context as? Activity, null) }
+    }
+
+    if (sphericalView != null) {
+        DisposableEffect(sphericalView) {
+            // Runs after the flat view's detach, which parks the player on a placeholder surface.
+            EnhancedPlayerManager.getInstance().getPlayer()?.setVideoSurfaceView(sphericalView)
+            reportAspectRatio(16f / 9f)
+            onDispose { }
+        }
+        // A paused 360 view redrew every refresh and read the gyroscope at 200 Hz: about four
+        // times a paused flat video's CPU on a phone. Still, it draws only when a drag or a seek
+        // changes the picture, and the phone's motion is left out until playback resumes.
+        DisposableEffect(sphericalView, sphericalMotion, sphericalStill) {
+            sphericalView.setUseSensorRotation(sphericalMotion && !sphericalStill)
+            sphericalView.renderMode =
+                if (sphericalStill) GLSurfaceView.RENDERMODE_WHEN_DIRTY else GLSurfaceView.RENDERMODE_CONTINUOUSLY
+            sphericalView.requestRender()
+            onDispose { }
+        }
+        if (sphericalStill) {
+            DisposableEffect(sphericalView) {
+                val player = EnhancedPlayerManager.getInstance().getPlayer()
+                val seekFrames =
+                    object : Player.Listener {
+                        override fun onRenderedFirstFrame() {
+                            // The frame can reach the view's texture just after this callback.
+                            sphericalView.requestRender()
+                            sphericalView.postDelayed(sphericalView::requestRender, SEEK_FRAME_REDRAW_DELAY_MS)
+                        }
+                    }
+                player?.addListener(seekFrames)
+                onDispose { player?.removeListener(seekFrames) }
             }
         }
-        val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateHint() }
-        playerView.addOnLayoutChangeListener(listener)
-        updateHint()
-        onDispose {
-            playerView.removeOnLayoutChangeListener(listener)
-            PictureInPictureHelper.sourceRectHint = null
+        // Stop, not pause: a PiP window is paused but still on screen and still drawing.
+        LifecycleStartEffect(playerView, lifecycleOwner = lifecycleOwner) {
+            playerView.onResume()
+            onStopOrDispose { playerView.onPause() }
         }
     }
 
@@ -180,106 +240,184 @@ fun VideoPlayerSurface(
 
     val currentSurfaceRestoreTrigger = surfaceRestoreTrigger
 
-    val ambientFrame = rememberAmbientFrame(playerView, ambientActive)
+    AmbientFrameCaptureEffect(playerView, !spherical && (ambientActive || ambientGlow), frames)
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (ambientActive) {
-            // Held back until the first frame is sampled, then faded in: before that the glow is only
-            // its dark base, which used to black out the backdrop around the video for a moment.
-            val ambientAppear = remember { Animatable(0f) }
-            val ambientFade = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
-            val ambientReady = ambientFrame.frame != null
-            LaunchedEffect(ambientReady) { if (ambientReady) ambientAppear.animateTo(1f, ambientFade) }
-            VideoAmbientBackground(
-                frame = ambientFrame.frame,
-                videoAspect = ambientVideoAspect,
-                modifier = Modifier.fillMaxSize().graphicsLayer { alpha = ambientAppear.value },
-            )
-        }
-        AndroidView(
-            factory = { playerView },
-            update = { view ->
-                @Suppress("UNUSED_VARIABLE")
-                val restoreTrigger = currentSurfaceRestoreTrigger
-                val manager = EnhancedPlayerManager.getInstance()
-                val newPlayer = manager.getPlayer()
-                val oldPlayer = view.player
-                val videoChanged = attachedVideoId != video.id
+        if (ambientActive) AmbientBars(frames, ambientVideoAspect)
+        key(playerView) {
+            AndroidView(
+                factory = { playerView },
+                update = { view ->
+                    @Suppress("UNUSED_VARIABLE")
+                    val restoreTrigger = currentSurfaceRestoreTrigger
+                    val manager = EnhancedPlayerManager.getInstance()
+                    val newPlayer = manager.getPlayer()
+                    val oldPlayer = view.player
+                    val videoChanged = attachedVideoId != video.id
 
-                if (oldPlayer !== newPlayer || videoChanged) {
-                    val isVideoSwitch = attachedVideoId != null && videoChanged
-                    val playerMediaId = newPlayer?.currentMediaItem?.mediaId
-                    val alreadyRenderingThisVideo = playerMediaId == video.id
-                    oldPlayer?.removeListener(videoSizeListener)
-                    if (oldPlayer === newPlayer && oldPlayer != null && !alreadyRenderingThisVideo) {
-                        view.player = null
+                    if (oldPlayer !== newPlayer || videoChanged) {
+                        val isVideoSwitch = attachedVideoId != null && videoChanged
+                        val playerMediaId = newPlayer?.currentMediaItem?.mediaId
+                        val alreadyRenderingThisVideo = playerMediaId == video.id
+                        oldPlayer?.removeListener(videoSizeListener)
+                        if (oldPlayer === newPlayer && oldPlayer != null && !alreadyRenderingThisVideo) {
+                            view.player = null
+                        }
+                        newPlayer?.addListener(videoSizeListener)
+                        view.player = newPlayer
+                        attachedVideoId = video.id
+                        reportAspectRatio(
+                            if (isVideoSwitch && !alreadyRenderingThisVideo) {
+                                16f / 9f
+                            } else {
+                                newPlayer?.videoSize?.toDisplayAspectRatioOrNull() ?: (16f / 9f)
+                            },
+                        )
                     }
-                    newPlayer?.addListener(videoSizeListener)
-                    view.player = newPlayer
-                    attachedVideoId = video.id
-                    reportAspectRatio(
-                        if (isVideoSwitch && !alreadyRenderingThisVideo) {
-                            16f / 9f
-                        } else {
-                            newPlayer?.videoSize?.toDisplayAspectRatioOrNull() ?: (16f / 9f)
-                        },
-                    )
-                }
 
-                if (newPlayer != null && manager.isInAudioOnlyMode()) {
-                    val lifecycleReadyForVideo =
-                        lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-                    val displayInteractive = context.isDisplayInteractive()
-                    if (lifecycleReadyForVideo && displayInteractive) {
-                        Log.d("VideoPlayerSurface", "Restoring video output after audio-only background mode")
-                        lastAudioOnlySkipLogKey = null
-                        manager.restoreVideoOutput()
-                    } else {
-                        val skipLogKey = lifecycleReadyForVideo to displayInteractive
-                        if (lastAudioOnlySkipLogKey != skipLogKey) {
-                            Log.d(
-                                "VideoPlayerSurface",
-                                "Keeping audio-only background mode (started=$lifecycleReadyForVideo interactive=$displayInteractive)",
-                            )
-                            lastAudioOnlySkipLogKey = skipLogKey
+                    if (newPlayer != null && manager.isInAudioOnlyMode()) {
+                        val lifecycleReadyForVideo =
+                            lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+                        val displayInteractive = context.isDisplayInteractive()
+                        if (lifecycleReadyForVideo && displayInteractive) {
+                            Log.d("VideoPlayerSurface", "Restoring video output after audio-only background mode")
+                            lastAudioOnlySkipLogKey = null
+                            manager.restoreVideoOutput()
+                        } else {
+                            val skipLogKey = lifecycleReadyForVideo to displayInteractive
+                            if (lastAudioOnlySkipLogKey != skipLogKey) {
+                                Log.d(
+                                    "VideoPlayerSurface",
+                                    "Keeping audio-only background mode (started=$lifecycleReadyForVideo interactive=$displayInteractive)",
+                                )
+                                lastAudioOnlySkipLogKey = skipLogKey
+                            }
                         }
                     }
-                }
 
-                if (newPlayer != null &&
-                    newPlayer.playbackState == Player.STATE_IDLE &&
-                    newPlayer.currentMediaItem != null
-                ) {
-                    Log.d("VideoPlayerSurface", "PlayerView attached; player IDLE with media - calling prepare()")
-                    newPlayer.prepare()
-                }
-
-                view.subtitleView?.let { subtitleView ->
-                    if (subtitleView.visibility != View.GONE) {
-                        subtitleView.visibility = View.GONE
+                    if (newPlayer != null &&
+                        newPlayer.playbackState == Player.STATE_IDLE &&
+                        newPlayer.currentMediaItem != null
+                    ) {
+                        Log.d("VideoPlayerSurface", "PlayerView attached; player IDLE with media - calling prepare()")
+                        newPlayer.prepare()
                     }
-                }
 
-                val desiredResizeMode =
-                    when (resizeMode) {
-                        0 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        1 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
-                        2 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    view.subtitleView?.let { subtitleView ->
+                        if (subtitleView.visibility != View.GONE) {
+                            subtitleView.visibility = View.GONE
+                        }
                     }
-                if (view.resizeMode != desiredResizeMode) {
-                    view.resizeMode = desiredResizeMode
-                }
 
-                view.setBackgroundColor(
-                    if (ambientActive) android.graphics.Color.TRANSPARENT else android.graphics.Color.BLACK,
-                )
+                    val desiredResizeMode =
+                        when (resizeMode) {
+                            0 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            1 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            2 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
+                    if (view.resizeMode != desiredResizeMode) {
+                        view.resizeMode = desiredResizeMode
+                    }
 
-                view.clipToCornerRadius(cornerRadiusPx)
-            },
-            modifier = Modifier.fillMaxSize(),
-        )
+                    view.setBackgroundColor(
+                        if (ambientActive) android.graphics.Color.TRANSPARENT else android.graphics.Color.BLACK,
+                    )
+
+                    view.clipToCornerRadius(cornerRadiusPx)
+                },
+                modifier = Modifier.fillMaxSize().then(rememberPipSourceHintModifier(context as? Activity)),
+            )
+        }
+        if (sphericalView != null) {
+            Box(
+                Modifier.matchParentSize().forwardTouchesTo(
+                    view = sphericalView,
+                    enabled = { currentSphericalTouch },
+                    dragScale = { currentSphericalDragSpeed / sphericalZoom() },
+                ),
+            )
+        }
     }
+}
+
+/**
+ * Hands each touch to the 360 view's own drag-to-look. Media3's tracker claims every touch it is
+ * given, so the view itself sits under this layer: touches reach it from here without being
+ * consumed, and the player's taps and double taps above keep working.
+ *
+ * The layer stays even while [enabled] is off (mini player, PiP, touch lock): without it the view
+ * would take touches directly and its tracker would consume the mini player's taps and drags.
+ * Turning [enabled] off mid-drag cancels the tracker's gesture on the next touch event.
+ *
+ * A second finger means a pinch, which zooms instead: the tracker gets a cancel and nothing more
+ * until every finger lifts. Each forwarded touch is scaled by [dragScale]: the chosen look-around
+ * speed over the zoom, so a zoomed drag moves the picture as far across the screen as it does
+ * unzoomed. Media3's degrees per pixel are private, so scaling the touch is the only way to turn
+ * the view faster.
+ */
+private fun Modifier.forwardTouchesTo(
+    view: GLSurfaceView,
+    enabled: () -> Boolean,
+    dragScale: () -> Float,
+): Modifier =
+    pointerInput(view) {
+        awaitPointerEventScope {
+            var forwarding = false
+            val scaleMatrix = Matrix()
+
+            fun cancelTracker(event: MotionEvent) {
+                forwarding = false
+                MotionEvent.obtain(event).apply {
+                    action = MotionEvent.ACTION_CANCEL
+                    view.dispatchTouchEvent(this)
+                    recycle()
+                }
+            }
+            while (true) {
+                val event = awaitPointerEvent().motionEvent ?: continue
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) forwarding = enabled()
+                if (!forwarding) continue
+                if (!enabled() || event.pointerCount > 1) {
+                    cancelTracker(event)
+                    continue
+                }
+                val scale = dragScale()
+                if (scale == 1f) {
+                    view.dispatchTouchEvent(event)
+                } else {
+                    scaleMatrix.setScale(scale, scale)
+                    MotionEvent.obtain(event).apply {
+                        transform(scaleMatrix)
+                        view.dispatchTouchEvent(this)
+                        recycle()
+                    }
+                }
+                view.requestRender()
+            }
+        }
+    }
+
+private const val SEEK_FRAME_REDRAW_DELAY_MS = 50L
+
+/** Reads the frame in its own scope, so each new frame recomposes the bars and not the surface. */
+@Composable
+private fun AmbientBars(
+    frames: AmbientFrameHolder,
+    videoAspect: Float?,
+) {
+    // Held back until the first frame is sampled, then faded in: before that the glow is only
+    // its dark base, which used to black out the backdrop around the video for a moment.
+    val ambientAppear = remember { Animatable(0f) }
+    val ambientFade = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
+    val frame = frames.state.frame
+    val ambientReady = frame != null
+    LaunchedEffect(ambientReady) { if (ambientReady) ambientAppear.animateTo(1f, ambientFade) }
+    VideoAmbientBackground(
+        frame = frame,
+        videoAspect = videoAspect,
+        modifier = Modifier.fillMaxSize().graphicsLayer { alpha = ambientAppear.value },
+    )
 }
 
 private fun Context.isDisplayInteractive(): Boolean =
@@ -291,3 +429,32 @@ private val Float.dp: androidx.compose.ui.unit.Dp
     get() =
         androidx.compose.ui.unit
             .Dp(this)
+
+/**
+ * Publishes where the video is drawn as the PiP source hint. The sheet and the fullscreen layouts move
+ * it with graphics layers, which no layout pass reports, so a hint read on layout left the next entry
+ * growing from above or below the video (#1671). onLayoutRectChanged sees those moves, once they stop,
+ * but its rect leaves out scale, so the bounds themselves come from the coordinates.
+ */
+@Composable
+private fun rememberPipSourceHintModifier(activity: Activity?): Modifier {
+    val placed = remember { Ref<LayoutCoordinates>() }
+    return remember(activity, placed) {
+        Modifier
+            .onGloballyPositioned { placed.value = it }
+            .onLayoutRectChanged {
+                val bounds = placed.value?.takeIf { it.isAttached }?.boundsInWindow()
+                if (bounds != null && !bounds.isEmpty) {
+                    PictureInPictureHelper.setVideoViewBounds(
+                        activity,
+                        PipBounds(
+                            bounds.left.roundToInt(),
+                            bounds.top.roundToInt(),
+                            bounds.right.roundToInt(),
+                            bounds.bottom.roundToInt(),
+                        ),
+                    )
+                }
+            }
+    }
+}

@@ -10,7 +10,9 @@ data class DlnaDevice(
     val usn: String,
     /**
      * Absolute URL for the AVTransport SOAP service, filled in after the device
-     * description XML is fetched.  Empty until [DlnaCastManager.resolveDevice] succeeds.
+     * description XML is fetched. Empty until [SsdpDiscovery] resolves it.
      */
-    val avTransportUrl: String = ""
+    val avTransportUrl: String = "",
+    /** This phone's address on the network the renderer answered on; null when that wasn't known. */
+    val localHost: String? = null,
 )

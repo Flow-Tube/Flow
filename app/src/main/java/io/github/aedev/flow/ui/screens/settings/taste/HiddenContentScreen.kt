@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.settings.taste
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -35,9 +36,10 @@ internal fun HiddenContentScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val hidden = state.hidden
+    val allowedAi by viewModel.allowedAiChannels.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) { viewModel.resolveMissingNames() }
     SettingsPage(title = stringResource(R.string.taste_hidden_title), onBack = onBack, highlight = highlight) {
-        if (!state.loading && hidden.count == 0) {
+        if (!state.loading && hidden.count == 0 && allowedAi.isEmpty()) {
             item("hidden.empty") {
                 FlowEmptyState(
                     title = stringResource(R.string.taste_hidden_empty_title),
@@ -55,6 +57,14 @@ internal fun HiddenContentScreen(
         )
         hiddenChannels(hidden.channels, hidden.resolvingNames, viewModel::unblockChannel)
         hiddenGroup("hidden.artists", R.string.taste_hidden_artists, hidden.artists, viewModel::unblockArtist)
+        hiddenGroup(
+            key = "hidden.ai_allowed",
+            header = R.string.ai_list_allowed_header,
+            items = allowedAi,
+            onUnblock = viewModel::hideAiChannelAgain,
+            action = R.string.ai_list_hide_again,
+            actionItem = R.string.ai_list_hide_again_item,
+        )
     }
 }
 
@@ -63,6 +73,8 @@ private fun SettingsListScope.hiddenGroup(
     header: Int,
     items: List<NamedItem>,
     onUnblock: (String) -> Unit,
+    @StringRes action: Int = R.string.taste_unblock,
+    @StringRes actionItem: Int = R.string.taste_unblock_item,
 ) {
     group(key = key, header = header) {
         items.forEach { item ->
@@ -70,8 +82,8 @@ private fun SettingsListScope.hiddenGroup(
                 TasteActionRow(
                     name = item.name,
                     shape = shape,
-                    actionLabel = stringResource(R.string.taste_unblock),
-                    actionDescription = stringResource(R.string.taste_unblock_item, item.name),
+                    actionLabel = stringResource(action),
+                    actionDescription = stringResource(actionItem, item.name),
                 ) { onUnblock(item.id) }
             }
         }

@@ -6,6 +6,7 @@ import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiManager
 import android.os.Build
 import io.github.aedev.flow.sync.crypto.SyncBytes
+import kotlinx.coroutines.CompletableDeferred
 
 private const val SERVICE_TYPE = "_flow._tcp"
 
@@ -32,6 +33,9 @@ class LanDiscovery(
     private var registration: NsdManager.RegistrationListener? = null
     private var discovery: NsdManager.DiscoveryListener? = null
 
+    /** Completes when advertising or finding couldn't start, so the caller can start over. */
+    val failed = CompletableDeferred<Unit>()
+
     fun advertise(
         name: String,
         port: Int,
@@ -52,7 +56,9 @@ class LanDiscovery(
                 override fun onRegistrationFailed(
                     info: NsdServiceInfo,
                     error: Int,
-                ) = Unit
+                ) {
+                    failed.complete(Unit)
+                }
 
                 override fun onServiceUnregistered(info: NsdServiceInfo) = Unit
 
@@ -65,16 +71,16 @@ class LanDiscovery(
         registration = listener
     }
 
-    /** Reports each other Flow service that answers: its address, port and tag. */
+    /** Reports each Flow service that answers, other than this device's [own] names: its address, port and tag. */
     fun discover(
-        ownName: String,
+        own: Set<String>,
         onFound: (host: String, port: Int, tag: String?) -> Unit,
     ) {
         multicast?.acquire()
         val listener =
             object : NsdManager.DiscoveryListener {
                 override fun onServiceFound(info: NsdServiceInfo) {
-                    if (info.serviceName == ownName) return
+                    if (info.serviceName in own) return
                     @Suppress("DEPRECATION") // The replacement callback needs API 34.
                     nsd.resolveService(
                         info,
@@ -102,7 +108,9 @@ class LanDiscovery(
                 override fun onStartDiscoveryFailed(
                     type: String,
                     error: Int,
-                ) = Unit
+                ) {
+                    failed.complete(Unit)
+                }
 
                 override fun onStopDiscoveryFailed(
                     type: String,

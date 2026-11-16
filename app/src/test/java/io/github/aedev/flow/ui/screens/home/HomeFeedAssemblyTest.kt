@@ -56,6 +56,7 @@ class HomeFeedAssemblyTest {
         watched: Set<String> = emptySet(),
         exclusions: FeedExclusions = FeedExclusions.NONE,
         shown: Set<String> = emptySet(),
+        sightings: Map<String, Int> = emptyMap(),
         freshSlots: Int = 3,
         avatars: Map<String, String> = emptyMap(),
         rankRelevant: suspend (List<Video>) -> List<Video> = { it },
@@ -68,6 +69,7 @@ class HomeFeedAssemblyTest {
         watched = watched,
         exclusions = exclusions,
         isRecentlyShown = { it in shown },
+        timesShown = { sightings[it] ?: 0 },
         taste = taste,
         now = now,
         freshSlotTarget = freshSlots,
@@ -176,6 +178,23 @@ class HomeFeedAssemblyTest {
             assertThat(result.pinnedFresh.map { it.id }).containsExactly("fresh")
             assertThat(result.shownFresh.map { it.id }).containsExactly("seen")
             assertThat(mix.videos.map { it.id }).containsExactly("fresh", "seen").inOrder()
+        }
+
+    @Test
+    fun `a fresh upload passed three times leaves the fresh lane`() =
+        runTest {
+            val wornOut = video("worn", channelId = "a", ageMs = hour, uploadDate = "1 hour ago")
+            val seenTwice = video("twice", channelId = "b", ageMs = 2 * hour, uploadDate = "2 hours ago")
+
+            val result =
+                lanes(
+                    rss = listOf(wornOut, seenTwice),
+                    shown = setOf("worn", "twice"),
+                    sightings = mapOf("worn" to FRESH_UPLOAD_MAX_SIGHTINGS, "twice" to 2),
+                )
+
+            assertThat(result.shownFresh.map { it.id }).containsExactly("twice")
+            assertThat(result.pinnedFresh).isEmpty()
         }
 
     @Test

@@ -10,6 +10,7 @@ internal data class SubscriptionFeedFilters(
     val showVideos: Boolean = true,
     val showShorts: Boolean = true,
     val showLive: Boolean = true,
+    val showUpcoming: Boolean = true,
     val watchedVideoIds: Set<String> = emptySet(),
     val watchedShortIds: Set<String> = emptySet(),
     val unplayableVideoIds: Set<String> = emptySet(),
@@ -18,6 +19,17 @@ internal data class SubscriptionFeedFilters(
     val excludedShortsChannelIds: Set<String> = emptySet(),
     val exclusions: FeedExclusions = FeedExclusions.NONE,
 )
+
+/** Whether the type switches, the unplayable list and the blocks let [video] through, before the watched and group filters. */
+internal fun SubscriptionFeedFilters.admits(video: Video): Boolean =
+    video.id !in unplayableVideoIds &&
+        !exclusions.hides(video) &&
+        when {
+            video.isUpcoming -> showUpcoming
+            video.isShort -> showShorts && video.channelId !in excludedShortsChannelIds
+            video.isLive -> showLive
+            else -> showVideos
+        }
 
 internal data class SubscriptionFeedSections(
     val recentVideos: List<Video>,
@@ -35,16 +47,7 @@ internal fun subscriptionFeedSections(
     filters: SubscriptionFeedFilters,
     now: Long,
 ): SubscriptionFeedSections {
-    val visible =
-        videos
-            .filter { video -> video.id !in filters.unplayableVideoIds && !filters.exclusions.hides(video) }
-            .filter { video ->
-                when {
-                    video.isShort -> filters.showShorts
-                    video.isLive -> filters.showLive
-                    else -> filters.showVideos
-                }
-            }.withStableUploadSortKeys(now)
+    val visible = videos.filter(filters::admits).withStableUploadSortKeys(now)
     val (shorts, regular) = visible.partition { it.isShort }
     val latestShortPerChannel =
         shorts
@@ -66,7 +69,6 @@ internal fun subscriptionFeedSections(
         shorts =
             latestShortPerChannel
                 .filter { it.id !in filters.watchedShortIds && it.inSelectedGroup() }
-                .filter { it.channelId !in filters.excludedShortsChannelIds }
                 .withRelativeUploadDates(now),
     )
 }

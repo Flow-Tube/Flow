@@ -10,7 +10,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -24,7 +26,9 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.zIndex
 
 /**
@@ -125,6 +129,30 @@ fun Modifier.onMenuKey(onMenu: () -> Unit): Modifier =
     }
 
 /**
+ * Lets a remote leave a control that keeps Up and Down for itself, such as an M3 [androidx.compose.material3.Slider],
+ * which steps its value on all four arrows: Up and Down move focus to the next control instead, while
+ * Left and Right still change the value. A no-op unless [LocalDpadNavigation] is on.
+ */
+@Composable
+fun Modifier.dpadVerticalFocusExit(): Modifier {
+    if (!LocalDpadNavigation.current) return this
+    val focusManager = LocalFocusManager.current
+    return onPreviewKeyEvent { event ->
+        val direction = dpadVerticalExitDirection(event.key) ?: return@onPreviewKeyEvent false
+        if (event.type == KeyEventType.KeyDown) focusManager.moveFocus(direction)
+        true
+    }
+}
+
+/** The focus move a vertical arrow asks for; null for every other key. */
+internal fun dpadVerticalExitDirection(key: Key): FocusDirection? =
+    when (key) {
+        Key.DirectionUp -> FocusDirection.Up
+        Key.DirectionDown -> FocusDirection.Down
+        else -> null
+    }
+
+/**
  * Makes a row or grid one focus group that, on a D-pad, hands focus back to the item that last held
  * it when focus comes back in, falling back to [fallback] (by default the nearest item) the first
  * time. A no-op unless [LocalDpadNavigation] is on.
@@ -132,6 +160,31 @@ fun Modifier.onMenuKey(onMenu: () -> Unit): Modifier =
 @Composable
 fun Modifier.dpadFocusGroup(fallback: FocusRequester = FocusRequester.Default): Modifier =
     if (LocalDpadNavigation.current) focusRestorer(fallback).focusGroup() else this
+
+/**
+ * The item a remote should land on when its page comes back, such as the card a video was played from:
+ * the full-screen player replaces the page, so the page's own focus memory is gone when it returns.
+ */
+class DpadReturnFocus {
+    var key: String? by mutableStateOf(null)
+}
+
+/** Provided by a D-pad shell; null elsewhere, which turns [dpadReturnFocus] off. */
+val LocalDpadReturnFocus = staticCompositionLocalOf<DpadReturnFocus?> { null }
+
+/** Takes focus once when this item, identified by [key], is the one [LocalDpadReturnFocus] is waiting for. */
+@Composable
+fun Modifier.dpadReturnFocus(key: String): Modifier {
+    val target = LocalDpadReturnFocus.current
+    if (target == null || target.key != key) return this
+    val requester = remember { FocusRequester() }
+    LaunchedEffect(requester) {
+        // Lazy lists place their items in the first layout pass, after this effect starts.
+        withFrameNanos {}
+        if (requester.requestFocus()) target.key = null
+    }
+    return focusRequester(requester)
+}
 
 /**
  * Focus for content that enters an [androidx.compose.animation.AnimatedContent] after its first frame:

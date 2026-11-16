@@ -41,7 +41,8 @@ internal fun DraggablePlayerPage(
     openRect: () -> OpenOriginRect?,
     nestedScrollConnection: NestedScrollConnection,
     layoutDirection: LayoutDirection,
-    bodyContent: @Composable (alpha: () -> Float, videoHeightPx: () -> Float) -> Unit,
+    scrollAwayEnabled: Boolean,
+    bodyContent: @Composable (alpha: () -> Float, videoHeightPx: () -> Float, offscreenBottomPx: () -> Float) -> Unit,
 ) {
     val bodyAlphaProvider =
         remember(state) {
@@ -66,6 +67,15 @@ internal fun DraggablePlayerPage(
                 ({ videoHeightProvider() + statusBarHeight })
             }
         }
+    // How much of a scroll-away page, measured to the full window, still hangs below its bottom edge.
+    val offscreenBottomProvider =
+        remember(state, scrollAwayEnabled, statusBarHeight, bodyPaddingTopProvider) {
+            if (scrollAwayEnabled) {
+                ({ (bodyPaddingTopProvider() - statusBarHeight - state.scrollAwayPx).coerceAtLeast(0f) })
+            } else {
+                ({ 0f })
+            }
+        }
 
     CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
         Box(
@@ -74,7 +84,10 @@ internal fun DraggablePlayerPage(
                     .fillMaxSize()
                     .layout { measurable, constraints ->
                         val topPad = bodyPaddingTopProvider().roundToInt().coerceAtLeast(0)
-                        val placeable = measurable.measure(constraints.offset(vertical = -topPad))
+                        // A page that scrolls away with the video is measured once to the window
+                        // below the status bar, so moving it only changes where it is placed.
+                        val measuredTop = if (scrollAwayEnabled) statusBarHeight.roundToInt().coerceAtMost(topPad) else topPad
+                        val placeable = measurable.measure(constraints.offset(vertical = -measuredTop))
                         layout(constraints.maxWidth, constraints.maxHeight) {
                             // The slide is a placement offset, not a layer translation: a
                             // positional layer transform makes Compose re-walk every node
@@ -86,7 +99,7 @@ internal fun DraggablePlayerPage(
                                 } else {
                                     fraction * BODY_SLIDE_PX + portraitFsFraction() * portraitFsTravel()
                                 }
-                            placeable.place(0, topPad + slide.roundToInt())
+                            placeable.place(0, topPad - state.scrollAwayPx.roundToInt() + slide.roundToInt())
                         }
                     }.graphicsLayer {
                         alpha = if (hidden) 0f else bodyAlphaProvider() * (1f - portraitFsFraction()).coerceIn(0f, 1f)
@@ -97,7 +110,9 @@ internal fun DraggablePlayerPage(
                         clip = origin != null
                         if (origin != null) {
                             val fraction = state.expandFraction.value
-                            val bodyTop = bodyPaddingTopProvider().roundToInt() + (fraction * BODY_SLIDE_PX).roundToInt()
+                            val bodyTop =
+                                bodyPaddingTopProvider().roundToInt() - state.scrollAwayPx.roundToInt() +
+                                    (fraction * BODY_SLIDE_PX).roundToInt()
                             shape =
                                 RoundRectClipShape(
                                     openGroundRect(origin, fraction, screenWidth, screenHeight)
@@ -107,7 +122,7 @@ internal fun DraggablePlayerPage(
                         }
                     }.nestedScroll(nestedScrollConnection),
         ) {
-            bodyContent(bodyAlphaProvider, videoHeightPlaceholderProvider)
+            bodyContent(bodyAlphaProvider, videoHeightPlaceholderProvider, offscreenBottomProvider)
         }
     }
 }

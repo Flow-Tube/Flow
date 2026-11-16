@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.SearchFilter
 import io.github.aedev.flow.data.local.availableWith
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Playlist
@@ -43,6 +44,7 @@ import io.github.aedev.flow.ui.components.search.SearchFilterDialog
 import io.github.aedev.flow.ui.components.search.SearchSuggestionsPanel
 import io.github.aedev.flow.ui.components.search.SearchTopBar
 import io.github.aedev.flow.ui.components.search.SearchTopBarActions
+import io.github.aedev.flow.ui.components.shared.MediaPostCommentsSheet
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 
@@ -60,6 +62,7 @@ fun SearchScreen(
     onShortsQueue: (ShortsQueueSource) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNewSearch: ((String, SearchFilter) -> Unit)? = null,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -72,7 +75,7 @@ fun SearchScreen(
     OnTabReselected(FlowTab.Search.route) { gridState.animateScrollToItem(0) }
     var showFilters by rememberSaveable { mutableStateOf(false) }
 
-    val submitWith = rememberSearchSubmitter(viewModel, state, quickActions)
+    val submitWith = rememberSearchSubmitter(viewModel, state, quickActions, onNewSearch)
     val submit: (String) -> Unit = { raw -> submitWith(raw, uiState.filters) }
 
     val voiceSearchLauncher =
@@ -183,6 +186,10 @@ fun SearchScreen(
                 dismissKeyboard = state::stopTyping,
             )
         }
+        MediaPostCommentsSheet(
+            loader = viewModel.postComments,
+            onAuthorClick = { channelId -> onChannelClick(Channel(channelId, "", "", 0)) },
+        )
     }
 
     if (showFilters) {

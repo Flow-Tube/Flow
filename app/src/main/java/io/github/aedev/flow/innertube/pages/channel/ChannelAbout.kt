@@ -23,24 +23,32 @@ data class ChannelAbout(
 )
 
 /**
- * The token for the About panel, which the landing response does **not** contain: it carries only the
- * header's one-line description and the "and N more links" suffix, and the suffix is the only place
- * the panel's continuation appears.
+ * The token for the About panel, which the landing response does **not** contain. The header's
+ * "and N more links" suffix carries it on channels with several links; every channel carries it
+ * behind the description preview's "...more", which is the only one a one-link channel has.
  */
 internal fun JsonElement.channelAboutContinuation(): String? {
+    var suffix: String? = null
+    var description: String? = null
+    forEachObject { node ->
+        if (suffix == null) node["attributionViewModel"].objectOrNull()?.get("suffix")?.let { suffix = it.firstContinuationToken() }
+        if (description == null) {
+            node["pageHeaderViewModel"].objectOrNull()?.get("description")?.let { description = it.firstContinuationToken() }
+        }
+    }
+    return suffix ?: description
+}
+
+private fun JsonElement.firstContinuationToken(): String? {
     var token: String? = null
     forEachObject { node ->
         if (token != null) return@forEachObject
-        val attribution = node["attributionViewModel"].objectOrNull() ?: return@forEachObject
-        attribution["suffix"].forEachObject { inner ->
-            if (token != null) return@forEachObject
-            inner["continuationCommand"]
-                .objectOrNull()
-                ?.get("token")
-                .stringOrNull()
-                ?.takeIf(String::isNotBlank)
-                ?.let { token = it }
-        }
+        node["continuationCommand"]
+            .objectOrNull()
+            ?.get("token")
+            .stringOrNull()
+            ?.takeIf(String::isNotBlank)
+            ?.let { token = it }
     }
     return token
 }

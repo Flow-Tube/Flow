@@ -45,6 +45,10 @@ interface CacheDao {
     @Query("SELECT * FROM subscription_feed_cache WHERE videoId = :videoId")
     suspend fun getSubscriptionFeedRow(videoId: String): SubscriptionFeedEntity?
 
+    /** Each channel's newest stored upload of its own. */
+    @Query("SELECT channelId, MAX(timestamp) AS latestUploadAt FROM subscription_feed_cache WHERE feedChannelId = '' GROUP BY channelId")
+    suspend fun subscriptionLatestUploads(): List<ChannelLatestUploadRow>
+
     @Query("SELECT DISTINCT channelId, channelName FROM subscription_feed_cache WHERE channelId IN (:channelIds) AND channelName != ''")
     suspend fun subscriptionFeedChannelNames(channelIds: List<String>): List<ChannelNameRow>
 

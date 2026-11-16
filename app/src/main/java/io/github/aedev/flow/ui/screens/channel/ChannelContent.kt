@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
@@ -64,13 +65,13 @@ import io.github.aedev.flow.ui.components.channel.ChannelReadingPane
 import io.github.aedev.flow.ui.components.channel.ChannelRow
 import io.github.aedev.flow.ui.components.channel.ChannelTabItems
 import io.github.aedev.flow.ui.components.channel.ChannelTabRow
-import io.github.aedev.flow.ui.components.channel.CommunityPostCard
 import io.github.aedev.flow.ui.components.channel.PostsPaneMaxWidth
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
 import io.github.aedev.flow.ui.components.shared.FeedShelfActions
 import io.github.aedev.flow.ui.components.shared.FeedShelfSections
 import io.github.aedev.flow.ui.components.shared.FeedShelfSlots
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.MediaPostCard
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -88,6 +89,8 @@ internal fun ChannelContent(
     onChannelNotificationChange: (String, Boolean) -> Unit,
     channelNote: String?,
     onEditNote: (() -> Unit)?,
+    aiVerdict: AiVerdict,
+    onShowAiChannel: () -> Unit,
     onSubscribeChannel: (io.github.aedev.flow.data.model.Channel, Boolean) -> Unit,
     onVideoClick: (Video) -> Unit,
     onChannelClick: (String) -> Unit,
@@ -367,7 +370,7 @@ internal fun ChannelContent(
                         slots =
                             FeedShelfSlots(
                                 post = { post, compact ->
-                                    CommunityPostCard(
+                                    MediaPostCard(
                                         post = post,
                                         onAuthorClick = { onChannelClick(header.id) },
                                         onCommentsClick = { onCommunityPostComments(post) },
@@ -435,6 +438,8 @@ internal fun ChannelContent(
                     onManageGroups = onManageGroups.takeIf { uiState.isSubscribed },
                     note = channelNote,
                     onEditNote = onEditNote,
+                    aiVerdict = aiVerdict,
+                    onShowAiChannel = onShowAiChannel,
                 )
             }
 

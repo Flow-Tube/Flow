@@ -24,6 +24,7 @@ import io.github.aedev.flow.ui.screens.player.state.PlayerLayoutMode
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.expandsOnLoad
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
@@ -48,13 +49,14 @@ internal fun PlayerSheetCollapseSyncEffects(
     LaunchedEffect(screenState.isFullscreen) {
         screenState.dismissMediaSheets()
         screenState.exitDragOffsetY = 0f
+        screenState.moreVideosDragY = 0f
     }
 }
 
 /**
- * Reading comments is interacting with this video, so the autoplay countdown waits until the
- * comments sheet or side panel closes. A countdown that starts while comments are already open
- * stays on screen and only ticks once they close. The hold only applies while the app is in
+ * Reading comments or picking from the more videos row is interacting with this video, so the
+ * autoplay countdown waits until that sheet or panel closes. A countdown that starts while one is
+ * already open stays on screen and only ticks once it closes. The hold only applies while the app is in
  * front: comments left open behind a locked screen, the background or PiP keep composed, and
  * autoplay must still advance there.
  */
@@ -67,8 +69,8 @@ internal fun AutoplayCommentsHoldEffect(
     LaunchedEffect(viewModel, lifecycle) {
         combine(
             lifecycle.currentStateFlow,
-            snapshotFlow { screenState.activeSheet is PlayerSheet.Comments },
-        ) { state, commentsOpen -> commentsOpen && state.isAtLeast(Lifecycle.State.RESUMED) }
+            snapshotFlow { screenState.activeSheet.let { it is PlayerSheet.Comments || it == PlayerSheet.MoreVideos } },
+        ) { state, browsing -> browsing && state.isAtLeast(Lifecycle.State.RESUMED) }
             .collect(viewModel::setAutoplayHold)
     }
     DisposableEffect(viewModel) {
@@ -166,17 +168,16 @@ internal fun OpenInFullscreenEffect(
 /**
  * Reconciles the sheet anchor with the session the view model reports: a dismissed player
  * minimises, a fresh load expands, and a restored session resumes once the user expands it. A
- * queue advance that happened while the user was in the mini player must not expand it.
+ * video that started by itself while the user was in the mini player must not expand it.
  */
 @Composable
 internal fun PlayerSheetSessionEffects(
     playerSheetState: PlayerDraggableState,
     uiState: VideoPlayerUiState,
-    queueTitle: () -> String?,
     viewModel: VideoPlayerViewModel,
     onMinimize: () -> Unit,
 ) {
-    var keepMiniOnQueueAutoAdvance by remember { mutableStateOf(false) }
+    var autoAdvancedInMiniPlayer by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.shouldDismissPlayer) {
         if (uiState.shouldDismissPlayer) {
@@ -186,22 +187,20 @@ internal fun PlayerSheetSessionEffects(
     }
 
     LaunchedEffect(Unit) {
-        EnhancedPlayerManager.getInstance().queueAutoAdvanceEvent.collect {
-            keepMiniOnQueueAutoAdvance = playerSheetState.currentValue == PlayerSheetValue.Collapsed
+        EnhancedPlayerManager.getInstance().autoAdvanceEvent.collect {
+            autoAdvancedInMiniPlayer = playerSheetState.currentValue == PlayerSheetValue.Collapsed
         }
     }
 
     LaunchedEffect(uiState.isLoading) {
-        val isQueueAutoAdvanceInMiniPlayer =
-            keepMiniOnQueueAutoAdvance &&
-                queueTitle() != null &&
-                playerSheetState.currentValue == PlayerSheetValue.Collapsed
-
         if (
-            uiState.isLoading &&
-            !uiState.isRestoredSession &&
-            !uiState.resumedInMiniPlayer &&
-            !isQueueAutoAdvanceInMiniPlayer
+            expandsOnLoad(
+                isLoading = uiState.isLoading,
+                isRestoredSession = uiState.isRestoredSession,
+                resumedInMiniPlayer = uiState.resumedInMiniPlayer,
+                autoAdvancedInMiniPlayer = autoAdvancedInMiniPlayer,
+                isCollapsed = playerSheetState.currentValue == PlayerSheetValue.Collapsed,
+            )
         ) {
             playerSheetState.expand()
         }
@@ -209,7 +208,7 @@ internal fun PlayerSheetSessionEffects(
             if (uiState.resumedInMiniPlayer) {
                 viewModel.clearResumedInMiniPlayer()
             }
-            keepMiniOnQueueAutoAdvance = false
+            autoAdvancedInMiniPlayer = false
         }
     }
 
@@ -268,9 +267,15 @@ internal fun PlayerEndAndPipEffects(
     playerSheetState: PlayerDraggableState,
     screenState: PlayerScreenState,
     isInPipMode: Boolean,
+    isEnteringPip: Boolean,
     isLandscape: Boolean,
     pipForcedFullscreen: MutableState<Boolean>,
 ) {
+    // Controls drawn as the window shrinks end up in the PiP animation's first frames.
+    LaunchedEffect(isEnteringPip) {
+        if (isEnteringPip) screenState.showControls = false
+    }
+
     LaunchedEffect(playerState.hasEnded, playerSheetState.currentValue, isInPipMode) {
         if (
             playerState.hasEnded &&

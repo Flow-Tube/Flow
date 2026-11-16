@@ -9,6 +9,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
+import io.github.aedev.flow.player.webArtworkUrl
 import io.github.aedev.flow.widget.core.state.NowPlayingSnapshot
 import io.github.aedev.flow.widget.core.state.clearNowPlayingSnapshot
 import io.github.aedev.flow.widget.core.state.markNowPlayingStopped
@@ -55,7 +56,7 @@ class NowPlayingWidgetPublisher
                             it.mediaMetadata.artist
                                 ?.toString()
                                 .orEmpty(),
-                        artworkUrl = it.mediaMetadata.artworkUri?.toString(),
+                        artworkUrl = it.mediaMetadata.webArtworkUrl,
                         // Buffering still shows pause, matching the notification's own button.
                         isPlaying = !Util.shouldShowPlayButton(player),
                         isLiked = EnhancedMusicPlayerManager.isLiked.value,

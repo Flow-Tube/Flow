@@ -54,6 +54,8 @@ object FlowSheetHeaderDefaults {
  * Pass this the drag modifier the sheet hands its header slot, so the whole header drags the sheet
  * exactly as the handle does.
  *
+ * @param onClose closes the sheet from a close button, or null for a sheet that closes only by drag
+ *   and back, with no button.
  * @param closeButtonSize fixed size for the close button, or null to leave it at the `IconButton`
  *   default.
  * @param dividerAlpha alpha for the `outlineVariant` divider, or null for a header with no divider.
@@ -65,7 +67,7 @@ object FlowSheetHeaderDefaults {
 @Composable
 fun FlowSheetHeader(
     title: String,
-    onClose: () -> Unit,
+    onClose: (() -> Unit)?,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
@@ -139,14 +141,16 @@ fun FlowSheetHeader(
                 }
             }
             actions()
-            IconButton(
-                onClick = onClose,
-                modifier = if (closeButtonSize != null) Modifier.size(closeButtonSize) else Modifier,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.close),
-                )
+            if (onClose != null) {
+                IconButton(
+                    onClick = onClose,
+                    modifier = if (closeButtonSize != null) Modifier.size(closeButtonSize) else Modifier,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.close),
+                    )
+                }
             }
         }
 

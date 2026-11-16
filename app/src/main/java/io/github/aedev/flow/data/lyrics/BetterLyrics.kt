@@ -75,8 +75,13 @@ class BetterLyrics(
                         // Songs nobody has looked up yet need an API key (401). That is a miss for
                         // this song, not a refused client, so it must not bench the provider.
                         val uncached = response.code == 401 && response.body.string().contains("Uncached", ignoreCase = true)
-                        val reason = if (uncached) "no cached lyrics for this song" else "API returned ${response.code}"
-                        return@withContext Result.failure(Exception("BetterLyrics $reason"))
+                        val failure =
+                            if (uncached || response.code == 404) {
+                                LyricsNotFoundException("BetterLyrics has no lyrics for this song")
+                            } else {
+                                Exception("BetterLyrics API returned ${response.code}")
+                            }
+                        return@withContext Result.failure(failure)
                     }
 
                     val body = response.body?.string()
@@ -94,14 +99,14 @@ class BetterLyrics(
                         }
 
                     if (ttml.isNullOrBlank()) {
-                        return@withContext Result.failure(Exception("No TTML in BetterLyrics response"))
+                        return@withContext Result.failure(LyricsNotFoundException("No TTML in BetterLyrics response"))
                     }
 
                     val ttmlLines =
                         try {
                             TTMLParser.parseTTMLToLyricsEntries(ttml)
                         } catch (e: Exception) {
-                            Log.e(TAG, "TTML parse failed", e)
+                            Log.w(TAG, "TTML parse failed: ${e.message}")
                             emptyList()
                         }
 
@@ -113,7 +118,7 @@ class BetterLyrics(
                     Result.failure(Exception("Failed to parse BetterLyrics TTML"))
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "BetterLyrics fetch failed", e)
+                Log.w(TAG, "BetterLyrics fetch failed: ${e.message}")
                 Result.failure(e)
             }
         }

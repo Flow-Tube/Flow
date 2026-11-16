@@ -29,14 +29,16 @@ internal fun sessionArtworkBitmapLoader(context: Context): BitmapLoader {
     val limit = platformMetadataBitmapLimitPx(context)
     // The decoder only subsamples by powers of two, so let it land anywhere below twice the limit
     // and scale precisely from there instead of dropping to half the resolution.
+    val decodeLimit = limit * 2 - 1
     val decoder =
         DataSourceBitmapLoader
             .Builder(context)
-            .setMaximumOutputDimension(limit * 2 - 1)
+            .setMaximumOutputDimension(decodeLimit)
             .build()
+    val loader = CoilArtworkBitmapLoader(context.applicationContext, decodeLimit, decoder)
     // Media3 wraps this loader in its own SizeLimitedBitmapLoader(makeShared = true); sharing here too
     // would just copy the pixels into ashmem twice.
-    return SizeLimitedBitmapLoader(MediaStoreArtworkBitmapLoader(context.applicationContext, decoder, limit), limit, false)
+    return SizeLimitedBitmapLoader(MediaStoreArtworkBitmapLoader(context.applicationContext, loader, limit), limit, false)
 }
 
 @SuppressLint("DiscouragedApi")

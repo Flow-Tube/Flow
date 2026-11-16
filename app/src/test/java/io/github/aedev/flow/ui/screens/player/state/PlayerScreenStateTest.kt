@@ -40,7 +40,7 @@ class PlayerScreenStateTest {
             "seekAccumulation" to 10,
             "showSeekBackAnimation" to false,
             "subtitleStyle" to SubtitleStyle(),
-            "resizeMode" to 0,
+            "resizeModeOverride" to null,
             "zoomScale" to 1f,
             "zoomOffsetX" to 0f,
             "zoomOffsetY" to 0f,
@@ -55,6 +55,7 @@ class PlayerScreenStateTest {
 
     private val resetForNewVideoTouches =
         setOf(
+            "commentSortFilter",
             "showControls",
             "isScrubbing",
             "isSeekDragging",
@@ -88,13 +89,12 @@ class PlayerScreenStateTest {
         setOf(
             "isFullscreen",
             "bufferedPosition",
-            "commentSortFilter",
             "brightnessLevel",
             "volumeLevel",
             "speedSwipeLevel",
             "seekAccumulation",
             "subtitleStyle",
-            "resizeMode",
+            "resizeModeOverride",
             "isSpeedBoostActive",
             "normalSpeed",
         )
@@ -141,7 +141,7 @@ class PlayerScreenStateTest {
             "seekAccumulation" to seekAccumulation,
             "showSeekBackAnimation" to showSeekBackAnimation,
             "subtitleStyle" to subtitleStyle,
-            "resizeMode" to resizeMode,
+            "resizeModeOverride" to resizeModeOverride,
             "zoomScale" to zoomScale,
             "zoomOffsetX" to zoomOffsetX,
             "zoomOffsetY" to zoomOffsetY,
@@ -182,7 +182,7 @@ class PlayerScreenStateTest {
         seekAccumulation = 30
         showSeekBackAnimation = true
         subtitleStyle = SubtitleStyle(fontSize = 22f)
-        resizeMode = 2
+        resizeModeOverride = 2
         zoomScale = 2.5f
         zoomOffsetX = 40f
         zoomOffsetY = -40f
@@ -234,6 +234,50 @@ class PlayerScreenStateTest {
         resetForNewVideoLeaves.forEach { name ->
             assertWithMessage(name).that(state.snapshot()[name]).isEqualTo(dirty[name])
         }
+    }
+
+    @Test
+    fun `resetForNewVideo starts the comments at the top with every thread closed`() {
+        val state = PlayerScreenState()
+        val listState = state.commentsListState
+        state.commentThreads.toggleReplies("a")
+        state.commentThreads.expandText("b")
+
+        state.resetForNewVideo()
+
+        assertThat(state.commentsListState).isNotSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isFalse()
+        assertThat(state.commentThreads.isTextExpanded("b")).isFalse()
+    }
+
+    @Test
+    fun `closing the comments keeps their place and threads`() {
+        val state = PlayerScreenState()
+        val listState = state.commentsListState
+        state.open(PlayerSheet.Comments())
+        state.commentThreads.toggleReplies("a")
+
+        state.dismissMediaSheets()
+        state.isFullscreen = true
+
+        assertThat(state.commentsListState).isSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isTrue()
+    }
+
+    @Test
+    fun `changing the sort resets the comments place and picking the same sort keeps it`() {
+        val state = PlayerScreenState()
+        val listState = state.commentsListState
+        state.commentThreads.toggleReplies("a")
+
+        state.changeCommentSort(CommentSortFilter.TOP)
+        assertThat(state.commentsListState).isSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isTrue()
+
+        state.changeCommentSort(CommentSortFilter.NEWEST)
+        assertThat(state.commentSortFilter).isEqualTo(CommentSortFilter.NEWEST)
+        assertThat(state.commentsListState).isNotSameInstanceAs(listState)
+        assertThat(state.commentThreads.isRepliesOpen("a")).isFalse()
     }
 
     @Test
@@ -291,16 +335,33 @@ class PlayerScreenStateTest {
     }
 
     @Test
-    fun `cycleResizeMode wraps fit fill zoom`() {
+    fun `cycleResizeMode steps on from the mode on screen and wraps fit fill zoom`() {
         val state = PlayerScreenState()
 
-        val seen = mutableListOf(state.resizeMode)
-        repeat(3) {
-            state.cycleResizeMode()
-            seen += state.resizeMode
+        val seen = mutableListOf<Int?>()
+        listOf(0, 1, 2).forEach { onScreen ->
+            state.cycleResizeMode(onScreen)
+            seen += state.resizeModeOverride
         }
 
-        assertThat(seen).containsExactly(0, 1, 2, 0).inOrder()
+        assertThat(seen).containsExactly(1, 2, 0).inOrder()
+    }
+
+    @Test
+    fun `entering or leaving fullscreen drops the button's choice`() {
+        val state = PlayerScreenState()
+        state.isFullscreen = true
+        state.cycleResizeMode(PlayerResizeMode.FIT)
+
+        state.isFullscreen = true
+        assertThat(state.resizeModeOverride).isEqualTo(PlayerResizeMode.FILL)
+
+        state.isFullscreen = false
+        assertThat(state.resizeModeOverride).isNull()
+
+        state.cycleResizeMode(PlayerResizeMode.FILL)
+        state.toggleFullscreen()
+        assertThat(state.resizeModeOverride).isNull()
     }
 
     @Test

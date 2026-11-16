@@ -142,6 +142,7 @@ fun EnhancedMusicScreen(
             .filter { it == "music" }
             .collectLatest {
                 musicListState.animateScrollToItem(0)
+                TabScrollEventBus.emitScrolledToTop("music")
                 viewModel.refresh()
             }
     }
@@ -217,7 +218,7 @@ fun EnhancedMusicScreen(
                     val pullState = rememberPullToRefreshState()
 
                     FlowPullToRefreshBox(
-                        isRefreshing = uiState.isLoading,
+                        isRefreshing = uiState.isLoading || uiState.homeChipPage?.status == MusicHomeChipStatus.REFRESHING,
                         onRefresh = { viewModel.refresh() },
                         state = pullState,
                         modifier = Modifier.fillMaxSize(),
@@ -244,6 +245,8 @@ fun EnhancedMusicScreen(
                                 onTrackMenu = musicMenus::openSong,
                                 onCollectionMenu = musicMenus::openCollection,
                                 onLoadMore = { viewModel.loadMoreHomeContent() },
+                                onChipRetry = { viewModel.retryHomeChip() },
+                                onChipLoadMore = { viewModel.loadMoreHomeChip() },
                             )
                         }
                     }

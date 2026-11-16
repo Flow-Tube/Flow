@@ -3,10 +3,17 @@ package io.github.aedev.flow.ui.screens.settings.appearance
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.AppShortcut
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.EdgesensorHigh
+import androidx.compose.material.icons.outlined.FiberNew
+import androidx.compose.material.icons.outlined.Gradient
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.TextRotationNone
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +34,7 @@ import io.github.aedev.flow.platform.AppUiMode
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsPage
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
+import io.github.aedev.flow.ui.components.settings.choice
 import io.github.aedev.flow.ui.components.settings.nav
 import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.settings.toggleGroup
@@ -34,6 +43,7 @@ import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.AppearanceIndex
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
+import io.github.aedev.flow.ui.screens.settings.index.NewSettingsPolicy
 import io.github.aedev.flow.ui.theme.AppFont
 import io.github.aedev.flow.ui.theme.GridItemSize
 import io.github.aedev.flow.ui.theme.ThemeCatalog
@@ -49,6 +59,7 @@ internal fun AppearanceScreen(
     viewModel: AppearanceViewModel = hiltViewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val haptics by viewModel.haptics.collectAsStateWithLifecycle()
     val themeVariant by viewModel.themeVariant.collectAsStateWithLifecycle()
     val customThemeName by viewModel.customThemeName.collectAsStateWithLifecycle()
     val interfaceMode by viewModel.interfaceMode.collectAsStateWithLifecycle()
@@ -69,6 +80,8 @@ internal fun AppearanceScreen(
     val iconAppliedMessage = stringResource(R.string.app_icon_apply_toast)
     var showIconDialog by rememberSaveable { mutableStateOf(false) }
     var showInterfaceDialog by rememberSaveable { mutableStateOf(false) }
+    var showNewSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    val highlightNewSettings by viewModel.newSettingsHighlight.collectAsStateWithLifecycle()
 
     val themeSummary =
         if (themeMode == ThemeMode.SYSTEM) {
@@ -138,6 +151,44 @@ internal fun AppearanceScreen(
                 showChevron = false,
                 onClick = { showInterfaceDialog = true },
             )
+            switch(
+                AppearanceIndex.skeletonGradient,
+                viewModel.skeletonGradient,
+                viewModel::setSkeletonGradient,
+                icon = Icons.Outlined.Gradient,
+            )
+            switch(
+                AppearanceIndex.marquee,
+                viewModel.marqueeEnabled,
+                viewModel::setMarqueeEnabled,
+                icon = Icons.Outlined.TextRotationNone,
+            )
+            switch(
+                AppearanceIndex.classicLoadingIndicator,
+                viewModel.classicLoadingIndicator,
+                viewModel::setClassicLoadingIndicator,
+                icon = Icons.Outlined.Autorenew,
+            )
+            switch(AppearanceIndex.haptics, haptics, viewModel::setHaptics, icon = Icons.Outlined.Vibration)
+            switch(
+                AppearanceIndex.hapticsIgnoreSystem,
+                viewModel.hapticsIgnoreSystem,
+                viewModel::setHapticsIgnoreSystem,
+                enabled = haptics,
+                icon = Icons.Outlined.EdgesensorHigh,
+            )
+            switch(
+                AppearanceIndex.highlightNewSettings,
+                viewModel.newSettingsHighlight,
+                viewModel::setNewSettingsHighlight,
+                icon = Icons.Outlined.FiberNew,
+            )
+            if (highlightNewSettings) {
+                choice(AppearanceIndex.highlightNewSettingsDays, onClick = { showNewSettingsDialog = true }, icon = Icons.Outlined.Timer) {
+                    val days by viewModel.newSettingsDays.collectAsStateWithLifecycle()
+                    newSettingsDaysLabel(days)
+                }
+            }
         }
         group(key = "appearance.layout", header = R.string.settings_section_layout) {
             toggleGroup(AppearanceIndex.homeViewMode, viewModeOptions, homeViewMode, viewModel::setHomeViewMode)
@@ -177,6 +228,17 @@ internal fun AppearanceScreen(
         )
     }
 
+    if (showNewSettingsDialog) {
+        val days by viewModel.newSettingsDays.collectAsStateWithLifecycle()
+        FlowChoiceDialog(
+            title = stringResource(R.string.settings_highlight_new_days_title),
+            options = NewSettingsPolicy.DAY_OPTIONS.map { FlowChoice(it, newSettingsDaysLabel(it)) },
+            selected = days,
+            onSelect = viewModel::setNewSettingsDays,
+            onDismiss = { showNewSettingsDialog = false },
+        )
+    }
+
     if (showInterfaceDialog) {
         FlowChoiceDialog(
             title = stringResource(R.string.interface_mode_title),
@@ -190,6 +252,9 @@ internal fun AppearanceScreen(
         )
     }
 }
+
+@Composable
+private fun newSettingsDaysLabel(days: Int): String = pluralStringResource(R.plurals.settings_highlight_new_days, days, days)
 
 private fun interfaceModeLabel(mode: AppUiMode): Int =
     when (mode) {

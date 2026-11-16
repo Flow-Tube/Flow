@@ -75,12 +75,12 @@ internal class VideoSessionButtons(
 ) {
     val callback: MediaSession.Callback =
         object : MediaSession.Callback {
-            // Built from the trust-aware defaults: in Media3 1.11 super.onConnect is an empty placeholder.
+            // Not super.onConnect: in Media3 1.11 it is an empty placeholder.
             override fun onConnectAsync(
                 session: MediaSession,
                 controller: MediaSession.ControllerInfo,
             ): ListenableFuture<MediaSession.ConnectionResult> {
-                val result = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+                val result = mediaButtonConnection(session, controller)
                 if (controller.isTrusted) {
                     result.setAvailableSessionCommands(
                         MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS

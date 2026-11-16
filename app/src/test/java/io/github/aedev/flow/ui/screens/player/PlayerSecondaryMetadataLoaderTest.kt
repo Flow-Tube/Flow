@@ -4,7 +4,9 @@ import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
+import io.github.aedev.flow.data.repository.WatchChannel
 import io.github.aedev.flow.data.repository.YouTubeRepository
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
@@ -28,8 +30,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.schabi.newpipe.extractor.Image
-import org.schabi.newpipe.extractor.channel.ChannelInfo
 
 /**
  * Pins the fetch economy of [PlayerSecondaryMetadataLoader]: one request per concern per load,
@@ -91,15 +91,6 @@ class PlayerSecondaryMetadataLoaderTest {
         playerState.value = EnhancedPlayerState(currentVideoId = videoId, isPlaying = true)
     }
 
-    private fun channelInfo(
-        avatarUrl: String,
-        subscribers: Long,
-    ): ChannelInfo =
-        mockk(relaxed = true) {
-            every { avatars } returns listOf(Image(avatarUrl, 88, 88, Image.ResolutionLevel.MEDIUM))
-            every { subscriberCount } returns subscribers
-        }
-
     private fun channelResults(videoId: String) = results.filterIsInstance<SecondaryMetadata.Channel>().filter { it.videoId == videoId }
 
     private fun relatedResults() = results.filterIsInstance<SecondaryMetadata.Related>()
@@ -107,23 +98,23 @@ class PlayerSecondaryMetadataLoaderTest {
     @Test
     fun `each video id costs exactly one channel request`() =
         runTest(testDispatcher) {
-            val first = channelInfo(AVATAR_ONE, 10L)
-            val second = channelInfo(AVATAR_TWO, 20L)
-            coEvery { repository.getChannelInfo("c1") } returns first
-            coEvery { repository.getChannelInfo("c2") } returns second
+            val first = WatchChannel(AVATAR_ONE, 10L)
+            val second = WatchChannel(AVATAR_TWO, 20L)
+            coEvery { repository.watchChannel("v1") } returns first
+            coEvery { repository.watchChannel("v2") } returns second
             val loader = loader()
 
             playing("v1")
-            loader.loadChannelMetadata("v1", uploaderUrl = null, channelId = "c1", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_A)
+            loader.loadChannelMetadata("v1", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_A)
             advanceUntilIdle()
 
             currentToken = TOKEN_B
             playing("v2")
-            loader.loadChannelMetadata("v2", uploaderUrl = null, channelId = "c2", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_B)
+            loader.loadChannelMetadata("v2", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_B)
             advanceUntilIdle()
 
-            coVerify(exactly = 1) { repository.getChannelInfo("c1") }
-            coVerify(exactly = 1) { repository.getChannelInfo("c2") }
+            coVerify(exactly = 1) { repository.watchChannel("v1") }
+            coVerify(exactly = 1) { repository.watchChannel("v2") }
             assertThat(channelResults("v1").single().subscriberCount).isEqualTo(10L)
             assertThat(channelResults("v2").single().subscriberCount).isEqualTo(20L)
         }
@@ -131,44 +122,42 @@ class PlayerSecondaryMetadataLoaderTest {
     @Test
     fun `a repeat channel request for the same load while the first is in flight is dropped`() =
         runTest(testDispatcher) {
-            val info = channelInfo(AVATAR_ONE, 10L)
-            coEvery { repository.getChannelInfo("c1") } returns info
+            val info = WatchChannel(AVATAR_ONE, 10L)
+            coEvery { repository.watchChannel("v1") } returns info
             val loader = loader()
 
             playing("v1")
             repeat(3) {
                 loader.loadChannelMetadata(
                     videoId = "v1",
-                    uploaderUrl = null,
-                    channelId = "c1",
                     embeddedAvatarUrls = emptyList(),
                     loadToken = TOKEN_A,
                 )
             }
             advanceUntilIdle()
 
-            coVerify(exactly = 1) { repository.getChannelInfo("c1") }
+            coVerify(exactly = 1) { repository.watchChannel("v1") }
             assertThat(channelResults("v1")).hasSize(1)
         }
 
     @Test
     fun `a new video cancels the channel request the previous one left in flight`() =
         runTest(testDispatcher) {
-            val stalled = CompletableDeferred<ChannelInfo>()
-            val late = channelInfo(AVATAR_ONE, 10L)
-            val second = channelInfo(AVATAR_TWO, 20L)
-            coEvery { repository.getChannelInfo("c1") } coAnswers { stalled.await() }
-            coEvery { repository.getChannelInfo("c2") } returns second
+            val stalled = CompletableDeferred<WatchChannel>()
+            val late = WatchChannel(AVATAR_ONE, 10L)
+            val second = WatchChannel(AVATAR_TWO, 20L)
+            coEvery { repository.watchChannel("v1") } coAnswers { stalled.await() }
+            coEvery { repository.watchChannel("v2") } returns second
             val loader = loader()
 
             playing("v1")
-            loader.loadChannelMetadata("v1", uploaderUrl = null, channelId = "c1", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_A)
+            loader.loadChannelMetadata("v1", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_A)
             advanceUntilIdle()
-            coVerify(exactly = 1) { repository.getChannelInfo("c1") }
+            coVerify(exactly = 1) { repository.watchChannel("v1") }
 
             currentToken = TOKEN_B
             playing("v2")
-            loader.loadChannelMetadata("v2", uploaderUrl = null, channelId = "c2", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_B)
+            loader.loadChannelMetadata("v2", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_B)
             advanceUntilIdle()
 
             stalled.complete(late)
@@ -179,17 +168,56 @@ class PlayerSecondaryMetadataLoaderTest {
         }
 
     @Test
+    fun `the paid promotion label asks for nothing while the switch is off`() =
+        runTest(testDispatcher) {
+            every { playerPreferences.paidPromotionLabel } returns flowOf(false)
+
+            playing("v1")
+            loader().loadPaidPromotion("v1", TOKEN_A)
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { repository.paidPromotion(any()) }
+            assertThat(results).isEmpty()
+        }
+
+    @Test
+    fun `the paid promotion label costs one request per load with the switch on`() =
+        runTest(testDispatcher) {
+            val label = PaidPromotionLabel("Includes paid promotion", 10_000L)
+            every { playerPreferences.paidPromotionLabel } returns flowOf(true)
+            coEvery { repository.paidPromotion("v1") } returns label
+            val loader = loader()
+
+            playing("v1")
+            repeat(3) { loader.loadPaidPromotion("v1", TOKEN_A) }
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { repository.paidPromotion("v1") }
+            assertThat(results.filterIsInstance<SecondaryMetadata.PaidPromotion>().single().label).isEqualTo(label)
+        }
+
+    @Test
+    fun `a device file asks for no channel`() =
+        runTest(testDispatcher) {
+            val loader = loader()
+
+            playing("local_1")
+            loader.loadChannelMetadata("local_1", embeddedAvatarUrls = emptyList(), loadToken = TOKEN_A)
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { repository.watchChannel(any()) }
+        }
+
+    @Test
     fun `the embedded avatar publishes before the request and the fetched one replaces it after`() =
         runTest(testDispatcher) {
-            val info = channelInfo(AVATAR_TWO, 10L)
-            coEvery { repository.getChannelInfo("c1") } returns info
+            val info = WatchChannel(AVATAR_TWO, 10L)
+            coEvery { repository.watchChannel("v1") } returns info
             val loader = loader()
 
             playing("v1")
             loader.loadChannelMetadata(
                 videoId = "v1",
-                uploaderUrl = null,
-                channelId = "c1",
                 embeddedAvatarUrls = listOf(AVATAR_ONE),
                 loadToken = TOKEN_A,
             )

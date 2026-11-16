@@ -38,6 +38,9 @@ private const val EXIT_FULLSCREEN_DRAG_PX = 80f
 
 private const val EXIT_FULLSCREEN_OVERSHOOT_PX = 140f
 
+/** An upward flick faster than this opens the more videos row however short the swipe was. */
+private const val MORE_VIDEOS_FLING_PX_PER_S = 1_000f
+
 private const val VERTICAL_DRAG_SENSITIVITY = 1.5f
 
 /** Where a drag leaving auto brightness resumes from, and how far below zero one may bank. */
@@ -79,6 +82,8 @@ internal fun Modifier.playerDragGestures(
     sideEdgeIgnorePx: State<Float>,
     onExitFullscreen: State<((releaseOffsetPx: Float, releaseVelocityPx: Float) -> Unit)?>,
     onExitFullscreenDrag: State<(offsetPx: Float) -> Unit>,
+    onMoreVideos: State<(() -> Unit)?>,
+    onMoreVideosDrag: State<(offsetPx: Float) -> Unit>,
     haptics: HapticFeedback,
     lastBrightnessApplied: FloatArray,
     lastBrightnessAppliedAt: LongArray,
@@ -108,6 +113,8 @@ internal fun Modifier.playerDragGestures(
     val currentSideEdgeIgnorePx by sideEdgeIgnorePx
     val currentOnExitFullscreen by onExitFullscreen
     val currentOnExitFullscreenDrag by onExitFullscreenDrag
+    val currentOnMoreVideos by onMoreVideos
+    val currentOnMoreVideosDrag by onMoreVideosDrag
 
     // Outside fullscreen only the sideways seek is claimed: vertical drags stay unconsumed so the
     // player sheet keeps them for minimising and entering fullscreen.
@@ -138,6 +145,9 @@ internal fun Modifier.playerDragGestures(
         var exitDragTravel = 0f
         var exitDragPastCommit = false
         var exitSettleJob: Job? = null
+        var moreDragTravel = 0f
+        var moreDragPastCommit = false
+        var moreSettleJob: Job? = null
         val exitVelocity = VelocityTracker()
         var lastVolumeStep = -1
         val brightnessTicks = GestureTicker { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) }
@@ -323,6 +333,58 @@ internal fun Modifier.playerDragGestures(
                 }
         }
 
+        fun publishMoreDrag() {
+            currentOnMoreVideosDrag(moreDragTravel)
+        }
+
+        // An upward drag in the centre has nothing to leave, so it pulls in the more videos row.
+        fun applyCenterDrag(dy: Float) {
+            val pullsRow = currentOnMoreVideos != null && exitDragTravel == 0f && (moreDragTravel > 0f || dy < 0f)
+            if (!pullsRow) {
+                applyExitDrag(dy)
+                return
+            }
+            moreSettleJob?.cancel()
+            moreDragTravel = (moreDragTravel - dy).coerceAtLeast(0f)
+            val pastCommit = moreDragTravel >= EXIT_FULLSCREEN_DRAG_PX
+            if (pastCommit != moreDragPastCommit) {
+                moreDragPastCommit = pastCommit
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            }
+            publishMoreDrag()
+        }
+
+        fun endMoreDrag(commit: Boolean) {
+            val flung = moreDragTravel > 0f && exitVelocity.calculateVelocity().y < -MORE_VIDEOS_FLING_PX_PER_S
+            val opening = commit && (moreDragPastCommit || flung)
+            moreDragPastCommit = false
+            if (opening) {
+                moreSettleJob?.cancel()
+                currentOnMoreVideos?.invoke()
+                moreDragTravel = 0f
+                publishMoreDrag()
+                return
+            }
+            if (moreDragTravel == 0f || moreSettleJob?.isActive == true) return
+
+            val from = moreDragTravel
+            moreSettleJob =
+                scope.launch {
+                    animate(
+                        initialValue = from,
+                        targetValue = 0f,
+                        animationSpec =
+                            spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                            ),
+                    ) { travel, _ ->
+                        moreDragTravel = travel
+                        publishMoreDrag()
+                    }
+                }
+        }
+
         fun beginSeekDrag() {
             val manager = EnhancedPlayerManager.getInstance()
             seekDragBaseMs = manager.getPlayer()?.currentPosition ?: currentPositionProvider()
@@ -424,9 +486,9 @@ internal fun Modifier.playerDragGestures(
                             val width = size.width
                             when {
                                 isCenterZone -> {
-                                    if (exitDragTravel == 0f) exitVelocity.resetTracking()
+                                    if (exitDragTravel == 0f && moreDragTravel == 0f) exitVelocity.resetTracking()
                                     exitVelocity.addPosition(change.uptimeMillis, change.position)
-                                    applyExitDrag(delta.y)
+                                    applyCenterDrag(delta.y)
                                 }
 
                                 isSpeedDrag -> {
@@ -449,9 +511,11 @@ internal fun Modifier.playerDragGestures(
                         PlayerDragAxis.HORIZONTAL -> {
                             if (seekDragStarted) endSeekDrag(commit = true)
                             endExitDrag(commit = false)
+                            endMoreDrag(commit = false)
                         }
 
                         PlayerDragAxis.VERTICAL -> {
+                            endMoreDrag(commit = isCenterZone)
                             endExitDrag(commit = isCenterZone)
                             endSpeedDrag()
                             scope.launch {
@@ -465,6 +529,7 @@ internal fun Modifier.playerDragGestures(
                 },
                 onDragCancel = { axis ->
                     endExitDrag(commit = false)
+                    endMoreDrag(commit = false)
                     when (axis) {
                         PlayerDragAxis.HORIZONTAL -> {
                             if (seekDragStarted) endSeekDrag(commit = false)
@@ -485,7 +550,9 @@ internal fun Modifier.playerDragGestures(
             // A system takeover (the status bar sliding in over the video) cancels this
             // coroutine outright, so neither onDragEnd nor onDragCancel runs (#906).
             exitSettleJob?.cancel()
+            moreSettleJob?.cancel()
             currentOnExitFullscreenDrag(0f)
+            currentOnMoreVideosDrag(0f)
             if (seekDragStarted) currentOnSeekDragChange(false)
             endSpeedDrag()
         }

@@ -95,7 +95,7 @@ fun FlowSelectionRow(
  * A row that opens another page or runs an action: an optional current value, then a chevron.
  * [selected] marks the page currently open beside a two-pane list. [leadingContent] and
  * [trailingContent] replace the icon and the value-and-chevron with any content, such as an avatar
- * or a button; [destructive] draws the title and icon in the error colour; [stateDescription] tells
+ * or a button, and [supportingContent] the supporting text; [destructive] draws the title and icon in the error colour; [stateDescription] tells
  * TalkBack the row's current state, for an action that toggles.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -116,6 +116,8 @@ fun FlowNavRow(
     trailingContent: (@Composable () -> Unit)? = null,
     destructive: Boolean = false,
     stateDescription: String? = null,
+    supportingContent: (@Composable () -> Unit)? = null,
+    titleBadge: Boolean = false,
 ) {
     val trailing: (@Composable () -> Unit)? =
         if (trailingContent != null) {
@@ -153,13 +155,13 @@ fun FlowNavRow(
                 .fillMaxWidth()
                 .then(if (stateDescription != null) Modifier.semantics { this.stateDescription = stateDescription } else Modifier),
         enabled = enabled,
-        supportingContent = rowSupportingContent(supportingText),
+        supportingContent = supportingContent ?: rowSupportingContent(supportingText),
         leadingContent = leadingContent ?: rowLeadingContent(leadingIcon, leadingPainter),
         trailingContent = trailing,
         colors = rowColors(shape = shape, showSelectedContainer = true, destructive = destructive),
         contentPadding = rowPadding(shape, NavRowVerticalPadding),
     ) {
-        Text(text = title)
+        FlowBadgedTitle(title = title, badge = titleBadge)
     }
 }
 
@@ -180,6 +182,7 @@ fun FlowSwitchRow(
     leadingPainter: Painter? = null,
     enabled: Boolean = true,
     shape: Shape = RectangleShape,
+    titleBadge: Boolean = false,
 ) {
     SegmentedListItem(
         verticalAlignment = Alignment.CenterVertically,
@@ -205,7 +208,7 @@ fun FlowSwitchRow(
         colors = rowColors(shape = shape, showSelectedContainer = false),
         contentPadding = rowPadding(shape, SwitchRowVerticalPadding),
     ) {
-        Text(text = title)
+        FlowBadgedTitle(title = title, badge = titleBadge)
     }
 }
 

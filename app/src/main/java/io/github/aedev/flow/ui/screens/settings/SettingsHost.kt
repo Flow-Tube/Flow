@@ -14,6 +14,7 @@ import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,12 +22,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import io.github.aedev.flow.ui.components.layout.rememberFlowPaneScaffoldDirective
+import io.github.aedev.flow.ui.components.settings.LocalNewSettings
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
@@ -55,6 +58,8 @@ fun SettingsHost(
     val navigator = rememberListDetailPaneScaffoldNavigator<String>(scaffoldDirective = rememberFlowPaneScaffoldDirective())
     val scope = rememberCoroutineScope()
     var stack by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    // A page leaves composition while a sub-page covers it; this keeps its scroll for the way back.
+    val pageStates = rememberSaveableStateHolder()
     var startConsumed by rememberSaveable { mutableStateOf(false) }
     val dpad = LocalDpadNavigation.current
     val listFocus = remember { FocusRequester() }
@@ -67,12 +72,25 @@ fun SettingsHost(
             navigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
     val current = stack.lastOrNull()?.let(SettingsTarget::decode) ?: SettingsTarget(SettingsDestination.APPEARANCE)
 
+    fun updateStack(next: List<String>) {
+        val kept = next.mapNotNull { SettingsTarget.decode(it)?.destination }
+        stack
+            .mapNotNull { SettingsTarget.decode(it)?.destination }
+            .filterNot { it in kept }
+            .forEach { pageStates.removeState(it.id) }
+        stack = next
+    }
+
     fun open(target: SettingsTarget) {
         // A new page takes focus as it enters; the one already open beside the list has to be asked.
         if (dpad && twoPane && target.destination == current.destination) pageFocus.requestFocus()
-        stack = target.destination.path
-            .dropLast(1)
-            .map { SettingsTarget(it).encode() } + target.encode()
+        // Opening from the list is a fresh visit, so even the page already showing starts from the top.
+        pageStates.removeState(target.destination.id)
+        updateStack(
+            target.destination.path
+                .dropLast(1)
+                .map { SettingsTarget(it).encode() } + target.encode(),
+        )
         scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, target.destination.root.id) }
     }
 
@@ -91,8 +109,9 @@ fun SettingsHost(
 
     fun back() {
         if (stack.size > 1) {
-            stack = stack.dropLast(1)
+            updateStack(stack.dropLast(1))
         } else {
+            pageStates.removeState(current.destination.id)
             scope.launch { if (!navigator.navigateBack()) onExit() }
         }
     }
@@ -110,54 +129,58 @@ fun SettingsHost(
         if (!selectedRowFocus.requestFocus()) listFocus.requestFocus()
     }
 
-    NavigableListDetailPaneScaffold(
-        navigator = navigator,
-        listPane = {
-            AnimatedPane(modifier = Modifier.focusRequester(listFocus).dpadFocusGroup()) {
-                SettingsHomeScreen(
-                    selected = if (twoPane) current.destination.root else null,
-                    onOpen = ::open,
-                    onOpenDonations = onOpenDonations,
-                    onOpenUpdate = onOpenUpdate,
-                    onBack = onExit,
-                    selectedRowFocus = selectedRowFocus,
-                )
-            }
-        },
-        detailPane = {
-            AnimatedPane(
-                modifier =
-                    if (dpad) {
-                        Modifier
-                            .onFocusChanged { pageHasFocus = it.hasFocus }
-                            .focusRequester(pageFocus)
-                            .dpadFocusGroup()
-                    } else {
-                        Modifier
-                    },
-            ) {
-                val spec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
-                AnimatedContent(
-                    targetState = current,
-                    transitionSpec = { fadeIn(spec) togetherWith fadeOut(spec) },
-                    contentKey = { it.destination },
-                    label = "settingsDetail",
-                ) { target ->
-                    Box(modifier = dpadFocusOnEnter()) {
-                        SettingsDetail(
-                            target = target,
-                            onBack = if (twoPane && stack.size <= 1) null else ::back,
-                            onNavigate = ::push,
-                            onOpenRecap = onOpenRecap,
-                            options = options,
-                        )
+    CompositionLocalProvider(LocalNewSettings provides rememberNewSettings()) {
+        NavigableListDetailPaneScaffold(
+            navigator = navigator,
+            listPane = {
+                AnimatedPane(modifier = Modifier.focusRequester(listFocus).dpadFocusGroup()) {
+                    SettingsHomeScreen(
+                        selected = if (twoPane) current.destination.root else null,
+                        onOpen = ::open,
+                        onOpenDonations = onOpenDonations,
+                        onOpenUpdate = onOpenUpdate,
+                        onBack = onExit,
+                        selectedRowFocus = selectedRowFocus,
+                    )
+                }
+            },
+            detailPane = {
+                AnimatedPane(
+                    modifier =
+                        if (dpad) {
+                            Modifier
+                                .onFocusChanged { pageHasFocus = it.hasFocus }
+                                .focusRequester(pageFocus)
+                                .dpadFocusGroup()
+                        } else {
+                            Modifier
+                        },
+                ) {
+                    val spec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+                    AnimatedContent(
+                        targetState = current,
+                        transitionSpec = { fadeIn(spec) togetherWith fadeOut(spec) },
+                        contentKey = { it.destination },
+                        label = "settingsDetail",
+                    ) { target ->
+                        Box(modifier = dpadFocusOnEnter()) {
+                            pageStates.SaveableStateProvider(target.destination.id) {
+                                SettingsDetail(
+                                    target = target,
+                                    onBack = if (twoPane && stack.size <= 1) null else ::back,
+                                    onNavigate = ::push,
+                                    onOpenRecap = onOpenRecap,
+                                    options = options,
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        },
-    )
+            },
+        )
+    }
 
-    BackHandler(enabled = stack.size > 1) { stack = stack.dropLast(1) }
+    BackHandler(enabled = stack.size > 1) { updateStack(stack.dropLast(1)) }
 }
 
 /**

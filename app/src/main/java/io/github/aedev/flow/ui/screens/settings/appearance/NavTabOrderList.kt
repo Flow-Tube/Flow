@@ -37,6 +37,8 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.DEFAULT_NAV_TAB_ORDER
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.icon
+import io.github.aedev.flow.ui.components.shared.FlowReorderButtons
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import sh.calvin.reorderable.ReorderableColumn
 
@@ -119,14 +121,21 @@ internal fun NavTabOrderList(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f),
                             )
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(LocalMinimumInteractiveComponentSize.current)
-                                        .draggableHandle(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                ReorderHandle()
+                            if (LocalDpadNavigation.current) {
+                                FlowReorderButtons(
+                                    onMoveUp = if (index > 0) ({ move(index, index - 1) }) else null,
+                                    onMoveDown = if (index < tabs.lastIndex) ({ move(index, index + 1) }) else null,
+                                )
+                            } else {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(LocalMinimumInteractiveComponentSize.current)
+                                            .draggableHandle(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    ReorderHandle()
+                                }
                             }
                         }
                     }

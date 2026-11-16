@@ -28,8 +28,10 @@ import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
+import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
-import io.github.aedev.flow.ui.screens.player.state.transcriptTrackUrl
+import io.github.aedev.flow.ui.screens.player.state.hasTranscriptTrack
+import io.github.aedev.flow.ui.screens.player.state.rememberPlayerCommentsTimedFollow
 import io.github.aedev.flow.ui.screens.player.state.visibleComments
 
 @Composable
@@ -42,6 +44,7 @@ internal fun PlayerBottomSheetsContainer(
     showShortsPlayerPrompt: Boolean,
     viewModel: VideoPlayerViewModel,
     playerState: EnhancedPlayerState,
+    prefs: VideoPlayerPreferencesState,
     commentsUiState: PlayerCommentsUiState,
     commentsEnabled: Boolean = true,
     onLoadMoreComments: (videoId: String) -> Unit = {},
@@ -59,7 +62,7 @@ internal fun PlayerBottomSheetsContainer(
 
     val handleSeek: (Long) -> Unit =
         remember {
-            { positionMs -> EnhancedPlayerManager.getInstance().seekTo(positionMs) }
+            { positionMs -> EnhancedPlayerManager.getInstance().seekTo(positionMs, exact = true) }
         }
 
     LaunchedEffect(Unit) {
@@ -78,8 +81,8 @@ internal fun PlayerBottomSheetsContainer(
             selectedFilter = screenState.commentSortFilter,
             totalText = commentsUiState.totalText,
             artworkUrl = video.thumbnailUrl,
-            timedOnly = screenState.commentsTimedOnly,
-            onTimedChange = { screenState.commentsTimedOnly = it },
+            showTimed = true,
+            timedFollow = rememberPlayerCommentsTimedFollow(viewModel, screenState),
             onFilterChanged = onSelectCommentSort,
             onLoadReplies = onLoadReplies,
             onLoadMoreReplies = onLoadMoreReplies,
@@ -95,6 +98,9 @@ internal fun PlayerBottomSheetsContainer(
             collapsedHeight = mediaSheetCollapsedHeight,
             onSheetProgressChange = onMediaSheetProgressChange,
             onDismiss = { screenState.closeSheet() },
+            listState = screenState.commentsListState,
+            threadState = screenState.commentThreads,
+            isDisabled = commentsUiState.isDisabled,
         )
     }
 
@@ -106,6 +112,7 @@ internal fun PlayerBottomSheetsContainer(
             collapsedHeight = mediaSheetCollapsedHeight,
             onSheetProgressChange = onMediaSheetProgressChange,
             onDismiss = { screenState.closeSheet() },
+            isReplay = !uiState.isLive,
         )
     }
 
@@ -118,7 +125,7 @@ internal fun PlayerBottomSheetsContainer(
             asSidePanel = false,
             expandedHeight = mediaSheetExpandedHeight,
             onDismiss = { screenState.closeSheet() },
-            hasTranscriptTrack = transcriptTrackUrl(playerState, screenState) != null,
+            hasTranscriptTrack = hasTranscriptTrack(playerState),
             onChaptersClick = { screenState.open(PlayerSheet.Chapters) },
             onTranscriptClick = { screenState.open(PlayerSheet.Transcript) },
             onChannelClick = { channelId ->
@@ -134,10 +141,11 @@ internal fun PlayerBottomSheetsContainer(
         PlayerTranscriptSheetHost(
             viewModel = viewModel,
             screenState = screenState,
-            trackUrl = transcriptTrackUrl(playerState, screenState),
-            tracks = playerState.availableSubtitles,
+            playerState = playerState,
+            prefs = prefs,
             chapters = uiState.chapters,
             artworkUrl = video.thumbnailUrl,
+            exportTitle = video.title,
             asSidePanel = false,
             expandedHeight = mediaSheetExpandedHeight,
             onDismiss = { screenState.closeSheet() },

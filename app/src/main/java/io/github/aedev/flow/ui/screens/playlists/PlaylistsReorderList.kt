@@ -28,6 +28,8 @@ import androidx.compose.ui.semantics.semantics
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.PlaylistInfo
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
+import io.github.aedev.flow.ui.components.shared.FlowReorderButtons
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -95,23 +97,30 @@ internal fun PlaylistsReorderList(
                                     }
                             },
                         trailing = {
-                            Box(
-                                modifier =
-                                    with(itemScope) {
-                                        Modifier
-                                            .size(LocalMinimumInteractiveComponentSize.current)
-                                            .draggableHandle(
-                                                onDragStarted = {
-                                                    haptics.performHapticFeedback(
-                                                        HapticFeedbackType.GestureThresholdActivate,
-                                                    )
-                                                },
-                                                onDragStopped = { haptics.performHapticFeedback(HapticFeedbackType.GestureEnd) },
-                                            )
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                ReorderHandle()
+                            if (LocalDpadNavigation.current) {
+                                FlowReorderButtons(
+                                    onMoveUp = if (index > 0) ({ move(index, index - 1) }) else null,
+                                    onMoveDown = if (index < ordered.lastIndex) ({ move(index, index + 1) }) else null,
+                                )
+                            } else {
+                                Box(
+                                    modifier =
+                                        with(itemScope) {
+                                            Modifier
+                                                .size(LocalMinimumInteractiveComponentSize.current)
+                                                .draggableHandle(
+                                                    onDragStarted = {
+                                                        haptics.performHapticFeedback(
+                                                            HapticFeedbackType.GestureThresholdActivate,
+                                                        )
+                                                    },
+                                                    onDragStopped = { haptics.performHapticFeedback(HapticFeedbackType.GestureEnd) },
+                                                )
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    ReorderHandle()
+                                }
                             }
                         },
                     )

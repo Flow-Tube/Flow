@@ -18,8 +18,8 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// One install is one roster member, whatever profile runs; the backup rules never copy this file.
-private val Context.linkedDeviceDataStore by safePreferencesDataStore(name = "linked_device", scope = StoreScope.DEVICE)
+// This device's keys for its current membership, whatever profile runs; the backup rules never copy this file.
+internal val Context.linkedDeviceDataStore by safePreferencesDataStore(name = "linked_device", scope = StoreScope.DEVICE)
 private val KEY_DEVICE = stringPreferencesKey("device_keys")
 
 /** Where the device keys are kept, already opened from their platform protection. */
@@ -52,6 +52,11 @@ private fun encode(keys: MemberSecrets): String =
  */
 suspend fun deviceKeys(slot: SecretSlot): MemberSecrets {
     slot.read()?.let { return decode(it) ?: throw DamagedKeysException() }
+    return freshDeviceKeys(slot)
+}
+
+/** New keys for a new membership (spec/crypto.md, Device keys), replacing any before them. */
+suspend fun freshDeviceKeys(slot: SecretSlot): MemberSecrets {
     val keys = MemberSecrets(SyncCrypto.randomBytes(32), SyncCrypto.randomBytes(32))
     slot.write(encode(keys))
     return keys
@@ -77,4 +82,12 @@ class DeviceKeys
             }
 
         suspend fun load(): MemberSecrets = mutex.withLock { deviceKeys(slot) }
+
+        /** Keys for a group this device is about to create, join or restore. */
+        suspend fun fresh(): MemberSecrets = mutex.withLock { freshDeviceKeys(slot) }
+
+        /** Deletes the keys once this device left its group or learnt it was removed. */
+        suspend fun delete() {
+            mutex.withLock { store.edit { it.remove(KEY_DEVICE) } }
+        }
     }

@@ -83,6 +83,21 @@ class AutoBackupWorker(
                 .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request(days))
         }
 
+        /**
+         * Puts WorkManager in line with the saved schedule now. A restore replaces the setting, and
+         * [keepScheduled] only runs at startup, so the old schedule would otherwise run until then.
+         */
+        suspend fun applySchedule(context: Context) {
+            val days = PlayerPreferences(context).autoBackupFrequency.first().periodDays()
+            if (days == null) {
+                cancelBackup(context)
+            } else {
+                WorkManager
+                    .getInstance(context)
+                    .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request(days))
+            }
+        }
+
         /** With two or more profiles only a master backup holds them all, so that is what the schedule writes. */
         fun effectiveType(
             chosen: LocalDataManager.AutoBackupType,

@@ -14,4 +14,7 @@ interface SyncConnection {
 
     /** Close the underlying socket. */
     fun close()
+
+    /** The other end's address, on a connection this side accepted. */
+    val remoteHost: String? get() = null
 }

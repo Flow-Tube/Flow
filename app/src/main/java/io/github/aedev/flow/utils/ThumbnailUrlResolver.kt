@@ -195,9 +195,15 @@ object ThumbnailUrlResolver {
         return "$baseUrl=s$size"
     }
 
+    /**
+     * A post image on Google's image CDN at [targetWidth]. Its URLs also carry the crop YouTube made for
+     * the feed (`-c-fcrop64=…`); [uncropped] drops every option but the width, which serves the whole
+     * image at its own shape.
+     */
     fun resolveCommunityPostImage(
         rawUrl: String?,
         targetWidth: Int = 2048,
+        uncropped: Boolean = false,
     ): String {
         val raw =
             rawUrl?.trim().orEmpty().let { url ->
@@ -208,9 +214,11 @@ object ThumbnailUrlResolver {
         val isGoogleCdn = raw.contains("googleusercontent.com") || raw.contains("ggpht.com")
         if (!isGoogleCdn) return raw
 
-        val sizeParamRegex = Regex("""=([wsh])\d+""")
-        sizeParamRegex.find(raw)?.let { match ->
-            return raw.replaceFirst(match.value, "=w$targetWidth")
+        if (!uncropped) {
+            val sizeParamRegex = Regex("""=([wsh])\d+""")
+            sizeParamRegex.find(raw)?.let { match ->
+                return raw.replaceFirst(match.value, "=w$targetWidth")
+            }
         }
         val paramStart = googleCdnParamStartPattern.find(raw)?.range?.first
         val baseUrl = if (paramStart != null) raw.substring(0, paramStart) else raw

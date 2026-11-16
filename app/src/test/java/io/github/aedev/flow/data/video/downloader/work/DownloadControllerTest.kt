@@ -116,11 +116,45 @@ class DownloadControllerTest {
         }
 
     @Test
-    fun `a download already waiting or running is not queued twice`() =
+    fun `a download already running is not queued twice or replaced`() =
         runTest {
             coEvery { dao.getDownloadWithItems("song") } returns existing(DownloadItemStatus.DOWNLOADING)
 
             assertThat(controller.enqueue(request, replaceExisting = true)).isEqualTo(EnqueueOutcome.ALREADY_QUEUED)
+            coVerify(exactly = 0) { dao.replaceDownload(any(), any()) }
+        }
+
+    private fun waiting(stored: DownloadRequest) =
+        DownloadWithItems(
+            DownloadEntity(videoId = "song", title = "Intro", uploader = "A", requestJson = stored.encode()),
+            listOf(
+                DownloadItemEntity(
+                    videoId = "song",
+                    fileType = DownloadFileType.AUDIO,
+                    fileName = "a",
+                    filePath = "/a",
+                    status = DownloadItemStatus.PENDING,
+                ),
+            ),
+        )
+
+    @Test
+    fun `a waiting download gives way to a different pick from a dialog`() =
+        runTest {
+            coEvery { dao.getDownloadWithItems("song") } returns waiting(request.copy(audioTrackId = "en.4"))
+            coEvery { dao.replaceDownload(any(), any()) } returns Unit
+
+            assertThat(controller.enqueue(request.copy(audioTrackId = "ar.3"), replaceExisting = true)).isEqualTo(EnqueueOutcome.QUEUED)
+            coVerify(exactly = 1) { dao.replaceDownload(any(), any()) }
+        }
+
+    @Test
+    fun `a waiting download stays for the same pick, and for a request that is not replacing it`() =
+        runTest {
+            coEvery { dao.getDownloadWithItems("song") } returns waiting(request)
+
+            assertThat(controller.enqueue(request, replaceExisting = true)).isEqualTo(EnqueueOutcome.ALREADY_QUEUED)
+            assertThat(controller.enqueue(request.copy(audioTrackId = "ar.3"))).isEqualTo(EnqueueOutcome.ALREADY_QUEUED)
             coVerify(exactly = 0) { dao.replaceDownload(any(), any()) }
         }
 

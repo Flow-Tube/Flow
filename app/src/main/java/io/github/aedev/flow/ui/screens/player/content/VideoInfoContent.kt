@@ -209,6 +209,7 @@ internal fun VideoInfoContent(
     if (uiState.isLiveChatAvailable) {
         io.github.aedev.flow.ui.components.videoplayer.sheet.LiveChatPreview(
             onClick = { screenState.open(PlayerSheet.LiveChat()) },
+            isReplay = !uiState.isLive,
         )
     }
 
@@ -218,6 +219,7 @@ internal fun VideoInfoContent(
             authorAvatar = if (showCommentsPreview) commentsUiState.comments.firstOrNull()?.authorThumbnail else null,
             totalText = commentsUiState.totalText,
             showPreviewText = showCommentsPreview,
+            isDisabled = commentsUiState.isDisabled,
             onClick = { screenState.open(PlayerSheet.Comments()) },
         )
     }

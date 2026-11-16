@@ -26,6 +26,7 @@ fun FlowLiveChatBottomSheet(
     collapsedHeight: Dp = 0.dp,
     onSheetProgressChange: (Float) -> Unit = {},
     modifier: Modifier = Modifier,
+    isReplay: Boolean = false,
 ) {
     val sheetState = rememberFlowBottomSheetState()
     FlowBottomSheet(
@@ -40,7 +41,7 @@ fun FlowLiveChatBottomSheet(
         onProgressChange = onSheetProgressChange,
         header = { dragModifier ->
             FlowSheetHeader(
-                title = stringResource(R.string.live_chat),
+                title = stringResource(if (isReplay) R.string.chat_replay else R.string.live_chat),
                 onClose = { sheetState.dismiss() },
                 modifier = dragModifier,
             )

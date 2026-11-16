@@ -2,6 +2,7 @@ package io.github.aedev.flow.player.media
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -24,6 +25,7 @@ import androidx.media3.extractor.DefaultExtractorsFactory
 import io.github.aedev.flow.R
 import io.github.aedev.flow.player.cache.PlayerCacheManager
 import io.github.aedev.flow.player.config.PlayerConfig
+import io.github.aedev.flow.player.datasource.PlatformCaptionTransport
 import io.github.aedev.flow.player.renderer.subtitle.Srv3SubtitleParser
 import io.github.aedev.flow.player.resolver.VideoPlaybackResolver
 import io.github.aedev.flow.player.sabr.integration.SabrMediaSourceFactory
@@ -51,6 +53,10 @@ class MediaLoader(
     private val cacheManager: PlayerCacheManager?,
     private val surfaceManager: SurfaceManager?,
 ) {
+    // Android 13 and older have no platform Cronet, and bundling one adds ~6 MB to each APK.
+    private val platformCaptions =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) PlatformCaptionTransport(appContext) else null
+
     companion object {
         private const val TAG = "MediaLoader"
 
@@ -475,6 +481,7 @@ class MediaLoader(
         if (mediaSource == null || captions.isEmpty()) return mediaSource
 
         val localDataSourceFactory by lazy { DefaultDataSource.Factory(context) }
+        val captionTransport = platformCaptions
 
         val subtitleSources =
             captions.mapIndexedNotNull { index, caption ->
@@ -499,10 +506,10 @@ class MediaLoader(
                         .build()
 
                 val factory =
-                    if (uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) {
-                        dataSourceFactory
-                    } else {
-                        localDataSourceFactory
+                    when {
+                        !uri.scheme.equals("http", true) && !uri.scheme.equals("https", true) -> localDataSourceFactory
+                        captionTransport != null && captionTransport.handles(uri) -> captionTransport
+                        else -> dataSourceFactory
                     }
                 SingleSampleMediaSource
                     .Factory(factory)

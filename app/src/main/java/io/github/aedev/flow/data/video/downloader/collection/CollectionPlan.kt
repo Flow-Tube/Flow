@@ -27,7 +27,8 @@ internal data class CollectionPlan(
         /**
          * [ids] is the list as loaded now. A video the user took out stays out; one no longer in a
          * list that was [complete] is marked as removed upstream, never deleted, and a truncated
-         * load marks nothing, since what it did not reach may still be there.
+         * load marks nothing, since what it did not reach may still be there. With [picked], the
+         * listed videos outside it are excluded and those in it wanted again.
          */
         fun of(
             collectionId: String,
@@ -36,6 +37,7 @@ internal data class CollectionPlan(
             isDownloaded: (String) -> Boolean,
             complete: Boolean,
             now: Long,
+            picked: Set<String>? = null,
         ): CollectionPlan {
             val known = existing.associateBy { it.videoId }
             val listed = ids.distinct()
@@ -43,23 +45,34 @@ internal data class CollectionPlan(
             val members =
                 listed.mapIndexed { position, videoId ->
                     val previous = known[videoId]
+                    val choice = picked?.let { if (videoId in it) CollectionItemState.WANTED else CollectionItemState.EXCLUDED }
                     when {
                         previous == null -> {
+                            val state = choice ?: CollectionItemState.WANTED
                             DownloadCollectionItemEntity(
                                 collectionId = collectionId,
                                 videoId = videoId,
                                 position = position,
                                 addedAt = now,
-                                ownsDownload = !isDownloaded(videoId),
+                                state = state,
+                                ownsDownload = state == CollectionItemState.WANTED && !isDownloaded(videoId),
                             )
                         }
 
                         previous.state == CollectionItemState.REMOVED_UPSTREAM -> {
-                            previous.copy(position = position, state = CollectionItemState.WANTED)
+                            previous.copy(position = position, state = choice ?: CollectionItemState.WANTED)
+                        }
+
+                        previous.state == CollectionItemState.EXCLUDED && choice == CollectionItemState.WANTED -> {
+                            previous.copy(
+                                position = position,
+                                state = CollectionItemState.WANTED,
+                                ownsDownload = previous.ownsDownload || !isDownloaded(videoId),
+                            )
                         }
 
                         else -> {
-                            previous.copy(position = position)
+                            previous.copy(position = position, state = choice ?: previous.state)
                         }
                     }
                 }

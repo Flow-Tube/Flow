@@ -14,6 +14,12 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** A local edit's stamp: [nowMs], but never before [seen], the newest stamp applied, nor past the largest one. */
+internal fun editStamp(
+    nowMs: Long,
+    seen: Long,
+): Long = maxOf(nowMs, if (seen < Long.MAX_VALUE) seen + 1 else seen)
+
 private val Context.syncIdentityDataStore by safePreferencesDataStore(name = "sync_identity", scope = StoreScope.DEVICE)
 
 /**
@@ -50,7 +56,7 @@ class DeviceIdentity
          * When a local edit happens, for its stamp: never before a stamp this device has applied, so an
          * edit made after reading another device's change wins even when this clock is behind.
          */
-        suspend fun editTime(): Long = maxOf(System.currentTimeMillis(), (store.data.first()[KEY_CLOCK] ?: 0L) + 1)
+        suspend fun editTime(): Long = editStamp(System.currentTimeMillis(), store.data.first()[KEY_CLOCK] ?: 0L)
 
         /** Remembers [physicalMs] if it is the newest time among the stamps this device has applied. */
         suspend fun observe(physicalMs: Long) {

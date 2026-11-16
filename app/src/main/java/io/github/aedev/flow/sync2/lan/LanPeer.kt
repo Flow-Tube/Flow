@@ -1,13 +1,17 @@
 package io.github.aedev.flow.sync2.lan
 
 import io.github.aedev.flow.sync.protocol.SyncSerialization
+import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
+import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.engine.Session
-import io.github.aedev.flow.sync2.roster.entryHash
 import io.github.aedev.flow.sync2.roster.entryJson
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.store.LocalStore
+import io.github.aedev.flow.sync2.store.ObjectCheck
 import io.github.aedev.flow.sync2.store.StorePaths
+import io.github.aedev.flow.sync2.store.checkSeq
+import io.github.aedev.flow.sync2.store.keyNames
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -22,7 +26,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
@@ -54,7 +57,15 @@ private fun decode(content: ByteArray): Message? {
     return Message(header, if (split < 0) null else content.copyOfRange(split + 1, content.size))
 }
 
-private fun JsonObject.text(name: String): String? = this[name]?.jsonPrimitive?.contentOrNull
+/** [name]'s value, null when absent; a member that sent another type broke the protocol. */
+private inline fun <reified T : JsonElement> JsonObject.field(name: String): T? =
+    when (val value = this[name]) {
+        null -> null
+        is T -> value
+        else -> reject(ProtocolError.PAYLOAD)
+    }
+
+private fun JsonObject.text(name: String): String? = field<JsonPrimitive>(name)?.contentOrNull
 
 /**
  * Both sides of a LAN session's requests (spec/live.md, Requests): this device answers from what it
@@ -64,6 +75,7 @@ class LanPeer(
     private val link: LanLink,
     private val session: Session,
     private val local: LocalStore,
+    private val onLive: suspend (ByteArray) -> Unit = {},
 ) {
     private val ids = AtomicLong()
     private val answers = ConcurrentHashMap<Long, CompletableDeferred<Message>>()
@@ -77,7 +89,7 @@ class LanPeer(
                     val content = link.receive() ?: break
                     lastFrame.set(System.nanoTime())
                     val message = decode(content) ?: continue
-                    val re = message.header["re"]?.jsonPrimitive?.longOrNull
+                    val re = message.header.field<JsonPrimitive>("re")?.longOrNull
                     if (re != null) answers.remove(re)?.complete(message) else answer(message)
                 }
             } finally {
@@ -93,7 +105,12 @@ class LanPeer(
         val answer = CompletableDeferred<Message>().also { answers[id] = it }
         link.send(encode(fields + mapOf("id" to JsonPrimitive(id), "op" to JsonPrimitive(op)), null))
         val message = withTimeout(ANSWER_TIMEOUT_MS) { answer.await() }
-        return message.takeIf { it.header["ok"]?.jsonPrimitive?.booleanOrNull == true }
+        return message.takeIf { it.header.field<JsonPrimitive>("ok")?.booleanOrNull == true }
+    }
+
+    /** Sends a live envelope; it has no answer (spec/live.md, Requests). */
+    suspend fun sendLive(envelope: ByteArray) {
+        link.send(encode(mapOf("id" to JsonPrimitive(ids.getAndIncrement()), "op" to JsonPrimitive("live")), envelope))
     }
 
     private suspend fun answer(request: Message) {
@@ -111,28 +128,16 @@ class LanPeer(
             runCatching {
                 when (op) {
                     "roster" -> {
-                        // An asker whose head isn't on this device's winning chain is on another fork, or lost one
-                        // this device already resolved: it gets everything to choose from.
-                        val head = header.text("head")
-                        val held = local.entries()
-                        val after =
-                            if (head != null &&
-                                local.rosterAfter(-1).none { entryHash(it) == head }
-                            ) {
-                                -1
-                            } else {
-                                header["after"]?.jsonPrimitive?.long ?: -1
-                            }
-                        ok(mapOf("entries" to JsonArray(held.filter { it.seq > after }.map(::entryJson))))
+                        val after = header["after"]?.jsonPrimitive?.long ?: -1
+                        ok(mapOf("entries" to JsonArray(local.entries().filter { it.seq > after }.map(::entryJson))))
                     }
 
                     "key" -> {
                         val name = header.text("name").orEmpty()
+                        val kc = header.text("kc").orEmpty()
                         val key =
-                            if (name == "chain" ||
-                                name.matches(DID)
-                            ) {
-                                local.key(header.getValue("epoch").jsonPrimitive.int, name)
+                            if (kc.matches(KC) && (name == "chain" || name.matches(DID))) {
+                                local.key(header.getValue("epoch").jsonPrimitive.int, kc, name)
                             } else {
                                 null
                             }
@@ -140,7 +145,7 @@ class LanPeer(
                     }
 
                     "list" -> {
-                        val vv = header["vv"]?.jsonObject?.mapValues { (_, seq) -> seq.jsonPrimitive.long }.orEmpty()
+                        val vv = header["vv"]?.jsonObject?.mapValues { (_, seq) -> checkSeq(seq.jsonPrimitive.long) }.orEmpty()
                         val (paths, blobs) = local.list(vv)
                         ok(mapOf("blobs" to JsonArray(blobs.map(::JsonPrimitive)), "paths" to JsonArray(paths.map(::JsonPrimitive))))
                     }
@@ -154,6 +159,7 @@ class LanPeer(
                     }
 
                     "live" -> {
+                        request.bytes?.let { onLive(it) }
                         null
                     }
 
@@ -186,35 +192,36 @@ class LanPeer(
      * entries after its head, the wraps and chain boxes it lacks, then the objects above its version vector.
      */
     suspend fun pull() {
-        val head = local.rosterAfter(-1).lastOrNull()
-        val asked = mapOf("after" to JsonPrimitive(head?.seq ?: -1)) + listOfNotNull(head?.let { "head" to JsonPrimitive(entryHash(it)) })
-        request("roster", asked)?.let { answer ->
+        // From the start: an entry that lost can sit below this device's head, and its key still reads.
+        request("roster", mapOf("after" to JsonPrimitive(-1)))?.let { answer ->
             local.addEntries(
-                answer.header["entries"]
-                    ?.jsonArray
+                answer.header
+                    .field<JsonArray>("entries")
                     .orEmpty()
                     .mapNotNull { runCatching { parseEntry(it) }.getOrNull() },
             )
         }
-        val epochs = local.rosterAfter(-1).mapNotNull { it.epoch?.n }
-        for (epoch in epochs) {
-            for (name in listOf(session.me, "chain")) {
-                if (local.key(epoch, name) != null) continue
-                request(
-                    "key",
-                    mapOf("epoch" to JsonPrimitive(epoch), "name" to JsonPrimitive(name)),
-                )?.bytes?.let { local.putKey(epoch, name, it) }
-            }
+        val resolved = local.resolved()
+        val check = ObjectCheck(session.me, resolved.chain)
+        for ((epoch, kc, name) in keyNames(resolved.chain, resolved.standing, session.me)) {
+            if (local.key(epoch, kc, name) != null) continue
+            request(
+                "key",
+                mapOf("epoch" to JsonPrimitive(epoch), "kc" to JsonPrimitive(kc), "name" to JsonPrimitive(name)),
+            )?.bytes?.let { local.putKey(epoch, kc, name, it) }
         }
         val vv = JsonObject(heldVersions().mapValues { (_, seq) -> JsonPrimitive(seq) })
         val listed = request("list", mapOf("vv" to vv)) ?: return
         val wanted =
-            (listed.header["paths"]?.jsonArray.orEmpty() + listed.header["blobs"]?.jsonArray.orEmpty()).mapNotNull {
-                it.jsonPrimitive.contentOrNull
+            (listed.header.field<JsonArray>("paths").orEmpty() + listed.header.field<JsonArray>("blobs").orEmpty()).map {
+                (it as? JsonPrimitive)?.contentOrNull ?: reject(ProtocolError.PAYLOAD)
             }
-        for (path in wanted.filter { StorePaths.isObject(it) }) {
+        for (path in wanted.filter { StorePaths.isObject(it) && !check.isOwn(it) }) {
             if (local.getObject(path) != null) continue
-            request("get", mapOf("path" to JsonPrimitive(path)))?.bytes?.let { local.putObject(path, it) }
+            request(
+                "get",
+                mapOf("path" to JsonPrimitive(path)),
+            )?.bytes?.takeIf { check.admits(path, it) }?.let { local.putObject(path, it) }
         }
     }
 
@@ -241,5 +248,6 @@ class LanPeer(
 
     private companion object {
         val DID = Regex("[0-9a-f]{32}")
+        val KC = Regex("[0-9a-f]{16}")
     }
 }

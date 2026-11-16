@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube
 
 import android.util.Log
+import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.innertube.models.AccountInfo
 import io.github.aedev.flow.innertube.models.AlbumItem
@@ -21,6 +22,7 @@ import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.innertube.models.WatchEndpoint
 import io.github.aedev.flow.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
 import io.github.aedev.flow.innertube.models.YouTubeClient
+import io.github.aedev.flow.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
 import io.github.aedev.flow.innertube.models.YouTubeClient.Companion.WEB
 import io.github.aedev.flow.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import io.github.aedev.flow.innertube.models.YouTubeLocale
@@ -38,6 +40,8 @@ import io.github.aedev.flow.innertube.models.response.GetSearchSuggestionsRespon
 import io.github.aedev.flow.innertube.models.response.GetTranscriptResponse
 import io.github.aedev.flow.innertube.models.response.ImageUploadResponse
 import io.github.aedev.flow.innertube.models.response.NextResponse
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
+import io.github.aedev.flow.innertube.models.response.PaidPromotionResponse
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.models.response.ResolveUrlResponse
 import io.github.aedev.flow.innertube.models.response.SearchResponse
@@ -64,9 +68,13 @@ import io.github.aedev.flow.innertube.pages.SearchPage
 import io.github.aedev.flow.innertube.pages.SearchResult
 import io.github.aedev.flow.innertube.pages.SearchSuggestionPage
 import io.github.aedev.flow.innertube.pages.SearchSummaryPage
+import io.github.aedev.flow.innertube.pages.TimedLyricLine
 import io.github.aedev.flow.innertube.pages.VideoCommentsPage
+import io.github.aedev.flow.innertube.pages.VideoCommentsPanelHeader
+import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.VideoPlaylistPage
+import io.github.aedev.flow.innertube.pages.channel.CHANNEL_SEARCH_FALLBACK_LANGUAGE
 import io.github.aedev.flow.innertube.pages.channel.ChannelAbout
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.channel.ChannelPage
@@ -76,6 +84,9 @@ import io.github.aedev.flow.innertube.pages.channel.ChannelTabContent
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.innertube.pages.channel.channelAboutContinuation
 import io.github.aedev.flow.innertube.pages.channel.channelSortOptions
+import io.github.aedev.flow.innertube.pages.channel.parseChannelSearchResponse
+import io.github.aedev.flow.innertube.pages.channel.parseLengthText
+import io.github.aedev.flow.innertube.pages.channel.shouldSearchChannelInEnglish
 import io.github.aedev.flow.innertube.pages.channel.toChannelAbout
 import io.github.aedev.flow.innertube.pages.channel.toChannelHeader
 import io.github.aedev.flow.innertube.pages.channel.toChannelShortsPage
@@ -87,6 +98,7 @@ import io.github.aedev.flow.innertube.pages.explore.exploreShelves
 import io.github.aedev.flow.innertube.pages.explore.ranked
 import io.github.aedev.flow.innertube.pages.explore.toExploreDestinationShell
 import io.github.aedev.flow.innertube.pages.explore.trendingVideoChart
+import io.github.aedev.flow.innertube.pages.mixSeedVideoId
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.reel.ReelLockup
 import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
@@ -107,11 +119,15 @@ import io.github.aedev.flow.innertube.pages.search.SearchResultsPage
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
+import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
+import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
+import io.github.aedev.flow.innertube.pages.toTimedComments
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
 import io.github.aedev.flow.innertube.pages.toVideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.toVideoPlaylistPage
-import io.github.aedev.flow.innertube.pages.videoCommentsContinuation
+import io.github.aedev.flow.innertube.pages.videoCommentsPanelHeader
+import io.github.aedev.flow.innertube.pages.videoCommentsSection
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.avatarImageIdentityKey
 import io.github.aedev.flow.utils.relativedate.RelativeUploadDateParser
@@ -593,112 +609,22 @@ object YouTube {
         query: String,
     ): Result<ChannelVideoSearchResult> =
         runCatching {
-            val httpResponse = innerTube.channelSearch(currentWebClient(), channelId, query)
-            val rawBody = httpResponse.bodyAsText()
-            val lenientJson =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }
-            val response = lenientJson.decodeFromString<io.github.aedev.flow.innertube.models.response.ChannelSearchResponse>(rawBody)
-            parseChannelSearchResponse(response, channelId, channelName, channelThumbnailUrl)
-        }
-
-    suspend fun channelSearchContinuation(
-        channelId: String,
-        channelName: String,
-        channelThumbnailUrl: String,
-        continuation: String,
-    ): Result<ChannelVideoSearchResult> =
-        runCatching {
-            val httpResponse =
-                innerTube.channelSearch(
-                    currentWebClient(),
-                    channelId,
-                    query = "",
-                    continuation = continuation,
-                )
-            val rawBody = httpResponse.bodyAsText()
-            val lenientJson =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }
-            val response = lenientJson.decodeFromString<io.github.aedev.flow.innertube.models.response.ChannelSearchResponse>(rawBody)
-
-            val videos = mutableListOf<io.github.aedev.flow.data.model.Video>()
-            var nextContinuation: String? = null
-
-            val appendedItems =
-                response.onResponseReceivedActions
-                    ?.firstOrNull { it.appendContinuationItemsAction != null }
-                    ?.appendContinuationItemsAction
-                    ?.continuationItems
-                    .orEmpty()
-            if (appendedItems.isNotEmpty()) {
-                appendedItems.forEach { richItem ->
-                    richItem.richItemRenderer
-                        ?.content
-                        ?.videoRenderer
-                        ?.let { parseVideoRenderer(it, channelId, channelName, channelThumbnailUrl) }
-                        ?.let { videos.add(it) }
-                    richItem.itemSectionRenderer?.contents?.forEach { sectionItem ->
-                        sectionItem.videoRenderer
-                            ?.let { parseVideoRenderer(it, channelId, channelName, channelThumbnailUrl) }
-                            ?.let { videos.add(it) }
+            suspend fun search(searchLocale: YouTubeLocale): ChannelVideoSearchResult {
+                val httpResponse = innerTube.channelSearch(currentWebClient(), channelId, query, searchLocale = searchLocale)
+                val rawBody = httpResponse.bodyAsText()
+                val lenientJson =
+                    Json {
+                        ignoreUnknownKeys = true
+                        explicitNulls = false
                     }
-                    richItem.continuationItemRenderer
-                        ?.continuationEndpoint
-                        ?.continuationCommand
-                        ?.token
-                        ?.let { nextContinuation = it }
-                }
+                val response = lenientJson.decodeFromString<io.github.aedev.flow.innertube.models.response.ChannelSearchResponse>(rawBody)
+                return parseChannelSearchResponse(response, channelId, channelName, channelThumbnailUrl)
             }
-
-            if (videos.isEmpty()) {
-                val sectionContents =
-                    response.continuationContents
-                        ?.sectionListContinuation
-                        ?.contents
-                        .orEmpty()
-                sectionContents
-                    .mapNotNull { it.itemSectionRenderer?.contents }
-                    .flatten()
-                    .mapNotNull { it.videoRenderer }
-                    .mapNotNull { parseVideoRenderer(it, channelId, channelName, channelThumbnailUrl) }
-                    .forEach { videos.add(it) }
-                if (nextContinuation == null) {
-                    nextContinuation = response.continuationContents
-                        ?.sectionListContinuation
-                        ?.continuations
-                        ?.firstOrNull()
-                        ?.nextContinuationData
-                        ?.continuation
-                        ?: sectionContents
-                            .mapNotNull { it.continuationItemRenderer }
-                            .firstOrNull()
-                            ?.continuationEndpoint
-                            ?.continuationCommand
-                            ?.token
-                }
-            }
-
-            if (videos.isEmpty()) {
-                response.continuationContents?.richGridContinuation?.contents?.forEach { richItem ->
-                    richItem.richItemRenderer
-                        ?.content
-                        ?.videoRenderer
-                        ?.let { parseVideoRenderer(it, channelId, channelName, channelThumbnailUrl) }
-                        ?.let { videos.add(it) }
-                    richItem.continuationItemRenderer
-                        ?.continuationEndpoint
-                        ?.continuationCommand
-                        ?.token
-                        ?.let { nextContinuation = it }
-                }
-            }
-
-            ChannelVideoSearchResult(videos = videos, continuation = nextContinuation)
+            val searchLocale = locale
+            val first = search(searchLocale)
+            if (!shouldSearchChannelInEnglish(first.videos.size, searchLocale.hl)) return@runCatching first
+            Log.d("ChannelSearch", "no videos with hl=${searchLocale.hl}, asking again in English")
+            search(searchLocale.copy(hl = CHANNEL_SEARCH_FALLBACK_LANGUAGE))
         }
 
     suspend fun channelVideos(
@@ -852,6 +778,13 @@ object YouTube {
                     continuation = continuation,
                 )
             Json.parseToJsonElement(response.bodyAsText()).toVideoPlaylistPage()
+        }
+
+    /** A mix's queue, which is the only list of it: the playlist browse refuses mixes. */
+    suspend fun mixPlaylistPage(playlistId: String): Result<VideoPlaylistPage> =
+        runCatching {
+            val response = innerTube.nextMix(mixSeedVideoId(playlistId), playlistId)
+            Json.parseToJsonElement(response.bodyAsText()).toMixPlaylistPage()
         }
 
     private suspend fun communityPostsPage(
@@ -1112,171 +1045,6 @@ object YouTube {
             .distinctBy { it.avatarImageIdentityKey() }
             .take(2)
             .filterNotNull()
-    }
-
-    private fun parseChannelSearchResponse(
-        response: io.github.aedev.flow.innertube.models.response.ChannelSearchResponse,
-        channelId: String,
-        channelName: String,
-        channelThumbnailUrl: String,
-    ): ChannelVideoSearchResult {
-        val tabs =
-            response.contents
-                ?.twoColumnBrowseResultsRenderer
-                ?.tabs
-                .orEmpty()
-        Log.d("ChannelSearch", "tabs=${tabs.size}")
-        tabs.forEachIndexed { i, tab ->
-            val url =
-                tab.tabRenderer
-                    ?.endpoint
-                    ?.commandMetadata
-                    ?.webCommandMetadata
-                    ?.url
-            Log.d(
-                "ChannelSearch",
-                "tab[$i]: url=$url, selected=${tab.tabRenderer?.selected}, " +
-                    "hasSection=${tab.tabRenderer?.content?.sectionListRenderer != null}, " +
-                    "hasRichGrid=${tab.tabRenderer?.content?.richGridRenderer != null}, " +
-                    "isExpandable=${tab.expandableTabRenderer != null}",
-            )
-        }
-
-        val tabContent =
-            tabs
-                .firstOrNull {
-                    it.tabRenderer?.selected == true && it.tabRenderer.endpoint
-                        ?.commandMetadata
-                        ?.webCommandMetadata
-                        ?.url
-                        ?.contains("/search") == true
-                }?.tabRenderer
-                ?.content
-                ?: tabs.firstOrNull { it.expandableTabRenderer?.content != null }?.expandableTabRenderer?.content
-                ?: tabs.firstOrNull { it.tabRenderer?.selected == true }?.tabRenderer?.content
-
-        Log.d(
-            "ChannelSearch",
-            "tabContent=${tabContent != null}, " +
-                "hasSection=${tabContent?.sectionListRenderer != null}, " +
-                "hasRichGrid=${tabContent?.richGridRenderer != null}",
-        )
-
-        val videos = mutableListOf<io.github.aedev.flow.data.model.Video>()
-        var continuation: String? = null
-
-        tabContent?.richGridRenderer?.contents?.forEach { richItem ->
-            richItem.richItemRenderer
-                ?.content
-                ?.videoRenderer
-                ?.let { parseVideoRenderer(it, channelId, channelName, channelThumbnailUrl) }
-                ?.let { videos.add(it) }
-            richItem.continuationItemRenderer
-                ?.continuationEndpoint
-                ?.continuationCommand
-                ?.token
-                ?.let { continuation = it }
-        }
-
-        if (videos.isEmpty()) {
-            val sectionContents = tabContent?.sectionListRenderer?.contents.orEmpty()
-            sectionContents
-                .mapNotNull { it.itemSectionRenderer?.contents }
-                .flatten()
-                .mapNotNull { it.videoRenderer }
-                .mapNotNull { parseVideoRenderer(it, channelId, channelName, channelThumbnailUrl) }
-                .forEach { videos.add(it) }
-            if (continuation == null) {
-                continuation =
-                    sectionContents
-                        .mapNotNull { it.continuationItemRenderer }
-                        .firstOrNull()
-                        ?.continuationEndpoint
-                        ?.continuationCommand
-                        ?.token
-            }
-        }
-
-        Log.d("ChannelSearch", "videos=${videos.size}, hasContinuation=${continuation != null}")
-        return ChannelVideoSearchResult(videos = videos, continuation = continuation)
-    }
-
-    private fun parseVideoRenderer(
-        r: io.github.aedev.flow.innertube.models.response.ChannelSearchResponse.VideoRenderer,
-        channelId: String,
-        channelName: String,
-        channelThumbnailUrl: String,
-    ): io.github.aedev.flow.data.model.Video? {
-        val videoId = r.videoId ?: return null
-        val title =
-            r.title
-                ?.runs
-                ?.joinToString("") { it.text ?: "" }
-                ?.takeIf { it.isNotBlank() } ?: return null
-        val thumbnail =
-            r.thumbnail
-                ?.thumbnails
-                ?.maxByOrNull { it.width ?: 0 }
-                ?.url
-                ?: "https://i.ytimg.com/vi/$videoId/hq720.jpg"
-        val duration = parseLengthText(r.lengthText?.simpleText)
-        val viewCount = parseYouTubeViewCount(r.viewCountText?.simpleText)
-        val avatarUrls = r.channelAvatarUrls(channelThumbnailUrl)
-        return io.github.aedev.flow.data.model.Video(
-            id = videoId,
-            title = title,
-            channelName = channelName,
-            channelId = channelId,
-            thumbnailUrl = thumbnail,
-            duration = duration,
-            viewCount = viewCount,
-            uploadDate = r.publishedTimeText?.simpleText ?: "",
-            channelThumbnailUrl = avatarUrls.firstOrNull().orEmpty(),
-            channelThumbnailUrls = avatarUrls,
-        )
-    }
-
-    private fun io.github.aedev.flow.innertube.models.response.ChannelSearchResponse.VideoRenderer.channelAvatarUrls(
-        fallback: String,
-    ): List<String> {
-        val supported = channelThumbnailSupportedRenderers
-        val stackAvatars =
-            listOfNotNull(
-                avatarStackViewModel,
-                supported?.avatarStackViewModel,
-                supported?.channelThumbnailWithLinkRenderer?.avatarStack?.avatarStackViewModel,
-            ).flatMap { stack ->
-                stack.avatars.orEmpty().mapNotNull { avatar ->
-                    avatar.avatarViewModel
-                        ?.image
-                        ?.sources
-                        ?.maxByOrNull { maxOf(it.width ?: 0, it.height ?: 0) }
-                        ?.url
-                }
-            }
-        val linkedAvatar =
-            supported
-                ?.channelThumbnailWithLinkRenderer
-                ?.thumbnail
-                ?.thumbnails
-                ?.maxByOrNull { maxOf(it.width ?: 0, it.height ?: 0) }
-                ?.url
-
-        return (stackAvatars + linkedAvatar + fallback)
-            .filter { !it.isNullOrBlank() }
-            .distinctBy { it.avatarImageIdentityKey() }
-            .take(2)
-            .filterNotNull()
-    }
-
-    private fun parseLengthText(text: String?): Int {
-        if (text.isNullOrBlank()) return 0
-        val parts = text.split(":").map { it.trim().toIntOrNull() ?: 0 }
-        return when (parts.size) {
-            3 -> parts[0] * 3600 + parts[1] * 60 + parts[2]
-            2 -> parts[0] * 60 + parts[1]
-            else -> 0
-        }
     }
 
     suspend fun album(
@@ -1859,6 +1627,7 @@ object YouTube {
 
     suspend fun home(
         continuation: String? = null,
+        browseId: String = "FEmusic_home",
         params: String? = null,
     ): Result<HomePage> =
         runCatching {
@@ -1866,7 +1635,7 @@ object YouTube {
                 return@runCatching homeContinuation(continuation).getOrThrow()
             }
 
-            val response = innerTube.browse(WEB_REMIX, browseId = "FEmusic_home", params = params).body<BrowseResponse>()
+            val response = innerTube.browse(WEB_REMIX, browseId = browseId, params = params).body<BrowseResponse>()
             val continuation =
                 response.contents
                     ?.singleColumnBrowseResultsRenderer
@@ -1890,7 +1659,7 @@ object YouTube {
                     ?.contents!!
                     .mapNotNull { it.musicCarouselShelfRenderer }
                     .mapNotNull {
-                        HomePage.Section.fromMusicCarouselShelfRenderer(it)
+                        HomePage.Section.fromMusicCarouselShelfRenderer(it, chipPage = params != null)
                     }.toMutableList()
             val chips =
                 sectionListRender.header
@@ -2420,6 +2189,9 @@ object YouTube {
                 ?.takeIf { it.isNotBlank() }
         }
 
+    suspend fun paidPromotion(videoId: String): Result<PaidPromotionLabel?> =
+        runCatching { innerTube.paidPromotion(videoId).body<PaidPromotionResponse>().label() }
+
     /**
      * The raw web watch response for [videoId].
      *
@@ -2437,8 +2209,11 @@ object YouTube {
         videoId: String,
     ): VideoDescriptionPage = watchNext.toVideoDescriptionPage(videoId)
 
-    /** The continuation that opens [videoId]'s comment section, from an already-fetched watch response. */
-    fun commentsContinuation(watchNext: JsonElement): String? = watchNext.videoCommentsContinuation()
+    /** The comment section of an already-fetched watch response: its continuation, or that comments are off. */
+    fun commentsSection(watchNext: JsonElement): VideoCommentsSection? = watchNext.videoCommentsSection()
+
+    /** The sort menu and count in [watchNext]'s comments panel, from an already-fetched watch response. */
+    fun commentsPanelHeader(watchNext: JsonElement): VideoCommentsPanelHeader? = watchNext.videoCommentsPanelHeader()
 
     suspend fun comments(
         continuation: String,
@@ -2448,6 +2223,17 @@ object YouTube {
             Json
                 .parseToJsonElement(innerTube.nextWatch(continuation = continuation).bodyAsText())
                 .toVideoCommentsPage(ownVideoId)
+        }
+
+    /** YouTube's Timed comments for the section [continuation] opens, in playback order. */
+    suspend fun timedComments(
+        continuation: String,
+        ownVideoId: String?,
+    ): Result<List<Comment>> =
+        runCatching {
+            Json
+                .parseToJsonElement(innerTube.timedComments(continuation).bodyAsText())
+                .toTimedComments(ownVideoId)
         }
 
     suspend fun commentReplies(
@@ -2471,10 +2257,11 @@ object YouTube {
     suspend fun liveChat(
         continuation: String,
         offsetMs: Long? = null,
+        replay: Boolean = false,
     ): Result<io.github.aedev.flow.innertube.models.response.GetLiveChatResponse> =
         runCatching {
             innerTube
-                .getLiveChat(continuation, offsetMs)
+                .getLiveChat(continuation, offsetMs, replay)
                 .body<io.github.aedev.flow.innertube.models.response.GetLiveChatResponse>()
         }
 
@@ -2560,12 +2347,7 @@ object YouTube {
                     ?.tabbedRenderer
                     ?.watchNextTabbedResultsRenderer
                     ?.tabs
-            val lyricsBrowseEndpoint =
-                watchNextTabs?.firstNotNullOfOrNull { tab ->
-                    tab.tabRenderer.endpoint
-                        ?.browseEndpoint
-                        ?.takeIf { it.browseId.startsWith("MPLYt") }
-                }
+            val lyricsBrowseEndpoint = response.lyricsBrowseEndpoint()
             val relatedBrowseEndpoint =
                 watchNextTabs?.firstNotNullOfOrNull { tab ->
                     tab.tabRenderer.endpoint
@@ -2637,6 +2419,31 @@ object YouTube {
                 continuation = playlistPanelRenderer.continuations?.getContinuation(),
                 endpoint = endpoint,
             )
+        }
+
+    private fun NextResponse.lyricsBrowseEndpoint(): BrowseEndpoint? =
+        contents.singleColumnMusicWatchNextResultsRenderer
+            ?.tabbedRenderer
+            ?.watchNextTabbedResultsRenderer
+            ?.tabs
+            ?.firstNotNullOfOrNull { tab ->
+                tab.tabRenderer.endpoint
+                    ?.browseEndpoint
+                    ?.takeIf { it.browseId.startsWith("MPLYt") }
+            }
+
+    /** One `next` and nothing else: [next] follows the automix row, which is a second, slower request. */
+    suspend fun lyricsEndpoint(videoId: String): Result<BrowseEndpoint?> =
+        runCatching {
+            innerTube
+                .next(WEB_REMIX, videoId, null, null, null, null)
+                .body<NextResponse>()
+                .lyricsBrowseEndpoint()
+        }
+
+    suspend fun timedLyrics(endpoint: BrowseEndpoint): Result<List<TimedLyricLine>> =
+        runCatching {
+            timedLyricLines(innerTube.browse(ANDROID_MUSIC, endpoint.browseId, endpoint.params).body<JsonObject>())
         }
 
     suspend fun lyrics(endpoint: BrowseEndpoint): Result<String?> =

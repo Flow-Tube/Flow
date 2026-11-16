@@ -2,9 +2,12 @@ package io.github.aedev.flow.ui.screens.player.stage
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -13,9 +16,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.ui.components.videoplayer.overlay.SponsorBlockSkipButton
@@ -29,13 +35,22 @@ internal fun BoxScope.SponsorSkipLayer(
     expandedPlayerBottom: Dp,
     playerWidth: Dp,
     expandedSurfacesPlaced: () -> Boolean,
-    endPadding: Dp,
+    style: SponsorBlockSkipButtonStyle,
     bottomPadding: Dp,
 ) {
     val offForVideo by EnhancedPlayerManager.getInstance().sponsorBlockOffForVideo.collectAsState()
     if (offForVideo) return
+    val skippedOnce by EnhancedPlayerManager.getInstance().sbSkippedOnce.collectAsState()
     val screenState = session.screenState
     val playerState = session.playerState
+    val layoutDirection = LocalLayoutDirection.current
+    val endPadding =
+        with(LocalDensity.current) {
+            maxOf(
+                WindowInsets.displayCutout.getRight(this, layoutDirection),
+                WindowInsets.systemBars.getRight(this, layoutDirection),
+            ).toDp() + 16.dp
+        }
 
     val sponsorButtonPositionMs by remember {
         derivedStateOf { (screenState.currentPosition / 1_000L) * 1_000L }
@@ -59,8 +74,10 @@ internal fun BoxScope.SponsorSkipLayer(
             sponsorSegments = sponsorSegments,
             currentPositionMs = sponsorButtonPositionMs,
             categoryActions = EnhancedPlayerManager.getInstance().sbCategoryActions,
+            skippedOnceUuids = skippedOnce,
             controlsVisible = screenState.showControls,
             playbackEnded = playerState.hasEnded,
+            style = style,
             onSkipClick = { endPositionMs ->
                 EnhancedPlayerManager.getInstance().skipToSegmentEnd(endPositionMs)
             },

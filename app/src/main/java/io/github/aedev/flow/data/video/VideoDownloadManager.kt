@@ -3,13 +3,10 @@ package io.github.aedev.flow.data.video
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
 import android.media.MediaScannerConnection
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.provider.Settings
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.PlayerPreferences
@@ -140,35 +137,6 @@ class VideoDownloadManager
                 // we just use app-private dirs which need no permissions
                 false
             }
-
-        /**
-         * Request All Files Access permission (MANAGE_EXTERNAL_STORAGE) on Android 11+.
-         * This opens the system settings page where the user can grant the permission.
-         * Call this before starting downloads to ensure files go to public storage.
-         */
-        fun requestAllFilesAccess(context: Context) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
-                try {
-                    val intent =
-                        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to open MANAGE_ALL_FILES_ACCESS settings, trying fallback", e)
-                    try {
-                        val intent =
-                            Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                        context.startActivity(intent)
-                    } catch (e2: Exception) {
-                        Log.e(TAG, "Could not open file access settings", e2)
-                    }
-                }
-            }
-        }
 
         /**
          * Tell the Android system to scan the newly downloaded file.

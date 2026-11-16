@@ -6,7 +6,10 @@ import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -19,21 +22,27 @@ import androidx.work.WorkRequest
 import androidx.work.workDataOf
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.update.AppRelease
+import io.github.aedev.flow.data.update.InstallEvent
+import io.github.aedev.flow.data.update.InstallPhase
 import io.github.aedev.flow.data.update.UpdateDownload
 import io.github.aedev.flow.data.update.UpdateFailure
+import io.github.aedev.flow.data.update.on
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val WORK_NAME = "app_update_download"
 private const val INSTALL_REQUEST = 7301
+private const val TAG = "AppUpdateInstaller"
 
 /**
  * Downloads a release in the background and installs it through a platform installer session.
@@ -45,10 +54,15 @@ class AppUpdateInstaller
     constructor(
         @ApplicationContext private val context: Context,
     ) {
-        private val _installFailed = MutableStateFlow(false)
+        private val _installPhase = MutableStateFlow<InstallPhase>(InstallPhase.Idle)
+        val installPhase: StateFlow<InstallPhase> = _installPhase.asStateFlow()
 
-        /** True once the installer reported a failure, until the next install attempt. */
-        val installFailed: StateFlow<Boolean> = _installFailed.asStateFlow()
+        private val packageInstaller get() = context.packageManager.packageInstaller
+        private val mainHandler = Handler(Looper.getMainLooper())
+
+        @Volatile private var sessionId: Int? = null
+
+        @Volatile private var sessionCallback: PackageInstaller.SessionCallback? = null
 
         val isAvailable: Boolean = true
 
@@ -108,13 +122,15 @@ class AppUpdateInstaller
         fun installPermissionIntent(): Intent =
             Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
 
-        /** Hands the verified APK to the system installer; false when there is no file to install. */
-        suspend fun install(version: String): Boolean =
+        /** Hands the verified APK to the system installer; [installPhase] follows the session from here. */
+        suspend fun install(version: String) {
+            onEvent(InstallEvent.Started)
             withContext(Dispatchers.IO) {
                 val apk = UpdateFiles.apkFile(context, version)
-                if (!apk.exists()) return@withContext false
-                _installFailed.value = false
-                val installer = context.packageManager.packageInstaller
+                if (!apk.exists()) {
+                    onEvent(InstallEvent.Aborted)
+                    return@withContext
+                }
                 val params =
                     PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
                         setAppPackageName(context.packageName)
@@ -123,29 +139,84 @@ class AppUpdateInstaller
                             setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
                         }
                     }
-                val sessionId = installer.createSession(params)
-                installer.openSession(sessionId).use { session ->
-                    session.openWrite(apk.name, 0, apk.length()).use { output ->
-                        apk.inputStream().use { it.copyTo(output) }
-                        session.fsync(output)
+                var id: Int? = null
+                try {
+                    id = packageInstaller.createSession(params).also { watch(it) }
+                    packageInstaller.openSession(id).use { session ->
+                        session.openWrite(apk.name, 0, apk.length()).use { output ->
+                            apk.inputStream().use { it.copyTo(output) }
+                            session.fsync(output)
+                        }
+                        val callback =
+                            PendingIntent.getBroadcast(
+                                context,
+                                INSTALL_REQUEST,
+                                Intent(context, UpdateInstallReceiver::class.java),
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+                            )
+                        session.commit(callback.intentSender)
                     }
-                    val callback =
-                        PendingIntent.getBroadcast(
-                            context,
-                            INSTALL_REQUEST,
-                            Intent(context, UpdateInstallReceiver::class.java),
-                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
-                        )
-                    session.commit(callback.intentSender)
+                } catch (e: IOException) {
+                    Log.w(TAG, "Could not hand the update to the installer", e)
+                    id?.let { runCatching { packageInstaller.abandonSession(it) } }
+                    unwatch()
+                    onEvent(InstallEvent.Rejected)
                 }
-                true
             }
+        }
+
+        /** The confirmation pauses Flow, so a resume alone says nothing about whether the install is done. */
+        fun reconcile() {
+            val id = sessionId ?: return
+            val exists = packageInstaller.getSessionInfo(id) != null
+            if (!exists) unwatch()
+            onEvent(InstallEvent.Resumed(exists))
+        }
 
         /** Forgets downloads for anything but [keepVersion], e.g. once an update has been installed. */
         fun clean(keepVersion: String?) = UpdateFiles.clean(context, keepVersion)
 
-        internal fun reportInstallFailure() {
-            _installFailed.value = true
+        internal fun onEvent(event: InstallEvent) {
+            _installPhase.update { it.on(event) }
+        }
+
+        private fun watch(id: Int) {
+            unwatch()
+            sessionId = id
+            val callback =
+                object : PackageInstaller.SessionCallback() {
+                    override fun onCreated(sessionId: Int) = Unit
+
+                    override fun onBadgingChanged(sessionId: Int) = Unit
+
+                    override fun onActiveChanged(
+                        sessionId: Int,
+                        active: Boolean,
+                    ) = Unit
+
+                    override fun onProgressChanged(
+                        sessionId: Int,
+                        progress: Float,
+                    ) {
+                        if (sessionId == this@AppUpdateInstaller.sessionId) onEvent(InstallEvent.Progress(progress))
+                    }
+
+                    // The outcome itself comes from UpdateInstallReceiver, which can tell a cancel from a failure.
+                    override fun onFinished(
+                        sessionId: Int,
+                        success: Boolean,
+                    ) {
+                        if (sessionId == this@AppUpdateInstaller.sessionId) unwatch()
+                    }
+                }
+            sessionCallback = callback
+            packageInstaller.registerSessionCallback(callback, mainHandler)
+        }
+
+        private fun unwatch() {
+            sessionCallback?.let { packageInstaller.unregisterSessionCallback(it) }
+            sessionCallback = null
+            sessionId = null
         }
 
         private fun tagFor(version: String) = "app-update-$version"

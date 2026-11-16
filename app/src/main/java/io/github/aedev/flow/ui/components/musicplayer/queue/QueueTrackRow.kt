@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,10 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Explicit
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +63,9 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.musicplayer.common.formatTime
 import io.github.aedev.flow.ui.components.musicplayer.motion.QueueRowSwipeGestureHandler
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -71,7 +77,7 @@ internal fun RadioLoadingRow() {
                 .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
     ) {
-        LoadingIndicator(
+        FlowSpinner(
             modifier = Modifier.size(30.dp),
             color = MaterialTheme.colorScheme.primary,
         )
@@ -93,8 +99,11 @@ internal fun QueueTrackRow(
     onClick: () -> Unit,
     onSwipe: (QueueRowSwipe) -> Unit,
     modifier: Modifier = Modifier,
+    onMenu: (() -> Unit)? = null,
+    selected: Boolean? = null,
 ) {
     val scope = rememberCoroutineScope()
+    val dpad = LocalDpadNavigation.current
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
 
@@ -151,8 +160,15 @@ internal fun QueueTrackRow(
                     .fillMaxWidth()
                     .graphicsLayer { translationX = offsetX.value }
                     .clip(RoundedCornerShape(rowCorner))
-                    .clickable(enabled = offsetX.value == 0f, onClick = onClick)
                     .then(
+                        if (dpad && onMenu != null) {
+                            Modifier
+                                .onMenuKey(onMenu)
+                                .combinedClickable(onClick = onClick, onLongClick = onMenu)
+                        } else {
+                            Modifier.clickable(enabled = offsetX.value == 0f, onClick = onClick)
+                        },
+                    ).then(
                         if (swipeEnabled) {
                             Modifier.pointerInput(rowKey, swipeHandler) {
                                 detectHorizontalDragGestures(
@@ -171,7 +187,9 @@ internal fun QueueTrackRow(
                     ),
             shape = RoundedCornerShape(rowCorner),
             color =
-                if (isCurrent) {
+                if (selected == true) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else if (isCurrent) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {
                     MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.55f)
@@ -211,6 +229,21 @@ internal fun QueueTrackRow(
                                 barWidth = 2.5.dp,
                                 barSpacing = 1.5.dp,
                                 staggerMillis = 120,
+                            )
+                        }
+                    }
+                    if (selected == true) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Check,
+                                contentDescription = stringResource(R.string.queue_row_selected),
+                                tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                     }
@@ -295,7 +328,8 @@ private fun BoxScope.SwipeRevealPanel(
     val density = LocalDensity.current
     val revealWidthPx = kotlin.math.abs(offsetX)
     val revealProgress = (revealWidthPx / (56.dp.value * density.density)).coerceIn(0f, 1f)
-    val towardStart = offsetX < 0f
+    // The row moves by a physical offset, so the panel ignores the layout direction too.
+    val towardLeft = offsetX < 0f
 
     val containerColor = swipe.containerColor
     val contentColor = swipe.contentColor
@@ -319,16 +353,16 @@ private fun BoxScope.SwipeRevealPanel(
     Box(
         modifier =
             Modifier
-                .align(if (towardStart) Alignment.CenterEnd else Alignment.CenterStart)
-                .padding(
-                    start = if (towardStart) 0.dp else 8.dp,
-                    end = if (towardStart) 8.dp else 0.dp,
+                .align(if (towardLeft) AbsoluteAlignment.CenterRight else AbsoluteAlignment.CenterLeft)
+                .absolutePadding(
+                    left = if (towardLeft) 0.dp else 8.dp,
+                    right = if (towardLeft) 8.dp else 0.dp,
                 ).height(with(density) { rowHeightPx.toDp() })
                 .padding(vertical = 2.dp)
                 .width(revealWidthDp)
                 .clip(CircleShape)
                 .background(backgroundColor),
-        contentAlignment = if (towardStart) Alignment.CenterEnd else Alignment.CenterStart,
+        contentAlignment = if (towardLeft) AbsoluteAlignment.CenterRight else AbsoluteAlignment.CenterLeft,
     ) {
         Icon(
             imageVector = swipe.icon,

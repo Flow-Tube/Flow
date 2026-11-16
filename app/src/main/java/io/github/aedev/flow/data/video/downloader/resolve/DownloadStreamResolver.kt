@@ -23,6 +23,8 @@ data class ResolvedStreams(
     val durationMs: Long,
     /** The video's caption tracks as WebVTT, from the same response, for the files kept beside it. */
     val captions: List<ResolvedCaption> = emptyList(),
+    /** The chosen track was not on offer, so [audio] is another one. */
+    val audioTrackSwapped: Boolean = false,
 )
 
 sealed interface ResolveOutcome {
@@ -35,6 +37,9 @@ sealed interface ResolveOutcome {
 
     /** Only Opus audio exists, which the MP4 writer does not take. */
     data object NoCompatibleAudio : ResolveOutcome
+
+    /** The response doesn't offer the track the user picked; not every client serves every dub. */
+    data object AudioTrackMissing : ResolveOutcome
 }
 
 /**
@@ -50,10 +55,11 @@ class DownloadStreamResolver
         suspend fun resolve(
             request: DownloadRequest,
             avoidItags: Set<Int> = emptySet(),
+            acceptOtherTrack: Boolean = false,
         ): ResolveOutcome {
             val result = InnerTubeVideoStreamExtractor.extract(request.videoId) ?: return ResolveOutcome.Unavailable
             if (result.isLive) return ResolveOutcome.Unavailable
-            val outcome = select(request, result, avoidItags, defaults())
+            val outcome = select(request, result, avoidItags, defaults(), acceptOtherTrack)
             if (outcome !is ResolveOutcome.Resolved || request.wantsAudioOnly) return outcome
             return ResolveOutcome.Resolved(outcome.streams.copy(captions = captionsOf(request, result)))
         }
@@ -94,6 +100,7 @@ class DownloadStreamResolver
                 result: VideoExtractionResult,
                 avoidItags: Set<Int>,
                 defaults: SelectionDefaults,
+                acceptOtherTrack: Boolean = false,
             ): ResolveOutcome {
                 val audioFormats =
                     DownloadStreamPolicy
@@ -110,6 +117,8 @@ class DownloadStreamResolver
                     request.audioTrackId
                         ?.let { id -> audioFormats.filter { it.audioTrack?.id == id } }
                         .orEmpty()
+                val trackSwapped = request.audioTrackId != null && trackFormats.isEmpty()
+                if (trackSwapped && !acceptOtherTrack) return ResolveOutcome.AudioTrackMissing
                 val itagPool = if (request.audioTrackId != null) trackFormats else audioFormats
                 val audio =
                     request.audioItag
@@ -124,7 +133,9 @@ class DownloadStreamResolver
                         }
 
                 if (request.wantsAudioOnly) {
-                    return ResolveOutcome.Resolved(ResolvedStreams(video = null, audio = audio, durationMs = durationMs))
+                    return ResolveOutcome.Resolved(
+                        ResolvedStreams(video = null, audio = audio, durationMs = durationMs, audioTrackSwapped = trackSwapped),
+                    )
                 }
 
                 val videoFormats =
@@ -133,7 +144,7 @@ class DownloadStreamResolver
                         .filterNot { it.itag in avoidItags }
                 request.videoItag
                     ?.let { itag -> videoFormats.firstOrNull { it.itag == itag } }
-                    ?.let { return ResolveOutcome.Resolved(ResolvedStreams(it, audio, durationMs)) }
+                    ?.let { return ResolveOutcome.Resolved(ResolvedStreams(it, audio, durationMs, audioTrackSwapped = trackSwapped)) }
 
                 val height =
                     DefaultDownloadSelection.pickHeight(
@@ -146,7 +157,7 @@ class DownloadStreamResolver
                         .rankCodecs(atHeight.map(DownloadStreamPolicy::videoCodecKey), request.videoCodec ?: defaults.codec)
                         .firstOrNull() ?: return ResolveOutcome.Unavailable
                 val video = atHeight.first { DownloadStreamPolicy.videoCodecKey(it) == codec }
-                return ResolveOutcome.Resolved(ResolvedStreams(video, audio, durationMs))
+                return ResolveOutcome.Resolved(ResolvedStreams(video, audio, durationMs, audioTrackSwapped = trackSwapped))
             }
 
             private fun VideoExtractionResult.durationMs(): Long =

@@ -100,4 +100,29 @@ class InFlightRunsTest {
 
             assertThat(a.await() to b.await()).isEqualTo("A" to "B")
         }
+
+    @Test
+    fun `ending a run stops it for every caller and the next caller starts a new one`() =
+        runTest {
+            val runs = InFlightRuns<String, String>(backgroundScope)
+            var started = 0
+            val waiter =
+                async {
+                    runCatching {
+                        runs.join("v") {
+                            started++
+                            awaitCancellation()
+                        }
+                    }
+                }
+            runCurrent()
+
+            runs.cancelAndJoin("v")
+            runCurrent()
+            val next = runs.join("v") { "fresh" }
+
+            assertThat(waiter.await().isFailure).isTrue()
+            assertThat(started).isEqualTo(1)
+            assertThat(next).isEqualTo("fresh")
+        }
 }

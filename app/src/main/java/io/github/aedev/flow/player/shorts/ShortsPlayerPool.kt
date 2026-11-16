@@ -14,6 +14,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
 import dagger.hilt.android.EntryPointAccessors
+import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.ShortVideo
 import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
@@ -126,12 +127,24 @@ class ShortsPlayerPool private constructor() {
     private var preferredAudioLanguage: String = "original"
     private var shortsPlaybackMode: String = "loop"
     private var basePlaybackSpeed: Float = 1f
-    private var volumeNormalization: Boolean = true
+    private var volumeNormalization: Boolean = DEFAULT_VIDEO_VOLUME_NORMALIZATION
 
     private val preferenceObservers = ShortsPreferenceObservers()
 
     private val _currentVideoId = MutableStateFlow<String?>(null)
     val currentVideoId: StateFlow<String?> = _currentVideoId.asStateFlow()
+
+    private val _anyPlaying = MutableStateFlow(false)
+
+    /** Whether any pooled player is playing, from the players' own callbacks. */
+    val anyPlaying: StateFlow<Boolean> = _anyPlaying.asStateFlow()
+
+    private val playingListener =
+        object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _anyPlaying.value = players.any { it?.isPlaying == true }
+            }
+        }
 
     private val _currentVideo = MutableStateFlow<ShortVideo?>(null)
     val currentVideo: StateFlow<ShortVideo?> = _currentVideo.asStateFlow()
@@ -209,6 +222,7 @@ class ShortsPlayerPool private constructor() {
                             preferredAudioLanguage,
                         ) { _currentVideoId.value }
                         .also {
+                            it.addListener(playingListener)
                             audioSessionAnnouncers[i] =
                                 AudioSessionAnnouncer(effects.audioSessionRegistry(), AudioEffect.CONTENT_TYPE_MOVIE)
                                     .apply { attach(it) }
@@ -574,6 +588,7 @@ class ShortsPlayerPool private constructor() {
         activeVideoId = null
         _currentVideoId.value = null
         _currentVideo.value = null
+        _anyPlaying.value = false
         bumpOwnership()
     }
 

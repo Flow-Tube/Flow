@@ -40,8 +40,18 @@ object SubscriptionFeedMerger {
         now: Long,
     ): Video {
         val primary = candidates.first()
+        // RSS dates a premiere by when it was created; its start time only comes from the channel tab (#1430).
+        val futureUpcoming =
+            candidates.firstOrNull { candidate ->
+                candidate.isUpcoming &&
+                    SubscriptionFeedTimestamps.effectiveUploadTimestamp(candidate, now) > now + 60_000L
+            }
         val metadataSource =
             when {
+                futureUpcoming != null -> {
+                    futureUpcoming
+                }
+
                 SubscriptionFeedTimestamps.hasStableUploadMetadata(primary, now) -> {
                     primary
                 }
@@ -56,11 +66,6 @@ object SubscriptionFeedMerger {
             SubscriptionFeedTimestamps
                 .effectiveUploadTimestamp(metadataSource, now)
                 .takeIf { hasStableMetadata && it > 0L }
-        val isFutureUpcoming =
-            candidates.any { candidate ->
-                candidate.isUpcoming &&
-                    SubscriptionFeedTimestamps.effectiveUploadTimestamp(candidate, now) > now + 60_000L
-            }
         val bestChannelThumbnail =
             candidates.firstOrNull { it.channelThumbnailUrl.isNotBlank() }?.channelThumbnailUrl
                 ?: primary.channelThumbnailUrl
@@ -90,7 +95,7 @@ object SubscriptionFeedMerger {
             channelThumbnailUrls = bestChannelThumbnails,
             isShort = candidates.any { it.isShort },
             isLive = candidates.any { it.isLive },
-            isUpcoming = isFutureUpcoming,
+            isUpcoming = futureUpcoming != null,
         )
     }
 

@@ -2,19 +2,25 @@ package io.github.aedev.flow.ui.screens.settings.playback
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.BufferProfile
+import io.github.aedev.flow.player.cache.DiskReadAheadPolicy
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.ui.components.settings.SettingEntry
 import io.github.aedev.flow.ui.components.settings.SettingsFootnote
 import io.github.aedev.flow.ui.components.settings.SettingsGroupScope
 import io.github.aedev.flow.ui.components.settings.SettingsPage
+import io.github.aedev.flow.ui.components.settings.SettingsTarget
+import io.github.aedev.flow.ui.components.settings.nav
 import io.github.aedev.flow.ui.components.settings.option
 import io.github.aedev.flow.ui.components.settings.slider
+import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.screens.settings.index.BufferIndex
+import io.github.aedev.flow.ui.screens.settings.index.DownloadsIndex
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -30,6 +36,7 @@ private val MaxBufferRange = 30_000..PlayerConfig.MAX_SAFE_MAIN_BUFFER_MS
 internal fun BufferSettingsScreen(
     onBack: (() -> Unit)?,
     highlight: String?,
+    onNavigate: (SettingsTarget) -> Unit,
     viewModel: BufferSettingsViewModel = hiltViewModel(),
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
@@ -38,6 +45,8 @@ internal fun BufferSettingsScreen(
     val startBuffer by viewModel.startBufferMs.collectAsStateWithLifecycle()
     val rebuffer by viewModel.rebufferMs.collectAsStateWithLifecycle()
     val profileLabels = BufferProfile.entries.associateWith { profileLabel(it) }
+    val readAheadMinutes by viewModel.diskReadAheadMinutes.collectAsStateWithLifecycle()
+    val readAheadLabels = DiskReadAheadPolicy.OPTIONS_MINUTES.associateWith { readAheadLabel(it) }
 
     SettingsPage(
         title = stringResource(R.string.buffer_settings_title),
@@ -73,6 +82,25 @@ internal fun BufferSettingsScreen(
         if (profile == BufferProfile.CUSTOM) {
             item("buffer.custom.memory") { SettingsFootnote(stringResource(R.string.buffer_long_memory_note)) }
         }
+        group(key = BufferIndex.diskReadAhead.key, header = R.string.disk_read_ahead_title, footer = R.string.disk_read_ahead_footer) {
+            DiskReadAheadPolicy.OPTIONS_MINUTES.forEach { minutes ->
+                option(
+                    key = "buffer.disk_read_ahead.$minutes",
+                    label = readAheadLabels.getValue(minutes),
+                    selected = readAheadMinutes == minutes,
+                    onClick = { viewModel.setDiskReadAheadMinutes(minutes) },
+                )
+            }
+            switch(
+                entry = BufferIndex.diskReadAheadUnmeteredOnly,
+                state = viewModel.diskReadAheadUnmeteredOnly,
+                onCheckedChange = viewModel::setDiskReadAheadUnmeteredOnly,
+                enabled = readAheadMinutes != DiskReadAheadPolicy.OFF,
+            )
+        }
+        group(key = "buffer.cache") {
+            nav(BufferIndex.cacheSize, onClick = { onNavigate(DownloadsIndex.videoCache.target) })
+        }
         item("buffer.restart") { SettingsFootnote(stringResource(R.string.cache_size_applies_on_restart)) }
     }
 }
@@ -94,6 +122,14 @@ private fun SettingsGroupScope.millisSlider(
 
 private fun secondsText(ms: Int): String =
     String.format(Locale.getDefault(), "%.1f", ms / MS_PER_SECOND).removeSuffix(".0").removeSuffix(",0")
+
+@Composable
+private fun readAheadLabel(minutes: Int): String =
+    when (minutes) {
+        DiskReadAheadPolicy.OFF -> stringResource(R.string.off)
+        DiskReadAheadPolicy.WHOLE_VIDEO -> stringResource(R.string.disk_read_ahead_whole_video)
+        else -> pluralStringResource(R.plurals.disk_read_ahead_minutes, minutes, minutes)
+    }
 
 @Composable
 private fun profileLabel(profile: BufferProfile): Pair<String, String?> =

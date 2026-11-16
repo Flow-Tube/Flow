@@ -15,6 +15,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 import java.security.MessageDigest
+import java.util.Locale
 
 /** An app's identity on a Last.fm-compatible service. */
 data class AudioscrobblerKeys(
@@ -24,6 +25,15 @@ data class AudioscrobblerKeys(
     val isUsable: Boolean get() = apiKey.isNotBlank() && secret.isNotBlank()
 }
 
+/** How a service takes the credentials for auth.getMobileSession. */
+enum class MobileSessionAuth {
+    /** Last.fm: the password itself, inside the signed request. */
+    PASSWORD,
+
+    /** Libre.fm (GNU FM): only an auth token derived from the user name and password. */
+    AUTH_TOKEN,
+}
+
 /**
  * The Audioscrobbler 2.0 API that Last.fm and Libre.fm both speak: a mobile session from a user
  * name and password, now playing, and scrobbles in batches of up to [MAX_BATCH].
@@ -31,6 +41,7 @@ data class AudioscrobblerKeys(
 class AudioscrobblerClient(
     private val baseUrl: String,
     private val http: () -> OkHttpClient,
+    private val sessionAuth: MobileSessionAuth = MobileSessionAuth.PASSWORD,
 ) {
     suspend fun signIn(
         userName: String,
@@ -39,7 +50,12 @@ class AudioscrobblerClient(
     ): Result<ScrobbleAccount> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val body = post(mapOf("method" to "auth.getMobileSession", "username" to userName, "password" to password), keys)
+                val credential =
+                    when (sessionAuth) {
+                        MobileSessionAuth.PASSWORD -> "password" to password
+                        MobileSessionAuth.AUTH_TOKEN -> "authToken" to audioscrobblerAuthToken(userName, password)
+                    }
+                val body = post(mapOf("method" to "auth.getMobileSession", "username" to userName, credential), keys)
                 body.errorCode()?.let { throw IOException(body.errorMessage() ?: "Error $it") }
                 val session = body["session"]?.jsonObject ?: throw IOException("No session")
                 ScrobbleAccount(
@@ -243,6 +259,12 @@ class AudioscrobblerClient(
     }
 }
 
+/** GNU FM's token: MD5 of the lower-cased user name followed by the hex MD5 of the password. */
+internal fun audioscrobblerAuthToken(
+    userName: String,
+    password: String,
+): String = md5Hex(userName.lowercase(Locale.ROOT) + md5Hex(password))
+
 /** The documented api_sig: every parameter but format and callback, sorted, joined, then the secret, MD5'd. */
 internal fun audioscrobblerSignature(
     params: Map<String, String>,
@@ -254,11 +276,14 @@ internal fun audioscrobblerSignature(
             .toSortedMap()
             .entries
             .joinToString("") { it.key + it.value } + secret
-    return MessageDigest
-        .getInstance("MD5")
-        .digest(base.toByteArray(Charsets.UTF_8))
-        .joinToString("") { "%02x".format(it) }
+    return md5Hex(base)
 }
+
+private fun md5Hex(text: String): String =
+    MessageDigest
+        .getInstance("MD5")
+        .digest(text.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
 
 /** Session and key errors sign the account out; outages and rate limits retry; anything else drops the batch. */
 internal fun outcomeOf(errorCode: Int?): SendOutcome =

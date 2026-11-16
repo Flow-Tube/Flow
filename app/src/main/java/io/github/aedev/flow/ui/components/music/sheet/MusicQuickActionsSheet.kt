@@ -8,18 +8,19 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Cast
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.JoinInner
 import androidx.compose.material.icons.outlined.QueuePlayNext
 import androidx.compose.material.icons.outlined.Radio
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SmartDisplay
 import androidx.compose.material.icons.outlined.ThumbDown
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -57,9 +58,16 @@ import kotlinx.coroutines.flow.map
 
 private enum class SongMenuPage { Actions, Artists, Details, Save }
 
+/** The player's "Pause crossfade" row; [paused] while crossfade is off until the app restarts. */
+@Immutable
+class CrossfadePauseRow(
+    val paused: Boolean,
+    val onToggle: () -> Unit,
+)
+
 /**
- * A song's menu. [onAudioEffectsClick] and [onSleepTimerClick] are the player's own settings, so
- * their rows appear only when the player passes them.
+ * A song's menu. [onAudioEffectsClick], [onSleepTimerClick], [crossfadePause] and [onCastClick] are
+ * the player's own, so their rows appear only when the player passes them.
  */
 @Composable
 fun MusicQuickActionsSheet(
@@ -67,12 +75,14 @@ fun MusicQuickActionsSheet(
     onDismiss: () -> Unit,
     onAudioEffectsClick: (() -> Unit)? = null,
     onSleepTimerClick: (() -> Unit)? = null,
+    crossfadePause: CrossfadePauseRow? = null,
+    onCastClick: (() -> Unit)? = null,
     viewModel: MusicPlayerViewModel = sharedMusicPlayerViewModel(),
     quickActions: QuickActionsViewModel = sharedQuickActionsViewModel(),
 ) {
     var page by rememberSaveable(track.videoId) { mutableStateOf(SongMenuPage.Actions) }
     val toActions = { page = SongMenuPage.Actions }
-    val artists = remember(track) { track.menuArtists() }
+    val artists by produceState(track.menuArtists(), track) { value = viewModel.resolveArtists(track) }
     val avatars by produceState(emptyMap<String, String>(), artists) {
         value = quickActions.channelAvatars(artists.mapNotNull { it.id })
     }
@@ -106,8 +116,7 @@ fun MusicQuickActionsSheet(
             }
 
             SongMenuPage.Artists -> {
-                QuickActionsPageHeader(title = stringResource(R.string.quick_action_artists), onBack = toActions, onClose = close)
-                QuickActionsGroup(title = null, rows = artists.map { artistRow(it, listOfNotNull(avatars[it.id]), close) })
+                MusicArtistsPage(artists = artists, avatars = avatars, onBack = toActions, onClose = close)
             }
 
             else -> {
@@ -124,7 +133,14 @@ fun MusicQuickActionsSheet(
                 }
                 QuickActionsGroup(
                     title = stringResource(R.string.playback_header),
-                    rows = playbackRows(track, viewModel, quickActions, onAudioEffectsClick, onSleepTimerClick, close),
+                    rows =
+                        playbackRows(
+                            track,
+                            viewModel,
+                            quickActions,
+                            PlayerRows(onAudioEffectsClick, onSleepTimerClick, crossfadePause, onCastClick),
+                            close,
+                        ),
                 )
                 // A file on the device has no artist page, feed or online details to offer.
                 if (isDeviceFile) return@QuickActionsSheet
@@ -161,12 +177,6 @@ fun MusicQuickActionsSheet(
         }
     }
 }
-
-/** The song's artists with ids, or its channel when the source named no artist. */
-private fun MusicTrack.menuArtists(): List<MusicArtist> =
-    artists.filter { !it.id.isNullOrBlank() }.ifEmpty {
-        if (channelId.isNotBlank()) listOf(MusicArtist(name = artist, id = channelId)) else emptyList()
-    }
 
 @Composable
 private fun SongPrimaryActions(
@@ -211,13 +221,20 @@ private fun SongPrimaryActions(
     )
 }
 
+/** The rows only the player's own menu shows. */
+private class PlayerRows(
+    val onAudioEffectsClick: (() -> Unit)?,
+    val onSleepTimerClick: (() -> Unit)?,
+    val crossfadePause: CrossfadePauseRow?,
+    val onCastClick: (() -> Unit)?,
+)
+
 @Composable
 private fun playbackRows(
     track: MusicTrack,
     viewModel: MusicPlayerViewModel,
     quickActions: QuickActionsViewModel,
-    onAudioEffectsClick: (() -> Unit)?,
-    onSleepTimerClick: (() -> Unit)?,
+    player: PlayerRows,
     onDismiss: () -> Unit,
 ): List<QuickActionRow> {
     val navigator = LocalMediaNavigator.current
@@ -265,7 +282,15 @@ private fun playbackRows(
                 },
             )
         }
-        onAudioEffectsClick?.let { open ->
+        player.onCastClick?.let { open ->
+            add(
+                actionRow("cast", Icons.Outlined.Cast, stringResource(R.string.cast_to_tv), stringResource(R.string.cast_to_tv_desc)) {
+                    open()
+                    onDismiss()
+                },
+            )
+        }
+        player.onAudioEffectsClick?.let { open ->
             add(
                 actionRow("audio_effects", Icons.Outlined.GraphicEq, stringResource(R.string.audio_effects)) {
                     open()
@@ -273,11 +298,31 @@ private fun playbackRows(
                 },
             )
         }
-        onSleepTimerClick?.let { open ->
+        player.onSleepTimerClick?.let { open ->
             add(
                 actionRow("sleep_timer", Icons.Outlined.Bedtime, stringResource(R.string.sleep_timer)) {
                     open()
                     onDismiss()
+                },
+            )
+        }
+        player.crossfadePause?.let { row ->
+            add(
+                if (row.paused) {
+                    actionRow("crossfade_pause", Icons.Outlined.JoinInner, stringResource(R.string.crossfade_resume)) {
+                        row.onToggle()
+                        onDismiss()
+                    }
+                } else {
+                    actionRow(
+                        "crossfade_pause",
+                        Icons.Outlined.JoinInner,
+                        stringResource(R.string.crossfade_pause),
+                        stringResource(R.string.crossfade_pause_desc),
+                    ) {
+                        row.onToggle()
+                        onDismiss()
+                    }
                 },
             )
         }
@@ -333,35 +378,6 @@ private fun goToRows(
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun artistRow(
-    artist: MusicArtist,
-    avatar: List<String>,
-    onDismiss: () -> Unit,
-): QuickActionRow {
-    val navigator = LocalMediaNavigator.current
-    val ringColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    return QuickActionRow(artist.id.orEmpty()) { shape ->
-        FlowNavRow(
-            title = artist.name,
-            onClick = {
-                navigator.openArtist(artist.id.orEmpty())
-                onDismiss()
-            },
-            shape = shape,
-            leadingContent = {
-                ChannelAvatarStack(
-                    urls = avatar,
-                    contentDescription = null,
-                    avatarSize = QuickActionsDefaults.AvatarSize,
-                    ringColor = ringColor,
-                )
-            },
-            trailingContent = { Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = null) },
-        )
     }
 }
 

@@ -14,10 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.local.dao.WatchProgress
+import io.github.aedev.flow.data.local.isImportedWatch
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.repository.DeArrowRepository
@@ -25,13 +28,14 @@ import io.github.aedev.flow.data.repository.OriginalTitleRepository
 import io.github.aedev.flow.ui.components.LocalDeArrow
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
 import io.github.aedev.flow.ui.components.rememberDeArrowResult
+import io.github.aedev.flow.ui.components.shared.LocalArtworkColors
 import io.github.aedev.flow.ui.components.shared.LocalThumbnailQuality
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.utils.rememberIsOnWifi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 
 /**
  * Card settings that are identical for every card on screen.
@@ -57,6 +61,9 @@ data class VideoCardPreferences(
  * rare write invalidates the subtree wholesale instead of being tracked per reader.
  */
 val LocalVideoCardPreferences = staticCompositionLocalOf { VideoCardPreferences() }
+
+/** The AI channel list's matcher; static for the same reason, it changes only with the list or a setting. */
+val LocalAiListMatcher = staticCompositionLocalOf { AiListMatcher.NONE }
 
 /**
  * Watch progress for every video in history, backed by one Room observer.
@@ -122,6 +129,7 @@ val LocalVideoCardActions = staticCompositionLocalOf { VideoCardActions.None }
 fun ProvideVideoCardState(
     originalTitles: OriginalTitleRepository?,
     deArrow: DeArrowRepository?,
+    aiList: AiListRepository? = null,
     quickActions: QuickActionsViewModel = sharedQuickActionsViewModel(),
     content: @Composable () -> Unit,
 ) {
@@ -165,13 +173,16 @@ fun ProvideVideoCardState(
     val thumbnailQualities by thumbnailQualitiesFlow.collectAsStateWithLifecycle(null)
     val isWifi = rememberIsOnWifi()
     val thumbnailQuality = thumbnailQualities?.let { (wifi, cellular) -> ThumbnailQuality.effective(isWifi, wifi, cellular) }
+    val artworkColors by playerPreferences.videoArtworkColors.collectAsStateWithLifecycle(true)
+    val aiMatcherFlow = remember(aiList) { aiList?.matcher ?: MutableStateFlow(AiListMatcher.NONE) }
+    val aiMatcher by aiMatcherFlow.collectAsStateWithLifecycle()
 
     val progressFlow =
-        remember(context) {
+        remember(context, playerPreferences) {
             ViewHistory
                 .getInstance(context)
                 .getAllWatchProgress()
-                .map { entries -> entries.toWatchProgressMap() }
+                .combine(playerPreferences.countImportedAsWatched) { entries, countImported -> entries.toWatchProgressMap(countImported) }
                 .distinctUntilChanged()
         }
     val progressEntries = progressFlow.collectAsStateWithLifecycle(emptyMap())
@@ -182,19 +193,26 @@ fun ProvideVideoCardState(
         LocalVideoWatchProgress provides progressStore,
         LocalVideoCardActions provides actions,
         LocalThumbnailQuality provides thumbnailQuality,
+        LocalArtworkColors provides artworkColors,
         LocalOriginalTitles provides originalTitles,
         LocalDeArrow provides deArrow,
+        LocalAiListMatcher provides aiMatcher,
         content = content,
     )
 }
 
 /**
  * Below 3% a video counts as not started, and at 90% the bar is filled rather than left a sliver
- * short of the end. Mirrors what each card computed for itself before.
+ * short of the end. Mirrors what each card computed for itself before. With [countImported], a video
+ * from a YouTube history import fills the bar too; music and local files never do.
  */
-internal fun List<WatchProgress>.toWatchProgressMap(): Map<String, Float> =
+internal fun List<WatchProgress>.toWatchProgressMap(countImported: Boolean = false): Map<String, Float> =
     buildMap {
         this@toWatchProgressMap.forEach { entry ->
+            if (countImported && !entry.isMusic && !entry.isLocal && isImportedWatch(entry.position, entry.duration)) {
+                put(entry.videoId, 1f)
+                return@forEach
+            }
             if (entry.duration <= 0) return@forEach
             val percentage = entry.position.toFloat() / entry.duration.toFloat() * 100f
             if (percentage >= 3f) {

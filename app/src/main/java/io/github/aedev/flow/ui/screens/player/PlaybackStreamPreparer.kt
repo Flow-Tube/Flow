@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.player
 
 import io.github.aedev.flow.data.local.VideoQuality
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.player.PlayerChannelMetadataPolicy
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InnerTubeStreamBridge
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
@@ -121,8 +122,13 @@ internal class PlaybackStreamPreparer(
         val details = result.playerResponse.videoDetails
         val preferOriginal = originalText()
         val title = OriginalTextPolicy.streamTitle(details?.title, cached?.title, preferOriginal) ?: fallbackTitle
-        val channel = details?.author?.takeIf { it.isNotBlank() } ?: cached?.channelName ?: ""
-        val channelId = details?.channelId?.takeIf { it.isNotBlank() } ?: cached?.channelId ?: ""
+        val (channelId, channel) =
+            PlayerChannelMetadataPolicy.streamChannel(
+                cardId = cached?.channelId,
+                cardName = cached?.channelName,
+                playerId = details?.channelId,
+                playerName = details?.author,
+            )
         val thumbnail =
             details
                 ?.thumbnail

@@ -119,6 +119,17 @@ private fun JsonObject.toVideoRendererItem(owner: FeedItemOwner): FeedItem? {
             badges = badges,
             snippet = snippet,
             snippetHighlights = highlights,
+            channelHandle =
+                this["ownerText"].bylineChannelHandle()
+                    ?: this["shortBylineText"].bylineChannelHandle()
+                    ?: this["longBylineText"].bylineChannelHandle()
+                    ?: this["channelThumbnailSupportedRenderers"]
+                        .objectOrNull()
+                        ?.get("channelThumbnailWithLinkRenderer")
+                        .objectOrNull()
+                        ?.get("navigationEndpoint")
+                        .objectOrNull()
+                        ?.browseHandle(),
         )
     return if (isShort) FeedItem.ShortItem(video) else FeedItem.VideoItem(video)
 }
@@ -230,6 +241,16 @@ private fun JsonObject.canonicalBaseUrl(): String? =
         ?.get("canonicalBaseUrl")
         .stringOrNull()
         ?.takeIf(String::isNotBlank)
+
+/** The `/@handle` a navigation endpoint's browse target carries, or null for a non-handle URL. */
+internal fun JsonObject.browseHandle(): String? = canonicalBaseUrl()?.takeIf { it.startsWith("/@") }
+
+private fun JsonElement?.bylineChannelHandle(): String? =
+    arrayOrNull()
+        ?.firstNotNullOfOrNull { it.objectOrNull()?.bylineChannelHandle() }
+        ?: objectOrNull()?.let { node ->
+            node["navigationEndpoint"].objectOrNull()?.browseHandle() ?: node["runs"].bylineChannelHandle()
+        }
 
 private fun JsonElement?.bylineChannelId(): String? =
     arrayOrNull()

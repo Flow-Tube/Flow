@@ -151,7 +151,7 @@ object CipherDeobfuscator {
     private suspend fun getOrCreateWebView(forceRefresh: Boolean): CipherWebView? {
         Log.d(TAG, "getOrCreateWebView: forceRefresh=$forceRefresh, existing=${cipherWebView != null}")
 
-        if (!forceRefresh && cipherWebView != null) {
+        if (!forceRefresh && cipherWebView?.isDestroyed == false) {
             return cipherWebView
         }
 

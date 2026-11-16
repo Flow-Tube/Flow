@@ -10,12 +10,22 @@ import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.data.GroupRecord
 import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.LinkedDatabase
+import io.github.aedev.flow.sync2.data.RosterPinRow
+import io.github.aedev.flow.sync2.data.webDavUrl
 import io.github.aedev.flow.sync2.device.DeviceKeys
+import io.github.aedev.flow.sync2.device.StoreCredentials
+import io.github.aedev.flow.sync2.device.WebDavLogin
+import io.github.aedev.flow.sync2.engine.ContestSide
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.engine.Session
+import io.github.aedev.flow.sync2.engine.contestSides
+import io.github.aedev.flow.sync2.engine.loginWaiting
+import io.github.aedev.flow.sync2.lan.LanMet
 import io.github.aedev.flow.sync2.lan.LanSync
+import io.github.aedev.flow.sync2.lan.lanPort
 import io.github.aedev.flow.sync2.linking.Code
 import io.github.aedev.flow.sync2.linking.DeviceMeta
+import io.github.aedev.flow.sync2.linking.RestoreDevice
 import io.github.aedev.flow.sync2.linking.StoreLocation
 import io.github.aedev.flow.sync2.linking.addDevice
 import io.github.aedev.flow.sync2.linking.addScanned
@@ -23,19 +33,29 @@ import io.github.aedev.flow.sync2.linking.answerShown
 import io.github.aedev.flow.sync2.linking.askToJoin
 import io.github.aedev.flow.sync2.linking.createGroup
 import io.github.aedev.flow.sync2.linking.createLanGroup
+import io.github.aedev.flow.sync2.linking.createWebDavGroup
 import io.github.aedev.flow.sync2.linking.deviceNames
 import io.github.aedev.flow.sync2.linking.join
 import io.github.aedev.flow.sync2.linking.listen
 import io.github.aedev.flow.sync2.linking.newOffer
+import io.github.aedev.flow.sync2.linking.previewServerRestore
+import io.github.aedev.flow.sync2.linking.previewWebDavRestore
 import io.github.aedev.flow.sync2.linking.readCode
-import io.github.aedev.flow.sync2.linking.removeDevice
+import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.linking.renameDevice
+import io.github.aedev.flow.sync2.linking.replaceRecovery
 import io.github.aedev.flow.sync2.linking.restoreGroup
+import io.github.aedev.flow.sync2.linking.restoreWebDavGroup
 import io.github.aedev.flow.sync2.roster.Role
+import io.github.aedev.flow.sync2.roster.devicesAddedBy
+import io.github.aedev.flow.sync2.roster.recoveryMember
+import io.github.aedev.flow.sync2.store.FileLayout
 import io.github.aedev.flow.sync2.store.JoinRequest
 import io.github.aedev.flow.sync2.store.LocalStore
 import io.github.aedev.flow.sync2.store.ServerStore
 import io.github.aedev.flow.sync2.store.StoreException
+import io.github.aedev.flow.sync2.store.StoreLogin
+import io.github.aedev.flow.sync2.store.WebDavStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -81,7 +101,9 @@ data class LinkedDevice(
     val name: String,
     val platform: String,
     val thisDevice: Boolean,
-    /** When the server last heard from it; null in a group without a server. */
+    /** It set the current recovery key, so its leaving stops the others writing. */
+    val setRecoveryKey: Boolean = false,
+    /** When it last synced, as far as this device knows: its group's server or WebDAV folder, or a session on this network. */
     val seen: Long? = null,
 )
 
@@ -97,7 +119,10 @@ class LinkedActions
         private val identity: DeviceIdentity,
         private val local: LocalStore,
         lan: LanSync,
+        private val lanMet: LanMet,
         private val reset: LinkedReset,
+        private val credentials: StoreCredentials,
+        private val profiles: LinkedProfiles,
         @ApplicationScope private val scope: CoroutineScope,
     ) {
         private val phase = MutableStateFlow<LinkPhase>(LinkPhase.Idle)
@@ -113,8 +138,14 @@ class LinkedActions
 
         private suspend fun linked(): GroupRecord = db.groups().group() ?: throw LinkedException.NotLinked()
 
-        private suspend fun ensureUnlinked() {
+        /** Fresh device keys for a group this device is about to create, join or restore (spec/crypto.md, Device keys). */
+        private suspend fun checkNotLinked() {
             if (db.groups().group() != null) throw LinkedException.AlreadyLinked()
+        }
+
+        private suspend fun newMembership(): MemberSecrets {
+            checkNotLinked()
+            return keys.fresh()
         }
 
         private suspend fun session(): Session = sync.open(linked(), keys.load())
@@ -132,42 +163,145 @@ class LinkedActions
             // The status is extra; the devices still show without it.
             val seen =
                 try {
-                    sync.server(session.record, session.device)?.seen()
+                    sync.seen(session.record, session.device)
                 } catch (_: StoreException) {
                     null
                 }.orEmpty()
+            val met = lanMet.times(session.record.groupId)
+            val installer = recoveryMember(session.state.members)?.value?.installer
             return session.state.members
                 .filterValues { it.role == Role.DEVICE }
                 .keys
-                .map { id -> LinkedDevice(id, names[id]?.name.orEmpty(), names[id]?.platform.orEmpty(), id == me, seen[id]) }
-                .sortedByDescending { it.thisDevice }
+                .map { id ->
+                    val synced = listOfNotNull(seen[id], met[id]).maxOrNull()
+                    LinkedDevice(id, names[id]?.name.orEmpty(), names[id]?.platform.orEmpty(), id == me, id == installer, synced)
+                }.sortedByDescending { it.thisDevice }
         }
 
         /** Creates a group on a fresh server and returns the recovery words to show once. */
         suspend fun create(
             url: String,
             adminToken: String,
+        ): String =
+            createGroup(db, url.trim(), adminToken.trim(), newMembership(), meta(), ActiveProfile.get(context).id).also { linkedNow() }
+
+        /**
+         * Resets a server that already holds a group, deleting that group's objects for every device,
+         * then creates a new group on it with the same admin token.
+         */
+        suspend fun resetAndCreate(
+            url: String,
+            adminToken: String,
         ): String {
-            ensureUnlinked()
-            return createGroup(db, url.trim(), adminToken.trim(), keys.load(), meta(), ActiveProfile.get(context).id).also { linkedNow() }
+            val device = newMembership()
+            ServerStore.connect(url.trim(), device, null, null).resetServer(adminToken.trim())
+            return createGroup(db, url.trim(), adminToken.trim(), device, meta(), ActiveProfile.get(context).id).also { linkedNow() }
+        }
+
+        /** Creates a group in an empty WebDAV folder and returns the recovery words. */
+        suspend fun createOnWebDav(
+            url: String,
+            user: String,
+            password: String,
+        ): String {
+            val (words, conditional) =
+                createWebDavGroup(
+                    db,
+                    WebDavStore.connect(url.trim(), user, password),
+                    newMembership(),
+                    meta(),
+                    ActiveProfile.get(context).id,
+                )
+            credentials.save(WebDavLogin(user, password, conditional))
+            return words.also { linkedNow() }
         }
 
         /** Creates a group on this network alone, with no server, and returns the recovery words. */
-        suspend fun createOnNetwork(): String {
-            ensureUnlinked()
-            return createLanGroup(db, local, keys.load(), meta(), ActiveProfile.get(context).id).also { linkedNow() }
+        suspend fun createOnNetwork(): String =
+            createLanGroup(db, local, newMembership(), meta(), ActiveProfile.get(context).id).also {
+                linkedNow()
+            }
+
+        /** The devices of the group the recovery words open, for the user to choose from. Writes nothing. */
+        suspend fun previewRestore(
+            url: String,
+            words: String,
+        ): List<RestoreDevice> {
+            checkNotLinked()
+            return previewServerRestore(url.trim(), words)
         }
 
-        /** Restores the group with the recovery words and returns the new words to show once. */
+        /** The devices of the group in a WebDAV folder that the recovery words open. Writes nothing. */
+        suspend fun previewRestoreFromWebDav(
+            url: String,
+            user: String,
+            password: String,
+            words: String,
+        ): List<RestoreDevice> {
+            checkNotLinked()
+            return previewWebDavRestore(WebDavStore.connect(url.trim(), user, password), words)
+        }
+
+        /** Restores the group with the recovery words, keeping the devices in [keep], and returns the new words to show once. */
         suspend fun restore(
             url: String,
             words: String,
+            keep: Set<String>,
+        ): String = restoreGroup(db, url.trim(), words, newMembership(), meta(), keep).also { linkedNow() }
+
+        /** Restores the group from a WebDAV folder with the recovery words, keeping the devices in [keep], and returns the new words to show once. */
+        suspend fun restoreFromWebDav(
+            url: String,
+            user: String,
+            password: String,
+            words: String,
+            keep: Set<String>,
         ): String {
-            ensureUnlinked()
-            return restoreGroup(db, url.trim(), words, keys.load(), meta()).also { linkedNow() }
+            val restored = restoreWebDavGroup(db, WebDavStore.connect(url.trim(), user, password), words, newMembership(), meta(), keep)
+            credentials.save(WebDavLogin(user, password))
+            return restored.also { linkedNow() }
         }
 
-        suspend fun confirmRecoverySaved() = db.groups().setRecoverySaved(true)
+        /** Replaces a WebDAV login the server refused, once the folder takes the new one and still holds the group, then syncs with it. */
+        suspend fun updateLogin(
+            user: String,
+            password: String,
+        ) {
+            if (!sync.adoptLogin(StoreLogin(user, password))) throw LinkedException.Unexpected()
+            syncNow()
+        }
+
+        /** Sends the other devices a new login for the folder, before the user sets it there. Opening the session re-reads the roster, and fails while it is contested. */
+        suspend fun startLoginChange(
+            user: String,
+            password: String,
+        ) {
+            val login = StoreLogin(user.trim(), password)
+            session().writeLogin(login)
+            credentials.savePending(login)
+            syncNow()
+        }
+
+        /** The user set the new login at the provider: checks it, and uses it from now on. */
+        suspend fun finishLoginChange() {
+            val login = credentials.pending() ?: throw LinkedException.Unexpected()
+            if (!sync.adoptLogin(login)) throw LinkedException.Unexpected()
+            syncNow()
+        }
+
+        /** Stops a change this device started. A device that read the login still holds it, and only tries it if the folder refuses the current one. */
+        suspend fun cancelLoginChange() {
+            credentials.forgetPending()
+            db.groups().setLoginSent(null)
+        }
+
+        /** The devices yet to read the login this device sent, or null with no change under way. */
+        suspend fun loginWaiting(): List<String>? = loginWaiting(db, SyncBytes.toHex(keys.load().did))
+
+        suspend fun confirmRecoverySaved() {
+            db.groups().setRecoverySaved(true)
+            sync.replacedWords.value = null
+        }
 
         suspend fun rename(
             id: String,
@@ -178,15 +312,60 @@ class LinkedActions
             renameDevice(session, keys.load(), id, current.copy(name = name.trim().take(NAME_LIMIT)))
         }
 
-        suspend fun remove(id: String) {
-            removeDevice(session(), keys.load(), id)
-            db.snapshots().snapshotSoon()
+        /** Replaces the recovery words, so the old ones stop working, and returns the new words to show once. */
+        suspend fun replaceRecoveryWords(): String {
+            val words = replaceRecovery(session(), keys.load())
+            db.groups().setRecoverySaved(false)
+            return words
         }
 
-        /** Leaves the group on this device only: its state goes, its keys stay. */
+        /** Removes [id] and [also], and returns the new recovery words to show once when they had to be replaced with it. */
+        suspend fun remove(
+            id: String,
+            also: List<String>,
+        ): String? {
+            // The cut names what this device has read, so read what it can first (spec/protocol.md, Removal).
+            sync.syncNow()
+            val words = removeDevices(session(), keys.load(), also + id)
+            if (words != null) db.groups().setRecoverySaved(false)
+            db.snapshots().snapshotSoon()
+            return words
+        }
+
+        /** The current devices [id] added, for the user to remove with it if they don't recognise them. */
+        suspend fun addedBy(id: String): List<String> = devicesAddedBy(session().entries, id)
+
+        /** The user answered the notice that the recovery key changed. */
+        suspend fun answerRecoveryNotice() = db.groups().setRecoveryNotice(null, null)
+
+        /** Leaves the group, telling the others ([LinkedReset.leave]). */
+        suspend fun leave() = reset.leave()
+
+        /** Why the last leave couldn't tell the other devices, while the user decides. */
+        val leaveFailed: StateFlow<LinkedError?> = reset.leaveFailed
+
+        fun keepGroup() = reset.keepGroup()
+
+        /** The sides to choose between while two devices have removed each other. */
+        suspend fun contest(): List<ContestSide> {
+            val record = db.groups().group() ?: return emptyList()
+            val device = keys.load()
+            return contestSides(db, sync.groupStore(record, device), device)
+        }
+
+        /** Keeps one side on this device, and syncs from it. */
+        suspend fun keepSide(entry: String) {
+            if (contest().none { it.entry == entry }) throw LinkedException.Unexpected()
+            db.groups().addRosterPin(RosterPinRow(entry))
+            LinkedSyncWorker.syncSoon(context, announce = true)
+        }
+
+        /** Forgets the group and this device's keys without telling the others, as after being removed. */
         suspend fun forget() = reset.forget()
 
         val syncing: StateFlow<Boolean> = sync.syncing
+
+        val replacedWords: StateFlow<String?> = sync.replacedWords
 
         fun syncNow() = LinkedSyncWorker.syncSoon(context, announce = true)
 
@@ -195,35 +374,76 @@ class LinkedActions
             start {
                 val record = linked()
                 val device = keys.load()
-                val location = if (record.storeUrl == LAN_STORE) StoreLocation("lan") else StoreLocation("server", record.storeUrl)
-                val offer = newOffer(location, meta().name, listen())
+                val offer = newOffer(location(record), meta().name, listen())
                 phase.value = LinkPhase.Waiting(offer.qr)
-                addDevice(sync.open(record, device), sync.server(record, device), offer, device, ::confirm)
+                addDevice(
+                    sync.open(record, device),
+                    sync.remote(record, device),
+                    offer,
+                    device,
+                    profiles.welcomeLink(),
+                    credentials.webDav(),
+                    lanPort(context),
+                    ::confirm,
+                )
             }
 
-        /** Answers another device's code: a member's when this device isn't linked, a new device's when it is. */
-        fun enterCode(text: String) =
-            start {
-                val device = keys.load()
-                when (val code = readCode(text)) {
-                    is Code.Member -> {
-                        joinMember(code, device)
-                    }
+        /** Where this device's group lives, as its codes name it: never with credentials. */
+        private fun location(record: GroupRecord): StoreLocation =
+            when {
+                record.storeUrl == LAN_STORE -> StoreLocation("lan")
+                record.webDavUrl != null -> StoreLocation("webdav", record.webDavUrl)
+                else -> StoreLocation("server", record.storeUrl)
+            }
 
-                    is Code.New -> {
-                        if (db.groups().group() == null) throw LinkedException.NeedsMember()
-                        addScanned(session(), code, device, ::confirm)
-                    }
+        /**
+         * Answers another device's code: a member's when this device isn't linked, a new device's when
+         * it is. [login] is a WebDAV login the user entered before scanning, so pairing can go through
+         * that folder when the devices aren't on the same network.
+         */
+        fun enterCode(
+            text: String,
+            login: WebDavLogin? = null,
+        ) = start {
+            when (val code = readCode(text)) {
+                is Code.Member -> {
+                    joinMember(code, newMembership(), login)
+                }
+
+                is Code.New -> {
+                    if (db.groups().group() == null) throw LinkedException.NeedsMember()
+                    addScanned(session(), code, keys.load(), profiles.welcomeLink(), credentials.webDav(), lanPort(context), ::confirm)
                 }
             }
+        }
 
         private suspend fun joinMember(
             code: Code.Member,
             device: MemberSecrets,
+            login: WebDavLogin? = null,
         ) {
-            ensureUnlinked()
-            val server = code.storeUrl?.let { ServerStore.connect(it, device, null, null) }
-            join(db, local, server, server, code, device, meta(), ::confirm)
+            val url = code.storeUrl
+            val mailbox =
+                when {
+                    url == null -> {
+                        null
+                    }
+
+                    code.store?.k == "webdav" -> {
+                        login?.let {
+                            FileLayout(
+                                WebDavStore.connect(url, it.user, it.password),
+                                SyncBytes.toHex(device.did),
+                            )
+                        }
+                    }
+
+                    else -> {
+                        ServerStore.connect(url, device, null, null)
+                    }
+                }
+            val welcomed = join(db, local, { it.remote(device) }, mailbox, code, device, meta(), joining(), lanPort(context), ::confirm)
+            welcomed.login?.let { credentials.save(it) }
             linkedNow()
         }
 
@@ -232,8 +452,7 @@ class LinkedActions
             url: String,
             adminToken: String,
         ) = start {
-            ensureUnlinked()
-            val device = keys.load()
+            val device = newMembership()
             phase.value = LinkPhase.Asked
             val code = askToJoin(ServerStore.connect(url.trim(), device, null, null), adminToken.trim(), meta().name)
             phase.value = LinkPhase.Waiting(null)
@@ -254,7 +473,15 @@ class LinkedActions
                 val server = sync.server(record, device) ?: throw LinkedException.Unexpected()
                 val offer = newOffer(StoreLocation("server", record.storeUrl), meta().name, null)
                 server.answerJoin(id, offer.qr)
-                addDevice(sync.open(record, device), server, offer, device, ::confirm)
+                addDevice(
+                    sync.open(record, device),
+                    server,
+                    offer,
+                    device,
+                    profiles.welcomeLink(),
+                    port = lanPort(context),
+                    confirm = ::confirm,
+                )
             }
 
         suspend fun decline(id: String) {
@@ -265,12 +492,12 @@ class LinkedActions
         /** Shows a new device's code, for a member on the same network to scan: how a TV joins. */
         fun showCode() =
             start {
-                ensureUnlinked()
-                val device = keys.load()
+                val device = newMembership()
                 val offer = newOffer(null, meta().name, listen() ?: throw LinkedException.LanUnreachable())
                 phase.value = LinkPhase.Waiting(offer.qr)
-                val welcomed = answerShown(offer, device, meta(), ::confirm)
-                welcomed.finish(db, local, welcomed.storeUrl?.let { ServerStore.connect(it, device, welcomed.instance, welcomed.group) })
+                val welcomed = answerShown(offer, device, meta(), lanPort(context), ::confirm)
+                welcomed.finish(db, local, welcomed.remote(device), joining())
+                welcomed.login?.let { credentials.save(it) }
                 linkedNow()
             }
 
@@ -306,4 +533,7 @@ class LinkedActions
                         }
                 }
         }
+
+        /** A joining device's Default profile joins the member's link (spec/protocol.md, Messages). */
+        private suspend fun joining(): String = profiles.defaultId()
     }

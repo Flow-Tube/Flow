@@ -15,10 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.SponsorBlockAction
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
@@ -28,6 +31,10 @@ import kotlinx.coroutines.delay
 
 private const val SB_SKIP_DIM_DELAY_MS = 5_000L
 private const val SB_SKIP_DIMMED_ALPHA = 0.45f
+private val LabelledPadding = PaddingValues(horizontal = 16.dp, vertical = 9.dp)
+private val LabelledIconSize = 16.dp
+private val IconOnlyPadding = PaddingValues(10.dp)
+private val IconOnlyIconSize = 20.dp
 
 /**
  * Overlay button that lets the user manually skip a SponsorBlock segment.
@@ -41,6 +48,8 @@ fun SponsorBlockSkipButton(
     playbackEnded: Boolean,
     onSkipClick: (endPositionMs: Long) -> Unit,
     modifier: Modifier = Modifier,
+    skippedOnceUuids: Set<String> = emptySet(),
+    style: SponsorBlockSkipButtonStyle = SponsorBlockSkipButtonStyle.FULL,
 ) {
     var skippedUuids by remember(sponsorSegments) { mutableStateOf(emptySet<String>()) }
 
@@ -51,6 +60,7 @@ fun SponsorBlockSkipButton(
             skippedUuids,
             categoryActions,
             playbackEnded,
+            skippedOnceUuids,
         ) {
             findActiveManualSponsorSegment(
                 sponsorSegments = sponsorSegments,
@@ -58,6 +68,7 @@ fun SponsorBlockSkipButton(
                 skippedUuids = skippedUuids,
                 categoryActions = categoryActions,
                 playbackEnded = playbackEnded,
+                skippedOnceUuids = skippedOnceUuids,
             )
         }
 
@@ -97,10 +108,16 @@ fun SponsorBlockSkipButton(
         val seg = displaySegment ?: return@AnimatedVisibility
         val categoryRes = sponsorCategoryLabelRes(seg.category)
         val skipLabel =
-            if (categoryRes != null) {
-                stringResource(R.string.sb_skip_segment, stringResource(categoryRes))
-            } else {
-                stringResource(R.string.sb_manual_skip)
+            when {
+                seg.isPoint -> stringResource(R.string.sb_jump_to_highlight)
+                categoryRes != null -> stringResource(R.string.sb_skip_segment, stringResource(categoryRes))
+                else -> stringResource(R.string.sb_manual_skip)
+            }
+        val visibleLabel =
+            when (style) {
+                SponsorBlockSkipButtonStyle.FULL -> skipLabel
+                SponsorBlockSkipButtonStyle.COMPACT -> stringResource(if (seg.isPoint) R.string.sb_jump else R.string.sb_manual_skip)
+                SponsorBlockSkipButtonStyle.ICON_ONLY -> null
             }
         Surface(
             onClick = {
@@ -114,22 +131,27 @@ fun SponsorBlockSkipButton(
             modifier = Modifier.graphicsLayer { alpha = buttonAlpha.value },
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                modifier =
+                    Modifier
+                        .clearAndSetSemantics { contentDescription = skipLabel }
+                        .padding(if (visibleLabel == null) IconOnlyPadding else LabelledPadding),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(
-                    text = skipLabel,
-                    color = PlayerScrimContent,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                )
+                visibleLabel?.let {
+                    Text(
+                        text = it,
+                        color = PlayerScrimContent,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                }
                 Icon(
                     imageVector = Icons.Rounded.SkipNext,
                     contentDescription = null,
                     tint = PlayerScrimContent,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(if (visibleLabel == null) IconOnlyIconSize else LabelledIconSize),
                 )
             }
         }

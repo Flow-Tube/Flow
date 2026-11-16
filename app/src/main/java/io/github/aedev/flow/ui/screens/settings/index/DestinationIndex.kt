@@ -9,13 +9,17 @@ import io.github.aedev.flow.ui.components.settings.SettingsDestination
 internal object DestinationIndex {
     private const val KEY_PREFIX = "dest."
 
-    /** Pages about phone hardware or features TV leaves out: widgets, the navigation bar, local media, notifications. */
+    /**
+     * Pages about phone hardware or features TV leaves out: widgets, the navigation bar, local media,
+     * notifications, and the app lock, which needs a screen lock most TVs don't have.
+     */
     private val notOnTv =
         setOf(
             SettingsDestination.WIDGETS,
             SettingsDestination.NAVIGATION_BAR,
             SettingsDestination.LOCAL_MEDIA,
             SettingsDestination.NOTIFICATIONS,
+            SettingsDestination.SECURITY,
         )
 
     fun entry(destination: SettingsDestination): SettingEntry =
@@ -24,6 +28,7 @@ internal object DestinationIndex {
             title = destination.titleRes,
             destination = destination.parent ?: SettingsDestination.HOME,
             summary = summaryOf(destination),
+            keywords = if (destination == SettingsDestination.EQUALIZER) R.string.eq_settings_keywords else null,
             availability =
                 when (destination) {
                     in notOnTv -> SettingAvailability.NotOnTv
@@ -80,7 +85,7 @@ internal object DestinationIndex {
             SettingsDestination.INTEGRATIONS -> R.string.settings_integrations_summary
             SettingsDestination.SCROBBLING -> R.string.scrobbling_summary
             SettingsDestination.BACKUP -> R.string.settings_backup_summary
-            SettingsDestination.SYNC -> R.string.sync_devices_subtitle
+            SettingsDestination.SYNC -> R.string.sync_devices_summary
             SettingsDestination.PROFILES -> R.string.profiles_summary
             SettingsDestination.PROFILE_EDIT -> null
             SettingsDestination.HISTORY -> R.string.settings_history_summary
@@ -89,6 +94,7 @@ internal object DestinationIndex {
             SettingsDestination.NOTIFICATIONS -> R.string.settings_item_notifications_subtitle
             SettingsDestination.NETWORK -> R.string.settings_network_summary
             SettingsDestination.WELLBEING -> R.string.settings_wellbeing_summary
+            SettingsDestination.SECURITY -> R.string.settings_security_summary
             SettingsDestination.WIDGETS -> R.string.settings_widgets_summary
             SettingsDestination.ABOUT -> R.string.settings_about_summary
             SettingsDestination.DIAGNOSTICS -> R.string.settings_item_diagnostics_subtitle

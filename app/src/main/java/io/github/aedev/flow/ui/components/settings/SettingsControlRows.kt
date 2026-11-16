@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,8 +22,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.ui.components.shared.FlowBadgedTitle
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
+import io.github.aedev.flow.ui.components.shared.dpadVerticalFocusExit
 
 private val ControlRowHorizontalPadding = 16.dp
 private val ControlRowVerticalPadding = 14.dp
@@ -44,9 +48,10 @@ fun <T> SettingsToggleGroupRow(
     summary: String? = null,
     enabled: Boolean = true,
     preview: (@Composable () -> Unit)? = null,
+    titleBadge: Boolean = false,
 ) {
     SettingsControlRowFrame(shape = shape, modifier = modifier) {
-        SettingsControlRowTitle(title = title, summary = summary, enabled = enabled)
+        SettingsControlRowTitle(title = title, summary = summary, enabled = enabled, badge = titleBadge)
         preview?.invoke()
         FlowConnectedToggleGroup(
             options = options,
@@ -70,12 +75,14 @@ fun SettingsSliderRow(
     steps: Int = 0,
     summary: String? = null,
     enabled: Boolean = true,
+    titleBadge: Boolean = false,
+    centered: Boolean = false,
 ) {
     var draft by remember(value) { mutableFloatStateOf(value) }
     SettingsControlRowFrame(shape = shape, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                SettingsControlRowTitle(title = title, summary = summary, enabled = enabled)
+                SettingsControlRowTitle(title = title, summary = summary, enabled = enabled, badge = titleBadge)
             }
             Text(
                 text = valueLabel(draft),
@@ -84,14 +91,28 @@ fun SettingsSliderRow(
                 modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
             )
         }
-        Slider(
-            value = draft,
-            onValueChange = { draft = it },
-            onValueChangeFinished = { onValueCommitted(draft) },
-            valueRange = valueRange,
-            steps = steps,
-            enabled = enabled,
-        )
+        if (centered) {
+            val sliderState = remember(steps, valueRange) { SliderState(draft, steps, valueRange) }
+            sliderState.value = draft
+            Slider(
+                state = sliderState,
+                onValueChange = { draft = it },
+                onValueChangeFinished = { onValueCommitted(draft) },
+                enabled = enabled,
+                modifier = Modifier.dpadVerticalFocusExit(),
+                track = { SliderDefaults.CenteredTrack(it, enabled = enabled) },
+            )
+        } else {
+            Slider(
+                value = draft,
+                onValueChange = { draft = it },
+                onValueChangeFinished = { onValueCommitted(draft) },
+                valueRange = valueRange,
+                steps = steps,
+                enabled = enabled,
+                modifier = Modifier.dpadVerticalFocusExit(),
+            )
+        }
     }
 }
 
@@ -119,10 +140,12 @@ private fun SettingsControlRowTitle(
     title: String,
     summary: String?,
     enabled: Boolean,
+    badge: Boolean,
 ) {
     Column(modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)) {
-        Text(
-            text = title,
+        FlowBadgedTitle(
+            title = title,
+            badge = badge,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )

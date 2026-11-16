@@ -4,6 +4,16 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class EqStateOpsTest {
+    @Test
+    fun `spatial sound counts as changing the sound and reaches the processors`() {
+        val state = EqState(spatialSound = EqSpatialSound.LOW)
+
+        assertThat(state.changesSound).isTrue()
+        assertThat(state.processingSpec(bypass = false).spatialSound).isEqualTo(EqSpatialSound.LOW)
+        assertThat(state.processingSpec(bypass = true).spatialSound).isEqualTo(EqSpatialSound.OFF)
+        assertThat(state.copy(enabled = false).changesSound).isFalse()
+    }
+
     private val rock = "builtin:rock"
     private val mine = EqPreset("user:a", "Mine", EqCurve(bands = listOf(EqBand(500.0, 3.0))))
 

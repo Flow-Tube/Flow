@@ -33,6 +33,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.paging.SearchResultItem
 import io.github.aedev.flow.data.paging.SearchShelfKind
+import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.ui.components.shared.MediaShortsShelf
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
@@ -56,6 +57,7 @@ fun SearchShelf(
     onShortsClick: (shelf: List<Video>, tapped: Video) -> Unit,
     onChannelClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onPostClick: (CommunityPost) -> Unit = {},
     thumbnailWidth: Dp = VideoCardDefaults.RowThumbnailWidth,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(vertical = SectionSpacing)) {
@@ -72,7 +74,7 @@ fun SearchShelf(
             }
 
             SearchShelfKind.POSTS -> {
-                PostStrip(shelf)
+                PostStrip(shelf, onPostClick)
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -132,13 +134,16 @@ private fun VideoStrip(
 }
 
 @Composable
-private fun PostStrip(shelf: SearchResultItem.ShelfResult) {
+private fun PostStrip(
+    shelf: SearchResultItem.ShelfResult,
+    onPostClick: (CommunityPost) -> Unit,
+) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = StripHorizontalPadding, vertical = StripVerticalPadding),
         horizontalArrangement = Arrangement.spacedBy(PostSpacing),
     ) {
         items(shelf.posts, key = { it.id }) { post ->
-            SearchPostCard(post = post, onClick = {})
+            SearchPostCard(post = post, onClick = { onPostClick(post) })
         }
     }
 }

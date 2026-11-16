@@ -39,5 +39,21 @@ object PlayerRelatedVideosPolicy {
         videoId: String,
         candidates: List<Video>,
         source: FeedExclusionsSource?,
-    ): List<Video> = sanitize(videoId, candidates, exclusions = source?.current() ?: FeedExclusions.NONE)
+        watched: WatchedSuggestionsSource? = null,
+    ): List<Video> = withoutWatched(sanitize(videoId, candidates, exclusions = source?.current() ?: FeedExclusions.NONE), watched)
+
+    /**
+     * Drops the videos in [watched], unless every candidate is in it: the same list seeds autoplay,
+     * which would otherwise stop on a topic the viewer has already watched through (#2054).
+     */
+    fun withoutWatched(
+        videos: List<Video>,
+        watched: Set<String>,
+    ): List<Video> = if (watched.isEmpty()) videos else videos.filterNot { it.id in watched }.ifEmpty { videos }
+
+    /** [withoutWatched] against a live [source]; a null source hides nothing. */
+    suspend fun withoutWatched(
+        videos: List<Video>,
+        source: WatchedSuggestionsSource?,
+    ): List<Video> = if (source == null || videos.isEmpty()) videos else withoutWatched(videos, source.watchedAmong(videos))
 }

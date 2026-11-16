@@ -23,5 +23,5 @@ class BetterLyricsProvider(
         artist: String,
         duration: Int,
         album: String?,
-    ): Result<List<LyricsEntry>> = betterLyrics.getLyrics(title, artist, duration, album)
+    ): Result<List<LyricsEntry>> = betterLyrics.getLyrics(title, LyricsMatching.cleanArtist(artist), duration, album)
 }

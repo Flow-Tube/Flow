@@ -2,8 +2,11 @@ package io.github.aedev.flow.ui.screens.settings.integrations
 
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.contentfilter.aislist.AiListSource
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SponsorBlockAction
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.discord.DiscordLinkResult
 import io.github.aedev.flow.discord.DiscordPresenceController
@@ -27,14 +30,25 @@ class IntegrationsViewModel
     constructor(
         private val preferences: PlayerPreferences,
         private val discord: DiscordPresenceController,
+        private val aiList: AiListRepository,
     ) : SettingsViewModel() {
         val sponsorBlock = preferences.sponsorBlockEnabled.asState(false)
         val submitButton = preferences.sbSubmitEnabled.asState(false)
         val userId = preferences.sbUserId.asState(null)
+        val skipNotice = preferences.sbSkipNoticeEnabled.asState(true)
+        val skipButtonStyle = preferences.sbSkipButtonStyle.asState(SponsorBlockSkipButtonStyle.FULL)
         val deArrow = preferences.deArrowEnabled.asState(false)
         val deArrowBadge = preferences.deArrowBadgeEnabled.asState(false)
         val deArrowRandomFrame = preferences.deArrowRandomFrame.asState(true)
         val dislikes = preferences.rytdEnabled.asState(true)
+        val aiListBlock = aiList.blockEnabled.asState(false)
+        val aiListWarn = aiList.warnEnabled.asState(false)
+        val aiMusic = aiList.musicEnabled.asState(false)
+        val aiListStatus = aiList.status.asState(null)
+        val aiListSource = aiList.source.asState(AiListSource.DEFAULT)
+        val aiListSourceInput = preferences.aiListSource.asState(null to null)
+        val aiReport = preferences.aiListReportEnabled.asState(false)
+        val aiReportName = preferences.aiListReportName.asState("")
         val discordState = discord.settingsState
 
         /** Every category's flows are built once here, not per recomposition. */
@@ -69,6 +83,10 @@ class IntegrationsViewModel
 
         fun setSubmitButton(value: Boolean) = write { preferences.setSbSubmitEnabled(value) }
 
+        fun setSkipNotice(value: Boolean) = write { preferences.setSbSkipNoticeEnabled(value) }
+
+        fun setSkipButtonStyle(style: SponsorBlockSkipButtonStyle) = write { preferences.setSbSkipButtonStyle(style) }
+
         /** A blank id asks for a fresh one rather than clearing the identity. */
         fun setUserId(input: String) =
             write {
@@ -78,6 +96,23 @@ class IntegrationsViewModel
         fun setDeArrow(value: Boolean) = write { preferences.setDeArrowEnabled(value) }
 
         fun setDeArrowBadge(value: Boolean) = write { preferences.setDeArrowBadgeEnabled(value) }
+
+        fun setAiListBlock(value: Boolean) = write { aiList.setBlockEnabled(value) }
+
+        fun setAiListWarn(value: Boolean) = write { aiList.setWarnEnabled(value) }
+
+        fun setAiMusic(value: Boolean) = write { aiList.setMusicEnabled(value) }
+
+        fun setAiReport(value: Boolean) = write { preferences.setAiListReportEnabled(value) }
+
+        fun setAiReportName(name: String) = write { preferences.setAiListReportName(name) }
+
+        /** Saves the source and calls [onResult] with false, saving nothing, when it is not valid. */
+        fun saveAiListSource(
+            url: String,
+            key: String,
+            onResult: (Boolean) -> Unit,
+        ) = write { onResult(aiList.setSource(url, key)) }
 
         fun setDeArrowRandomFrame(value: Boolean) = write { preferences.setDeArrowRandomFrame(value) }
 

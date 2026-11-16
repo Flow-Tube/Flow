@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,8 +36,11 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import androidx.navigation.NavGraph
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -50,15 +54,19 @@ import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.screens.home.HomeViewModel
 import io.github.aedev.flow.ui.screens.music.MusicPlayerViewModel
 import io.github.aedev.flow.ui.screens.music.MusicViewModel
+import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
 import io.github.aedev.flow.ui.screens.search.SearchViewModel
 import io.github.aedev.flow.ui.screens.subscriptions.SubscriptionsViewModel
 import io.github.aedev.flow.ui.tv.components.TvNavRail
 import io.github.aedev.flow.ui.tv.components.TvRailProfile
+import io.github.aedev.flow.ui.tv.components.railFocusDirection
 import io.github.aedev.flow.ui.tv.music.TvMiniPlayer
 import io.github.aedev.flow.ui.tv.navigation.TvNavHost
 import io.github.aedev.flow.ui.tv.navigation.TvNavigation
 import io.github.aedev.flow.ui.tv.navigation.TvRoutes
 import io.github.aedev.flow.ui.tv.theme.LocalTvDimens
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * TV browse shell: content laid out against the collapsed rail width, with the mini player floating
@@ -90,12 +98,14 @@ fun TvShell(
     val currentRoute = backStackEntry?.destination?.route
     val rootRoutes = navigation.rootRoutes
     val isOnDetailRoute = currentRoute != null && currentRoute !in rootRoutes
-    var lastRoot by remember { mutableStateOf(navigation.startTab.route) }
+    var lastRoot by rememberSaveable { mutableStateOf(navigation.startTab.route) }
     LaunchedEffect(currentRoute) {
         if (currentRoute != null && currentRoute in rootRoutes) lastRoot = currentRoute
     }
     val currentRoot = currentRoute?.takeIf { it in rootRoutes } ?: lastRoot
     val miniPlayerShown = rememberUpdatedState(activeMusicTrack != null)
+    val playOn = LocalPlayOn.current
+    val elsewhere = playOn?.elsewhere?.collectAsStateWithLifecycle()?.value
     // Phone pages pad their ends by these insets, so they scroll clear of the floating mini player here too.
     val bottomInsets =
         remember(dimens) {
@@ -118,13 +128,14 @@ fun TvShell(
     val pageFocusRequester = remember { FocusRequester() }
     val miniPlayerFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val layoutDirection = LocalLayoutDirection.current
     val contentFocusRequester = remember { FocusRequester() }
 
     // Registered before the NavHost, so a page's own Back (a settings sub-page, a list mode) and the
     // NavHost's pop come first: a detail route pops, another root returns to the start tab. Only on the
     // start tab itself does Back reach this, moving focus to the rail, and from the rail the app exits.
     BackHandler(enabled = !isOnDetailRoute && currentRoot == navigation.startTab.route && !railHasFocus) {
-        railFocusRequester.requestFocus(FocusDirection.Left)
+        railFocusRequester.requestFocus(railFocusDirection(layoutDirection))
     }
 
     fun navigateToRoot(route: String) {
@@ -137,19 +148,27 @@ fun TvShell(
 
     // Navigating to a root with restoreState brings back the pages last opened over it, so the root the
     // remote is already under, and the start root (always at the bottom of the stack), are popped to instead.
+    // The route is read from the back stack when the selection happens: the rail's items keep the click
+    // handlers of their first composition, which saw no route yet.
+    val latestNavigation by rememberUpdatedState(navigation)
+
+    fun shownRoute(): String? = navController.currentBackStackEntry?.destination?.route
+
     fun selectRoot(route: String) {
+        val shownRoute = shownRoute()
+        val shownRoot = shownRoute?.takeIf { it in latestNavigation.rootRoutes } ?: lastRoot
         val popped =
             when {
-                route == currentRoute -> {
+                route == shownRoute -> {
                     TabScrollEventBus.emitScrollToTop(route)
                     true
                 }
 
-                route == currentRoot -> {
+                route == shownRoot -> {
                     navController.popBackStack(route, inclusive = false)
                 }
 
-                route == navigation.startTab.route -> {
+                route == latestNavigation.startTab.route -> {
                     navController.popBackStack(route, inclusive = false, saveState = true)
                 }
 
@@ -158,6 +177,29 @@ fun TvShell(
                 }
             }
         if (!popped) navigateToRoot(route)
+    }
+
+    // Choosing a destination on the rail hands focus to the page, which closes the rail. It waits for the
+    // page that is leaving to finish its crossfade (it stays focusable until then) or, on a reselect, for
+    // the page's own scroll back to the top, so the restored focus doesn't pull it back down.
+    var pageFocusRequest by remember { mutableStateOf<PageFocusRequest?>(null) }
+
+    fun selectFromRail(route: String) {
+        val reselect = route == shownRoute()
+        selectRoot(route)
+        pageFocusRequest = PageFocusRequest(route, afterScroll = reselect)
+    }
+    LaunchedEffect(pageFocusRequest) {
+        val request = pageFocusRequest ?: return@LaunchedEffect
+        if (request.afterScroll) {
+            withTimeoutOrNull(PAGE_SCROLL_WAIT_MS) {
+                TabScrollEventBus.scrolledToTopEvents.first { it == request.route }
+            }
+        } else {
+            navController.visibleEntries.first { entries -> entries.count { it.destination !is NavGraph } <= 1 }
+        }
+        if (railHasFocus) railHoldsFocusForPage = !contentFocusRequester.requestFocus()
+        pageFocusRequest = null
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -240,7 +282,7 @@ fun TvShell(
         TvNavRail(
             tabs = navigation.tabs,
             selectedRoute = currentRoot,
-            onSelect = ::selectRoot,
+            onSelect = ::selectFromRail,
             onFocusChanged = {
                 railHasFocus = it
                 if (!it) railHoldsFocusForPage = false
@@ -249,6 +291,9 @@ fun TvShell(
             onOtherEntry = { contentFocusRequester.requestFocus().also { taken -> railHoldsFocusForPage = !taken } },
             nowPlayingTitle = activeMusicTrack?.title,
             onOpenNowPlaying = onExpandMusic,
+            playingOnDevice = elsewhere?.name,
+            playingOnTitle = elsewhere?.now?.title.orEmpty(),
+            onOpenPlayOn = { playOn?.open?.value = true },
             profile = { expanded -> TvRailProfile(expanded, onOpenSettings = { navController.navigate(TvRoutes.settingsPage(it)) }) },
             modifier =
                 Modifier
@@ -262,3 +307,12 @@ fun TvShell(
 }
 
 private fun KeyEvent.isPress(key: Key): Boolean = this.key == key && type == KeyEventType.KeyDown
+
+/** The longest a rail reselect waits for the page to report it is back at the top. */
+private const val PAGE_SCROLL_WAIT_MS = 1_000L
+
+/** A rail selection whose page should take focus once [route] is settled. */
+private class PageFocusRequest(
+    val route: String,
+    val afterScroll: Boolean,
+)

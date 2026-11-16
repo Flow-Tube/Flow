@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Language
@@ -32,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
+import io.github.aedev.flow.ui.components.shared.FlowSelectionContainer
 import io.github.aedev.flow.ui.theme.extendedColors
 
 /**
@@ -63,7 +63,7 @@ internal fun ChannelAboutSection(header: ChannelHeader) {
         if (!header.description.isNullOrBlank()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChannelAboutHeading(stringResource(R.string.about))
-                SelectionContainer {
+                FlowSelectionContainer {
                     Text(
                         text = header.description,
                         style = MaterialTheme.typography.bodyMedium,
@@ -123,7 +123,7 @@ internal fun ChannelAboutSection(header: ChannelHeader) {
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 ChannelAboutHeading(stringResource(R.string.channel_about_more_info))
-                SelectionContainer {
+                FlowSelectionContainer {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         moreInfo.forEach { (icon, value) ->
                             Row(

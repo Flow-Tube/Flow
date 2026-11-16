@@ -35,4 +35,21 @@ class GoogleVideoRequestPolicyTest {
         assertThat(GoogleVideoRequestPolicy.headers("WEB", allowGzip = true)).containsEntry("Origin", "https://www.youtube.com")
         assertThat(GoogleVideoRequestPolicy.headers("ANDROID_VR", allowGzip = false)).containsEntry("Accept-Encoding", "identity")
     }
+
+    @Test
+    fun `caption requests carry no browser headers and leave the encoding to OkHttp (#1369)`() {
+        assertThat(GoogleVideoRequestPolicy.isCaptionRequest("/api/timedtext")).isTrue()
+        assertThat(GoogleVideoRequestPolicy.isCaptionRequest("/videoplayback")).isFalse()
+        assertThat(GoogleVideoRequestPolicy.isCaptionRequest(null)).isFalse()
+
+        val browserOnly = listOf("Origin", "Referer", "Sec-Fetch-Mode", "Sec-Fetch-Site", "Sec-Fetch-Dest", "Accept-Encoding")
+        assertThat(GoogleVideoRequestPolicy.captionHeaders().keys).containsNoneIn(browserOnly)
+    }
+
+    @Test
+    fun `captions go over the platform engine unless the app proxy is on (#1369)`() {
+        assertThat(GoogleVideoRequestPolicy.captionsOverPlatformCronet("/api/timedtext", proxied = false)).isTrue()
+        assertThat(GoogleVideoRequestPolicy.captionsOverPlatformCronet("/api/timedtext", proxied = true)).isFalse()
+        assertThat(GoogleVideoRequestPolicy.captionsOverPlatformCronet("/videoplayback", proxied = false)).isFalse()
+    }
 }

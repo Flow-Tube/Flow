@@ -1,18 +1,32 @@
 package io.github.aedev.flow.ui.screens.player.state
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
+import io.github.aedev.flow.ui.components.shared.CommentThreadState
+import io.github.aedev.flow.ui.components.videoplayer.overlay.ChapterSkipFeedback
 import io.github.aedev.flow.ui.components.videoplayer.settings.PlayerSettingsPage
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.SubtitleStyle
 
 // Every property is snapshot state, so composables taking this instance can skip on identity.
 @Stable
 class PlayerScreenState {
+    internal val relatedFocus = PlayerRelatedFocus()
+
     // UI Visibility States
     var showControls by mutableStateOf(true)
+    var showStatsForNerds by mutableStateOf(false)
     var isTouchLocked by mutableStateOf(false)
     var lockOverlayRevealSignal by mutableIntStateOf(0)
-    var isFullscreen by mutableStateOf(false)
+    private var fullscreenShown by mutableStateOf(false)
+
+    // Every way in or out of fullscreen goes through here, so the button's choice lasts one session.
+    var isFullscreen: Boolean
+        get() = fullscreenShown
+        set(value) {
+            if (value != fullscreenShown) resizeModeOverride = null
+            fullscreenShown = value
+        }
     var isFullscreenPortrait by mutableStateOf(false)
     var lastInteractionTimestamp by mutableLongStateOf(System.currentTimeMillis())
 
@@ -36,7 +50,14 @@ class PlayerScreenState {
 
     // Comment Sorting
     var commentSortFilter by mutableStateOf(CommentSortFilter.TOP)
-    var commentsTimedOnly by mutableStateOf(false)
+
+    // Outlives the comments sheet and panel, which leave composition on every close, collapse and rotation.
+    var commentsListState by mutableStateOf(LazyListState())
+        private set
+    val commentThreads = CommentThreadState()
+
+    // Written by the host from the player sheet's settled anchor; the comments sheet outlives a collapse.
+    var isPlayerExpanded by mutableStateOf(true)
 
     // Gesture States
     var brightnessLevel by mutableFloatStateOf(0.5f)
@@ -50,6 +71,8 @@ class PlayerScreenState {
     var showSeekForwardAnimation by mutableStateOf(false)
     var seekAccumulation by mutableIntStateOf(10)
     var showSeekBackAnimation by mutableStateOf(false)
+    internal var chapterSkip by mutableStateOf<ChapterSkipFeedback?>(null)
+    var showChapterSkip by mutableStateOf(false)
 
     /** A tap just lifted and the double-tap timeout is still running. */
     var isTapWindowOpen by mutableStateOf(false)
@@ -61,8 +84,11 @@ class PlayerScreenState {
     // a transcript in another language should not put that language on top of the video.
     var selectedTranscriptUrl by mutableStateOf<String?>(null)
 
-    // Video Display
-    var resizeMode by mutableIntStateOf(0) // 0=Fit, 1=Fill, 2=Zoom
+    /** The fullscreen button's pick for this fullscreen session; null follows the settings. */
+    var resizeModeOverride by mutableStateOf<Int?>(null)
+
+    /** False once the fullscreen button has picked Fill or Zoom. */
+    val fitChosen: Boolean get() = resizeModeOverride.let { it == null || it == PlayerResizeMode.FIT }
 
     // Pinch-to-Zoom State
     var zoomScale by mutableFloatStateOf(1f)
@@ -71,6 +97,9 @@ class PlayerScreenState {
     var showZoomIndicator by mutableStateOf(false)
     var zoomIndicatorSequence by mutableIntStateOf(0)
     var exitDragOffsetY by mutableFloatStateOf(0f)
+
+    // How far a swipe up has pulled the more videos row in before it commits to opening.
+    var moreVideosDragY by mutableFloatStateOf(0f)
 
     // Speed Control
     var isSpeedBoostActive by mutableStateOf(false)
@@ -92,12 +121,16 @@ class PlayerScreenState {
         lockOverlayRevealSignal = 0
         currentPosition = 0L
         duration = 0L
+        commentSortFilter = CommentSortFilter.TOP
+        resetCommentsPlace()
         selectedTranscriptUrl = null
         showBrightnessOverlay = false
         showVolumeOverlay = false
         showSpeedSwipeOverlay = false
         showSeekBackAnimation = false
         showSeekForwardAnimation = false
+        chapterSkip = null
+        showChapterSkip = false
         hasShownShortsPrompt = false
         showShortsPrompt = false
         activeSheet = PlayerSheet.None
@@ -108,6 +141,18 @@ class PlayerScreenState {
         showZoomIndicator = false
         zoomIndicatorSequence = 0
         exitDragOffsetY = 0f
+        moreVideosDragY = 0f
+    }
+
+    fun changeCommentSort(filter: CommentSortFilter) {
+        if (filter == commentSortFilter) return
+        commentSortFilter = filter
+        resetCommentsPlace()
+    }
+
+    private fun resetCommentsPlace() {
+        commentsListState = LazyListState()
+        commentThreads.clear()
     }
 
     internal fun open(sheet: PlayerSheet) {
@@ -134,8 +179,8 @@ class PlayerScreenState {
         closeSheet()
     }
 
-    fun cycleResizeMode() {
-        resizeMode = (resizeMode + 1) % 3
+    fun cycleResizeMode(current: Int) {
+        resizeModeOverride = PlayerResizeMode.next(current)
     }
 
     fun toggleFullscreen() {
@@ -157,22 +202,21 @@ class PlayerScreenState {
 @Composable
 fun rememberPlayerScreenState(): PlayerScreenState = remember { PlayerScreenState() }
 
-/**
- * The caption track a transcript should read.
- *
- * The transcript's own language choice wins, then whatever the video is subtitled with, then the
- * first authored track, since an auto-translation is a machine pass over a track already in the
- * list and reads worse than the original. A choice the current video has no track for is dropped
- * rather than fetched, so a queue advance cannot leave the panel reading an empty URL.
- */
 internal fun transcriptTrackUrl(
     playerState: io.github.aedev.flow.player.EnhancedPlayerState,
     screenState: PlayerScreenState,
-): String? {
-    // Only tracks fetched over the network can be read; files and tracks inside a video have no URL.
-    val readable = playerState.availableSubtitles.filter { it.url.startsWith("http") }
-    return screenState.selectedTranscriptUrl?.takeIf { url -> readable.any { it.url == url } }
-        ?: playerState.selectedSubtitleUrl?.takeIf { url -> readable.any { it.url == url } }
-        ?: readable.firstOrNull { !it.isTranslated }?.url
-        ?: readable.firstOrNull()?.url
-}
+    prefs: VideoPlayerPreferencesState,
+    appLanguage: String?,
+): String? =
+    TranscriptTrackChoice
+        .pick(
+            tracks = playerState.availableSubtitles,
+            pickedUrl = screenState.selectedTranscriptUrl,
+            showingUrl = playerState.selectedSubtitleUrl,
+            rememberedLanguage = prefs.transcriptLanguage,
+            subtitleLanguage = prefs.preferredSubtitleLanguage,
+            appLanguage = appLanguage,
+        )?.url
+
+internal fun hasTranscriptTrack(playerState: io.github.aedev.flow.player.EnhancedPlayerState): Boolean =
+    playerState.availableSubtitles.any(TranscriptTrackChoice::isReadable)

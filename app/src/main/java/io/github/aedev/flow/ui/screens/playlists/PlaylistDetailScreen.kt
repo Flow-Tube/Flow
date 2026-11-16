@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -25,7 +26,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -47,13 +50,16 @@ import io.github.aedev.flow.ui.components.shared.FlowSelectionToolbar
 import io.github.aedev.flow.ui.components.shared.FlowSidePanes
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.rememberFlowPaneState
-import io.github.aedev.flow.ui.components.shared.rememberReorderableLazyListState
 import io.github.aedev.flow.ui.components.shared.rememberShareLinksWithoutText
 import io.github.aedev.flow.utils.PLAYLIST_FILE_MIME_TYPE
 import io.github.aedev.flow.utils.filterBySearch
+import io.github.aedev.flow.utils.holdsPendingOrder
+import io.github.aedev.flow.utils.movedByKey
+import io.github.aedev.flow.utils.movedToEdge
 import io.github.aedev.flow.utils.sharePlaylist
 import io.github.aedev.flow.utils.sharePlaylistFile
 import kotlinx.coroutines.launch
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun PlaylistDetailScreen(
@@ -67,6 +73,7 @@ fun PlaylistDetailScreen(
     val downloadBatch by viewModel.downloadBatch.collectAsStateWithLifecycle()
     val downloadedCollection by viewModel.downloadedCollection.collectAsStateWithLifecycle()
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+    val swipes by viewModel.playlistSwipes.collectAsStateWithLifecycle()
     val mergeTargets by viewModel.userCreatedPlaylists.collectAsStateWithLifecycle()
     val quickActions = sharedQuickActionsViewModel()
     val context = LocalContext.current
@@ -75,6 +82,8 @@ fun PlaylistDetailScreen(
     var dialog by remember { mutableStateOf<PlaylistDialog?>(null) }
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var selectionMode by remember { mutableStateOf(false) }
+    // Set while "Download all" picks: the videos left out, so pages that arrive later join the pick.
+    var leftOut by remember { mutableStateOf<Set<String>?>(null) }
     var displayVideos by remember { mutableStateOf(sortedVideos) }
     var searchQuery by rememberSaveable { mutableStateOf<String?>(null) }
     val isSearching = searchQuery != null
@@ -100,22 +109,53 @@ fun PlaylistDetailScreen(
     val exitSelection = {
         selectionMode = false
         selectedIds = emptySet()
+        leftOut = null
+    }
+    val toggleSelected = { ids: Set<String>, select: Boolean ->
+        selectedIds = if (select) selectedIds + ids else selectedIds - ids
+        leftOut = leftOut?.let { if (select) it - ids else it + ids }
     }
 
+    val haptics = LocalHapticFeedback.current
+    var dragMoved by remember { mutableStateOf(false) }
+    var pendingOrder by remember { mutableStateOf<List<String>?>(null) }
     val reorderState =
-        rememberReorderableLazyListState(
-            listState = listState,
-            itemIndexOffset = if (twoPane || isSearching) 0 else 1,
-            onMove = { from, to -> displayVideos = displayVideos.toMutableList().apply { add(to, removeAt(from)) } },
-            onDragStopped = { viewModel.reorderVideos(displayVideos.map { it.id }) },
-        )
+        rememberReorderableLazyListState(listState) { from, to ->
+            displayVideos.movedByKey(from.key, to.key) { it.id }?.let { moved ->
+                displayVideos = moved
+                dragMoved = true
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            }
+        }
 
-    // Held while a drag is in progress, so a sync or metadata update can't replace the list mid-drag.
-    LaunchedEffect(sortedVideos, reorderState.isDragging) {
-        if (reorderState.isDragging) return@LaunchedEffect
+    // Held while a drag is in progress and until the saved order comes back, so neither a sync nor
+    // the order from before the drop can replace the list under the finger.
+    LaunchedEffect(sortedVideos, reorderState.isAnyItemDragging) {
+        if (reorderState.isAnyItemDragging) return@LaunchedEffect
+        if (dragMoved) {
+            dragMoved = false
+            val order = displayVideos.map { it.id }
+            pendingOrder = order
+            viewModel.reorderVideos(order)
+            return@LaunchedEffect
+        }
+        if (sortOrder == PlaylistSortOrder.MANUAL && holdsPendingOrder(sortedVideos.map { it.id }, pendingOrder)) return@LaunchedEffect
+        pendingOrder = null
         displayVideos = sortedVideos
-        selectedIds = selectedIds.intersect(sortedVideos.mapTo(HashSet()) { it.id })
+        val sortedIds = sortedVideos.mapTo(LinkedHashSet()) { it.id }
+        selectedIds = leftOut?.let { sortedIds - it } ?: selectedIds.intersect(sortedIds)
         if (sortedVideos.isEmpty()) exitSelection()
+    }
+
+    fun moveToEdge(
+        video: Video,
+        toTop: Boolean,
+    ) {
+        val moved = displayVideos.movedToEdge(displayVideos.indexOfFirst { it.id == video.id }, toTop) ?: return
+        displayVideos = moved
+        val order = moved.map { it.id }
+        pendingOrder = order
+        viewModel.reorderVideos(order)
     }
 
     LaunchedEffect(searchQuery) {
@@ -151,7 +191,14 @@ fun PlaylistDetailScreen(
                     )
                 }
             },
-            onDownloadAll = { dialog = PlaylistDialog.DownloadAll },
+            onDownloadAll = {
+                scope.launch {
+                    val left = viewModel.downloadLeftOut() ?: return@launch
+                    leftOut = left
+                    selectedIds = displayVideos.mapTo(LinkedHashSet()) { it.id } - left
+                    selectionMode = true
+                }
+            },
             onSaveToggle = { if (uiState.isSaved) viewModel.unsaveFromLibrary() else viewModel.saveToLibrary() },
             onAddAll = { dialog = PlaylistDialog.AddAll },
             onShare = {
@@ -184,7 +231,7 @@ fun PlaylistDetailScreen(
                 inSelectionMode = selectionMode,
                 selectedCount = selectedIds.size,
                 allSelected = shownVideos.isNotEmpty() && shownVideos.all { it.id in selectedIds },
-                canSelect = canModify && displayVideos.isNotEmpty(),
+                canSelect = displayVideos.isNotEmpty(),
                 search =
                     PlaylistSearchBar(
                         query = searchQuery,
@@ -197,7 +244,7 @@ fun PlaylistDetailScreen(
                 onClearSelection = exitSelection,
                 onSelectAll = {
                     val shownIds = shownVideos.mapTo(HashSet()) { it.id }
-                    selectedIds = if (selectedIds.containsAll(shownIds)) selectedIds - shownIds else selectedIds + shownIds
+                    toggleSelected(shownIds, !selectedIds.containsAll(shownIds))
                 },
             )
         },
@@ -235,18 +282,21 @@ fun PlaylistDetailScreen(
                                     isWatchLater = uiState.isWatchLater,
                                     isLikes = uiState.isLikes,
                                     searchQuery = searchQuery.orEmpty(),
+                                    swipes = swipes,
+                                    swipeEnabled = !selectionMode && !reorderState.isAnyItemDragging,
                                 ),
                             isLoadingMore = uiState.isLoadingMore,
                             listState = listState,
                             reorderState = reorderState,
                             onVideoClick = { index, video ->
                                 if (selectionMode) {
-                                    selectedIds = if (video.id in selectedIds) selectedIds - video.id else selectedIds + video.id
+                                    toggleSelected(setOf(video.id), video.id !in selectedIds)
                                 } else {
                                     onPlayPlaylist(displayVideos, positions[video.id]?.minus(1) ?: index, false, uiState.playlistName)
                                 }
                             },
                             onRemove = { viewModel.removeVideo(it.id) },
+                            onMoveToEdge = ::moveToEdge,
                             header = header,
                         )
                     }
@@ -275,10 +325,14 @@ fun PlaylistDetailScreen(
                 visible = selectionMode && selectedIds.isNotEmpty(),
                 summary = pluralStringResource(R.plurals.selected_count_template, selectedIds.size, selectedIds.size),
                 actions =
-                    listOf(
+                    listOfNotNull(
+                        FlowSelectionAction(Icons.Outlined.Download, stringResource(R.string.download)) {
+                            leftOut?.let(viewModel::downloadAllExcept) ?: viewModel.downloadVideos(selectedIds)
+                            exitSelection()
+                        },
                         FlowSelectionAction(Icons.Outlined.Delete, stringResource(R.string.remove)) {
                             dialog = PlaylistDialog.RemoveSelected(selectedIds)
-                        },
+                        }.takeIf { canModify },
                     ),
                 modifier = Modifier.align(Alignment.BottomCenter),
             )

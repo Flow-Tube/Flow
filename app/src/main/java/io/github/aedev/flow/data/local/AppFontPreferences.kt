@@ -80,9 +80,12 @@ class AppFontPreferences
             setFont(AppFont.fromStorage(restored))
         }
 
-        private companion object {
-            val FONT = stringPreferencesKey("app_font")
-            val CUSTOM_NAME = stringPreferencesKey("app_font_custom_name")
-            val CUSTOM_IMPORTED_AT = longPreferencesKey("app_font_custom_imported_at")
+        companion object {
+            private val FONT = stringPreferencesKey("app_font")
+            private val CUSTOM_NAME = stringPreferencesKey("app_font_custom_name")
+            private val CUSTOM_IMPORTED_AT = longPreferencesKey("app_font_custom_imported_at")
+
+            /** The settings [getSettingsBackup] carries. */
+            internal val SETTING_NAMES: Set<String> = setOf(FONT.name)
         }
     }

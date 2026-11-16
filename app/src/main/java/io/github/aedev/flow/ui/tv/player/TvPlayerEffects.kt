@@ -60,7 +60,8 @@ internal fun TvOverlayFocusEffect(
                 transportTarget().requestFocus()
             }
 
-            TvOverlayMode.PANEL -> {
+            // The seek bar alone leaves focus on the player, so the D-pad keeps seeking.
+            TvOverlayMode.SEEK, TvOverlayMode.PANEL -> {
                 Unit
             }
         }

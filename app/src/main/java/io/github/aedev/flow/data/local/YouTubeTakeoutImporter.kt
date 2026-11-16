@@ -57,6 +57,8 @@ internal class YouTubeTakeoutImporter(
         var watches = 0
         val learnable = LinkedHashMap<String, VideoHistoryEntry>()
         val musicVideoIds = HashSet<String>()
+        val watchedVideoIds = HashSet<String>()
+        val adVideoIds = HashSet<String>()
     }
 
     suspend fun import(
@@ -83,9 +85,18 @@ internal class YouTubeTakeoutImporter(
                 val playlists = savePlaylists(found)
                 val likesImported = found.likes?.let { saveLikes(it) } ?: 0
                 val searchesImported = saveSearches(found.searches)
+                val adsRemoved = removeImportedAds(found)
 
                 val counts =
-                    listOf(subscriptionsImported, found.watches, playlists.count, librarySongsImported, likesImported, searchesImported)
+                    listOf(
+                        subscriptionsImported,
+                        found.watches,
+                        playlists.count,
+                        librarySongsImported,
+                        likesImported,
+                        searchesImported,
+                        adsRemoved,
+                    )
                 if (counts.all { it == 0 }) return@withContext Result.failure(Exception("no_content"))
                 if (found.watches > 0) runCatching { learnFromHistory(found.learnable.values) }
 
@@ -107,6 +118,7 @@ internal class YouTubeTakeoutImporter(
                         if (librarySongsImported > 0) add(plural(R.plurals.import_takeout_part_music_library, librarySongsImported))
                         if (likesImported > 0) add(context.getString(R.string.import_takeout_part_likes, likesImported))
                         if (searchesImported > 0) add(plural(R.plurals.import_takeout_part_searches, searchesImported))
+                        if (adsRemoved > 0) add(plural(R.plurals.import_takeout_part_ads_removed, adsRemoved))
                     }.joinToString(", "),
                 )
             } catch (e: Exception) {
@@ -121,6 +133,8 @@ internal class YouTubeTakeoutImporter(
             input.bufferedReader(Charsets.UTF_8).use { reader ->
                 readTakeoutHtmlActivity(reader, System.currentTimeMillis(), requireActivityMarkup = false) { saveWatches(it, found) }
             }
+        found.adVideoIds += read.adVideoIds
+        removeImportedAds(found)
         if (found.watches > 0) runCatching { learnFromHistory(found.learnable.values) }
         return found.watches + saveSearches(read.searches)
     }
@@ -146,6 +160,7 @@ internal class YouTubeTakeoutImporter(
                                 saveWatches(it, found)
                             }
                         found.searches += read.searches
+                        found.adVideoIds += read.adVideoIds
                     }
 
                     !entry.isDirectory && isYouTubeTakeoutJsonEntry(name) -> {
@@ -227,11 +242,22 @@ internal class YouTubeTakeoutImporter(
         val entries = watches.map { it.toHistoryEntry() }
         viewHistory.bulkSaveHistoryEntries(entries)
         watches.filter { it.isMusic }.mapTo(found.musicVideoIds) { it.videoId }
+        watches.mapTo(found.watchedVideoIds) { it.videoId }
         entries.forEach { entry ->
             if (found.learnable.size < NEURO_CANDIDATE_LIMIT && entry.title.isNotBlank()) found.learnable.putIfAbsent(entry.videoId, entry)
         }
         found.watches += entries.size
         yield()
+    }
+
+    /**
+     * An earlier import, before ads were told apart, saved them as watched (#1944). Rows for the
+     * ads this export lists go, unless they were played in Flow since or the export also lists the
+     * video as a real watch.
+     */
+    private suspend fun removeImportedAds(found: Found): Int {
+        val ads = found.adVideoIds - found.watchedVideoIds
+        return if (ads.isEmpty()) 0 else viewHistory.removeUnplayedEntries(ads)
     }
 
     private suspend fun saveSubscriptions(

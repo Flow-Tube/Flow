@@ -208,6 +208,9 @@ internal class PlaybackLoadController(
                         resolveUpcoming = collaborators.upcomingPremiere::resolve,
                         onStep = { step ->
                             sessionApplier.apply(step, load)
+                            if (step is ResolvedPlayback.VodFromInnerTube && isCurrent(loadToken)) {
+                                withContext(Dispatchers.Main) { collaborators.liveChat.startReplay(videoId) }
+                            }
                             // A download resumes from history inside the applier; a chosen time wins.
                             if (step is ResolvedPlayback.LocalCopyReady && resumePositionOverrideMs != null && isCurrent(loadToken)) {
                                 withContext(Dispatchers.Main) { playerManager.seekTo(resumePositionOverrideMs) }

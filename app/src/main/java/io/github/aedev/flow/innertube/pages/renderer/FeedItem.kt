@@ -9,6 +9,7 @@ data class FeedItemOwner(
     val id: String = "",
     val name: String = "",
     val avatarUrl: String = "",
+    val handle: String? = null,
 )
 
 data class FeedShelf(

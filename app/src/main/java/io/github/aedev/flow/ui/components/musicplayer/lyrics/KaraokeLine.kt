@@ -1,8 +1,10 @@
 package io.github.aedev.flow.ui.components.musicplayer.lyrics
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,219 +22,64 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.ResolvedTextDirection
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.lyrics.WordTimestamp
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import kotlinx.coroutines.isActive
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.exp
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.math.roundToInt
 
 private val WordLift = 3.dp
 private const val FEATHER_EM = 0.9f
-private const val HELD_NOTE_MS = 1_100L
-private const val GLOW_STEPS = 8
-private val GlowRadius = 10.dp
+private const val SOFT_GLOW_ALPHA = 0.3f
+private const val NORMAL_GLOW_ALPHA = 0.5f
+private const val BRIGHT_GLOW_ALPHA = 0.8f
+private val SoftGlowRadius = 8.dp
+private val NormalGlowRadius = 10.dp
+private val BrightGlowRadius = 14.dp
 
-/** One visual row of the line, laid out alone so a cell can be drawn without its neighbours' ink. */
-internal class KaraokeRow(
-    val layout: TextLayoutResult,
-    val dy: Float,
-)
-
-/**
- * A horizontal slice of one row: a word's part on that row, or punctuation no word covers. The
- * slices of a row meet halfway between their ink and never overlap, so every glyph pixel is drawn
- * exactly once. [glow] is the word laid out alone, for held notes that glow while sung.
- */
-internal class KaraokeCell(
-    val row: Int,
-    val word: Int,
-    val wordBefore: Int,
-    val inkLeft: Float,
-    val inkRight: Float,
-    val rtl: Boolean,
-    val startFraction: Float,
-    val widthFraction: Float,
-    val glow: TextLayoutResult?,
-) {
-    var clipLeft = 0f
-    var clipRight = 0f
-}
-
-internal class KaraokeWord(
-    val startMs: Long,
-    val endMs: Long,
-)
-
-/** Where every word of a laid-out line sits; built once per layout, read every frame. */
-internal class KaraokeGeometry(
-    val rows: List<KaraokeRow>,
-    val words: List<KaraokeWord>,
-    val cells: List<KaraokeCell>,
-)
-
-internal fun buildKaraokeGeometry(
-    measurer: TextMeasurer,
-    full: TextLayoutResult,
-    style: TextStyle,
-    words: List<WordTimestamp>,
-    ranges: List<IntRange?>,
-): KaraokeGeometry {
-    val text = full.layoutInput.text.text
-    val width = full.layoutInput.constraints.maxWidth
-    val rowSpans = (0 until full.lineCount).map { full.getLineStart(it) until full.getLineEnd(it, visibleEnd = true) }
-    val rows =
-        rowSpans.mapIndexed { index, span ->
-            val layout =
-                measurer.measure(
-                    text = if (span.isEmpty()) " " else text.substring(span.first, span.last + 1),
-                    style = style,
-                    maxLines = 1,
-                    constraints = Constraints(minWidth = width, maxWidth = width),
-                )
-            KaraokeRow(layout, full.getLineBaseline(index) - layout.firstBaseline)
-        }
-
-    val placed = words.indices.filter { ranges.getOrNull(it) != null }
-    val placedWords = placed.map { KaraokeWord(words[it].startTime, words[it].endTime) }
-    val glowStyle = style.copy(textAlign = TextAlign.Start)
-    val cells = mutableListOf<KaraokeCell>()
-    placed.forEachIndexed { wordIndex, original ->
-        val range = ranges[original]!!
-        val held = words[original].endTime - words[original].startTime >= HELD_NOTE_MS
-        val parts =
-            rowSpans.indices.mapNotNull { row ->
-                val span = rowSpans[row]
-                val first = maxOf(range.first, span.first)
-                val last = minOf(range.last, span.last)
-                if (first > last) null else Triple(row, first - span.first, last - span.first)
-            }
-        val inks = parts.map { (row, first, last) -> inkOf(rows[row].layout, first, last) }
-        val total = inks.sumOf { (it[1] - it[0]).toDouble() }.toFloat().coerceAtLeast(1f)
-        var cursor = 0f
-        parts.forEachIndexed { i, (row, first, last) ->
-            val fraction = (inks[i][1] - inks[i][0]) / total
-            val glow =
-                if (held) {
-                    measurer.measure(
-                        text =
-                            rows[row]
-                                .layout.layoutInput.text.text
-                                .substring(first, last + 1),
-                        style = glowStyle,
-                    )
-                } else {
-                    null
-                }
-            cells +=
-                KaraokeCell(
-                    row = row,
-                    word = wordIndex,
-                    wordBefore = wordIndex,
-                    inkLeft = inks[i][0],
-                    inkRight = inks[i][1],
-                    rtl = rows[row].layout.getBidiRunDirection(first) == ResolvedTextDirection.Rtl,
-                    startFraction = cursor,
-                    widthFraction = fraction,
-                    glow = glow,
-                )
-            cursor += fraction
-        }
+private fun glowPeakAlpha(glow: LyricsGlow): Float =
+    when (glow) {
+        LyricsGlow.OFF -> 0f
+        LyricsGlow.SOFT -> SOFT_GLOW_ALPHA
+        LyricsGlow.NORMAL -> NORMAL_GLOW_ALPHA
+        LyricsGlow.BRIGHT -> BRIGHT_GLOW_ALPHA
     }
 
-    val covered = BooleanArray(text.length)
-    placed.forEach { original -> ranges[original]!!.forEach { if (it in covered.indices) covered[it] = true } }
-    val placedStarts = placed.map { ranges[it]!!.first }
-    rowSpans.forEachIndexed { row, span ->
-        var i = span.first
-        while (i <= span.last) {
-            if (covered[i] || text[i].isWhitespace()) {
-                i++
-                continue
-            }
-            var end = i
-            while (end + 1 <= span.last && !covered[end + 1] && !text[end + 1].isWhitespace()) end++
-            val ink = inkOf(rows[row].layout, i - span.first, end - span.first)
-            val before = placedStarts.count { it <= i } - 1
-            cells += KaraokeCell(row, -1, before, ink[0], ink[1], false, 0f, 1f, null)
-            i = end + 1
-        }
+private fun glowRadius(glow: LyricsGlow) =
+    when (glow) {
+        LyricsGlow.SOFT -> SoftGlowRadius
+        LyricsGlow.BRIGHT -> BrightGlowRadius
+        else -> NormalGlowRadius
     }
-
-    cells.groupBy { it.row }.values.forEach { rowCells ->
-        val sorted = rowCells.sortedBy { it.inkLeft }
-        val bounds = rowCellBounds(sorted.map { it.inkLeft }, sorted.map { it.inkRight }, width.toFloat())
-        sorted.forEachIndexed { i, cell ->
-            cell.clipLeft = bounds[i * 2]
-            cell.clipRight = bounds[i * 2 + 1]
-        }
-    }
-    return KaraokeGeometry(rows, placedWords, cells)
-}
-
-/**
- * Clip bounds for a row's cells, sorted by their left ink edge, as left and right pairs: each
- * boundary sits halfway between neighbours' ink, and the outer cells reach well past the row.
- */
-internal fun rowCellBounds(
-    inkLefts: List<Float>,
-    inkRights: List<Float>,
-    width: Float,
-): FloatArray {
-    val bounds = FloatArray(inkLefts.size * 2)
-    for (i in inkLefts.indices) {
-        bounds[i * 2] = if (i == 0) -width else (inkRights[i - 1] + inkLefts[i]) / 2f
-        bounds[i * 2 + 1] = if (i == inkLefts.lastIndex) width * 2f else (inkRights[i] + inkLefts[i + 1]) / 2f
-    }
-    return bounds
-}
-
-private fun inkOf(
-    layout: TextLayoutResult,
-    first: Int,
-    last: Int,
-): FloatArray {
-    val a = layout.getBoundingBox(first)
-    val b = layout.getBoundingBox(last)
-    return floatArrayOf(minOf(a.left, b.left), maxOf(a.right, b.right))
-}
-
-/** How far the lift has travelled [elapsedMs] after a word starts: an underdamped spring's step response. */
-internal fun wordLiftProgress(elapsedMs: Long): Float {
-    if (elapsedMs <= 0) return 0f
-    val t = elapsedMs / 1000.0
-    val zeta = 0.55
-    val omega = 2 * PI / 0.42
-    val damped = omega * sqrt(1 - zeta * zeta)
-    val decay = exp(-zeta * omega * t)
-    return (1 - decay * (cos(damped * t) + zeta / sqrt(1 - zeta * zeta) * sin(damped * t))).toFloat()
-}
 
 /** A gradient shader made once and slid into place for each frame through its local matrix. */
-private class FrontBrush(
+internal class FrontBrush(
     private val shader: android.graphics.LinearGradient,
 ) : ShaderBrush() {
     private val matrix = android.graphics.Matrix()
 
+    /** Where the front was last moved to. */
+    var x = 0f
+        private set
+
     fun moveTo(x: Float) {
+        this.x = x
         matrix.setTranslate(x, 0f)
         shader.setLocalMatrix(matrix)
     }
@@ -240,7 +87,7 @@ private class FrontBrush(
     override fun createShader(size: Size): Shader = shader
 }
 
-private fun frontBrush(
+internal fun frontBrush(
     feather: Float,
     from: Color,
     to: Color,
@@ -257,9 +104,31 @@ private fun frontBrush(
 )
 
 /**
+ * A translucent unsung colour can't be drawn glyph by glyph: where glyphs overlap, as Indic letters
+ * do along their headline, the overlap takes the alpha twice and shows as light seams (#1484, #2028).
+ * Such a line draws its unsung text opaque in one layer that carries the alpha instead.
+ */
+internal fun needsUnsungLayer(unsungColor: Color): Boolean = unsungColor.alpha < 1f
+
+internal inline fun DrawScope.withAlphaLayer(
+    alpha: Float,
+    overscan: Float,
+    block: DrawScope.() -> Unit,
+) {
+    val canvas = drawContext.canvas.nativeCanvas
+    val saved = canvas.saveLayerAlpha(0f, -overscan, size.width, size.height + overscan, (alpha * 255f).roundToInt())
+    try {
+        block()
+    } finally {
+        canvas.restoreToCount(saved)
+    }
+}
+
+/**
  * One lyric line sung word by word. Every layer is drawn from a single text layout, so the lit and
  * unlit parts always match: a word fills behind a soft gradient front, lifts a few dp on a spring
- * as it starts and settles, and long held notes glow while they last. Nothing is allocated per
+ * as it starts and settles, and long held notes glow while they last. [animationStyle] Cadence
+ * moves letters instead (see [drawCadenceLine]); Calm keeps only the fill. Nothing is allocated per
  * frame; only the active line runs a frame loop, and only while music plays.
  */
 @Composable
@@ -276,7 +145,11 @@ internal fun KaraokeLine(
     positionProvider: () -> Long,
     motionEnabled: Boolean,
     modifier: Modifier = Modifier,
+    animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.CLASSIC,
+    glow: LyricsGlow = LyricsGlow.NORMAL,
 ) {
+    val moving = motionEnabled && animationStyle != LyricsAnimationStyle.CALM
+    val cadence = motionEnabled && animationStyle == LyricsAnimationStyle.CADENCE
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val latestOffset by rememberUpdatedState(syncOffsetMs)
@@ -284,29 +157,41 @@ internal fun KaraokeLine(
     // Plain holder, written from draw: the last position the line was drawn at while current.
     val lastSungPosition = remember { LongArray(1) { Long.MIN_VALUE } }
     val lineLift = remember { Animatable(0f) }
+    // 1 when the line is not letting go: Cadence runs it from 0 once the next line starts.
+    val exit = remember { Animatable(1f) }
+    val wasCurrent = remember { BooleanArray(1) }
 
     LaunchedEffect(isCurrent, isPlaying) {
         if (!isCurrent || !isPlaying) {
             smoothPosition.longValue = Long.MIN_VALUE
             return@LaunchedEffect
         }
-        var lastPlayerPos = EnhancedMusicPlayerManager.getCurrentPosition()
-        var lastUpdate = System.currentTimeMillis()
+        val clock = LyricsFillClock()
         while (coroutineContext.isActive) {
-            withFrameMillis {
-                val now = System.currentTimeMillis()
-                val playerPos = EnhancedMusicPlayerManager.getCurrentPosition()
-                if (playerPos != lastPlayerPos) {
-                    lastPlayerPos = playerPos
-                    lastUpdate = now
-                }
-                smoothPosition.longValue = lastPlayerPos + (now - lastUpdate) + latestOffset
+            withFrameMillis { frameMs ->
+                val position =
+                    clock.next(
+                        playerPositionMs = EnhancedMusicPlayerManager.getCurrentPosition(),
+                        frameTimeMs = frameMs,
+                        speed = EnhancedMusicPlayerManager.playbackSpeed.value,
+                    )
+                smoothPosition.longValue = position + latestOffset
             }
         }
     }
-    LaunchedEffect(isCurrent, motionEnabled) {
+    LaunchedEffect(isCurrent, cadence) {
+        val letGo = cadence && !isCurrent && wasCurrent[0]
+        wasCurrent[0] = isCurrent
+        if (!letGo) {
+            exit.snapTo(1f)
+            return@LaunchedEffect
+        }
+        exit.snapTo(0f)
+        exit.animateTo(1f, tween(CADENCE_EXIT_MS, easing = LinearEasing))
+    }
+    LaunchedEffect(isCurrent, moving) {
         lineLift.animateTo(
-            targetValue = if (isCurrent && motionEnabled) 1f else 0f,
+            targetValue = if (isCurrent && moving) 1f else 0f,
             animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
         )
     }
@@ -322,19 +207,50 @@ internal fun KaraokeLine(
                 )
             }
         val ranges = remember(text, words, isBackground) { wordCharRanges(text, words, isBackground) }
-        val geometry = remember(layout, words, ranges) { buildKaraokeGeometry(measurer, layout, style, words, ranges) }
+        val splitLetters = cadence && !isBackground
+        val geometry =
+            remember(layout, words, ranges, splitLetters) {
+                buildKaraokeGeometry(measurer, layout, style, words, ranges, splitLetters)
+            }
         val fontPx = with(density) { style.fontSize.toPx() }
         val feather = fontPx * FEATHER_EM
         val liftPx = with(density) { WordLift.toPx() }
-        val glowPx = with(density) { GlowRadius.toPx() }
-        val forward = remember(sungColor, unsungColor, feather) { frontBrush(feather, sungColor, unsungColor) }
-        val backward = remember(sungColor, unsungColor, feather) { frontBrush(feather, unsungColor, sungColor) }
+        val glowPx = with(density) { glowRadius(glow).toPx() }
+        val glowAlpha = glowPeakAlpha(glow)
+        val layered = needsUnsungLayer(unsungColor)
+        val solidUnsung = unsungColor.copy(alpha = 1f)
+        // Layered, the unsung text is already under the front, so the front fades the sung colour out.
+        val frontEnd = if (layered) sungColor.copy(alpha = 0f) else unsungColor
+        val forward = remember(sungColor, frontEnd, feather) { frontBrush(feather, sungColor, frontEnd) }
+        val backward = remember(sungColor, frontEnd, feather) { frontBrush(feather, frontEnd, sungColor) }
         val glows =
-            remember(sungColor, glowPx) {
-                Array(GLOW_STEPS) { step ->
-                    val strength = (step + 1f) / GLOW_STEPS
-                    Shadow(color = sungColor.copy(alpha = 0.5f * strength), blurRadius = glowPx * strength)
+            remember(sungColor, glowPx, glowAlpha) {
+                // Only the strength moves. A changing blur radius is what made the glow visibly step.
+                Array(GLOW_LEVELS) { level ->
+                    Shadow(color = sungColor.copy(alpha = glowAlpha * (level + 1f) / GLOW_LEVELS), blurRadius = glowPx)
                 }
+            }
+        val cadenceInk =
+            remember(sungColor, unsungColor, feather, glows, cadence) {
+                if (!cadence) {
+                    null
+                } else {
+                    val clear = sungColor.copy(alpha = 0f)
+                    CadenceInk(
+                        sung = sungColor,
+                        unsung = unsungColor,
+                        forward = forward,
+                        backward = backward,
+                        fadeForward = frontBrush(feather, sungColor, clear),
+                        fadeBackward = frontBrush(feather, clear, sungColor),
+                        glows = glows,
+                    )
+                }
+            }
+        val frame = remember { CadenceFrame() }
+        val anchor =
+            remember(layout, style) {
+                reflowAnchor(style.textAlign, layout.getParagraphDirection(0) == ResolvedTextDirection.Rtl)
             }
 
         Canvas(
@@ -352,48 +268,68 @@ internal fun KaraokeLine(
                 }
             if (position != Long.MIN_VALUE) lastSungPosition[0] = position
             val lift = lineLift.value
+            // The lift's spring overshoots, so the clip has to reach past its resting height.
+            val overscan = liftPx * 2f
+            if (cadenceInk != null && (isCurrent || lift != 0f || exit.value < 1f)) {
+                frame.position = if (isCurrent) position else lastSungPosition[0]
+                frame.liftClock = frame.position
+                frame.exit = if (isCurrent) -1f else exit.value
+                frame.lineLift = lift
+                frame.peakPx = fontPx * CADENCE_PEAK_EM
+                frame.featherPx = feather
+                frame.anchor = anchor
+                // Grown words reach above the row as well as the lift does.
+                frame.overscan = liftPx * 2f + fontPx * 0.25f
+                frame.glow = glow != LyricsGlow.OFF
+                drawCadenceLine(geometry, cadenceInk, frame)
+                return@Canvas
+            }
             if (!isCurrent && lift == 0f) {
-                drawText(layout, color = unsungColor)
+                if (layered) {
+                    withAlphaLayer(unsungColor.alpha, overscan) { drawText(layout, color = solidUnsung) }
+                } else {
+                    drawText(layout, color = unsungColor)
+                }
                 return@Canvas
             }
             // Words keep their lift while an ended line settles back, but their fill turns unsung.
             val liftClock = if (isCurrent) position else lastSungPosition[0]
-            val overscan = liftPx + glowPx
+            if (layered) {
+                withAlphaLayer(unsungColor.alpha, overscan) {
+                    geometry.cells.forEach { cell ->
+                        val word = geometry.words.getOrNull(cell.word)
+                        val progress = wordFillProgress(geometry, cell, word, position, isCurrent)
+                        if (cellFillProgress(cell, progress) >= 1f) return@forEach
+                        val wordLift = wordLiftPx(word, liftClock, liftPx, lift)
+                        clipRect(left = cell.clipLeft, top = -overscan, right = cell.clipRight, bottom = size.height + overscan) {
+                            translate(top = geometry.rows[cell.row].dy - wordLift) {
+                                drawText(geometry.rows[cell.row].layout, color = solidUnsung)
+                            }
+                        }
+                    }
+                }
+            }
             geometry.cells.forEach { cell ->
                 val row = geometry.rows[cell.row]
                 val word = geometry.words.getOrNull(cell.word)
-                val progress =
-                    when {
-                        !isCurrent -> 0f
-                        word == null -> if (position >= (geometry.words.getOrNull(cell.wordBefore)?.endMs ?: Long.MAX_VALUE)) 1f else 0f
-                        position < word.startMs -> 0f
-                        position >= word.endMs -> 1f
-                        else -> (position - word.startMs).toFloat() / (word.endMs - word.startMs).coerceAtLeast(1)
-                    }
-                val cellProgress = ((progress - cell.startFraction) / cell.widthFraction).coerceIn(0f, 1f)
-                val wordLift =
-                    if (word == null || liftClock == Long.MIN_VALUE) 0f else liftPx * lift * wordLiftProgress(liftClock - word.startMs)
+                val progress = wordFillProgress(geometry, cell, word, position, isCurrent)
+                val cellProgress = cellFillProgress(cell, progress)
+                val wordLift = wordLiftPx(word, liftClock, liftPx, lift)
                 val front =
                     if (cell.rtl) {
                         cell.inkRight - (cell.inkRight - cell.inkLeft) * cellProgress
                     } else {
                         cell.inkLeft + (cell.inkRight - cell.inkLeft) * cellProgress
                     }
-                if (motionEnabled && cell.glow != null && progress > 0f && progress < 1f && cellProgress > 0f) {
-                    val step = (sin(progress * PI).toFloat() * GLOW_STEPS).toInt().coerceIn(0, GLOW_STEPS - 1)
-                    val glowLayout = cell.glow
-                    clipRect(
-                        left = if (cell.rtl) front else cell.inkLeft - glowPx,
-                        top = -overscan,
-                        right = if (cell.rtl) cell.inkRight + glowPx else front,
-                        bottom = size.height + overscan,
+                val glowLayout = cell.glow
+                val glowLevel = heldNoteGlowLevel(progress)
+                if (moving && glow != LyricsGlow.OFF && glowLayout != null && glowLevel >= 0) {
+                    translate(
+                        left = cell.inkLeft - glowLayout.getBoundingBox(0).left,
+                        top = row.dy + row.layout.firstBaseline - glowLayout.firstBaseline - wordLift,
                     ) {
-                        translate(
-                            left = cell.inkLeft - glowLayout.getBoundingBox(0).left,
-                            top = row.dy + row.layout.firstBaseline - glowLayout.firstBaseline - wordLift,
-                        ) {
-                            drawText(glowLayout, color = sungColor, shadow = glows[step])
-                        }
+                        // The word alone can shape differently from its row, so only its blur is drawn.
+                        drawText(glowLayout, color = Color.Transparent, shadow = glows[glowLevel])
                     }
                 }
                 clipRect(left = cell.clipLeft, top = -overscan, right = cell.clipRight, bottom = size.height + overscan) {
@@ -404,7 +340,7 @@ internal fun KaraokeLine(
                             }
 
                             cellProgress <= 0f -> {
-                                drawText(row.layout, color = unsungColor)
+                                if (!layered) drawText(row.layout, color = unsungColor)
                             }
 
                             else -> {

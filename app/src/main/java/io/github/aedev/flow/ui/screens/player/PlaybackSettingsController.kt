@@ -53,15 +53,7 @@ internal class PlaybackSettingsController(
         }
     }
 
-    fun toggleLoop(enabled: Boolean) {
-        if (enabled) {
-            scope.launch {
-                playerPreferences.setAutoplayEnabled(false)
-                uiState.update { it.copy(autoplayEnabled = false) }
-            }
-        }
-        playerManager.toggleLoop(enabled)
-    }
+    fun toggleLoop(enabled: Boolean) = playerManager.toggleLoop(enabled)
 
     fun switchQuality(quality: VideoQuality) {
         val state = uiState.value

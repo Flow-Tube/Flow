@@ -47,6 +47,15 @@ data class EqPreset(
     val imported: Boolean = false,
 )
 
+/** How strongly stereo is widened. Stored by name. */
+@Serializable
+enum class EqSpatialSound {
+    OFF,
+    LOW,
+    MEDIUM,
+    HIGH,
+}
+
 /** The curve a mode is playing, and the preset it started from; null once that preset is gone. */
 @Serializable
 data class EqWorkingCopy(
@@ -63,6 +72,7 @@ data class EqState(
     val graphic: EqWorkingCopy = EqWorkingCopy(null, GraphicEq.flatCurve()),
     val autoPreamp: Boolean = true,
     val bassBoost: Double = 0.0,
+    val spatialSound: EqSpatialSound = EqSpatialSound.OFF,
     val userPresets: List<EqPreset> = emptyList(),
 ) {
     val active: EqWorkingCopy
@@ -78,6 +88,7 @@ data class EqProcessingSpec(
     val enabled: Boolean,
     val preampDb: Double,
     val bands: List<EqBand>,
+    val spatialSound: EqSpatialSound = EqSpatialSound.OFF,
 ) {
     companion object {
         val OFF = EqProcessingSpec(enabled = false, preampDb = 0.0, bands = emptyList())

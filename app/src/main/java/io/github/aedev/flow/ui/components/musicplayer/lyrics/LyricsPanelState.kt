@@ -124,6 +124,15 @@ internal class LyricsPanelState(
             }
         }
 
+        // Nothing is sung during a break, so a panel opened or moved into one settles on the line coming up.
+        if (scrollActiveIndices.isEmpty()) {
+            val upcoming = lines.indexOfFirst { !it.isBackground && it.time > position }
+            if (upcoming > scrollTargetIndex) {
+                scrollTargetIndex = upcoming
+                lastMainMaxSeen = upcoming - 1
+            }
+        }
+
         if (scrollMax > lastMainMaxSeen && scrollMax != -1) lastMainMaxSeen = scrollMax
         previousScrollActiveIndices = scrollActiveIndices
         activeLineIndices = newActiveIndices

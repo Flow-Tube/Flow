@@ -16,10 +16,12 @@ class ChannelRssClientTest {
         private val outcomes: List<Any>,
     ) : Interceptor {
         var calls = 0
+        val urls = mutableListOf<String>()
 
         override fun intercept(chain: Interceptor.Chain): Response {
             val outcome = outcomes[calls.coerceAtMost(outcomes.lastIndex)]
             calls++
+            urls += chain.request().url.toString()
             if (outcome is IOException) throw outcome
             val (code, retryAfter) = outcome as Pair<*, *>
             return Response
@@ -82,15 +84,39 @@ class ChannelRssClientTest {
         }
 
     @Test
-    fun `a 404 is final`() =
+    fun `a 404 asks the uploads playlist feed once, without waiting (1946)`() =
         runTest {
             val scripted = Scripted(listOf(404 to null, 200 to null))
 
-            val result = client(scripted).fetch("UCa")
+            val result = client(scripted).fetch("UCabc")
+
+            assertThat(result.isSuccess).isTrue()
+            assertThat(scripted.urls)
+                .containsExactly(
+                    "https://www.youtube.com/feeds/videos.xml?channel_id=UCabc",
+                    "https://www.youtube.com/feeds/videos.xml?playlist_id=UUabc",
+                ).inOrder()
+            assertThat(sleeps).isEmpty()
+        }
+
+    @Test
+    fun `a 404 from both feeds is final`() =
+        runTest {
+            val scripted = Scripted(listOf(404 to null, 404 to null, 200 to null))
+
+            val result = client(scripted).fetch("UCabc")
 
             assertThat(result.isFailure).isTrue()
+            assertThat(scripted.calls).isEqualTo(2)
+        }
+
+    @Test
+    fun `an id that is not a channel id gets no playlist retry`() =
+        runTest {
+            val scripted = Scripted(listOf(404 to null, 200 to null))
+
+            assertThat(client(scripted).fetch("legacy").isFailure).isTrue()
             assertThat(scripted.calls).isEqualTo(1)
-            assertThat(sleeps).isEmpty()
         }
 
     private companion object {

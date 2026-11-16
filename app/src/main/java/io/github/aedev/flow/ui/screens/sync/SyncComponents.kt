@@ -3,8 +3,11 @@ package io.github.aedev.flow.ui.screens.sync
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
+import io.github.aedev.flow.ui.components.shared.FlowSectionHeader
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
 
@@ -73,6 +77,22 @@ internal fun SyncStepHeader(
     }
 }
 
+// The page pads 16 dp; a Settings page's section labels sit 12 dp in, over rows padded 16 dp.
+private val SectionLabelShift = (-4).dp
+
+/** A labelled part of the page, as a Settings page draws one: the section label, then its [content]. */
+@Composable
+internal fun SyncSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        FlowSectionHeader(text = title, modifier = Modifier.offset(x = SectionLabelShift))
+        content()
+    }
+}
+
 /** A run of [count] rows drawn as one segmented group, each given the shape its position calls for. */
 @Composable
 internal fun SyncRowGroup(
@@ -108,6 +128,10 @@ internal fun SyncOptions(options: List<SyncOption>) {
     }
 }
 
+// The same padding and icon size as the FlowNavRows it sits among.
+private val InfoItemPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
+private val InfoItemIconSize = 22.dp
+
 /** A read-only row in a group: a collection agreed to, or what a finished sync changed in it. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -121,7 +145,8 @@ internal fun SyncInfoItem(
         verticalAlignment = Alignment.CenterVertically,
         shapes = ListItemDefaults.shapes(shape = shape),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        leadingContent = { Icon(icon, contentDescription = null) },
+        contentPadding = InfoItemPadding,
+        leadingContent = { Icon(icon, contentDescription = null, modifier = Modifier.size(InfoItemIconSize)) },
         supportingContent = supporting?.let { { Text(it) } },
     ) {
         Text(title)

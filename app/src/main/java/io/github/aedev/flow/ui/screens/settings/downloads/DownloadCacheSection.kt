@@ -26,6 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -102,15 +105,33 @@ internal fun DownloadCacheLimitDialog(
             MediaCacheType.OTHER -> return
         }
     val selected by state.collectAsStateWithLifecycle()
+    var typingCustom by rememberSaveable { mutableStateOf(false) }
+    val title = stringResource(type.sizeTitle())
     val artwork = type == MediaCacheType.ARTWORK
-    val options = if (artwork) MediaCacheSizes.ARTWORK_OPTIONS_MB else MediaCacheSizes.MEDIA_OPTIONS_MB
+    val presets = if (artwork) MediaCacheSizes.ARTWORK_OPTIONS_MB else MediaCacheSizes.MEDIA_OPTIONS_MB
+    val custom = selected.takeIf { it !in presets }
+    if (typingCustom) {
+        DownloadCacheCustomSizeDialog(
+            title = title,
+            currentMb = custom,
+            onConfirm = { viewModel.setLimit(type, it) },
+            onDismiss = onDismiss,
+        )
+        return
+    }
+    val customChoice =
+        FlowChoice(
+            CUSTOM_CHOICE,
+            stringResource(R.string.cache_size_custom),
+            custom?.let { cacheSizeText(it) },
+        )
     FlowChoiceDialog(
-        title = stringResource(type.sizeTitle()),
+        title = title,
         description = stringResource(R.string.cache_size_applies_on_restart),
-        options = options.map { FlowChoice(it, stringResource(cacheSizeLabel(it, artwork))) },
-        selected = selected,
-        onSelect = { viewModel.setLimit(type, it) },
-        onDismiss = onDismiss,
+        options = presets.map { FlowChoice(it, cacheSizeText(it, artwork)) } + listOfNotNull(customChoice.takeUnless { artwork }),
+        selected = if (custom != null && !artwork) CUSTOM_CHOICE else selected,
+        onSelect = { if (it == CUSTOM_CHOICE) typingCustom = true else viewModel.setLimit(type, it) },
+        onDismiss = { if (!typingCustom) onDismiss() },
     )
 }
 
@@ -225,7 +246,7 @@ private fun CacheRow(
             }
 
             else -> {
-                stringResource(R.string.cache_used_of_limit, used, stringResource(cacheSizeLabel(limitMb, plain = true)))
+                stringResource(R.string.cache_used_of_limit, used, cacheSizeText(limitMb, plain = true))
             }
         }
     val clear: @Composable () -> Unit = {
@@ -287,18 +308,50 @@ private fun MediaCacheType.color(): Color =
         MediaCacheType.OTHER -> MaterialTheme.colorScheme.outline
     }
 
-/** [artwork] reads 0 as automatic rather than unlimited; [plain] drops the "(Default)" mark of 500 MB. */
-private fun cacheSizeLabel(
+/**
+ * [artwork] reads 0 as automatic rather than unlimited; [plain] drops the "(Default)" mark of 500 MB.
+ * A size typed in by hand reads in MB below 1 GB and in GB from there.
+ */
+@Composable
+private fun cacheSizeText(
     megabytes: Int,
     artwork: Boolean = false,
     plain: Boolean = false,
-): Int =
+): String =
     when (megabytes) {
-        0 -> if (artwork) R.string.cache_size_automatic else R.string.cache_size_unlimited
-        100 -> R.string.cache_size_100mb
-        200 -> R.string.cache_size_200mb
-        1024 -> R.string.cache_size_1gb
-        2048 -> R.string.cache_size_2gb
-        5120 -> R.string.cache_size_5gb
-        else -> if (plain || artwork) R.string.cache_size_500mb_plain else R.string.cache_size_500mb
+        0 -> {
+            stringResource(if (artwork) R.string.cache_size_automatic else R.string.cache_size_unlimited)
+        }
+
+        100 -> {
+            stringResource(R.string.cache_size_100mb)
+        }
+
+        200 -> {
+            stringResource(R.string.cache_size_200mb)
+        }
+
+        500 -> {
+            stringResource(if (plain || artwork) R.string.cache_size_500mb_plain else R.string.cache_size_500mb)
+        }
+
+        1024 -> {
+            stringResource(R.string.cache_size_1gb)
+        }
+
+        2048 -> {
+            stringResource(R.string.cache_size_2gb)
+        }
+
+        5120 -> {
+            stringResource(R.string.cache_size_5gb)
+        }
+
+        else -> {
+            val unit = CacheSizeInput.unitFor(megabytes)
+            val number = CacheSizeInput.format(megabytes, unit)
+            stringResource(if (unit == CacheSizeUnit.GB) R.string.cache_size_gb_value else R.string.cache_size_mb_value, number)
+        }
     }
+
+private const val CUSTOM_CHOICE = -1

@@ -53,7 +53,8 @@ fun FlowReplyItem(
     val uriHandler = LocalUriHandler.current
     val accent = tint?.accent ?: MaterialTheme.colorScheme.primary
     val chipColor = tint?.container ?: MaterialTheme.colorScheme.surfaceContainerHighest
-    val replyText = rememberCommentText(reply, accent)
+    val translation = rememberCommentTranslation(reply)
+    val replyText = translation.shown(rememberCommentText(reply, accent))
     var replyTextLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     var showFullSizeImage by remember { mutableStateOf(false) }
 
@@ -127,6 +128,10 @@ fun FlowReplyItem(
                             },
                 )
             }
+
+            CommentTranslateLink(comment = reply, color = accent, state = translation)
+
+            reply.image?.let { FlowCommentImage(image = it, modifier = Modifier.padding(top = 6.dp)) }
 
             Spacer(modifier = Modifier.height(4.dp))
 

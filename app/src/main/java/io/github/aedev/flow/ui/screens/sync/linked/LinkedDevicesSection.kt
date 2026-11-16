@@ -1,6 +1,5 @@
 package io.github.aedev.flow.ui.screens.sync.linked
 
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,7 +11,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.sync2.data.LAN_STORE
+import io.github.aedev.flow.sync2.data.WEBDAV_STORE
 import io.github.aedev.flow.sync2.service.LinkPhase
+import io.github.aedev.flow.ui.components.profiles.ProfileSwitchViewModel
+import io.github.aedev.flow.ui.components.profiles.SwitchRefusals
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncScanContent
 import kotlinx.coroutines.delay
@@ -27,17 +29,22 @@ internal fun LinkedDevicesSection(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val link by viewModel.link.collectAsStateWithLifecycle()
-    // Each finished sync may have changed the devices and when the server last heard from them.
+    val leaveFailed by viewModel.leaveFailed.collectAsStateWithLifecycle()
+    val consent by viewModel.consent.collectAsStateWithLifecycle()
+    val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+    val autoSync by viewModel.autoSyncOn.collectAsStateWithLifecycle()
+    val leftOut by viewModel.leftOutCollections.collectAsStateWithLifecycle()
+    // Each finished sync may have changed the devices and when each last synced.
     LaunchedEffect(state.linked, state.lastSync?.atMs) { if (state.linked) viewModel.refreshDevices() }
     // Devices asking to join with the admin token show up while this screen is open.
     LaunchedEffect(state.linked, state.storeUrl) {
-        while (state.linked && state.storeUrl != LAN_STORE) {
+        // Only a Flow server takes join requests.
+        while (state.storeUrl?.let { it != LAN_STORE && !it.startsWith(WEBDAV_STORE) } == true) {
             viewModel.refreshRequests()
             delay(REQUEST_POLL_MS)
         }
     }
 
-    HorizontalDivider()
     val words = state.words
     var scanning by rememberSaveable { mutableStateOf(false) }
     when {
@@ -57,6 +64,10 @@ internal fun LinkedDevicesSection(
             SyncActionRow(confirmLabel = stringResource(R.string.linked_back), onConfirm = { scanning = false })
         }
 
+        leaveFailed != null -> {
+            LeaveAnyway(checkNotNull(leaveFailed), state.busy, viewModel::forget, viewModel::keepGroup)
+        }
+
         state.linked -> {
             LinkedOverview(
                 state = state,
@@ -65,22 +76,55 @@ internal fun LinkedDevicesSection(
                 onScanNewDevice = if (hostOnly) null else ({ scanning = true }),
                 onRename = viewModel::rename,
                 onRemove = viewModel::remove,
+                addedBy = viewModel::addedBy,
+                onAnswerRecoveryNotice = viewModel::answerRecoveryNotice,
+                onRemoveAfterNotice = viewModel::removeAfterNotice,
+                onReplaceWords = viewModel::replaceWords,
+                onLeave = viewModel::leave,
                 onForget = viewModel::forget,
+                onLoadContest = viewModel::loadContest,
+                onKeepSide = viewModel::keepSide,
+                onUpdateLogin = viewModel::updateLogin,
+                onStartLoginChange = viewModel::startLoginChange,
+                onFinishLoginChange = viewModel::finishLoginChange,
+                onCancelLoginChange = viewModel::cancelLoginChange,
+                consent = consent,
+                onConsent = viewModel::setConsent,
                 onAccept = viewModel::accept,
                 onDecline = viewModel::decline,
-            )
+                thisDevice = { LinkedThisDeviceRows(autoSync, leftOut, state.busy, viewModel::setAutoSync, viewModel::setLeftOut) },
+            ) {
+                val switcher: ProfileSwitchViewModel = hiltViewModel()
+                SwitchRefusals(switcher)
+                LinkedProfilesCard(
+                    choices = profiles,
+                    busy = state.busy,
+                    onLink = viewModel::linkProfile,
+                    onSwitch = switcher::switchTo,
+                    onCreateFor = viewModel::createProfileFor,
+                    onStopHere = viewModel::stopProfileHere,
+                    onStopEverywhere = viewModel::stopProfileEverywhere,
+                )
+            }
         }
 
         else -> {
             LinkedSetup(
-                hostOnly,
-                state.busy,
-                viewModel::create,
-                viewModel::createOnNetwork,
-                viewModel::enterCode,
-                viewModel::joinWithAdmin,
-                viewModel::showCode,
-                viewModel::restore,
+                hostOnly = hostOnly,
+                busy = state.busy,
+                error = state.error,
+                onCreate = viewModel::create,
+                onResetAndCreate = viewModel::resetAndCreate,
+                onCreateOnWebDav = viewModel::createOnWebDav,
+                onCreateOnNetwork = viewModel::createOnNetwork,
+                onEnterCode = viewModel::enterCode,
+                onJoinWithAdmin = viewModel::joinWithAdmin,
+                onShowCode = viewModel::showCode,
+                onRestore = viewModel::restore,
+                onRestoreFromWebDav = viewModel::restoreFromWebDav,
+                restoreDevices = state.restoreDevices,
+                onConfirmRestore = viewModel::confirmRestore,
+                onCancelRestore = viewModel::cancelRestore,
             )
         }
     }

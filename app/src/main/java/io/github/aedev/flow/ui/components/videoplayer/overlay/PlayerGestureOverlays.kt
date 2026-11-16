@@ -48,6 +48,8 @@ fun PlayerGestureOverlays(
                 showSeekForward = screenState.showSeekForwardAnimation,
                 seekSeconds = screenState.seekAccumulation,
                 zoneFraction = seekZoneFraction,
+                chapterSkip = screenState.chapterSkip,
+                showChapterSkip = screenState.showChapterSkip,
                 modifier = Modifier.align(Alignment.Center),
             )
 

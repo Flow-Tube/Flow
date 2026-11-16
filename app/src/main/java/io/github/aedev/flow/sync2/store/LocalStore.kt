@@ -1,17 +1,14 @@
 package io.github.aedev.flow.sync2.store
 
-import io.github.aedev.flow.sync.crypto.SyncBytes
-import io.github.aedev.flow.sync2.crypto.ProtocolError
-import io.github.aedev.flow.sync2.crypto.reject
 import io.github.aedev.flow.sync2.data.HeldDao
 import io.github.aedev.flow.sync2.data.HeldRow
 import io.github.aedev.flow.sync2.roster.Entry
-import io.github.aedev.flow.sync2.roster.RosterState
-import io.github.aedev.flow.sync2.roster.applyEntry
+import io.github.aedev.flow.sync2.roster.ForkResolution
+import io.github.aedev.flow.sync2.roster.ValidEntries
 import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.roster.entryHash
-import io.github.aedev.flow.sync2.roster.forkWinner
 import io.github.aedev.flow.sync2.roster.parseEntry
+import io.github.aedev.flow.sync2.roster.resolveForks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -27,7 +24,7 @@ private const val PAGE = 500
 class LocalStore(
     private val root: File,
     private val held: HeldDao,
-) : Store {
+) : ChangeList {
     private fun file(path: String) = File(root, path)
 
     private fun read(path: String): ByteArray? = file(path).takeIf { it.isFile }?.readBytes()
@@ -57,16 +54,18 @@ class LocalStore(
                 .sortedBy { it.seq }
         }
 
-    /** The chain every device picks: at each `seq`, the winner among the entries valid there (spec/protocol.md, Forks). */
-    private suspend fun resolved(): List<Entry> {
-        val chain = ArrayList<Entry>()
-        var state: RosterState? = null
-        for ((_, candidates) in entries().groupBy { it.seq }.toSortedMap()) {
-            val winner = forkWinner(candidates.filter { runCatching { applyEntry(state, it) }.isSuccess }) ?: break
-            state = applyEntry(state, winner)
-            chain += winner
-        }
-        return chain
+    /** What the rule makes of what this device holds, within the group it has verified. */
+    suspend fun resolved(): ForkResolution {
+        val genesis = held.genesis()?.let { parseEntry(Json.parseToJsonElement(it)) }
+        return resolveForks(genesis?.group, entries(), held.rosterPins().toSet(), genesis?.let(::entryHash))
+    }
+
+    /** What decides whether a new entry counts, given what this device holds. */
+    internal suspend fun validEntries(): ValidEntries {
+        val genesis = held.genesis()?.let { parseEntry(Json.parseToJsonElement(it)) }
+        val valid = ValidEntries(genesis?.group, genesis?.let(::entryHash))
+        entries().forEach(valid::admit)
+        return valid
     }
 
     suspend fun addEntries(entries: List<Entry>) =
@@ -76,25 +75,41 @@ class LocalStore(
 
     suspend fun putKey(
         epoch: Int,
+        kc: String,
         name: String,
         bytes: ByteArray,
     ) {
-        withContext(Dispatchers.IO) { write(StorePaths.key(epoch, name), bytes) }
+        withContext(Dispatchers.IO) { write(StorePaths.key(epoch, kc, name), bytes) }
+    }
+
+    override suspend fun forgetKey(
+        epoch: Int,
+        kc: String,
+        name: String,
+    ) {
+        withContext(Dispatchers.IO) { file(StorePaths.key(epoch, kc, name)).delete() }
     }
 
     /** Holds an entry with its wraps and chain box, wraps first (spec/store.md, Writing rules). */
     suspend fun hold(
         entry: Entry,
-        epoch: Int,
+        below: List<Entry>,
         wraps: Map<String, ByteArray>,
         chain: ByteArray?,
     ) {
-        wraps.forEach { (did, wrap) -> putKey(epoch, did, wrap) }
-        chain?.let { putKey(epoch, "chain", it) }
+        val (epoch, kc) = wrapsEpoch(entry, below)
+        wraps.forEach { (did, wrap) -> putKey(epoch, kc, did, wrap) }
+        chain?.let { putKey(epoch, kc, "chain", it) }
         addEntries(listOf(entry))
     }
 
-    override suspend fun rosterAfter(after: Long): List<Entry> = resolved().filter { it.seq > after }
+    override suspend fun rosterAfter(after: Long): List<Entry> = resolved().chain.filter { it.seq > after }
+
+    override suspend fun rosterView(): List<Entry> = entries()
+
+    override val linear: Boolean get() = false
+
+    override val heldHere: Boolean get() = true
 
     override suspend fun appendRoster(
         head: String,
@@ -102,18 +117,18 @@ class LocalStore(
         wraps: Map<String, String>,
         chain: String?,
     ): Appended {
-        val current = resolved()
+        val current = resolved().chain
         val currentHead = current.lastOrNull()?.let(::entryHash).orEmpty()
         if (currentHead != head) return Appended.Conflict(currentHead)
-        val epoch = entry.epoch?.n ?: current.fold(null as RosterState?) { state, e -> applyEntry(state, e) }?.epoch ?: 0
-        hold(entry, epoch, wraps.mapValues { (_, wrap) -> decode(wrap) }, chain?.let(::decode))
+        hold(entry, current, wraps.mapValues { (_, wrap) -> wrapBytes(wrap) }, chain?.let(::wrapBytes))
         return Appended.Done
     }
 
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
-    ): ByteArray? = withContext(Dispatchers.IO) { read(StorePaths.key(epoch, name)) }
+    ): ByteArray? = withContext(Dispatchers.IO) { read(StorePaths.key(epoch, kc, name)) }
 
     override suspend fun putObject(
         path: String,
@@ -143,13 +158,18 @@ class LocalStore(
         withContext(Dispatchers.IO) { root.deleteRecursively() }
     }
 
+    /** The highest log `seq` held of each sender. */
+    suspend fun logTips(): Map<String, Long> =
+        held
+            .paths()
+            .mapNotNull(StorePaths::parseLog)
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, seqs) -> seqs.max() }
+
     /** What a LAN peer asked for with [vv]: the log objects held above it, and the blobs held. */
     suspend fun list(vv: Map<String, Long>): Pair<List<String>, List<String>> {
         val paths = held.paths()
         val logs = paths.filter { path -> StorePaths.parseLog(path)?.let { (did, seq) -> seq > (vv[did] ?: 0) } == true }
         return logs to paths.filter { StorePaths.parseLog(it) == null }
     }
-
-    private fun decode(b64: String): ByteArray =
-        runCatching { SyncBytes.b64urlDecode(b64) }.getOrNull() ?: reject(ProtocolError.ROSTER_FORMAT)
 }

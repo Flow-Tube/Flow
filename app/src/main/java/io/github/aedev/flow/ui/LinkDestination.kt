@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui
 
 import android.content.Intent
 import io.github.aedev.flow.data.local.PlaylistRepository
+import io.github.aedev.flow.innertube.pages.isMix
 import io.github.aedev.flow.utils.YouTubeLink
 
 /** Where a YouTube link opened from another app, or pasted into search, takes the user. */
@@ -41,8 +42,8 @@ internal fun linkDestination(link: YouTubeLink): LinkDestination? =
     }
 
 /**
- * A video linked from inside a playlist plays with that playlist as its queue. A mix and the
- * account's own lists cannot be read without the account, so those links play the video alone.
+ * A video linked from inside a playlist plays with that playlist as its queue. The account's own
+ * lists cannot be read without the account, and a mix link means its video, so those play alone.
  */
 private fun videoDestination(link: YouTubeLink.Video): LinkDestination {
     val playlistId = link.playlistId?.takeUnless { it in ACCOUNT_LISTS }
@@ -72,8 +73,5 @@ private fun playlistRoute(link: YouTubeLink.Playlist): String? =
         link.isMusic -> musicCollectionRoute(link.id)
         else -> "playlist/${link.id}"
     }
-
-/** A mix is built around a video; `RDCLAK` ids are curated music playlists that only share the prefix. */
-internal fun isMix(playlistId: String): Boolean = playlistId.startsWith("RD") && !playlistId.startsWith("RDCLAK")
 
 private val ACCOUNT_LISTS = setOf("LL", "WL", "LM")

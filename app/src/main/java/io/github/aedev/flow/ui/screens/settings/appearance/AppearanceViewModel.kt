@@ -5,9 +5,14 @@ import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.AppFontSelection
 import io.github.aedev.flow.data.local.AppUiModePreferences
 import io.github.aedev.flow.data.local.DEFAULT_NAV_TAB_ORDER
+import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT
+import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.HomeViewMode
 import io.github.aedev.flow.data.local.LocalDataManager
+import io.github.aedev.flow.data.local.NavBarLabels
+import io.github.aedev.flow.data.local.NavBarScroll
+import io.github.aedev.flow.data.local.NavBarStyle
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.platform.AppIconController
 import io.github.aedev.flow.platform.AppUiMode
@@ -32,7 +37,7 @@ class AppearanceViewModel
         private val preferences: PlayerPreferences,
         private val uiModePreferences: AppUiModePreferences,
         private val appIconController: AppIconController,
-        localDataManager: LocalDataManager,
+        private val localDataManager: LocalDataManager,
         fontPreferences: AppFontPreferences,
     ) : SettingsViewModel() {
         val themeMode = localDataManager.themeMode.asState(ThemeMode.SYSTEM)
@@ -68,6 +73,14 @@ class AppearanceViewModel
             }.combine(preferences.downloadsNavigationEnabled) { visibility, downloads -> visibility.copy(downloads = downloads) }
                 .asState(NavigationVisibility())
         val hideNavOnScroll = preferences.bottomNavHideOnScroll.asState(true)
+        val navLabels = preferences.bottomNavLabels.asState(NavBarLabels.ALWAYS)
+        val navStyle = preferences.bottomNavStyle.asState(NavBarStyle.STANDARD)
+        val navScrub = preferences.bottomNavScrub.asState(true)
+        val navIconPop = preferences.bottomNavIconPop.asState(false)
+        val navScroll = preferences.bottomNavScroll.asState(NavBarScroll.SHRINK)
+        val navMiniBeside = preferences.bottomNavMiniBeside.asState(false)
+        val searchShowsNavBar = preferences.searchShowsNavBar.asState(false)
+        val innerPagesShowNavBar = preferences.innerPagesShowNavBar.asState(false)
         val navTabOrder = preferences.navTabOrder.asState(DEFAULT_NAV_TAB_ORDER)
         val defaultNavTabIndex = preferences.defaultNavTabIndex.asState(0)
 
@@ -85,6 +98,28 @@ class AppearanceViewModel
                 appIconController.apply(suffix)
                 _appIcon.value = suffix
             }
+
+        val skeletonGradient = localDataManager.skeletonGradient.asState(false)
+        val marqueeEnabled = localDataManager.marqueeEnabled.asState(true)
+        val classicLoadingIndicator = localDataManager.classicLoadingIndicator.asState(false)
+        val haptics = preferences.hapticsEnabled.asState(true)
+        val hapticsIgnoreSystem = preferences.hapticsIgnoreSystem.asState(false)
+        val newSettingsHighlight = preferences.newSettingsHighlight.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT)
+        val newSettingsDays = preferences.newSettingsHighlightDays.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS)
+
+        fun setSkeletonGradient(enabled: Boolean) = write { localDataManager.setSkeletonGradient(enabled) }
+
+        fun setMarqueeEnabled(enabled: Boolean) = write { localDataManager.setMarqueeEnabled(enabled) }
+
+        fun setClassicLoadingIndicator(enabled: Boolean) = write { localDataManager.setClassicLoadingIndicator(enabled) }
+
+        fun setHaptics(enabled: Boolean) = write { preferences.setHapticsEnabled(enabled) }
+
+        fun setHapticsIgnoreSystem(enabled: Boolean) = write { preferences.setHapticsIgnoreSystem(enabled) }
+
+        fun setNewSettingsHighlight(enabled: Boolean) = write { preferences.setNewSettingsHighlight(enabled) }
+
+        fun setNewSettingsDays(days: Int) = write { preferences.setNewSettingsHighlightDays(days) }
 
         fun setHomeViewMode(mode: HomeViewMode) = write { preferences.setHomeViewMode(mode) }
 
@@ -119,6 +154,22 @@ class AppearanceViewModel
         fun setDownloadsTab(enabled: Boolean) = write { preferences.setDownloadsNavigationEnabled(enabled) }
 
         fun setHideNavOnScroll(enabled: Boolean) = write { preferences.setBottomNavHideOnScroll(enabled) }
+
+        fun setNavLabels(labels: NavBarLabels) = write { preferences.setBottomNavLabels(labels) }
+
+        fun setNavStyle(style: NavBarStyle) = write { preferences.setBottomNavStyle(style) }
+
+        fun setNavScrub(enabled: Boolean) = write { preferences.setBottomNavScrub(enabled) }
+
+        fun setNavIconPop(enabled: Boolean) = write { preferences.setBottomNavIconPop(enabled) }
+
+        fun setNavScroll(scroll: NavBarScroll) = write { preferences.setBottomNavScroll(scroll) }
+
+        fun setNavMiniBeside(enabled: Boolean) = write { preferences.setBottomNavMiniBeside(enabled) }
+
+        fun setSearchShowsNavBar(enabled: Boolean) = write { preferences.setSearchShowsNavBar(enabled) }
+
+        fun setInnerPagesShowNavBar(enabled: Boolean) = write { preferences.setInnerPagesShowNavBar(enabled) }
 
         fun setNavTabOrder(order: List<Int>) = write { preferences.setNavTabOrder(order) }
 

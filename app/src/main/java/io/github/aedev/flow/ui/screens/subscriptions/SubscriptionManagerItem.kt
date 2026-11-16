@@ -1,7 +1,7 @@
 package io.github.aedev.flow.ui.screens.subscriptions
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +28,8 @@ import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.ChannelGroupBadge
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
+import io.github.aedev.flow.ui.components.shared.toOrganizeTarget
 
 private val RowPadding = 12.dp
 private val AvatarSize = 48.dp
@@ -41,18 +47,37 @@ internal fun SubscriptionManagerItem(
     onNotificationChange: (Boolean) -> Unit,
     onShortsExcludeChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
+    onTogglePin: (() -> Unit)? = null,
+    dragHandle: (@Composable () -> Unit)? = null,
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val organize =
+        rememberChannelOrganizeActions(
+            target = remember(channel) { channel.takeUnless { it.isMusic }?.toOrganizeTarget() },
+            isSubscribed = true,
+        )
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
-                .clickable(onClick = onClick)
+                .combinedClickable(onClick = onClick, onLongClick = onTogglePin?.let { { menuOpen = true } })
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(RowPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        dragHandle?.invoke()
         Box(modifier = Modifier.size(AvatarSize)) {
+            if (onTogglePin != null) {
+                SubscriptionChannelMenu(
+                    expanded = menuOpen,
+                    isPinned = isPinned,
+                    onDismiss = { menuOpen = false },
+                    onTogglePin = onTogglePin,
+                    organize = organize,
+                )
+            }
             ChannelAvatarImage(
                 url = channel.thumbnailUrl,
                 contentDescription = null,
@@ -94,6 +119,8 @@ internal fun SubscriptionManagerItem(
             areShortsExcluded = areShortsExcluded,
             onShortsExcludeChange = onShortsExcludeChange,
             showSubscribedLabel = false,
+            onAddNote = organize.onAddNote,
+            onManageGroups = organize.onManageGroups,
         )
     }
 }

@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.contentfilter.aislist.AllowedAiChannel
 import io.github.aedev.flow.data.local.LikedVideosRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.DownloadManager
@@ -77,6 +80,7 @@ class MusicViewModel
         private val playerPreferences: PlayerPreferences,
         private val musicGraph: MusicGraphStore,
         private val dailyMixStore: io.github.aedev.flow.data.recommendation.music.DailyMixStore,
+        private val aiList: AiListRepository,
     ) : ViewModel() {
         companion object {
             /** Route prefix for synthesized Daily Mix playlist pages. */
@@ -100,9 +104,18 @@ class MusicViewModel
         // _uiState.subscriptionCount reflect real UI visibility, which gates the
         // per-track shelf recomposition below. Hidden artists are combined here
         // so feedback removes an artist from every shelf reactively.
+        private val homeChipFeed =
+            MusicHomeChipFeed(
+                scope = viewModelScope,
+                dispatcher = PerformanceDispatcher.networkIO,
+                loadPage = { chip -> musicRecommendationAlgorithm.loadHomeChipPage(requireNotNull(chip.endpoint)) },
+                loadMorePage = musicRecommendationAlgorithm::loadHomeContinuation,
+                prepareSections = { sections -> sections.rankSongShelves { musicBrain.rankTracks(it, "quick_picks") } },
+            )
+
         val uiState: StateFlow<MusicUiState> =
-            combine(_uiState, musicBrain.hiddenArtists) { state, hidden ->
-                state.withHiddenArtists(hidden).withUniqueLazyContent()
+            combine(_uiState, homeChipFeed.page, musicBrain.hiddenArtists, aiList.matcher) { state, chipPage, hidden, ai ->
+                state.copy(homeChipPage = chipPage).withHiddenArtists(hidden, ai).withUniqueLazyContent()
             }.flowOn(PerformanceDispatcher.parsing)
                 .stateIn(
                     scope = viewModelScope,
@@ -111,6 +124,16 @@ class MusicViewModel
                 )
 
         private fun isUiVisible(): Boolean = _uiState.subscriptionCount.value > 0
+
+        /** The AI filter for the artist page banner; already hot in its repository. */
+        val aiMatcher: StateFlow<AiListMatcher> = aiList.matcher
+
+        /** "Show their music": the artist joins the allowlist shared with AI channels. */
+        fun showAiArtist(artist: ArtistDetails) {
+            viewModelScope.launch {
+                aiList.allow(AllowedAiChannel(id = artist.channelId, name = artist.name))
+            }
+        }
 
         init {
             loadMusicContent()
@@ -163,6 +186,7 @@ class MusicViewModel
                     .distinctUntilChanged()
                     .drop(1)
                     .collect {
+                        homeChipFeed.reset()
                         if (isUiVisible()) refresh() else homeStale = true
                     }
             }
@@ -592,7 +616,6 @@ class MusicViewModel
                             _uiState.update {
                                 it.copy(
                                     trendingSongs = trend,
-                                    allSongs = if (it.selectedFilter == null) trend else it.allSongs,
                                 )
                             }
                         }
@@ -650,7 +673,6 @@ class MusicViewModel
                         _uiState.update {
                             it.copy(
                                 trendingSongs = trend,
-                                allSongs = if (it.selectedFilter == null) trend else it.allSongs,
                                 isLoading = false,
                             )
                         }
@@ -1259,26 +1281,11 @@ class MusicViewModel
             }
         }
 
-        fun setHomeChip(chip: HomePage.Chip?) {
-            _uiState.update { it.copy(selectedHomeChip = chip) }
-            if (chip != null && chip.endpoint != null) {
-                viewModelScope.launch(PerformanceDispatcher.networkIO) {
-                    _uiState.update { it.copy(isLoading = true) }
-                    try {
-                        val response = YouTube.home(params = chip.endpoint.params).getOrNull()
-                        response?.let { home ->
-                            processHomeSections(musicRecommendationAlgorithm.parseHomeSections(home))
-                        }
-                    } catch (e: Exception) {
-                        Log.e("MusicViewModel", "Error filtering by chip", e)
-                    } finally {
-                        _uiState.update { it.copy(isLoading = false) }
-                    }
-                }
-            } else {
-                loadMusicContent()
-            }
-        }
+        fun setHomeChip(chip: HomePage.Chip?) = homeChipFeed.select(chip)
+
+        fun retryHomeChip() = homeChipFeed.retry()
+
+        fun loadMoreHomeChip() = homeChipFeed.loadMore()
 
         fun retry() {
             loadMusicContent()
@@ -1287,6 +1294,7 @@ class MusicViewModel
         fun refresh() {
             relatedCache.clear()
             artistDetailsCache.clear()
+            if (homeChipFeed.refresh()) return
             _uiState.update { it.copy(isLoading = true) }
             loadMusicContent(force = true)
         }
@@ -1493,7 +1501,6 @@ data class MusicUiState(
     val communityPlaylists: List<CommunityMusicPlaylist> = emptyList(),
     val longListens: List<MusicTrack> = emptyList(),
     val history: List<MusicTrack> = emptyList(),
-    val allSongs: List<MusicTrack> = emptyList(),
     val genreTracks: Map<String, List<MusicTrack>> = emptyMap(),
     val genres: List<String> = emptyList(),
     val featuredPlaylists: List<MusicPlaylist> = emptyList(),
@@ -1502,14 +1509,12 @@ data class MusicUiState(
     val dynamicSections: List<MusicSection> = emptyList(),
     val dailyMixSections: List<MusicSection> = emptyList(),
     val homeChips: List<HomePage.Chip> = emptyList(),
-    val selectedHomeChip: HomePage.Chip? = null,
+    val homeChipPage: MusicHomeChipPage? = null,
     val brainMaturity: String? = null, // "cold_start" / "warming" / "mature" — steers section order
     val explorePage: io.github.aedev.flow.innertube.pages.ExplorePage? = null,
     val moodsAndGenres: List<MoodAndGenres> = emptyList(),
     val selectedGenre: String? = null,
-    val selectedFilter: String? = null,
     val isLoading: Boolean = true,
-    val isSearching: Boolean = false,
     val error: String? = null,
     val downloadedTrackIds: Set<String> = emptySet(),
     val artistDetails: ArtistDetails? = null,

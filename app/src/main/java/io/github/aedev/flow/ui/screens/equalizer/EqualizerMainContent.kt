@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.LibraryMusic
@@ -25,7 +27,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -34,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.audio.eq.EqLimits
 import io.github.aedev.flow.data.audio.eq.EqMode
+import io.github.aedev.flow.data.audio.eq.EqSpatialSound
 import io.github.aedev.flow.data.audio.eq.EqState
 import io.github.aedev.flow.data.audio.eq.GraphicEq
 import io.github.aedev.flow.data.audio.eq.canSaveActive
@@ -48,6 +54,9 @@ import io.github.aedev.flow.ui.components.equalizer.PanelRow
 import io.github.aedev.flow.ui.components.equalizer.activePresetName
 import io.github.aedev.flow.ui.components.equalizer.formatGain
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
+import io.github.aedev.flow.ui.components.settings.LocalSettingsHighlight
+import io.github.aedev.flow.ui.components.settings.SettingsHighlightFrame
+import io.github.aedev.flow.ui.components.settings.isNew
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowMaxContentWidth
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
@@ -59,6 +68,7 @@ import io.github.aedev.flow.ui.components.shared.FlowSidePanes
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.components.shared.flowRowGroupShape
+import kotlinx.coroutines.flow.first
 
 private val ItemInset = 12.dp
 private val PhoneGraphHeight = 220.dp
@@ -84,21 +94,29 @@ internal fun EqualizerMainContent(
     onSaveAs: () -> Unit,
     onSystemEqualizer: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    highlight: String? = null,
 ) {
     val bottom = flowBottomContentPadding(BottomSpacing)
-    val list: @Composable (LazyListScope.() -> Unit) -> Unit = { content ->
+    val soundListState = rememberLazyListState()
+    LaunchedEffect(highlight) {
+        if (highlight != EqualizerIndex.spatialSound.key) return@LaunchedEffect
+        val total = snapshotFlow { soundListState.layoutInfo.totalItemsCount }.first { it > 0 }
+        soundListState.animateScrollToItem(total - if (onSystemEqualizer != null) 2 else 1)
+    }
+    val list: @Composable (LazyListState, LazyListScope.() -> Unit) -> Unit = { state, content ->
         LazyColumn(
+            state = state,
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(FlowSegmentedGap),
             contentPadding = PaddingValues(bottom = bottom),
             content = content,
         )
     }
-    val section = EqSections(state, viewModel, selectedBand, onSelectBand, onOpenPresets, onSaveAs, onSystemEqualizer)
+    val section = EqSections(state, viewModel, selectedBand, onSelectBand, onOpenPresets, onSaveAs, onSystemEqualizer, highlight)
 
     if (!twoPane) {
         Box(modifier) {
-            list {
+            list(soundListState) {
                 with(section) {
                     header()
                     curve(PhoneGraphHeight)
@@ -116,7 +134,7 @@ internal fun EqualizerMainContent(
         sidePaneWidth = SidePaneWidth,
         modifier = modifier,
         sidePane = {
-            list {
+            list(soundListState) {
                 with(section) {
                     header()
                     curve(PaneGraphHeight)
@@ -127,7 +145,7 @@ internal fun EqualizerMainContent(
             }
         },
         mainPane = {
-            list {
+            list(rememberLazyListState()) {
                 with(section) {
                     if (state.mode == EqMode.PARAMETRIC) {
                         selectedEditor()
@@ -150,6 +168,7 @@ private class EqSections(
     val onOpenPresets: () -> Unit,
     val onSaveAs: () -> Unit,
     val onSystemEqualizer: (() -> Unit)?,
+    val highlight: String?,
 ) {
     private val bandList = state.active.curve.bands
     private val parametric = state.mode == EqMode.PARAMETRIC
@@ -322,7 +341,9 @@ private class EqSections(
             EqFramed {
                 Column {
                     FlowSectionHeader(stringResource(R.string.eq_settings_section))
-                    val rows = if (state.autoPreamp) 2 else 3
+                    val spatialOn = state.spatialSound != EqSpatialSound.OFF
+                    val rows = (if (state.autoPreamp) 3 else 4) + (if (spatialOn) 1 else 0)
+                    val bassRow = if (state.autoPreamp) 1 else 2
                     FlowRowGroup {
                         FlowSwitchRow(
                             title = stringResource(R.string.eq_auto_preamp),
@@ -336,12 +357,45 @@ private class EqSections(
                                 ManualPreamp(value = state.active.curve.preamp, onValueChange = viewModel::setPreamp)
                             }
                         }
-                        PanelRow(shape = flowRowGroupShape(rows - 1, rows)) {
+                        PanelRow(shape = flowRowGroupShape(bassRow, rows)) {
                             EqBassBoostSlider(
                                 value = state.bassBoost,
                                 onValueChange = viewModel::setBassBoost,
+                                enabled = state.enabled,
                                 modifier = Modifier.padding(PanelPadding),
                             )
+                        }
+                        val spatialShape = flowRowGroupShape(bassRow + 1, rows)
+                        CompositionLocalProvider(LocalSettingsHighlight provides highlight) {
+                            SettingsHighlightFrame(EqualizerIndex.spatialSound.key, spatialShape) {
+                                FlowSwitchRow(
+                                    title = stringResource(R.string.eq_spatial_sound),
+                                    supportingText = stringResource(R.string.eq_spatial_sound_summary),
+                                    checked = spatialOn,
+                                    onCheckedChange = { on ->
+                                        viewModel.setSpatialSound(if (on) EqSpatialSound.MEDIUM else EqSpatialSound.OFF)
+                                    },
+                                    enabled = state.enabled,
+                                    shape = spatialShape,
+                                    titleBadge = EqualizerIndex.spatialSound.isNew(),
+                                )
+                            }
+                        }
+                        if (spatialOn) {
+                            PanelRow(shape = flowRowGroupShape(rows - 1, rows)) {
+                                FlowConnectedToggleGroup(
+                                    options =
+                                        listOf(
+                                            FlowToggleOption(EqSpatialSound.LOW, stringResource(R.string.eq_spatial_low)),
+                                            FlowToggleOption(EqSpatialSound.MEDIUM, stringResource(R.string.eq_spatial_medium)),
+                                            FlowToggleOption(EqSpatialSound.HIGH, stringResource(R.string.eq_spatial_high)),
+                                        ),
+                                    selected = state.spatialSound,
+                                    onSelected = viewModel::setSpatialSound,
+                                    enabled = state.enabled,
+                                    modifier = Modifier.padding(PanelPadding),
+                                )
+                            }
                         }
                     }
                 }

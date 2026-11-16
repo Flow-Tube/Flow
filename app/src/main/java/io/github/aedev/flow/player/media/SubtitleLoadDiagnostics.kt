@@ -32,6 +32,7 @@ internal object SubtitleLoadDiagnostics {
             "c=${StreamDenialClassifier.clientOf(url) ?: "none"}",
             "fmt=${fmtValues(url).joinToString(",").ifEmpty { "none" }}",
             "tlang=${presence(url, "tlang")}",
+            "source=${sourceOf(url)}",
             "pot=${presence(url, "pot")}",
             if (remaining == null) "expire=absent" else "expiresIn=${remaining}s",
             "status=${statusOf(error) ?: "none"}",
@@ -41,6 +42,16 @@ internal object SubtitleLoadDiagnostics {
     }
 
     fun statusOf(error: Throwable): Int? = (error as? HttpDataSource.InvalidResponseCodeException)?.responseCode
+
+    /** A translation's request shape, so a refusal can be told from a success when comparing builds (#1369). */
+    fun describeTranslatedLoad(
+        url: String?,
+        bytes: Long,
+    ): String = "fmt=${fmtValues(url).joinToString(",").ifEmpty { "none" }} source=${sourceOf(url)} bytes=$bytes"
+
+    fun isTranslated(url: String?): Boolean = presence(url, "tlang") == "yes"
+
+    private fun sourceOf(url: String?): String = if (StreamDenialClassifier.queryParam(url, "kind") == "asr") "asr" else "authored"
 
     private fun hostOf(url: String?): String {
         if (url.isNullOrBlank()) return "none"
@@ -84,6 +95,17 @@ internal fun subtitleLoadFailureReporter(
     onGaveUp: (index: Int, label: String) -> Unit,
 ): MediaSourceEventListener =
     object : MediaSourceEventListener {
+        override fun onLoadCompleted(
+            windowIndex: Int,
+            mediaPeriodId: MediaSource.MediaPeriodId?,
+            loadEventInfo: LoadEventInfo,
+            mediaLoadData: MediaLoadData,
+        ) {
+            if (!SubtitleLoadDiagnostics.isTranslated(url)) return
+            val shape = SubtitleLoadDiagnostics.describeTranslatedLoad(url, loadEventInfo.bytesLoaded)
+            Log.i(TAG, "Translated subtitle '$label' loaded: $shape")
+        }
+
         override fun onLoadError(
             windowIndex: Int,
             mediaPeriodId: MediaSource.MediaPeriodId?,
@@ -93,7 +115,11 @@ internal fun subtitleLoadFailureReporter(
             wasCanceled: Boolean,
         ) {
             if (!wasCanceled) {
-                Log.d(TAG, "Subtitle '$label' load failed (status=${SubtitleLoadDiagnostics.statusOf(error)}), retrying")
+                if (SubtitleLoadDiagnostics.isTranslated(url)) {
+                    Log.w(TAG, "Translated subtitle '$label' refused, retrying: ${SubtitleLoadDiagnostics.describe(url, error)}")
+                } else {
+                    Log.d(TAG, "Subtitle '$label' load failed (status=${SubtitleLoadDiagnostics.statusOf(error)}), retrying")
+                }
                 return
             }
             Log.w(TAG, "Subtitle '$label' gave up after retries: ${SubtitleLoadDiagnostics.describe(url, error)}")

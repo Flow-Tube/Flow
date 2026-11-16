@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube.pages
 
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.data.model.CommentImage
 import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.RichTextEmoji
 import io.github.aedev.flow.data.model.RichTextHighlight
@@ -117,8 +118,34 @@ internal fun JsonObject.toModernComment(
         isVerified = author?.get("isVerified").booleanOrFalse(),
         isCreator = author?.get("isCreator").booleanOrFalse(),
         isArtist = author?.get("isArtist").booleanOrFalse(),
+        image =
+            this["commentSurfaceKey"]
+                .stringOrNull()
+                ?.let { mutations[it] }
+                .objectOrNull()
+                ?.get("commentSurfaceEntityPayload")
+                .objectOrNull()
+                ?.get("imageAttachmentViewModel")
+                .toCommentImage(),
     )
 }
+
+/** The GIF (or picture) YouTube shows under a comment's text; its size comes with it. */
+internal fun JsonElement?.toCommentImage(): CommentImage? {
+    val attachment = objectOrNull()?.get("commentImageAttachmentViewModel").objectOrNull() ?: return null
+    val url =
+        attachment["image"]
+            .objectOrNull()
+            ?.get("sources")
+            .bestThumbnailUrl()
+            ?.takeIf(String::isNotBlank) ?: return null
+    val width = attachment["width"].intOrZero()
+    val height = attachment["height"].intOrZero()
+    if (width <= 0 || height <= 0) return null
+    return CommentImage(url = normalizeImageUrl(url), width = width, height = height)
+}
+
+private fun JsonElement?.intOrZero(): Int = (this as? JsonPrimitive)?.intOrNull ?: 0
 
 internal fun JsonObject.toLegacyComment(repliesRenderer: JsonObject?): Comment? {
     val id = this["commentId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
@@ -142,6 +169,7 @@ internal fun JsonObject.toLegacyComment(repliesRenderer: JsonObject?): Comment? 
                 ?: "",
         likeCountText = this["voteCount"].youtubeText().orEmpty(),
         isVerified = this["authorCommentBadge"] != null,
+        image = this["imageAttachmentViewModel"].toCommentImage(),
     )
 }
 

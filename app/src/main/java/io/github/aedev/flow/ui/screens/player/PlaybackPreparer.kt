@@ -10,6 +10,7 @@ import io.github.aedev.flow.data.video.OfflineSubtitleStore
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PlaybackResumePolicy
+import io.github.aedev.flow.player.PlayerRelatedVideosPolicy
 import io.github.aedev.flow.player.sabr.SabrRoutingPolicy
 import io.github.aedev.flow.player.sabr.integration.SabrStreamInfo
 import io.github.aedev.flow.player.stream.ResolvedCaption
@@ -58,12 +59,14 @@ internal class PlaybackPreparer(
     suspend fun applyAutoplayCandidates(
         videoId: String,
         videos: List<Video>,
-    ): Boolean =
-        withContext(Dispatchers.Main) {
+    ): Boolean {
+        val unwatched = PlayerRelatedVideosPolicy.withoutWatched(videos, playerManager.watchedSuggestionsSource)
+        return withContext(Dispatchers.Main) {
             val autoplay = playerPreferences.autoplayEnabled.first()
-            playerManager.setAutoplayCandidates(sourceVideoId = videoId, videos = videos, enabled = autoplay)
+            playerManager.setAutoplayCandidates(sourceVideoId = videoId, videos = unwatched, enabled = autoplay)
             autoplay
         }
+    }
 
     /** The InnerTube-only VOD assembly, unpacked onto the full hand-off below. */
     suspend fun prepareVodStreams(

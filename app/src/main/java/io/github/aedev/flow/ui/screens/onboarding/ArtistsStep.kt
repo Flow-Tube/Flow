@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -27,6 +26,7 @@ import io.github.aedev.flow.data.recommendation.music.FavouriteArtistPicker
 import io.github.aedev.flow.ui.components.shared.FlowSearchField
 import io.github.aedev.flow.ui.components.shared.FlowSectionHeader
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.MediaArtistToggleRow
 import io.github.aedev.flow.ui.components.shared.dismissKeyboardOnPress
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
@@ -65,7 +65,7 @@ internal fun ArtistsStep(
         val candidates = state.candidates
         if (candidates == null) {
             item(key = "loading") {
-                Box(Modifier.fillMaxWidth().padding(top = SectionTopPadding), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                Box(Modifier.fillMaxWidth().padding(top = SectionTopPadding), contentAlignment = Alignment.Center) { FlowSpinner() }
             }
         } else {
             artistSection(

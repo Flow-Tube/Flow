@@ -8,8 +8,6 @@ import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.room.withTransaction
 import com.google.gson.GsonBuilder
-import com.google.gson.Strictness
-import com.google.gson.stream.JsonReader
 import dagger.hilt.android.EntryPointAccessors
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.R
@@ -28,6 +26,7 @@ import io.github.aedev.flow.data.profile.SlicePart
 import io.github.aedev.flow.data.profile.seedFor
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.notification.AutoBackupWorker
 import io.github.aedev.flow.platform.AppIconEntryPoint
 import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
 import io.github.aedev.flow.util.AppIcons
@@ -140,6 +139,11 @@ private const val MASTER_RECAP_ENTRY = "recap_stats.json"
 private const val MASTER_FAVOURITE_ARTISTS_ENTRY = "favourite_artists.json"
 
 internal const val NO_LIKES = "no_likes"
+
+/** Settings other stores restore themselves, kept out of the player store's restore of the same flat backup. */
+private val SETTINGS_OWNED_ELSEWHERE: Set<String> =
+    LocalDataManager.BACKED_UP_NAMES + SearchHistoryRepository.SETTING_NAMES + AppFontPreferences.SETTING_NAMES
+
 private const val LIKES_LEARNING_WINDOW_DAYS = 365L
 private const val MAX_LEARNED_LIKES = 500
 
@@ -165,17 +169,16 @@ class BackupRepository(
             .disableHtmlEscaping()
             .create()
 
-    private fun parseBackupJson(json: String): BackupData? {
-        val reader = JsonReader(StringReader(json))
-        reader.setStrictness(Strictness.LENIENT)
-        return gson.fromJson(reader, BackupData::class.java)
-    }
+    private val backupJson = BackupJson(gson)
+
+    private fun parseBackupJson(json: String): BackupData? = backupJson.read(StringReader(json))
 
     private val viewHistory = ViewHistory.getInstance(context)
     private val searchHistoryRepo = SearchHistoryRepository(context)
     private val subscriptionRepo = SubscriptionRepository.getInstance(context)
     private val likedVideosRepo = LikedVideosRepository.getInstance(context)
     private val database = AppDatabase.profile(context)
+    private val metrolistImporter by lazy { MetrolistImporter(context, database) }
     private val takeoutImporter by lazy {
         YouTubeTakeoutImporter(
             context = context,
@@ -224,7 +227,7 @@ class BackupRepository(
             ints = playerSettings.ints + localSettings.ints + searchSettings.ints,
             floats = playerSettings.floats + localSettings.floats + searchSettings.floats,
             longs = playerSettings.longs + localSettings.longs + searchSettings.longs,
-            stringSets = playerSettings.stringSets,
+            stringSets = playerSettings.stringSets + localSettings.stringSets,
         )
     }
 
@@ -317,7 +320,7 @@ class BackupRepository(
     /** The master backup: app data, the video engine and, when given, the music engine, in one ZIP. */
     private fun writeMasterZip(
         out: java.io.OutputStream,
-        appDataJson: String,
+        appData: BackupData,
         brainBytes: ByteArray?,
         musicBrain: ByteArray?,
         recap: ByteArray?,
@@ -325,7 +328,7 @@ class BackupRepository(
     ) {
         ZipOutputStream(out).use { zip ->
             zip.putNextEntry(ZipEntry(MASTER_APP_DATA_ENTRY))
-            zip.write(appDataJson.toByteArray(Charsets.UTF_8))
+            backupJson.write(appData, zip)
             zip.closeEntry()
             if (brainBytes != null) {
                 zip.putNextEntry(ZipEntry(MASTER_ENGINE_ENTRY))
@@ -1216,165 +1219,10 @@ class BackupRepository(
             }
         }
 
-    /**
-     * Import music playlists from a Metrolist backup file (ZIP containing "song.db").
-     *
-     * The backup is a ZIP archive with two entries:
-     *   • settings.preferences_pb   – app settings (ignored)
-     *   • song.db                   – Room/SQLite database
-     *
-     * Tables read:
-     *   playlist          (id TEXT, name TEXT, thumbnailUrl TEXT, isLocal INTEGER)
-     *   song              (id TEXT, title TEXT, thumbnailUrl TEXT, duration INTEGER, isLocal INTEGER)
-     *   playlist_song_map (playlistId TEXT, songId TEXT, position INTEGER)
-     *
-     * All imported content is tagged isMusic = true so it appears in the Music section.
-     */
     suspend fun importMetrolist(
         uri: Uri,
         onProgress: ((current: Int, total: Int) -> Unit)? = null,
-    ): Result<Int> =
-        withContext(Dispatchers.IO) {
-            val tempDb = java.io.File(context.cacheDir, "metrolist_import_${System.currentTimeMillis()}.db")
-            try {
-                // 1. Extract "song.db" from the ZIP archive
-                var foundDb = false
-                context.contentResolver.openInputStream(uri)?.use { raw ->
-                    java.util.zip.ZipInputStream(raw.buffered()).use { zip ->
-                        var entry = zip.nextEntry
-                        while (entry != null) {
-                            if (entry.name == "song.db") {
-                                tempDb.outputStream().use { zip.copyTo(it) }
-                                foundDb = true
-                                break
-                            }
-                            zip.closeEntry()
-                            entry = zip.nextEntry
-                        }
-                    }
-                }
-
-                if (!foundDb) return@withContext Result.failure(Exception("invalid_format"))
-
-                // 2. Open the extracted database read-only
-                val db =
-                    android.database.sqlite.SQLiteDatabase.openDatabase(
-                        tempDb.absolutePath,
-                        null,
-                        android.database.sqlite.SQLiteDatabase.OPEN_READONLY,
-                    )
-
-                var importedCount = 0
-
-                db.use {
-                    // 3. Load playlists (exclude local-file playlists)
-                    val playlists = mutableListOf<Triple<String, String, String>>()
-                    db.rawQuery("SELECT id, name, COALESCE(thumbnailUrl,'') FROM playlist WHERE isLocal = 0", null).use { c ->
-                        while (c.moveToNext()) playlists.add(Triple(c.getString(0), c.getString(1), c.getString(2)))
-                    }
-
-                    // 4. Load non-local songs
-                    data class SongRow(
-                        val id: String,
-                        val title: String,
-                        val thumb: String,
-                        val duration: Int,
-                    )
-                    val songs = mutableMapOf<String, SongRow>()
-                    db
-                        .rawQuery(
-                            "SELECT id, title, COALESCE(thumbnailUrl,''), COALESCE(duration,0) FROM song WHERE isLocal = 0",
-                            null,
-                        ).use { c ->
-                            while (c.moveToNext()) {
-                                songs[c.getString(0)] = SongRow(c.getString(0), c.getString(1), c.getString(2), c.getInt(3))
-                            }
-                        }
-
-                    // 5. Load playlist-song mappings ordered by position
-                    val playlistSongs = mutableMapOf<String, MutableList<Pair<String, Int>>>()
-                    db.rawQuery("SELECT playlistId, songId, position FROM playlist_song_map ORDER BY playlistId, position", null).use { c ->
-                        while (c.moveToNext()) {
-                            playlistSongs
-                                .getOrPut(c.getString(0)) { mutableListOf() }
-                                .add(Pair(c.getString(1), c.getInt(2)))
-                        }
-                    }
-
-                    val total = playlists.size
-                    var done = 0
-                    onProgress?.invoke(0, total)
-
-                    // 6. Insert into Flow's database
-                    database.withTransaction {
-                        for ((plId, plName, plThumb) in playlists) {
-                            val songList = playlistSongs[plId] ?: emptyList()
-                            val newPlId = "metro_${System.currentTimeMillis()}_${plId.take(8)}"
-                            val thumbUrl =
-                                plThumb.takeIf { it.isNotEmpty() }
-                                    ?: songList.firstOrNull()?.let { (sid, _) ->
-                                        songs[sid]?.thumb?.takeIf { it.isNotEmpty() }
-                                    }
-                                    ?: ""
-
-                            database.playlistDao().insertPlaylist(
-                                PlaylistEntity(
-                                    id = newPlId,
-                                    name = plName,
-                                    description = "Imported from Metrolist",
-                                    thumbnailUrl = thumbUrl,
-                                    isPrivate = false,
-                                    createdAt = System.currentTimeMillis(),
-                                    isMusic = true,
-                                ),
-                            )
-
-                            songList.forEachIndexed { index, (songId, _) ->
-                                val row = songs[songId]
-                                val thumb =
-                                    row?.thumb?.ifEmpty {
-                                        ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(songId)
-                                    } ?: ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(songId)
-
-                                database.videoDao().insertVideoOrIgnore(
-                                    VideoEntity(
-                                        id = songId,
-                                        title = row?.title ?: "",
-                                        channelName = "",
-                                        channelId = "",
-                                        thumbnailUrl = thumb,
-                                        duration = row?.duration ?: 0,
-                                        viewCount = 0L,
-                                        uploadDate = "",
-                                        description = "",
-                                        channelThumbnailUrl = "",
-                                        isMusic = true,
-                                    ),
-                                )
-                                database.playlistDao().insertPlaylistVideoCrossRef(
-                                    PlaylistVideoCrossRef(
-                                        playlistId = newPlId,
-                                        videoId = songId,
-                                        position = index.toLong(),
-                                    ),
-                                )
-                                importedCount++
-                            }
-
-                            done++
-                            onProgress?.invoke(done, total)
-                        }
-                    }
-                }
-
-                if (importedCount == 0) return@withContext Result.failure(Exception("no_content"))
-                Result.success(importedCount)
-            } catch (e: Exception) {
-                Result.failure(e)
-            } finally {
-                tempDb.delete()
-            }
-        }
+    ): Result<Int> = metrolistImporter.import(uri, onProgress)
 
     // ── Google Takeout all-in-one import ──
 
@@ -1756,12 +1604,11 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             try {
                 val backupData = buildSliceData(seed)
-                val appDataJson = gson.toJson(backupData)
 
                 val brainBytes = if (seed == null || SlicePart.RECOMMENDATIONS in seed) exportBrainBytes() else null
 
                 context.contentResolver.openOutputStream(uri, "wt")?.use { out ->
-                    writeMasterZip(out, appDataJson, brainBytes, musicBrain, recap, favouriteArtists)
+                    writeMasterZip(out, backupData, brainBytes, musicBrain, recap, favouriteArtists)
                 } ?: return@withContext Result.failure(Exception("Could not open output stream"))
 
                 Result.success(Unit)
@@ -1778,7 +1625,8 @@ class BackupRepository(
     ): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                var appDataJson: String? = null
+                var appData: BackupData? = null
+                var appDataFound = false
                 var brainBytes: ByteArray? = null
                 var musicBrainBytes: ByteArray? = null
                 var recapBytes: ByteArray? = null
@@ -1790,11 +1638,27 @@ class BackupRepository(
                         var entry = zip.nextEntry
                         while (entry != null) {
                             when (entry.name) {
-                                MASTER_APP_DATA_ENTRY -> appDataJson = zip.readBytes().toString(Charsets.UTF_8)
-                                MASTER_ENGINE_ENTRY -> brainBytes = zip.readBytes()
-                                MASTER_MUSIC_BRAIN_ENTRY -> musicBrainBytes = zip.readBytes()
-                                MASTER_RECAP_ENTRY -> recapBytes = zip.readBytes()
-                                MASTER_FAVOURITE_ARTISTS_ENTRY -> favouriteArtistBytes = zip.readBytes()
+                                MASTER_APP_DATA_ENTRY -> {
+                                    appDataFound = true
+                                    // Read in place: the entry ends where the zip says, and the zip stays open.
+                                    appData = backupJson.read(InputStreamReader(zip, Charsets.UTF_8))
+                                }
+
+                                MASTER_ENGINE_ENTRY -> {
+                                    brainBytes = zip.readBytes()
+                                }
+
+                                MASTER_MUSIC_BRAIN_ENTRY -> {
+                                    musicBrainBytes = zip.readBytes()
+                                }
+
+                                MASTER_RECAP_ENTRY -> {
+                                    recapBytes = zip.readBytes()
+                                }
+
+                                MASTER_FAVOURITE_ARTISTS_ENTRY -> {
+                                    favouriteArtistBytes = zip.readBytes()
+                                }
                             }
                             zip.closeEntry()
                             entry = zip.nextEntry
@@ -1802,14 +1666,12 @@ class BackupRepository(
                     }
                 } ?: return@withContext Result.failure(Exception("Could not read file"))
 
-                if (appDataJson == null && brainBytes == null) {
+                if (!appDataFound && brainBytes == null) {
                     return@withContext Result.failure(Exception("Invalid master backup file"))
                 }
 
-                appDataJson?.let { json ->
-                    val backupData =
-                        parseBackupJson(json)
-                            ?: return@withContext Result.failure(Exception("Invalid app data in backup"))
+                if (appDataFound) {
+                    val backupData = appData ?: return@withContext Result.failure(Exception("Invalid app data in backup"))
                     contentPreferences = backupData.contentPreferences
                     importBackupData(backupData, restoreContentPreferences = false)
                 }
@@ -1885,10 +1747,11 @@ class BackupRepository(
         backupData.settings?.let { backedUp ->
             backedUp.strings[EqStateJson.KEY]?.let { equalizer.importJson(it) }
             val settings = backedUp.copy(strings = backedUp.strings - EqStateJson.KEY)
-            playerPreferences.restoreData(settings)
+            playerPreferences.restoreData(settings, ownedElsewhere = SETTINGS_OWNED_ELSEWHERE)
             localDataManager.restoreData(settings)
             searchHistoryRepo.restoreSettings(settings)
             appFontPreferences.restoreSettings(settings)
+            AutoBackupWorker.applySchedule(context)
             val savedIconSuffix = settings.strings["app_icon_suffix"]
             if (!savedIconSuffix.isNullOrEmpty() && AppIcons.ALL_SUFFIXES.contains(savedIconSuffix)) {
                 appIconController.apply(savedIconSuffix)
@@ -1981,11 +1844,10 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             try {
                 val backupData = buildBackupData()
-                val appDataJson = gson.toJson(backupData)
                 val brainBytes = exportBrainBytes()
 
                 writeToFolder(folderUri, "flow_master_backup.zip", "application/zip") { out ->
-                    writeMasterZip(out, appDataJson, brainBytes, musicBrain, recap, favouriteArtists)
+                    writeMasterZip(out, backupData, brainBytes, musicBrain, recap, favouriteArtists)
                 }
             } catch (e: Exception) {
                 Result.failure(e)

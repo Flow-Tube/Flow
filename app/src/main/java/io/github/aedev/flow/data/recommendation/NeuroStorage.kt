@@ -24,10 +24,12 @@ import io.github.aedev.flow.data.profile.StoreScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.encodeToStream
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -55,6 +57,8 @@ internal class NeuroStorage(
         const val LEGACY_SCHEMA_VERSION = 0
 
         private val LEGACY_ONLY_KEYS = listOf("morning", "afternoon", "evening", "night", "longTerm")
+
+        private val exportJson = Json { encodeDefaults = true }
 
         /** The schema [json] declares, or [LEGACY_SCHEMA_VERSION] when it has none. */
         internal fun declaredSchema(json: JsonObject): Int = json["schemaVersion"]?.jsonPrimitive?.intOrNull ?: LEGACY_SCHEMA_VERSION
@@ -376,18 +380,15 @@ internal class NeuroStorage(
             global.topics.isNotEmpty() ||
             timeVectors.any { (_, vector) -> vector.topics.isNotEmpty() }
 
+    @OptIn(ExperimentalSerializationApi::class)
     suspend fun exportToStream(
         brain: UserBrain,
         output: OutputStream,
     ): Boolean =
         withContext(Dispatchers.IO) {
             try {
-                val brainCopy = brain.toSerializable()
-                val jsonBytes =
-                    Json { encodeDefaults = true }
-                        .encodeToString(brainCopy)
-                        .toByteArray()
-                output.write(jsonBytes)
+                // Straight into the stream: a string and then its bytes held the whole brain twice.
+                exportJson.encodeToStream(brain.toSerializable(), output)
                 output.flush()
                 Log.i(TAG, "Brain exported")
                 true

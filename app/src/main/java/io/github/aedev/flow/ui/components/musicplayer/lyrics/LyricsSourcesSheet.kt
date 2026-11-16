@@ -20,7 +20,6 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -35,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.lyrics.LyricsCandidate
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.rememberFlowSheetState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -73,7 +73,7 @@ internal fun LyricsSourcesSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        LoadingIndicator(
+                        FlowSpinner(
                             modifier = Modifier.size(30.dp),
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -119,7 +119,7 @@ internal fun LyricsSourcesSheet(
                                             .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    LoadingIndicator(
+                                    FlowSpinner(
                                         modifier = Modifier.size(26.dp),
                                         color = MaterialTheme.colorScheme.primary,
                                     )

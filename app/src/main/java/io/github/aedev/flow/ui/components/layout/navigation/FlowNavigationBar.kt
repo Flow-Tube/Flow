@@ -1,15 +1,10 @@
 package io.github.aedev.flow.ui.components.layout.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
@@ -23,14 +18,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.NavBarLabels
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
 import io.github.aedev.flow.ui.utils.isMediumWidth
 
-private const val MAX_BAR_TABS = 5
+internal const val MAX_BAR_TABS = 5
 
 /**
  * The bottom navigation bar. Material allows at most five destinations in a bar, so a sixth and
- * seventh enabled tab move behind a "More" item; the rail has room for all of them.
+ * seventh enabled tab move behind a "More" item.
  */
 @Composable
 internal fun FlowNavigationBar(
@@ -38,11 +34,11 @@ internal fun FlowNavigationBar(
     selectedTab: FlowTab?,
     onTabSelected: (FlowTab) -> Unit,
     modifier: Modifier = Modifier,
+    labels: NavBarLabels = NavBarLabels.ALWAYS,
 ) {
     val horizontalItems = LocalWindowSizeClass.current.isMediumWidth
     val iconPosition = if (horizontalItems) NavigationItemIconPosition.Start else NavigationItemIconPosition.Top
-    val barTabs = if (tabs.size <= MAX_BAR_TABS) tabs else tabs.take(MAX_BAR_TABS - 1)
-    val overflowTabs = tabs.drop(barTabs.size)
+    val (barTabs, overflowTabs) = splitTabsForOverflow(tabs, MAX_BAR_TABS)
 
     ShortNavigationBar(
         modifier = modifier,
@@ -52,71 +48,82 @@ internal fun FlowNavigationBar(
     ) {
         barTabs.forEach { tab ->
             val selected = tab == selectedTab
-            ShortNavigationBarItem(
+            FlowTabBarItem(
+                tab = tab,
                 selected = selected,
                 onClick = { onTabSelected(tab) },
-                icon = { Icon(imageVector = tab.icon(selected), contentDescription = null) },
-                label = { Text(text = stringResource(tab.labelRes)) },
+                showsLabel = labels.shows(selected),
                 iconPosition = iconPosition,
             )
         }
         if (overflowTabs.isNotEmpty()) {
-            OverflowItem(
+            FlowOverflowBarItem(
                 tabs = overflowTabs,
                 selectedTab = selectedTab,
                 onTabSelected = onTabSelected,
+                showsLabel = labels.shows(selectedTab in overflowTabs),
                 iconPosition = iconPosition,
             )
         }
     }
 }
 
+/** One tab in a bottom bar; without its label the icon carries the tab's name for TalkBack. */
 @Composable
-private fun OverflowItem(
+internal fun FlowTabBarItem(
+    tab: FlowTab,
+    selected: Boolean,
+    onClick: () -> Unit,
+    showsLabel: Boolean,
+    iconPosition: NavigationItemIconPosition,
+    modifier: Modifier = Modifier,
+) {
+    val name = stringResource(tab.labelRes)
+    ShortNavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = { Icon(imageVector = tab.icon(selected), contentDescription = if (showsLabel) null else name) },
+        label = if (showsLabel) ({ Text(text = name) }) else null,
+        iconPosition = iconPosition,
+        modifier = modifier,
+    )
+}
+
+/** The "More" slot of a bottom bar, opening the tabs it had no room for. */
+@Composable
+internal fun FlowOverflowBarItem(
     tabs: List<FlowTab>,
     selectedTab: FlowTab?,
     onTabSelected: (FlowTab) -> Unit,
+    showsLabel: Boolean,
     iconPosition: NavigationItemIconPosition,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val name = stringResource(R.string.nav_more)
     // One Box per bar slot: the bar measures every direct child as an item, and the menu's
     // popup anchor would otherwise count as one.
-    Box(propagateMinConstraints = true) {
+    Box(modifier = modifier, propagateMinConstraints = true) {
         ShortNavigationBarItem(
             selected = selectedTab in tabs,
             onClick = { expanded = true },
-            icon = { Icon(imageVector = Icons.Filled.MoreHoriz, contentDescription = null) },
-            label = { Text(text = stringResource(R.string.nav_more)) },
+            icon = { Icon(imageVector = Icons.Filled.MoreHoriz, contentDescription = if (showsLabel) null else name) },
+            label = if (showsLabel) ({ Text(text = name) }) else null,
             iconPosition = iconPosition,
         )
-        DropdownMenuPopup(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 1)) {
-                tabs.forEachIndexed { index, tab ->
-                    DropdownMenuItem(
-                        selected = tab == selectedTab,
-                        onClick = {
-                            expanded = false
-                            onTabSelected(tab)
-                        },
-                        text = { Text(text = stringResource(tab.labelRes)) },
-                        shapes = MenuDefaults.itemShape(index = index, count = tabs.size),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = tab.icon(selected = false),
-                                contentDescription = null,
-                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                            )
-                        },
-                        selectedLeadingIcon = {
-                            Icon(
-                                imageVector = tab.icon(selected = true),
-                                contentDescription = null,
-                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                            )
-                        },
-                    )
-                }
-            }
-        }
+        FlowTabOverflowMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            tabs = tabs,
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
+        )
     }
 }
+
+internal fun NavBarLabels.shows(selected: Boolean): Boolean =
+    when (this) {
+        NavBarLabels.ALWAYS -> true
+        NavBarLabels.SELECTED -> selected
+        NavBarLabels.NEVER -> false
+    }

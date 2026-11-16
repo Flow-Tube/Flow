@@ -21,7 +21,8 @@ import androidx.compose.ui.unit.dp
 
 /**
  * One colour to pick, as a circle. A swatch marks its selection with a check inside the colour rather than a ring
- * around it: an accent-coloured outline reads as decoration next to a row of colours.
+ * around it: an accent-coloured outline reads as decoration next to a row of colours. [fill] paints a choice that is
+ * more than one colour inside the circle; [color] is then what the check is measured against.
  */
 @Composable
 fun FlowColorSwatch(
@@ -29,6 +30,7 @@ fun FlowColorSwatch(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    fill: (@Composable () -> Unit)? = null,
 ) {
     Box(
         modifier =
@@ -40,6 +42,7 @@ fun FlowColorSwatch(
                 .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
+        fill?.invoke()
         if (selected) {
             Icon(
                 imageVector = Icons.Rounded.Check,

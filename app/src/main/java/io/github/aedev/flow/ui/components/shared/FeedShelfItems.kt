@@ -50,12 +50,14 @@ import io.github.aedev.flow.innertube.pages.renderer.FeedItem
 import io.github.aedev.flow.innertube.pages.renderer.FeedShelf
 import io.github.aedev.flow.innertube.pages.renderer.FeedShelfStyle
 import io.github.aedev.flow.ui.components.FEED_MAX_AUTO_COLUMNS
+import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.PlaylistCard
 import io.github.aedev.flow.ui.components.PlaylistCardLayout
 import io.github.aedev.flow.ui.components.feedCardsFormGrid
 import io.github.aedev.flow.ui.components.feedShelfPreviewCount
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
+import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 
 @Composable
@@ -63,6 +65,7 @@ internal fun ShelfItem(
     item: FeedItem,
     gridCard: Boolean,
     rowThumbnailWidth: Dp,
+    layout: FeedGridLayout,
     actions: FeedShelfActions,
     slots: FeedShelfSlots,
     showChannelInfo: Boolean,
@@ -73,6 +76,7 @@ internal fun ShelfItem(
                 video = item.video,
                 gridCard = gridCard,
                 rowThumbnailWidth = rowThumbnailWidth,
+                density = layout.cardDensity,
                 showChannelInfo = showChannelInfo,
                 onClick = { actions.onVideoClick(item.video) },
             )
@@ -83,6 +87,7 @@ internal fun ShelfItem(
                 video = item.video,
                 gridCard = gridCard,
                 rowThumbnailWidth = rowThumbnailWidth,
+                density = layout.cardDensity,
                 showChannelInfo = showChannelInfo,
                 onClick = { actions.onShortClick(item.video.id) },
             )
@@ -94,7 +99,7 @@ internal fun ShelfItem(
                     playlist = item.playlist,
                     onClick = { actions.onPlaylistClick(item.playlist.id) },
                     layout = PlaylistCardLayout.SHELF,
-                    modifier = Modifier.padding(horizontal = 12.dp),
+                    modifier = Modifier.padding(horizontal = layout.cardInset),
                 )
             } else {
                 PlaylistCard(playlist = item.playlist, onClick = { actions.onPlaylistClick(item.playlist.id) })
@@ -128,6 +133,7 @@ private fun ShelfVideoCard(
     video: Video,
     gridCard: Boolean,
     rowThumbnailWidth: Dp,
+    density: VideoCardDensity,
     showChannelInfo: Boolean,
     onClick: () -> Unit,
 ) {
@@ -136,6 +142,7 @@ private fun ShelfVideoCard(
             video = video,
             showChannel = showChannelInfo,
             onClick = onClick,
+            density = density,
         )
     } else {
         MediaVideoCard(
@@ -144,6 +151,7 @@ private fun ShelfVideoCard(
             showChannel = showChannelInfo,
             onClick = onClick,
             thumbnailWidth = rowThumbnailWidth,
+            density = density,
         )
     }
 }

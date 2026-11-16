@@ -17,6 +17,6 @@ enum class StoreScope {
     /** Engine state, queues and accounts: never backed up. */
     PROFILE_PRIVATE,
 
-    /** Sync state, which only Default has. */
+    /** Files only Default ever had, such as the brains from before profiles. */
     DEFAULT_ONLY,
 }

@@ -17,7 +17,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.schabi.newpipe.extractor.Page
 
 /**
  * Pins the paging contract the player and Shorts now share: one request per video in flight, a
@@ -27,12 +26,14 @@ import org.schabi.newpipe.extractor.Page
 @OptIn(ExperimentalCoroutinesApi::class)
 class CommentsPagerTest {
     private val testDispatcher = StandardTestDispatcher()
-    private val repository: YouTubeRepository = mockk(relaxed = true)
+    private val repository: YouTubeRepository =
+        mockk(relaxed = true) {
+            coEvery { getTimedComments(any(), any()) } returns CommentsPageResult.EMPTY
+        }
 
     private fun comment(
         id: String,
         text: String = "text $id",
-        repliesPage: Page? = null,
         continuationToken: String? = null,
         replies: List<Comment> = emptyList(),
     ) = Comment(
@@ -43,7 +44,6 @@ class CommentsPagerTest {
         likeCount = 0,
         publishedTime = "",
         replies = replies,
-        repliesPage = repliesPage,
         continuationToken = continuationToken,
     )
 
@@ -262,6 +262,117 @@ class CommentsPagerTest {
         }
 
     @Test
+    fun `timed reads both orders in turn, up to its budget, into one list`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            val orders = listOf(VideoCommentSort("Newest", "newest", false), VideoCommentSort("Top", "top", true))
+            coEvery { repository.getMoreVideoComments("v", any()) } answers {
+                val token = secondArg<String>()
+                CommentsPageResult(comments = listOf(comment(token), comment("shared")), continuation = "$token+")
+            }
+            val pager = pager(scope)
+
+            pager.selectTimed("v", orders)
+            advanceUntilIdle()
+
+            coVerify(exactly = 8) { repository.getMoreVideoComments("v", match { it.startsWith("newest") }) }
+            coVerify(exactly = 8) { repository.getMoreVideoComments("v", match { it.startsWith("top") }) }
+            assertThat(pager.comments.value.count { it.id == "shared" }).isEqualTo(1)
+            assertThat(pager.isLoading.value).isFalse()
+            assertThat(pager.isLoadingMore.value).isFalse()
+            assertThat(pager.hasMore.value).isTrue()
+
+            pager.selectTimed("v", orders)
+            advanceUntilIdle()
+            coVerify(exactly = 16) { repository.getMoreVideoComments("v", any()) }
+
+            pager.loadMore("v")
+            advanceUntilIdle()
+            coVerify(exactly = 20) { repository.getMoreVideoComments("v", any()) }
+            scope.cancel()
+        }
+
+    @Test
+    fun `timed takes YouTube's own list when there is one and reads no pages`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            val orders = listOf(VideoCommentSort("Newest", "newest", false), VideoCommentSort("Top", "top", true))
+            coEvery { repository.getTimedComments("v", "newest") } returns
+                CommentsPageResult(comments = listOf(comment("early"), comment("late"), comment("early")))
+            val pager = pager(scope)
+
+            pager.selectTimed("v", orders)
+            advanceUntilIdle()
+            pager.selectTimed("v", orders)
+            pager.loadMore("v")
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { repository.getTimedComments("v", "newest") }
+            coVerify(exactly = 0) { repository.getMoreVideoComments(any(), any()) }
+            assertThat(pager.comments.value.map { it.id }).containsExactly("early", "late").inOrder()
+            assertThat(pager.hasMore.value).isFalse()
+            assertThat(pager.isLoading.value).isFalse()
+            scope.cancel()
+        }
+
+    @Test
+    fun `timed falls back to reading pages when YouTube has no list`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            coEvery { repository.getMoreVideoComments("v", "newest") } returns CommentsPageResult(comments = listOf(comment("a")))
+            coEvery { repository.getMoreVideoComments("v", "top") } returns CommentsPageResult(comments = listOf(comment("b")))
+            val pager = pager(scope)
+
+            pager.selectTimed("v", listOf(VideoCommentSort("Newest", "newest", false), VideoCommentSort("Top", "top", true)))
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { repository.getTimedComments("v", "newest") }
+            assertThat(pager.comments.value.map { it.id }).containsExactly("a", "b")
+            scope.cancel()
+        }
+
+    @Test
+    fun `timed stops at the end of each order`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            coEvery { repository.getMoreVideoComments("v", "newest") } returns CommentsPageResult(comments = listOf(comment("a")))
+            coEvery { repository.getMoreVideoComments("v", "top") } returns CommentsPageResult(comments = listOf(comment("b")))
+            val pager = pager(scope)
+
+            pager.selectTimed("v", listOf(VideoCommentSort("Newest", "newest", false), VideoCommentSort("Top", "top", true)))
+            advanceUntilIdle()
+
+            coVerify(exactly = 2) { repository.getMoreVideoComments("v", any()) }
+            assertThat(pager.hasMore.value).isFalse()
+            assertThat(pager.comments.value.map { it.id }).containsExactly("a", "b")
+            scope.cancel()
+        }
+
+    @Test
+    fun `another sort cancels what timed had left to read`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            val gate = CompletableDeferred<Unit>()
+            coEvery { repository.getMoreVideoComments("v", any()) } coAnswers {
+                gate.await()
+                CommentsPageResult(comments = listOf(comment("late")), continuation = "more")
+            }
+            coEvery { repository.getVideoComments("v", "top") } returns CommentsPageResult(comments = listOf(comment("top")))
+            val pager = pager(scope)
+            val top = VideoCommentSort("Top", "top", true)
+
+            pager.selectTimed("v", listOf(VideoCommentSort("Newest", "newest", false), top))
+            runCurrent()
+            pager.selectSort("v", top)
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertThat(pager.comments.value.map { it.id }).containsExactly("top")
+            assertThat(pager.isLoadingMore.value).isFalse()
+            scope.cancel()
+        }
+
+    @Test
     fun `a repeat request for the same video while the first is in flight is dropped`() =
         runTest(testDispatcher) {
             val scope = CoroutineScope(testDispatcher)
@@ -437,36 +548,38 @@ class CommentsPagerTest {
         }
 
     @Test
-    fun `a fallback page keeps paging and its replies on the extractor`() =
+    fun `a video with comments turned off is marked disabled and the next video is not`() =
         runTest(testDispatcher) {
             val scope = CoroutineScope(testDispatcher)
-            val firstPage = Page("https://example.invalid/next")
-            val repliesPage = Page("https://example.invalid/replies")
-            val parent = comment("c1", repliesPage = repliesPage)
-            coEvery { repository.getVideoComments("vid_a", null) } returns
-                CommentsPageResult(comments = listOf(parent), legacyPage = firstPage)
-            coEvery { repository.getMoreComments("vid_a", firstPage) } returns (listOf(comment("c2")) to null)
-            coEvery { repository.getCommentReplies(any(), repliesPage) } returns (listOf(comment("r1")) to null)
+            coEvery { repository.getVideoComments("vid_a", null) } returns CommentsPageResult.DISABLED
+            coEvery { repository.getVideoComments("vid_b", null) } returns CommentsPageResult(comments = listOf(comment("c1")))
+            val pager = pager(scope, prefetchPages = 3)
+
+            pager.load("vid_a")
+            advanceUntilIdle()
+            assertThat(pager.isDisabled.value).isTrue()
+            assertThat(pager.comments.value).isEmpty()
+            assertThat(pager.hasMore.value).isFalse()
+            coVerify(exactly = 0) { repository.getMoreVideoComments(any(), any()) }
+
+            pager.load("vid_b")
+            advanceUntilIdle()
+            assertThat(pager.isDisabled.value).isFalse()
+            scope.cancel()
+        }
+
+    @Test
+    fun `clear resets the disabled state`() =
+        runTest(testDispatcher) {
+            val scope = CoroutineScope(testDispatcher)
+            coEvery { repository.getVideoComments("vid_a", null) } returns CommentsPageResult.DISABLED
             val pager = pager(scope)
 
             pager.load("vid_a")
             advanceUntilIdle()
-            assertThat(pager.hasMore.value).isTrue()
+            pager.clear()
 
-            pager.loadMore("vid_a")
-            advanceUntilIdle()
-            assertThat(pager.comments.value.map { it.id }).containsExactly("c1", "c2").inOrder()
-            assertThat(pager.hasMore.value).isFalse()
-
-            pager.loadReplies("vid_a", parent)
-            advanceUntilIdle()
-            assertThat(
-                pager.comments.value
-                    .first()
-                    .replies
-                    .map { it.id },
-            ).containsExactly("r1")
-            coVerify(exactly = 0) { repository.getVideoCommentReplies(any(), any()) }
+            assertThat(pager.isDisabled.value).isFalse()
             scope.cancel()
         }
 

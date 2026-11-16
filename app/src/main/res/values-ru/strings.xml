@@ -3810,7 +3810,7 @@
     </plurals>
     <string name="download_failed_unavailable">Это видео сейчас нельзя скачать.</string>
     <string name="download_failed_unreadable">Загруженный файл не удалось прочитать.</string>
-    <string name="music_search_no_results">Результаты поиска по запросу \"%1$s\" отсутствуют.</string>
+    <string name="music_search_no_results">По запросу \"%1$s\" ничего не найдено</string>
     <string name="settings_keywords_sponsorblock">пропускать спонсоров, рекламу, отдельные сегменты, вступление, концовку</string>
     <string name="settings_backup_source_youtube">YouTube и Google Takeout</string>
     <string name="settings_quick_download_quality">Качество для быстрой загрузки</string>
@@ -3909,7 +3909,7 @@
     <string name="settings_backup_source_metrolist">Metrolist</string>
     <string name="settings_keywords_network">прокси, SOCKS, HTTP, VPN, соединение</string>
     <string name="settings_diagnostics_android">Версия для Android</string>
-    <string name="settings_diagnostics_model">модель</string>
+    <string name="settings_diagnostics_model">Модель</string>
     <string name="diagnostics_record_home_snapshots">Создавать снимки Flow</string>
     <string name="settings_section_home_snapshots">Твои снимки Flow</string>
     <string name="settings_theme_follow_system_summary">Подобрать светлый или темный режим в соответствии с настройками вашего устройства.</string>
@@ -4513,4 +4513,14 @@
     <string name="liked_videos_empty_title">Пока нет понравившихся видео</string>
     <string name="liked_videos_empty_body">Здесь отображаются видео, которые вам понравились</string>
     <string name="remove_selected_likes_text">Их не будут любить.</string>
+    <string name="music_service_disabled">Музыка не может воспроизводиться. Музыкальный сервис Flow отключён на этом устройстве.</string>
+    <string name="subscription_bell_alerts_off">Уведомления о новых видео отключены</string>
+    <string name="subscription_bell_alerts_turn_on">Включить</string>
+    <string name="nav_downloads">Загрузки</string>
+    <string name="settings_downloads_nav_tab_title">Вкладка \"Загрузки\" в навигации</string>
+    <string name="settings_downloads_nav_tab_subtitle">Добавить вкладку \"Загрузки\" на панель навигации</string>
+    <string name="player_settings_keep_playing_after_swipe">Продолжать воспроизведение после закрытия Flow</string>
+    <string name="player_settings_keep_playing_after_swipe_subtitle">Воспроизведение продолжается, когда вы смахиваете Flow из списка недавних приложений</string>
+    <string name="player_settings_open_fullscreen">Открывать видео в полноэкранном режиме</string>
+    <string name="player_settings_open_fullscreen_subtitle">Видео, которое вы открываете, запускается в полноэкранном режиме</string>
 </resources>

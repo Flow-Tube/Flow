@@ -13,7 +13,6 @@ import androidx.work.WorkerParameters
 import dagger.hilt.android.EntryPointAccessors
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.data.local.PlayerPreferences
-import io.github.aedev.flow.data.update.UpdateAnnouncement
 import io.github.aedev.flow.data.update.UpdateEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -80,8 +79,10 @@ class UpdateCheckWorker(
                 Log.d(TAG, "Update notifications are off, skipping update check")
                 return@withContext Result.success()
             }
+            // Announcing marks the version as told, so it must not happen while the notification can't show.
+            if (!NotificationHelper.hasNotificationPermission(applicationContext)) return@withContext Result.success()
             val updates = EntryPointAccessors.fromApplication(applicationContext, UpdateEntryPoint::class.java).updateRepository()
-            val release = updates.releaseToAnnounce(UpdateAnnouncement.NOTIFICATION)
+            val release = updates.releaseToNotify()
             if (release != null) NotificationHelper.showUpdateNotification(applicationContext, release)
             Result.success()
         }

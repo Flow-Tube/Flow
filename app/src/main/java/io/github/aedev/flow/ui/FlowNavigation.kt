@@ -18,10 +18,11 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.music.model.toMusicTrack
 import io.github.aedev.flow.data.music.model.toVideo
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
-import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
 import io.github.aedev.flow.ui.components.musicplayer.sheet.MusicPlayerSheetState
+import io.github.aedev.flow.ui.components.settings.LocalNewSettings
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
@@ -41,8 +42,17 @@ import io.github.aedev.flow.ui.screens.playlists.PlaylistsScreen
 import io.github.aedev.flow.ui.screens.recap.RecapRoutes
 import io.github.aedev.flow.ui.screens.recap.RecapScreen
 import io.github.aedev.flow.ui.screens.recap.story.RecapStoryScreen
+import io.github.aedev.flow.ui.screens.search.MAX_SEARCH_DEPTH
+import io.github.aedev.flow.ui.screens.search.SEARCH_DEPTH_ARG
+import io.github.aedev.flow.ui.screens.search.SEARCH_FILTERS_ARG
+import io.github.aedev.flow.ui.screens.search.SEARCH_QUERY_ARG
+import io.github.aedev.flow.ui.screens.search.SEARCH_ROUTE_PATTERN
 import io.github.aedev.flow.ui.screens.search.SearchScreen
+import io.github.aedev.flow.ui.screens.search.searchRoute
 import io.github.aedev.flow.ui.screens.settings.SettingsHost
+import io.github.aedev.flow.ui.screens.settings.rememberNewSettings
+import io.github.aedev.flow.ui.screens.settings.wellbeing.TIMES_UP_ROUTE
+import io.github.aedev.flow.ui.screens.settings.wellbeing.TimesUpScreen
 import io.github.aedev.flow.ui.screens.shorts.ShortsScreen
 import io.github.aedev.flow.ui.screens.subscriptions.SubscriptionsScreen
 import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
@@ -64,6 +74,8 @@ fun NavGraphBuilder.flowAppGraph(
     defaultStartRoute: String = "home",
     onMusicStarted: () -> Unit = {},
     openDownloads: () -> Unit = {},
+    searchExitTab: () -> FlowTab = { FlowTab.Home },
+    searchIsTab: () -> Boolean = { false },
 ) {
     // =============================================
     // ONBOARDING (First-time user experience)
@@ -86,14 +98,14 @@ fun NavGraphBuilder.flowAppGraph(
             onVideoClick = { video ->
                 navController.openVideoOrShorts(video, disableShortsPlayer) {
                     playerViewModel.playVideo(it)
-                    GlobalPlayerState.setCurrentVideo(it)
                 }
             },
             onShortClick = { source ->
                 navController.openShortsOrPlayer(source, disableShortsPlayer)
             },
             onSearchClick = {
-                navController.navigate("search")
+                // With a Search tab in the bar, the icon opens that tab, so Search keeps its state like any other tab.
+                if (searchIsTab()) navController.navigateToTab(FlowTab.Search, defaultStartRoute) else navController.navigate("search")
             },
             onOpenSettings = { target -> navController.navigate("settings?target=${target.encode()}") },
             onNavigateToHistory = {
@@ -110,6 +122,11 @@ fun NavGraphBuilder.flowAppGraph(
     composable(UPDATE_ROUTE) {
         currentRoute.value = UPDATE_ROUTE
         UpdateScreen(onClose = { navController.popBackStack() })
+    }
+
+    composable(TIMES_UP_ROUTE) {
+        currentRoute.value = TIMES_UP_ROUTE
+        TimesUpScreen(onClose = { navController.popBackStack() })
     }
 
     // Notifications Screen
@@ -163,7 +180,6 @@ fun NavGraphBuilder.flowAppGraph(
             onVideoClick = { video ->
                 navController.openVideoOrShorts(video, disableShortsPlayer) {
                     playerViewModel.playVideo(it)
-                    GlobalPlayerState.setCurrentVideo(it)
                 }
             },
             onShortClick = { source ->
@@ -232,7 +248,6 @@ fun NavGraphBuilder.flowAppGraph(
             onDownloadedVideoClick = { videos, index ->
                 val videoList = videos.map { it.video }
                 playerViewModel.playPlaylist(videoList, index, downloadsSourceName)
-                GlobalPlayerState.setCurrentVideo(videoList[index])
             },
             onDownloadedMusicClick = { tracks, index ->
                 val musicTracks = tracks.map { it.track }
@@ -246,10 +261,35 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable("search") {
+    composable(
+        route = SEARCH_ROUTE_PATTERN,
+        arguments =
+            listOf(
+                navArgument(SEARCH_QUERY_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(SEARCH_FILTERS_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(SEARCH_DEPTH_ARG) {
+                    type = NavType.IntType
+                    defaultValue = 1
+                },
+            ),
+    ) { entry ->
         currentRoute.value = "search"
+        val depth = entry.arguments?.getInt(SEARCH_DEPTH_ARG) ?: 1
         // Search owns the whole screen, the way YouTube's does.
         SearchScreen(
+            onNewSearch = { query, filters ->
+                navController.navigate(searchRoute(query, filters, minOf(depth + 1, MAX_SEARCH_DEPTH))) {
+                    if (depth >= MAX_SEARCH_DEPTH) popUpTo(entry.destination.id) { inclusive = true }
+                }
+            },
             onVideoClick = { video ->
                 navController.openVideoOrShorts(video, disableShortsPlayer) { playerViewModel.playVideo(it) }
             },
@@ -263,14 +303,21 @@ fun NavGraphBuilder.flowAppGraph(
                 navController.navigate("playlist/${playlist.id}")
             },
             onBack = {
-                if (!navController.popBackStack()) navController.navigate("home")
+                // As the opening tab Search has nothing under it, and Home may be hidden (#1697).
+                if (navController.previousBackStackEntry != null) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigateToTab(searchExitTab(), defaultStartRoute)
+                }
             },
         )
     }
 
     composable(EQUALIZER_ROUTE) {
         currentRoute.value = EQUALIZER_ROUTE
-        EqualizerScreen(onBack = { navController.popBackStack() })
+        CompositionLocalProvider(LocalNewSettings provides rememberNewSettings()) {
+            EqualizerScreen(onBack = { navController.popBackStack() })
+        }
     }
 
     composable("categories") {
@@ -457,7 +504,10 @@ fun NavGraphBuilder.flowAppGraph(
     }
 
     // Playlist Detail Screen
-    composable("playlist/{playlistId}") { _ ->
+    composable(
+        "playlist/{playlistId}",
+        arguments = listOf(navArgument("playlistId") { type = NavType.StringType }),
+    ) { _ ->
         currentRoute.value = "playlist"
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         PlaylistDetailScreen(

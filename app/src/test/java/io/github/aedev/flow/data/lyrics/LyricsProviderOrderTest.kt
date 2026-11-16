@@ -10,6 +10,41 @@ class LyricsProviderOrderTest {
     }
 
     @Test
+    fun `youtube music is asked first by default`() {
+        assertThat(LyricsProviderOrder.DEFAULT.first()).isEqualTo("YouTube")
+    }
+
+    @Test
+    fun `a saved order keeps youtube music where it was`() {
+        val saved =
+            listOf(
+                "BetterLyrics",
+                "LrcRed",
+                "LyricsPlus",
+                "SimpMusic",
+                "KuGou",
+                "Paxsenix",
+                "LrcLib",
+                "Unison",
+                "YouTubeSubtitle",
+                "YouTube",
+            )
+
+        assertThat(LyricsProviderOrder.resolve(saved.joinToString(",")).filter { it in saved }).isEqualTo(saved)
+    }
+
+    @Test
+    fun `an order saved before NetEase and AMLL existed gets them right after Unison`() {
+        val saved = listOf("LrcLib", "Unison", "YouTube")
+
+        val order = LyricsProviderOrder.resolve(saved.joinToString(","))
+
+        assertThat(order.subList(order.indexOf("Unison"), order.indexOf("Unison") + 3))
+            .containsExactly("Unison", "NetEase", "AMLL")
+            .inOrder()
+    }
+
+    @Test
     fun `a full saved order is kept as it is`() {
         val saved = LyricsProviderOrder.DEFAULT.reversed()
 

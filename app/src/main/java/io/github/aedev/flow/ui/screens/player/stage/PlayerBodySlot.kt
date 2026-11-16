@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.player.EnhancedPlayerManager
-import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.ui.components.videoplayer.controls.LockModeTouchShield
 import io.github.aedev.flow.ui.screens.player.EnhancedVideoPlayerScreen
 
@@ -18,6 +17,7 @@ internal fun PlayerBodySlot(
     session: VideoPlayerStageSession,
     alpha: () -> Float,
     videoHeightPx: () -> Float,
+    offscreenBottomPx: () -> Float,
     isLandscape: Boolean,
     localIsInPipMode: Boolean,
     onClose: () -> Unit,
@@ -34,9 +34,12 @@ internal fun PlayerBodySlot(
             video = video,
             alpha = alpha,
             videoPlayerHeightPx = videoHeightPx,
+            offscreenBottomPx = offscreenBottomPx,
             screenState = screenState,
             isFullscreenShown = session.isFullscreenShown,
             prefs = session.prefs,
+            ambientGlowFrames = session.ambient.frames.takeIf { session.ambient.glow },
+            ambientImmersive = session.ambient.immersive,
             onVideoClick = { clickedVideo ->
                 if (clickedVideo.isShort) {
                     onClose()
@@ -44,7 +47,6 @@ internal fun PlayerBodySlot(
                     onNavigateToShorts(clickedVideo.id)
                 } else {
                     playerViewModel.playVideo(clickedVideo)
-                    GlobalPlayerState.setCurrentVideo(clickedVideo)
                 }
             },
             onChannelClick = { channelId ->

@@ -52,6 +52,7 @@ fun FeedGridSkeleton(
                 layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
                 useInternalPadding = stackedInset,
                 thumbnailWidth = plan.listThumbnailWidth,
+                density = plan.cardDensity,
             )
         }
     }

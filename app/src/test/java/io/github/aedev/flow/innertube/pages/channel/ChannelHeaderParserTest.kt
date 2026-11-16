@@ -2,6 +2,7 @@ package io.github.aedev.flow.innertube.pages.channel
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -128,6 +129,108 @@ class ChannelHeaderParserTest {
         assertNull(header.videoCountText)
         assertNull(header.joinedDateText)
         assertTrue(header.links.isEmpty())
+    }
+
+    private fun pageHeader(
+        rows: String,
+        title: String = "{ \"content\": \"Canal\" }",
+        label: String = "Canal",
+    ) = """
+        {
+          "header": { "pageHeaderRenderer": { "content": { "pageHeaderViewModel": {
+            "title": { "dynamicTextViewModel": {
+              "text": $title,
+              "rendererContext": { "accessibilityContext": { "label": "$label" } }
+            } },
+            "metadata": { "contentMetadataViewModel": { "metadataRows": $rows } }
+          } } } }
+        }
+        """.trimIndent()
+
+    @Test
+    fun `reads the counts in Spanish, where neither part says subscriber or video (2058)`() {
+        val header =
+            parse(
+                pageHeader(
+                    """
+                    [
+                      { "metadataParts": [ { "text": { "content": "@KPOP_STUFFF" } } ] },
+                      { "metadataParts": [
+                        { "text": { "content": "89,7 K suscriptores" }, "accessibilityLabel": "89,7 mil suscriptores" },
+                        { "text": { "content": "279 vídeos" } }
+                      ] }
+                    ]
+                    """.trimIndent(),
+                ),
+            )
+
+        assertEquals("@KPOP_STUFFF", header.handle)
+        assertEquals("89,7 K suscriptores", header.subscriberCountText)
+        assertEquals(89_700L, header.subscriberCount)
+        assertEquals("279 vídeos", header.videoCountText)
+    }
+
+    @Test
+    fun `reads the counts in Japanese, where the number comes last`() {
+        val header =
+            parse(
+                pageHeader(
+                    """
+                    [
+                      { "metadataParts": [ { "text": { "content": "@MrBeast" } } ] },
+                      { "metadataParts": [
+                        { "text": { "content": "チャンネル登録者数 5.26億人" }, "accessibilityLabel": "チャンネル登録者数 5.26億人" },
+                        { "text": { "content": "1013 本の動画" } }
+                      ] }
+                    ]
+                    """.trimIndent(),
+                ),
+            )
+
+        assertEquals("チャンネル登録者数 5.26億人", header.subscriberCountText)
+        assertEquals("1013 本の動画", header.videoCountText)
+    }
+
+    @Test
+    fun `a lone count without a label is the video count of a channel that hides its subscribers`() {
+        val header =
+            parse(
+                pageHeader(
+                    """
+                    [
+                      { "metadataParts": [ { "text": { "content": "@quiet" } } ] },
+                      { "metadataParts": [ { "text": { "content": "12 vídeos" } } ] }
+                    ]
+                    """.trimIndent(),
+                ),
+            )
+
+        assertNull(header.subscriberCountText)
+        assertEquals("12 vídeos", header.videoCountText)
+    }
+
+    @Test
+    fun `the verified badge is read from its image in any language`() {
+        val header =
+            parse(
+                pageHeader(
+                    rows = "[]",
+                    title =
+                        """
+                        { "content": "MrBeast", "attachmentRuns": [ { "startIndex": 7, "length": 0, "element": { "type": { "imageType": {
+                          "image": { "sources": [ { "clientResource": { "imageName": "CHECK_CIRCLE_FILLED" }, "width": 24, "height": 24 } ] }
+                        } } } } ] }
+                        """.trimIndent(),
+                    label = "MrBeast, verificado",
+                ),
+            )
+
+        assertTrue(header.isVerified)
+    }
+
+    @Test
+    fun `a title without the badge image or an English label is not verified`() {
+        assertFalse(parse(pageHeader(rows = "[]")).isVerified)
     }
 
     @Test

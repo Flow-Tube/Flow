@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 
 private const val COMMENT_SECTION_IDENTIFIER = "comment-item-section"
 private const val PINNED_RENDERING_PRIORITY = "RENDERING_PRIORITY_PINNED_COMMENT"
+private const val COMMENTS_PANEL_IDENTIFIER = "engagement-panel-comments-section"
 
 /** One entry of the comment section's sort menu, with the continuation that loads that order. */
 data class VideoCommentSort(
@@ -23,13 +24,31 @@ data class VideoCommentsPage(
     val totalCount: Long? = null,
 )
 
+/** The sort menu and count a `next` response carries in its comments panel. */
+data class VideoCommentsPanelHeader(
+    val sortOptions: List<VideoCommentSort>,
+    val totalText: String?,
+    val totalCount: Long?,
+)
+
+/** What a `next` response says about a video's comment section. */
+sealed interface VideoCommentsSection {
+    /** The section loads from [token]. */
+    data class Open(
+        val token: String,
+    ) : VideoCommentsSection
+
+    /** The uploader turned comments off: the section holds YouTube's notice instead of a continuation. */
+    data object TurnedOff : VideoCommentsSection
+}
+
 /**
- * The continuation that loads a video's comment section, from a `next` response for that video.
+ * The comment section of a `next` response for a video, or null when the response has none.
  *
  * The section arrives as a placeholder the web player would only expand once the user scrolls to
  * it, which is why the first page costs a second request.
  */
-internal fun JsonElement.videoCommentsContinuation(): String? {
+internal fun JsonElement.videoCommentsSection(): VideoCommentsSection? {
     val contents =
         objectOrNull()
             ?.get("contents")
@@ -43,19 +62,58 @@ internal fun JsonElement.videoCommentsContinuation(): String? {
             ?.get("contents")
             .arrayOrNull()
             .orEmpty()
-    return contents.firstNotNullOfOrNull { entry ->
-        val section = entry.objectOrNull()?.get("itemSectionRenderer").objectOrNull() ?: return@firstNotNullOfOrNull null
-        if (section["sectionIdentifier"].stringOrNull() != COMMENT_SECTION_IDENTIFIER) return@firstNotNullOfOrNull null
-        section["contents"]
-            .arrayOrNull()
-            ?.firstNotNullOfOrNull { item ->
-                item
-                    .objectOrNull()
-                    ?.get("continuationItemRenderer")
-                    .objectOrNull()
-                    ?.continuationToken()
-            }
+    val items =
+        contents.firstNotNullOfOrNull { entry ->
+            entry
+                .objectOrNull()
+                ?.get("itemSectionRenderer")
+                .objectOrNull()
+                ?.takeIf { it["sectionIdentifier"].stringOrNull() == COMMENT_SECTION_IDENTIFIER }
+                ?.get("contents")
+                .arrayOrNull()
+        } ?: return null
+    val token =
+        items.firstNotNullOfOrNull { item ->
+            item
+                .objectOrNull()
+                ?.get("continuationItemRenderer")
+                .objectOrNull()
+                ?.continuationToken()
+        }
+    return when {
+        token != null -> VideoCommentsSection.Open(token)
+        items.any { it.objectOrNull()?.containsKey("messageRenderer") == true } -> VideoCommentsSection.TurnedOff
+        else -> null
     }
+}
+
+/**
+ * The comments panel's header, for a first page whose own header leaves out the menu and the count,
+ * which YouTube does for some visitors.
+ */
+internal fun JsonElement.videoCommentsPanelHeader(): VideoCommentsPanelHeader? {
+    val header =
+        objectOrNull()
+            ?.get("engagementPanels")
+            .arrayOrNull()
+            .orEmpty()
+            .firstNotNullOfOrNull { entry ->
+                entry
+                    .objectOrNull()
+                    ?.get("engagementPanelSectionListRenderer")
+                    .objectOrNull()
+                    ?.takeIf { it["panelIdentifier"].stringOrNull() == COMMENTS_PANEL_IDENTIFIER }
+            }?.get("header")
+            .objectOrNull()
+            ?.get("engagementPanelTitleHeaderRenderer")
+            .objectOrNull()
+            ?: return null
+    val totalText = header["contextualInfo"].youtubeText()
+    return VideoCommentsPanelHeader(
+        sortOptions = header["menu"].objectOrNull()?.toSortOptions().orEmpty(),
+        totalText = totalText,
+        totalCount = totalText?.let(::parseYouTubeViewCount)?.takeIf { it > 0L },
+    )
 }
 
 /**
@@ -89,7 +147,12 @@ internal fun JsonElement.toVideoCommentsPage(ownVideoId: String?): VideoComments
     return VideoCommentsPage(
         comments = comments.distinctBy(Comment::id),
         continuation = continuation,
-        sortOptions = header?.toSortOptions().orEmpty(),
+        sortOptions =
+            header
+                ?.get("sortMenu")
+                .objectOrNull()
+                ?.toSortOptions()
+                .orEmpty(),
         totalText = header?.get("commentsCount").youtubeText(),
         totalCount =
             header
@@ -163,10 +226,9 @@ private fun JsonObject.toVideoComment(
     }
 }
 
+/** The entries of a menu object that holds a `sortFilterSubMenuRenderer`. */
 private fun JsonObject.toSortOptions(): List<VideoCommentSort> =
-    this["sortMenu"]
-        .objectOrNull()
-        ?.get("sortFilterSubMenuRenderer")
+    this["sortFilterSubMenuRenderer"]
         .objectOrNull()
         ?.get("subMenuItems")
         .arrayOrNull()

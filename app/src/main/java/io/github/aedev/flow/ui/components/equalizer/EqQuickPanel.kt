@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.roundToInt
 
 private const val ROWS = 5
+private const val DISABLED_ALPHA = 0.4f
 private val PreviewHeight = 112.dp
 private val PreviewPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 private val RowPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
@@ -96,7 +98,12 @@ internal fun EqQuickPanel(
             }
         }
         PanelRow(shape = flowRowGroupShape(3, ROWS)) {
-            EqBassBoostSlider(value = state.bassBoost, onValueChange = viewModel::setBassBoost, modifier = Modifier.padding(RowPadding))
+            EqBassBoostSlider(
+                value = state.bassBoost,
+                onValueChange = viewModel::setBassBoost,
+                enabled = state.enabled,
+                modifier = Modifier.padding(RowPadding),
+            )
         }
         FlowNavRow(
             title = stringResource(R.string.eq_edit),
@@ -111,10 +118,14 @@ internal fun EqQuickPanel(
 internal fun EqBassBoostSlider(
     value: Double,
     onValueChange: (Double) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+        ) {
             Text(stringResource(R.string.eq_bass_boost), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Text(
                 text = if (value > 0.0) formatGain(value) else stringResource(R.string.off),
@@ -126,6 +137,7 @@ internal fun EqBassBoostSlider(
             value = value.toFloat(),
             onValueChange = { onValueChange(it.roundToInt().toDouble()) },
             valueRange = 0f..EqLimits.MAX_BASS_BOOST.toFloat(),
+            enabled = enabled,
         )
     }
 }

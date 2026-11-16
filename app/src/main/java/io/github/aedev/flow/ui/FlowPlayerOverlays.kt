@@ -29,6 +29,7 @@ import io.github.aedev.flow.data.local.MiniBarSwipeAction
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
+import io.github.aedev.flow.player.BackgroundPlaybackPolicy
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
@@ -43,10 +44,10 @@ import io.github.aedev.flow.ui.components.musicplayer.sheet.UnifiedMusicPlayerSh
 import io.github.aedev.flow.ui.components.shared.LocalMediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarBounds
 import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
-import io.github.aedev.flow.ui.components.shared.PlayerHaptics
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsHost
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.components.videoplayer.BackgroundQueueTransport
+import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerDock
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerSheetValue
 import io.github.aedev.flow.ui.components.videoplayer.SheetOpenOrigin
@@ -55,7 +56,10 @@ import io.github.aedev.flow.ui.components.videoplayer.VideoBarSwipeActions
 import io.github.aedev.flow.ui.screens.player.VideoPlayerHost
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerQueueSheetHost
+import io.github.aedev.flow.ui.screens.player.state.SheetOnNewVideo
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.sheetOnNewVideo
+import io.github.aedev.flow.ui.screens.playon.RemoteMiniBar
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
@@ -70,15 +74,19 @@ internal fun FlowPlayerSessionEffects(
     isInPipMode: Boolean,
     openOrigins: MediaOpenOrigins,
 ) {
-    val activity = LocalContext.current as? ComponentActivity
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
     val playerUiState by playerUiStateResult
     var playerVisible by playerVisibleState
     val currentIsInPipMode by rememberUpdatedState(isInPipMode)
     val enhancedPlayerManager = remember { EnhancedPlayerManager.getInstance() }
-    val hasVideoQueue by enhancedPlayerManager.hasQueue.collectAsStateWithLifecycle(
-        initialValue = enhancedPlayerManager.playerState.value.queueTitle != null,
-    )
-    var keepMiniOnQueueAutoAdvance by remember { mutableStateOf(false) }
+    var autoAdvancedInMiniPlayer by remember { mutableStateOf(false) }
+    val minimizeToAudioBar by remember(context) { PlayerPreferences(context).minimizeToAudioBar }
+        .collectAsStateWithLifecycle(initialValue = false)
+
+    LaunchedEffect(playerUiState.isBackgroundPlaybackMode) {
+        GlobalPlayerState.setVideoSoundOnly(playerUiState.isBackgroundPlaybackMode)
+    }
 
     LaunchedEffect(playerSheetState.currentValue, playerSheetState.isDragging) {
         if (!playerSheetState.isDragging) {
@@ -88,10 +96,23 @@ internal fun FlowPlayerSessionEffects(
                 }
 
                 PlayerSheetValue.Collapsed -> {
-                    if (playerUiState.isBackgroundPlaybackMode) {
-                        GlobalPlayerState.hideMiniPlayer()
-                    } else {
-                        GlobalPlayerState.collapseMiniPlayer()
+                    when {
+                        playerUiState.isBackgroundPlaybackMode -> {
+                            GlobalPlayerState.hideMiniPlayer()
+                        }
+
+                        BackgroundPlaybackPolicy.shouldCollapseToAudioBar(
+                            minimizeToAudioBar = minimizeToAudioBar,
+                            isBackgroundPlaybackMode = playerUiState.isBackgroundPlaybackMode,
+                            isRestoredSession = playerUiState.isRestoredSession,
+                            hasVideo = playerUiState.cachedVideo != null,
+                        ) -> {
+                            playerViewModel.startBackgroundPlayback(explicit = false)
+                        }
+
+                        else -> {
+                            GlobalPlayerState.collapseMiniPlayer()
+                        }
                     }
                 }
             }
@@ -99,8 +120,8 @@ internal fun FlowPlayerSessionEffects(
     }
 
     LaunchedEffect(Unit) {
-        enhancedPlayerManager.queueAutoAdvanceEvent.collect {
-            keepMiniOnQueueAutoAdvance = playerSheetState.currentValue == PlayerSheetValue.Collapsed
+        enhancedPlayerManager.autoAdvanceEvent.collect {
+            autoAdvancedInMiniPlayer = playerSheetState.currentValue == PlayerSheetValue.Collapsed
         }
     }
 
@@ -127,24 +148,21 @@ internal fun FlowPlayerSessionEffects(
             GlobalPlayerState.setExplicitBackgroundPlaybackActive(false)
             val wasExpanded = playerVisible && playerSheetState.currentValue == PlayerSheetValue.Expanded
             playerVisible = true
-            val isQueueAutoAdvanceInMiniPlayer =
-                keepMiniOnQueueAutoAdvance &&
-                    hasVideoQueue &&
-                    playerSheetState.currentValue == PlayerSheetValue.Collapsed
-
-            if (
-                playerUiState.isRestoredSession ||
-                playerUiState.resumedInMiniPlayer ||
-                isQueueAutoAdvanceInMiniPlayer
-            ) {
-                playerSheetState.collapse()
-            } else if (wasExpanded) {
-                playerSheetState.expand()
-            } else {
-                playerSheetState.open(openOrigins.sheetOriginFor(playerUiState.cachedVideo?.id))
+            val target =
+                sheetOnNewVideo(
+                    isRestoredSession = playerUiState.isRestoredSession,
+                    resumedInMiniPlayer = playerUiState.resumedInMiniPlayer,
+                    autoAdvancedInMiniPlayer = autoAdvancedInMiniPlayer,
+                    isCollapsed = playerSheetState.currentValue == PlayerSheetValue.Collapsed,
+                    wasExpanded = wasExpanded,
+                )
+            when (target) {
+                SheetOnNewVideo.COLLAPSE -> playerSheetState.collapse()
+                SheetOnNewVideo.EXPAND -> playerSheetState.expand()
+                SheetOnNewVideo.OPEN -> playerSheetState.open(openOrigins.sheetOriginFor(playerUiState.cachedVideo?.id))
             }
 
-            keepMiniOnQueueAutoAdvance = false
+            autoAdvancedInMiniPlayer = false
         }
     }
 
@@ -184,11 +202,13 @@ internal fun FlowPlayerOverlays(
     isShortsPlayerRoute: Boolean,
     bottomPadding: Dp,
     startInset: Dp,
+    miniDock: MiniPlayerDock?,
     miniPlayerScale: Float,
     miniPlayerShowSkipControls: Boolean,
     miniPlayerShowNextPrevControls: Boolean,
     showMusicSheet: Boolean,
     showVideoBar: Boolean,
+    showRemoteBar: Boolean,
     musicPlayerSheetState: MusicPlayerSheetState,
     containerWidth: Dp,
     containerHeight: Dp,
@@ -207,7 +227,7 @@ internal fun FlowPlayerOverlays(
     val playerPreferences = remember(context) { PlayerPreferences(context) }
     val swipeLeftAction by playerPreferences.miniBarSwipeLeftAction.collectAsState(initial = MiniBarSwipeAction.CLOSE)
     val swipeRightAction by playerPreferences.miniBarSwipeRightAction.collectAsState(initial = MiniBarSwipeAction.CLOSE)
-    val playerHaptics by playerPreferences.playerHapticsEnabled.collectAsState(initial = true)
+    val lyricsInMiniPlayer by playerPreferences.lyricsInMiniPlayer.collectAsState(initial = false)
     val quickActions = sharedQuickActionsViewModel()
     val removedFromQueue = stringResource(R.string.removed_from_queue)
     val scope = rememberCoroutineScope()
@@ -240,6 +260,7 @@ internal fun FlowPlayerOverlays(
             playerSheetState = playerSheetState,
             bottomPadding = bottomPadding.coerceAtLeast(0.dp),
             startInset = startInset,
+            miniDock = miniDock,
             miniPlayerScale = miniPlayerScale,
             miniPlayerShowSkipControls = miniPlayerShowSkipControls,
             miniPlayerShowNextPrevControls = miniPlayerShowNextPrevControls,
@@ -282,6 +303,7 @@ internal fun FlowPlayerOverlays(
                 containerWidthPx = with(density) { containerWidth.toPx() },
                 containerHeightPx = with(density) { containerHeight.toPx() },
                 restingBottomPx = { bottomInsets.miniPlayerBaselinePx(density) },
+                dockShiftPx = bottomInsets::miniPlayerDockShiftPx,
                 onRestore = { videoWindowBounds ->
                     openOrigins.holdOriginFor(barVideo.id, videoWindowBounds)
                     barHandoffId = barVideo.id
@@ -292,6 +314,14 @@ internal fun FlowPlayerOverlays(
                 swipeLeftAction = swipeLeftAction,
                 swipeRightAction = swipeRightAction,
                 swipeActions = videoBarActions,
+            )
+        }
+        if (showRemoteBar) {
+            RemoteMiniBar(
+                bounds = miniBarBounds,
+                containerHeightPx = with(density) { containerHeight.toPx() },
+                restingBottomPx = { bottomInsets.miniPlayerBaselinePx(density) },
+                dockShiftPx = bottomInsets::miniPlayerDockShiftPx,
             )
         }
         if (showVideoBar && showBarQueue) {
@@ -308,22 +338,22 @@ internal fun FlowPlayerOverlays(
 
         val track = currentMusicTrack
         if (showMusicSheet && track != null) {
-            PlayerHaptics(enabled = playerHaptics) {
-                UnifiedMusicPlayerSheet(
-                    state = musicPlayerSheetState,
-                    containerWidth = containerWidth,
-                    containerHeight = containerHeight,
-                    miniBounds = miniBarBounds,
-                    restingBottomPx = { bottomInsets.miniPlayerBaselinePx(density) },
-                    track = track,
-                    swipeLeftAction = swipeLeftAction,
-                    swipeRightAction = swipeRightAction,
-                    onDismiss = {
-                        EnhancedMusicPlayerManager.stop()
-                        EnhancedMusicPlayerManager.clearCurrentTrack()
-                    },
-                )
-            }
+            UnifiedMusicPlayerSheet(
+                state = musicPlayerSheetState,
+                containerWidth = containerWidth,
+                containerHeight = containerHeight,
+                miniBounds = miniBarBounds,
+                restingBottomPx = { bottomInsets.miniPlayerBaselinePx(density) },
+                miniDockShiftPx = bottomInsets::miniPlayerDockShiftPx,
+                track = track,
+                swipeLeftAction = swipeLeftAction,
+                swipeRightAction = swipeRightAction,
+                lyricsInMiniPlayer = lyricsInMiniPlayer,
+                onDismiss = {
+                    EnhancedMusicPlayerManager.stop()
+                    EnhancedMusicPlayerManager.clearCurrentTrack()
+                },
+            )
         }
 
         MusicMenuSheets(musicMenus)

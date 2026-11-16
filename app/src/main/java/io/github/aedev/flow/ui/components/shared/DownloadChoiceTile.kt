@@ -41,7 +41,7 @@ internal fun DownloadChoiceTile(
     checked: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    colors: ToggleButtonColors = ToggleButtonDefaults.toggleButtonColors(),
+    colors: ToggleButtonColors = ToggleButtonDefaults.colors(),
 ) {
     val haptics = LocalHapticFeedback.current
     val themeShapes = MaterialTheme.shapes

@@ -39,6 +39,7 @@ internal class MusicSheetGeometry(
     private val miniHeightPx: State<Float>,
     private val containerWidthPx: State<Float>,
     private val miniBounds: State<MediaMiniBarBounds>,
+    private val dockShiftPx: () -> Float,
     private val collapsedRadiusPx: State<Float>,
 ) {
     fun fraction(): Float = (state.expansionFraction.value * (1f - predictiveBackProgress.value)).coerceIn(0f, 1f)
@@ -63,9 +64,9 @@ internal class MusicSheetGeometry(
     }
 
     /** The card's start edge: the mini player's resting start, opening out to the window's edge. */
-    fun cardStartPx(): Float = lerp(miniBounds.value.start, 0f, fraction())
+    fun cardStartPx(): Float = lerp(miniBounds.value.start + dockShiftPx(), 0f, fraction())
 
-    fun cardWidthPx(): Float = lerp(miniBounds.value.width, containerWidthPx.value, fraction())
+    fun cardWidthPx(): Float = lerp((miniBounds.value.width - dockShiftPx()).coerceAtLeast(0f), containerWidthPx.value, fraction())
 
     fun containerWidthPx(): Float = containerWidthPx.value
 
@@ -82,6 +83,7 @@ internal fun rememberMusicSheetGeometry(
     miniHeightPx: Float,
     containerWidthPx: Float,
     miniBounds: MediaMiniBarBounds,
+    dockShiftPx: () -> Float,
     collapsedRadiusPx: Float,
 ): MusicSheetGeometry {
     val collapsedY = rememberUpdatedState(collapsedYPx)
@@ -90,6 +92,7 @@ internal fun rememberMusicSheetGeometry(
     val miniHeight = rememberUpdatedState(miniHeightPx)
     val containerWidth = rememberUpdatedState(containerWidthPx)
     val bounds = rememberUpdatedState(miniBounds)
+    val dockShift = rememberUpdatedState(dockShiftPx)
     val collapsedRadius = rememberUpdatedState(collapsedRadiusPx)
     return remember(state, predictiveBackProgress) {
         MusicSheetGeometry(
@@ -101,6 +104,7 @@ internal fun rememberMusicSheetGeometry(
             miniHeightPx = miniHeight,
             containerWidthPx = containerWidth,
             miniBounds = bounds,
+            dockShiftPx = { dockShift.value() },
             collapsedRadiusPx = collapsedRadius,
         )
     }

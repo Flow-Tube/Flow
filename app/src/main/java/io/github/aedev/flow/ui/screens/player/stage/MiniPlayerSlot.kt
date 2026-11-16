@@ -8,17 +8,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerControls
+import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerCountdown
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
 
-/** The controls the collapsed player draws over the mini video surface. */
+/** The controls the collapsed player draws over the mini video surface, or the autoplay countdown while one runs. */
 @Composable
 internal fun MiniPlayerSlot(
     session: VideoPlayerStageSession,
@@ -31,9 +35,20 @@ internal fun MiniPlayerSlot(
     val playerUiState = session.uiState
     val playerViewModel = session.viewModel
     val playerSheetState = session.sheetState
+    val playerManager = remember { EnhancedPlayerManager.getInstance() }
+    val countdown by playerManager.autoplayCountdown.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
         val currentSizeScale = playerSheetState.miniSizeScale.targetValue
+        if (countdown.isActive) {
+            MiniPlayerCountdown(
+                state = countdown,
+                sizeScale = currentSizeScale,
+                onPlayNext = playerManager::skipAutoplayCountdown,
+                onCancel = playerManager::cancelAutoplayCountdown,
+            )
+            return@Box
+        }
         MiniPlayerControls(
             playerState = playerState,
             showSkipControls = miniPlayerShowSkipControls,
@@ -43,20 +58,20 @@ internal fun MiniPlayerSlot(
                 if (playerUiState.isRestoredSession) {
                     playerViewModel.resumeRestoredSession(stayMini = true)
                 } else if (playerState.hasEnded) {
-                    EnhancedPlayerManager.getInstance().replay()
+                    playerManager.replay()
                     playerViewModel.ensureNotificationServiceRunning()
                 } else if (playerState.playWhenReady) {
-                    EnhancedPlayerManager.getInstance().pause()
+                    playerManager.pause()
                 } else {
-                    EnhancedPlayerManager.getInstance().play()
+                    playerManager.play()
                     playerViewModel.ensureNotificationServiceRunning()
                 }
             },
             onSkipForward = {
-                EnhancedPlayerManager.getInstance().seekTo(screenState.currentPosition + 10000)
+                playerManager.seekTo(screenState.currentPosition + 10000)
             },
             onSkipBack = {
-                EnhancedPlayerManager.getInstance().seekTo(screenState.currentPosition - 10000)
+                playerManager.seekTo(screenState.currentPosition - 10000)
             },
             onNext = {
                 playerViewModel.playNext()

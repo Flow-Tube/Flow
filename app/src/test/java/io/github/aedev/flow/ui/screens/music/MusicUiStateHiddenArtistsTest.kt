@@ -1,16 +1,44 @@
 package io.github.aedev.flow.ui.screens.music
 
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListSets
 import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicItemType
 import io.github.aedev.flow.data.music.model.MusicPlaylist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.recommendation.MusicSection
+import io.github.aedev.flow.innertube.pages.HomePage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MusicUiStateHiddenArtistsTest {
+    @Test
+    fun `hidden artist is removed from a chip page and an emptied shelf goes with them`() {
+        val page =
+            MusicHomeChipPage(
+                chip = HomePage.Chip("Energize", null, null),
+                sections =
+                    listOf(
+                        MusicSection(title = "Quick picks", tracks = listOf(track("a", artist = "Bad Artist"), track("b"))),
+                        MusicSection(title = "Bad only", tracks = listOf(track("c", artist = "Bad Artist"))),
+                    ),
+            )
+
+        val result = MusicUiState(homeChipPage = page).withHiddenArtists(setOf("bad artist")).homeChipPage
+
+        assertEquals(listOf("Quick picks"), result?.sections?.map { it.title })
+        assertEquals(
+            listOf("b"),
+            result
+                ?.sections
+                ?.single()
+                ?.tracks
+                ?.map(MusicTrack::videoId),
+        )
+    }
+
     @Test
     fun `hidden artist is removed from every shelf and section`() {
         val state =
@@ -150,6 +178,39 @@ class MusicUiStateHiddenArtistsTest {
         authorId = authorId,
         authorName = authorName,
     )
+
+    @Test
+    fun `the AI music filter empties shelves of listed artists and leaves the rest alone`() {
+        val ai = musicMatcher(listed = "UCaiaiaiaiaiaiaiaiaiaiai")
+        val aiTrack = track("a").copy(artists = listOf(MusicArtist(name = "Bot", id = "UCaiaiaiaiaiaiaiaiaiaiai")))
+        val album = MusicPlaylist(id = "MPRE1", title = "t", thumbnailUrl = "", author = "2026", authorId = "UCaiaiaiaiaiaiaiaiaiaiai")
+        val state =
+            MusicUiState(
+                forYouTracks = listOf(aiTrack, track("b")),
+                topAlbums = listOf(album),
+                dailyMixSections = listOf(MusicSection(title = "Mix", tracks = listOf(aiTrack, track("c")))),
+            )
+
+        val result = state.withHiddenArtists(emptySet(), ai)
+
+        assertEquals(listOf("b"), result.forYouTracks.map(MusicTrack::videoId))
+        assertTrue(result.topAlbums.isEmpty())
+        assertTrue("a mix below four tracks goes", result.dailyMixSections.isEmpty())
+        assertSame(state, state.withHiddenArtists(emptySet(), AiListMatcher.NONE))
+    }
+
+    private fun musicMatcher(listed: String) =
+        AiListMatcher(
+            blockEnabled = false,
+            warnEnabled = false,
+            block = AiListSets.EMPTY,
+            warn = AiListSets.EMPTY,
+            exemptChannelIds = emptySet(),
+            exemptHandles = emptySet(),
+            index = null,
+            musicEnabled = true,
+            music = AiListSets(handles = emptySet(), ids = setOf(listed)),
+        )
 
     private fun track(
         id: String,

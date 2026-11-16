@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.PlaylistInfo
 import io.github.aedev.flow.ui.components.music.item.MusicCollectionCard
+import io.github.aedev.flow.ui.components.shared.ignoreHeldOk
 
 @Composable
 internal fun MusicPlaylistLibraryCard(
@@ -67,7 +68,7 @@ internal fun PlaylistActionsMenu(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        modifier = modifier,
+        modifier = modifier.ignoreHeldOk(),
     ) {
         if (onDownload != null) {
             DropdownMenuItem(

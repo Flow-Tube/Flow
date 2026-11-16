@@ -149,6 +149,19 @@ data class YouTubeClient(
                 attestation = AttestationPlatform.DROIDGUARD,
             )
 
+        /** Only this client gets a song's timed lyrics; WEB_REMIX gets plain text for the same browse id. */
+        val ANDROID_MUSIC =
+            YouTubeClient(
+                clientName = "ANDROID_MUSIC",
+                clientVersion = "7.21.50",
+                clientId = "21",
+                userAgent = "com.google.android.apps.youtube.music/7.21.50 (Linux; U; Android 14) gzip",
+                osName = "Android",
+                osVersion = "14",
+                androidSdkVersion = "34",
+                attestation = AttestationPlatform.DROIDGUARD,
+            )
+
         val WEB_REMIX =
             YouTubeClient(
                 clientName = "WEB_REMIX",

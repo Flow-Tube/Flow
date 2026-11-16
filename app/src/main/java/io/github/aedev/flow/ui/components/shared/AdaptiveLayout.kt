@@ -7,12 +7,11 @@
 package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.theme.Dimensions
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
+import io.github.aedev.flow.ui.utils.flowWindowDpSize
 import io.github.aedev.flow.ui.utils.isExpandedWidth
 import io.github.aedev.flow.ui.utils.isMediumWidth
 
@@ -29,11 +28,7 @@ private const val HERO_ARTWORK_FRACTION = 0.55f
  * split-screen and freeform windows lay out like the narrow devices they behave as.
  */
 @Composable
-fun flowWindowWidth(): Dp {
-    val density = LocalDensity.current
-    val width = LocalWindowInfo.current.containerSize.width
-    return with(density) { width.toDp() }
-}
+fun flowWindowWidth(): Dp = flowWindowDpSize().width
 
 /**
  * Width of one card in a horizontally scrolling lane of wide items: fills a phone with [peek] of

@@ -22,6 +22,7 @@ import io.github.aedev.flow.ui.components.videoplayer.motion.playerOpenSpringSpe
 import io.github.aedev.flow.ui.components.videoplayer.motion.portraitFullscreenSettleSpec
 import io.github.aedev.flow.ui.components.videoplayer.motion.withSteadyFrames
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -93,6 +94,33 @@ class PlayerDraggableState(
     /** The distance [portraitFsFraction] spans in px, published by the layout as it measures. */
     internal var portraitFsTravel = 1f
     private var portraitFsJob: Job? = null
+
+    /**
+     * How far the expanded video and its page have scrolled up off the window with the body list, in
+     * px, read in the layout and draw phases only. Zero unless the player is set to scroll away.
+     */
+    var scrollAwayPx by mutableFloatStateOf(0f)
+        private set
+
+    /** The video's height when [scrollAwayPx] last moved: the distance that hides it completely. */
+    private var scrollAwayRangePx = 0f
+
+    private val scrolledAwayState = derivedStateOf { scrollAwayPx > 0f && scrollAwayPx >= scrollAwayRangePx / 2f }
+
+    /** True while more than half of the video has scrolled off the window; flips, never tracks. */
+    val isScrolledAway: Boolean get() = scrolledAwayState.value
+
+    internal fun scrollAwayTo(
+        value: Float,
+        range: Float,
+    ) {
+        scrollAwayRangePx = range
+        scrollAwayPx = value.coerceIn(0f, range.coerceAtLeast(0f))
+    }
+
+    internal fun resetScrollAway() {
+        scrollAwayPx = 0f
+    }
 
     /** True only while no finger is down and nothing on the sheet is still moving. */
     val isSettled: Boolean
@@ -316,6 +344,16 @@ class PlayerDraggableState(
 
     suspend fun scrubBack(progress: Float) {
         motion.snapFraction(progress.coerceIn(0f, 1f))
+    }
+
+    /** Cold-start restore: seeds never-placed offsets before first draw; the debounced resnap lands frames late. */
+    internal fun seedMiniOffsets(
+        x: Float,
+        y: Float,
+    ) {
+        if (isDragging || expandFraction.value < 1f || expandFraction.isRunning || offsetX.value != 0f || offsetY.value != 0f) return
+        if (x <= 0f || y <= 0f) return
+        scope.launch(start = CoroutineStart.UNDISPATCHED) { motion.snapOffsets(x, y) }
     }
 
     internal fun snapPortraitFullscreen(value: Float) {

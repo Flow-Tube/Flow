@@ -19,12 +19,12 @@ import androidx.compose.material3.ButtonShapes
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Text
-import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
@@ -53,6 +53,7 @@ import io.github.aedev.flow.ui.components.shared.FlowSheetPresenter
 import io.github.aedev.flow.ui.components.shared.LocalFlowSheetPresenter
 import io.github.aedev.flow.ui.components.shared.connectedButtonShapes
 import io.github.aedev.flow.ui.components.shared.flowRowGroupShape
+import io.github.aedev.flow.ui.components.shared.ignoreHeldOk
 import io.github.aedev.flow.ui.components.shared.rememberFlowSheetState
 import kotlinx.coroutines.launch
 
@@ -165,6 +166,7 @@ private fun PresentedQuickActionsSheet(
         Column(
             modifier =
                 Modifier
+                    .ignoreHeldOk()
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
                     .padding(bottom = QuickActionsDefaults.BottomPadding),
@@ -216,11 +218,11 @@ fun QuickActionsHeader(
     }
 }
 
-/** The title row of a page inside the sheet, with the way back to the menu. */
+/** The title row of a page inside the sheet, with the way back to the menu when there is one. */
 @Composable
 fun QuickActionsPageHeader(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onClose: () -> Unit,
 ) {
     FlowSheetHeader(
@@ -274,7 +276,7 @@ fun QuickActionsPrimaryGroup(actions: List<QuickPrimaryAction>) {
                     PrimaryActionContent(action.icon, action.label)
                 }
             } else {
-                TonalToggleButton(
+                FilledTonalToggleButton(
                     checked = checked,
                     onCheckedChange = {
                         haptics.performHapticFeedback(if (checked) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)

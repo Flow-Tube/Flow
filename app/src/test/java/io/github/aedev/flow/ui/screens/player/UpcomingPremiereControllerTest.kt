@@ -67,7 +67,7 @@ class UpcomingPremiereControllerTest {
         unmockkAll()
     }
 
-    private val armedMetadata = mutableListOf<Pair<String, String?>>()
+    private val armedMetadata = mutableListOf<String>()
 
     private fun controller(): UpcomingPremiereController =
         UpcomingPremiereController(
@@ -77,7 +77,7 @@ class UpcomingPremiereControllerTest {
             probe = probe,
             scope = controllerScope,
             isLoadCurrent = { token -> token == CURRENT_TOKEN },
-            armMetadata = { videoId, channelId -> armedMetadata += videoId to channelId },
+            armMetadata = { videoId -> armedMetadata += videoId },
         )
 
     @Test
@@ -101,7 +101,7 @@ class UpcomingPremiereControllerTest {
 
             controller().applyCountdown(video)
 
-            assertThat(armedMetadata).containsExactly(video.id to video.channelId)
+            assertThat(armedMetadata).containsExactly(video.id)
         }
 
     @Test

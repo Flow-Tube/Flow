@@ -9,9 +9,46 @@ import kotlinx.coroutines.flow.first
 
 /** A lookup answered before: the loop, or null when the album has none, and when it was asked. */
 internal data class CachedLoop(
-    val url: String?,
+    val loop: AnimatedLoop?,
     val atMs: Long,
 )
+
+private const val SEPARATOR = "|"
+
+internal fun CachedLoop.encoded(): String =
+    if (loop != null) {
+        listOf(atMs.toString(), loop.square.orEmpty(), loop.tall.orEmpty()).joinToString(SEPARATOR)
+    } else {
+        listOf(atMs.toString(), MISS_AFTER_RELEASE_SEARCH).joinToString(SEPARATOR)
+    }
+
+/**
+ * Older formats read as nothing saved, so the album is asked once more: entries from before tall
+ * loops, and misses from before a song's other releases were searched.
+ */
+internal fun decodeCachedLoop(stored: String): CachedLoop? {
+    val parts = stored.split(SEPARATOR)
+    val atMs = parts[0].toLongOrNull() ?: return null
+    return when {
+        parts.size == MISS_PARTS && parts[1] == MISS_AFTER_RELEASE_SEARCH -> {
+            CachedLoop(null, atMs)
+        }
+
+        parts.size == LOOP_PARTS -> {
+            val square = parts[1].ifEmpty { null }
+            val tall = parts[2].ifEmpty { null }
+            if (square == null && tall == null) null else CachedLoop(AnimatedLoop(square, tall), atMs)
+        }
+
+        else -> {
+            null
+        }
+    }
+}
+
+private const val LOOP_PARTS = 3
+private const val MISS_PARTS = 2
+private const val MISS_AFTER_RELEASE_SEARCH = "miss"
 
 internal interface AnimatedArtworkCache {
     suspend fun get(key: String): CachedLoop?
@@ -32,8 +69,7 @@ internal class DataStoreAnimatedArtworkCache(
 ) : AnimatedArtworkCache {
     override suspend fun get(key: String): CachedLoop? {
         val stored = context.animatedArtworkStore.data.first()[stringPreferencesKey(key)] ?: return null
-        val atMs = stored.substringBefore(SEPARATOR).toLongOrNull() ?: return null
-        return CachedLoop(stored.substringAfter(SEPARATOR).ifEmpty { null }, atMs)
+        return decodeCachedLoop(stored)
     }
 
     override suspend fun put(
@@ -41,7 +77,7 @@ internal class DataStoreAnimatedArtworkCache(
         loop: CachedLoop,
     ) {
         context.animatedArtworkStore.edit { preferences ->
-            preferences[stringPreferencesKey(key)] = "${loop.atMs}$SEPARATOR${loop.url.orEmpty()}"
+            preferences[stringPreferencesKey(key)] = loop.encoded()
             val overflow = preferences.asMap().size - MAX_ENTRIES
             if (overflow > 0) {
                 preferences
@@ -59,7 +95,6 @@ internal class DataStoreAnimatedArtworkCache(
     }
 
     private companion object {
-        const val SEPARATOR = "|"
         const val MAX_ENTRIES = 600
     }
 }

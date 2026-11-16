@@ -56,15 +56,23 @@ internal fun rememberSearchSubmitter(
     viewModel: SearchViewModel,
     state: SearchScreenState,
     quickActions: QuickActionsViewModel,
+    onNewSearch: ((String, SearchFilter) -> Unit)? = null,
 ): (String, SearchFilter) -> Unit {
     val mediaNavigator = LocalMediaNavigator.current
-    return remember(viewModel, state, quickActions, mediaNavigator) {
+    return remember(viewModel, state, quickActions, mediaNavigator, onNewSearch) {
         { raw, filters ->
             val text = raw.trim()
             val link = parseYouTubeLink(text)
             val search: (String) -> Unit = { query ->
-                state.onSubmit(query)
-                viewModel.submit(query, filters)
+                val shown = viewModel.uiState.value.query
+                if (onNewSearch == null || shown.isBlank() || query.trim() == shown.trim()) {
+                    state.onSubmit(query)
+                    viewModel.submit(query, filters)
+                } else {
+                    // A new search gets its own page; this one goes back to its own results for Back to find.
+                    state.returnTo(shown)
+                    onNewSearch(query, filters)
+                }
             }
             when {
                 text.isEmpty() -> Unit
@@ -129,6 +137,7 @@ internal fun ColumnScope.SearchResultsBody(
                     },
                     isNotifying = { it in notifyingIds },
                     onNotificationChange = { channel, enabled -> bell.setNotifications(channel.id, enabled) },
+                    onPostClick = viewModel.postComments::open,
                 )
             }
 

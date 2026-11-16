@@ -81,11 +81,21 @@ internal object PlaybackGesturesIndex {
             section = R.string.player_appearance_gestures_header,
             destination = page,
         )
-    val haptics =
+    val moreVideosGesture =
         SettingEntry(
-            key = "playback.haptics",
-            title = R.string.player_appearance_haptics_title,
-            summary = R.string.player_appearance_haptics_subtitle,
+            key = "playback.more_videos_gesture",
+            title = R.string.player_appearance_more_videos_gesture_title,
+            summary = R.string.player_appearance_more_videos_gesture_subtitle,
+            keywords = R.string.settings_keywords_gestures,
+            section = R.string.player_appearance_gestures_header,
+            destination = page,
+        )
+    val chapterSkipGesture =
+        SettingEntry(
+            key = "playback.chapter_skip_gesture",
+            title = R.string.player_appearance_chapter_skip_gesture_title,
+            summary = R.string.player_appearance_chapter_skip_gesture_subtitle,
+            keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
         )
@@ -109,7 +119,8 @@ internal object PlaybackGesturesIndex {
             speedSwipe,
             speedSwipeStep,
             seekGesture,
-            haptics,
+            moreVideosGesture,
+            chapterSkipGesture,
             controlsWhileLoading,
         )
 }

@@ -34,6 +34,25 @@ class PrivacyGateTest {
         }
 
     @Test
+    fun `searches are saved while Deep Flow is off`() =
+        runTest {
+            assertThat(gate(deepFlow = false).allowsSearchHistory()).isTrue()
+        }
+
+    @Test
+    fun `Deep Flow keeps searches out of history`() =
+        runTest {
+            assertThat(gate(deepFlow = true).allowsSearchHistory()).isFalse()
+        }
+
+    @Test
+    fun `paused watch history does not change what Deep Flow does to searches`() =
+        runTest {
+            assertThat(gate(deepFlow = false, historyPaused = true).allowsSearchHistory()).isTrue()
+            assertThat(gate(deepFlow = true, historyPaused = true).allowsSearchHistory()).isFalse()
+        }
+
+    @Test
     fun `the gate reports both settings as they are`() =
         runTest {
             val gate = gate(deepFlow = true, historyPaused = true)

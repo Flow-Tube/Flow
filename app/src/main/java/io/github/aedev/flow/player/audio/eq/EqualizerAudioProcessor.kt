@@ -6,14 +6,15 @@ import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.data.audio.eq.EqFilterMath
 import io.github.aedev.flow.data.audio.eq.EqProcessingSpec
+import io.github.aedev.flow.data.audio.eq.EqSpatialSound
 import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.tanh
 
 /**
- * The parametric equalizer inside a player's audio sink: a cascade of biquads, then preamp, then a
- * soft knee near full scale.
+ * The parametric equalizer inside a player's audio sink: a cascade of biquads, then preamp, then
+ * spatial sound on stereo streams, then a soft knee near full scale.
  *
  * [setSpec] may be called from any thread. The audio thread picks the newest spec up at the start
  * of a buffer and glides the coefficients to it over [RAMP_SECONDS], keeping each filter's history
@@ -39,6 +40,8 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
     private var rampFramesLeft = 0
     private var idleAfterRamp = false
     private var processing = false
+    private var spatial: SpatialStage? = null
+    private var frame = DoubleArray(0)
 
     fun setSpec(spec: EqProcessingSpec) {
         pendingSpec = spec
@@ -58,8 +61,11 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             channelCount = format.channelCount
             encoding = format.encoding
             appliedSpec = null
+            spatial = if (channelCount == 2 && sampleRate > 0) SpatialStage(sampleRate) else null
+            frame = DoubleArray(channelCount)
         }
         sections.forEach { it.clearHistory() }
+        spatial?.clearHistory()
     }
 
     override fun onReset() {
@@ -71,6 +77,7 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         rampFramesLeft = 0
         idleAfterRamp = false
         processing = false
+        spatial = null
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
@@ -84,6 +91,7 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             else -> processFloat(inputBuffer, output)
         }
         output.flip()
+        if (processing && sections.isEmpty() && gain == 1.0 && rampFramesLeft == 0 && spatial?.isIdle != false) processing = false
     }
 
     private fun refreshDesign() {
@@ -126,6 +134,10 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
                 processing = true
             }
         }
+        val stage = spatial ?: return
+        val sound = if (spec.enabled) spec.spatialSound else EqSpatialSound.OFF
+        stage.setTarget(sound, if (firstDesign) 0 else (sampleRate * RAMP_SECONDS).toInt().coerceAtLeast(1))
+        if (!stage.isIdle) processing = true
     }
 
     /** Switches to [design] at once with fresh history; only for a change in the number of bands. */
@@ -170,7 +182,7 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             if (idleAfterRamp) {
                 idleAfterRamp = false
                 sections = emptyArray()
-                processing = gain != 1.0
+                processing = gain != 1.0 || spatial?.isIdle == false
             }
         } else {
             sections.forEach { it.stepRamp() }
@@ -191,8 +203,10 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             for (channel in 0 until channels) {
                 var x = input.getShort() / SHORT_SCALE
                 for (stage in stages) x = stage.process(x, channel)
-                output.putShort(toShort(softClip(x * g)))
+                frame[channel] = x * g
             }
+            spatial?.process(frame)
+            for (channel in 0 until channels) output.putShort(toShort(softClip(frame[channel])))
         }
     }
 
@@ -209,8 +223,10 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             for (channel in 0 until channels) {
                 var x = input.getFloat().toDouble()
                 for (stage in stages) x = stage.process(x, channel)
-                output.putFloat(softClip(x * g).toFloat())
+                frame[channel] = x * g
             }
+            spatial?.process(frame)
+            for (channel in 0 until channels) output.putFloat(softClip(frame[channel]).toFloat())
         }
     }
 

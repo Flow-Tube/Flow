@@ -248,8 +248,16 @@ class PlayerLoadDecisionsTest {
         val playing = VideoPlayerUiState(cachedVideo = video("vid_a"))
         val loading = VideoPlayerUiState(cachedVideo = video("vid_a"), isLoading = true)
 
-        assertThat(playing.shouldExpandInsteadOfPlaying("vid_a")).isTrue()
-        assertThat(loading.shouldExpandInsteadOfPlaying("vid_a")).isTrue()
+        assertThat(playing.shouldExpandInsteadOfPlaying("vid_a", playerVideoId = "vid_a")).isTrue()
+        assertThat(loading.shouldExpandInsteadOfPlaying("vid_a", playerVideoId = null)).isTrue()
+    }
+
+    @Test
+    fun `a link to a video the player let go plays it again`() {
+        val handedAway = VideoPlayerUiState(cachedVideo = video("vid_a"))
+
+        assertThat(handedAway.shouldExpandInsteadOfPlaying("vid_a", playerVideoId = null)).isFalse()
+        assertThat(handedAway.shouldExpandInsteadOfPlaying("vid_a", playerVideoId = "vid_b")).isFalse()
     }
 
     @Test
@@ -258,15 +266,17 @@ class PlayerLoadDecisionsTest {
         val restored = VideoPlayerUiState(cachedVideo = video("vid_a"), isRestoredSession = true)
         val upcoming = VideoPlayerUiState(cachedVideo = video("vid_a"), isUpcoming = true)
 
-        assertThat(failed.shouldExpandInsteadOfPlaying("vid_a")).isFalse()
-        assertThat(restored.shouldExpandInsteadOfPlaying("vid_a")).isFalse()
-        assertThat(upcoming.shouldExpandInsteadOfPlaying("vid_a")).isFalse()
+        assertThat(failed.shouldExpandInsteadOfPlaying("vid_a", playerVideoId = "vid_a")).isFalse()
+        assertThat(restored.shouldExpandInsteadOfPlaying("vid_a", playerVideoId = "vid_a")).isFalse()
+        assertThat(upcoming.shouldExpandInsteadOfPlaying("vid_a", playerVideoId = "vid_a")).isFalse()
     }
 
     @Test
     fun `a link to another video or an empty screen plays it`() {
-        assertThat(VideoPlayerUiState(cachedVideo = video("vid_b")).shouldExpandInsteadOfPlaying("vid_a")).isFalse()
-        assertThat(VideoPlayerUiState().shouldExpandInsteadOfPlaying("vid_a")).isFalse()
+        assertThat(
+            VideoPlayerUiState(cachedVideo = video("vid_b")).shouldExpandInsteadOfPlaying("vid_a", playerVideoId = "vid_b"),
+        ).isFalse()
+        assertThat(VideoPlayerUiState().shouldExpandInsteadOfPlaying("vid_a", playerVideoId = null)).isFalse()
     }
 
     @Test

@@ -14,7 +14,6 @@ import io.github.aedev.flow.data.local.VideoQuality
 import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.local.entity.WatchHistoryEntity
 import io.github.aedev.flow.data.localmedia.LocalSubtitles
-import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
@@ -48,7 +47,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestDispatcher
-import org.schabi.newpipe.extractor.Page
 
 /**
  * Characterisation harness for [VideoPlayerViewModel]: every constructor dependency is a relaxed
@@ -179,7 +177,6 @@ internal class VideoPlayerViewModelHarness(
         coEvery { localSubtitles.picked(any()) } returns emptyList()
         coEvery { localSubtitles.beside(any()) } returns emptyList()
 
-        coEvery { repository.getComments(any()) } returns (emptyList<Comment>() to null as Page?)
         coEvery { repository.getVideoComments(any(), any()) } returns CommentsPageResult.EMPTY
 
         every { subscriptionRepository.isSubscribed(any()) } returns isSubscribed

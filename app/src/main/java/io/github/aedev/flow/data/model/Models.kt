@@ -1,7 +1,6 @@
 package io.github.aedev.flow.data.model
 
 import kotlinx.serialization.Serializable
-import org.schabi.newpipe.extractor.Page
 
 @Serializable
 data class VideoCollaborator(
@@ -49,6 +48,9 @@ data class Video(
     // Transient: when this video was added to the playlist currently being viewed. Not persisted
     // on the video row — populated only by playlist-scoped queries.
     val addedAtInPlaylist: Long? = null,
+    // "@Name" or "/@Name" as YouTube sends it, in memory only. Nullable because LocalDataManager still
+    // reads videos through Gson, which skips Kotlin defaults and would leave a non-null field null.
+    val channelHandle: String? = null,
 )
 
 data class Channel(
@@ -86,7 +88,6 @@ data class Comment(
     val publishedTime: String,
     val replies: List<Comment> = emptyList(),
     val replyCount: Int = 0,
-    val repliesPage: Page? = null,
     val isPinned: Boolean = false,
     val continuationToken: String? = null,
     val authorChannelId: String = "",
@@ -98,6 +99,16 @@ data class Comment(
     val isVerified: Boolean = false,
     val isCreator: Boolean = false,
     val isArtist: Boolean = false,
+    val image: CommentImage? = null,
+    /** Where YouTube's Timed list shows this comment, when it came from that list. */
+    val timedAtMs: Long? = null,
+)
+
+/** A GIF or picture attached to a comment, with the size YouTube gives for it. */
+data class CommentImage(
+    val url: String,
+    val width: Int,
+    val height: Int,
 )
 
 enum class SearchFilter {

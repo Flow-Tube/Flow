@@ -25,20 +25,31 @@ internal class MusicPlayerAppearance(
     val backgroundStyle: MusicPlayerBackgroundStyle,
     val hideArtwork: Boolean,
     val sleepTimerButton: Boolean,
+    val splitTransport: Boolean,
+    val lyricsOnCover: Boolean,
     val playerScheme: ColorScheme,
     val controlScheme: ColorScheme,
 )
 
-/** Read once per player host from the user's player settings and the artwork at [thumbnailUrl]. */
+/**
+ * Read once per player host from the user's player settings and the artwork at [thumbnailUrl].
+ * [style] replaces the chosen background style for a surface that always draws one look.
+ */
 @Composable
-internal fun rememberMusicPlayerAppearance(thumbnailUrl: String?): MusicPlayerAppearance {
+internal fun rememberMusicPlayerAppearance(
+    thumbnailUrl: String?,
+    style: MusicPlayerBackgroundStyle? = null,
+): MusicPlayerAppearance {
     val context = LocalContext.current
     val playerPreferences = remember { PlayerPreferences(context) }
-    val backgroundStyle by playerPreferences.musicPlayerBackgroundStyle.collectAsState(
+    val chosenStyle by playerPreferences.musicPlayerBackgroundStyle.collectAsState(
         initial = MusicPlayerBackgroundStyle.BLUR_GRADIENT,
     )
+    val backgroundStyle = style ?: chosenStyle
     val hideArtwork by playerPreferences.hideMusicPlayerArtwork.collectAsState(initial = false)
     val sleepTimerButton by playerPreferences.musicSleepTimerButton.collectAsState(initial = false)
+    val splitTransport by playerPreferences.musicSplitTransport.collectAsState(initial = true)
+    val lyricsOnCover by playerPreferences.immersiveLyricsOnCover.collectAsState(initial = false)
     val followLightTheme by playerPreferences.musicPlayerFollowLightTheme.collectAsState(initial = false)
     val palette = rememberMediaPalette(thumbnailUrl)
     val lightPlayer = musicPlayerTurnsLight(backgroundStyle, followLightTheme, MaterialTheme.colorScheme.surface)
@@ -54,7 +65,18 @@ internal fun rememberMusicPlayerAppearance(thumbnailUrl: String?): MusicPlayerAp
         backgroundStyle = backgroundStyle,
         hideArtwork = hideArtwork,
         sleepTimerButton = sleepTimerButton,
+        splitTransport = splitTransport,
+        lyricsOnCover = lyricsOnCover,
         playerScheme = playerScheme,
         controlScheme = controlScheme,
     )
+}
+
+/** Whether the transport draws as a split button, for a host that reads nothing else of the player's look. */
+@Composable
+internal fun rememberSplitTransport(): Boolean {
+    val context = LocalContext.current
+    val preferences = remember(context) { PlayerPreferences(context) }
+    val split by preferences.musicSplitTransport.collectAsState(initial = true)
+    return split
 }

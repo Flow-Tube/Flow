@@ -92,4 +92,29 @@ class VideoCardStateTest {
     fun `no progress is not watched`() {
         assertThat(isWatchedProgress(null)).isFalse()
     }
+
+    @Test
+    fun `imported videos fill the bar only when counted as watched`() {
+        val entries = listOf(entry("imported", position = 0, duration = 0), entry("half", position = 50, duration = 100))
+
+        assertThat(entries.toWatchProgressMap()).doesNotContainKey("imported")
+        assertThat(entries.toWatchProgressMap(countImported = true)["imported"]).isEqualTo(1f)
+        assertThat(entries.toWatchProgressMap(countImported = true)["half"]).isWithin(0.001f).of(0.5f)
+    }
+
+    @Test
+    fun `imported music and local rows never fill a bar`() {
+        val entries =
+            listOf(
+                WatchProgress("song", position = 0, duration = 0, timestamp = 0L, isMusic = true),
+                WatchProgress("file", position = 0, duration = 0, timestamp = 0L, isLocal = true),
+            )
+
+        assertThat(entries.toWatchProgressMap(countImported = true)).isEmpty()
+    }
+
+    @Test
+    fun `a row marked unwatched after import stops counting`() {
+        assertThat(listOf(entry("cleared", position = 0, duration = 1)).toWatchProgressMap(countImported = true)).isEmpty()
+    }
 }

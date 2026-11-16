@@ -40,10 +40,13 @@ import io.github.aedev.flow.innertube.models.YouTubeClient
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
 import io.github.aedev.flow.player.analytics.RenderedFirstFrameListener
+import io.github.aedev.flow.player.analytics.SphericalVideoListener
 import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
 import io.github.aedev.flow.player.audio.AudioFeaturesManager
 import io.github.aedev.flow.player.audio.AudioSessionAnnouncer
+import io.github.aedev.flow.player.audio.VideoMutePause
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
+import io.github.aedev.flow.player.cache.DiskReadAhead
 import io.github.aedev.flow.player.cache.PlayerCacheManager
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
@@ -65,11 +68,13 @@ import io.github.aedev.flow.player.sabr.integration.SabrStreamInfo
 import io.github.aedev.flow.player.sabr.integration.SabrUrlResolver
 import io.github.aedev.flow.player.service.BackgroundServiceManager
 import io.github.aedev.flow.player.sponsorblock.SponsorBlockHandler
+import io.github.aedev.flow.player.sponsorblock.SponsorBlockSkip
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.state.PlaybackCompletion
 import io.github.aedev.flow.player.state.QualityOption
 import io.github.aedev.flow.player.state.SubtitleLoadFailure
 import io.github.aedev.flow.player.state.queuePresence
+import io.github.aedev.flow.player.stats.PlayerStatsReadings
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InnerTubeVideoMapper
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
@@ -84,6 +89,7 @@ import io.github.aedev.flow.player.subtitle.SubtitleTracks
 import io.github.aedev.flow.player.surface.SurfaceManager
 import io.github.aedev.flow.player.surface.VideoSurfacePolicy
 import io.github.aedev.flow.player.tracker.PlaybackTracker
+import io.github.aedev.flow.utils.FlowCrashHandler
 import io.github.aedev.flow.utils.NetworkState
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.coroutines.CancellationException
@@ -141,6 +147,7 @@ class EnhancedPlayerManager private constructor() {
     private var player: ExoPlayer? = null
     private var trackSelector: DefaultTrackSelector? = null
     private var bandwidthMeter: DefaultBandwidthMeter? = null
+    private var analyticsLogger: PlaybackAnalyticsLogger? = null
     private var videoEqualizer: EqualizerAudioProcessor? = null
     private var eqObserver: Job? = null
     private var audioEffects: AudioEffectsEntryPoint? = null
@@ -156,7 +163,7 @@ class EnhancedPlayerManager private constructor() {
     private var availableVideoStreams: List<VideoStream> = emptyList()
     private var availableAudioStreams: List<AudioStream> = emptyList()
 
-    // processAudioStreams keeps one stream per track, usually Opus; DLNA casting needs the AAC ones.
+    // processAudioStreams keeps one stream per track, usually Opus; DLNA casting and decoder recovery need the other formats.
     private var castAudioStreams: List<AudioStream> = emptyList()
     private val subtitleTracks = SubtitleTracks()
     private val subtitleDelay = SubtitleDelay()
@@ -172,6 +179,7 @@ class EnhancedPlayerManager private constructor() {
     private var currentDashManifestUrl: String? = null
     private var currentHlsUrl: String? = null
     private var currentIsLiveStream = false
+    private var scrubPreviewing = false
     private var liveQualityHeights: List<Int> = emptyList()
     private var liveIsPortrait = false
     private var liveQualityPick: LiveQualityPick? = null
@@ -231,6 +239,9 @@ class EnhancedPlayerManager private constructor() {
     /** Set by the DI graph; null until then, when autoplay hides nothing as before. */
     @Volatile
     var feedExclusionsSource: FeedExclusionsSource? = null
+
+    @Volatile
+    var watchedSuggestionsSource: WatchedSuggestionsSource? = null
 
     // Coroutine scope
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -422,6 +433,11 @@ class EnhancedPlayerManager private constructor() {
 
                     override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
 
+                    // The notification's seek bar lands here, not in the manager's own seekTo.
+                    override fun seekTo(positionMs: Long) {
+                        if (currentIsLiveStream || !skipSegmentAt(positionMs)) super.seekTo(positionMs)
+                    }
+
                     override fun seekToNext() {
                         autoNextLog("MediaSession seekToNext")
                         this@EnhancedPlayerManager.skipToNextFromSession()
@@ -516,6 +532,7 @@ class EnhancedPlayerManager private constructor() {
     private val playerFactory = PlayerFactory()
     private val backgroundServiceManager = BackgroundServiceManager()
     private var cacheManager: PlayerCacheManager? = null
+    private var diskReadAhead: DiskReadAhead? = null
     private var qualityManager: QualityManager? = null
     private var surfaceManager: SurfaceManager? = null
     private var sponsorBlockHandler: SponsorBlockHandler? = null
@@ -528,8 +545,13 @@ class EnhancedPlayerManager private constructor() {
     private val _decoderFailureEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val decoderFailureEvent: SharedFlow<Unit> = _decoderFailureEvent.asSharedFlow()
 
-    private val _queueAutoAdvanceEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val queueAutoAdvanceEvent: SharedFlow<Unit> = _queueAutoAdvanceEvent.asSharedFlow()
+    /** Emitted after every seek, however it was asked for, so other devices hear the new position at once. */
+    private val _seekEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val seekEvent: SharedFlow<Unit> = _seekEvent.asSharedFlow()
+
+    /** Emitted when the next video starts by itself, from a queue or from related autoplay, never on a tap. */
+    private val _autoAdvanceEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val autoAdvanceEvent: SharedFlow<Unit> = _autoAdvanceEvent.asSharedFlow()
 
     /** Emitted when a video plays to its end, before looping or autoplay replaces it. */
     private val _playbackCompletedEvent = MutableSharedFlow<PlaybackCompletion>(extraBufferCapacity = 4)
@@ -661,10 +683,13 @@ class EnhancedPlayerManager private constructor() {
                 onStreamExpired = { onStreamsDenied() },
                 onPlaybackAbandoned = { if (!skipAbandonedVideo()) scope.launch { _playbackAbandonedEvent.emit(Unit) } },
                 onDecoderGaveUp = { scope.launch { _decoderFailureEvent.emit(Unit) } },
+                rememberPlaybackForRecovery = { player?.let { captureClearedMediaRecovery(it, restoresOnForeground = false) } },
                 onGatedCodecFallback = { position -> qualityManager?.fallbackToAlternateCodec(position) ?: false },
                 getFailedStreamUrls = {
                     qualityManager?.let { qm ->
-                        availableVideoStreams.filter { qm.hasStreamFailed(it.getContent()) }.map { it.getContent() }.toSet()
+                        (availableVideoStreams.map { it.getContent() } + castAudioStreams.map { it.getContent() })
+                            .filter { qm.hasStreamFailed(it) }
+                            .toSet()
                     } ?: emptySet()
                 },
                 markStreamFailed = { url -> qualityManager?.markStreamFailed(url) },
@@ -674,8 +699,14 @@ class EnhancedPlayerManager private constructor() {
                 getManualQualityHeight = { qualityManager?.manualQualityHeight },
                 getCurrentVideoStream = { currentVideoStream },
                 getCurrentAudioStream = { currentAudioStream },
-                getAvailableAudioStreams = { availableAudioStreams },
-                setCurrentAudioStream = { audio -> currentAudioStream = audio },
+                getAllAudioStreams = { castAudioStreams },
+                setCurrentAudioStream = { audio ->
+                    currentAudioStream = audio
+                    _playerState.value =
+                        _playerState.value.copy(
+                            currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, audio),
+                        )
+                },
                 setRecoveryState = { errorHandler?.setRecovery() },
                 reloadPlaybackManager = { reloadPlaybackManager() },
             )
@@ -752,9 +783,23 @@ class EnhancedPlayerManager private constructor() {
                 bandwidthMeter = bandwidthMeter!!,
                 dataSourceFactory = cacheManager?.getDataSourceFactory(),
             )
-        player?.addAnalyticsListener(PlaybackAnalyticsLogger(TAG) { currentVideoId })
+        analyticsLogger = PlaybackAnalyticsLogger(TAG) { currentVideoId }.also { player?.addAnalyticsListener(it) }
+        diskReadAhead =
+            player?.let { built ->
+                cacheManager?.let { cache ->
+                    DiskReadAhead(context.applicationContext, built, cache, PlayerPreferences(context), scope)
+                        .also(built::addAnalyticsListener)
+                }
+            }
         player?.addAnalyticsListener(
             RenderedFirstFrameListener(currentVideoId = { currentVideoId }) { videoId -> _firstFrameVideoId.value = videoId },
+        )
+        player?.addAnalyticsListener(
+            SphericalVideoListener { spherical ->
+                if (_playerState.value.isSphericalVideo != spherical) {
+                    _playerState.value = _playerState.value.copy(isSphericalVideo = spherical)
+                }
+            },
         )
         player?.let { built ->
             audioSessionAnnouncer =
@@ -799,6 +844,7 @@ class EnhancedPlayerManager private constructor() {
         audioFeaturesManager?.observeVolumeNormalizationPreference(context, built)
 
         val prefs = PlayerPreferences(context)
+        player?.let { VideoMutePause.attach(it, prefs.pauseVideoWhenMuted, built) }
         built.launch {
             prefs.sponsorBlockEnabled.collect { isEnabled ->
                 sponsorBlockHandler?.setEnabled(isEnabled)
@@ -976,6 +1022,15 @@ class EnhancedPlayerManager private constructor() {
                     reason: Int,
                 ) {
                     autoNextLog("onTimelineChanged reason=$reason windows=${timeline.windowCount}")
+                }
+
+                override fun onPositionDiscontinuity(
+                    oldPosition: Player.PositionInfo,
+                    newPosition: Player.PositionInfo,
+                    reason: Int,
+                ) {
+                    if (reason == Player.DISCONTINUITY_REASON_SEEK) _seekEvent.tryEmit(Unit)
+                    if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) emitCompletionOnAdvance(oldPosition)
                 }
 
                 override fun onRenderedFirstFrame() {
@@ -1316,7 +1371,16 @@ class EnhancedPlayerManager private constructor() {
                 liveDurationMs = 0L,
                 availableSubtitles = emptyList(),
                 selectedSubtitleUrl = null,
+                sphericalOverride = null,
             )
+    }
+
+    /**
+     * Shows this video in the 360 view or flat, whatever its stream says. Files that lost their 360
+     * tag, such as older downloads, can be looked around in this way (#1967). Lasts until the next video.
+     */
+    fun setSphericalView(enabled: Boolean) {
+        _playerState.value = _playerState.value.copy(sphericalOverride = enabled)
     }
 
     private fun updateLivePlaybackMode(
@@ -1369,6 +1433,7 @@ class EnhancedPlayerManager private constructor() {
         audioOnly: Boolean = false,
         playWhenReady: Boolean = !isStartPausedArmed(currentVideoId),
     ): Boolean {
+        FlowCrashHandler.recordPhase("video-item", "load $currentVideoId audioOnly=$audioOnly")
         val loaded =
             prepareMediaSource(
                 videoStream = videoStream,
@@ -1516,15 +1581,21 @@ class EnhancedPlayerManager private constructor() {
 
     // ===== Queue Management =====
 
+    /**
+     * Plays [videos] from [startIndex]. With [startPlayback] false the queue is set around the video
+     * already playing, which sits at [startIndex], and playback goes on where it is: a handoff from
+     * another linked device attaches its queue this way.
+     */
     fun setQueue(
         videos: List<Video>,
         startIndex: Int,
         title: String? = null,
         shuffle: Boolean? = null,
+        startPlayback: Boolean = true,
     ) {
         if (!isOnMainThread()) {
             autoNextLog("setQueue posted to main size=${videos.size} start=$startIndex from=${Thread.currentThread().name}")
-            mainHandler.post { setQueue(videos, startIndex, title, shuffle) }
+            mainHandler.post { setQueue(videos, startIndex, title, shuffle, startPlayback) }
             return
         }
         val startVideo = queue.setQueue(videos, startIndex, title, shuffle)
@@ -1532,7 +1603,7 @@ class EnhancedPlayerManager private constructor() {
 
         updateQueueState()
 
-        if (startVideo != null) {
+        if (startVideo != null && startPlayback) {
             startPlaybackFromQueue(startVideo, loadStreamsInPlayer = false)
             preload.request("queue-set")
         }
@@ -1643,6 +1714,7 @@ class EnhancedPlayerManager private constructor() {
             mainHandler.post { addVideoToQueueNext(video) }
             return
         }
+        PlaybackTarget.current?.let { return it.playNext(video.id) }
         autoNextLog("addVideoToQueueNext ${video.id}")
         when (queue.addNext(video, GlobalPlayerState.currentVideo.value)) {
             QueueAddOutcome.NoActiveQueue -> setQueue(listOf(video), 0)
@@ -1663,6 +1735,7 @@ class EnhancedPlayerManager private constructor() {
             mainHandler.post { addVideoToQueue(video) }
             return
         }
+        PlaybackTarget.current?.let { return it.addToQueue(video.id) }
         autoNextLog("addVideoToQueue ${video.id}")
         when (queue.append(video, GlobalPlayerState.currentVideo.value)) {
             QueueAddOutcome.NoActiveQueue -> setQueue(listOf(video), 0)
@@ -1878,6 +1951,16 @@ class EnhancedPlayerManager private constructor() {
         _playbackCompletedEvent.tryEmit(PlaybackCompletion(videoId, durationMs))
     }
 
+    // The preloaded next video shares the timeline, so the one that finished never reports ENDED.
+    private fun emitCompletionOnAdvance(old: Player.PositionInfo) {
+        val videoId = currentVideoId ?: return
+        val timeline = player?.currentTimeline ?: return
+        if (old.mediaItemIndex !in 0 until timeline.windowCount) return
+        val windowDurationMs = timeline.getWindow(old.mediaItemIndex, Timeline.Window()).durationMs
+        val durationMs = PlaybackResumePolicy.finishedDurationOnAdvance(windowDurationMs, old.positionMs) ?: return
+        _playbackCompletedEvent.tryEmit(PlaybackCompletion(videoId, durationMs))
+    }
+
     private fun maybeStartAutoplayCountdownOrAdvance() {
         val delaySeconds = autoplayCountdownSeconds
         val nextVideo = nextSessionVideo()
@@ -1896,11 +1979,11 @@ class EnhancedPlayerManager private constructor() {
                 return
             }
             autoNextLog("auto-advance queue playNext")
-            _queueAutoAdvanceEvent.tryEmit(Unit)
+            _autoAdvanceEvent.tryEmit(Unit)
             playNext(loadStreamsInPlayer = true)
         } else {
             autoNextLog("auto-advance related-autoplay")
-            playNextAutoplayCandidate()
+            if (playNextAutoplayCandidate()) _autoAdvanceEvent.tryEmit(Unit)
         }
     }
 
@@ -2188,7 +2271,7 @@ class EnhancedPlayerManager private constructor() {
     private suspend fun visibleRelatedCandidates(videoId: String): List<Video> {
         val candidates = YouTubeRepository.getInstance().getRelatedCandidates(videoId)
         return withContext(Dispatchers.Default) {
-            PlayerRelatedVideosPolicy.sanitizeHidden(videoId, candidates, feedExclusionsSource)
+            PlayerRelatedVideosPolicy.sanitizeHidden(videoId, candidates, feedExclusionsSource, watchedSuggestionsSource)
         }
     }
 
@@ -2370,7 +2453,7 @@ class EnhancedPlayerManager private constructor() {
                 liveDurationMs = 0L,
             )
         updateQueueState()
-        _queueAutoAdvanceEvent.tryEmit(Unit)
+        _autoAdvanceEvent.tryEmit(Unit)
 
         player?.let { p ->
             val idx = p.currentMediaItemIndex
@@ -2390,8 +2473,8 @@ class EnhancedPlayerManager private constructor() {
             restoreVideoOutput()
         }
         val p = player ?: return
+        if (reloadClearedMediaIfNeeded(playWhenReadyOverride = true)) return
         if (p.playbackState == Player.STATE_IDLE) {
-            if (reloadClearedMediaIfNeeded(playWhenReadyOverride = true)) return
             if (p.mediaItemCount > 0) {
                 Log.d(TAG, "play(): player IDLE with media — calling prepare()")
                 p.prepare()
@@ -2400,12 +2483,20 @@ class EnhancedPlayerManager private constructor() {
         p.play()
     }
 
-    fun recoverClearedMediaAfterForeground(): Boolean = reloadClearedMediaIfNeeded()
+    fun recoverClearedMediaAfterForeground(): Boolean = reloadClearedMediaIfNeeded(automatic = true)
 
-    private fun reloadClearedMediaIfNeeded(playWhenReadyOverride: Boolean? = null): Boolean {
+    /** Reloads an emptied player at its saved place, without extracting the video again. */
+    fun retryClearedMedia(): Boolean = reloadClearedMediaIfNeeded(playWhenReadyOverride = true)
+
+    private fun reloadClearedMediaIfNeeded(
+        playWhenReadyOverride: Boolean? = null,
+        automatic: Boolean = false,
+    ): Boolean {
         val p = player ?: return false
-        if (p.playbackState != Player.STATE_IDLE || p.mediaItemCount > 0) return false
+        // Empty is the signal, not IDLE: a prepare() on an emptied player moves it to ENDED.
+        if (p.mediaItemCount > 0) return false
         val recovery = clearedMediaRecoveryState.pendingFor(currentVideoId) ?: return false
+        if (automatic && !recovery.restoresOnForeground) return false
         val resumePosition = recovery.positionMs.takeIf { it > 0L }
         val shouldPlay = playWhenReadyOverride ?: recovery.playWhenReady
         Log.w(
@@ -2452,16 +2543,25 @@ class EnhancedPlayerManager private constructor() {
         p.setSeekParameters(SeekParameters.CLOSEST_SYNC)
     }
 
-    fun seekTo(position: Long) {
+    /**
+     * VOD seeks snap to the closest keyframe, which can land after a chapter start or a linked
+     * timestamp, so jumps to a named moment pass [exact] (#2149).
+     */
+    fun seekTo(
+        position: Long,
+        exact: Boolean = false,
+    ) {
         val p = player ?: return
         val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
+        if (!isLive && !scrubPreviewing && skipSegmentAt(position)) return
         val target = resolveSeekTarget(p, position)
         val isEndBoundary = !isLive && isEndBoundarySeek(position, p.duration)
         if (!isLive && !isEndBoundary && mediaLoader?.getActiveSabrOrchestrator() != null) {
             sabrSeekTo(target)
             return
         }
-        if (isLive || isEndBoundary) {
+        val exactVod = !isLive && (isEndBoundary || exact)
+        if (isLive || exactVod) {
             p.setSeekParameters(SeekParameters.EXACT)
         }
         if (isLive) {
@@ -2470,9 +2570,15 @@ class EnhancedPlayerManager private constructor() {
         p.seekTo(target)
         if (isLive) {
             updateLiveEdgeState(p)
-        } else if (isEndBoundary) {
+        } else if (exactVod) {
             p.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         }
+    }
+
+    private fun skipSegmentAt(position: Long): Boolean {
+        val segmentEnd = sponsorBlockHandler?.skipTargetForSeek(position) ?: return false
+        skipToSegmentEnd(segmentEnd)
+        return true
     }
 
     fun skipToSegmentEnd(endPositionMs: Long) {
@@ -2570,6 +2676,7 @@ class EnhancedPlayerManager private constructor() {
     }
 
     fun setScrubbingModeEnabled(enabled: Boolean) {
+        scrubPreviewing = enabled
         player?.let { p ->
             val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
             p.setSeekParameters(
@@ -2578,7 +2685,20 @@ class EnhancedPlayerManager private constructor() {
         }
     }
 
+    /** A drag previews every frame it crosses, so only the seek on release may skip a segment. */
+    fun finishScrubPreview() {
+        scrubPreviewing = false
+    }
+
+    /** Where a seek to [position] ends up, for a seek bar that holds its value until the player arrives. */
+    fun seekLandingFor(position: Long): Long {
+        if (currentIsLiveStream || player?.isCurrentMediaItemLive == true) return position
+        return sponsorBlockHandler?.seekLandingFor(position) ?: position
+    }
+
     fun replay() {
+        // The countdown keeps running behind a replay otherwise and switches video mid-way through it.
+        if (autoplayCountdownController.stop()) releaseAdvanceWakeLock()
         player?.let { exoPlayer ->
             if (exoPlayer.currentMediaItem != null) {
                 exoPlayer.seekToDefaultPosition(exoPlayer.currentMediaItemIndex)
@@ -2596,7 +2716,15 @@ class EnhancedPlayerManager private constructor() {
     }
 
     private fun updateEffectiveLoopState() {
-        _playerState.value = _playerState.value.copy(isLooping = manualLoopEnabled || globalLoopEnabled)
+        if (!isOnMainThread()) {
+            mainHandler.post { updateEffectiveLoopState() }
+            return
+        }
+        val looping = manualLoopEnabled || globalLoopEnabled
+        if (_playerState.value.isLooping == looping) return
+        _playerState.value = _playerState.value.copy(isLooping = looping)
+        // The next video may already be appended; left there, the player plays into it instead of ending (#1912).
+        if (looping) preload.clear() else preload.schedule()
     }
 
     fun stop() {
@@ -2627,6 +2755,14 @@ class EnhancedPlayerManager private constructor() {
     }
 
     fun getPlayer(): ExoPlayer? = player
+
+    internal fun statsReadings(): PlayerStatsReadings =
+        PlayerStatsReadings(
+            bandwidthBitsPerSecond = bandwidthMeter?.bitrateEstimate ?: 0L,
+            decoderName = analyticsLogger?.activeDecoderName,
+            gainDb = audioFeaturesManager?.appliedLoudnessDb,
+            surfaceFrame = surfaceManager?.getSurfaceHolder()?.surfaceFrame,
+        )
 
     fun getCastVideoStreams(): List<VideoStream> = availableVideoStreams
 
@@ -2692,10 +2828,13 @@ class EnhancedPlayerManager private constructor() {
                         if (VideoCodecUtils.streamSizeKey(height, codecKey) in existingKeys) return@mapNotNull null
                         QualityOption(
                             height = height,
-                            label = "${qualityLabelFromFormat(best)} ${VideoCodecUtils.codecLabelFromKey(codecKey)}",
+                            label =
+                                "${VideoCodecUtils.qualityLabelWithFrameRate(height, best.fps ?: 0)} " +
+                                    VideoCodecUtils.codecLabelFromKey(codecKey),
                             bitrate = (best.averageBitrate ?: best.bitrate).toLong(),
                             codecKey = codecKey,
                             streamKey = "$SABR_QUALITY_KEY_PREFIX${best.itag}",
+                            isHdr = best.colorInfo?.isHdr == true,
                         )
                     }
             } else {
@@ -2756,18 +2895,13 @@ class EnhancedPlayerManager private constructor() {
     private fun qualityHeightFromFormat(format: PlayerResponse.StreamingData.Format): Int =
         VideoCodecUtils.qualityHeightFromFormat(format.qualityLabel, format.height ?: format.width ?: 0)
 
-    private fun qualityLabelFromFormat(format: PlayerResponse.StreamingData.Format): String =
-        format.qualityLabel
-            ?.takeIf { it.isNotBlank() }
-            ?: VideoCodecUtils.qualityLabelWithFrameRate(qualityHeightFromFormat(format), format.fps ?: 0)
-
     // ===== Quality & Audio Management =====
 
     fun switchQualityByHeight(height: Int) =
         if (currentIsLiveStream) {
             switchLiveQuality(height)
         } else {
-            qualityManager?.switchQualityByHeight(height, player?.currentPosition ?: 0L)
+            qualityManager?.switchQualityByHeight(height, qualitySwitchPositionMs())
         }
 
     fun switchQuality(height: Int) = switchQualityByHeight(height)
@@ -2777,7 +2911,7 @@ class EnhancedPlayerManager private constructor() {
             return switchSabrQuality(option)
         }
         if (currentIsLiveStream) return switchLiveQuality(option.height)
-        return qualityManager?.switchQuality(option, player?.currentPosition ?: 0L)
+        return qualityManager?.switchQuality(option, qualitySwitchPositionMs())
     }
 
     private fun updateLiveQualityOptions(tracks: Tracks) {
@@ -2932,8 +3066,13 @@ class EnhancedPlayerManager private constructor() {
         }
     }
 
+    /** The segments the seek bar and the skip button show; disabled categories are left out. */
     val sponsorSegments: StateFlow<List<SponsorBlockSegment>>
-        get() = sponsorBlockHandler?.sponsorSegments ?: MutableStateFlow(emptyList())
+        get() = sponsorBlockHandler?.visibleSegments ?: MutableStateFlow(emptyList())
+
+    /** Segments a "skip once" category already skipped in this video; they show the skip button now. */
+    val sbSkippedOnce: StateFlow<Set<String>>
+        get() = sponsorBlockHandler?.skippedOnce ?: MutableStateFlow(emptySet())
 
     val sponsorBlockOffForVideo: StateFlow<Boolean>
         get() = sponsorBlockHandler?.disabledForCurrentVideo ?: MutableStateFlow(false)
@@ -2948,7 +3087,7 @@ class EnhancedPlayerManager private constructor() {
     val subtitleLoadFailedEvent: SharedFlow<SubtitleLoadFailure>
         get() = _subtitleLoadFailedEvent
 
-    val skipEvent: SharedFlow<SponsorBlockSegment>
+    val skipEvent: SharedFlow<SponsorBlockSkip>
         get() = sponsorBlockHandler?.skipEvent ?: MutableSharedFlow()
 
     val sbToastEvent: SharedFlow<SponsorBlockSegment>
@@ -3131,17 +3270,33 @@ class EnhancedPlayerManager private constructor() {
         if (shouldKeepPlaying) {
             switchToAudioOnly()
         } else {
-            if (p.mediaItemCount > 0) {
-                clearedMediaRecoveryState.capture(
-                    videoId = currentVideoId,
-                    positionMs = p.currentPosition,
-                    playWhenReady = p.playWhenReady,
-                    localFilePath = currentLocalFilePath,
-                )
-            }
+            captureClearedMediaRecovery(p)
             p.stop()
             p.clearMediaItems()
         }
+    }
+
+    private fun captureClearedMediaRecovery(
+        p: ExoPlayer,
+        restoresOnForeground: Boolean = true,
+    ) {
+        if (p.mediaItemCount == 0) return
+        clearedMediaRecoveryState.capture(
+            videoId = currentVideoId,
+            positionMs = p.currentPosition,
+            playWhenReady = p.playWhenReady,
+            localFilePath = currentLocalFilePath,
+            restoresOnForeground = restoresOnForeground,
+        )
+    }
+
+    private fun qualitySwitchPositionMs(): Long {
+        val p = player ?: return 0L
+        return clearedMediaRecoveryState.takeReloadPosition(
+            videoId = currentVideoId,
+            playerEmpty = p.mediaItemCount == 0,
+            currentPositionMs = p.currentPosition,
+        )
     }
 
     fun switchToAudioOnly() {
@@ -3174,7 +3329,8 @@ class EnhancedPlayerManager private constructor() {
     fun restoreVideoOutput() {
         val p = player ?: return
         val displayInteractive = isDisplayInteractive()
-        val surfaceValid = surfaceManager?.isSurfaceValid() == true
+        // A 360 video's spherical view hands Media3 its own surface, so no managed holder ever exists.
+        val surfaceValid = surfaceManager?.isSurfaceValid() == true || _playerState.value.showsSpherical
         val canRestore =
             VideoSurfacePolicy.canRestoreVideoOutput(
                 sdkInt = Build.VERSION.SDK_INT,
@@ -3367,6 +3523,8 @@ class EnhancedPlayerManager private constructor() {
         surfaceManager?.release(player)
         audioSessionAnnouncer?.detach()
         audioSessionAnnouncer = null
+        diskReadAhead?.release()
+        diskReadAhead = null
         player?.release()
         player = null
         playerFactory.clearPreferences()
@@ -3468,9 +3626,11 @@ class EnhancedPlayerManager private constructor() {
     fun handleRefocusStuck(videoId: String?) {
         val p = player ?: return
         if (isRecoveringStreams(videoId) || hasAbandonedPlayback()) return
-        if (reloadClearedMediaIfNeeded()) {
+        if (reloadClearedMediaIfNeeded(automatic = true)) {
             return
         }
+        // Emptied by a decoder failure: the error screen's Retry owns the reload, not a resume.
+        if (p.mediaItemCount == 0 && clearedMediaRecoveryState.pendingFor(videoId) != null) return
         errorHandler?.handleRefocusStuck(p, videoId)
     }
 }

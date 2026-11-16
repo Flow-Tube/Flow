@@ -381,6 +381,7 @@ private fun AuthorLine(message: LiveChatMessage) {
 fun LiveChatPreview(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isReplay: Boolean = false,
 ) {
     Surface(
         onClick = onClick,
@@ -395,13 +396,15 @@ fun LiveChatPreview(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.error),
-            )
-            Spacer(Modifier.width(10.dp))
+            if (!isReplay) {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error),
+                )
+                Spacer(Modifier.width(10.dp))
+            }
             Icon(
                 Icons.Outlined.ChatBubbleOutline,
                 contentDescription = null,
@@ -409,7 +412,7 @@ fun LiveChatPreview(
             )
             Spacer(Modifier.width(10.dp))
             Text(
-                text = stringResource(R.string.live_chat),
+                text = stringResource(if (isReplay) R.string.chat_replay else R.string.live_chat),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )

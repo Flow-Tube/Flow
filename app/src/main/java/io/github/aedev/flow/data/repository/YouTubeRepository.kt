@@ -10,11 +10,13 @@ import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.model.needsCollaboratorResolution
 import io.github.aedev.flow.data.shorts.ShortsClassifier
 import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoChaptersParser
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.innertube.models.response.VideoHeatmapParser
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
+import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.YouTubeCountParser
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
@@ -44,9 +46,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.schabi.newpipe.extractor.NewPipe
-import org.schabi.newpipe.extractor.Page
 import org.schabi.newpipe.extractor.ServiceList
-import org.schabi.newpipe.extractor.comments.CommentsInfoItem
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
@@ -76,6 +76,13 @@ class YouTubeRepository
             InFlightRequestCoalescer<String, String?>(
                 CoroutineScope(SupervisorJob() + Dispatchers.IO),
             )
+
+        private val paidPromotionCoalescer =
+            InFlightRequestCoalescer<String, PaidPromotionLabel?>(
+                CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            )
+
+        private val paidPromotionCache = LruCache<String, PaidPromotionAnswer>(PAID_PROMOTION_CACHE_SIZE)
 
         // A category never changes, so this is a plain memo rather than a short player-side cache:
         // the value is worth keeping for every video the engine has already learned from.
@@ -465,6 +472,7 @@ class YouTubeRepository
                         title = info.name ?: "Unknown Title",
                         channelName = info.uploaderName ?: "Unknown Channel",
                         channelId = extractChannelId(info.uploaderUrl),
+                        channelHandle = extractChannelHandle(info.uploaderUrl),
                         thumbnailUrl = bestThumbnail,
                         duration = info.duration.toInt(),
                         viewCount = info.viewCount,
@@ -604,6 +612,19 @@ class YouTubeRepository
         }
 
         /**
+         * The paid promotion label for [videoId], or null when it has none or the request failed.
+         * An answer is kept for the process, so seeing a video again costs nothing.
+         */
+        suspend fun paidPromotion(videoId: String): PaidPromotionLabel? {
+            paidPromotionCache.get(videoId)?.let { return it.label }
+            return paidPromotionCoalescer.run(videoId) {
+                val answer = YouTube.paidPromotion(videoId)
+                answer.onSuccess { paidPromotionCache.put(videoId, PaidPromotionAnswer(it)) }
+                answer.getOrNull()
+            }
+        }
+
+        /**
          * The rewatch curve for [videoId], or null when the video has none.
          *
          * Free: it rides the watch response the description and comments already fetch. Plenty of
@@ -644,10 +665,8 @@ class YouTubeRepository
 
         /**
          * The first page of a video's comments, in the order [sortToken] names, or the section's
-         * own default when it is null.
-         *
-         * Falls back to the extractor when InnerTube returns nothing, so a schema change degrades
-         * the section instead of emptying it.
+         * own default when it is null. A video whose comments are turned off costs no request past
+         * the watch response.
          */
         suspend fun getVideoComments(
             videoId: String,
@@ -655,21 +674,26 @@ class YouTubeRepository
         ): CommentsPageResult =
             withContext(Dispatchers.IO) {
                 val token =
-                    sortToken
-                        ?: watchNextResponse(videoId)?.let(YouTube::commentsContinuation)
-                val page = token?.let { YouTube.comments(it, videoId).getOrNull() }
-                if (page != null && page.comments.isNotEmpty()) {
-                    return@withContext CommentsPageResult(
-                        comments = page.comments,
-                        continuation = page.continuation,
-                        sortOptions = page.sortOptions,
-                        totalText = page.totalText,
-                        totalCount = page.totalCount,
-                    )
-                }
-                Log.i(TAG, "InnerTube comments empty for $videoId, falling back to the extractor")
-                val (comments, legacyPage) = getComments(videoId)
-                CommentsPageResult(comments = comments, legacyPage = legacyPage)
+                    sortToken ?: when (val section = watchNextResponse(videoId)?.let(YouTube::commentsSection)) {
+                        is VideoCommentsSection.Open -> section.token
+                        VideoCommentsSection.TurnedOff -> return@withContext CommentsPageResult.DISABLED
+                        null -> null
+                    }
+                val page = token?.let { YouTube.comments(it, videoId).getOrNull() } ?: return@withContext CommentsPageResult.EMPTY
+                // A first page has just read the watch response, so this costs no second request.
+                val panel =
+                    if (sortToken == null && (page.sortOptions.isEmpty() || page.totalText == null)) {
+                        watchNextResponse(videoId)?.let(YouTube::commentsPanelHeader)
+                    } else {
+                        null
+                    }
+                CommentsPageResult(
+                    comments = page.comments,
+                    continuation = page.continuation,
+                    sortOptions = page.sortOptions.ifEmpty { panel?.sortOptions.orEmpty() },
+                    totalText = page.totalText ?: panel?.totalText,
+                    totalCount = page.totalCount ?: panel?.totalCount,
+                )
             }
 
         suspend fun getMoreVideoComments(
@@ -681,6 +705,20 @@ class YouTubeRepository
                 CommentsPageResult(comments = page.comments, continuation = page.continuation)
             }
 
+        /** YouTube's Timed list for [videoId], read through any token of its comment section. Empty when there is none. */
+        suspend fun getTimedComments(
+            videoId: String,
+            sectionToken: String,
+        ): CommentsPageResult =
+            withContext(Dispatchers.IO) {
+                YouTube
+                    .timedComments(sectionToken, videoId)
+                    .onFailure { Log.w(TAG, "Timed comments for $videoId failed: ${it.message}") }
+                    .getOrNull()
+                    ?.let { CommentsPageResult(comments = it) }
+                    ?: CommentsPageResult.EMPTY
+            }
+
         suspend fun getVideoCommentReplies(
             videoId: String,
             continuation: String,
@@ -688,123 +726,6 @@ class YouTubeRepository
             withContext(Dispatchers.IO) {
                 val page = YouTube.commentReplies(continuation, videoId).getOrNull() ?: return@withContext CommentsPageResult.EMPTY
                 CommentsPageResult(comments = page.comments, continuation = page.continuation)
-            }
-
-        /**
-         * Fetch the first page of comments for a video.
-         * Returns the comments and a next-page token (null if no more pages).
-         */
-        suspend fun getComments(videoId: String): Pair<List<Comment>, Page?> =
-            withContext(Dispatchers.IO) {
-                try {
-                    val url = "https://www.youtube.com/watch?v=$videoId"
-                    val commentsInfo =
-                        org.schabi.newpipe.extractor.comments.CommentsInfo
-                            .getInfo(service, url)
-                    val comments = mapComments(commentsInfo.relatedItems)
-                    Pair(comments, commentsInfo.nextPage)
-                } catch (e: Exception) {
-                    Log.w(TAG, "${e::class.simpleName}: ${e.message}")
-                    Pair(emptyList(), null)
-                }
-            }
-
-        /**
-         * Fetch the next page of top-level comments for a video.
-         * Returns the new comments and an updated next-page token.
-         */
-        suspend fun getMoreComments(
-            videoId: String,
-            nextPage: Page,
-        ): Pair<List<Comment>, Page?> =
-            withContext(Dispatchers.IO) {
-                try {
-                    val url = "https://www.youtube.com/watch?v=$videoId"
-                    val moreItems =
-                        org.schabi.newpipe.extractor.comments.CommentsInfo
-                            .getMoreItems(service, url, nextPage)
-                    val comments = mapComments(moreItems.items)
-                    Pair(comments, moreItems.nextPage)
-                } catch (e: Exception) {
-                    Log.w(TAG, "${e::class.simpleName}: ${e.message}")
-                    Pair(emptyList(), null)
-                }
-            }
-
-        /**
-         * Fetch replies for a comment
-         */
-        suspend fun getCommentReplies(
-            url: String,
-            repliesPage: Page,
-        ): Pair<List<Comment>, Page?> =
-            withContext(Dispatchers.IO) {
-                try {
-                    val moreItems =
-                        org.schabi.newpipe.extractor.comments.CommentsInfo
-                            .getMoreItems(service, url, repliesPage)
-                    val replies = mapComments(moreItems.items)
-                    Pair(replies, moreItems.nextPage)
-                } catch (e: Exception) {
-                    Log.w(TAG, "${e::class.simpleName}: ${e.message}")
-                    Pair(emptyList(), null)
-                }
-            }
-
-        private suspend fun mapComments(items: List<CommentsInfoItem>): List<Comment> =
-            supervisorScope {
-                val embeddedAvatars =
-                    items.map { item ->
-                        ThumbnailUrlResolver.resolveChannelAvatar(item.uploaderAvatars.bestImageUrl())
-                    }
-                val uploaderReferences = items.map { item -> item.uploaderUrl.orEmpty().trim() }
-                val missingAvatarReferences =
-                    items.indices
-                        .asSequence()
-                        .filter { index -> embeddedAvatars[index].isBlank() }
-                        .map { index -> uploaderReferences[index] }
-                        .filter { reference -> reference.isNotBlank() }
-                        .distinct()
-                        .toList()
-
-                val fallbackAvatars = mutableMapOf<String, String>()
-                missingAvatarReferences.chunked(COMMENT_AVATAR_FETCH_CONCURRENCY).forEach { batch ->
-                    batch
-                        .map { reference ->
-                            async(Dispatchers.IO) {
-                                val avatar =
-                                    runCatching {
-                                        withTimeoutOrNull(COMMENT_AVATAR_FETCH_TIMEOUT_MS) {
-                                            fetchChannelAvatarById(reference)
-                                        }
-                                    }.getOrNull().orEmpty()
-                                reference to avatar
-                            }
-                        }.awaitAll()
-                        .forEach { (reference, avatar) ->
-                            if (avatar.isNotBlank()) fallbackAvatars[reference] = avatar
-                        }
-                }
-
-                items.mapIndexed { index, item ->
-                    val uploaderReference = uploaderReferences[index]
-                    Comment(
-                        id = item.commentId ?: "",
-                        author = item.uploaderName ?: "Unknown",
-                        authorThumbnail =
-                            selectCommentAuthorThumbnail(
-                                embeddedAvatar = embeddedAvatars[index],
-                                resolvedChannelAvatar = fallbackAvatars[uploaderReference],
-                            ),
-                        text = item.commentText.content ?: "",
-                        likeCount = item.likeCount.toInt(),
-                        publishedTime = item.textualUploadDate ?: "",
-                        replyCount = item.replyCount.toInt(),
-                        repliesPage = item.replies,
-                        isPinned = item.isPinned,
-                        authorChannelId = extractChannelId(uploaderReference),
-                    )
-                }
             }
 
         /**
@@ -873,6 +794,15 @@ class YouTubeRepository
                     description = resp.description(),
                     relatedVideos = related,
                 )
+            }
+
+        /**
+         * The channel a video belongs to, off the watch response the description and comments already
+         * fetch. Its owner is the channel people see, where a player response can name a hidden one.
+         */
+        internal suspend fun watchChannel(videoId: String): WatchChannel? =
+            withContext(Dispatchers.IO) {
+                watchMetadataFor(videoId)?.let { watchChannelOf(it, YouTube.locale.hl) }
             }
 
         /** Light related-video harvest for the feed (InnerTube /next, no stream resolution). */
@@ -1000,6 +930,7 @@ class YouTubeRepository
                 title = name ?: "Unknown Title",
                 channelName = uploaderName ?: "Unknown Channel",
                 channelId = extractChannelId(uploaderUrl),
+                channelHandle = extractChannelHandle(uploaderUrl),
                 thumbnailUrl = bestThumbnail,
                 duration = durationSecs,
                 viewCount = viewCount,
@@ -1039,6 +970,8 @@ class YouTubeRepository
                 isMusic = looksLikeMusicVideo(name.orEmpty(), uploaderName.orEmpty()),
             )
         }
+
+        private fun extractChannelHandle(uploaderUrl: String?): String? = uploaderUrl?.takeIf { "/@" in it }
 
         private fun extractChannelId(uploaderUrl: String?): String {
             if (uploaderUrl.isNullOrBlank()) return ""
@@ -1090,10 +1023,9 @@ class YouTubeRepository
 
         companion object {
             private const val TAG = "YouTubeRepository"
-            private const val COMMENT_AVATAR_FETCH_CONCURRENCY = 4
-            private const val COMMENT_AVATAR_FETCH_TIMEOUT_MS = 6_000L
             private const val WATCH_NEXT_CACHE_SIZE = 3
             private const val VIDEO_CATEGORY_CACHE_SIZE = 500
+            private const val PAID_PROMOTION_CACHE_SIZE = 100
             private val CHANNEL_ID_IN_URL = Regex("""/channel/(UC[\w-]{22})""")
 
             @Volatile
@@ -1109,20 +1041,26 @@ class YouTubeRepository
         }
     }
 
-internal fun selectCommentAuthorThumbnail(
-    embeddedAvatar: String?,
-    resolvedChannelAvatar: String?,
-): String =
-    ThumbnailUrlResolver
-        .resolveChannelAvatar(embeddedAvatar)
-        .ifBlank { ThumbnailUrlResolver.resolveChannelAvatar(resolvedChannelAvatar) }
-
 /** No real channel id, or no avatar that can be shown (blank, a video frame or a channel page URL). */
 internal fun Video.needsChannelMetadata(): Boolean =
     channelId.isBlank() ||
         !channelId.startsWith("UC") ||
         channelThumbnailUrl.isBlank() ||
         ThumbnailUrlResolver.isUnusableChannelAvatar(channelThumbnailUrl)
+
+internal data class WatchChannel(
+    val avatarUrl: String?,
+    val subscriberCount: Long?,
+)
+
+internal fun watchChannelOf(
+    response: WatchMetadataResponse,
+    hl: String?,
+): WatchChannel =
+    WatchChannel(
+        avatarUrl = response.channelAvatarUrl(),
+        subscriberCount = YouTubeCountParser.parse(response.subscriberCountText(), hl),
+    )
 
 internal fun mergeWatchMetadata(
     video: Video,
@@ -1193,6 +1131,10 @@ internal fun String?.isLiveViewCountText(): Boolean {
  * Process-lifetime memo for video categories. Separate from the repository so the keep/skip rules
  * can be exercised without standing one up; a category never changes, so there is no TTL.
  */
+private class PaidPromotionAnswer(
+    val label: PaidPromotionLabel?,
+)
+
 internal class VideoCategoryMemo(
     private val maxEntries: Int = 500,
 ) {
@@ -1249,6 +1191,7 @@ internal object WatchMetadataVideoMapper {
                 // Parse the real age; 0 means unknown (callers fall back to text).
                 timestamp = RelativeUploadDateParser.parse(uploadDateText, YouTube.locale.hl) ?: 0L,
                 isLive = isLive,
+                channelHandle = cv.channelHandle,
             )
         }
 }

@@ -261,7 +261,24 @@ class RssSubscriptionServiceTest {
             val chunk = sweep("UCa", "UCb")
 
             assertThat(chunk.failedChannelIds).containsExactly("UCa")
+            assertThat(chunk.failedChannelReasons.getValue("UCa"))
+                .isEqualTo("RSS: IOException: HTTP 429; Channel page: IOException: browse 500")
             assertThat(chunk.videos.map { it.id }).containsExactly("v1")
+        }
+
+    @Test
+    fun `a channel whose RSS failed is not reported before its page read answers (1946)`() =
+        runTest {
+            coEvery { rssClient.fetch("UCa") } returns Result.failure(IOException("HTTP 404"))
+            coEvery { uploads.fetch("UCa", any(), any()) } returns
+                Result.success(ChannelUploads(owner = FeedItemOwner("UCa", "Channel"), videos = listOf(upload("v1", "UCa"))))
+            rss("UCb", entry("v2"))
+
+            val chunks = service.fetchSubscriptionVideos(listOf("UCa", "UCb")).toList()
+
+            assertThat(chunks.map { it.stage }).contains(SubscriptionRefreshStage.RSS)
+            chunks.forEach { assertThat(it.failedChannelIds).isEmpty() }
+            assertThat(chunks.last().videos.map { it.id }).containsExactly("v1", "v2")
         }
 
     @Test

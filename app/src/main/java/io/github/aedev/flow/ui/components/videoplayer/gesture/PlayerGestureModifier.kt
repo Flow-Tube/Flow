@@ -58,9 +58,12 @@ fun Modifier.videoPlayerControls(
     longPressPlaybackSpeed: Float = 2.0f,
     onExitFullscreen: ((releaseOffsetPx: Float, releaseVelocityPx: Float) -> Unit)? = null,
     onExitFullscreenDrag: (offsetPx: Float) -> Unit = {},
+    onMoreVideos: (() -> Unit)? = null,
+    onMoreVideosDrag: (offsetPx: Float) -> Unit = {},
     isSeekForwardActive: Boolean = false,
     isSeekBackActive: Boolean = false,
     onTapWindowChange: (Boolean) -> Unit = {},
+    dragGesturesEnabled: Boolean = true,
 ): Modifier {
     val isSpeedBoostActiveState = rememberUpdatedState(isSpeedBoostActive)
     val onSpeedBoostChangeState = rememberUpdatedState(onSpeedBoostChange)
@@ -98,6 +101,8 @@ fun Modifier.videoPlayerControls(
     val onSeekAccumulateState = rememberUpdatedState(onSeekAccumulate)
     val onExitFullscreenState = rememberUpdatedState(onExitFullscreen)
     val onExitFullscreenDragState = rememberUpdatedState(onExitFullscreenDrag)
+    val onMoreVideosState = rememberUpdatedState(onMoreVideos)
+    val onMoreVideosDragState = rememberUpdatedState(onMoreVideosDrag)
     val isSeekForwardActiveState = rememberUpdatedState(isSeekForwardActive)
     val isSeekBackActiveState = rememberUpdatedState(isSeekBackActive)
     val onTapWindowChangeState = rememberUpdatedState(onTapWindowChange)
@@ -123,8 +128,8 @@ fun Modifier.videoPlayerControls(
     val lastBrightnessApplied = remember { floatArrayOf(-2f) }
     val lastBrightnessAppliedAt = remember { longArrayOf(0L) }
 
-    return this
-        .playerTapGestures(
+    val tapped =
+        playerTapGestures(
             isSpeedBoostActive = isSpeedBoostActiveState,
             onSpeedBoostChange = onSpeedBoostChangeState,
             showControls = showControlsState,
@@ -145,35 +150,39 @@ fun Modifier.videoPlayerControls(
             sideEdgeIgnorePx = sideEdgeIgnorePxState,
             onTapWindowChange = onTapWindowChangeState,
             haptics = haptics,
-        ).playerDragGestures(
-            currentPosition = currentPositionState,
-            duration = durationState,
-            scope = scope,
-            isFullscreen = isFullscreenState,
-            onBrightnessChange = onBrightnessChangeState,
-            onShowBrightnessChange = onShowBrightnessChangeState,
-            onVolumeChange = onVolumeChangeState,
-            onShowVolumeChange = onShowVolumeChangeState,
-            onSeekDragChange = onSeekDragChangeState,
-            onSeekDragUpdate = onSeekDragUpdateState,
-            brightnessLevel = brightnessLevelState,
-            volumeLevel = volumeLevelState,
-            maxVolume = maxVolumeState,
-            audioManager = audioManagerState,
-            activity = activityState,
-            brightnessSwipeGesturesEnabled = brightnessSwipeGesturesEnabledState,
-            volumeSwipeGesturesEnabled = volumeSwipeGesturesEnabledState,
-            seekSwipeGesturesEnabled = seekSwipeGesturesEnabledState,
-            allowVolumeBoost = allowVolumeBoostState,
-            speedSwipeSide = speedSwipeSideState,
-            speedSwipeStep = speedSwipeStepState,
-            onSpeedSwipe = onSpeedSwipeState,
-            onSpeedSwipeEnd = onSpeedSwipeEndState,
-            sideEdgeIgnorePx = sideEdgeIgnorePxState,
-            onExitFullscreen = onExitFullscreenState,
-            onExitFullscreenDrag = onExitFullscreenDragState,
-            haptics = haptics,
-            lastBrightnessApplied = lastBrightnessApplied,
-            lastBrightnessAppliedAt = lastBrightnessAppliedAt,
         )
+    if (!dragGesturesEnabled) return tapped
+    return tapped.playerDragGestures(
+        currentPosition = currentPositionState,
+        duration = durationState,
+        scope = scope,
+        isFullscreen = isFullscreenState,
+        onBrightnessChange = onBrightnessChangeState,
+        onShowBrightnessChange = onShowBrightnessChangeState,
+        onVolumeChange = onVolumeChangeState,
+        onShowVolumeChange = onShowVolumeChangeState,
+        onSeekDragChange = onSeekDragChangeState,
+        onSeekDragUpdate = onSeekDragUpdateState,
+        brightnessLevel = brightnessLevelState,
+        volumeLevel = volumeLevelState,
+        maxVolume = maxVolumeState,
+        audioManager = audioManagerState,
+        activity = activityState,
+        brightnessSwipeGesturesEnabled = brightnessSwipeGesturesEnabledState,
+        volumeSwipeGesturesEnabled = volumeSwipeGesturesEnabledState,
+        seekSwipeGesturesEnabled = seekSwipeGesturesEnabledState,
+        allowVolumeBoost = allowVolumeBoostState,
+        speedSwipeSide = speedSwipeSideState,
+        speedSwipeStep = speedSwipeStepState,
+        onSpeedSwipe = onSpeedSwipeState,
+        onSpeedSwipeEnd = onSpeedSwipeEndState,
+        sideEdgeIgnorePx = sideEdgeIgnorePxState,
+        onExitFullscreen = onExitFullscreenState,
+        onExitFullscreenDrag = onExitFullscreenDragState,
+        onMoreVideos = onMoreVideosState,
+        onMoreVideosDrag = onMoreVideosDragState,
+        haptics = haptics,
+        lastBrightnessApplied = lastBrightnessApplied,
+        lastBrightnessAppliedAt = lastBrightnessAppliedAt,
+    )
 }

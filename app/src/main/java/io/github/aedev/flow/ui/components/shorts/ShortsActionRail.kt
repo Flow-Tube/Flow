@@ -83,6 +83,7 @@ internal fun ShortsActionRail(
             contentDescription = stringResource(R.string.action_like),
             contentColor = if (isLiked) MaterialTheme.colorScheme.primary else PlayerScrimContent,
             onClick = onLikeClick,
+            haptic = null,
         )
         ShortsRailAction(
             icon = Icons.Outlined.ChatBubbleOutline,
@@ -96,6 +97,7 @@ internal fun ShortsActionRail(
             contentDescription = stringResource(R.string.action_save),
             contentColor = if (isSaved) MaterialTheme.colorScheme.primary else PlayerScrimContent,
             onClick = onSaveClick,
+            haptic = null,
         )
         ShortsRailAction(
             icon = Icons.Outlined.Share,
@@ -124,6 +126,7 @@ private fun ShortsRailAction(
     contentDescription: String,
     onClick: () -> Unit,
     contentColor: Color = PlayerScrimContent,
+    haptic: HapticFeedbackType? = HapticFeedbackType.ContextClick,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         PlayerPillIconButton(
@@ -133,7 +136,7 @@ private fun ShortsRailAction(
             buttonSize = RailButtonSize,
             iconSize = RailIconSize,
             contentColor = contentColor,
-            haptic = HapticFeedbackType.TextHandleMove,
+            haptic = haptic,
         )
         if (label.isNotBlank()) {
             Spacer(modifier = Modifier.height(RailLabelSpacing))

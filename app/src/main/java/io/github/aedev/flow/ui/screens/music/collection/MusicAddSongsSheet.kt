@@ -15,7 +15,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -31,6 +30,7 @@ import io.github.aedev.flow.ui.components.music.item.MusicItemDensity
 import io.github.aedev.flow.ui.components.music.item.MusicTrackItem
 import io.github.aedev.flow.ui.components.shared.FlowSearchField
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
 import io.github.aedev.flow.ui.theme.Dimensions
 
@@ -68,7 +68,7 @@ internal fun MusicAddSongsSheet(
         Box(modifier = Modifier.fillMaxWidth().heightIn(min = ResultsMinHeight), contentAlignment = Alignment.TopCenter) {
             when {
                 search.isSearching && search.results.isEmpty() -> {
-                    LoadingIndicator(modifier = Modifier.padding(top = 32.dp))
+                    FlowSpinner(modifier = Modifier.padding(top = 32.dp))
                 }
 
                 search.query.isNotBlank() && search.results.isEmpty() -> {

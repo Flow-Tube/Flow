@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.index
 
 import io.github.aedev.flow.ui.components.settings.SettingEntry
+import io.github.aedev.flow.ui.screens.equalizer.EqualizerIndex
 
 /** Every option in Settings, in the order the pages show them. */
 internal object SettingsIndex {
@@ -17,6 +18,7 @@ internal object SettingsIndex {
             PlayerAppearanceIndex.all +
             LanguageRegionIndex.all +
             PlaybackIndex.all +
+            EqualizerIndex.all +
             BufferIndex.all +
             QualityIndex.all +
             ContentIndex.all +
@@ -33,6 +35,7 @@ internal object SettingsIndex {
             NetworkIndex.all +
             HistoryIndex.all +
             WellbeingIndex.all +
+            SecurityIndex.all +
             WidgetsIndex.all +
             DiagnosticsIndex.all +
             AboutIndex.all

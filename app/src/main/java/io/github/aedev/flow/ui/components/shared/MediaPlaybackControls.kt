@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
@@ -25,8 +26,10 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +45,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.Key
@@ -57,17 +62,54 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import io.github.aedev.flow.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private enum class PlaybackButtonType { PREVIOUS, PLAY_PAUSE, NEXT }
 
+private val PillShape = RoundedCornerShape(34.dp)
+private val PillSpacing = 10.dp
+private val SplitSpacing = 4.dp
+
+/** A corner between [start] and [stop]; the elastic spring overshoots, so it never goes below zero. */
+private class LerpCornerSize(
+    private val start: CornerSize,
+    private val stop: CornerSize,
+    private val fraction: Float,
+) : CornerSize {
+    override fun toPx(
+        shapeSize: Size,
+        density: Density,
+    ): Float = lerp(start.toPx(shapeSize, density), stop.toPx(shapeSize, density), fraction).coerceAtLeast(0f)
+}
+
+/**
+ * Previous or next as one side of a split button: round on its outer side, nearly flat on the side
+ * that faces play/pause, that inner corner rounding out as [pressedFraction] goes to 1.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal fun splitSideShape(
+    leading: Boolean,
+    pressedFraction: Float,
+): RoundedCornerShape {
+    val outer = SplitButtonDefaults.OuterCornerSize
+    val inner = LerpCornerSize(SplitButtonDefaults.LargeInnerCornerSize, SplitButtonDefaults.LargeInnerCornerSizePressed, pressedFraction)
+    return if (leading) {
+        RoundedCornerShape(topStart = outer, topEnd = inner, bottomEnd = inner, bottomStart = outer)
+    } else {
+        RoundedCornerShape(topStart = inner, topEnd = outer, bottomEnd = outer, bottomStart = inner)
+    }
+}
+
 /**
  * Previous, play/pause and next as the music player draws them: elastic pills that trade width as one
- * is pressed, with a play/pause that morphs its corners between playing and paused.
+ * is pressed, with a play/pause that morphs its corners between playing and paused. [split] turns
+ * previous and next into the two sides of a split button around play/pause.
  */
 @Composable
 fun MediaPlaybackControls(
@@ -79,6 +121,7 @@ fun MediaPlaybackControls(
     modifier: Modifier = Modifier,
     onPreviewDirectionChange: (SkipDirection?) -> Unit = {},
     playPauseFocusRequester: FocusRequester? = null,
+    split: Boolean = false,
 ) {
     var isPressed by remember { mutableStateOf(false) }
     var isPreviousPressed by remember { mutableStateOf(false) }
@@ -169,6 +212,16 @@ fun MediaPlaybackControls(
         animationSpec = elasticSpec,
         label = "nextWeight",
     )
+    val previousInner by animateFloatAsState(
+        targetValue = if (isPreviousPressed) 1f else 0f,
+        animationSpec = elasticSpec,
+        label = "previousInnerCorner",
+    )
+    val nextInner by animateFloatAsState(
+        targetValue = if (isNextPressed) 1f else 0f,
+        animationSpec = elasticSpec,
+        label = "nextInnerCorner",
+    )
     val playPauseCorner by animateDpAsState(
         targetValue = if (playPauseVisualState) 18.dp else 34.dp,
         animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
@@ -180,7 +233,7 @@ fun MediaPlaybackControls(
             modifier
                 .fillMaxWidth()
                 .height(68.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (split) SplitSpacing else PillSpacing),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ElasticControlButton(
@@ -199,6 +252,7 @@ fun MediaPlaybackControls(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             iconSize = 30.dp,
+            shape = if (split) splitSideShape(leading = true, pressedFraction = previousInner) else PillShape,
             onLongPressStart = { onPreviewDirectionChange(SkipDirection.PREVIOUS) },
             onLongPressEnd = { onPreviewDirectionChange(null) },
         )
@@ -211,14 +265,14 @@ fun MediaPlaybackControls(
             onClick = {
                 lastClicked = PlaybackButtonType.PLAY_PAUSE
                 clickTrigger++
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 onPlayPauseToggle()
             },
             onPressedChange = { isPressed = it },
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             iconSize = 36.dp,
-            cornerRadius = playPauseCorner,
+            shape = RoundedCornerShape(playPauseCorner),
             isBuffering = isBuffering,
             modifier = Modifier.focusRequester(playPauseFocus),
         )
@@ -239,6 +293,7 @@ fun MediaPlaybackControls(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             iconSize = 30.dp,
+            shape = if (split) splitSideShape(leading = false, pressedFraction = nextInner) else PillShape,
             onLongPressStart = { onPreviewDirectionChange(SkipDirection.NEXT) },
             onLongPressEnd = { onPreviewDirectionChange(null) },
         )
@@ -255,7 +310,7 @@ private fun RowScope.ElasticControlButton(
     containerColor: Color,
     contentColor: Color,
     iconSize: Dp,
-    cornerRadius: Dp = 34.dp,
+    shape: Shape,
     isBuffering: Boolean = false,
     onLongPressStart: (() -> Unit)? = null,
     onLongPressEnd: (() -> Unit)? = null,
@@ -266,7 +321,6 @@ private fun RowScope.ElasticControlButton(
     val currentLongPressStart by rememberUpdatedState(onLongPressStart)
     val currentLongPressEnd by rememberUpdatedState(onLongPressEnd)
     val interactionSource = remember { MutableInteractionSource() }
-    val shape = RoundedCornerShape(cornerRadius)
     // The gesture below is touch only; these give the button a focus stop, a key press and a click
     // action, so a remote's OK, a keyboard's Enter and TalkBack reach it too.
     Box(

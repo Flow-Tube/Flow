@@ -8,9 +8,23 @@ sealed class LinkedException(
 
     class Removed : LinkedException("This device was removed from its sync group")
 
+    class RecoveryDue : LinkedException("The recovery key has to be replaced before anything is written")
+
+    class RestoreUnfinished : LinkedException("A restore has to sign out the devices the user didn't choose before anything is written")
+
+    class RemovalUnconfirmed : LinkedException("The roster that leaves this device out replaces entries it had applied")
+
+    class Contested : LinkedException("Two sides of the roster removed each other")
+
+    class RosterRolledBack : LinkedException("The store no longer shows a roster entry this device applied")
+
+    class RosterRewritten : LinkedException("The store changed a roster entry this device applied")
+
     class Declined : LinkedException("The verification code was not confirmed")
 
     class TimedOut : LinkedException("The other device did not answer in time")
+
+    class JoinDeclined : LinkedException("A linked device declined the request to join")
 
     class Unexpected : LinkedException("The other device sent something unexpected")
 

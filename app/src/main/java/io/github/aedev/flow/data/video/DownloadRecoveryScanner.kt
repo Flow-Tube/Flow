@@ -17,6 +17,7 @@ import io.github.aedev.flow.data.video.VideoDownloadManager.Companion.VIDEO_DIR
 import io.github.aedev.flow.data.video.downloader.tags.DownloadTagReader
 import io.github.aedev.flow.data.video.storage.DownloadCovers
 import io.github.aedev.flow.data.video.storage.DownloadFiles
+import io.github.aedev.flow.data.video.storage.DownloadTree
 import io.github.aedev.flow.data.video.storage.StorageAccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -44,20 +45,27 @@ class DownloadRecoveryScanner
         private val preferences: PlayerPreferences,
         private val tagReader: DownloadTagReader,
     ) {
+        private data class Reach(
+            val access: StorageAccess,
+            val trees: Set<String>,
+        )
+
         /** What the last scan in this process could read. */
         @Volatile
-        private var scannedWith: StorageAccess? = null
+        private var scannedWith: Reach? = null
 
         /**
          * Whether a scan could find something the last one couldn't: none has run yet, or Flow may now
-         * read more shared storage, as after the viewer grants media access.
+         * read more shared storage, as after the viewer grants media access or picks a folder again.
          */
-        fun needsScan(): Boolean = scannedWith != StorageAccess.read(context)
+        fun needsScan(): Boolean = scannedWith != reach()
+
+        private fun reach() = Reach(StorageAccess.read(context), DownloadFiles.grantedTrees(context))
 
         /** Records every new file it finds and returns how many that was. */
         suspend fun scanAndRecoverDownloads(): Int =
             withContext(Dispatchers.IO) {
-                scannedWith = StorageAccess.read(context)
+                scannedWith = reach()
                 var recovered = 0
                 try {
                     val chosenFolders = chosenFolders()
@@ -85,6 +93,7 @@ class DownloadRecoveryScanner
                     }
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) recovered += scanViaMediaStore(roots, exportedPaths)
+                    recovered += scanPickedFolders(exportedPaths)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -154,8 +163,28 @@ class DownloadRecoveryScanner
                 recovered
             }
 
+        /**
+         * The picked folders read through their grant, which needs no media access: a reinstalled Flow
+         * owns none of the files an earlier install saved, so the media index hides them from it.
+         */
+        private suspend fun scanPickedFolders(exportedPaths: Set<String>): Int {
+            val granted = DownloadFiles.grantedTrees(context)
+            var recovered = 0
+            for (tree in chosenLocations().mapNotNull { it.treeUri }.distinct().filter { it in granted }) {
+                for (file in DownloadTree.files(context, tree, COLLECTION_DEPTH)) {
+                    if (!RecoveredDownload.isMedia(file.name)) continue
+                    val path = DownloadFiles.documentPath(file.uri)
+                    if (path != null && !isNewFile(path, exportedPaths)) continue
+                    if (recoverIfNew(file.uri, file.name, file.sizeBytes, file.modifiedAt, durationMs = null, exportedPaths)) recovered++
+                }
+            }
+            return recovered
+        }
+
+        private suspend fun chosenLocations() = listOf(preferences.downloadLocation.first(), preferences.musicDownloadLocation.first())
+
         private suspend fun chosenFolders(): List<String> =
-            listOf(preferences.downloadLocation.first(), preferences.musicDownloadLocation.first())
+            chosenLocations()
                 .mapNotNull { location -> location.path?.takeIf { it.isNotBlank() } ?: location.treeUri?.let(DownloadFiles::treePath) }
                 .distinct()
 
@@ -186,7 +215,7 @@ class DownloadRecoveryScanner
             exportedPaths: Set<String>,
         ): Boolean {
             if (!isNewFile(filePath, exportedPaths)) return false
-            val embedded = tagReader.read(Uri.fromFile(File(filePath)))
+            val embedded = tagReader.read(uriOf(filePath))
             val tags = embedded?.flow
             val sourceUrl = embedded?.comment
             val videoId = RecoveredDownload.idFor(filePath, tags, sourceUrl)
@@ -229,7 +258,7 @@ class DownloadRecoveryScanner
         ): Probe {
             val retriever = MediaMetadataRetriever()
             return try {
-                retriever.setDataSource(filePath)
+                retriever.setDataSource(context, uriOf(filePath))
                 val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
                 val frame =
                     if (wantsFrame) {
@@ -261,6 +290,8 @@ class DownloadRecoveryScanner
                 runCatching { retriever.release() }
             }
         }
+
+        private fun uriOf(path: String): Uri = if (DownloadFiles.isDocument(path)) Uri.parse(path) else Uri.fromFile(File(path))
 
         private companion object {
             const val TAG = "DownloadRecoveryScanner"

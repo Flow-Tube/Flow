@@ -23,6 +23,22 @@ internal object ContentIndex {
             section = R.string.settings_section_home,
             destination = page,
         )
+    val homeChips =
+        SettingEntry(
+            key = "content.home.chips",
+            title = R.string.content_settings_home_chips_title,
+            summary = R.string.content_settings_home_chips_subtitle,
+            section = R.string.settings_section_home,
+            destination = page,
+        )
+    val homeNewVideosButton =
+        SettingEntry(
+            key = "content.home.new_videos_button",
+            title = R.string.content_settings_home_new_videos_title,
+            summary = R.string.content_settings_home_new_videos_subtitle,
+            section = R.string.settings_section_home,
+            destination = page,
+        )
     val continueWatching =
         SettingEntry(
             key = "content.home.continue_watching",
@@ -85,6 +101,38 @@ internal object ContentIndex {
             key = "content.subs.live",
             title = R.string.content_settings_subs_show_live_title,
             summary = R.string.content_settings_subs_show_live_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+        )
+    val subsUpcoming =
+        SettingEntry(
+            key = "content.subs.upcoming",
+            title = R.string.content_settings_subs_show_upcoming_title,
+            summary = R.string.content_settings_subs_show_upcoming_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+        )
+    val subsPostsChip =
+        SettingEntry(
+            key = "content.subs.posts_chip",
+            title = R.string.content_settings_subs_posts_chip_title,
+            summary = R.string.content_settings_subs_posts_chip_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+        )
+    val subsAllChip =
+        SettingEntry(
+            key = "content.subs.all_chip",
+            title = R.string.content_settings_subs_all_chip_title,
+            summary = R.string.content_settings_subs_all_chip_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+        )
+    val subsUngrouped =
+        SettingEntry(
+            key = "content.subs.ungrouped",
+            title = R.string.content_settings_subs_ungrouped_title,
+            summary = R.string.content_settings_subs_ungrouped_subtitle,
             section = R.string.settings_section_subscriptions,
             destination = page,
         )
@@ -163,11 +211,29 @@ internal object ContentIndex {
             section = R.string.watch_later,
             destination = page,
         )
+    val hideWatchedSuggestions =
+        SettingEntry(
+            key = "content.watched.hide_suggestions",
+            title = R.string.content_settings_hide_watched_suggestions_title,
+            summary = R.string.content_settings_hide_watched_suggestions_subtitle,
+            keywords = R.string.settings_keywords_hide_watched,
+            section = R.string.settings_section_watched,
+            destination = page,
+        )
     val watchedThreshold =
         SettingEntry(
             key = "content.watched.threshold",
             title = R.string.content_settings_watched_threshold_title,
             keywords = R.string.settings_keywords_hide_watched,
+            section = R.string.settings_section_watched,
+            destination = page,
+        )
+    val countImportedAsWatched =
+        SettingEntry(
+            key = "content.watched.count_imported",
+            title = R.string.content_settings_count_imported_watched_title,
+            summary = R.string.content_settings_count_imported_watched_subtitle,
+            keywords = R.string.settings_keywords_count_imported_watched,
             section = R.string.settings_section_watched,
             destination = page,
         )
@@ -224,6 +290,8 @@ internal object ContentIndex {
         listOf(
             homeFeed,
             refreshOnReselect,
+            homeChips,
+            homeNewVideosButton,
             continueWatching,
             homeShortsShelf,
             homeSubscriptions,
@@ -232,7 +300,11 @@ internal object ContentIndex {
             subsShorts,
             subsShortsShelf,
             subsLive,
+            subsUpcoming,
             subsCollaborations,
+            subsPostsChip,
+            subsAllChip,
+            subsUngrouped,
             hideWatchedSubs,
             hideUnplayableSubs,
             subsRefreshOnStartup,
@@ -241,7 +313,9 @@ internal object ContentIndex {
             channelShortsTab,
             hideWatchedShorts,
             removeWatchedWatchLater,
+            hideWatchedSuggestions,
             watchedThreshold,
+            countImportedAsWatched,
             notes,
             channelNotes,
             videoNotes,

@@ -40,4 +40,9 @@ class MusicOffloadStateTest {
         assertThat(MusicOffloadState.changesPlayback(speed = 1.25f, pitch = 1f)).isTrue()
         assertThat(MusicOffloadState.changesPlayback(speed = 1f, pitch = 1.0594631f)).isTrue()
     }
+
+    @Test
+    fun `crossfade keeps offload off`() {
+        assertThat(optedIn.copy(crossfade = true).allowed).isFalse()
+    }
 }

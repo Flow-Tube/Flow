@@ -9,21 +9,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Spellcheck
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.screens.sync.QrCodeImage
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncCard
+import io.github.aedev.flow.ui.screens.sync.SyncRowGroup
 import io.github.aedev.flow.ui.screens.sync.SyncStepHeader
 
 /** How many words the user types back before the key counts as saved (spec/protocol.md, Recovery). */
@@ -70,7 +75,7 @@ internal fun LinkedRecoveryWords(
                 .sorted(),
         )
     }
-    var answers by rememberSaveable { mutableStateOf(List(CHECKED_WORDS) { "" }) }
+    var answers by remember { mutableStateOf(List(CHECKED_WORDS) { "" }) }
     val matches = positions.zip(answers).all { (i, answer) -> answer.trim().equals(list[i], ignoreCase = true) }
     val typed = answers.all { it.isNotBlank() }
     SyncStepHeader(icon = Icons.Outlined.Spellcheck, title = stringResource(R.string.linked_check_title))
@@ -96,5 +101,20 @@ internal fun LinkedRecoveryWords(
         confirmEnabled = !busy && typed && matches,
         dismissLabel = stringResource(R.string.linked_back),
         onDismiss = { checking = false },
+    )
+}
+
+/** Asks before swapping in new recovery words, for words that were lost or seen. */
+@Composable
+internal fun ReplaceWordsDialog(
+    onDismiss: () -> Unit,
+    onReplace: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.linked_replace_words_title)) },
+        text = { Text(stringResource(R.string.linked_replace_words_body)) },
+        confirmButton = { TextButton(onClick = onReplace) { Text(stringResource(R.string.linked_replace)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.linked_cancel)) } },
     )
 }

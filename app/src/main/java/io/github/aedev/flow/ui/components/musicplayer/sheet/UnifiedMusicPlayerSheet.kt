@@ -2,10 +2,11 @@ package io.github.aedev.flow.ui.components.musicplayer.sheet
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,7 +49,12 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.ui.components.musicplayer.common.rememberMusicPlayerAppearance
 import io.github.aedev.flow.ui.components.musicplayer.full.FullMusicPlayerContent
+import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarActionSheets
+import io.github.aedev.flow.ui.components.musicplayer.mini.MiniBarSurface
 import io.github.aedev.flow.ui.components.musicplayer.mini.MiniPlayerContent
+import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniBarActions
+import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLook
+import io.github.aedev.flow.ui.components.musicplayer.mini.rememberMiniPlayerLyrics
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSheetDragGestureHandler
 import io.github.aedev.flow.ui.components.musicplayer.motion.MusicSheetMotionController
 import io.github.aedev.flow.ui.components.musicplayer.motion.musicSheetVerticalDragGesture
@@ -63,6 +69,9 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.max
 import kotlin.math.roundToInt
+
+// The share of its own height the mini bar sinks while fading out when swiped away.
+private const val MINI_BAR_FADE_DISTANCE = 0.6f
 
 private val SheetDefaultSpring =
     spring<Float>(
@@ -84,11 +93,13 @@ internal fun UnifiedMusicPlayerSheet(
     containerHeight: Dp,
     miniBounds: MediaMiniBarBounds,
     restingBottomPx: () -> Float,
+    miniDockShiftPx: () -> Float,
     track: MusicTrack,
     swipeLeftAction: MiniBarSwipeAction,
     swipeRightAction: MiniBarSwipeAction,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    lyricsInMiniPlayer: Boolean = false,
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -112,6 +123,8 @@ internal fun UnifiedMusicPlayerSheet(
     val appearance = rememberMusicPlayerAppearance(displayTrack.highResThumbnailUrl)
     val playerScheme = appearance.playerScheme
     val controlScheme = appearance.controlScheme
+    val miniLook = rememberMiniPlayerLook()
+    val miniActions = rememberMiniBarActions(state, onDismiss)
 
     val motionController =
         remember(state) {
@@ -197,14 +210,16 @@ internal fun UnifiedMusicPlayerSheet(
             miniHeightPx = miniHeightPx,
             containerWidthPx = containerWidthPx,
             miniBounds = miniBounds,
+            dockShiftPx = miniDockShiftPx,
             collapsedRadiusPx = with(density) { MediaMiniBarDefaults.CornerRadius.toPx() },
         )
     val cardShape = remember(geometry) { MusicSheetDynamicShape(geometry::cornerRadiusPx) }
 
     val miniAppear = remember { Animatable(0f) }
+    val appearSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
     LaunchedEffect(Unit) {
         if (miniAppear.value < 1f) {
-            miniAppear.animateTo(1f, tween(260))
+            miniAppear.animateTo(1f, appearSpec)
         }
     }
 
@@ -251,7 +266,9 @@ internal fun UnifiedMusicPlayerSheet(
 
     val cardShadowElevation by remember(state) {
         derivedStateOf {
-            if (isDragging || state.expansionFraction.isRunning || state.expansionFraction.value > 0.18f) {
+            // A shadow drawn while the bar fades out would be cut at the bar's edges.
+            val sinking = state.translationY.value > collapsedTargetYState.value + 1f
+            if (isDragging || sinking || state.expansionFraction.isRunning || state.expansionFraction.value > 0.18f) {
                 0.dp
             } else {
                 6.dp
@@ -260,6 +277,7 @@ internal fun UnifiedMusicPlayerSheet(
     }
     val shouldRenderFullPlayer = rememberShouldRenderFullPlayer(state)
 
+    val appScheme = MaterialTheme.colorScheme
     MaterialTheme(
         colorScheme = playerScheme,
         motionScheme = MotionScheme.expressive(),
@@ -313,8 +331,11 @@ internal fun UnifiedMusicPlayerSheet(
                             val appearScale = lerp(0.985f, 1f, miniAppear.value)
                             scaleX = appearScale
                             scaleY = overshootScaleY.value * appearScale
+                            // Gone before it has sunk to the navigation bar's labels, so it never
+                            // sits see-through over them (#1856).
                             val pulledDown = state.translationY.value - collapsedTargetYState.value
-                            alpha = miniAppear.value * (1f - (pulledDown / (miniHeightPx * 2f)).coerceIn(0f, 1f))
+                            val leaving = (pulledDown / (miniHeightPx * MINI_BAR_FADE_DISTANCE)).coerceIn(0f, 1f)
+                            alpha = miniAppear.value * (1f - FastOutSlowInEasing.transform(leaving))
                             transformOrigin = TransformOrigin(0.5f, 1f)
                         }.layout { measurable, constraints ->
                             val targetHeightPx = geometry.cardHeightPx().roundToInt().coerceAtLeast(0)
@@ -363,10 +384,11 @@ internal fun UnifiedMusicPlayerSheet(
                         ).musicSheetVerticalDragGesture(
                             enabled = true,
                             handler = dragHandler,
-                        ).clickable(
+                        ).combinedClickable(
                             enabled = state.isCollapsed,
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
+                            onLongClick = miniActions.longPress(miniLook.longPress),
                         ) {
                             state.expand()
                         },
@@ -406,11 +428,14 @@ internal fun UnifiedMusicPlayerSheet(
                                 }
                             }.zIndex(miniZIndex),
                 ) {
-                    MaterialTheme(colorScheme = controlScheme) {
+                    MiniBarSurface(miniLook.background, displayTrack.listThumbnailUrl, controlScheme, appScheme) {
                         MiniPlayerContent(
                             track = displayTrack,
                             animationsEnabled = miniAnimationsEnabled,
                             showPrevious = !isCompactWidth,
+                            lyrics = if (lyricsInMiniPlayer) rememberMiniPlayerLyrics(displayTrack.videoId) else null,
+                            look = miniLook,
+                            actions = miniActions,
                         )
                     }
                 }
@@ -450,11 +475,17 @@ internal fun UnifiedMusicPlayerSheet(
                             backgroundStyle = appearance.backgroundStyle,
                             hideArtwork = appearance.hideArtwork,
                             sleepTimerButton = appearance.sleepTimerButton,
+                            splitTransport = appearance.splitTransport,
+                            lyricsOnCover = appearance.lyricsOnCover,
                             controlScheme = controlScheme,
+                            onLyricsShownChange = { state.isLyricsShown = it },
+                            panelRequest = state.panelRequest,
+                            onPanelRequestHandled = { state.panelRequest = null },
                         )
                     }
                 }
             }
         }
     }
+    MiniBarActionSheets(miniActions, displayTrack)
 }

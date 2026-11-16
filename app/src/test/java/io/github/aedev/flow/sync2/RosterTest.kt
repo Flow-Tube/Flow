@@ -10,10 +10,12 @@ import io.github.aedev.flow.sync2.roster.forkWinner
 import io.github.aedev.flow.sync2.roster.openDeviceMeta
 import io.github.aedev.flow.sync2.roster.parseEntry
 import io.github.aedev.flow.sync2.roster.replayRoster
+import io.github.aedev.flow.sync2.roster.winningChain
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -23,6 +25,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 /**
@@ -56,6 +59,8 @@ class RosterTest {
             put("seq", state.seq)
             put("head", state.head)
             put("epoch", state.epoch)
+            put("rotate", state.rotate)
+            put("recoveryDue", state.recoveryDue)
             put(
                 "members",
                 buildJsonArray {
@@ -65,6 +70,31 @@ class RosterTest {
                                 put("did", did)
                                 put("role", member.role.name.lowercase())
                                 put("used", member.used)
+                                member.installer?.let { put("installer", it) }
+                            },
+                        )
+                    }
+                },
+            )
+            put(
+                "senders",
+                buildJsonArray {
+                    for ((did, sender) in state.senders.toSortedMap()) {
+                        add(
+                            buildJsonObject {
+                                put("did", did)
+                                put("role", sender.role.name.lowercase())
+                                put("since", sender.since)
+                                sender.until?.let { put("until", it) }
+                                sender.cut?.let { cut ->
+                                    put(
+                                        "cut",
+                                        buildJsonObject {
+                                            put("seq", cut.seq)
+                                            put("hash", cut.hash)
+                                        },
+                                    )
+                                }
                             },
                         )
                     }
@@ -102,6 +132,14 @@ class RosterTest {
     }
 
     @Test
+    fun a_genesis_must_match_its_group_id() {
+        for (n in v["geneses"].jsonArray) {
+            val failure = assertThrows(ProtocolException::class.java) { applyEntry(null, parseEntry(n["entry"]!!)) }
+            assertEquals(n["error"].text, failure.error.code)
+        }
+    }
+
+    @Test
     fun forks_resolve_to_the_same_winner() {
         for (f in v["forks"].jsonArray) {
             val state = base(f["base"])
@@ -116,5 +154,31 @@ class RosterTest {
     fun a_null_field_is_not_an_absent_one() {
         val withNull = JsonObject(v["entries"].jsonArray[1].jsonObject + ("remove" to JsonNull))
         assertEquals("roster-format", errorCode { parseEntry(withNull) })
+    }
+
+    @Test
+    fun a_negative_seq_or_epoch_is_malformed_so_it_never_hides_the_chain() {
+        val raw = v["entries"].jsonArray
+        val seq = JsonObject(raw[1].jsonObject + ("seq" to JsonPrimitive(-1)))
+        val epoch = JsonObject(raw[0].jsonObject + ("epoch" to JsonObject(raw[0]["epoch"].jsonObject + ("n" to JsonPrimitive(-1)))))
+        assertEquals("roster-format", errorCode { parseEntry(seq) })
+        assertEquals("roster-format", errorCode { parseEntry(epoch) })
+        assertEquals(entries, winningChain((raw + seq).mapNotNull { runCatching { parseEntry(it) }.getOrNull() }))
+    }
+
+    @Test
+    fun a_removal_replaces_a_recovery_key_set_by_a_device_that_is_gone() {
+        for (case in v["replacements"].jsonArray) {
+            val name = case["name"].text
+            val count = case.jsonObject["base"]?.jsonPrimitive?.int ?: entries.size
+            val steps = case["steps"].jsonArray.map(::parseEntry)
+            val before = steps.dropLast(1).fold(replayRoster(entries.take(count)), ::applyEntry)
+            val error = case.jsonObject["error"]
+            if (error == null) {
+                assertEquals(name, case["state"], view(applyEntry(before, steps.last())))
+            } else {
+                assertEquals(name, error.text, errorCode { applyEntry(before, steps.last()) })
+            }
+        }
     }
 }

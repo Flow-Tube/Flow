@@ -4,8 +4,10 @@ import android.content.Context
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.annotation.MainThread
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.network.AppProxyManager
@@ -95,6 +97,22 @@ class PoTokenWebView private constructor(
                         popAllPoTokenContinuations().forEach { (_, cont) -> cont.resumeWithException(exception) }
                     }
                     return super.onConsoleMessage(m)
+                }
+            }
+
+        // Unhandled, a renderer crash or the system reclaiming it for memory kills the whole app.
+        webView.webViewClient =
+            object : WebViewClient() {
+                override fun onRenderProcessGone(
+                    view: WebView,
+                    detail: RenderProcessGoneDetail,
+                ): Boolean {
+                    Log.w(TAG, "BotGuard renderer gone (crashed=${detail.didCrash()}), dropping this WebView")
+                    release(rendererAlive = false)
+                    val error = PoTokenException("BotGuard WebView renderer gone")
+                    failAttestation(error)
+                    popAllPoTokenContinuations().forEach { (_, cont) -> cont.resumeWithException(error) }
+                    return true
                 }
             }
     }
@@ -254,6 +272,10 @@ class PoTokenWebView private constructor(
         withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { cont ->
                 Log.d(TAG, "generatePoToken() called with identifier $identifier")
+                if (isDestroyed) {
+                    cont.resumeWithException(PoTokenException("generatePoToken() called on a destroyed PoTokenWebView"))
+                    return@suspendCancellableCoroutine
+                }
                 addPoTokenEmitter(identifier, cont)
                 cont.invokeOnCancellation { popPoTokenContinuation(identifier) }
                 webView.evaluateJavascript(
@@ -385,17 +407,22 @@ class PoTokenWebView private constructor(
     }
 
     @MainThread
-    fun close() {
+    fun close() = release(rendererAlive = true)
+
+    @MainThread
+    private fun release(rendererAlive: Boolean) {
         if (isDestroyed) return
         isDestroyed = true
+        broken = true
         scope.cancel()
 
-        webView.clearHistory()
-        webView.clearCache(true)
-
-        webView.loadUrl("about:blank")
-
-        webView.onPause()
+        // Once its renderer is gone a WebView may only be destroyed, never loaded or cleared.
+        if (rendererAlive) {
+            webView.clearHistory()
+            webView.clearCache(true)
+            webView.loadUrl("about:blank")
+            webView.onPause()
+        }
         webView.removeAllViews()
         webView.destroy()
     }

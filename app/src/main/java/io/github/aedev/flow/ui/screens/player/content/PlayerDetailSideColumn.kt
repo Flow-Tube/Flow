@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
@@ -30,12 +32,13 @@ import io.github.aedev.flow.ui.screens.player.dialogs.PlayerQueueSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSettingsSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSleepTimerSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerTranscriptSheetHost
+import io.github.aedev.flow.ui.screens.player.state.BindRelatedFocus
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerPreferencesState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.ui.screens.player.state.hasTranscriptTrack
 import io.github.aedev.flow.ui.screens.player.state.rememberPlayerCommentsUiState
-import io.github.aedev.flow.ui.screens.player.state.transcriptTrackUrl
 import kotlinx.coroutines.launch
 
 private val QueueCardHorizontalPadding = 12.dp
@@ -64,6 +67,7 @@ internal fun PlayerDetailSideColumn(
     queueCard: (@Composable () -> Unit)? = null,
 ) {
     val commentsUiState = rememberPlayerCommentsUiState(viewModel)
+    val showsRelatedSkeleton = rememberRelatedSkeleton(video, uiState, screenState)
     val scope = rememberCoroutineScope()
     val playerPreferences = prefs.preferences
     val closeSheet = { screenState.closeSheet() }
@@ -97,6 +101,7 @@ internal fun PlayerDetailSideColumn(
                     scope = scope,
                     rememberPlaybackSpeed = prefs.rememberPlaybackSpeed,
                     ambientModeEnabled = prefs.ambientModeEnabled,
+                    ambientGlowEnabled = prefs.ambientGlowEnabled,
                     groupedQualitySelectorEnabled = prefs.groupedQualitySelectorEnabled,
                     rememberSubtitleLanguage = { language ->
                         scope.launch { playerPreferences.setPreferredSubtitleLanguage(language) }
@@ -116,7 +121,7 @@ internal fun PlayerDetailSideColumn(
                     asSidePanel = true,
                     expandedHeight = paneHeight,
                     onDismiss = closeSheet,
-                    hasTranscriptTrack = transcriptTrackUrl(playerState, screenState) != null,
+                    hasTranscriptTrack = hasTranscriptTrack(playerState),
                     onChaptersClick = { screenState.open(PlayerSheet.Chapters) },
                     onTranscriptClick = { screenState.open(PlayerSheet.Transcript) },
                     onChannelClick = onChannelClick,
@@ -128,10 +133,11 @@ internal fun PlayerDetailSideColumn(
                 PlayerTranscriptSheetHost(
                     viewModel = viewModel,
                     screenState = screenState,
-                    trackUrl = transcriptTrackUrl(playerState, screenState),
-                    tracks = playerState.availableSubtitles,
+                    playerState = playerState,
+                    prefs = prefs,
                     chapters = uiState.chapters,
                     artworkUrl = video.thumbnailUrl,
+                    exportTitle = video.title,
                     asSidePanel = true,
                     expandedHeight = paneHeight,
                     onDismiss = closeSheet,
@@ -200,6 +206,7 @@ internal fun PlayerDetailSideColumn(
                                     isLoading = uiState.isLiveChatLoading,
                                     onClose = { screenState.showLiveChatPanel = false },
                                     modifier = paneModifier,
+                                    isReplay = !uiState.isLive,
                                 )
                             }
 
@@ -227,7 +234,7 @@ internal fun PlayerDetailSideColumn(
                                     asSidePanel = true,
                                     expandedHeight = restingHeight,
                                     onDismiss = closeSheet,
-                                    hasTranscriptTrack = transcriptTrackUrl(playerState, screenState) != null,
+                                    hasTranscriptTrack = hasTranscriptTrack(playerState),
                                     onChaptersClick = { screenState.open(PlayerSheet.Chapters) },
                                     onTranscriptClick = { screenState.open(PlayerSheet.Transcript) },
                                     onChannelClick = onChannelClick,
@@ -235,20 +242,33 @@ internal fun PlayerDetailSideColumn(
                             }
 
                             else -> {
+                                val relatedListState = rememberLazyListState()
+                                BindRelatedFocus(
+                                    focus = screenState.relatedFocus,
+                                    listState = relatedListState,
+                                    firstIndex = if (uiState.isLiveChatAvailable) 1 else 0,
+                                    enabled = !showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty(),
+                                )
                                 LazyColumn(
                                     modifier = paneModifier,
+                                    state = relatedListState,
                                     contentPadding = PaddingValues(bottom = 80.dp),
                                 ) {
                                     if (uiState.isLiveChatAvailable) {
                                         item {
-                                            LiveChatPreview(onClick = { screenState.showLiveChatPanel = true })
+                                            LiveChatPreview(onClick = { screenState.showLiveChatPanel = true }, isReplay = !uiState.isLive)
                                         }
                                     }
-                                    relatedVideosContent(
-                                        relatedVideos = uiState.relatedVideos,
-                                        onVideoClick = onVideoClick,
-                                        cardStyle = relatedCardStyle,
-                                    )
+                                    if (showsRelatedSkeleton) {
+                                        relatedVideosSkeleton(video.thumbnailUrl, relatedCardStyle)
+                                    } else {
+                                        relatedVideosContent(
+                                            relatedVideos = uiState.relatedVideos,
+                                            onVideoClick = onVideoClick,
+                                            cardStyle = relatedCardStyle,
+                                            firstCardModifier = Modifier.focusRequester(screenState.relatedFocus.firstCard),
+                                        )
+                                    }
                                 }
                             }
                         }

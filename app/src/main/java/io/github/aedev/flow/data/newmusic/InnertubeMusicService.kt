@@ -423,26 +423,6 @@ object InnertubeMusicService {
         }
 
     /**
-     * Fetch lyrics for a song
-     */
-    suspend fun fetchLyrics(videoId: String): String? =
-        withContext(Dispatchers.IO) {
-            try {
-                val nextResult =
-                    YouTube
-                        .next(
-                            io.github.aedev.flow.innertube.models
-                                .WatchEndpoint(videoId = videoId),
-                        ).getOrNull()
-                val lyricsEndpoint = nextResult?.lyricsEndpoint ?: return@withContext null
-                YouTube.lyrics(lyricsEndpoint).getOrNull()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
-        }
-
-    /**
      * Fetch queue metadata for video IDs or a playlist
      * Uses YouTube.queue() for faster queue loading compared to next()
      */

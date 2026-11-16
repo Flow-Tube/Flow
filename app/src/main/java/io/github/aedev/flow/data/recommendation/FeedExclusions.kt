@@ -1,5 +1,6 @@
 package io.github.aedev.flow.data.recommendation
 
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
 import io.github.aedev.flow.data.model.Video
 
 /**
@@ -12,31 +13,38 @@ import io.github.aedev.flow.data.model.Video
  * applies everywhere, Subscriptions included. [hidesFromRecommendations] adds what the engine
  * inferred, the channels a not-interested mark suppresses for a while and blocked topics, and applies
  * only where the app chose the video rather than the viewer.
+ *
+ * The AI channel list ([ai]) joins [hidesFromRecommendations], so it never reaches Subscriptions.
+ * Search, which uses [hides], asks [hidesAsAi] on its own.
  */
 class FeedExclusions(
     val suppressedVideoIds: Set<String> = emptySet(),
     val blockedChannelIds: Set<String> = emptySet(),
     val suppressedChannelIds: Set<String> = emptySet(),
     private val blockedText: (title: String, channelName: String) -> Boolean = { _, _ -> false },
+    val ai: AiListMatcher = AiListMatcher.NONE,
 ) {
     val isEmpty: Boolean
-        get() = suppressedVideoIds.isEmpty() && blockedChannelIds.isEmpty() && suppressedChannelIds.isEmpty()
+        get() = suppressedVideoIds.isEmpty() && blockedChannelIds.isEmpty() && suppressedChannelIds.isEmpty() && !ai.isActive
 
     fun hides(video: Video): Boolean = video.id in suppressedVideoIds || hidesChannel(video.channelId)
 
     fun hidesChannel(channelId: String): Boolean = channelId.isNotBlank() && channelId in blockedChannelIds
 
+    fun hidesAsAi(video: Video): Boolean = ai.blocks(video)
+
     fun hidesFromRecommendations(video: Video): Boolean =
         hides(video) ||
             (video.channelId.isNotBlank() && video.channelId in suppressedChannelIds) ||
-            blockedText(video.title, video.channelName)
+            blockedText(video.title, video.channelName) ||
+            ai.blocks(video)
 
     /** The same exclusions, also hiding every video from [channelIds]. */
     fun hidingChannels(channelIds: Set<String>): FeedExclusions =
         if (channelIds.isEmpty()) {
             this
         } else {
-            FeedExclusions(suppressedVideoIds, blockedChannelIds + channelIds, suppressedChannelIds, blockedText)
+            FeedExclusions(suppressedVideoIds, blockedChannelIds + channelIds, suppressedChannelIds, blockedText, ai)
         }
 
     companion object {

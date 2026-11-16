@@ -47,6 +47,7 @@ class BackupCoordinatorTest {
             mockk(relaxed = true),
             linkedReset,
             slices,
+            mockk(relaxed = true),
         )
 
     @Before

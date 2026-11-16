@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +39,7 @@ fun MediaDownloadPrompt(
     val style by prefs.downloadDialogStyle.collectAsState(initial = null)
     val askEveryTime by prefs.downloadAskEveryTime.collectAsState(initial = null)
     val latestOnDismiss by rememberUpdatedState(onDismiss)
+    val replacesDownload by produceState(false, video.id) { value = DownloadLauncher.isDownloaded(context, video.id) }
 
     when {
         style == null || askEveryTime == null -> {
@@ -59,6 +61,7 @@ fun MediaDownloadPrompt(
                 video = video,
                 currentPlayingHeight = currentPlayingHeight,
                 subtitles = subtitles,
+                replacesDownload = replacesDownload,
                 slot = slot,
                 onDismiss = onDismiss,
             )
@@ -71,6 +74,7 @@ fun MediaDownloadPrompt(
                 innerTubeAudioFormats = audioFormats,
                 video = video,
                 subtitles = subtitles,
+                replacesDownload = replacesDownload,
                 slot = slot,
                 onDismiss = onDismiss,
             )

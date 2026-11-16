@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -15,6 +16,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.resolveAsTypeface
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.Player
@@ -96,7 +101,8 @@ internal fun StyledSubtitles(
     style: SubtitleStyle,
     modifier: Modifier = Modifier,
 ) {
-    val captionStyle = remember(style) { style.toCaptionStyle() }
+    val typeface = rememberCaptionTypeface(style.isBold)
+    val captionStyle = remember(style, typeface) { style.toCaptionStyle(typeface) }
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -114,7 +120,24 @@ internal fun StyledSubtitles(
     )
 }
 
-private fun SubtitleStyle.toCaptionStyle(): CaptionStyleCompat =
+/**
+ * The app font at the weight the caption Bold switch asks for, so captions follow a custom or
+ * variable font too (#1427). The system font keeps the platform defaults captions always used.
+ */
+@Composable
+private fun rememberCaptionTypeface(isBold: Boolean): Typeface {
+    val family = MaterialTheme.typography.bodyLarge.fontFamily
+    val resolver = LocalFontFamilyResolver.current
+    val resolved =
+        remember(family, resolver, isBold) {
+            family
+                ?.takeIf { it != FontFamily.Default }
+                ?.let { resolver.resolveAsTypeface(it, if (isBold) FontWeight.Bold else FontWeight.Normal) }
+        }
+    return resolved?.value ?: if (isBold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+}
+
+private fun SubtitleStyle.toCaptionStyle(typeface: Typeface): CaptionStyleCompat =
     CaptionStyleCompat(
         textColor.toArgb(),
         backgroundColor.toArgb(),
@@ -127,7 +150,7 @@ private fun SubtitleStyle.toCaptionStyle(): CaptionStyleCompat =
             SubtitleEdgeType.DEPRESSED -> CaptionStyleCompat.EDGE_TYPE_DEPRESSED
         },
         edgeColor.toArgb(),
-        if (isBold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT,
+        typeface,
     )
 
 /**

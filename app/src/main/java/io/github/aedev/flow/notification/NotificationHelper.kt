@@ -20,6 +20,7 @@ import coil3.request.allowHardware
 import coil3.size.Precision
 import coil3.size.Scale
 import coil3.toBitmap
+import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.MainActivity
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.AppDatabase
@@ -47,6 +48,7 @@ object NotificationHelper {
     const val CHANNEL_GENERAL = "general_channel"
     const val CHANNEL_REMINDERS = "reminders_channel"
     const val CHANNEL_UPDATES = "updates_channel"
+    const val CHANNEL_NEW_VERSION = "new_version_channel"
     const val EXTRA_OPEN_UPDATE = "io.github.aedev.flow.extra.OPEN_UPDATE"
     const val EXTRA_OPEN_LINKED = "io.github.aedev.flow.extra.OPEN_LINKED"
     private const val NOTIFICATION_JOIN_REQUEST = 9998
@@ -59,7 +61,7 @@ object NotificationHelper {
     private val ProfileChannels =
         setOf(CHANNEL_SUBSCRIPTIONS, CHANNEL_REMINDERS, CHANNEL_GENERAL, CHANNEL_IMPORTS, AutoBackupWorker.NOTIFICATION_CHANNEL_ID)
 
-    private fun profileIntent(context: Context): Intent =
+    internal fun profileIntent(context: Context): Intent =
         Intent(context, MainActivity::class.java).putExtra(EXTRA_PROFILE_ID, ActiveProfile.get(context).id)
 
     /** Clears the running profile's notifications before a switch; downloads and updates stay. */
@@ -101,7 +103,7 @@ object NotificationHelper {
     /**
      * Store notification in database
      */
-    private suspend fun storeNotification(
+    internal suspend fun storeNotification(
         context: Context,
         entity: NotificationEntity,
     ) {
@@ -208,6 +210,19 @@ object NotificationHelper {
                     description = context.getString(R.string.notification_channel_updates_description)
                     setShowBadge(true)
                 }
+
+            if (newVersionChannel(BuildConfig.UPDATE_CHANNEL, updatesChannelBlocked = false) == CHANNEL_NEW_VERSION) {
+                notificationManager.createNotificationChannel(
+                    NotificationChannel(
+                        CHANNEL_NEW_VERSION,
+                        context.getString(R.string.notification_channel_new_version),
+                        NotificationManager.IMPORTANCE_DEFAULT,
+                    ).apply {
+                        description = context.getString(R.string.notification_channel_new_version_description)
+                        setShowBadge(true)
+                    },
+                )
+            }
 
             val importsChannel =
                 NotificationChannel(
@@ -477,242 +492,6 @@ object NotificationHelper {
         NotificationManagerCompat.from(context).notify(notificationId, notification)
     }
 
-    // ========== SUBSCRIPTION NOTIFICATIONS ==========
-
-    /**
-     * Represents a single new video found during a subscription check cycle.
-     */
-    data class NewVideoEntry(
-        val channelName: String,
-        val videoTitle: String,
-        val videoId: String,
-        val thumbnailUrl: String?,
-    )
-
-    /**
-     * Dispatcher for subscription update notifications.
-     */
-    suspend fun showSubscriptionUpdates(
-        context: Context,
-        videos: List<NewVideoEntry>,
-    ) {
-        if (!hasNotificationPermission(context)) return
-        if (!PlayerPreferences(context).notifNewVideosEnabled.first()) return
-        if (videos.isEmpty()) return
-
-        videos.forEach { v ->
-            storeNotification(
-                context,
-                NotificationEntity(
-                    videoId = v.videoId,
-                    title = v.videoTitle,
-                    channelName = v.channelName,
-                    thumbnailUrl = v.thumbnailUrl,
-                    type = "NEW_VIDEO",
-                ),
-            )
-        }
-
-        val manager = NotificationManagerCompat.from(context)
-        val multiple = videos.size > 1
-
-        videos.forEach { v ->
-            val notifId = NOTIFICATION_NEW_VIDEO + v.videoId.hashCode().and(0xFFFF)
-            val watchIntent =
-                profileIntent(context).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("notification_video_id", v.videoId)
-                    putExtra("video_id", v.videoId)
-                    putExtra("video_title", v.videoTitle)
-                }
-            val watchPendingIntent =
-                PendingIntent.getActivity(
-                    context,
-                    notifId,
-                    watchIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                )
-            val builder =
-                NotificationCompat
-                    .Builder(context, CHANNEL_SUBSCRIPTIONS)
-                    .setSmallIcon(R.drawable.ic_notification_logo)
-                    .setContentTitle(v.channelName)
-                    .setContentText(v.videoTitle)
-                    .setContentIntent(watchPendingIntent)
-                    .setAutoCancel(true)
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setCategory(NotificationCompat.CATEGORY_SOCIAL)
-                    .setGroup(GROUP_NEW_VIDEOS)
-            v.thumbnailUrl?.let { url ->
-                getBitmapFromUrl(context, url, followThumbnailSetting = true)?.let { bm ->
-                    builder.setLargeIcon(bm)
-                    builder.setStyle(
-                        NotificationCompat.BigPictureStyle().bigPicture(bm).bigLargeIcon(null as Bitmap?),
-                    )
-                }
-            }
-            manager.notify(notifId, builder.build())
-        }
-
-        if (!multiple) return
-
-        val summaryIntent =
-            profileIntent(context).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-        val summaryPendingIntent =
-            PendingIntent.getActivity(
-                context,
-                NOTIFICATION_NEW_VIDEO_SUMMARY,
-                summaryIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-        val inboxStyle =
-            NotificationCompat
-                .InboxStyle()
-                .setBigContentTitle(
-                    context.resources.getQuantityString(
-                        R.plurals.notification_new_videos_from_subscriptions,
-                        videos.size,
-                        videos.size,
-                    ),
-                )
-        videos.take(6).forEach { v ->
-            inboxStyle.addLine("${v.channelName}: ${v.videoTitle}")
-        }
-        if (videos.size > 6) {
-            inboxStyle.setSummaryText(context.getString(R.string.notification_more, videos.size - 6))
-        }
-
-        val summaryNotification =
-            NotificationCompat
-                .Builder(context, CHANNEL_SUBSCRIPTIONS)
-                .setSmallIcon(R.drawable.ic_notification_logo)
-                .setContentTitle(context.getString(R.string.notification_new_videos))
-                .setContentText(
-                    context.resources.getQuantityString(
-                        R.plurals.notification_new_videos_from_subscriptions,
-                        videos.size,
-                        videos.size,
-                    ),
-                ).setContentIntent(summaryPendingIntent)
-                .setAutoCancel(true)
-                .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setCategory(NotificationCompat.CATEGORY_SOCIAL)
-                .setStyle(inboxStyle)
-                .setGroup(GROUP_NEW_VIDEOS)
-                .setGroupSummary(true)
-                .setNumber(videos.size)
-                .build()
-
-        manager.notify(NOTIFICATION_NEW_VIDEO_SUMMARY, summaryNotification)
-    }
-
-    /**
-     * Show notification for new video from subscribed channel
-     */
-    suspend fun showNewVideoNotification(
-        context: Context,
-        channelName: String,
-        videoTitle: String,
-        videoId: String,
-        thumbnailUrl: String? = null,
-        channelId: String,
-    ) {
-        if (!hasNotificationPermission(context)) return
-        if (!PlayerPreferences(context).notifNewVideosEnabled.first()) return
-
-        // Save to database
-        storeNotification(
-            context,
-            NotificationEntity(
-                videoId = videoId,
-                title = videoTitle,
-                channelName = channelName,
-                thumbnailUrl = thumbnailUrl,
-                type = "NEW_VIDEO",
-            ),
-        )
-
-        // Generate unique notification ID based on video ID
-        val notificationId = NOTIFICATION_NEW_VIDEO + videoId.hashCode().and(0xFFFF)
-
-        // Intent to open the video
-        val watchIntent =
-            profileIntent(context).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("notification_video_id", videoId)
-                putExtra("video_id", videoId)
-                putExtra("video_title", videoTitle)
-            }
-        val watchPendingIntent =
-            PendingIntent.getActivity(
-                context,
-                notificationId,
-                watchIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-
-        val builder =
-            NotificationCompat
-                .Builder(context, CHANNEL_SUBSCRIPTIONS)
-                .setSmallIcon(R.drawable.ic_notification_logo)
-                .setContentTitle(channelName)
-                .setContentText(videoTitle)
-                .setContentIntent(watchPendingIntent)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setCategory(NotificationCompat.CATEGORY_SOCIAL)
-                .setGroup("new_videos")
-
-        // Try to load thumbnail
-        thumbnailUrl?.let { url ->
-            val bitmap = getBitmapFromUrl(context, url, followThumbnailSetting = true)
-            bitmap?.let {
-                builder.setLargeIcon(it)
-                builder.setStyle(
-                    NotificationCompat
-                        .BigPictureStyle()
-                        .bigPicture(it)
-                        .bigLargeIcon(null as Bitmap?),
-                )
-            }
-        }
-
-        NotificationManagerCompat.from(context).notify(notificationId, builder.build())
-    }
-
-    /**
-     * Show grouped notification summary for multiple new videos
-     */
-    fun showNewVideosSummary(
-        context: Context,
-        videoCount: Int,
-    ) {
-        if (!hasNotificationPermission(context)) return
-        if (!runBlocking { PlayerPreferences(context).notifNewVideosEnabled.first() }) return
-
-        val summaryNotification =
-            NotificationCompat
-                .Builder(context, CHANNEL_SUBSCRIPTIONS)
-                .setSmallIcon(R.drawable.ic_notification_logo)
-                .setContentTitle(context.getString(R.string.notification_new_videos))
-                .setContentText(
-                    context.resources.getQuantityString(
-                        R.plurals.notification_new_videos_from_subscriptions,
-                        videoCount,
-                        videoCount,
-                    ),
-                ).setGroup("new_videos")
-                .setGroupSummary(true)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .build()
-
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_NEW_VIDEO, summaryNotification)
-    }
-
     // ========== UPDATE NOTIFICATIONS ==========
 
     /**
@@ -741,17 +520,22 @@ object NotificationHelper {
 
         val notification =
             NotificationCompat
-                .Builder(context, CHANNEL_UPDATES)
+                .Builder(context, newVersionChannel(context))
                 .setSmallIcon(R.drawable.ic_notification_logo)
                 .setContentTitle(context.getString(R.string.notification_update_available, release.version))
                 .setContentText(context.getString(R.string.notification_tap_to_update))
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(NotificationCompat.CATEGORY_STATUS)
                 .build()
 
         NotificationManagerCompat.from(context).notify(9999, notification)
+    }
+
+    private fun newVersionChannel(context: Context): String {
+        val manager = NotificationManagerCompat.from(context)
+        val updatesBlocked = manager.getNotificationChannel(CHANNEL_UPDATES)?.importance == NotificationManager.IMPORTANCE_NONE
+        return newVersionChannel(BuildConfig.UPDATE_CHANNEL, updatesBlocked)
     }
 
     /** A device asked to join this device's linked group with the admin token; the tap opens Linked devices. */
@@ -893,7 +677,7 @@ object NotificationHelper {
 
         val intent =
             profileIntent(context).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
 
         val pendingIntent =

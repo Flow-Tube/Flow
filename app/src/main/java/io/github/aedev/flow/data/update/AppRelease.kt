@@ -24,6 +24,14 @@ data class ReleaseApk(
 object AppVersions {
     fun normalize(version: String): String = version.trim().removePrefix("v").substringBefore('-')
 
+    fun nightly(run: Int): String = "nightly.$run"
+
+    /** The running build as the update page names it: a nightly by its run, so it reads like the release it is compared with. */
+    fun installedLabel(
+        versionName: String,
+        nightlyRun: Int,
+    ): String = if (nightlyRun > 0) nightly(nightlyRun) else normalize(versionName)
+
     fun isNewer(
         candidate: String,
         current: String,

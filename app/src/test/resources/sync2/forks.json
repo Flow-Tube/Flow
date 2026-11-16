@@ -1,0 +1,1592 @@
+{
+  "group": "669a44456c08e4a12e4ceb3538860317",
+  "entries": {
+    "genesis": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 0,
+      "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+      "op": "genesis",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "add": [
+        {
+          "did": "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "sig": "by4Yw7OBPe3UpK140o__v77yq8CgCsiFsUsYQC75SXQ",
+          "kem": "N1G_1X4dByMXibJPa-IRXu-ehhvJFJC9maHuB_3eY3M",
+          "role": "recovery"
+        },
+        {
+          "did": "d8576f2de42861ceb8030cc722b4c669",
+          "sig": "gjP8I2qE2SU1PzZrXX7Fs-V3OA4OggiSM7USzIiuZ4E",
+          "kem": "7fg2q0UlcTTBLW4OZiVfo_u_qXFWBhw15aQRVa84szY",
+          "role": "device"
+        }
+      ],
+      "epoch": {
+        "n": 0,
+        "kc": "bk7n329ljxN4grNbBai25iSXAPFbjV5Dqe8Vkoj67sQ",
+        "to": [
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "HlCEn9g_N-RMxGQJQEKCHjd51KBIbBnZmh7DqithIS8xf9lP-tePMV0uZi7z9ZsjAoY7uVfX_YzlMk-Ff5lOCQ",
+        "ab6095990ebaaf36d4c49e86fc3a65c3": "e2i-xuwfw0B5wpkaPoRZsb5IO7_Y4GTmV4iQkPrhcq8W6IxeHIO-XehCVPp-DPjoD5741BaSem0-Mb5ZLlTTCA"
+      }
+    },
+    "addB": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 1,
+      "prev": "2d100147af6de5cd4f6c0ab42116cf5c876d4210961e6e405caf4c1546c3557f",
+      "op": "add",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "add": [
+        {
+          "did": "894e311b2b2058e3bcc2ef3bde8ec864",
+          "sig": "RoFBqY6WZpFpJzbLGZlGQ35pXBEoC9SN7-tPU82F9Qo",
+          "kem": "U3xVnbvJ5azzjhijsUH76iYCfQfvlM2MAAIDvkRwDms",
+          "role": "device"
+        }
+      ],
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "gkiYG1Ej5wwGRqha-EDLr6pVOVWQMGD2Y6no6UOrX1l3j6jqI_o7W9inQJxDd4jUCK1EhV6IRZjFSalukJoqAw",
+        "894e311b2b2058e3bcc2ef3bde8ec864": "VuE-Epam5b1vguiJ0d_s_P--5o6DFmnIIYD5XS1NvfJUCh0mTpE6z_f7wAHpQqu3rBxG38Dul8aW_cphX2uaBw"
+      }
+    },
+    "addC": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 2,
+      "prev": "343ba5dfad55ff57511659eace0ac1eb61bb1b2f4a9faab42fbf1cdbbc9b8164",
+      "op": "add",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "add": [
+        {
+          "did": "addf195306ed8f3c4d02642d8b6ebd6a",
+          "sig": "Pv9XrxPpjXsHr8QrMZKgC1ZO9Q2cOgBPCr7P22C3MWY",
+          "kem": "bmiQy52XcNEUqT_nj29df8adxbK84jlUCWdacit50FA",
+          "role": "device"
+        }
+      ],
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "j5eeBJd-1FgyeCJ4sTdzT8UpQwfqyhbEF9k31swzfTm31xE-sl4T5tjJEGWSLvphZaj22jjHbuhU-Ty1QZ4QAQ",
+        "addf195306ed8f3c4d02642d8b6ebd6a": "Y7n47WvXYk0DizdzU3pv00e1V0noDBj_qA5jJ3i1ZBuf4U1ducU4JhGTsYkTaOEg_wBeZ7W1jNNkRnneEODWBg"
+      }
+    },
+    "aRemovesC": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "remove",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "remove": [
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "ICUabYmgQdM9hp6vHBkenL8cj5YW9i0o1vXlfFfQj3M",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "ufCk9JnkNLBztg1iyt5AUuzv01UcFism4PNQWP_NQCVZhOjftNlAetICLjs-skNM7xu5i7Bp3IzJ4zlNwCyrBw"
+      }
+    },
+    "cRemovesA": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "remove",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "remove": [
+        "d8576f2de42861ceb8030cc722b4c669"
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "ercPpW7HN4imjfF2Qv3KaOKJ78rn7qSFS5f1octApak",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a"
+        ]
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "vykrYQk7EOIg0Ds_uxP4MF109mHDM82qryYMqCdjEwjoet729eFKJ9D4PVH1lcF6Dgn3D3PsbQetKZpS2LurDw"
+      }
+    },
+    "cRemovesB": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "remove",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "remove": [
+        "894e311b2b2058e3bcc2ef3bde8ec864"
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "rw7uyWFivLHI03BoZULggTnZCjuQq72QBeYudjl7B5I",
+        "to": [
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "izz5HADwge_5Wp9unj4kZizX1hPDAj7AgvaVDyXZqhhRgkB_gN-Lmh0v-0DQwyyO5NOOW6r9uTg_w-t0WW-TCw"
+      }
+    },
+    "bRemovesA": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "remove",
+      "signer": "894e311b2b2058e3bcc2ef3bde8ec864",
+      "remove": [
+        "d8576f2de42861ceb8030cc722b4c669"
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "qhJvbVNskHO3Vw4FoBQ3GJBEyRvC8qXPEVfXwfbmv4g",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a"
+        ]
+      },
+      "sigs": {
+        "894e311b2b2058e3bcc2ef3bde8ec864": "I5ANRMsHL3T8Si8tgCGrRPTFqIcTw5ZZOFreQ19mY-STN8Y1ei-81r2oI3aOJlK3lkmhQ7IzDsC-jyZI4jqGDg"
+      }
+    },
+    "onCRemovesA": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "0065217edc89069ed10acb80cad2a3ed2e741ecb32c1177b79af52d4d81ad54c",
+      "op": "rotate",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "epoch": {
+        "n": 2,
+        "kc": "_wU4AOkpg9D05_IPX14SyWsQXWnnd4JERtMPVkxSsLI",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a"
+        ]
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "1WoB48IHdTOXCk5b3tcZXAZuJ0tACKOvRWcEa43v-rDWcAnYAcWV6puAbQJncJJIJcZwJtL0j-ScvQrwGSWvDA"
+      }
+    },
+    "aRename": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "rename",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "meta": {
+        "d8576f2de42861ceb8030cc722b4c669": "a"
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "eXNGto7zurEIeBGxGxPSHrBP_NucrZcRWyx0uVQsFmrM2EnnNueGo7rjf6fR4o5AeRf276epsbG4UM-ktSbfCw"
+      }
+    },
+    "aRemovesCAbove": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "c7f739fba32c0ee1523f9d9fd4e1ac7e01ce831176a6c2f507f80add670105a5",
+      "op": "remove",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "remove": [
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "lwYbuv14J7OhgkHQTet2rzcMbJDD2H28dW8hoiCZH-A",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "bjUvzMe4Zwdwm7YYI_fUn6Lq6baYwpGEXDuYEkWxUkEb8dHhNKrBMEdxyQYb-J-VEGXDxz23mbgac514xIQXCw"
+      }
+    },
+    "cRotate": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "rotate",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "epoch": {
+        "n": 1,
+        "kc": "SY0X63L_9W34bvUo2qd1J6DGVwfWIgVswl_YpOQ1Wpw",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "c-hUJMjo9KWiKg3joo0rNUdckmssiFXiWsVH8_Ce4Gp0qxS_qKRc2x-kY0otjsA30W-tSaXjPeWIoQ4xW_zSAw"
+      }
+    },
+    "cPad1": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "ad26390c2bc96f6ea07e4974db540c799d3fd3efefe1018e91de063ff82a2c0e",
+      "op": "rename",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "meta": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "c1"
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "jbELTHUB5pqv2gRW1WEUxztv9-i5irULbBq_iejjIko8xWdEO47cQJaWnb_gNIXWpsiC9kN7mu7CDzIIgVk7AQ"
+      }
+    },
+    "cPad2": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 5,
+      "prev": "6e6fa9a2684b729e6f742dc84fcfaf135a5d367dbf711e227a6e00578bfae4be",
+      "op": "rename",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "meta": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "c2"
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "lml44ZgYxbdIMqQqJ3YRk90ou4zwyG02bcmz3m_oXH8XYhrbBH1UBSoy2lEPeEvAKLy3aRgCcEM0ZbGZe0XtDQ"
+      }
+    },
+    "aRemovesCOnRotate": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "ad26390c2bc96f6ea07e4974db540c799d3fd3efefe1018e91de063ff82a2c0e",
+      "op": "remove",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "remove": [
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "epoch": {
+        "n": 2,
+        "kc": "wATs8QwfON6z___6XsZ6XLjlhN2nKXjApTQHlqEwGUA",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "x9YOYRc4fmS8cCmVmdzt5cez4ul1KbVzcCyVPuWA87Omf1zswrDa6C_SwAQalJ-ssq6PJm9Qq-DhIy-uQq3-AA"
+      }
+    },
+    "replaceWords": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "recovery",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "remove": [
+        "ab6095990ebaaf36d4c49e86fc3a65c3"
+      ],
+      "add": [
+        {
+          "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+          "sig": "Vf_aa5oQPKegF8I5KW-kJQA1A8SmYzefeeQZXBCarWw",
+          "kem": "LanAutNDQmnqurSUmasEyIqWkeRw-aJYeD46qlmcrT4",
+          "role": "recovery"
+        }
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "scijKaFUTICCofczXdiLJJnLs2S8yPzdnwiMfXrP-hU",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "uTh-NwasnZ3k9YXyJojyTCvMaJ5hxxDZxZhIUbrgfcd2F0xmQKjzItAaFBoFgz8HtJARPcetPN96XO_INfziBA",
+        "6e1946f855d4d7de61c0d3e3e4491cae": "1ZlWE1GIFQsHZctvKMB3kT3PXOCfNaaCaqyBojUoqIX0fmcgDEnBSa-cEoZYL8aZbz94N2P9SZLEyBWllMVRBA"
+      }
+    },
+    "cSetsWords": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "recovery",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "remove": [
+        "ab6095990ebaaf36d4c49e86fc3a65c3"
+      ],
+      "add": [
+        {
+          "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+          "sig": "Vf_aa5oQPKegF8I5KW-kJQA1A8SmYzefeeQZXBCarWw",
+          "kem": "LanAutNDQmnqurSUmasEyIqWkeRw-aJYeD46qlmcrT4",
+          "role": "recovery"
+        }
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "LVnz8_RjdXlODK2EsEoQ9F8-RSo6Ukq8mOoj-7GqQfk",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "iQuBIUf9ilQqapHqeTyMt8YInG15TLQtAgXnVqP_binIPET8Hvww_HvOikA3r5SYdW6ZfLjyoqFDHrL4ZufhBA",
+        "6e1946f855d4d7de61c0d3e3e4491cae": "whSbrNJh6UStQx36dp4XSdZrWSzQ_9jeVblhvv-eSHmpcngR03wEyfiX-jmXgtK8oEnzgmCuciry_n403LebCw"
+      }
+    },
+    "restoreWithThem": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "27bf210b63b8a3ae91de6282cd3473e609387abc3ead6906e565d78d03695416",
+      "op": "restore",
+      "signer": "6e1946f855d4d7de61c0d3e3e4491cae",
+      "add": [
+        {
+          "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "sig": "RsTU5IjEf1rjeyLp-09xbUp-OfjjWUqwFdO04YajNZ0",
+          "kem": "GXeu_UDlHVNWxtd9eoaDmQgIMjNwiRnINQ5z03xH_18",
+          "role": "device"
+        }
+      ],
+      "epoch": {
+        "n": 2,
+        "kc": "UqcQQZ4nqoocD0SDzJMubBByW4vefTd1qPTbDLDptrA",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "6e1946f855d4d7de61c0d3e3e4491cae": "0IhBJuEAAmPsJl1s_opzKKOevB9IuJgP-z5Sm-x-Eht5vqjJepXR-ieCrK_QCOSn5GuANVYawWu8gs34tiuWCA",
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "6VkMHW7irxBJflpKxiV_kOdNl2cwxHAEzbZRn4WcuysnCSUp5lUlD6kj_rV-HLwH-mgg2BR7Ho4bf5SHqhWkBQ"
+      }
+    },
+    "aRemovesCReplacing": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "27bf210b63b8a3ae91de6282cd3473e609387abc3ead6906e565d78d03695416",
+      "op": "remove",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "remove": [
+        "6e1946f855d4d7de61c0d3e3e4491cae",
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "add": [
+        {
+          "did": "2b4bc2fbe53e4adaad7b3c9270a335f5",
+          "sig": "7Ia_W6iMAVlxUYngARu37l8gwiFhc9zFF4mkxPi5jEQ",
+          "kem": "K4o73nvvMWnnFXK8heU7G_VEa7kvVeQ0wyD3NDeYSRg",
+          "role": "recovery"
+        }
+      ],
+      "epoch": {
+        "n": 2,
+        "kc": "5PmT-Vmt5RSUX254losATf-gwxXXFc-IuZDpZImH31E",
+        "to": [
+          "2b4bc2fbe53e4adaad7b3c9270a335f5",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "1g0zD2RGSm-Pl022VVoApa78UqKKY9yIcj-s3PBCbdtksh3uT3CM7GU7gWDdqvk8EQj97todSHERA7nk5P4wDQ",
+        "2b4bc2fbe53e4adaad7b3c9270a335f5": "DzQ64wdSu6EgK8_KuyCuM2sBBD-tNOgibd3pS1spOgYCXEEpKA-AYKAm-daa0pRtBJw_QrZFzN1nPH3J5MG0CA"
+      }
+    },
+    "restoreEarly": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 1,
+      "prev": "2d100147af6de5cd4f6c0ab42116cf5c876d4210961e6e405caf4c1546c3557f",
+      "op": "restore",
+      "signer": "ab6095990ebaaf36d4c49e86fc3a65c3",
+      "add": [
+        {
+          "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "sig": "RsTU5IjEf1rjeyLp-09xbUp-OfjjWUqwFdO04YajNZ0",
+          "kem": "GXeu_UDlHVNWxtd9eoaDmQgIMjNwiRnINQ5z03xH_18",
+          "role": "device"
+        }
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "XtMH2KzdT5l5Cj4CmuxnijPdk-_QEtmakf6Jk10FwK4",
+        "to": [
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "ab6095990ebaaf36d4c49e86fc3a65c3": "ukud2DoWFn5Ei-wdriC_bHpPpHBSsnhQjOVnEC3VPNXWfIfMlb_p9gvD0rdrpTsrrmHE4o57hrsu4YQuAmraCQ",
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "hLj7Ck2imGWwLjcSjPn-Gji6xZLI_hgIJrOtWtCHuboEa-yByUmAW6Cbqbg36M2RiHIjzeCoQ9RlffvUT1J3BA"
+      }
+    },
+    "restorePad1": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 2,
+      "prev": "c8a99eff395654e9b3eb30deb65357bd00a000ba0c48e1982efc573cd7366c3f",
+      "op": "rename",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "meta": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "n1"
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "ydwyoy8xaGpNIPgNO0CaSKkONh5TYBloPPEkrI3f9CTxPHiAFipbDz1yyPme9aT05kM18M19WUXq_eYd10BWAg"
+      }
+    },
+    "restorePad2": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "db5b7a7c3232e110929b6f607793bb5c7bcc17c18ed1851666a86b2d8e5b0726",
+      "op": "rename",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "meta": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "n2"
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "ZWFGi2RZCAFed5wTgCoOAh27ND05-pzfdaLkKHAMGo3ZiRsgTXnToYuyoRazGijZwMfwDLzh_mZh3YQQwISdCQ"
+      }
+    },
+    "restorePad3": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "babfe7b7104501cb9be139726c31ce2ba0b27bdda8dcbb2da546ff40e9d7bfdb",
+      "op": "rename",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "meta": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "n3"
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "bD_aOMKcAVbnPpeQtGv2HiIq9hM_09s_6Y7UjMbM_vZNrr1qoPkSoo8HlOs88e1kHNHXy9tYLtga5h5BafB6BQ"
+      }
+    },
+    "restore": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "restore",
+      "signer": "ab6095990ebaaf36d4c49e86fc3a65c3",
+      "add": [
+        {
+          "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "sig": "RsTU5IjEf1rjeyLp-09xbUp-OfjjWUqwFdO04YajNZ0",
+          "kem": "GXeu_UDlHVNWxtd9eoaDmQgIMjNwiRnINQ5z03xH_18",
+          "role": "device"
+        }
+      ],
+      "epoch": {
+        "n": 1,
+        "kc": "xJAFZWkmzKUJbBM3UkwoKkuNWDjnPWewv_VU3yusVsA",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "ab6095990ebaaf36d4c49e86fc3a65c3": "vw3MQ84eXV5HY1Iv_l_95wTCCXtwoGfBYXy34gwVhEQ_2PV-1DUys48xn9TMgFRcXFHT3N9jVwrcdDLQ89CKBw",
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "e_iINFn2ATJs_UGoVLabP54Kb6vH7nPGh7cjIuPtjLhW7s0v3xOK8Zoh1fXqSVTww7ORVOM2LRLaihZWTHlrCQ"
+      }
+    },
+    "restored": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "662a34619494490998bcc742debcc4d44851c165d9ce27ab2e601ddb938a6bac",
+      "op": "recovery",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "remove": [
+        "ab6095990ebaaf36d4c49e86fc3a65c3"
+      ],
+      "add": [
+        {
+          "did": "6e1946f855d4d7de61c0d3e3e4491cae",
+          "sig": "Vf_aa5oQPKegF8I5KW-kJQA1A8SmYzefeeQZXBCarWw",
+          "kem": "LanAutNDQmnqurSUmasEyIqWkeRw-aJYeD46qlmcrT4",
+          "role": "recovery"
+        }
+      ],
+      "epoch": {
+        "n": 2,
+        "kc": "JsIr56BMbNrSAh7Mi34dg-VlAhdhgrjeREIJ7lm5QWE",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "EenAZq3VbboQlMjGs0epSFGK-G95X7KVktSultySx4KF4sPFo7wc5FU5kpPH9DRveHAGSa8zvVVZ2Qz54MOtDQ",
+        "6e1946f855d4d7de61c0d3e3e4491cae": "4aPE0cvXlKz8NZR0T2W6e2_mF1q57W3xCPWOsLDnm0_9tTnsjTltq4cbrR6M8mKwqoObdlHLQV2iuQUk2tFXDQ"
+      }
+    },
+    "restoredKeepsNone": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 5,
+      "prev": "2d558a93916b6e84b40709e5d8c6c2ab8767619970ce6658feef10698f0ef97e",
+      "op": "remove",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "remove": [
+        "894e311b2b2058e3bcc2ef3bde8ec864",
+        "addf195306ed8f3c4d02642d8b6ebd6a",
+        "d8576f2de42861ceb8030cc722b4c669"
+      ],
+      "cut": {
+        "d8576f2de42861ceb8030cc722b4c669": {
+          "seq": 1,
+          "hash": "c26f8df94d53d79f589e6bd279730004666d0e2d177ee7730a41d9047b7d4229"
+        }
+      },
+      "epoch": {
+        "n": 3,
+        "kc": "OEuCk5x1sPm47KRWu-suMstQN8LQYHwkQLh-3rwUzTc",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "b2d4dcb5ace60ab7f499b462f715ffcd"
+        ]
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "B1jqw4xYJPAhu0AKQDycIriDFQmDoRfkjJecMl6NGfZLj_sfeAouRcCYWtWZtahEZg-NXtICW7th_-46HrnjCQ"
+      }
+    },
+    "restoredKeepsA": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 5,
+      "prev": "2d558a93916b6e84b40709e5d8c6c2ab8767619970ce6658feef10698f0ef97e",
+      "op": "remove",
+      "signer": "b2d4dcb5ace60ab7f499b462f715ffcd",
+      "remove": [
+        "894e311b2b2058e3bcc2ef3bde8ec864",
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "epoch": {
+        "n": 3,
+        "kc": "U5UZ6k_DWcTW-28X3oFfc6ACWFdLf3I7fodW9kCNzvQ",
+        "to": [
+          "6e1946f855d4d7de61c0d3e3e4491cae",
+          "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "E0ikYKN_DPFTwztMiuuVCadgrppNgTUXY2XFVZqy4zevXjcMS1mM-oU0sdSXOB8JYT8_2dvCsSzmB6H3Cj3dBw"
+      }
+    },
+    "aRotate": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "rotate",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "epoch": {
+        "n": 1,
+        "kc": "L-YKr2FDXWiFTiRQkacJNjCLzl4Hervc2reCmht06iE",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "5AhCoYYYpd3jei14erzaJi56y6hDU34jVglnxOA2UN5U2fBZXY8k8cfUP4Y6w24emE3vF1SGTHZNaQ20f2d9Bg"
+      }
+    },
+    "bRotate": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "rotate",
+      "signer": "894e311b2b2058e3bcc2ef3bde8ec864",
+      "epoch": {
+        "n": 1,
+        "kc": "fduGcSFQPpfMiNWls-3P01jcubMpSLgN0xW1q8vEeW0",
+        "to": [
+          "894e311b2b2058e3bcc2ef3bde8ec864",
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "addf195306ed8f3c4d02642d8b6ebd6a",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "894e311b2b2058e3bcc2ef3bde8ec864": "MZaDPhs8c3QbGHfIC54YG_GjF-q0I_hB3rU6yBsUy04Hl-A2NjyEC64ClZSU0VIHnlCTr8BQRm8PFyYR7qrzBw"
+      }
+    },
+    "cAdds": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "add",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "add": [
+        {
+          "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "sig": "RsTU5IjEf1rjeyLp-09xbUp-OfjjWUqwFdO04YajNZ0",
+          "kem": "GXeu_UDlHVNWxtd9eoaDmQgIMjNwiRnINQ5z03xH_18",
+          "role": "device"
+        }
+      ],
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "TdlEmnYTaKgcJYBgP2TvQ4ZVrxdf4HuDRe9XubCwvPc1wTmXruyD06DLYP8sIUxQWFOHbIVQg3yQYSaPyBYnAA",
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "Xck2-GilgIu_9I_hZS5f_FBzZFZ65n4zCNd02X72DhDgfzQoiT6JRHuxbIbqjVfAFApkqt8lYjT5Lpw8jaaVDg"
+      }
+    },
+    "cLeaves": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "leave",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "remove": [
+        "addf195306ed8f3c4d02642d8b6ebd6a"
+      ],
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "dkkEFIUVAZmRaTujzokkYlhoFi_AusiwTY7xXoOtK35POoqy-vYUhW3zWHlwSUdT8wrzVAHb4CNDM3AJswFVAg"
+      }
+    },
+    "bAdds": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 3,
+      "prev": "85391f4a1651e9541f0df2328dfcd090ae51916cce001672f3e3ff5aa48e44ee",
+      "op": "add",
+      "signer": "894e311b2b2058e3bcc2ef3bde8ec864",
+      "add": [
+        {
+          "did": "b2d4dcb5ace60ab7f499b462f715ffcd",
+          "sig": "RsTU5IjEf1rjeyLp-09xbUp-OfjjWUqwFdO04YajNZ0",
+          "kem": "GXeu_UDlHVNWxtd9eoaDmQgIMjNwiRnINQ5z03xH_18",
+          "role": "device"
+        }
+      ],
+      "sigs": {
+        "894e311b2b2058e3bcc2ef3bde8ec864": "3Hp3q6K9HFXTiWt8z8qhNcBJYzBpSE_i6bQtthebErPITnMENeRKqJ1Exu5KwIulKqrUo-usBF38p6wx6GYBCw",
+        "b2d4dcb5ace60ab7f499b462f715ffcd": "Zq1439m7v83GoSyWMNDh64je3e15bhpO5Ti9yBwRPfpGXB41h9ZEWncPv1YoYcRRQBfJhQlkyJGRVNhDfOJ3Dw"
+      }
+    },
+    "cOnBAdds": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 4,
+      "prev": "398fc826a9dbe6f538f379dc4e2e5d9747dd428e1cca28fe19097bdcd4b99115",
+      "op": "rename",
+      "signer": "addf195306ed8f3c4d02642d8b6ebd6a",
+      "meta": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "c3"
+      },
+      "sigs": {
+        "addf195306ed8f3c4d02642d8b6ebd6a": "rJS-1rNFM_cT82BUbl21xrCeqwYlqNrioLdDhlc51vquHhuqBxzbbbJgsBDN2nOsMaDQEB-E38wA5zSuRPiEBg"
+      }
+    },
+    "otherGenesis": {
+      "v": 2,
+      "group": "669a44456c08e4a12e4ceb3538860317",
+      "seq": 0,
+      "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+      "op": "genesis",
+      "signer": "d8576f2de42861ceb8030cc722b4c669",
+      "add": [
+        {
+          "did": "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "sig": "by4Yw7OBPe3UpK140o__v77yq8CgCsiFsUsYQC75SXQ",
+          "kem": "N1G_1X4dByMXibJPa-IRXu-ehhvJFJC9maHuB_3eY3M",
+          "role": "recovery"
+        },
+        {
+          "did": "d8576f2de42861ceb8030cc722b4c669",
+          "sig": "gjP8I2qE2SU1PzZrXX7Fs-V3OA4OggiSM7USzIiuZ4E",
+          "kem": "7fg2q0UlcTTBLW4OZiVfo_u_qXFWBhw15aQRVa84szY",
+          "role": "device"
+        }
+      ],
+      "epoch": {
+        "n": 0,
+        "kc": "z8eyqpvrdC9XANuqT09rxNZ0Wj2-_v8pNIo8vE_5NZA",
+        "to": [
+          "ab6095990ebaaf36d4c49e86fc3a65c3",
+          "d8576f2de42861ceb8030cc722b4c669"
+        ]
+      },
+      "sigs": {
+        "d8576f2de42861ceb8030cc722b4c669": "V4Rph7PF3h8Mbhr66tS-QAOYi9rD8AjOjcv9dRMxiGeyR3OGAhQsvNuiUgCBxPc05ere_zjzinllFP1urE6EAg",
+        "ab6095990ebaaf36d4c49e86fc3a65c3": "8kZBJGQ7hqzhuZ8sqx7RcYSGVsAs3A7CYpC_J2ydn5yhfGt6BlVFIO7jUAMBj4vEMS05ShJ84SrfcVOw6hoXCA"
+      }
+    },
+    "foreignGenesis": {
+      "v": 2,
+      "group": "749edce66c068abbf1e658c53e10d378",
+      "seq": 0,
+      "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+      "op": "genesis",
+      "signer": "3d5ef7ee7a63057b907d28a52c32a379",
+      "add": [
+        {
+          "did": "3d5ef7ee7a63057b907d28a52c32a379",
+          "sig": "JeV5ILYIhCqY2t1OQRVWqfJjzJjc-1ZWlRFFXaOcArQ",
+          "kem": "KVFYZiqzWmy4DikRecJ6xxooYqPUvOakrw9kcvNhZyg",
+          "role": "device"
+        },
+        {
+          "did": "b8e8ec27c360b578f9280b88027f85cf",
+          "sig": "BXjxaoQUrP1_3Bv1WzozipF6sxWlf5tXqEc1uG18xP4",
+          "kem": "suKkCoMCqhWjYQ6eCYCz4SBQtBYlkfaS7EyvfvrkK1k",
+          "role": "recovery"
+        }
+      ],
+      "epoch": {
+        "n": 0,
+        "kc": "wv9Pkb1HEDVZqIMz_iIU6SaQzawGh317HHrrdH3In4w",
+        "to": [
+          "3d5ef7ee7a63057b907d28a52c32a379",
+          "b8e8ec27c360b578f9280b88027f85cf"
+        ]
+      },
+      "sigs": {
+        "3d5ef7ee7a63057b907d28a52c32a379": "evFHVOJ38VpJCmsLu9Vffh5dZcd0OPE1yZgL8sUxrf_i_-YRQAgPw_DUWE43VENPEmOTjX8_JoiCh1m5FSXrBg",
+        "b8e8ec27c360b578f9280b88027f85cf": "E856IzjO_X0JxIJ1FSirW__StTOY0KTa-k3nNJH1O0fovmSR1L6uKiEUcF6J5s7ZwJ9xUD7Ehk1Z9grar6qEAw"
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "no-fork",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRemovesC"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "each-removes-the-other",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "cRemovesA"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "contested",
+        "contested": [
+          "aRemovesC",
+          "cRemovesA"
+        ],
+        "sides": [
+          "aRemovesC",
+          "cRemovesA"
+        ]
+      }
+    },
+    {
+      "name": "each-removes-the-other-after-reading-one",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "cRemovesA"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "contested",
+        "contested": [
+          "aRemovesC",
+          "cRemovesA"
+        ],
+        "sides": [
+          "aRemovesC",
+          "cRemovesA"
+        ]
+      }
+    },
+    {
+      "name": "pin-one-side",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "cRemovesA"
+      ],
+      "pins": [
+        "aRemovesC"
+      ],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRemovesC"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "pin-the-other-side",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "cRemovesA"
+      ],
+      "pins": [
+        "cRemovesA"
+      ],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "cRemovesA"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "entry-built-on-one-side",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "cRemovesA",
+        "onCRemovesA"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "contested",
+        "contested": [
+          "aRemovesC",
+          "cRemovesA",
+          "onCRemovesA"
+        ],
+        "sides": [
+          "aRemovesC",
+          "cRemovesA"
+        ]
+      }
+    },
+    {
+      "name": "removed-signer-with-a-lower-hash",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "cRemovesB"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRemovesC"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "removed-signer-at-an-earlier-seq",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRename",
+        "aRemovesCAbove",
+        "cRotate",
+        "cPad1",
+        "cPad2"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRename",
+          "aRemovesCAbove"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "replaced-recovery-key-at-an-earlier-seq",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "replaceWords",
+        "restoreEarly",
+        "restorePad1",
+        "restorePad2",
+        "restorePad3"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "replaceWords"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "rotate-with-no-removal-above-it",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRename",
+        "cRotate",
+        "cPad1",
+        "cPad2"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "cRotate",
+          "cPad1",
+          "cPad2"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "restore-with-no-replacement-above-it",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "restoreEarly",
+        "restorePad1",
+        "restorePad2",
+        "restorePad3"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "restoreEarly",
+          "restorePad1",
+          "restorePad2",
+          "restorePad3"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "restore-then-replace",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "restore",
+        "restored"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "restore",
+          "restored"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "restore-signs-out-a-device-whose-removal-it-never-read",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "restore",
+        "restored",
+        "restoredKeepsNone"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "restore",
+          "restored",
+          "restoredKeepsNone"
+        ],
+        "standing": [],
+        "extendsApplied": false
+      }
+    },
+    {
+      "name": "restore-signing-out-a-device-on-a-linear-store",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "restore",
+        "restored",
+        "restoredKeepsNone"
+      ],
+      "pins": [],
+      "linear": true,
+      "expect": {
+        "outcome": "rewritten"
+      }
+    },
+    {
+      "name": "restore-keeping-the-device-that-removed-another",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "restore",
+        "restored",
+        "restoredKeepsA"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRemovesC"
+        ],
+        "standing": [
+          "restore",
+          "restored",
+          "restoredKeepsA"
+        ],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "restore-signing-out-the-device-that-replaced-its-words",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "replaceWords",
+        "restore",
+        "restored",
+        "restoredKeepsNone"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "contested",
+        "contested": [
+          "replaceWords",
+          "restore",
+          "restored",
+          "restoredKeepsNone"
+        ],
+        "sides": [
+          "replaceWords",
+          "restoredKeepsNone"
+        ]
+      }
+    },
+    {
+      "name": "restore-against-the-removal-that-replaces-its-key",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "cSetsWords",
+        "restoreWithThem",
+        "aRemovesCReplacing"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "cSetsWords",
+          "aRemovesCReplacing"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "entry-below-its-signers-removal",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "cRotate",
+        "aRemovesCOnRotate"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "cRotate",
+          "aRemovesCOnRotate"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "concurrent-rotates",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRotate",
+        "bRotate"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "bRotate"
+        ],
+        "standing": [
+          "aRotate"
+        ],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "add-against-removing-its-signer",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "cAdds",
+        "aRemovesC"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRemovesC"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "remover-removed-by-a-third-device",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "bRemovesA"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "bRemovesA"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "leave-against-rotate",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "cLeaves",
+        "aRotate"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "cLeaves"
+        ],
+        "standing": [
+          "aRotate"
+        ],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "three-device-cycle",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC",
+        "cRemovesB",
+        "bRemovesA"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "contested",
+        "contested": [
+          "aRemovesC",
+          "bRemovesA",
+          "cRemovesB"
+        ],
+        "sides": [
+          "aRemovesC",
+          "bRemovesA",
+          "cRemovesB"
+        ]
+      }
+    },
+    {
+      "name": "removal-on-a-branch-that-loses-by-rank",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRename",
+        "aRemovesCAbove",
+        "bAdds",
+        "cOnBAdds"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "bAdds"
+        ],
+        "standing": [
+          "aRemovesCAbove"
+        ],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "applied-entry-missing",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "aRemovesC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "rollback"
+      }
+    },
+    {
+      "name": "adopt-the-winner",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "cAdds"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "cAdds",
+        "aRemovesC"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC",
+          "aRemovesC"
+        ],
+        "standing": [],
+        "extendsApplied": false
+      }
+    },
+    {
+      "name": "linear-store-changes-an-applied-entry",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC",
+        "cAdds"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "cAdds",
+        "aRemovesC"
+      ],
+      "pins": [],
+      "linear": true,
+      "expect": {
+        "outcome": "rewritten"
+      }
+    },
+    {
+      "name": "second-genesis-after-one-was-verified",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "otherGenesis"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "second-genesis-on-a-new-device",
+      "applied": [],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "otherGenesis"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC"
+        ],
+        "standing": [
+          "otherGenesis"
+        ],
+        "extendsApplied": true
+      }
+    },
+    {
+      "name": "another-groups-genesis",
+      "applied": [
+        "genesis",
+        "addB",
+        "addC"
+      ],
+      "view": [
+        "genesis",
+        "addB",
+        "addC",
+        "foreignGenesis"
+      ],
+      "pins": [],
+      "linear": false,
+      "expect": {
+        "outcome": "apply",
+        "chain": [
+          "genesis",
+          "addB",
+          "addC"
+        ],
+        "standing": [],
+        "extendsApplied": true
+      }
+    }
+  ]
+}

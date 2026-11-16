@@ -2,6 +2,8 @@ package io.github.aedev.flow.data.paging
 
 import androidx.paging.PagingSource
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
+import io.github.aedev.flow.data.contentfilter.aislist.AiListSets
 import io.github.aedev.flow.data.local.ContentType
 import io.github.aedev.flow.data.local.Duration
 import io.github.aedev.flow.data.local.SearchFilter
@@ -15,11 +17,13 @@ import io.github.aedev.flow.innertube.pages.renderer.videoOrNull
 import io.github.aedev.flow.innertube.pages.search.SearchHeader
 import io.github.aedev.flow.innertube.pages.search.SearchSection
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import org.junit.Test
+import java.util.concurrent.Executors
 
 class SearchPagingSourceTest {
     private class RecordingLoader(
@@ -61,6 +65,25 @@ class SearchPagingSourceTest {
             source(loader).loadPage()
 
             assertThat(loader.calls).hasSize(1)
+        }
+
+    @Test
+    fun `a page is fetched and parsed on the load dispatcher`() =
+        runTest {
+            val executor = Executors.newSingleThreadExecutor { Thread(it, "search-load") }
+            try {
+                var loadThread: String? = null
+                val loader =
+                    SearchPageLoader { _, _, _ ->
+                        loadThread = Thread.currentThread().name
+                        SearchFixture(SearchFixture.ALL_SAM_SULEK).toSearchResultsPage()
+                    }
+                SearchPagingSource("sam sulek", loadPage = loader, loadContext = executor.asCoroutineDispatcher()).loadPage()
+
+                assertThat(loadThread).isEqualTo("search-load")
+            } finally {
+                executor.shutdown()
+            }
         }
 
     @Test
@@ -287,6 +310,36 @@ class SearchPagingSourceTest {
             )
 
         assertThat(visible).containsExactly(channel)
+    }
+
+    @Test
+    fun `an AI-listed channel's videos leave the results, its channel card stays`() {
+        val listed = "UCslopslopslopslopslop00"
+        val item = SearchResultItem.VideoResult(video(channelId = listed))
+        val strip =
+            SearchResultItem.ShelfResult(
+                id = "s1",
+                title = "Latest",
+                kind = SearchShelfKind.VIDEOS,
+                videos = listOf(video(channelId = listed)),
+            )
+        val channel =
+            SearchResultItem.ChannelResult(
+                io.github.aedev.flow.data.model
+                    .Channel(id = listed, name = "Slop", thumbnailUrl = "", subscriberCount = 0L),
+            )
+        val ai =
+            AiListMatcher(
+                blockEnabled = true,
+                warnEnabled = false,
+                block = AiListSets(handles = emptySet(), ids = setOf(listed)),
+                warn = AiListSets.EMPTY,
+                exemptChannelIds = emptySet(),
+                exemptHandles = emptySet(),
+                index = null,
+            )
+
+        assertThat(listOf(item, strip, channel).withoutHidden(FeedExclusions(ai = ai))).containsExactly(channel)
     }
 
     @Test

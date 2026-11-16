@@ -1,5 +1,7 @@
 package io.github.aedev.flow.player.state
 
+import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
+
 data class EnhancedPlayerState(
     val currentVideoId: String? = null,
     val isPlaying: Boolean = false,
@@ -23,7 +25,7 @@ data class EnhancedPlayerState(
     val recoveryAttempted: Boolean = false,
     val playbackSpeed: Float = 1.0f,
     val isSkipSilenceEnabled: Boolean = false,
-    val isVolumeNormalizationEnabled: Boolean = true,
+    val isVolumeNormalizationEnabled: Boolean = DEFAULT_VIDEO_VOLUME_NORMALIZATION,
     val bufferedPercentage: Float = 0f,
     val hasNext: Boolean = false,
     val hasPrevious: Boolean = false,
@@ -35,7 +37,14 @@ data class EnhancedPlayerState(
     val isLive: Boolean = false,
     val isAtLiveEdge: Boolean = false,
     val liveDurationMs: Long = 0L,
-)
+    /** The playing video is a 360 video, shown in a view the viewer can look around in (#1295). */
+    val isSphericalVideo: Boolean = false,
+    /** The viewer's own 360 view choice for this video, or null to follow [isSphericalVideo] (#1967). */
+    val sphericalOverride: Boolean? = null,
+) {
+    /** Whether the video is shown in the 360 view: detected from the stream, or turned on or off by hand. */
+    val showsSpherical: Boolean get() = sphericalOverride ?: isSphericalVideo
+}
 
 /** A video that played to its end, and the length it ended at. */
 data class PlaybackCompletion(
@@ -50,6 +59,7 @@ data class QualityOption(
     val bitrate: Long,
     val codecKey: String = "",
     val streamKey: String? = null,
+    val isHdr: Boolean = false,
 )
 
 // audio track option for the audio selector.

@@ -40,6 +40,13 @@ internal class PlaybackRecoveryController(
 
     fun onPlaybackRequested() = playerManager.resetStreamRecovery()
 
+    /** Reloads streams the player still holds at the saved place, as after a decoder failure. */
+    fun retryInPlace(): Boolean {
+        if (!playerManager.retryClearedMedia()) return false
+        uiState.update { it.copy(error = null, errorHint = null, errorOffersSessionReset = false) }
+        return true
+    }
+
     fun onLoadStarted(videoId: String) = playerManager.onStreamLoadStarted(videoId)
 
     /** The player itself gave up, so it needs no stopping — only the screen. */

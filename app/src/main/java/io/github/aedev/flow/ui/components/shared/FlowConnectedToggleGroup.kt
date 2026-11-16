@@ -50,7 +50,7 @@ fun <T> FlowConnectedToggleGroup(
     onSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    colors: ToggleButtonColors = ToggleButtonDefaults.toggleButtonColors(),
+    colors: ToggleButtonColors = ToggleButtonDefaults.colors(),
 ) {
     val haptics = LocalHapticFeedback.current
     Row(

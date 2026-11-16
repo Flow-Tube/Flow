@@ -159,7 +159,7 @@ internal fun MusicDownloadRow(
         title = downloadedTrack.track.title,
         modifier = modifier,
         subtitle = downloadedTrack.track.artist,
-        supporting = downloadSupportingLine(null, downloadedTrack.fileSize, downloadedTrack.downloadedAt),
+        supporting = downloadSupportingLine(downloadedTrack.quality, downloadedTrack.fileSize, downloadedTrack.downloadedAt),
         supportingColor = MaterialTheme.colorScheme.onSurfaceVariant,
         titleMaxLines = 1,
         selected = selected,

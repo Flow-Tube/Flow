@@ -46,6 +46,7 @@ class SabrDownloadEngine {
         videoLmt: Long,
         audioXtags: String = "",
         videoXtags: String = "",
+        audioTrackId: String = "",
         poToken: String,
         visitorId: String,
         ustreamerConfig: ByteArray,
@@ -70,6 +71,7 @@ class SabrDownloadEngine {
                     this.selectedVideoItag = if (audioOnly) 0 else videoItag
                     this.selectedVideoLmt = if (audioOnly) 0 else videoLmt
                     this.selectedAudioXtags = audioXtags
+                    this.audioTrackId = audioTrackId
                     this.selectedVideoXtags = if (audioOnly) "" else videoXtags
                     this.poToken = poToken
                     this.visitorId = visitorId

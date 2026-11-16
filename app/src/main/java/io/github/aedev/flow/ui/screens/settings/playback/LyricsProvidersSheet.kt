@@ -37,8 +37,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.shared.FlowReorderButtons
 import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
 import io.github.aedev.flow.ui.components.shared.FlowSwitch
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import io.github.aedev.flow.ui.components.shared.rememberFlowSheetState
 import sh.calvin.reorderable.ReorderableColumn
@@ -127,13 +129,20 @@ internal fun LyricsProvidersSheet(
                                     },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(LocalMinimumInteractiveComponentSize.current)
-                                        .draggableHandle(),
-                                contentAlignment = Alignment.Center,
-                            ) { ReorderHandle() }
+                            if (LocalDpadNavigation.current) {
+                                FlowReorderButtons(
+                                    onMoveUp = if (index > 0) ({ move(index, index - 1) }) else null,
+                                    onMoveDown = if (index < providers.lastIndex) ({ move(index, index + 1) }) else null,
+                                )
+                            } else {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(LocalMinimumInteractiveComponentSize.current)
+                                            .draggableHandle(),
+                                    contentAlignment = Alignment.Center,
+                                ) { ReorderHandle() }
+                            }
                             val label = ProviderLabels[provider.name]
                             Column(modifier = Modifier.weight(1f).padding(vertical = RowVerticalPadding)) {
                                 Text(
@@ -144,6 +153,13 @@ internal fun LyricsProvidersSheet(
                                     Text(
                                         text = stringResource(it.description),
                                         style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                ProviderHosts[provider.name]?.let {
+                                    Text(
+                                        text = stringResource(it),
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
@@ -175,6 +191,25 @@ private val ProviderLabels =
         "Paxsenix" to ProviderLabel(R.string.lyrics_provider_paxsenix, R.string.lyrics_provider_paxsenix_desc),
         "LrcLib" to ProviderLabel(R.string.lyrics_provider_lrclib, R.string.lyrics_provider_lrclib_desc),
         "Unison" to ProviderLabel(R.string.lyrics_provider_unison, R.string.lyrics_provider_unison_desc),
+        "NetEase" to ProviderLabel(R.string.lyrics_provider_netease, R.string.lyrics_provider_netease_desc),
+        "AMLL" to ProviderLabel(R.string.lyrics_provider_amll, R.string.lyrics_provider_amll_desc),
         "YouTubeSubtitle" to ProviderLabel(R.string.lyrics_provider_youtube_captions, R.string.lyrics_provider_youtube_captions_desc),
         "YouTube" to ProviderLabel(R.string.lyrics_provider_youtube_music, R.string.lyrics_provider_youtube_music_desc),
+    )
+
+/** Every server each provider contacts, so people with a DNS filter know what to allow (#1860). */
+private val ProviderHosts =
+    mapOf(
+        "BetterLyrics" to R.string.lyrics_provider_better_lyrics_hosts,
+        "LrcRed" to R.string.lyrics_provider_lrc_red_hosts,
+        "LyricsPlus" to R.string.lyrics_provider_lyrics_plus_hosts,
+        "SimpMusic" to R.string.lyrics_provider_simpmusic_hosts,
+        "KuGou" to R.string.lyrics_provider_kugou_hosts,
+        "Paxsenix" to R.string.lyrics_provider_paxsenix_hosts,
+        "LrcLib" to R.string.lyrics_provider_lrclib_hosts,
+        "Unison" to R.string.lyrics_provider_unison_hosts,
+        "NetEase" to R.string.lyrics_provider_netease_hosts,
+        "AMLL" to R.string.lyrics_provider_amll_hosts,
+        "YouTubeSubtitle" to R.string.lyrics_provider_youtube_hosts,
+        "YouTube" to R.string.lyrics_provider_youtube_hosts,
     )

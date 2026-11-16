@@ -154,7 +154,7 @@ internal fun DownloadSheetButton(
 @Composable
 internal fun downloadToggleColors(slot: MediaSheetSlot?): ToggleButtonColors =
     if (slot == null) {
-        ToggleButtonDefaults.toggleButtonColors()
+        ToggleButtonDefaults.colors()
     } else {
-        ToggleButtonDefaults.toggleButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
+        ToggleButtonDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
     }

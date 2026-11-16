@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.service.Media3MusicService
@@ -51,11 +52,15 @@ class AudioFeaturesManager(
     private var desiredPlaybackSpeed: Float = 1.0f
     private var boostGainMb: Int = 0
     private var userVolume: Float = 1f
-    private var normalizationEnabled: Boolean = true
+    private var normalizationEnabled: Boolean = DEFAULT_VIDEO_VOLUME_NORMALIZATION
 
     // Keyed by media id, so a queue item the screen never loaded plays at full level rather than
     // inheriting the gain of the video before it.
     private var loudness: Pair<String, Float>? = null
+
+    /** The loudness correction in force for what is playing, for the stats panel. */
+    val appliedLoudnessDb: Float?
+        get() = loudness?.second?.takeIf { normalizationEnabled }
 
     /**
      * Set the player reference. Must be called after ExoPlayer is created.

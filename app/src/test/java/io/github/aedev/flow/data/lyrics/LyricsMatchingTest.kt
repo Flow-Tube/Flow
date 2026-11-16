@@ -79,6 +79,66 @@ class LyricsMatchingTest {
     }
 
     @Test
+    fun `an artist among several joined with the chinese comma matches`() {
+        val request = Song("Song", "Second Band", 200)
+
+        assertThat(LyricsMatching.score(request, Song("Song", "First Band、Second Band", 200))).isAtLeast(LyricsMatching.MIN_SCORE)
+    }
+
+    @Test
+    fun `a full credit list matches a source that names only one of them`() {
+        val request = Song("Song", "Vishal-Shekhar, Arijit Singh, Shilpa Rao", 200)
+
+        assertThat(LyricsMatching.score(request, Song("Song", "Arijit Singh", 200))).isAtLeast(LyricsMatching.MIN_SCORE)
+    }
+
+    @Test
+    fun `any requested credit can match any credit on the candidate`() {
+        val request = Song("Song", "Vishal & Shekhar, Arijit Singh, Shilpa Rao", 200)
+
+        assertThat(LyricsMatching.score(request, Song("Song", "Arijit Singh, Shilpa Rao", 200))).isAtLeast(LyricsMatching.MIN_SCORE)
+    }
+
+    @Test
+    fun `a different artist still fails against a full credit list`() {
+        val request = Song("Song", "Vishal-Shekhar, Arijit Singh, Shilpa Rao", 200)
+
+        assertThat(LyricsMatching.score(request, Song("Song", "Sunidhi Chauhan", 200))).isEqualTo(0)
+    }
+
+    @Test
+    fun `a matching credit does not excuse another title`() {
+        val request = Song("Song", "Vishal-Shekhar, Arijit Singh", 200)
+
+        assertThat(LyricsMatching.score(request, Song("Other", "Arijit Singh", 200))).isEqualTo(0)
+    }
+
+    @Test
+    fun `a matching credit does not excuse another version`() {
+        val request = Song("Song", "Vishal-Shekhar, Arijit Singh", 200)
+        val live = Song("Song (Live)", "Arijit Singh", 200)
+
+        assertThat(LyricsMatching.best(listOf(live), request, { it })).isNull()
+    }
+
+    @Test
+    fun `a name with a comma in it still matches whole`() {
+        val request = Song("Song", "Tyler, The Creator", 200)
+
+        assertThat(LyricsMatching.score(request, Song("Song", "Tyler, The Creator", 200))).isAtLeast(LyricsMatching.MIN_SCORE)
+    }
+
+    @Test
+    fun `ranked lists every accepted candidate best first`() {
+        val request = Song("Song", "Band", 200)
+        val close = Song("Song", "Band", 200)
+        val near = Song("Song", "Band", 209)
+        val other = Song("Other", "Band", 200)
+
+        assertThat(LyricsMatching.ranked(listOf(near, other, close), request, { it })).containsExactly(close, near).inOrder()
+    }
+
+    @Test
     fun `nothing is picked when no candidate clears the floor`() {
         assertThat(LyricsMatching.best(listOf(Song("Other", "Band", 200)), Song("Song", "Band", 200), { it })).isNull()
     }

@@ -139,10 +139,7 @@ class VideoPlayerService : MediaSessionService() {
         startId: Int,
     ): Int {
         val startResult = super.onStartCommand(intent, flags, startId)
-        FlowCrashHandler.recordPhase(
-            "video-service",
-            "onStartCommand action=${intent?.action} startId=$startId",
-        )
+        FlowCrashHandler.recordPhase("video-service", "onStartCommand action=${intent?.action}")
         serviceLog("onStartCommand action=${intent?.action}")
 
         when (intent?.action) {
@@ -155,7 +152,12 @@ class VideoPlayerService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        serviceLog("onTaskRemoved pip=${GlobalPlayerState.isInPipMode.value}")
+        val root = rootIntent?.component?.className
+        if (isSideTaskRemoval(root)) {
+            serviceLog("onTaskRemoved ignored, side task $root")
+            return
+        }
+        serviceLog("onTaskRemoved root=$root pip=${GlobalPlayerState.isInPipMode.value}")
         if (GlobalPlayerState.isInPipMode.value) {
             GlobalPlayerState.requestDismiss()
             EnhancedPlayerManager.getInstance().stop()

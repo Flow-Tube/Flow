@@ -22,7 +22,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,13 +45,15 @@ import io.github.aedev.flow.ui.components.shared.FlowSidePanes
 import io.github.aedev.flow.ui.components.shared.FlowSortChip
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.rememberFlowPaneState
-import io.github.aedev.flow.ui.components.shared.rememberReorderableLazyListState
 import io.github.aedev.flow.ui.components.shared.rememberShareLinksWithoutText
 import io.github.aedev.flow.utils.PLAYLIST_FILE_MIME_TYPE
 import io.github.aedev.flow.utils.filterBySearch
+import io.github.aedev.flow.utils.holdsPendingOrder
+import io.github.aedev.flow.utils.movedByKey
 import io.github.aedev.flow.utils.shareLink
 import io.github.aedev.flow.utils.sharePlaylistFile
 import kotlinx.coroutines.launch
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 // The same header column as the video playlist page, so both read as one design.
 private val HeaderPaneWidth = 360.dp
@@ -141,16 +145,30 @@ private fun CollectionContent(
         remember(details.tracks, sortOrder, state.addedAt) { details.tracks.sortedForCollection(sortOrder, state.addedAt).withStableKeys() }
     var ordered by remember { mutableStateOf(sorted) }
     val canReorder = state.isOwn && sortOrder == MusicSortOrder.COLLECTION && !isSearching && selectedKeys == null
+    val haptics = LocalHapticFeedback.current
+    var dragMoved by remember { mutableStateOf(false) }
+    var pendingOrder by remember { mutableStateOf<List<String>?>(null) }
     val reorderState =
-        rememberReorderableLazyListState(
-            listState = listState,
-            itemIndexOffset = if (twoPane || isSearching) 0 else 1,
-            onMove = { from, to -> ordered = ordered.toMutableList().apply { add(to, removeAt(from)) } },
-            onDragStopped = { viewModel.reorder(ordered.map { it.second.videoId }) },
-        )
-    // Held while a drag is in progress, so an update from the database can't replace the list mid-drag.
-    LaunchedEffect(sorted, reorderState.isDragging) {
-        if (!reorderState.isDragging) ordered = sorted
+        rememberReorderableLazyListState(listState) { from, to ->
+            ordered.movedByKey(from.key, to.key) { it.first }?.let { moved ->
+                ordered = moved
+                dragMoved = true
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            }
+        }
+    // Held while a drag is in progress and until the saved order comes back, so neither an update
+    // from the database nor the order from before the drop can replace the list under the finger.
+    LaunchedEffect(sorted, reorderState.isAnyItemDragging) {
+        if (reorderState.isAnyItemDragging) return@LaunchedEffect
+        if (dragMoved) {
+            dragMoved = false
+            pendingOrder = ordered.map { it.first }
+            viewModel.reorder(ordered.map { it.second.videoId })
+            return@LaunchedEffect
+        }
+        if (sortOrder == MusicSortOrder.COLLECTION && holdsPendingOrder(sorted.map { it.first }, pendingOrder)) return@LaunchedEffect
+        pendingOrder = null
+        ordered = sorted
     }
     val tracks = remember(ordered) { ordered.map { it.second } }
     val shown =

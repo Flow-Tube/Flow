@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.aedev.flow.R
+import io.github.aedev.flow.applock.AppLock
 import io.github.aedev.flow.data.playlist.PlaylistImport
 import io.github.aedev.flow.data.playlist.PlaylistTransfer
 import io.github.aedev.flow.data.profile.SwitchIntentQueue
@@ -19,6 +20,8 @@ import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import io.github.aedev.flow.utils.PLAYLIST_FILE_MIME_TYPE
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /** What MainActivity is started or re-delivered with: a link, a widget or notification route, a share or a playlist file. */
@@ -26,7 +29,42 @@ internal class IncomingIntents(
     private val activity: ComponentActivity,
     private val links: IncomingLinks,
     private val playlistTransfer: dagger.Lazy<PlaylistTransfer>,
+    private val appLock: AppLock,
 ) {
+    private val held = mutableListOf<Pair<Intent, Boolean>>()
+    private var heldJob: Job? = null
+
+    /**
+     * Opens [intent] once Flow is unlocked, so nothing opens or starts playing behind the lock (#1858).
+     * It also waits while the lock setting is still being read at start.
+     */
+    fun handleWhenUnlocked(
+        intent: Intent,
+        isRestoringState: Boolean,
+    ) {
+        if (appLock.locked.value == false) {
+            handle(intent, isRestoringState)
+            return
+        }
+        held += intent to isRestoringState
+        if (heldJob?.isActive == true) return
+        heldJob =
+            activity.lifecycleScope.launch(Dispatchers.Main.immediate) {
+                appLock.awaitUnlocked()
+                val waiting = held.toList()
+                held.clear()
+                waiting.forEach { (heldIntent, restoring) -> handle(heldIntent, restoring) }
+            }
+    }
+
+    /** A recreated activity gets its intent again; one still waiting for the unlock was never opened. */
+    fun saveState(outState: Bundle) {
+        outState.putBoolean(STATE_INTENT_HELD, held.isNotEmpty())
+    }
+
+    /** Whether the launch intent of an activity created from [savedState] was already opened. */
+    fun isRestoring(savedState: Bundle?): Boolean = savedState != null && !savedState.getBoolean(STATE_INTENT_HELD)
+
     private fun playlistFileIn(intent: Intent): Uri? {
         val type =
             intent.type ?: intent.data?.takeIf { it.scheme == ContentResolver.SCHEME_CONTENT }?.let(activity.contentResolver::getType)
@@ -49,7 +87,7 @@ internal class IncomingIntents(
     }
 
     /** [isRestoringState]: a recreated activity gets its launch intent again; a playlist file in it was already imported. */
-    fun handle(
+    private fun handle(
         intent: Intent,
         isRestoringState: Boolean,
     ) {
@@ -119,5 +157,6 @@ internal class IncomingIntents(
     private companion object {
         /** The share-menu entry Download with Flow: an activity-alias of MainActivity in the manifest. */
         const val DOWNLOAD_SHARE_ALIAS = ".DownloadShareAlias"
+        const val STATE_INTENT_HELD = "io.github.aedev.flow.state.INTENT_HELD"
     }
 }

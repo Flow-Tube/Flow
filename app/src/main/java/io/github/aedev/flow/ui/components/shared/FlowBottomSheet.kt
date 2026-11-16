@@ -40,9 +40,9 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.ui.utils.flowWindowDpSize
 import kotlinx.coroutines.launch
 
 private fun sheetSpring() =
@@ -63,10 +63,7 @@ private const val DEFAULT_EXPANDED_HEIGHT_FRACTION = 0.75f
  * screen size and so ignores multi-window and freeform bounds.
  */
 @Composable
-fun defaultSheetExpandedHeight(): Dp {
-    val heightPx = LocalWindowInfo.current.containerSize.height
-    return with(LocalDensity.current) { (heightPx * DEFAULT_EXPANDED_HEIGHT_FRACTION).toDp() }
-}
+fun defaultSheetExpandedHeight(): Dp = flowWindowDpSize().height * DEFAULT_EXPANDED_HEIGHT_FRACTION
 
 /**
  * Handle onto a live [FlowBottomSheet], so a control inside the sheet can run the same exit

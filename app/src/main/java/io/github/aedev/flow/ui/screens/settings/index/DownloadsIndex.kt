@@ -15,24 +15,30 @@ internal object DownloadsIndex {
         section: Int,
         summary: Int? = null,
         availability: SettingAvailability = SettingAvailability.Always,
+        keywords: Int = R.string.settings_keywords_downloads,
     ) = SettingEntry(
         key = "downloads.$key",
         title = title,
         summary = summary,
         section = section,
-        keywords = R.string.settings_keywords_downloads,
+        keywords = keywords,
         availability = availability,
         destination = page,
     )
 
+    private fun cacheEntry(
+        key: String,
+        title: Int,
+    ) = entry(key, title, R.string.cache_group_header, keywords = R.string.settings_keywords_cache)
+
     val videoLocation = entry("video_location", R.string.video_download_location_label, R.string.storage_header)
     val musicLocation = entry("music_location", R.string.music_download_location_label, R.string.storage_header)
     val usage = entry("usage", R.string.internal_storage_label, R.string.storage_header)
-    val cacheUsage = entry("cache_usage", R.string.cache_group_header, R.string.cache_group_header)
-    val videoCache = entry("cache_size", R.string.cache_videos, R.string.cache_group_header)
-    val songCache = entry("song_cache", R.string.cache_songs, R.string.cache_group_header)
-    val artworkCache = entry("artwork_cache", R.string.cache_artwork, R.string.cache_group_header)
-    val otherCache = entry("other_cache", R.string.cache_other, R.string.cache_group_header)
+    val cacheUsage = cacheEntry("cache_usage", R.string.cache_group_header)
+    val videoCache = cacheEntry("cache_size", R.string.cache_videos)
+    val songCache = cacheEntry("song_cache", R.string.cache_songs)
+    val artworkCache = cacheEntry("artwork_cache", R.string.cache_artwork)
+    val otherCache = cacheEntry("other_cache", R.string.cache_other)
     val quickQuality =
         entry(
             "quick_quality",

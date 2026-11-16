@@ -64,7 +64,7 @@ internal fun rememberStoryTints(
 
 @Composable
 private fun artworkTint(url: String?): StoryTint? {
-    val tint = rememberMediaArtworkTint(url?.takeIf { it.isNotBlank() })
+    val tint = rememberMediaArtworkTint(url?.takeIf { it.isNotBlank() }, followsSetting = false)
     if (url.isNullOrBlank()) return null
     return StoryTint(tint.container, tint.onContainer, tint.accent, tint.raised)
 }

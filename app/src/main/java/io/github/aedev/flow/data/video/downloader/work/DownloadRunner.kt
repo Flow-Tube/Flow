@@ -13,16 +13,17 @@ import io.github.aedev.flow.data.video.DownloadStreamPolicy
 import io.github.aedev.flow.data.video.OfflineSubtitleStore
 import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
+import io.github.aedev.flow.data.video.downloader.resolve.ResolvedStreams
 import io.github.aedev.flow.data.video.downloader.subtitle.DownloadSubtitleFile
 import io.github.aedev.flow.data.video.downloader.tags.CoverArtLoader
 import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
+import io.github.aedev.flow.data.video.downloader.tags.Mp4ProjectionCopier
 import io.github.aedev.flow.data.video.downloader.tags.Mp4Remuxer
 import io.github.aedev.flow.data.video.downloader.tags.Mp4TagWriter
 import io.github.aedev.flow.data.video.storage.DownloadCovers
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadPlacement
 import io.github.aedev.flow.data.video.storage.PlacedFile
-import io.github.aedev.flow.player.stream.ResolvedCaption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -57,6 +58,7 @@ class DownloadRunner
         private val lyrics: DownloadLyrics,
         private val remuxer: Mp4Remuxer,
         private val tagWriter: Mp4TagWriter,
+        private val projectionCopier: Mp4ProjectionCopier,
         private val coverArt: CoverArtLoader,
         private val validator: DownloadValidator,
         private val placement: DownloadPlacement,
@@ -129,6 +131,7 @@ class DownloadRunner
                 fail(request, staging, context.getString(R.string.download_failed_merge), keepParts = false)
                 return
             }
+            fetched.videoPart?.let { keepProjection(request.videoId, it, output) }
             try {
                 tagWriter.write(output, request.tags, cover)
             } catch (e: IOException) {
@@ -146,7 +149,23 @@ class DownloadRunner
                 return
             }
             withContext(NonCancellable) {
-                commit(request, staging, itemId, placed, extension, size, qualityOf(fetched), cover, fetched.streams?.captions.orEmpty())
+                commit(request, staging, itemId, placed, extension, size, qualityOf(fetched), cover, fetched.streams)
+            }
+        }
+
+        /** A 360° video stays 360°; a failure only costs the projection, never the download (#1967). */
+        private suspend fun keepProjection(
+            videoId: String,
+            videoPart: File,
+            output: File,
+        ) {
+            try {
+                val kept = withContext(Dispatchers.IO) { projectionCopier.copy(videoPart.path, output) }
+                if (kept) Log.i(TAG, "$videoId: kept the 360° projection")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "$videoId: 360° projection not kept", e)
             }
         }
 
@@ -159,15 +178,20 @@ class DownloadRunner
             size: Long,
             quality: String,
             cover: ByteArray?,
-            captions: List<ResolvedCaption>,
+            streams: ResolvedStreams?,
         ) {
+            val captions = streams?.captions.orEmpty()
+            val swappedTrack =
+                streams?.takeIf { it.audioTrackSwapped }?.let {
+                    DownloadStreamPolicy.audioLanguageLabel(it.audio) ?: context.getString(R.string.audio_track_original)
+                }
             val path = placed.path
             val mimeType = if (request.wantsAudioOnly) "audio/mp4" else "video/mp4"
             downloadDao.completeItem(itemId, path, placed.fileName, extension, mimeType, quality, size)
             cover?.let { DownloadCovers.save(context, request.videoId, it) }?.let { downloadDao.updateThumbnailPath(request.videoId, it) }
             if (!DownloadFiles.isDocument(path)) downloads.scanFile(path, mimeType)
             downloads.emitProgress(DownloadProgressUpdate(request.videoId, itemId, size, size, DownloadItemStatus.COMPLETED))
-            notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo))
+            notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo, swappedTrack))
             staging.clear()
             if (request.kind != DownloadKind.MUSIC && !request.wantsAudioOnly) {
                 saveSponsorBlockSegments(request.videoId)
@@ -176,11 +200,14 @@ class DownloadRunner
             }
         }
 
-        /** What the row shows for the stream it holds: "VP9 1080p60" for a video, "128 kbps" for audio. */
+        /** What the row shows for the stream it holds: "VP9 1080p60" for a video, "128 kbps · Arabic" for a dub's audio. */
         private fun qualityOf(fetched: FetchOutcome.Fetched): String {
             val streams = fetched.streams ?: return ""
             return streams.video?.let { DownloadStreamPolicy.videoQualityLabel(it, context.getString(R.string.download_quality_hdr)) }
-                ?: "${DownloadStreamPolicy.audioBitrateKbps(streams.audio)} ${context.getString(R.string.kbps)}"
+                ?: listOfNotNull(
+                    "${DownloadStreamPolicy.audioBitrateKbps(streams.audio)} ${context.getString(R.string.kbps)}",
+                    streams.audio.audioTrack?.let { DownloadStreamPolicy.audioLanguageLabel(streams.audio) },
+                ).joinToString(context.getString(R.string.list_separator_dot))
         }
 
         /** Only when the user has SponsorBlock on: otherwise no video id is sent to its API at all. */

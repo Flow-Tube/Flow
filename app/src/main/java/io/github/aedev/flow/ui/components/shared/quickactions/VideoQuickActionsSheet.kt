@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.PlaylistRemove
@@ -17,6 +18,8 @@ import androidx.compose.material.icons.outlined.QueuePlayNext
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.VerticalAlignBottom
+import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.WatchLater
@@ -43,6 +46,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
@@ -56,12 +60,13 @@ import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChanne
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorItems
 import io.github.aedev.flow.ui.components.shared.card.rememberWatchProgress
 import io.github.aedev.flow.ui.components.shared.collaboratorRows
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberVideoShareAction
 import io.github.aedev.flow.ui.components.shared.sharedSubscriptionBellViewModel
 import io.github.aedev.flow.utils.youtubeWatchUrl
 import kotlinx.coroutines.launch
 
-private enum class VideoMenuPage { Actions, Details, Collaborators, Save }
+private enum class VideoMenuPage { Actions, Details, Collaborators, Save, ReportAi }
 
 /**
  * A video's menu. [title] and [thumbnailUrl] are what the card shows, so a DeArrow title stays the
@@ -83,6 +88,8 @@ fun VideoQuickActionsBottomSheet(
     removeFromCollectionLabel: String? = null,
     removeFromCollectionIcon: ImageVector = Icons.Outlined.PlaylistRemove,
     onPlayNow: (() -> Unit)? = null,
+    onMoveToTop: (() -> Unit)? = null,
+    onMoveToBottom: (() -> Unit)? = null,
     viewModel: QuickActionsViewModel = sharedQuickActionsViewModel(),
 ) {
     var page by rememberSaveable(video.id) { mutableStateOf(VideoMenuPage.Actions) }
@@ -104,6 +111,10 @@ fun VideoQuickActionsBottomSheet(
             VideoMenuPage.Details -> {
                 QuickActionsPageHeader(title = stringResource(R.string.details_metadata), onBack = toActions, onClose = close)
                 MediaDetailsPage(subject = video.toDetailsSubject(title, whyShown))
+            }
+
+            VideoMenuPage.ReportAi -> {
+                AiReportPage(video = video, viewModel = viewModel, onBack = toActions, onClose = close)
             }
 
             VideoMenuPage.Collaborators -> {
@@ -142,7 +153,10 @@ fun VideoQuickActionsBottomSheet(
                             ),
                     )
                 }
-                QuickActionsGroup(title = stringResource(R.string.section_algorithm), rows = feedRows(video, viewModel, close))
+                QuickActionsGroup(
+                    title = stringResource(R.string.section_algorithm),
+                    rows = feedRows(video, viewModel, close, onReportAi = { page = VideoMenuPage.ReportAi }),
+                )
                 val removeRow =
                     if (onRemoveFromCollection != null && removeFromCollectionLabel != null) {
                         actionRow("remove", removeFromCollectionIcon, removeFromCollectionLabel, destructive = true) {
@@ -152,9 +166,28 @@ fun VideoQuickActionsBottomSheet(
                     } else {
                         null
                     }
+                val moveRows =
+                    listOfNotNull(
+                        onMoveToTop?.let { move ->
+                            actionRow("move_to_top", Icons.Outlined.VerticalAlignTop, stringResource(R.string.playlist_move_to_top)) {
+                                move()
+                                close()
+                            }
+                        },
+                        onMoveToBottom?.let { move ->
+                            actionRow(
+                                "move_to_bottom",
+                                Icons.Outlined.VerticalAlignBottom,
+                                stringResource(R.string.playlist_move_to_bottom),
+                            ) {
+                                move()
+                                close()
+                            }
+                        },
+                    )
                 QuickActionsGroup(
                     title = stringResource(R.string.section_options),
-                    rows = moreRows(video, viewModel, close) { page = VideoMenuPage.Details } + listOfNotNull(removeRow),
+                    rows = moreRows(video, viewModel, close) { page = VideoMenuPage.Details } + moveRows + listOfNotNull(removeRow),
                 )
             }
         }
@@ -289,13 +322,30 @@ private fun channelRow(
                 } else {
                     {
                         val toggle = { viewModel.toggleSubscription(video.channelId, video.channelName, video.channelThumbnailUrl) }
+                        val isSubscribed = video.channelId in subscribedChannelIds
+                        val organize =
+                            rememberChannelOrganizeActions(
+                                target =
+                                    remember(video.channelId, video.channelName, avatars) {
+                                        ChannelOrganizeTarget(
+                                            channelId = video.channelId,
+                                            title = video.channelName,
+                                            avatarUrl = avatars.firstOrNull().orEmpty(),
+                                        )
+                                    },
+                                isSubscribed = isSubscribed,
+                                beforeOpen = onDismiss,
+                            )
                         FlowSubscribeButton(
-                            isSubscribed = video.channelId in subscribedChannelIds,
+                            isSubscribed = isSubscribed,
                             onSubscribeClick = toggle,
                             onUnsubscribeClick = toggle,
                             isNotificationsEnabled = video.channelId in notifyingChannelIds,
                             onNotificationChange = { bell.setNotifications(video.channelId, it) },
                             size = FlowSubscribeButtonSize.Compact,
+                            showSubscribedLabel = false,
+                            onAddNote = organize.onAddNote,
+                            onManageGroups = organize.onManageGroups,
                         )
                     }
                 },
@@ -308,10 +358,12 @@ private fun feedRows(
     video: Video,
     viewModel: QuickActionsViewModel,
     onDismiss: () -> Unit,
+    onReportAi: () -> Unit,
 ): List<QuickActionRow> {
     val haptics = LocalHapticFeedback.current
     val isWatched = isWatchedProgress(rememberWatchProgress(video.id))
-    return listOf(
+    val reportAi by viewModel.aiReportEnabled.collectAsStateWithLifecycle()
+    return listOfNotNull(
         actionRow("interested", Icons.Outlined.ThumbUp, stringResource(R.string.i_like_this)) {
             haptics.performHapticFeedback(HapticFeedbackType.Confirm)
             viewModel.markAsInteresting(video)
@@ -345,6 +397,18 @@ private fun feedRows(
         ) {
             viewModel.blockChannel(video)
             onDismiss()
+        },
+        if (reportAi && video.channelId.isNotBlank()) {
+            QuickActionRow("report_ai") { shape ->
+                FlowNavRow(
+                    title = stringResource(R.string.ai_report_action),
+                    leadingIcon = Icons.Outlined.Flag,
+                    onClick = onReportAi,
+                    shape = shape,
+                )
+            }
+        } else {
+            null
         },
     )
 }

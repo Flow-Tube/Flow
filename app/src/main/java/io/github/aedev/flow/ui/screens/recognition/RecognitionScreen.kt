@@ -44,7 +44,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -75,6 +74,7 @@ import io.github.aedev.flow.data.recognition.RecognitionStatus
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
 import io.github.aedev.flow.ui.components.music.common.rememberMusicArtworkColors
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.FlowStateIcon
 import io.github.aedev.flow.ui.components.shared.flowActionShape
 import io.github.aedev.flow.ui.components.shared.flowHeroArtworkSize
@@ -229,7 +229,7 @@ private fun RecognitionMicButton(
         contentAlignment = Alignment.Center,
     ) {
         if (recognizing) {
-            LoadingIndicator(
+            FlowSpinner(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(MicButtonSize),
             )

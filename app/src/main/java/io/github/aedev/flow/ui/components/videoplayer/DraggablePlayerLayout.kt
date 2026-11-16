@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
@@ -21,12 +24,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
@@ -37,28 +34,21 @@ import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.offset
 import io.github.aedev.flow.ui.components.videoplayer.motion.BODY_CONTENT_MAX_EXPAND_FRACTION
-import io.github.aedev.flow.ui.components.videoplayer.motion.BODY_SLIDE_PX
 import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerGestureHandler
 import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerGestureMetrics
 import io.github.aedev.flow.ui.components.videoplayer.motion.MiniPlayerPinchGestureHandler
 import io.github.aedev.flow.ui.components.videoplayer.motion.PlayerBodyNestedScrollConnection
-import io.github.aedev.flow.ui.components.videoplayer.motion.RoundRectClipShape
 import io.github.aedev.flow.ui.components.videoplayer.motion.computeDraggablePlayerGeometry
 import io.github.aedev.flow.ui.components.videoplayer.motion.draggablePlayerGestures
 import io.github.aedev.flow.ui.components.videoplayer.motion.keyboardSafeMiniY
 import io.github.aedev.flow.ui.components.videoplayer.motion.lerpClamped
 import io.github.aedev.flow.ui.components.videoplayer.motion.miniPlayerPinchGesture
 import io.github.aedev.flow.ui.components.videoplayer.motion.morphCornerRadiusPx
-import io.github.aedev.flow.ui.components.videoplayer.motion.openBodyAlpha
-import io.github.aedev.flow.ui.components.videoplayer.motion.openGroundCornerRadius
-import io.github.aedev.flow.ui.components.videoplayer.motion.openGroundRect
 import io.github.aedev.flow.ui.components.videoplayer.motion.resnapTargets
 import io.github.aedev.flow.ui.components.videoplayer.motion.resolveOpenOriginRect
 import io.github.aedev.flow.ui.components.videoplayer.motion.tallVideoMaxHeight
 import io.github.aedev.flow.ui.components.videoplayer.motion.update
-import io.github.aedev.flow.ui.theme.PlayerGround
 import kotlin.math.roundToInt
 
 /**
@@ -71,13 +61,23 @@ const val MINI_PLAYER_CORNER_RADIUS_DP = 12f
 private val MiniPlayerMargin = 8.dp
 
 /**
+ * Where the mini player rests while the floating navigation bar is shrunk beside it: its bottom
+ * edge [restBottom] above the window's bottom, and, in the bar's bottom corner, [sideClearance]
+ * in from that edge.
+ */
+@Immutable
+data class MiniPlayerDock(
+    val restBottom: Dp,
+    val sideClearance: Dp,
+)
+
+/**
  * What the mini player is worth on a window too wide to size it by fraction: the width the default
  * size setting gets, which the smaller and larger settings scale around.
  */
 private val MiniPlayerLargeWindowWidth = 260.dp
 private const val DEFAULT_MINI_PLAYER_SCALE = 0.45f
 private val PortraitFullscreenActivation = 28.dp
-private val MiniPlayerShadowElevation = 8.dp
 
 /** Page a tall video always leaves on screen under it: the title, the stats and the action row. */
 private val TallVideoMinPageHeight = 120.dp
@@ -94,12 +94,14 @@ private val TallVideoMinPageHeight = 120.dp
  *   only takes the leading part of the width.
  * @param detailPaneWidth the width the detail pane and its spacer take from the video's row in a
  *   two-pane window; the expanded video gets what is left.
+ * @param scrollAwayEnabled scrolling the page up slides the video off the top with it, on a phone in
+ *   portrait only; the offset starts over for each [contentKey].
  */
 @Composable
 fun DraggablePlayerLayout(
     state: PlayerDraggableState,
     videoContent: @Composable (Modifier) -> Unit,
-    bodyContent: @Composable (alpha: () -> Float, videoHeightPx: () -> Float) -> Unit,
+    bodyContent: @Composable (alpha: () -> Float, videoHeightPx: () -> Float, offscreenBottomPx: () -> Float) -> Unit,
     miniControls: @Composable (() -> Float) -> Unit,
     progress: () -> Float,
     isFullscreen: Boolean,
@@ -109,9 +111,11 @@ fun DraggablePlayerLayout(
     miniPlayerScale: Float = 0.45f,
     isLargeWindow: Boolean = false,
     startInset: Dp = 0.dp,
+    miniDock: MiniPlayerDock? = null,
     isTwoPaneWindow: Boolean = false,
     detailPaneWidth: Dp = 0.dp,
     tapToExpand: Boolean = true,
+    statusBarGlow: @Composable (statusBarHeight: Float) -> Unit = {},
     onDismiss: () -> Unit = {},
     onCollapseGesture: (() -> Unit)? = null,
     onFullscreenGesture: (() -> Unit)? = null,
@@ -119,11 +123,19 @@ fun DraggablePlayerLayout(
     onExpandedPlayerBottomChanged: (Dp) -> Unit = {},
     videoAspectRatio: Float = 16f / 9f,
     expandedPlayerHeightFractionOverride: (() -> Float)? = null,
+    scrollAwayEnabled: Boolean = false,
+    contentKey: Any? = null,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     val config = LocalConfiguration.current
     val isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val scrollAwayActive = scrollAwayEnabled && !isLandscape && !isLargeWindow && !isTwoPaneWindow && !isFullscreen
+    LaunchedEffect(scrollAwayActive, contentKey) { state.resetScrollAway() }
+    val isFullyCollapsed by remember(state) { derivedStateOf { state.expandFraction.value > 0.999f } }
+    LaunchedEffect(isFullyCollapsed) { if (isFullyCollapsed) state.resetScrollAway() }
+    val scrollAwayActiveState = rememberUpdatedState(scrollAwayActive)
 
     var playerHeightFraction by remember { mutableFloatStateOf(1f) }
     LaunchedEffect(videoAspectRatio) { playerHeightFraction = 1f }
@@ -194,6 +206,9 @@ fun DraggablePlayerLayout(
                     isShrinkingToCorner = state.isShrinkingToCorner,
                     cachedTargetX = state.cachedTargetX,
                     offsetXFallback = { state.offsetX.value },
+                    dockedBottomNavPad = miniDock?.let { with(density) { (it.restBottom - MiniPlayerMargin).toPx() } },
+                    dockedSideClearance = miniDock?.let { with(density) { it.sideClearance.toPx() } } ?: 0f,
+                    dockedOnLeft = LocalLayoutDirection.current == LayoutDirection.Ltr,
                 )
             val expandedVideoWidth = geometry.expandedVideoWidth
             val visualMiniScale = geometry.visualMiniScale
@@ -226,6 +241,7 @@ fun DraggablePlayerLayout(
                     }
                 }
             val restingVideoHeightProvider = remember(videoHeightUnder, tallVideoCeiling) { { videoHeightUnder(tallVideoCeiling) } }
+            val restingVideoHeightState = rememberUpdatedState(restingVideoHeightProvider)
             // The ceiling lifts as the player collapses, so the mini player keeps the video's own shape.
             val currentExpandedVideoHeightProvider =
                 remember(videoHeightUnder, expandedVideoHeight, tallVideoCeiling) {
@@ -288,6 +304,7 @@ fun DraggablePlayerLayout(
                 state.miniVisualScale = visualMiniScale
                 state.cachedTargetX = geometry.normalTargetX
                 state.cachedTargetY = geometry.normalTargetY
+                state.seedMiniOffsets(geometry.targetMiniX, geometry.targetMiniY)
             }
 
             val isCollapsedTarget by remember(state) {
@@ -341,6 +358,10 @@ fun DraggablePlayerLayout(
                         portraitFsActivationPx = { portraitFsActivationState.value },
                         expandFraction = { state.expandFraction.value },
                         onEnterPortraitFullscreen = { onEnterPortraitFsState.value },
+                        scrollAwayEnabled = { scrollAwayActiveState.value },
+                        scrollAway = { state.scrollAwayPx },
+                        scrollAwayRange = { restingVideoHeightState.value() },
+                        onScrollAwayChange = state::scrollAwayTo,
                     )
                 }
 
@@ -348,6 +369,7 @@ fun DraggablePlayerLayout(
                 ImmersiveFullscreenBackdrop(thumbnailUrl = thumbnailUrl)
             } else {
                 CollapsingPlayerScrim(state = state, statusBarHeight = statusBarHeight, openRect = openRectProvider)
+                statusBarGlow(statusBarHeight)
                 PortraitFullscreenBackdropFade(state = state, thumbnailUrl = thumbnailUrl)
             }
 
@@ -366,6 +388,7 @@ fun DraggablePlayerLayout(
                     openRect = openRectProvider,
                     nestedScrollConnection = nestedScrollConnection,
                     layoutDirection = systemLayoutDirection,
+                    scrollAwayEnabled = scrollAwayActive,
                     bodyContent = bodyContent,
                 )
             }
@@ -401,72 +424,16 @@ fun DraggablePlayerLayout(
                             Modifier.fillMaxSize()
                         } else {
                             Modifier
-                                .layout { measurable, constraints ->
-                                    val videoHeight = currentExpandedVideoHeightProvider()
-                                    state.portraitFsTravel = portraitFsTravelProvider()
-                                    val targetW =
-                                        expandedVideoWidth
-                                            .toInt()
-                                            .coerceIn(1, constraints.maxWidth.coerceAtLeast(1))
-                                    val targetH =
-                                        videoHeight
-                                            .toInt()
-                                            .coerceIn(1, constraints.maxHeight.coerceAtLeast(1))
-                                    val placeable =
-                                        measurable.measure(
-                                            constraints.copy(
-                                                minWidth = targetW,
-                                                maxWidth = targetW,
-                                                minHeight = targetH,
-                                                maxHeight = targetH,
-                                            ),
-                                        )
-                                    layout(targetW, targetH) { placeable.place(0, 0) }
-                                }.graphicsLayer {
-                                    val fraction = state.expandFraction.value
-                                    val origin = openRectProvider()
-                                    val endWidth =
-                                        origin?.width ?: geometry
-                                            .miniBoxWidth(geometry.baseMiniWidth * state.miniSizeScale.value)
-                                            .coerceAtMost(geometry.maxWideWidth)
-                                    val visualScale =
-                                        lerpClamped(
-                                            1f,
-                                            endWidth / expandedVideoWidth.coerceAtLeast(1f),
-                                            fraction,
-                                        )
-                                    val drag = if (fraction > 0.6f) 1f else state.expandDragScale.value
-                                    transformOrigin = TransformOrigin(0f, 0f)
-                                    scaleX = visualScale * drag
-                                    scaleY = visualScale * drag
-                                    val windowW = expandedVideoWidth * visualScale
-                                    val windowH = size.height * visualScale
-                                    val expandedTopY =
-                                        statusBarHeight + state.portraitFsFraction.coerceAtLeast(0f) * portraitFsTravelProvider()
-                                    translationX =
-                                        lerpClamped(0f, origin?.left ?: state.offsetX.value, fraction) +
-                                        windowW * (1f - drag) / 2f
-                                    translationY =
-                                        lerpClamped(
-                                            expandedTopY,
-                                            origin?.top ?: miniRestingY(),
-                                            fraction,
-                                        ) + windowH * (1f - drag) / 2f
-                                    shadowElevation =
-                                        if (origin == null && fraction > 0.95f) {
-                                            MiniPlayerShadowElevation.toPx() / visualMiniScale
-                                        } else {
-                                            0f
-                                        }
-                                    shape = RoundedCornerShape(cornerRadiusProvider())
-                                    clip = false
-                                }.drawBehind {
-                                    val r = cornerRadiusProvider()
-                                    drawRoundRect(
-                                        color = PlayerGround,
-                                        cornerRadius = CornerRadius(r, r),
-                                    )
-                                }
+                                .draggablePlayerVideoBox(
+                                    state = state,
+                                    geometry = geometry,
+                                    statusBarHeight = statusBarHeight,
+                                    videoHeight = currentExpandedVideoHeightProvider,
+                                    portraitFsTravel = portraitFsTravelProvider,
+                                    openRect = openRectProvider,
+                                    miniRestingY = miniRestingY,
+                                    cornerRadius = cornerRadiusProvider,
+                                )
                                 // Two pointer nodes with constant keys: the chain must not change
                                 // shape while a finger is down or the drag coroutine is reset.
                                 .miniPlayerPinchGesture(pinchHandler)
@@ -487,8 +454,32 @@ fun DraggablePlayerLayout(
                     }
                 }
             }
+
+            if (scrollAwayActive) ScrollAwayStatusBarStrip(state = state, heightPx = statusBarHeight)
         }
     }
+}
+
+/** Covers the status bar while the video slides under it, in the page's own colour and fading with the page. */
+@Composable
+private fun ScrollAwayStatusBarStrip(
+    state: PlayerDraggableState,
+    heightPx: Float,
+) {
+    val color = MaterialTheme.colorScheme.background
+    val height = with(LocalDensity.current) { heightPx.toDp() }
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height)
+                .drawBehind {
+                    if (state.scrollAwayPx > 0f) {
+                        val alpha = (1f - state.expandFraction.value / BODY_CONTENT_MAX_EXPAND_FRACTION).coerceIn(0f, 1f)
+                        drawRect(color = color, alpha = alpha)
+                    }
+                },
+    )
 }
 
 /** Where the layout sits in the window; written on placement and read in the draw phase only. */

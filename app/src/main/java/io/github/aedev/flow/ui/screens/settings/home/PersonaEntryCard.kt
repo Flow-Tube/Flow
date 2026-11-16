@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.recommendation.FlowPersona
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.screens.settings.taste.PersonaEmblem
 
 private val CardPadding = 16.dp
@@ -52,7 +52,7 @@ internal fun PersonaEntryCard(
             if (persona != null) {
                 PersonaEmblem(persona, Modifier.size(EmblemSize))
             } else {
-                LoadingIndicator(Modifier.size(EmblemSize))
+                FlowSpinner(Modifier.size(EmblemSize))
             }
             Column(Modifier.weight(1f)) {
                 Text(

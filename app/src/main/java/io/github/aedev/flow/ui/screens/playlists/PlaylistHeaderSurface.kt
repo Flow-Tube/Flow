@@ -19,7 +19,7 @@ internal fun PlaylistHeaderSurface(
     artworkUrl: String,
     content: @Composable () -> Unit,
 ) {
-    val tint = rememberMediaArtworkTint(artworkUrl.takeIf(String::isNotBlank))
+    val tint = rememberMediaArtworkTint(artworkUrl.takeIf(String::isNotBlank), followsSetting = false)
     Surface(
         color = tint.container,
         contentColor = tint.onContainer,

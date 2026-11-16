@@ -188,6 +188,7 @@ class QualityManager(
                         bitrate = bestStream.bitrate.toLong(),
                         codecKey = codecKey,
                         streamKey = streamKey(bestStream),
+                        isHdr = VideoCodecUtils.isHdr(bestStream),
                     )
                 }.sortedWith(
                     compareByDescending<QualityOption> { it.height }

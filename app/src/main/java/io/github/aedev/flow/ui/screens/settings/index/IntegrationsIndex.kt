@@ -33,6 +33,23 @@ internal object IntegrationsIndex {
             revealVia = sponsorBlock.key,
             destination = page,
         )
+    val skipNotice =
+        SettingEntry(
+            key = "integrations.sponsorblock.skip_notice",
+            title = R.string.sb_skip_notice_title,
+            summary = R.string.sb_skip_notice_summary,
+            section = R.string.player_settings_sponsorblock,
+            revealVia = sponsorBlock.key,
+            destination = page,
+        )
+    val skipButtonStyle =
+        SettingEntry(
+            key = "integrations.sponsorblock.skip_button_style",
+            title = R.string.sb_skip_style_title,
+            section = R.string.player_settings_sponsorblock,
+            revealVia = sponsorBlock.key,
+            destination = page,
+        )
     val userId =
         SettingEntry(
             key = "integrations.sponsorblock.user_id",
@@ -65,6 +82,85 @@ internal object IntegrationsIndex {
             section = R.string.player_settings_dearrow,
             destination = page,
         )
+    val aiListBlock =
+        SettingEntry(
+            key = "integrations.ai_list.block",
+            title = R.string.ai_list_block_title,
+            summary = R.string.ai_list_block_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiListWarn =
+        SettingEntry(
+            key = "integrations.ai_list.warn",
+            title = R.string.ai_list_warn_title,
+            summary = R.string.ai_list_warn_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiMusicBlock =
+        SettingEntry(
+            key = "integrations.ai_music.block",
+            title = R.string.ai_music_block_title,
+            summary = R.string.ai_music_block_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiListServer =
+        SettingEntry(
+            key = "integrations.ai_list.server",
+            title = R.string.ai_list_source_title,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiMusicSoulSource =
+        SettingEntry(
+            key = "integrations.ai_music.source.soul",
+            title = R.string.ai_music_attribution_soul_title,
+            summary = R.string.ai_music_attribution_soul_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiMusicBlockerSource =
+        SettingEntry(
+            key = "integrations.ai_music.source.blocker",
+            title = R.string.ai_music_attribution_blocker_title,
+            summary = R.string.ai_music_attribution_blocker_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
+    val aiReport =
+        SettingEntry(
+            key = "integrations.ai_list.report",
+            title = R.string.ai_report_enabled_title,
+            summary = R.string.ai_report_enabled_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_report_header,
+            destination = page,
+        )
+    val aiReportName =
+        SettingEntry(
+            key = "integrations.ai_list.report_name",
+            title = R.string.ai_report_name_title,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_report_header,
+            destination = page,
+        )
+    val aiListSource =
+        SettingEntry(
+            key = "integrations.ai_list.source",
+            title = R.string.ai_list_attribution_title,
+            summary = R.string.ai_list_attribution_summary,
+            keywords = R.string.settings_keywords_ai_list,
+            section = R.string.ai_list_title,
+            destination = page,
+        )
     val dislikes =
         SettingEntry(
             key = "integrations.dislikes",
@@ -93,5 +189,27 @@ internal object IntegrationsIndex {
         )
 
     val all =
-        listOf(sponsorBlock, segments, contribute, userId, deArrow, deArrowRandomFrame, deArrowBadge, dislikes, discord, discordAccount)
+        listOf(
+            sponsorBlock,
+            segments,
+            skipNotice,
+            skipButtonStyle,
+            contribute,
+            userId,
+            deArrow,
+            deArrowRandomFrame,
+            deArrowBadge,
+            aiListBlock,
+            aiListWarn,
+            aiMusicBlock,
+            aiListServer,
+            aiListSource,
+            aiMusicSoulSource,
+            aiMusicBlockerSource,
+            aiReport,
+            aiReportName,
+            dislikes,
+            discord,
+            discordAccount,
+        )
 }

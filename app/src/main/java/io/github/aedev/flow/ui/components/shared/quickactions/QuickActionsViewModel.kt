@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiChannelReporter
+import io.github.aedev.flow.data.contentfilter.aislist.AiReportCheck
+import io.github.aedev.flow.data.contentfilter.aislist.AiReportResult
 import io.github.aedev.flow.data.engagement.LikedMediaUseCase
 import io.github.aedev.flow.data.engagement.VideoEngagementUseCase
 import io.github.aedev.flow.data.engagement.VideoFeedbackUseCase
@@ -63,6 +66,7 @@ class QuickActionsViewModel
         private val playerManager: Provider<EnhancedPlayerManager>,
         private val musicVideos: MusicVideoVersions,
         private val autoDownload: AutoDownloadTrigger,
+        private val aiReporter: AiChannelReporter,
     ) : ViewModel() {
         val watchLaterIds: StateFlow<Set<String>> =
             playlistRepository
@@ -80,6 +84,10 @@ class QuickActionsViewModel
                         .map { it.download.videoId }
                         .toSet()
                 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARING_TIMEOUT_MS), emptySet())
+
+        /** Whether the video menu offers "Report AI channel"; the viewer opts in from Settings. */
+        val aiReportEnabled: StateFlow<Boolean> =
+            aiReporter.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SHARING_TIMEOUT_MS), false)
 
         private val _messages = MutableSharedFlow<QuickActionMessage>(extraBufferCapacity = 4)
         val messages: SharedFlow<QuickActionMessage> = _messages.asSharedFlow()
@@ -264,6 +272,33 @@ class QuickActionsViewModel
             undo: QuickActionUndo? = null,
         ) {
             _messages.tryEmit(QuickActionMessage(plainText = text, undo = undo))
+        }
+
+        suspend fun checkAiReport(video: Video): AiReportCheck =
+            try {
+                aiReporter.check(video)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AiReportCheck.NoHandle
+            }
+
+        /** Sends the report after the sheet closes; the snackbar says how AiSList answered. */
+        fun sendAiReport(
+            handle: String,
+            video: Video,
+        ) {
+            viewModelScope.launch {
+                val text =
+                    when (aiReporter.submit(handle, video.id)) {
+                        AiReportResult.SENT -> R.string.ai_report_sent
+                        AiReportResult.BUSY -> R.string.ai_report_busy
+                        AiReportResult.RATE_LIMITED -> R.string.ai_report_rate_limited
+                        AiReportResult.REJECTED -> R.string.ai_report_rejected
+                        AiReportResult.FAILED -> R.string.ai_report_failed
+                    }
+                emit(text)
+            }
         }
 
         fun dismissDownload() {

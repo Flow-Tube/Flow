@@ -77,6 +77,10 @@ class CommentUiTest {
                     onSeekMs = onSeekMs,
                     onLoadReplies = {},
                     onLoadMoreReplies = {},
+                    isRepliesVisible = false,
+                    onToggleReplies = {},
+                    isExpanded = false,
+                    onExpand = {},
                 )
             }
         }
@@ -131,16 +135,14 @@ class CommentUiTest {
     }
 
     @Test
-    fun theChipsOfferEveryOrderAndTheTimedFilter() {
+    fun theChipsOfferEveryOrderIncludingTimed() {
         var selected = CommentSortFilter.TOP
-        var timed = false
         rule.setContent {
             MaterialTheme {
                 CommentSortChips(
                     selected = selected,
                     onSelect = { selected = it },
-                    timedOnly = timed,
-                    onTimedChange = { timed = it },
+                    showTimed = true,
                 )
             }
         }
@@ -152,7 +154,7 @@ class CommentUiTest {
 
         rule.onNodeWithText(string(R.string.filter_oldest)).assertIsDisplayed()
         rule.onNodeWithText(string(R.string.filter_timed)).performClick()
-        assertThat(timed).isTrue()
+        assertThat(selected).isEqualTo(CommentSortFilter.TIMED)
     }
 
     @Test

@@ -18,7 +18,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.data.profile.ProfileWork
-import io.github.aedev.flow.data.profile.SyncProfile
 import io.github.aedev.flow.sync2.data.LinkedDatabase
 import io.github.aedev.flow.sync2.lan.LanSync
 import java.util.concurrent.TimeUnit
@@ -44,6 +43,8 @@ class LinkedSyncWorker(
         fun lanSync(): LanSync
 
         fun syncIndicator(): SyncIndicator
+
+        fun autoSync(): AutoSync
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
@@ -56,13 +57,27 @@ class LinkedSyncWorker(
             cancel(applicationContext)
             return Result.success()
         }
+        val trigger =
+            workerTrigger(
+                open = tags.contains(OPEN_TAG),
+                lan = tags.contains(LAN_TAG),
+                soon = inputData.getBoolean(SOON, false),
+                announce = inputData.getBoolean(ANNOUNCE, false),
+                automatic = inputData.getBoolean(AUTOMATIC, false),
+            )
+        if (!dependencies.autoSync().allows(trigger)) {
+            cancelAutomatic(applicationContext)
+            return Result.success()
+        }
         schedule(applicationContext)
-        if (tags.contains(LAN_TAG)) {
+        if (trigger == SyncTrigger.LAN_SEARCH) {
             dependencies.lanSync().attempt()
             return Result.success()
         }
         val sync = dependencies.linkedSync()
-        if (tags.contains(OPEN_TAG) && sync.lastSync.value.let { it != null && System.currentTimeMillis() - it.atMs < OPEN_INTERVAL_MS }) {
+        if (trigger == SyncTrigger.OPEN &&
+            sync.lastSync.value.let { it != null && System.currentTimeMillis() - it.atMs < OPEN_INTERVAL_MS }
+        ) {
             return Result.success()
         }
         return if (sync.syncNow(announce = inputData.getBoolean(ANNOUNCE, false)).error?.retryable ==
@@ -82,6 +97,8 @@ class LinkedSyncWorker(
         private const val LAN_TAG = "linked_sync_lan"
         private const val SOON_NAME = "linked_sync_soon"
         private const val ANNOUNCE = "announce"
+        private const val SOON = "soon"
+        private const val AUTOMATIC = "automatic"
 
         private val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
@@ -106,9 +123,8 @@ class LinkedSyncWorker(
             }
         }
 
-        /** On app open, in the profile that syncs; the worker does nothing when this device isn't linked. */
+        /** On app open; the worker does nothing when this device isn't linked. */
         fun syncOnOpen(context: Context) {
-            if (!SyncProfile.syncsHere(context)) return
             val work =
                 OneTimeWorkRequestBuilder<LinkedSyncWorker>()
                     .setConstraints(constraints)
@@ -121,13 +137,14 @@ class LinkedSyncWorker(
 
         /**
          * Sync now and leaving the app: starts at once and outlives the screen that asked for it.
-         * [announce] for Sync now, which says what arrived.
+         * [announce] for Sync now, which says what arrived. [automatic] for a sync nobody asked for,
+         * which a device that doesn't sync automatically skips.
          */
         fun syncSoon(
             context: Context,
             announce: Boolean = false,
+            automatic: Boolean = false,
         ) {
-            if (!SyncProfile.syncsHere(context)) return
             val work =
                 OneTimeWorkRequestBuilder<LinkedSyncWorker>()
                     .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
@@ -137,10 +154,21 @@ class LinkedSyncWorker(
                             .Builder()
                             .putAll(ProfileWork.data(context))
                             .putBoolean(ANNOUNCE, announce)
+                            .putBoolean(SOON, true)
+                            .putBoolean(AUTOMATIC, automatic)
                             .build(),
                     ).addTag(ProfileWork.tag(context))
                     .build()
             WorkManager.getInstance(context).enqueueUniqueWork(SOON_NAME, ExistingWorkPolicy.KEEP, work)
+        }
+
+        /** Stops what runs on its own, and leaves Sync now and syncs already asked for alone. */
+        fun cancelAutomatic(context: Context) {
+            WorkManager.getInstance(context).run {
+                cancelUniqueWork(PERIODIC_NAME)
+                cancelUniqueWork(OPEN_NAME)
+                cancelUniqueWork(LAN_NAME)
+            }
         }
 
         fun cancel(context: Context) {

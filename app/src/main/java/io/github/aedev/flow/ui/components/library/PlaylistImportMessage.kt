@@ -12,6 +12,10 @@ internal fun PlaylistImport.message(context: Context): String =
             context.resources.getQuantityString(plural, videoCount, name, videoCount)
         }
 
+        is PlaylistImport.ImportedSeveral -> {
+            context.resources.getQuantityString(R.plurals.playlists_imported, playlistCount, playlistCount)
+        }
+
         PlaylistImport.NotAPlaylist -> {
             context.getString(R.string.playlist_import_not_a_playlist)
         }

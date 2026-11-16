@@ -2,17 +2,12 @@ package io.github.aedev.flow.ui.screens.recap.story
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
-import io.github.aedev.flow.utils.sharedFileUri
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
+import io.github.aedev.flow.utils.sharedPngUri
 
 private const val SHARE_DIR = "recap"
 private const val SHARE_FILE = "flow_recap.png"
-private const val PNG_QUALITY = 100
 
 /**
  * Shares [image] through the system sheet, with [text] alongside for apps that take only text.
@@ -25,27 +20,7 @@ internal suspend fun shareRecap(
     text: String,
     chooserTitle: String,
 ): Boolean {
-    val uri =
-        image?.let {
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    val dir = File(context.cacheDir, SHARE_DIR).apply { mkdirs() }
-                    val file = File(dir, SHARE_FILE)
-                    val bitmap =
-                        it.asAndroidBitmap().let { raw ->
-                            if (raw.config ==
-                                Bitmap.Config.HARDWARE
-                            ) {
-                                raw.copy(Bitmap.Config.ARGB_8888, false)
-                            } else {
-                                raw
-                            }
-                        }
-                    file.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, out) }
-                    sharedFileUri(context, file)
-                }.getOrNull()
-            }
-        }
+    val uri = image?.let { sharedPngUri(context, it.asAndroidBitmap(), SHARE_DIR, SHARE_FILE) }
     val send =
         Intent(Intent.ACTION_SEND).apply {
             putExtra(Intent.EXTRA_TEXT, text)

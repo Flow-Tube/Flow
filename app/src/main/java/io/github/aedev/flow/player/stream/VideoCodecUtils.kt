@@ -179,6 +179,10 @@ object VideoCodecUtils {
             ?: 0
     }
 
+    /** YouTube names an HDR format in its label ("2160p60 HDR") and never an SDR one. */
+    fun isHdr(stream: VideoStream): Boolean =
+        listOfNotNull(stream.resolution, stream.itagItem?.resolutionString).any { it.contains("HDR", ignoreCase = true) }
+
     fun frameRateFromLabel(label: String?): Int? {
         if (label.isNullOrBlank()) return null
         return FRAME_RATE_LABEL_REGEX

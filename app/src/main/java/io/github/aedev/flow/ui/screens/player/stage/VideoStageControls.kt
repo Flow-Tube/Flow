@@ -25,6 +25,7 @@ import io.github.aedev.flow.ui.components.videoplayer.settings.PlayerSettingsPag
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.SubtitleSelection
 import io.github.aedev.flow.ui.screens.player.state.hasVisibleQueue
+import io.github.aedev.flow.ui.screens.player.state.seekBarCommentMarks
 
 /** The transport controls the expanded player mounts once its surfaces are at rest. */
 @UnstableApi
@@ -33,6 +34,7 @@ internal fun VideoStageControls(
     session: VideoPlayerStageSession,
     expandedSurfacesPlaced: () -> Boolean,
     videoAspectRatio: Float,
+    resizeMode: Int,
     canGoPrevious: Boolean,
     isCommentsAvailable: Boolean,
     canUseFullscreenSidePanel: Boolean,
@@ -86,6 +88,7 @@ internal fun VideoStageControls(
     val playerManager = EnhancedPlayerManager.getInstance()
     val sponsorSegments by playerManager.sponsorSegments.collectAsState()
     val sponsorBlockOffForVideo by playerManager.sponsorBlockOffForVideo.collectAsState()
+    val isLive = !playerUiState.hlsUrl.isNullOrEmpty()
     val controlsState =
         PlayerControlsUiState(
             isVisible = screenState.showControls || screenState.isTouchLocked,
@@ -107,7 +110,7 @@ internal fun VideoStageControls(
             videoTitle = video.title,
             channelName = video.channelName,
             playbackSpeed = playerState.playbackSpeed,
-            resizeMode = screenState.resizeMode,
+            resizeMode = resizeMode,
             isFullscreen = session.isFullscreenShown,
             isPortraitFullscreen = isPortraitFullscreenLayout,
             isPipSupported =
@@ -116,6 +119,7 @@ internal fun VideoStageControls(
             chapters = playerUiState.chapters,
             storyboard = playerUiState.storyboard,
             heatmap = playerUiState.heatmap,
+            commentMarks = session.commentsUiState.seekBarCommentMarks(screenState, isLive),
             isSubtitlesEnabled = playerState.selectedSubtitleUrl != null,
             autoplayEnabled = playerUiState.autoplayEnabled,
             isLooping = playerState.isLooping,
@@ -126,7 +130,7 @@ internal fun VideoStageControls(
             isSponsorBlockAvailable = prefs.sponsorBlockEnabled && sponsorSegments.any { it.endTime > it.startTime },
             isSponsorBlockOffForVideo = sponsorBlockOffForVideo,
             isCasting = DlnaCastManager.isCasting,
-            isLive = !playerUiState.hlsUrl.isNullOrEmpty(),
+            isLive = isLive,
             isLiveChatAvailable = playerUiState.isLiveChatAvailable,
             isCommentsAvailable = isCommentsAvailable,
             isCommentsPanelOpen = screenState.activeSheet is PlayerSheet.Comments,
@@ -166,7 +170,7 @@ internal fun VideoStageControls(
             onFullscreenClick = { screenState.toggleFullscreen() },
             onResizeClick = {
                 screenState.onInteraction()
-                screenState.cycleResizeMode()
+                screenState.cycleResizeMode(resizeMode)
             },
             onPipClick = {
                 PictureInPictureHelper.requestPlayerPipMode(

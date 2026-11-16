@@ -1,10 +1,14 @@
 package io.github.aedev.flow.data.local
 
 import android.content.Context
+import android.graphics.Paint
 import android.graphics.Typeface
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -68,8 +72,25 @@ class CustomFontStore(
         file()?.delete()
     }
 
-    /** The custom font as a family, or null when the file is gone or no longer reads as a font. */
-    fun loadFamily(file: File): FontFamily? = loadTypeface(file)?.let(::FontFamily)
+    /**
+     * The custom font as a family, or null when the file is gone or no longer reads as a font.
+     *
+     * A variable font becomes one [Font] per weight, each setting the file's `wght` axis, so a
+     * heading asks for 700 and gets the font's own bold. Wrapping the file in a single Typeface
+     * drew every weight from its default instance (#1428). A static file stays one Typeface: listed
+     * as nine weights it would claim a real bold it lacks and stop Compose synthesising one.
+     */
+    fun loadFamily(file: File): FontFamily? {
+        val base = loadTypeface(file) ?: return null
+        if (!base.supportsAxis(WEIGHT_AXIS)) return FontFamily(base)
+        val styles = if (base.supportsAxis(ITALIC_AXIS)) listOf(FontStyle.Normal, FontStyle.Italic) else listOf(FontStyle.Normal)
+        return runCatching {
+            FontFamily(styles.flatMap { style -> FontWeights.map { weight -> Font(file, weight, style) } })
+        }.getOrElse { FontFamily(base) }
+    }
+
+    /** `Paint` refuses variation settings naming an axis no font in the typeface has. */
+    private fun Typeface.supportsAxis(tag: String): Boolean = Paint().also { it.typeface = this }.setFontVariationSettings("'$tag' 400")
 
     private fun describe(uri: Uri): Pair<String?, Long?> =
         runCatching {
@@ -113,6 +134,20 @@ class CustomFontStore(
         private const val INCOMING = "incoming.tmp"
         private const val BUFFER_SIZE = 64 * 1024
         private val Extensions = setOf("ttf", "otf")
+        private const val WEIGHT_AXIS = "wght"
+        private const val ITALIC_AXIS = "ital"
+        private val FontWeights =
+            listOf(
+                FontWeight.W100,
+                FontWeight.W200,
+                FontWeight.W300,
+                FontWeight.W400,
+                FontWeight.W500,
+                FontWeight.W600,
+                FontWeight.W700,
+                FontWeight.W800,
+                FontWeight.W900,
+            )
 
         /** The lowercase extension when [name] is a TrueType or OpenType file name, else null. */
         fun fontExtension(name: String?): String? =

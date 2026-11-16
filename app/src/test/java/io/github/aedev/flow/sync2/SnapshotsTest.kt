@@ -6,6 +6,7 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.changes.IncomingBatch
+import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.crypto.Purpose
 import io.github.aedev.flow.sync2.crypto.decodePayload
 import io.github.aedev.flow.sync2.crypto.purposeKey
@@ -19,6 +20,7 @@ import io.github.aedev.flow.sync2.roster.Op
 import io.github.aedev.flow.sync2.roster.Role
 import io.github.aedev.flow.sync2.roster.buildEntry
 import io.github.aedev.flow.sync2.roster.memberSubject
+import io.github.aedev.flow.sync2.store.MAX_SEQ
 import io.github.aedev.flow.sync2.store.StorePaths
 import io.github.aedev.flow.sync2.store.parseObject
 import kotlinx.coroutines.test.runTest
@@ -47,9 +49,9 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val session = Session.open(g.deviceDb(), g.store, g.a)
-            session.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            session.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             val firstHash = SyncBytes.toHex(sha256(checkNotNull(g.store.objects[StorePaths.log(SyncBytes.toHex(g.a.did), 1)]).second))
-            session.writeSnapshot(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            session.writeSnapshot(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             assertEquals(2L, session.record.ownSeq)
 
             val bytes = checkNotNull(g.store.objects[StorePaths.log(SyncBytes.toHex(g.a.did), 2)]).second
@@ -81,6 +83,15 @@ class SnapshotsTest {
         }
 
     @Test
+    fun a_manifest_naming_a_seq_above_2_53_is_refused() {
+        val manifest = { seq: Long -> """{"head":"h","link":null,"parts":[],"vv":{"a":{"hash":"x","seq":$seq}}}""".toByteArray() }
+        assertEquals(MAX_SEQ, parseManifest(manifest(MAX_SEQ)).vv.getValue("a").seq)
+        for (seq in listOf(MAX_SEQ + 1, Long.MAX_VALUE, -1)) {
+            assertEquals("range", (runCatching { parseManifest(manifest(seq)) }.exceptionOrNull() as ProtocolException).error.code)
+        }
+    }
+
+    @Test
     fun records_are_split_below_the_blob_limit() {
         val record = "x".repeat(2 * 1024 * 1024 / 3)
         val split = chunks(List(7) { record })
@@ -93,10 +104,10 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val a = Session.open(g.deviceDb(), g.store, g.a)
-            a.push(watched("aaaaaaaaaaa"))
-            a.writeSnapshot(watched("aaaaaaaaaaa"))
-            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
-            val pulled = Session.open(g.deviceDb(), g.store, g.b).pull()
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
+            val pulled = Session.open(g.deviceDb(), g.store, g.b).pull(setOf(LINK))
             assertEquals(listOf("aaaaaaaaaaa", "bbbbbbbbbbb"), videos(pulled.batches.values))
         }
 
@@ -105,9 +116,9 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val a = Session.open(g.deviceDb(), g.store, g.a)
-            a.push(watched("aaaaaaaaaaa"))
-            a.writeSnapshot(watched("aaaaaaaaaaa"))
-            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             g.store.take(StorePaths.log(SyncBytes.toHex(g.a.did), 1))
 
             val c = newMember()
@@ -122,16 +133,31 @@ class SnapshotsTest {
             g.store.appendRoster(state.head, add, wraps(g.group, 0, g.epochKey, listOf(c)), null)
             val db = g.deviceDb()
             val reader = Session.open(db, g.store, c)
-            val pulled = reader.pull()
+            val pulled = reader.pull(setOf(LINK))
             assertEquals(listOf("aaaaaaaaaaa", "bbbbbbbbbbb"), videos(pulled.batches.values))
             reader.finish(pulled)
             assertTrue(
                 Session
                     .open(db, g.store, c)
-                    .pull()
+                    .pull(setOf(LINK))
                     .batches
                     .isEmpty(),
             )
+        }
+
+    @Test
+    fun a_new_device_starts_from_the_snapshot_behind_a_tampered_object() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val a = Session.open(g.deviceDb(), g.store, g.a)
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
+            g.store.take(StorePaths.log(SyncBytes.toHex(g.a.did), 1))
+            val last = StorePaths.log(SyncBytes.toHex(g.a.did), 3)
+            g.store.put(last, g.store.take(last).also { it[it.size - 70] = (it[it.size - 70] + 1).toByte() })
+            val pulled = Session.open(g.deviceDb(), g.store, g.b).pull(setOf(LINK))
+            assertEquals(listOf("aaaaaaaaaaa"), videos(pulled.batches.values))
         }
 
     @Test
@@ -139,15 +165,42 @@ class SnapshotsTest {
         runTest {
             val g = LinkedGroup(this).apply { create() }
             val a = Session.open(g.deviceDb(), g.store, g.a)
-            a.push(watched("aaaaaaaaaaa"))
-            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"))
+            a.push(watched("aaaaaaaaaaa"), LINK)
+            a.push(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
             g.store.take(StorePaths.log(SyncBytes.toHex(g.a.did), 1))
             assertTrue(
                 Session
                     .open(g.deviceDb(), g.store, g.b)
-                    .pull()
+                    .pull(setOf(LINK))
                     .batches
                     .isEmpty(),
             )
+        }
+
+    @Test
+    fun a_new_device_falls_back_to_an_older_snapshot_when_a_blob_is_bad() =
+        runTest {
+            val breaks =
+                listOf<(MemoryStore, String) -> Unit>(
+                    { store, path -> store.take(path) },
+                    { store, path -> store.put(path, store.take(path).also { it[it.size - 1] = (it[it.size - 1] + 1).toByte() }) },
+                )
+            for (bad in breaks) {
+                val g = LinkedGroup(this).apply { create() }
+                val did = SyncBytes.toHex(g.a.did)
+                val a = Session.open(g.deviceDb(), g.store, g.a)
+                a.push(watched("aaaaaaaaaaa"), LINK)
+                a.writeSnapshot(watched("aaaaaaaaaaa"), LINK)
+                a.push(watched("bbbbbbbbbbb"), LINK)
+                a.writeSnapshot(watched("aaaaaaaaaaa", "bbbbbbbbbbb"), LINK)
+                a.push(watched("ccccccccccc"), LINK)
+                g.store.take(StorePaths.log(did, 1))
+                val newest = parseObject(checkNotNull(g.store.objects[StorePaths.log(did, 4)]).second, g.group)
+                val manifest = parseManifest(decodePayload(newest.open(purposeKey(g.epochKey, g.group, 0, Purpose.SNAPSHOT))))
+                bad(g.store, StorePaths.blob(did, manifest.parts.single().blob))
+
+                val pulled = Session.open(g.deviceDb(), g.store, g.b).pull(setOf(LINK))
+                assertEquals(listOf("aaaaaaaaaaa", "bbbbbbbbbbb", "ccccccccccc"), videos(pulled.batches.values).distinct())
+            }
         }
 }

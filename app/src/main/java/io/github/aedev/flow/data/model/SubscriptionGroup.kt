@@ -14,3 +14,14 @@ fun SubscriptionGroupEntity.toUiModel() =
         channelIds = if (channelIds.isBlank()) emptyList() else channelIds.split(",").filter { it.isNotBlank() },
         sortOrder = sortOrder,
     )
+
+/** This group with [channelId] added or removed, keeping the other members in their stored order. */
+fun SubscriptionGroupEntity.withMember(
+    channelId: String,
+    inGroup: Boolean,
+): SubscriptionGroupEntity {
+    val members = toUiModel().channelIds.toMutableList()
+    members.remove(channelId)
+    if (inGroup) members.add(channelId)
+    return copy(channelIds = members.joinToString(","))
+}

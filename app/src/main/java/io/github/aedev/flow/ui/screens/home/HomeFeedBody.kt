@@ -1,25 +1,12 @@
 package io.github.aedev.flow.ui.screens.home
 
+import android.os.SystemClock
 import androidx.activity.compose.ReportDrawnWhen
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallExtendedFloatingActionButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -33,7 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
@@ -43,17 +34,13 @@ import io.github.aedev.flow.ui.components.shared.FeedGridSkeleton
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipContent
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipsState
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
-private const val IMPRESSION_DEBOUNCE_MS = 500L
 private const val SKELETON_CARD_COUNT = 12
-private val NewVideosTopPadding = 8.dp
-private val NewVideosIconSpacing = 8.dp
 
 /** The main feed's scroll position and one per chip, each kept for the session. */
 @Stable
@@ -77,7 +64,6 @@ internal fun rememberHomeGridStates(): HomeGridStates {
  * What keeps the feed fed while Home shows: visibility, the viewport-driven prefetch, dwelt-in-view
  * impressions, and the tab reselect that scrolls up and then refreshes. Shared by the phone and TV Home.
  */
-@OptIn(FlowPreview::class)
 @Composable
 internal fun HomeFeedEffects(
     viewModel: HomeViewModel,
@@ -122,11 +108,22 @@ internal fun HomeFeedEffects(
             }
     }
 
-    // Viewport impressions: only items dwelt in view are recorded as "shown".
-    LaunchedEffect(gridState) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.mapNotNull { it.key as? String } }
-            .debounce(IMPRESSION_DEBOUNCE_MS)
-            .collect { viewModel.recordImpressions(it) }
+    // Viewport impressions, counted per card while Home is resumed (#1565).
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(gridState, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            val dwell = ImpressionDwell()
+            snapshotFlow { gridState.layoutInfo.halfVisibleKeys() }
+                .distinctUntilChanged()
+                .collectLatest { visible ->
+                    while (true) {
+                        val now = SystemClock.uptimeMillis()
+                        val due = dwell.update(visible, now)
+                        if (due.isNotEmpty()) viewModel.recordImpressions(due)
+                        delay(dwell.millisUntilNextDue(now) ?: break)
+                    }
+                }
+        }
     }
 
     LaunchedEffect(refreshHomeOnReselect) {
@@ -141,6 +138,7 @@ internal fun HomeFeedEffects(
                 } else if (refreshHomeOnReselect) {
                     if (currentChips.isAll) viewModel.refreshFeed() else viewModel.refreshSelectedChip()
                 }
+                TabScrollEventBus.emitScrolledToTop("home")
             }
     }
 }
@@ -167,6 +165,7 @@ internal fun HomeFeedBody(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val newVideosButtonEnabled by viewModel.newVideosButtonEnabled.collectAsStateWithLifecycle()
     when {
         !homeFeedEnabled -> {
             HomeFeedDisabledState(modifier = Modifier.fillMaxSize())
@@ -232,7 +231,7 @@ internal fun HomeFeedBody(
                     showShorts = showShorts,
                 )
                 HomeNewVideosButton(
-                    visible = uiState.pendingFeed != null,
+                    visible = uiState.pendingFeed != null && newVideosButtonEnabled,
                     onClick = {
                         viewModel.showNewVideos()
                         scope.launch { gridStates.feed.scrollToItem(0) }
@@ -240,28 +239,6 @@ internal fun HomeFeedBody(
                     modifier = Modifier.align(Alignment.TopCenter),
                 )
             }
-        }
-    }
-}
-
-/** Shown while a newer feed waits behind the cached cards of a launch (#1447). */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun HomeNewVideosButton(
-    visible: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + scaleIn(MaterialTheme.motionScheme.defaultSpatialSpec()),
-        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
-        modifier = modifier.padding(top = NewVideosTopPadding),
-    ) {
-        SmallExtendedFloatingActionButton(onClick = onClick, shape = CircleShape) {
-            Icon(imageVector = Icons.Rounded.ArrowUpward, contentDescription = null)
-            Spacer(Modifier.width(NewVideosIconSpacing))
-            Text(text = stringResource(R.string.home_new_videos))
         }
     }
 }

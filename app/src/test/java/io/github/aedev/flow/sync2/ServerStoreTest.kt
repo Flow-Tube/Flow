@@ -7,6 +7,7 @@ import io.github.aedev.flow.sync2.crypto.verify
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.Op
+import io.github.aedev.flow.sync2.roster.canonicalEntry
 import io.github.aedev.flow.sync2.store.Appended
 import io.github.aedev.flow.sync2.store.ServerStore
 import io.github.aedev.flow.sync2.store.StoreException
@@ -16,6 +17,7 @@ import io.ktor.server.request.path
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -36,6 +38,7 @@ class ServerStoreTest {
     /** Answers the sign-in, issuing `t1`, `t2`, … only for a valid signature, and [routes] for the rest. */
     private fun serve(
         instance: String = instanceId,
+        expires: Long = Long.MAX_VALUE / 2,
         routes: suspend ApplicationCall.() -> Unit,
     ) {
         val nonce = ByteArray(32) { 5 }
@@ -54,7 +57,7 @@ class ServerStoreTest {
                         val message = tag("auth") + SyncBytes.fromHex(instance) + SyncBytes.fromHex(groupId) + nonce
                         val signature = SyncBytes.b64urlDecode(body.getValue("sig").jsonPrimitive.content)
                         if (verify(member.sigPublic, message, signature)) {
-                            respondJson(200, """{"token":"t${++issued}","expires":${Long.MAX_VALUE / 2}}""")
+                            respondJson(200, """{"token":"t${++issued}","expires":$expires}""")
                         } else {
                             respondJson(401, """{"error":"unauthorized"}""")
                         }
@@ -108,6 +111,20 @@ class ServerStoreTest {
         }
 
     @Test
+    fun the_next_store_reuses_the_token_until_it_nearly_expires() =
+        runTest {
+            serve { respondJson(200, """{"entries":[]}""") }
+            store().rosterAfter(-1)
+            store().rosterAfter(-1)
+            assertEquals(1, issued)
+            stop()
+            serve(expires = System.currentTimeMillis() + 30_000) { respondJson(200, """{"entries":[]}""") }
+            store().rosterAfter(-1)
+            store().rosterAfter(-1)
+            assertEquals(3, issued)
+        }
+
+    @Test
     fun a_different_instance_is_refused() {
         serve(instance = "ff".repeat(16)) { respondJson(200, """{"entries":[]}""") }
         runTest {
@@ -142,11 +159,95 @@ class ServerStoreTest {
         }
 
     @Test
+    fun answers_past_their_limit_are_refused() =
+        runTest {
+            val object4MiB = 4 * 1024 * 1024
+            serve {
+                when (request.path()) {
+                    "/v1/objects/fits" -> respondBytes(ByteArray(object4MiB))
+                    "/v1/objects/big" -> respondBytes(ByteArray(object4MiB + 1))
+                    else -> respondJson(200, """{"objects":[],"cursor":"1","pad":"${"x".repeat(16 * 1024 * 1024)}"}""")
+                }
+            }
+            assertEquals(object4MiB, store().getObject("fits")?.size)
+            assertTrue(runCatching { store().getObject("big") }.exceptionOrNull() is StoreException.TooLarge)
+            assertTrue(runCatching { store().changes(0) }.exceptionOrNull() is StoreException.TooLarge)
+        }
+
+    @Test
+    fun a_roster_past_its_limit_is_refused() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val entry = canonicalEntry(g.store.roster.first())
+            var pages = 0
+            serve {
+                val page = ++pages
+                val entries = (1..1000).map { entry.replaceFirst(Regex("\"seq\":\\d+"), "\"seq\":${(page - 1) * 1000 + it}") }
+                respondJson(200, if (page > 10) """{"entries":[]}""" else """{"entries":$entries}""")
+            }
+            val error = runCatching { store().rosterView() }.exceptionOrNull()
+            assertTrue("$error", error is StoreException.Malformed)
+        }
+
+    @Test
     fun the_status_says_when_each_device_was_last_seen() =
         runTest {
             serve { respondJson(200, """{"used":0,"quota":0,"objects":0,"devices":{"aa":{"seen":5},"bb":{"seen":7}}}""") }
             assertEquals(mapOf("aa" to 5L, "bb" to 7L), store().seen())
         }
+
+    @Test
+    fun a_device_the_server_no_longer_lets_sign_in_is_told_so() {
+        server =
+            StandInServer {
+                when (request.path()) {
+                    "/v1/auth/challenge" -> {
+                        respondJson(
+                            200,
+                            """{"challenge":"${SyncBytes.b64urlEncode(
+                                ByteArray(32),
+                            )}","instance":"$instanceId","group":"$groupId","time":0}""",
+                        )
+                    }
+
+                    else -> {
+                        respondJson(401, """{"error":"unauthorized"}""")
+                    }
+                }
+            }
+        runTest {
+            val error = runCatching { store().rosterAfter(-1) }.exceptionOrNull()
+            assertTrue("$error", error is StoreException.SignInRefused)
+        }
+    }
+
+    @Test
+    fun a_reset_confirms_with_the_admin_token_and_a_wrong_token_or_a_ban_is_said_plainly() {
+        var body = ""
+        server =
+            StandInServer {
+                when (request.headers["Authorization"]) {
+                    "Bearer admin" -> {
+                        body = receiveText()
+                        respond(HttpStatusCode.NoContent)
+                    }
+
+                    "Bearer banned" -> {
+                        respondJson(429, """{"error":"rate_limited"}""")
+                    }
+
+                    else -> {
+                        respondJson(401, """{"error":"unauthorized"}""")
+                    }
+                }
+            }
+        runTest {
+            store().resetServer("admin")
+            assertEquals("""{"confirm":"reset"}""", body)
+            assertTrue(runCatching { store().resetServer("wrong") }.exceptionOrNull() is StoreException.AdminRefused)
+            assertTrue(runCatching { store().resetServer("banned") }.exceptionOrNull() is StoreException.AdminBlocked)
+        }
+    }
 
     @Test
     fun redirects_are_not_followed() {

@@ -63,6 +63,7 @@ class BackupRulesTest {
             "flow_music_brain_v1.json",
             "sync_identity",
             "linked_device",
+            "linked_lan_met",
             "sync_brain_crdt",
             "sync_music_brain_crdt",
             "scrobbling",
@@ -77,6 +78,7 @@ class BackupRulesTest {
             "widget_theme",
             "downloads",
             "animated_artwork",
+            "playback_errors",
             "flow_file_tombstones",
             "music_home_cache_prefs",
         )

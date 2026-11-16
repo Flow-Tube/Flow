@@ -46,6 +46,7 @@ class PlayerErrorHandler(
     private val onStreamExpired: () -> Unit,
     private val onPlaybackAbandoned: () -> Unit,
     private val onDecoderGaveUp: () -> Unit,
+    private val rememberPlaybackForRecovery: () -> Unit,
     private val onGatedCodecFallback: (Long) -> Boolean,
     private val getFailedStreamUrls: () -> Set<String>,
     private val markStreamFailed: (String) -> Unit,
@@ -55,7 +56,7 @@ class PlayerErrorHandler(
     private val getManualQualityHeight: () -> Int?,
     private val getCurrentVideoStream: () -> VideoStream?,
     private val getCurrentAudioStream: () -> AudioStream?,
-    private val getAvailableAudioStreams: () -> List<AudioStream>,
+    private val getAllAudioStreams: () -> List<AudioStream>,
     private val setCurrentAudioStream: (AudioStream) -> Unit,
     private val setRecoveryState: () -> Unit,
     private val reloadPlaybackManager: () -> Unit,
@@ -391,24 +392,6 @@ class PlayerErrorHandler(
                 error.errorCode == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED ||
                 error.message?.contains("AudioRenderer", ignoreCase = true) == true
 
-        if (isAudioError && getCurrentAudioStream()?.getContent() != null) {
-            markStreamFailed(getCurrentAudioStream()!!.getContent())
-            val failedUrls = getFailedStreamUrls()
-            val alternativeAudio =
-                getAvailableAudioStreams()
-                    .filter { !failedUrls.contains(it.getContent()) }
-                    .sortedByDescending { it.averageBitrate }
-                    .firstOrNull()
-            if (alternativeAudio != null) {
-                setCurrentAudioStream(alternativeAudio)
-                Log.d(TAG, "Switching to alternative audio: ${alternativeAudio.format?.mimeType}")
-                PlayerDiagnostics.logInfo(TAG, "Switched to backup audio track: ${alternativeAudio.format?.mimeType}")
-                setRecoveryState()
-                reloadPlaybackManager()
-                return false
-            }
-        }
-
         if (player != null &&
             decoderRecovery.onDecoderError(error.errorCode, error.isFormatHandled()) ==
             VideoDecoderRecoveryPolicy.Decision.REPREPARE
@@ -420,7 +403,23 @@ class PlayerErrorHandler(
             return true
         }
 
+        val failedAudio = getCurrentAudioStream()?.takeIf { it.getContent() != null }
+        if (isAudioError && failedAudio != null) {
+            markStreamFailed(failedAudio.getContent())
+            val alternativeAudio = AudioRecoveryPick.pick(getAllAudioStreams(), failedAudio, getFailedStreamUrls())
+            if (alternativeAudio != null) {
+                setCurrentAudioStream(alternativeAudio)
+                Log.d(TAG, "Switching to alternative audio: ${alternativeAudio.format?.mimeType}")
+                PlayerDiagnostics.logInfo(TAG, "Switched to backup audio track: ${alternativeAudio.format?.mimeType}")
+                setRecoveryState()
+                reloadPlaybackManager()
+                return false
+            }
+        }
+
         Log.e(TAG, "Decoder error — no alternatives available, stopping playback")
+        // A device fault, not a broken stream: keep the place so Play, Retry and a quality change resume it.
+        rememberPlaybackForRecovery()
         onPlaybackShutdown()
         stateFlow.value =
             stateFlow.value.copy(

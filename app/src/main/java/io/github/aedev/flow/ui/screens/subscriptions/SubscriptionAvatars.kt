@@ -2,9 +2,12 @@ package io.github.aedev.flow.ui.screens.subscriptions
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -21,7 +24,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,9 +41,13 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.ChannelGroupBadge
+import io.github.aedev.flow.ui.components.shared.FlowNewBadge
 import io.github.aedev.flow.ui.components.shared.flowArtistShape
 import io.github.aedev.flow.ui.components.shared.focusLift
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.titleMarquee
+import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
+import io.github.aedev.flow.ui.components.shared.toOrganizeTarget
 
 private val AvatarItemWidth = 64.dp
 private val AvatarSize = 56.dp
@@ -45,6 +55,7 @@ private val BadgeOffset = 2.dp
 private val BadgeIconSize = 12.dp
 private val BadgePadding = 4.dp
 private val LabelSpacing = 4.dp
+private val NewBadgeSpacing = 3.dp
 
 /**
  * Music subscriptions wear the artist shape used across the music surfaces; video channels stay
@@ -58,20 +69,39 @@ internal fun ChannelAvatarItem(
     channel: Channel,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
+    hasNewUploads: Boolean = false,
+    onTogglePin: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    var menuOpen by remember { mutableStateOf(false) }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
             modifier
                 .width(AvatarItemWidth)
                 .focusLift(interactionSource)
-                .clickable(
+                .combinedClickable(
                     interactionSource = interactionSource,
                     indication = ripple(focusRingShape = MaterialTheme.shapes.medium),
                     onClick = onClick,
+                    onLongClick = onTogglePin?.let { { menuOpen = true } },
                 ),
     ) {
+        if (onTogglePin != null) {
+            SubscriptionChannelMenu(
+                expanded = menuOpen,
+                isPinned = isPinned,
+                onDismiss = { menuOpen = false },
+                onTogglePin = onTogglePin,
+                onOpenChannel = onClick,
+                organize =
+                    rememberChannelOrganizeActions(
+                        target = remember(channel) { channel.takeUnless { it.isMusic }?.toOrganizeTarget() },
+                        isSubscribed = true,
+                    ),
+            )
+        }
         Box(
             modifier = Modifier.size(AvatarSize),
             contentAlignment = Alignment.Center,
@@ -98,15 +128,21 @@ internal fun ChannelAvatarItem(
             }
         }
         Spacer(modifier = Modifier.height(LabelSpacing))
-        Text(
-            text = channel.name,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.titleMarquee(),
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(NewBadgeSpacing),
+        ) {
+            Text(
+                text = channel.name,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = titleMarqueeOverflow(),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f, fill = false).titleMarquee(),
+            )
+            if (hasNewUploads) FlowNewBadge()
+        }
     }
 }
 

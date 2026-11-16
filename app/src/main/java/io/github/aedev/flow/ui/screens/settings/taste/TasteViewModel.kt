@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.backup.BackupCoordinator
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.dao.WatchHistoryDao
 import io.github.aedev.flow.data.recommendation.BlockedChannelNames
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -141,6 +143,7 @@ class TasteViewModel
         private val neighbours: NeighbourChannelsRepository,
         private val preferences: PlayerPreferences,
         private val blockedNames: BlockedChannelNames,
+        private val aiList: AiListRepository,
     ) : SettingsViewModel() {
         private val _state = MutableStateFlow(TasteState())
         private var resolveJob: Job? = null
@@ -156,6 +159,14 @@ class TasteViewModel
                 DeepFlowState(active = active, activatedAt = activatedAt, expireHours = expireHours)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DeepFlowState())
         val operation = backup.operation
+
+        /** Channels shown despite the AI list, from the banner on their page. */
+        val allowedAiChannels: StateFlow<List<NamedItem>> =
+            aiList.allowedChannels
+                .map { channels -> channels.map { NamedItem(it.id, it.name) } }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+        fun hideAiChannelAgain(channelId: String) = write { aiList.disallow(channelId) }
 
         init {
             reload()

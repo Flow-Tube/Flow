@@ -51,6 +51,7 @@ import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.innertube.models.YTItem
 import io.github.aedev.flow.ui.components.music.common.rememberMusicArtworkColors
 import io.github.aedev.flow.ui.components.shared.flowArtistShape
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 
 private val TopResultArtworkSize = 104.dp
 private const val SUBTITLE_ALPHA = 0.8f
@@ -78,6 +79,7 @@ fun TopResultCard(
             modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
+                .then(if (onLongClick != null) Modifier.onMenuKey(onLongClick) else Modifier)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick,

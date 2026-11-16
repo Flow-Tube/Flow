@@ -1,8 +1,6 @@
 package io.github.aedev.flow.player.dlna
 
 import android.content.Context
-import android.net.wifi.WifiManager
-import android.os.SystemClock
 import android.util.Log
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import kotlinx.coroutines.CancellationException
@@ -16,20 +14,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.VideoStream
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
-import java.net.DatagramPacket
-import java.net.InetAddress
-import java.net.MulticastSocket
-import java.net.URI
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -50,12 +39,8 @@ import java.util.concurrent.TimeUnit
  */
 object DlnaCastManager {
     private const val TAG = "DlnaCastManager"
-    private const val SSDP_ADDR = "239.255.255.250"
-    private const val SSDP_PORT = 1900
-    private const val DISCOVERY_TIMEOUT_MS = 5_000L
     private const val STOP_TIMEOUT_MS = 5_000L
     private const val SEGMENTED_START_TIMEOUT_MS = 10_000L
-    private val SOAP_TYPE = "text/xml; charset=\"utf-8\"".toMediaType()
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val http =
@@ -77,7 +62,8 @@ object DlnaCastManager {
     val isCasting: Boolean get() = _currentDevice.value != null
 
     private var discoveryJob: Job? = null
-    private var multicastLock: WifiManager.MulticastLock? = null
+    private val discovery = SsdpDiscovery(http, scope)
+    internal val transport = DlnaTransport(http)
 
     private val proxy = StreamProxyServer.getInstance()
 
@@ -89,6 +75,11 @@ object DlnaCastManager {
 
     private var positionPollingJob: Job? = null
 
+    private val _castsSong = MutableStateFlow(false)
+
+    /** Whether the current cast is the music queue's song, which [DlnaMusicDriver] follows itself. */
+    val castsSong: StateFlow<Boolean> = _castsSong.asStateFlow()
+
     private enum class CastMode { SEGMENTED_AV1, SEGMENTED, WHOLE_FILE, MUXED }
 
     // In memory only: the first cast to a renderer after an app start probes the ladder again.
@@ -97,26 +88,20 @@ object DlnaCastManager {
 
     // ── Discovery ──────────────────────────────────────────────────────────────
 
-    /**
-     * Sends an SSDP M-SEARCH and collects AVTransport responses for
-     * [DISCOVERY_TIMEOUT_MS] ms, then resolves each device description to
-     * populate the control URL.
-     */
+    /** Searches the network with [SsdpDiscovery] and lists each renderer once it is resolved. */
     fun startDiscovery(context: Context) {
         discoveryJob?.cancel()
         _devices.value = emptyList()
 
         // Start the proxy server when discovery begins
-        proxy.start(context)
+        proxy.start()
 
         discoveryJob =
             scope.launch {
                 _isDiscovering.value = true
-                acquireMulticastLock(context)
                 try {
-                    discoverDevices()
+                    discovery.discover(context, ::addResolvedDevice)
                 } finally {
-                    releaseMulticastLock()
                     _isDiscovering.value = false
                 }
             }
@@ -125,166 +110,14 @@ object DlnaCastManager {
     fun stopDiscovery() {
         discoveryJob?.cancel()
         discoveryJob = null
-        releaseMulticastLock()
         _isDiscovering.value = false
     }
 
-    private suspend fun discoverDevices() {
-        val found = LinkedHashMap<String, DlnaDevice>()
-        val mSearchQuery =
-            buildString {
-                append("M-SEARCH * HTTP/1.1\r\n")
-                append("HOST: $SSDP_ADDR:$SSDP_PORT\r\n")
-                append("MAN: \"ssdp:discover\"\r\n")
-                append("MX: 3\r\n")
-                append("ST: urn:schemas-upnp-org:service:AVTransport:1\r\n")
-                append("\r\n")
-            }.toByteArray(Charsets.UTF_8)
-
-        try {
-            withTimeout(DISCOVERY_TIMEOUT_MS + 1_000L) {
-                MulticastSocket(0).use { socket ->
-                    socket.soTimeout = DISCOVERY_TIMEOUT_MS.toInt()
-                    val group = InetAddress.getByName(SSDP_ADDR)
-                    socket.joinGroup(group)
-
-                    socket.send(
-                        DatagramPacket(mSearchQuery, mSearchQuery.size, group, SSDP_PORT),
-                    )
-
-                    val buf = ByteArray(4096)
-                    val packet = DatagramPacket(buf, buf.size)
-                    val stop = SystemClock.elapsedRealtime() + DISCOVERY_TIMEOUT_MS
-                    while (SystemClock.elapsedRealtime() < stop) {
-                        try {
-                            socket.receive(packet)
-                            val response = String(packet.data, 0, packet.length, Charsets.UTF_8)
-                            parseSSDP(response)?.let { raw ->
-                                if (!found.containsKey(raw.usn)) {
-                                    found[raw.usn] = raw
-                                    scope.launch {
-                                        val resolved = resolveDevice(raw)
-                                        if (resolved != null) {
-                                            val current = _devices.value.toMutableList()
-                                            val idx = current.indexOfFirst { it.usn == resolved.usn }
-                                            if (idx >= 0) current[idx] = resolved else current.add(resolved)
-                                            _devices.value = current
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (_: Exception) {
-                            // timeout on receive is normal
-                        }
-                    }
-                    socket.leaveGroup(group)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "SSDP discovery error: ${e.message}")
-        }
-    }
-
-    private fun parseSSDP(response: String): DlnaDevice? {
-        var location: String? = null
-        var usn: String? = null
-        for (line in response.lines()) {
-            val lower = line.lowercase()
-            when {
-                lower.startsWith("location:") -> location = line.substringAfter(":").trim()
-                lower.startsWith("usn:") -> usn = line.substringAfter(":").trim()
-            }
-        }
-        if (location.isNullOrBlank()) return null
-        return DlnaDevice(
-            friendlyName = location,
-            location = location,
-            usn = usn ?: location,
-        )
-    }
-
-    private fun resolveDevice(device: DlnaDevice): DlnaDevice? {
-        return try {
-            val descriptionUrl = URL(device.location)
-            val xml =
-                http
-                    .newCall(Request.Builder().url(device.location).build())
-                    .execute()
-                    .use { it.body?.string() ?: "" }
-
-            var friendlyName = device.friendlyName
-            var urlBaseFromXml: String? = null
-            var avTransportControlPath: String? = null
-            var inAVTransport = false
-            var inServiceType = false
-            var inControlUrl = false
-
-            val factory = XmlPullParserFactory.newInstance()
-            val parser = factory.newPullParser()
-            parser.setInput(xml.reader())
-
-            var event = parser.eventType
-            while (event != XmlPullParser.END_DOCUMENT) {
-                when (event) {
-                    XmlPullParser.START_TAG -> {
-                        val tag = parser.name.lowercase()
-                        when (tag) {
-                            "friendlyname" -> {
-                                event = parser.next()
-                                if (event == XmlPullParser.TEXT) friendlyName = parser.text.trim()
-                            }
-
-                            "urlbase" -> {
-                                event = parser.next()
-                                if (event == XmlPullParser.TEXT) urlBaseFromXml = parser.text.trim()
-                            }
-
-                            "servicetype" -> {
-                                inServiceType = true
-                            }
-
-                            "controlurl" -> {
-                                if (inAVTransport) inControlUrl = true
-                            }
-                        }
-                    }
-
-                    XmlPullParser.TEXT -> {
-                        when {
-                            inServiceType -> {
-                                if (parser.text.lowercase().contains("avtransport")) inAVTransport = true
-                                inServiceType = false
-                            }
-
-                            inControlUrl -> {
-                                avTransportControlPath = parser.text.trim()
-                                inControlUrl = false
-                            }
-                        }
-                    }
-
-                    XmlPullParser.END_TAG -> {
-                        if (parser.name.lowercase() == "service") inAVTransport = false
-                    }
-                }
-                event = parser.next()
-            }
-
-            if (avTransportControlPath == null) {
-                Log.w(TAG, "No AVTransport service found at ${device.location}")
-                return null
-            }
-            val controlUrl =
-                resolveControlUrl(
-                    descriptionUrl = descriptionUrl,
-                    urlBase = urlBaseFromXml,
-                    controlPath = avTransportControlPath,
-                )
-            device.copy(friendlyName = friendlyName, avTransportUrl = controlUrl)
-        } catch (e: Exception) {
-            Log.e(TAG, "resolveDevice failed for ${device.location}: ${e.message}")
-            null
-        }
+    private fun addResolvedDevice(resolved: DlnaDevice) {
+        val current = _devices.value.toMutableList()
+        val idx = current.indexOfFirst { it.usn.substringBefore("::") == resolved.usn.substringBefore("::") }
+        if (idx >= 0) current[idx] = resolved else current.add(resolved)
+        _devices.value = current
     }
 
     // ── Control ────────────────────────────────────────────────────────────────
@@ -304,6 +137,7 @@ object DlnaCastManager {
      *
      * @param currentPlayerUrl the currently-playing media URI, supplied by the caller so this
      *   manager stays decoupled from the player engine; used as a last-resort fallback.
+     * @return false when the video has no stream a renderer can be sent, so nothing is cast.
      */
     fun castStreamInfo(
         device: DlnaDevice,
@@ -313,7 +147,7 @@ object DlnaCastManager {
         audioStreams: List<AudioStream>,
         muxedStreams: List<VideoStream>,
         durationSeconds: Long,
-    ) {
+    ): Boolean {
         // Renderers fail playlists that mix codecs, so each playlist carries a single variant.
         fun bestVariants(codecKey: String): List<CastStreamVariant> =
             listOfNotNull(
@@ -372,11 +206,13 @@ object DlnaCastManager {
         val deviceKey = device.usn.substringBefore("::")
         // A mode is skipped only once it failed on this renderer, never because a video lacked it.
         val ladder = (modes - failedCastModes[deviceKey].orEmpty()).ifEmpty { modes }
-        if (ladder.isEmpty()) return
+        if (ladder.isEmpty()) return false
 
         castJob?.cancel()
+        _castsSong.value = false
         castJob =
             scope.launch {
+                val host = castHost(device)
                 for (mode in ladder) {
                     val (variants, audioRanges) =
                         when (mode) {
@@ -390,12 +226,13 @@ object DlnaCastManager {
                         try {
                             when (mode) {
                                 CastMode.MUXED -> {
-                                    val type = guessContentType(muxedUrl!!, "video/mp4")
-                                    proxy.registerStream(muxedUrl, type) to type
+                                    val type = CastXml.guessContentType(muxedUrl!!, "video/mp4")
+                                    proxy.registerStream(muxedUrl, host, type) to type
                                 }
 
                                 else -> {
                                     proxy.registerHlsCast(
+                                        host = host,
                                         videoVariants = variants,
                                         audioUrl = audioUrl!!,
                                         audioMime = audioMime,
@@ -414,7 +251,7 @@ object DlnaCastManager {
                     // Registration blocks, so a newer cast or stop() may have cancelled this one meanwhile.
                     ensureActive()
                     try {
-                        startCast(device, title, castUrl, contentType)
+                        startCast(device, CastItem(title), castUrl, contentType)
                         if (!segmented || awaitPlaying(device)) return@launch
                         Log.w(TAG, "Renderer did not start $mode within ${SEGMENTED_START_TIMEOUT_MS}ms, falling back")
                     } catch (e: CancellationException) {
@@ -426,55 +263,80 @@ object DlnaCastManager {
                 }
                 _currentDevice.value = null
             }
+        return true
     }
+
+    /**
+     * Plays one song of the music queue on [device]. [DlnaMusicDriver] asks the renderer for its
+     * state when it needs to, so no position poll runs here.
+     */
+    internal suspend fun castSong(
+        device: DlnaDevice,
+        url: String,
+        contentType: String,
+        item: CastItem,
+    ) {
+        castJob?.cancel()
+        positionPollingJob?.cancel()
+        _castsSong.value = true
+        withContext(Dispatchers.IO) { startCast(device, item, url, contentType, pollPosition = false) }
+    }
+
+    /** The renderer's transport state and position, or null when it didn't answer. */
+    internal fun status(device: DlnaDevice): CastStatus? {
+        val state = transport.state(device) ?: return null
+        val position = runCatching { transport.position(device) }.getOrNull()
+        return CastStatus(state, position?.position?.times(1000), position?.duration?.times(1000))
+    }
+
+    internal fun hostFor(device: DlnaDevice): String = castHost(device)
+
+    /** The address the renderer can reach this phone on, for the stream URLs it is handed. */
+    private fun castHost(device: DlnaDevice): String =
+        CastNetwork.advertisedHostFor(
+            rendererIp = runCatching { URL(device.location).host }.getOrNull(),
+            addresses = CastNetwork.localAddresses(),
+            answeredOn = device.localHost,
+        ) ?: "127.0.0.1"
 
     private suspend fun startCast(
         device: DlnaDevice,
-        title: String,
+        item: CastItem,
         castUrl: String,
         contentType: String,
+        pollPosition: Boolean = true,
     ) {
         // Renderers still holding a previous session reject SetAVTransportURI with UPnP 701.
-        runCatching { stop(device) }
+        runCatching { transport.stop(device) }
         // Some only finish stopping after answering, and still reject the URI until then.
         withTimeoutOrNull(STOP_TIMEOUT_MS) {
-            while (transportState(device).let { it != null && it != "STOPPED" && it != "NO_MEDIA_PRESENT" }) delay(500)
+            while (transport.state(device).let { it != null && it != "STOPPED" && it != "NO_MEDIA_PRESENT" }) delay(500)
         }
-        setAVTransportUri(device, castUrl, title, contentType)
+        transport.setUri(device, castUrl, CastXml.didlLite(castUrl, item, contentType))
         delay(500)
         // Renderers that buffer before answering can time Play out and still start playback.
-        runCatching { play(device) }.onFailure { Log.w(TAG, "Play failed: ${it.message}") }
+        runCatching { transport.play(device) }.onFailure { Log.w(TAG, "Play failed: ${it.message}") }
         _currentDevice.value = device
-        startPositionPolling(device)
+        if (pollPosition) startPositionPolling(device)
     }
 
     private suspend fun awaitPlaying(device: DlnaDevice): Boolean =
         withTimeoutOrNull(SEGMENTED_START_TIMEOUT_MS) {
-            while (transportState(device) != "PLAYING") delay(1_000)
+            while (transport.state(device) != "PLAYING") delay(1_000)
             true
         } ?: false
-
-    private fun transportState(device: DlnaDevice): String? =
-        runCatching {
-            val response =
-                sendSoapWithResponse(
-                    device.avTransportUrl,
-                    "urn:schemas-upnp-org:service:AVTransport:1#GetTransportInfo",
-                    soapAction("GetTransportInfo", "urn:schemas-upnp-org:service:AVTransport:1", "<InstanceID>0</InstanceID>"),
-                )
-            Regex("<CurrentTransportState>([^<]+)</CurrentTransportState>").find(response)?.groupValues?.get(1)
-        }.getOrNull()
 
     fun stop() {
         castJob?.cancel()
         val device = _currentDevice.value ?: return
         scope.launch {
             try {
-                stop(device)
+                transport.stop(device)
             } catch (e: Exception) {
                 Log.e(TAG, "stop failed: ${e.message}")
             } finally {
                 positionPollingJob?.cancel()
+                _castsSong.value = false
                 _currentDevice.value = null
                 _castPosition.value = 0
                 _castDuration.value = 0
@@ -495,15 +357,7 @@ object DlnaCastManager {
         val device = _currentDevice.value ?: return
         scope.launch {
             try {
-                sendSoap(
-                    device.avTransportUrl,
-                    "urn:schemas-upnp-org:service:AVTransport:1#Pause",
-                    soapAction(
-                        "Pause",
-                        "urn:schemas-upnp-org:service:AVTransport:1",
-                        "<InstanceID>0</InstanceID>",
-                    ),
-                )
+                transport.pause(device)
             } catch (e: Exception) {
                 Log.e(TAG, "pause failed: ${e.message}")
             }
@@ -516,46 +370,12 @@ object DlnaCastManager {
     ) {
         scope.launch {
             try {
-                val hours = positionSeconds / 3600
-                val minutes = (positionSeconds % 3600) / 60
-                val seconds = positionSeconds % 60
-                val target = String.format("%02d:%02d:%02d", hours, minutes, seconds)
-
-                sendSoap(
-                    device.avTransportUrl,
-                    "urn:schemas-upnp-org:service:AVTransport:1#Seek",
-                    soapAction(
-                        "Seek",
-                        "urn:schemas-upnp-org:service:AVTransport:1",
-                        "<InstanceID>0</InstanceID>" +
-                            "<Unit>REL_TIME</Unit>" +
-                            "<Target>$target</Target>",
-                    ),
-                )
+                transport.seek(device, positionSeconds)
             } catch (e: Exception) {
                 Log.e(TAG, "seekTo failed: ${e.message}")
             }
         }
     }
-
-    /**
-     * Guesses the content type from URL parameters.
-     * YouTube URLs often contain mime type info in the query string.
-     */
-    private fun guessContentType(
-        url: String,
-        fallback: String,
-    ): String =
-        when {
-            url.contains("mime=video/mp4") || url.contains("mime=video%2Fmp4") -> "video/mp4"
-            url.contains("mime=video/webm") || url.contains("mime=video%2Fwebm") -> "video/webm"
-            url.contains("mime=audio/mp4") || url.contains("mime=audio%2Fmp4") -> "audio/mp4"
-            url.contains("mime=audio/webm") || url.contains("mime=audio%2Fwebm") -> "audio/webm"
-            url.contains("itag=18") -> "video/mp4"
-            url.contains("itag=22") -> "video/mp4"
-            url.contains("itag=37") -> "video/mp4"
-            else -> fallback
-        }
 
     private fun startPositionPolling(device: DlnaDevice) {
         positionPollingJob?.cancel()
@@ -563,19 +383,7 @@ object DlnaCastManager {
             scope.launch {
                 while (_currentDevice.value != null) {
                     try {
-                        val body =
-                            soapAction(
-                                "GetPositionInfo",
-                                "urn:schemas-upnp-org:service:AVTransport:1",
-                                "<InstanceID>0</InstanceID>",
-                            )
-                        val response =
-                            sendSoapWithResponse(
-                                device.avTransportUrl,
-                                "urn:schemas-upnp-org:service:AVTransport:1#GetPositionInfo",
-                                body,
-                            )
-                        parsePositionInfo(response)
+                        parsePositionInfo(transport.position(device))
                     } catch (e: Exception) {
                         Log.d(TAG, "Position poll error: ${e.message}")
                     }
@@ -584,179 +392,8 @@ object DlnaCastManager {
             }
     }
 
-    private fun parsePositionInfo(xml: String) {
-        val relTimeRegex = Regex("<RelTime>([^<]+)</RelTime>")
-        val durationRegex = Regex("<TrackDuration>([^<]+)</TrackDuration>")
-
-        relTimeRegex.find(xml)?.groupValues?.get(1)?.let { time ->
-            _castPosition.value = parseTimeToSeconds(time)
-        }
-        durationRegex.find(xml)?.groupValues?.get(1)?.let { time ->
-            _castDuration.value = parseTimeToSeconds(time)
-        }
-    }
-
-    private fun parseTimeToSeconds(time: String): Long {
-        val parts = time.split(":")
-        if (parts.size != 3) return 0
-        return try {
-            val hours = parts[0].toLong()
-            val minutes = parts[1].toLong()
-            val seconds = parts[2].split(".")[0].toLong()
-            hours * 3600 + minutes * 60 + seconds
-        } catch (e: Exception) {
-            0
-        }
-    }
-
-    private fun setAVTransportUri(
-        device: DlnaDevice,
-        uri: String,
-        title: String,
-        contentType: String = "video/mp4",
-    ) {
-        val metadata = buildDidlLite(uri, title, contentType)
-        val body =
-            soapAction(
-                "SetAVTransportURI",
-                "urn:schemas-upnp-org:service:AVTransport:1",
-                "<InstanceID>0</InstanceID>" +
-                    "<CurrentURI>${escapeXml(uri)}</CurrentURI>" +
-                    "<CurrentURIMetaData>${escapeXml(metadata)}</CurrentURIMetaData>",
-            )
-        sendSoap(
-            device.avTransportUrl,
-            "urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI",
-            body,
-        )
-    }
-
-    private fun stop(device: DlnaDevice) {
-        sendSoap(
-            device.avTransportUrl,
-            "urn:schemas-upnp-org:service:AVTransport:1#Stop",
-            soapAction("Stop", "urn:schemas-upnp-org:service:AVTransport:1", "<InstanceID>0</InstanceID>"),
-        )
-    }
-
-    private fun play(device: DlnaDevice) {
-        val body =
-            soapAction(
-                "Play",
-                "urn:schemas-upnp-org:service:AVTransport:1",
-                "<InstanceID>0</InstanceID><Speed>1</Speed>",
-            )
-        sendSoap(
-            device.avTransportUrl,
-            "urn:schemas-upnp-org:service:AVTransport:1#Play",
-            body,
-        )
-    }
-
-    private fun sendSoap(
-        url: String,
-        action: String,
-        body: String,
-    ) {
-        if (url.isBlank()) {
-            Log.w(TAG, "sendSoap: empty control URL, skipping")
-            return
-        }
-        val request =
-            Request
-                .Builder()
-                .url(url)
-                .addHeader("SOAPAction", "\"$action\"")
-                .post(body.toRequestBody(SOAP_TYPE))
-                .build()
-        http.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                val responseBody = response.body?.string().orEmpty()
-                throw IllegalStateException("SOAP $action failed (${response.code}): $responseBody")
-            }
-        }
-    }
-
-    private fun sendSoapWithResponse(
-        url: String,
-        action: String,
-        body: String,
-    ): String {
-        val request =
-            Request
-                .Builder()
-                .url(url)
-                .addHeader("SOAPAction", "\"$action\"")
-                .post(body.toRequestBody(SOAP_TYPE))
-                .build()
-        return http.newCall(request).execute().use { response ->
-            response.body?.string() ?: ""
-        }
-    }
-
-    private fun resolveControlUrl(
-        descriptionUrl: URL,
-        urlBase: String?,
-        controlPath: String,
-    ): String {
-        if (controlPath.startsWith("http://") || controlPath.startsWith("https://")) {
-            return controlPath
-        }
-        val base =
-            when {
-                !urlBase.isNullOrBlank() -> URI(urlBase)
-                else -> descriptionUrl.toURI()
-            }
-        return base.resolve(controlPath).toString()
-    }
-
-    private fun soapAction(
-        action: String,
-        serviceType: String,
-        args: String,
-    ): String =
-        """<?xml version="1.0"?>""" +
-            """<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" """ +
-            """s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">""" +
-            """<s:Body>""" +
-            """<u:$action xmlns:u="$serviceType">$args</u:$action>""" +
-            """</s:Body></s:Envelope>"""
-
-    private fun buildDidlLite(
-        uri: String,
-        title: String,
-        contentType: String = "video/mp4",
-    ): String =
-        """<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" """ +
-            """xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" """ +
-            """xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">""" +
-            """<item id="1" parentID="0" restricted="0">""" +
-            """<dc:title>${escapeXml(title)}</dc:title>""" +
-            """<res protocolInfo="http-get:*:$contentType:*">${escapeXml(uri)}</res>""" +
-            """<upnp:class>object.item.videoItem</upnp:class>""" +
-            """</item></DIDL-Lite>"""
-
-    private fun escapeXml(s: String) =
-        s
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&apos;")
-
-    private fun acquireMulticastLock(context: Context) {
-        val wifiManager =
-            context.applicationContext
-                .getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
-        multicastLock =
-            wifiManager.createMulticastLock("flow_dlna_discovery").also {
-                it.setReferenceCounted(true)
-                it.acquire()
-            }
-    }
-
-    private fun releaseMulticastLock() {
-        multicastLock?.let { if (it.isHeld) it.release() }
-        multicastLock = null
+    private fun parsePositionInfo(info: CastPosition) {
+        info.position?.let { _castPosition.value = it }
+        info.duration?.let { _castDuration.value = it }
     }
 }

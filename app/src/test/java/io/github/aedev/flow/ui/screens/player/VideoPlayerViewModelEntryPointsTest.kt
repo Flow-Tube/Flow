@@ -334,6 +334,23 @@ class VideoPlayerViewModelEntryPointsTest {
         }
 
     @Test
+    fun `a collapse to the audio bar plays sound only without asking to outlive the app`() =
+        runTest {
+            val viewModel = newViewModel()
+            val video = video("vid_a")
+            viewModel.playLocalVideo(video, "content://media/1")
+            advanceUntilIdle()
+
+            viewModel.startBackgroundPlayback(explicit = false)
+
+            val background = viewModel.uiState.value
+            assertThat(background.isBackgroundPlaybackMode).isTrue()
+            verify(exactly = 1) { harness.playerManager.continueVideoPlaybackInBackground() }
+            verify(exactly = 0) { GlobalPlayerState.setExplicitBackgroundPlaybackActive(true) }
+            assertThat(GlobalPlayerState.isExplicitBackgroundPlaybackActive.value).isFalse()
+        }
+
+    @Test
     fun `startBackgroundPlayback without any current video is a no-op`() =
         runTest {
             val viewModel = newViewModel()
@@ -437,21 +454,20 @@ class VideoPlayerViewModelEntryPointsTest {
         }
 
     @Test
-    fun `toggleLoop on disables autoplay and toggleLoop off leaves autoplay alone`() =
+    fun `toggleLoop delegates to the player and leaves the autoplay setting alone`() =
         runTest {
             val viewModel = newViewModel()
+            val autoplayBefore = viewModel.uiState.value.autoplayEnabled
 
             viewModel.toggleLoop(true)
             advanceUntilIdle()
             verify(exactly = 1) { harness.playerManager.toggleLoop(true) }
-            coVerify(exactly = 1) { harness.playerPreferences.setAutoplayEnabled(false) }
-            assertThat(viewModel.uiState.value.autoplayEnabled).isFalse()
 
             viewModel.toggleLoop(false)
             advanceUntilIdle()
             verify(exactly = 1) { harness.playerManager.toggleLoop(false) }
-            coVerify(exactly = 1) { harness.playerPreferences.setAutoplayEnabled(any()) }
-            assertThat(viewModel.uiState.value.autoplayEnabled).isFalse()
+            coVerify(exactly = 0) { harness.playerPreferences.setAutoplayEnabled(any()) }
+            assertThat(viewModel.uiState.value.autoplayEnabled).isEqualTo(autoplayBefore)
         }
 
     @Test

@@ -176,6 +176,13 @@ class PlayerCacheManager(
     fun getDataSourceFactory(): DataSource.Factory? = sharedDataSourceFactory
 
     /**
+     * A source that fills the video cache under the same keys and upstream the DASH player reads
+     * with, waiting on spans the player is loading. Null when the cache could not be opened.
+     */
+    fun createWritingDataSource(): CacheDataSource? =
+        (sharedDashDataSourceFactory as? CacheDataSource.Factory)?.createDataSourceForDownloading()
+
+    /**
      * Get the DASH-specific data source factory.
      */
     fun getDashDataSourceFactory(): DataSource.Factory? = sharedDashDataSourceFactory

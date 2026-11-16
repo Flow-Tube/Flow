@@ -33,10 +33,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.dpadReturnFocus
 import io.github.aedev.flow.ui.components.shared.focusLift
 import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.components.shared.pressScale
@@ -88,6 +90,17 @@ internal fun MembersOnlyLabel(video: Video) {
     }
 }
 
+/**
+ * "Suspected AI" for a channel on the AI warn list. It takes the reason slot over the feed's own
+ * reason, since it matters more than why the feed picked the video.
+ */
+@Composable
+internal fun rememberAiListLabel(video: Video): String? {
+    val matcher = LocalAiListMatcher.current
+    val warned = remember(matcher, video.channelId, video.channelHandle) { matcher.verdict(video) == AiVerdict.WARN }
+    return if (warned) stringResource(R.string.ai_list_label) else null
+}
+
 /** Why the feed shows this video, such as "From a channel you watch". */
 @Composable
 internal fun CardReasonLabel(reason: String) {
@@ -114,6 +127,7 @@ internal fun Modifier.videoCardClickable(
     return pressScale(interactionSource)
         .focusLift(interactionSource)
         .onMenuKey { state.sheets.showQuickActions = true }
+        .dpadReturnFocus(state.video.id)
         .combinedClickable(
             interactionSource = interactionSource,
             indication = ripple(focusRingShape = MaterialTheme.shapes.large),

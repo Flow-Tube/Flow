@@ -76,6 +76,12 @@ internal fun Modifier.videoStageKeyboardShortcuts(
                 true
             }
 
+            MediaKeyAction.Play, MediaKeyAction.Pause -> {
+                screenState.showControls = true
+                if (playerState.playWhenReady != (action == MediaKeyAction.Play)) actions.onPlayPause()
+                true
+            }
+
             MediaKeyAction.SeekBack, MediaKeyAction.SeekForward -> {
                 val seekable = playerState.isLive || screenState.duration > 0
                 if (seekable) seekBy(forward = action == MediaKeyAction.SeekForward)
@@ -121,6 +127,10 @@ internal fun Modifier.videoStageKeyboardShortcuts(
 
             MediaKeyAction.SpeedDown -> {
                 stepSpeed(faster = false)
+            }
+
+            MediaKeyAction.FocusList -> {
+                screenState.relatedFocus.focusFirstCard(session.scope)
             }
 
             is MediaKeyAction.JumpTo -> {

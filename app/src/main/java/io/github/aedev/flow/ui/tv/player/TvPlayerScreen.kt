@@ -98,13 +98,14 @@ fun TvPlayerScreen(
 
     val autoplayCountdown by manager.autoplayCountdown.collectAsStateWithLifecycle()
     val sponsorSegments by manager.sponsorSegments.collectAsStateWithLifecycle()
+    val sponsorSkippedOnce by manager.sbSkippedOnce.collectAsStateWithLifecycle()
     val queueVideos by manager.queueVideos.collectAsStateWithLifecycle()
     val currentQueueIndex by manager.currentQueueIndexState.collectAsStateWithLifecycle()
 
     PositionTrackingEffect(
         isPlaying = playerState.isPlaying,
         screenState = screenState,
-        showsPreciseProgress = overlayState.mode == TvOverlayMode.TRANSPORT,
+        showsPreciseProgress = overlayState.mode == TvOverlayMode.TRANSPORT || overlayState.mode == TvOverlayMode.SEEK,
     )
     KeepScreenOnEffect(
         isPlaying = playerState.isPlaying || playerState.isBuffering,
@@ -139,7 +140,8 @@ fun TvPlayerScreen(
     }
 
     fun revealTransport(target: TvPlayerFocusTarget) {
-        if (overlayController.state.value.mode == TvOverlayMode.HIDDEN) {
+        val mode = overlayController.state.value.mode
+        if (mode == TvOverlayMode.HIDDEN || mode == TvOverlayMode.SEEK) {
             pendingFocusTarget = target
             overlayController.showTransport()
         }
@@ -207,7 +209,8 @@ fun TvPlayerScreen(
                         currentPositionMs = manager.getCurrentPosition().coerceAtLeast(0L),
                         durationMs = manager.getDuration().coerceAtLeast(0L),
                     )
-                revealTransport(TvPlayerFocusTarget.SEEK_BAR)
+                // A live stream has no seek bar to show alone, so it keeps the full controls.
+                if (manager.playerState.value.isLive) revealTransport(TvPlayerFocusTarget.SEEK_BAR) else overlayController.showSeek()
             }
 
             TvPlayerAction.COMMIT_SCRUB -> {
@@ -307,7 +310,8 @@ fun TvPlayerScreen(
         )
 
         TvPlayerControls(
-            visible = overlayState.mode == TvOverlayMode.TRANSPORT,
+            visible = overlayState.mode == TvOverlayMode.TRANSPORT || overlayState.mode == TvOverlayMode.SEEK,
+            seekOnly = overlayState.mode == TvOverlayMode.SEEK,
             video = video,
             isPlaying = playerState.isPlaying,
             isBuffering = playerState.isBuffering,
@@ -349,12 +353,14 @@ fun TvPlayerScreen(
                     firstItemFocusRequester = upNextFocusRequester,
                 )
             },
+            onChannelClick = { onOpenChannel(video.channelId) },
         )
 
         SponsorBlockSkipButton(
             sponsorSegments = sponsorSegments,
             currentPositionMs = (screenState.currentPosition / 1_000L) * 1_000L,
             categoryActions = manager.sbCategoryActions,
+            skippedOnceUuids = sponsorSkippedOnce,
             controlsVisible = overlayState.mode != TvOverlayMode.HIDDEN,
             playbackEnded = playerState.hasEnded,
             onSkipClick = manager::skipToSegmentEnd,
@@ -381,7 +387,9 @@ fun TvPlayerScreen(
         }
 
         TvPlayerStatus(
-            loading = overlayState.mode == TvOverlayMode.HIDDEN && (uiState.isLoading || playerState.isBuffering),
+            loading =
+                (overlayState.mode == TvOverlayMode.HIDDEN || overlayState.mode == TvOverlayMode.SEEK) &&
+                    (uiState.isLoading || playerState.isBuffering),
             error = uiState.error?.let { error -> uiState.errorHint?.let { hint -> "$error\n$hint" } ?: error },
             onRetry = viewModel::retryLoadVideo,
             modifier = Modifier.align(Alignment.Center),

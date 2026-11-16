@@ -7,6 +7,7 @@ import io.github.aedev.flow.ui.screens.settings.wellbeing.WatchRecord
 import io.github.aedev.flow.ui.screens.settings.wellbeing.summarizeWatchTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -51,6 +52,16 @@ class WellbeingAndNetworkTest {
     fun `negative positions do not subtract watch time`() {
         val summary = summarizeWatchTime(listOf(WatchRecord(at(today, LocalTime.NOON), -5_000)), today, zone)
         assertTrue(summary.isEmpty)
+    }
+
+    @Test
+    fun `a selected day is found in the week, and a day outside it is not`() {
+        val week = summarizeWatchTime(listOf(WatchRecord(at(today.minusDays(1), LocalTime.NOON), 60_000L)), today, zone)
+
+        assertEquals(60_000L, week.dayOrNull(today.minusDays(1))?.millis)
+        assertEquals(0L, week.dayOrNull(today)?.millis)
+        assertNull(week.dayOrNull(today.minusDays(7)))
+        assertNull(week.dayOrNull(null))
     }
 
     @Test

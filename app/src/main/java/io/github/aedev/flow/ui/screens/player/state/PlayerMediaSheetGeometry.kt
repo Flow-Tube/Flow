@@ -42,6 +42,7 @@ internal class PlayerMediaSheetGeometry(
     val effectiveVideoAspectRatio: Float,
     val playerHeightFractionOverride: (() -> Float)?,
     val onProgressChange: (Float) -> Unit,
+    val coversPlayer: Boolean = false,
 )
 
 internal fun mediaSheetHeights(
@@ -54,6 +55,7 @@ internal fun mediaSheetHeights(
     fallbackScreenHeight: Dp,
     statusBarHeightPx: Float,
     playerWidthPx: Float,
+    coversPlayer: Boolean = false,
 ): MediaSheetHeights {
     val rawMediaSheetCollapsedHeight =
         with(density) {
@@ -72,6 +74,9 @@ internal fun mediaSheetHeights(
                 // left under it" collapses to a sliver pinned at the bottom of the screen. Over
                 // a fullscreen player the sheet floats on the video and takes a fixed share.
                 isFullscreen -> (fullScreenHeightPx * FULLSCREEN_MEDIA_SHEET_FRACTION).toDp()
+
+                // A video scrolled off the page leaves the whole window below the status bar to the sheet.
+                coversPlayer -> (fullScreenHeightPx - statusBarHeightPx).coerceAtLeast(0f).toDp()
 
                 expandedPlayerBottom > 0.dp && availablePx > 0f -> availablePx.toDp()
 
@@ -108,6 +113,7 @@ internal fun rememberPlayerMediaSheetGeometry(
     adaptivePlayerSizeEnabled: Boolean,
     videoAspectRatio: Float,
     sheetsHostedBesideVideo: Boolean = false,
+    coversPlayer: Boolean = false,
 ): PlayerMediaSheetGeometry {
     val progressState = remember { MediaSheetProgressState() }
     val progressDrivenMediaSheetVisible =
@@ -129,6 +135,7 @@ internal fun rememberPlayerMediaSheetGeometry(
             }
     val progressDrivenMediaSheetResize =
         adaptivePlayerSizeEnabled &&
+            !coversPlayer &&
             !screenState.isFullscreen &&
             progressDrivenMediaSheetVisible &&
             videoAspectRatio < 1f
@@ -164,6 +171,7 @@ internal fun rememberPlayerMediaSheetGeometry(
         effectiveVideoAspectRatio = effectiveVideoAspectRatio,
         playerHeightFractionOverride = sheetPlayerHeightFractionOverride,
         onProgressChange = updateMediaSheetProgress,
+        coversPlayer = coversPlayer,
     )
 }
 
@@ -191,6 +199,7 @@ internal fun rememberMediaSheetHeights(
             fallbackScreenHeight = fallbackScreenHeight,
             statusBarHeightPx = statusBarHeightPx,
             playerWidthPx = playerWidthPx,
+            coversPlayer = geometry.coversPlayer,
         )
     LaunchedEffect(geometry.progressDrivenResize, heights.rawCollapsed, maxWidth, maxHeight) {
         if (

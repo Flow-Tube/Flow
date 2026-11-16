@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,6 +15,10 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
+import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.ui.components.musicplayer.common.canTurnLight
+import io.github.aedev.flow.ui.components.musicplayer.sheet.MusicPlayerSheetState
 import io.github.aedev.flow.ui.theme.ThemeMode
 import io.github.aedev.flow.ui.theme.ThemeVariant
 import io.github.aedev.flow.ui.theme.isEffectivelyDark
@@ -25,8 +30,9 @@ internal fun ApplyStatusBarStyle(
     systemLightThemeMode: ThemeMode,
     systemDarkThemeMode: ThemeMode,
     isFullscreen: Boolean,
-    isMusicPlayerImmersive: Boolean = false,
-    musicPlayerFollowsTheme: Boolean = false,
+    preferences: PlayerPreferences,
+    // Null while no song is loaded.
+    musicPlayer: MusicPlayerSheetState? = null,
     isShortsPlayer: Boolean = false,
     // The expanded video player paints its black ground under the status bar on every theme.
     videoPlayerExpanded: Boolean = false,
@@ -36,6 +42,13 @@ internal fun ApplyStatusBarStyle(
     val activity = LocalContext.current as? Activity ?: return
     val view = LocalView.current
     val colorScheme = MaterialTheme.colorScheme
+    val musicBackgroundStyle by preferences.musicPlayerBackgroundStyle.collectAsState(initial = MusicPlayerBackgroundStyle.BLUR_GRADIENT)
+    val musicFollowLightTheme by preferences.musicPlayerFollowLightTheme.collectAsState(initial = false)
+    val isMusicPlayerImmersive = musicPlayer?.isImmersive == true
+    // The lyrics page paints its own dark backdrop over the player, whatever the player's style.
+    val musicPlayerOnThemeSurface =
+        musicPlayer?.isLyricsShown == false &&
+            (musicBackgroundStyle == MusicPlayerBackgroundStyle.DEFAULT || (musicFollowLightTheme && musicBackgroundStyle.canTurnLight))
     val isSystemDark = isSystemInDarkTheme()
     val isDarkTheme =
         themeMode.isEffectivelyDark(
@@ -59,7 +72,7 @@ internal fun ApplyStatusBarStyle(
             }
 
         val musicImmersiveOnLightSurface =
-            isMusicPlayerImmersive && musicPlayerFollowsTheme && !isDarkTheme && !isFullscreen && !isShortsPlayer
+            isMusicPlayerImmersive && musicPlayerOnThemeSurface && !isDarkTheme && !isFullscreen && !isShortsPlayer
         insetsController.isAppearanceLightStatusBars =
             (!isDarkTheme && !shouldDrawBehindStatusBar) || musicImmersiveOnLightSurface
     }

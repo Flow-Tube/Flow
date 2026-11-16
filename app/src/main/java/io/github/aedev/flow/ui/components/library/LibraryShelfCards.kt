@@ -1,8 +1,10 @@
 package io.github.aedev.flow.ui.components.library
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +37,8 @@ import io.github.aedev.flow.ui.components.shared.DurationBadge
 import io.github.aedev.flow.ui.components.shared.MediaIconBadge
 import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.components.shared.feedStripCardWidth
+import io.github.aedev.flow.ui.components.shared.focusLift
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 
 internal val LibraryShelfCardWidth = 220.dp
 internal val LibraryShelfArtworkHeight = LibraryShelfCardWidth * 9f / 16f
@@ -114,12 +119,19 @@ internal fun LibraryAlbumCard(
     artworkSize: Dp = LibraryShelfArtworkHeight,
     onLongClick: (() -> Unit)? = null,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier =
             modifier
                 .width(artworkSize)
-                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(vertical = 4.dp),
+                .focusLift(interactionSource)
+                .then(if (onLongClick != null) Modifier.onMenuKey(onLongClick) else Modifier)
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                ).padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Surface(

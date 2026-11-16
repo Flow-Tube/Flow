@@ -38,7 +38,13 @@ class WatchLaterCleanup
         /** Removes the watched ones among [videos] and returns what Undo needs to put them back. */
         suspend fun sweep(videos: List<Video>): List<PlaylistVideoCrossRef> {
             if (videos.isEmpty() || !preferences.removeWatchedFromWatchLater.first()) return emptyList()
-            val watched = watchedIds(videos, viewHistory.getVideoHistoryFlow().first(), preferences.watchedThreshold.first())
+            val watched =
+                watchedIds(
+                    videos,
+                    viewHistory.getVideoHistoryFlow().first(),
+                    preferences.watchedThreshold.first(),
+                    preferences.countImportedAsWatched.first(),
+                )
             if (watched.isEmpty()) return emptyList()
             return playlists.takeVideosFromPlaylist(PlaylistRepository.WATCH_LATER_ID, watched)
         }
@@ -48,9 +54,10 @@ internal fun watchedIds(
     videos: List<Video>,
     history: List<VideoHistoryEntry>,
     threshold: WatchedThreshold,
+    countImported: Boolean = false,
 ): List<String> {
     val progress = history.associateBy { it.videoId }
     return videos.mapNotNull { video ->
-        video.id.takeIf { progress[it]?.let { entry -> threshold.isWatched(entry.position, entry.duration) } == true }
+        video.id.takeIf { progress[it]?.let { entry -> threshold.isWatched(entry.position, entry.duration, countImported) } == true }
     }
 }

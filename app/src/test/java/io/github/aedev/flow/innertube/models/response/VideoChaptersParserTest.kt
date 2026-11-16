@@ -7,15 +7,16 @@ import org.junit.Test
 
 /**
  * The fixture is the chapters panel of a live `/next` response, trimmed to that one panel. The
- * video is the eight-chapter one the schema probe was run against.
+ * video is the eight-chapter one the schema probe was run against. `watch_next_auto_chapters.json`
+ * is hand-written in the shape of a video that has only YouTube's generated chapters.
  */
 class VideoChaptersParserTest {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun fixture() =
+    private fun fixture(name: String = "watch_next_chapters.json") =
         json.parseToJsonElement(
             javaClass.classLoader!!
-                .getResourceAsStream("watch_next_chapters.json")!!
+                .getResourceAsStream(name)!!
                 .bufferedReader()
                 .use { it.readText() },
         )
@@ -100,5 +101,61 @@ class VideoChaptersParserTest {
             )
 
         assertThat(VideoChaptersParser.parse(runs).single().title).isEqualTo("Part one")
+    }
+
+    @Test
+    fun `generated chapters are read when the uploader added none`() {
+        val chapters = VideoChaptersParser.parse(fixture("watch_next_auto_chapters.json"))
+
+        assertThat(chapters.map { it.title })
+            .containsExactly("Start line", "Along the coast", "Over the bridge", "Last stretch", "Finish")
+            .inOrder()
+    }
+
+    @Test
+    fun `a decimal start is rounded down to its whole second`() {
+        val chapters = VideoChaptersParser.parse(fixture("watch_next_auto_chapters.json"))
+
+        assertThat(chapters.map { it.startTimeSeconds }).containsExactly(0, 75, 129, 172, 213).inOrder()
+    }
+
+    @Test
+    fun `the uploader's chapters win over generated ones`() {
+        val both =
+            json.parseToJsonElement(
+                """
+                {"engagementPanels":[
+                {"engagementPanelSectionListRenderer":{
+                "panelIdentifier":"engagement-panel-macro-markers-auto-chapters",
+                "content":{"macroMarkersListRenderer":{"contents":[
+                {"macroMarkersListItemRenderer":{"title":{"simpleText":"Generated"},
+                 "onTap":{"watchEndpoint":{"startTimeSeconds":0.0}}}}]}}}},
+                {"engagementPanelSectionListRenderer":{
+                "panelIdentifier":"engagement-panel-macro-markers-description-chapters",
+                "content":{"macroMarkersListRenderer":{"contents":[
+                {"macroMarkersListItemRenderer":{"title":{"simpleText":"Uploader"},
+                 "onTap":{"watchEndpoint":{"startTimeSeconds":0}}}}]}}}}]}
+                """.trimIndent(),
+            )
+
+        assertThat(VideoChaptersParser.parse(both).single().title).isEqualTo("Uploader")
+    }
+
+    @Test
+    fun `a negative start is dropped`() {
+        val negative =
+            json.parseToJsonElement(
+                """
+                {"engagementPanels":[{"engagementPanelSectionListRenderer":{
+                "panelIdentifier":"engagement-panel-macro-markers-auto-chapters",
+                "content":{"macroMarkersListRenderer":{"contents":[
+                {"macroMarkersListItemRenderer":{"title":{"simpleText":"Before"},
+                 "onTap":{"watchEndpoint":{"startTimeSeconds":-0.5}}}},
+                {"macroMarkersListItemRenderer":{"title":{"simpleText":"After"},
+                 "onTap":{"watchEndpoint":{"startTimeSeconds":"12.5"}}}}]}}}}]}
+                """.trimIndent(),
+            )
+
+        assertThat(VideoChaptersParser.parse(negative).map { it.startTimeSeconds }).containsExactly(12)
     }
 }

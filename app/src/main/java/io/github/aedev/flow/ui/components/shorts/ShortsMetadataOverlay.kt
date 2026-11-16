@@ -23,13 +23,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,8 +40,10 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.PlayingWaveform
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.videoMetadataLine
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
 import io.github.aedev.flow.ui.theme.PlayerScrimPanel
@@ -112,6 +113,14 @@ internal fun ShortsMetadataOverlay(
                 }
 
                 ShortsSubscribeControl.Button -> {
+                    val organize =
+                        rememberChannelOrganizeActions(
+                            target =
+                                remember(short.channelId, short.channelName, short.channelThumbnailUrl) {
+                                    ChannelOrganizeTarget(short.channelId, short.channelName, short.channelThumbnailUrl)
+                                },
+                            isSubscribed = isSubscribed,
+                        )
                     FlowSubscribeButton(
                         isSubscribed = isSubscribed,
                         onSubscribeClick = onSubscribeToggle,
@@ -119,6 +128,9 @@ internal fun ShortsMetadataOverlay(
                         isNotificationsEnabled = isNotificationsEnabled,
                         onNotificationChange = onNotificationChange,
                         size = FlowSubscribeButtonSize.Compact,
+                        showSubscribedLabel = false,
+                        onAddNote = organize.onAddNote,
+                        onManageGroups = organize.onManageGroups,
                     )
                 }
             }
@@ -165,7 +177,6 @@ private fun ShortsSubscribeIconToggle(
     onToggle: () -> Unit,
 ) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
     val description = stringResource(if (isSubscribed) R.string.unsubscribe else R.string.action_subscribe)
     val contentColor = if (isSubscribed) PlayerScrimContent else MaterialTheme.colorScheme.onPrimary
     Surface(
@@ -178,7 +189,6 @@ private fun ShortsSubscribeIconToggle(
                     context.getString(R.string.subscribed_to, channelName)
                 }
             Toast.makeText(context, toast, Toast.LENGTH_SHORT).show()
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         },
         shape = MaterialTheme.shapes.small,
         color = Color.Transparent,

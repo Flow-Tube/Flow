@@ -15,6 +15,7 @@ internal object InnerTubeJson {
     const val USER = "MUSIC_PAGE_TYPE_USER_CHANNEL"
     const val UNKNOWN = "MUSIC_PAGE_TYPE_UNKNOWN"
     const val DISCOGRAPHY = "MUSIC_PAGE_TYPE_ARTIST_DISCOGRAPHY"
+    const val PODCAST = "MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE"
     const val ATV = "MUSIC_VIDEO_TYPE_ATV"
     const val OMV = "MUSIC_VIDEO_TYPE_OMV"
     const val UGC = "MUSIC_VIDEO_TYPE_UGC"
@@ -97,6 +98,18 @@ internal object InnerTubeJson {
         |"navigationEndpoint":${browseEndpoint(browseId, "MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE")}}}
         """.trimMargin()
 
+    /** A Podcasts chip episode: a wide row whose second title links its show. */
+    fun multiRowEpisode(
+        videoId: String,
+        title: String,
+        show: String,
+    ) = """{"musicMultiRowListItemRenderer":{"thumbnail":${thumbnail(videoId, SQUARE)},
+        |"title":${runs(run(title, browseEndpoint("MPED$videoId", "MUSIC_PAGE_TYPE_NON_MUSIC_AUDIO_TRACK_PAGE")))},
+        |"secondTitle":${runs(run(show, browseEndpoint("MPSPPL$show", "MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE")))},
+        |"subtitle":${runs(run("1K views"), separator(), run("Aug 5"))},
+        |"onTap":${watchEndpoint(videoId, "MUSIC_VIDEO_TYPE_PODCAST_EPISODE")}}}
+        """.trimMargin()
+
     fun itemSection(row: String) = """{"itemSectionRenderer":{"contents":[$row]}}"""
 
     /** A search row that opens a browse page: an artist, album or playlist, with play and radio actions. */
@@ -116,6 +129,7 @@ internal object InnerTubeJson {
         header: String,
         browseId: String,
         name: String,
+        contents: List<String> = emptyList(),
     ): String {
         fun button(iconType: String) =
             """{"buttonRenderer":{"text":${runs(run(iconType))},"icon":{"iconType":"$iconType"},
@@ -123,7 +137,8 @@ internal object InnerTubeJson {
             """.trimMargin()
         return """{"musicCardShelfRenderer":{"header":{"musicCardShelfHeaderBasicRenderer":{"title":${runs(run(header))}}},
             |"title":${runs(run(name))},"subtitle":${runs(run("Artist"))},"thumbnail":${thumbnail(browseId, CIRCLE)},
-            |"buttons":[${button("MUSIC_SHUFFLE")},${button("MIX")}],"onTap":${browseEndpoint(browseId, ARTIST)}}}
+            |"buttons":[${button("MUSIC_SHUFFLE")},${button("MIX")}],"onTap":${browseEndpoint(browseId, ARTIST)},
+            |"contents":[${contents.joinToString(",")}]}}
             """.trimMargin()
     }
 

@@ -9,13 +9,16 @@ import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.R
 import io.github.aedev.flow.player.surface.VideoSurfacePolicy
 
-/** The controller-less PlayerView layout on the surface type this device plays smoothest with. */
+/**
+ * The controller-less PlayerView layout on the surface type this device plays smoothest with, or
+ * the spherical one a 360 video is looked around in. PlayerView fixes its surface when inflated.
+ */
 @LayoutRes
-fun flowPlayerViewLayout(): Int =
-    if (VideoSurfacePolicy.usesSurfaceView(Build.VERSION.SDK_INT)) {
-        R.layout.video_player_view_surface
-    } else {
-        R.layout.video_player_view
+fun flowPlayerViewLayout(spherical: Boolean = false): Int =
+    when {
+        spherical -> R.layout.video_player_view_spherical
+        VideoSurfacePolicy.usesSurfaceView(Build.VERSION.SDK_INT) -> R.layout.video_player_view_surface
+        else -> R.layout.video_player_view
     }
 
 /**

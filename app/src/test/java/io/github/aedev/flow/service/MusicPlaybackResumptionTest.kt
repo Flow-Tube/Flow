@@ -63,6 +63,14 @@ class MusicPlaybackResumptionTest {
     }
 
     @Test
+    fun `items are playable leaves so the system media controls accept them`() {
+        musicResumptionItems(restored()).mediaItems.forEach { item ->
+            assertThat(item.mediaMetadata.isBrowsable).isFalse()
+            assertThat(item.mediaMetadata.isPlayable).isTrue()
+        }
+    }
+
+    @Test
     fun `without a saved track the saved index is used`() {
         assertThat(musicResumptionItems(restored(track = null, index = 2)).startIndex).isEqualTo(2)
     }

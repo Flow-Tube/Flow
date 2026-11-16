@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -49,6 +50,7 @@ internal fun destinationIcon(destination: SettingsDestination): ImageVector =
         SettingsDestination.NOTIFICATIONS -> Icons.Outlined.NotificationsNone
         SettingsDestination.NETWORK -> Icons.Outlined.Public
         SettingsDestination.WELLBEING -> Icons.Outlined.SelfImprovement
+        SettingsDestination.SECURITY -> Icons.Outlined.Lock
         SettingsDestination.WIDGETS -> Icons.Outlined.Widgets
         SettingsDestination.ABOUT -> Icons.Outlined.Info
         SettingsDestination.DIAGNOSTICS -> Icons.Outlined.BugReport

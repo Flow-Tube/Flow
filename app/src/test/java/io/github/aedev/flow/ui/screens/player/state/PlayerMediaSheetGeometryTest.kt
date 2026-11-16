@@ -17,6 +17,7 @@ class PlayerMediaSheetGeometryTest {
         progressDrivenResize: Boolean = false,
         lockedCollapsedHeight: androidx.compose.ui.unit.Dp? = null,
         expandedPlayerBottom: androidx.compose.ui.unit.Dp = 300.dp,
+        coversPlayer: Boolean = false,
     ) = mediaSheetHeights(
         density = density,
         fullScreenHeightPx = 2000f,
@@ -27,6 +28,7 @@ class PlayerMediaSheetGeometryTest {
         fallbackScreenHeight = 800.dp,
         statusBarHeightPx = 48f,
         playerWidthPx = 1080f,
+        coversPlayer = coversPlayer,
     )
 
     @Test
@@ -45,6 +47,19 @@ class PlayerMediaSheetGeometryTest {
         assertThat(result.rawCollapsed).isEqualTo(700.dp)
         assertThat(result.collapsed).isEqualTo(0.dp)
         assertThat(result.expanded).isEqualTo(750.dp)
+    }
+
+    @Test
+    fun `a scrolled-away player leaves the sheet everything below the status bar`() {
+        val result = heights(coversPlayer = true)
+
+        assertThat(result.collapsed).isEqualTo(0.dp)
+        assertThat(result.expanded).isEqualTo(976.dp)
+    }
+
+    @Test
+    fun `fullscreen keeps its own share even with the player scrolled away`() {
+        assertThat(heights(isFullscreen = true, coversPlayer = true).expanded).isEqualTo(750.dp)
     }
 
     @Test

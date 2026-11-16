@@ -10,7 +10,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +20,7 @@ import io.github.aedev.flow.ui.components.music.header.MusicSectionAction
 import io.github.aedev.flow.ui.components.music.header.MusicSectionHeader
 import io.github.aedev.flow.ui.components.music.item.MusicItemDensity
 import io.github.aedev.flow.ui.components.music.item.MusicTrackItem
+import io.github.aedev.flow.ui.components.shared.FlowSpinner
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
 import io.github.aedev.flow.ui.theme.Dimensions
 
@@ -45,7 +45,7 @@ internal fun LazyListScope.collectionSuggestions(suggestions: CollectionSuggesti
     }
     if (state.isLoading) {
         item(key = "suggestions-loading", contentType = "loading") {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { FlowSpinner() }
         }
         return
     }

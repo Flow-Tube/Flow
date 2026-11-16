@@ -1,5 +1,6 @@
 package io.github.aedev.flow
 
+import android.app.PictureInPictureUiState
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -13,17 +14,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.aedev.flow.applock.AppLock
+import io.github.aedev.flow.applock.hideFromRecentsWhenAsked
+import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.data.playlist.PlaylistTransfer
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.repository.DeArrowRepository
 import io.github.aedev.flow.data.repository.OriginalTitleRepository
+import io.github.aedev.flow.data.translation.TextTranslator
 import io.github.aedev.flow.discord.DiscordPresenceRuntime
 import io.github.aedev.flow.platform.AppIconController
 import io.github.aedev.flow.platform.AppUiRoot
@@ -35,10 +41,12 @@ import io.github.aedev.flow.player.LifecyclePlaybackPreferences
 import io.github.aedev.flow.player.MemoryPressurePolicy
 import io.github.aedev.flow.player.PictureInPictureHelper
 import io.github.aedev.flow.player.PipQueueNavigation
-import io.github.aedev.flow.sync2.lan.LanSync
 import io.github.aedev.flow.sync2.service.LinkedSyncWorker
 import io.github.aedev.flow.ui.IncomingIntents
 import io.github.aedev.flow.ui.IncomingLinks
+import io.github.aedev.flow.ui.components.shared.HardwareKeyboardState
+import io.github.aedev.flow.ui.components.shared.LocalHardwareKeyboard
+import io.github.aedev.flow.ui.components.shared.LocalTextTranslator
 import io.github.aedev.flow.ui.startup.FlowRoot
 import io.github.aedev.flow.ui.startup.SplashController
 import io.github.aedev.flow.ui.startup.ThemeSettings
@@ -58,12 +66,19 @@ private const val PORTRAIT_REEL_ASPECT_RATIO = 9f / 16f
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val links = IncomingLinks()
+    private val hardwareKeyboard = HardwareKeyboardState()
 
     @Inject
     lateinit var originalTitles: OriginalTitleRepository
 
     @Inject
     lateinit var deArrow: DeArrowRepository
+
+    @Inject
+    lateinit var aiList: AiListRepository
+
+    @Inject
+    lateinit var textTranslator: TextTranslator
 
     @Inject
     lateinit var lifecyclePlaybackPreferences: LifecyclePlaybackPreferences
@@ -75,21 +90,24 @@ class MainActivity : ComponentActivity() {
     lateinit var appFontPreferences: AppFontPreferences
 
     @Inject
+    lateinit var appLock: AppLock
+
+    @Inject
     lateinit var playlistTransfer: dagger.Lazy<PlaylistTransfer>
 
     @Inject
     lateinit var videoPlayerManager: dagger.Lazy<EnhancedPlayerManager>
 
     @Inject
-    lateinit var widgetContentSync: dagger.Lazy<io.github.aedev.flow.widget.core.refresh.WidgetContentSync>
+    lateinit var localPlayback: dagger.Lazy<io.github.aedev.flow.sync2.live.LocalPlayback>
 
     @Inject
-    lateinit var lanSync: dagger.Lazy<LanSync>
+    lateinit var widgetContentSync: dagger.Lazy<io.github.aedev.flow.widget.core.refresh.WidgetContentSync>
 
     @Inject
     lateinit var nowPlayingWidgetPublisher: dagger.Lazy<io.github.aedev.flow.widget.nowplaying.NowPlayingWidgetPublisher>
 
-    private val incomingIntents by lazy { IncomingIntents(this, links, playlistTransfer) }
+    private val incomingIntents by lazy { IncomingIntents(this, links, playlistTransfer, appLock) }
 
     private val splashController = SplashController(this)
 
@@ -162,6 +180,14 @@ class MainActivity : ComponentActivity() {
         // Player setup reads DataStore and opens the media cache index, so it runs off the main
         // thread and settles after the first frame instead of blocking onCreate.
         lifecycleScope.launch { GlobalPlayerState.initializeAsync(applicationContext) }
+        // A video another linked device handed over opens as a tapped link would, after any unlock.
+        lifecycleScope.launch {
+            localPlayback.get().openVideo.collectLatest {
+                appLock.awaitUnlocked()
+                links.openVideo(it)
+            }
+        }
+        hideFromRecentsWhenAsked(appLock)
 
         // Snapshot lives in the process, not the activity: onUserLeaveHint/onStop read it
         // synchronously and must still see it after a recreation they run inside of (#817).
@@ -183,22 +209,26 @@ class MainActivity : ComponentActivity() {
             nowPlayingWidgetPublisher.get().repairStalePlayback()
         }
 
-        incomingIntents.handle(intent, isRestoringState = savedInstanceState != null)
+        incomingIntents.handleWhenUnlocked(intent, isRestoringState = incomingIntents.isRestoring(savedInstanceState))
 
         // Read now, alongside the rest of startup, so the theme is usually known by the first composition.
         val storedTheme = MutableStateFlow<ThemeSettings?>(null)
         lifecycleScope.launch { dataManager.themeSettings(appFontPreferences).collect { storedTheme.value = it } }
 
         setContent {
-            FlowRoot(
-                storedTheme = storedTheme,
-                links = links,
-                splashController = splashController,
-                originalTitles = originalTitles,
-                deArrow = deArrow,
-                appIconController = appIconController,
-                onUiRoot = { cachedAppUiRoot = it },
-            )
+            CompositionLocalProvider(LocalHardwareKeyboard provides hardwareKeyboard, LocalTextTranslator provides textTranslator) {
+                FlowRoot(
+                    storedTheme = storedTheme,
+                    links = links,
+                    splashController = splashController,
+                    originalTitles = originalTitles,
+                    deArrow = deArrow,
+                    aiList = aiList,
+                    appIconController = appIconController,
+                    appLock = appLock,
+                    onUiRoot = { cachedAppUiRoot = it },
+                )
+            }
         }
     }
 
@@ -206,7 +236,6 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         DiscordPresenceRuntime.setAppForeground(true)
         LinkedSyncWorker.syncOnOpen(this)
-        lanSync.get().start()
     }
 
     override fun onDestroy() {
@@ -226,9 +255,15 @@ class MainActivity : ComponentActivity() {
                 hasActiveVideo = hasActiveVideo,
             )
 
+        val shouldKeepPausedVideo =
+            BackgroundPlaybackPolicy.shouldKeepPausedVideo(
+                explicitBackgroundPlaybackActive = GlobalPlayerState.isExplicitBackgroundPlaybackActive.value,
+                hasLoadedVideo = playerState.currentVideoId != null,
+            )
+
         if (shouldKeepBackgroundPlayback) {
             handOffVideoPlaybackToBackground()
-        } else if (!isChangingConfigurations) {
+        } else if (!shouldKeepPausedVideo && !isChangingConfigurations) {
             GlobalPlayerState.release()
         }
         super.onDestroy()
@@ -237,7 +272,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        incomingIntents.handle(intent, isRestoringState = false)
+        incomingIntents.handleWhenUnlocked(intent, isRestoringState = false)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        incomingIntents.saveState(outState)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    override fun onPictureInPictureUiStateChanged(pipState: PictureInPictureUiState) {
+        super.onPictureInPictureUiStateChanged(pipState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            GlobalPlayerState.setEnteringPip(pipState.isTransitioningToPip)
+        }
     }
 
     override fun onPictureInPictureModeChanged(
@@ -247,6 +295,7 @@ class MainActivity : ComponentActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         videoLifecycleLog("onPictureInPictureModeChanged pip=$isInPictureInPictureMode")
         GlobalPlayerState.setPipMode(isInPictureInPictureMode)
+        appLock.onPictureInPictureChanged(isInPictureInPictureMode)
         pendingAutoPip = false
 
         clearWindowBrightnessOverride()
@@ -258,7 +307,8 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     delay(350L)
                     val stillBackgrounded = !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-                    if (stillBackgrounded && !isInPictureInPictureMode) {
+                    val listeningInBackground = GlobalPlayerState.isExplicitBackgroundPlaybackActive.value
+                    if (stillBackgrounded && !isInPictureInPictureMode && !listeningInBackground) {
                         // onStop ran while the window was still in PiP, so it skipped its pause (#1152).
                         // Closing the window pauses like leaving the app does, and keeps the video (#1349).
                         if (cachedAppUiRoot == AppUiRoot.MOBILE) {
@@ -319,6 +369,11 @@ class MainActivity : ComponentActivity() {
         PictureInPictureHelper.dismissPopup(this)
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        hardwareKeyboard.onKeyEvent(event)
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onKeyDown(
         keyCode: Int,
         event: KeyEvent,
@@ -331,7 +386,7 @@ class MainActivity : ComponentActivity() {
         ) {
             return true
         }
-        return super.onKeyDown(keyCode, event)
+        return hardwareKeyboard.onUnhandledKeyDown(event, window::superDispatchKeyEvent) || super.onKeyDown(keyCode, event)
     }
 
     override fun onProvideKeyboardShortcuts(
@@ -357,7 +412,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        lanSync.get().stop()
         DiscordPresenceRuntime.setAppForeground(false)
         super.onStop()
         FlowCrashHandler.recordPhase(
@@ -423,8 +477,13 @@ class MainActivity : ComponentActivity() {
                 autoPipEnabled = lifecyclePlaybackPreferences.settings.autoPipEnabled,
                 isVideoPlaying = isVideoPlaying,
                 explicitBackgroundPlaybackActive = explicitBackgroundPlaybackActive,
+                soundOnlyBackground = GlobalPlayerState.isVideoSoundOnly.value,
             )
         if (shouldEnterAutoPip && !isMusicPlaying) {
+            if (PictureInPictureHelper.systemEntersPipOnLeave()) {
+                pendingAutoPip = true
+                return
+            }
             enterPlayerPictureInPictureMode(
                 aspectRatio = PictureInPictureHelper.currentVideoAspectRatio,
                 isPlaying = true,
@@ -474,8 +533,9 @@ class MainActivity : ComponentActivity() {
                 activity = this,
                 aspectRatio = aspectRatio,
                 isPlaying = isPlaying,
-                autoEnterEnabled = false,
+                autoEnterEnabled = PictureInPictureHelper.isAutoEnterArmed,
                 navigation = navigation,
+                offerBackground = navigation == null,
             )
         if (!entered) {
             pendingAutoPip = false

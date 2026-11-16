@@ -41,9 +41,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.ui.components.shared.FlowReorderButtons
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.MediaThumbnail
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
 import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardPreferences
+import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.components.shared.quickactions.VideoQuickActionsBottomSheet
 
 private val ThumbnailWidth: Dp = 112.dp
@@ -150,6 +153,7 @@ private fun QueueRowContent(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .onMenuKey(onLongClick)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
                 .semantics { customActions = actions },
     ) {
@@ -193,15 +197,19 @@ private fun QueueRowContent(
                 )
             }
 
-            val reorderLabel = stringResource(R.string.reorder_queue_item)
-            Box(
-                modifier =
-                    dragHandleModifier
-                        .size(HandleTouchSize)
-                        .semantics { contentDescription = reorderLabel },
-                contentAlignment = Alignment.Center,
-            ) {
-                ReorderHandle()
+            if (LocalDpadNavigation.current) {
+                FlowReorderButtons(onMoveUp = onMoveUp, onMoveDown = onMoveDown)
+            } else {
+                val reorderLabel = stringResource(R.string.reorder_queue_item)
+                Box(
+                    modifier =
+                        dragHandleModifier
+                            .size(HandleTouchSize)
+                            .semantics { contentDescription = reorderLabel },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ReorderHandle()
+                }
             }
         }
     }

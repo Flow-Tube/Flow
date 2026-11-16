@@ -5,8 +5,8 @@ import io.github.aedev.flow.data.local.LocalDataManager
 import kotlinx.coroutines.flow.first
 
 /**
- * The bedtime and break reminders of the running profile. Alarms outlive the process, so a switch cancels them and
- * the next profile arms its own from its settings.
+ * The bedtime reminder of the running profile. Alarms outlive the process, so a switch cancels it and the next profile
+ * arms its own from its settings.
  */
 internal object WellbeingAlarms {
     suspend fun arm(
@@ -18,15 +18,9 @@ internal object WellbeingAlarms {
         } else {
             ReminderManager.cancelBedtimeReminder(context)
         }
-        if (settings.breakReminder.first()) {
-            ReminderManager.scheduleBreakReminder(context, settings.breakFrequency.first())
-        } else {
-            ReminderManager.cancelBreakReminder(context)
-        }
     }
 
     fun cancel(context: Context) {
         ReminderManager.cancelBedtimeReminder(context)
-        ReminderManager.cancelBreakReminder(context)
     }
 }

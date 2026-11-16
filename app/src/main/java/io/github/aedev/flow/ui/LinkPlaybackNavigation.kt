@@ -12,6 +12,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.innertube.pages.isMix
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.screens.music.sharedMusicPlayerViewModel
@@ -104,12 +105,11 @@ internal fun NavGraphBuilder.linkPlaybackRoutes(
         // Use passed state
         val playerUiState = playerUiStateResult.value
         LaunchedEffect(effectiveVideoId) {
-            if (!playerUiState.shouldExpandInsteadOfPlaying(effectiveVideoId)) {
+            if (!playerUiState.shouldExpandInsteadOfPlaying(effectiveVideoId, GlobalPlayerState.playerState.value.currentVideoId)) {
                 val video =
                     playerUiState.cachedVideo?.takeIf { it.id == effectiveVideoId }
                         ?: linkedVideo(effectiveVideoId)
                 playerViewModel.playVideo(video)
-                GlobalPlayerState.setCurrentVideo(video)
             } else {
                 playerViewModel.showVideoPlayer()
                 playerVisibleState.value = true

@@ -94,8 +94,13 @@ internal fun rememberPlayerScrubController(
     val onScrubFinished: () -> Unit = {
         pendingScrubSeekJob?.cancel()
         pendingScrubSeekJob = null
+        val manager = EnhancedPlayerManager.getInstance()
+        manager.finishScrubPreview()
         scrubPosition?.let { targetPosition ->
+            // Read before seeking: the seek itself uses up a skip-once segment.
+            val landing = manager.seekLandingFor(targetPosition)
             onSeek(targetPosition)
+            scrubPosition = landing
             lastScrubSeekPosition = targetPosition
         }
         lastScrubSeekAt = 0L

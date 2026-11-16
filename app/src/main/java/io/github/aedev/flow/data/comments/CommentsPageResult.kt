@@ -2,26 +2,25 @@ package io.github.aedev.flow.data.comments
 
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
-import org.schabi.newpipe.extractor.Page
 
 /**
- * One page of comments and whatever the source needs to fetch the next one.
+ * One page of comments, the continuation that loads the next one, and the orders the section offers.
  *
- * Two sources produce this. InnerTube pages with [continuation] and describes the orders the
- * section offers in [sortOptions]; the extractor, which stands in when a response cannot be
- * parsed, pages with [legacyPage] and offers no orders at all.
+ * [disabled] marks a video whose uploader turned comments off, as opposed to one nobody has
+ * commented on yet.
  */
 data class CommentsPageResult(
     val comments: List<Comment> = emptyList(),
     val continuation: String? = null,
-    val legacyPage: Page? = null,
     val sortOptions: List<VideoCommentSort> = emptyList(),
     val totalText: String? = null,
     val totalCount: Long? = null,
+    val disabled: Boolean = false,
 ) {
-    val hasMore: Boolean get() = continuation != null || legacyPage != null
+    val hasMore: Boolean get() = continuation != null
 
     companion object {
         val EMPTY = CommentsPageResult()
+        val DISABLED = CommentsPageResult(disabled = true)
     }
 }

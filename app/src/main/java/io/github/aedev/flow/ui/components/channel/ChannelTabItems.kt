@@ -37,9 +37,9 @@ import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.MediaShortCard
 import io.github.aedev.flow.ui.components.shared.ShortCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
+import io.github.aedev.flow.ui.theme.Dimensions
 
 /**
  * Every channel tab's list, whatever it holds.
@@ -90,7 +90,7 @@ internal fun ChannelTabItems(
                 spansOwnRow = { pagingItems.peek(it).spansRow() },
                 includeLastRun = pagingItems.loadState.append.endOfPaginationReached,
                 itemsKey = pagingItems.itemSnapshotList,
-                compactRowSpacing = feedLayout.cardSpacing,
+                compactRowSpacing = Dimensions.ItemSpacing,
             )
         val sidePadding = if (isShorts) ShortCardDefaults.gridPadding(feedLayout) else plan.horizontalPadding
         val padding =
@@ -137,6 +137,7 @@ internal fun ChannelTabItems(
                             showChannel = false,
                             onClick = { onVideoClick(item.video) },
                             thumbnailWidth = plan.listThumbnailWidth,
+                            density = plan.cardDensity,
                         )
                     }
 
@@ -154,7 +155,7 @@ internal fun ChannelTabItems(
                             playlist = item.playlist,
                             onClick = { onPlaylistClick(item.playlist.id) },
                             layout = if (asRow) PlaylistCardLayout.LIST else PlaylistCardLayout.SHELF,
-                            modifier = if (asRow) Modifier else Modifier.padding(horizontal = VideoCardDefaults.Inset),
+                            modifier = if (asRow) Modifier else Modifier.padding(horizontal = plan.cardInset),
                         )
                     }
 

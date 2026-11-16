@@ -105,10 +105,38 @@ class DownloadStreamResolverTest {
     }
 
     @Test
-    fun `a track that is gone falls back to the original, not to the first dub`() {
+    fun `a track the response lacks is reported rather than swapped`() {
         val dubs = listOf(dub("ar.3", "Arabic", 129_483), dub("en.4", "English original", 129_477))
 
-        assertThat(streams(select(request(audioItag = 140, audioTrackId = "fr.3"), audio = dubs)).audio.audioTrack?.id).isEqualTo("en.4")
+        assertThat(select(request(audioItag = 140, audioTrackId = "fr.3"), audio = dubs)).isEqualTo(ResolveOutcome.AudioTrackMissing)
+        assertThat(select(request(audioOnly = true, audioItag = 140, audioTrackId = "fr.3"), audio = dubs))
+            .isEqualTo(ResolveOutcome.AudioTrackMissing)
+    }
+
+    @Test
+    fun `accepting another track falls back to the original, not to the first dub, and says so`() {
+        val dubs = listOf(dub("ar.3", "Arabic", 129_483), dub("en.4", "English original", 129_477))
+
+        val resolved =
+            streams(
+                DownloadStreamResolver.select(
+                    request(audioItag = 140, audioTrackId = "fr.3"),
+                    result(LADDER, dubs),
+                    emptySet(),
+                    defaults,
+                    acceptOtherTrack = true,
+                ),
+            )
+
+        assertThat(resolved.audio.audioTrack?.id).isEqualTo("en.4")
+        assertThat(resolved.audioTrackSwapped).isTrue()
+    }
+
+    @Test
+    fun `a track on offer is not marked as swapped`() {
+        val dubs = listOf(dub("ar.3", "Arabic", 129_483), dub("en.4", "English original", 129_477))
+
+        assertThat(streams(select(request(audioItag = 140, audioTrackId = "ar.3"), audio = dubs)).audioTrackSwapped).isFalse()
     }
 
     @Test

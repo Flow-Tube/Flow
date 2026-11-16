@@ -1,8 +1,11 @@
 package io.github.aedev.flow.di
 
 import android.content.Context
+import android.os.Build
 import coil3.ImageLoader
 import coil3.disk.DiskCache
+import coil3.gif.AnimatedImageDecoder
+import coil3.gif.GifDecoder
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
@@ -52,6 +55,7 @@ object AppModule {
             .Builder(context)
             .components {
                 add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient }))
+                add(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) AnimatedImageDecoder.Factory() else GifDecoder.Factory())
                 add(MediaRetrieverDecoderFactory(VideoFrameDecoder.Factory()))
                 add(MediaStoreThumbnailFetcher.Factory(context))
             }.memoryCache {

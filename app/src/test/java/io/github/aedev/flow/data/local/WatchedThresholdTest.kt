@@ -48,4 +48,22 @@ class WatchedThresholdTest {
             assertThat(threshold.isWatched(1_500L, 30_000L)).isFalse()
         }
     }
+
+    @Test
+    fun `an imported row has neither a position nor a duration`() {
+        assertThat(isImportedWatch(0L, 0L)).isTrue()
+        assertThat(isImportedWatch(0L, 600_000L)).isFalse()
+        assertThat(isImportedWatch(5_000L, 0L)).isFalse()
+        assertThat(isImportedWatch(0L, 1L)).isFalse()
+    }
+
+    @Test
+    fun `imported rows count as watched only when the viewer asks`() {
+        WatchedThreshold.entries.forEach { threshold ->
+            assertThat(threshold.isWatched(0L, 0L, countImported = false)).isFalse()
+            assertThat(threshold.isWatched(0L, 0L, countImported = true)).isTrue()
+            assertThat(threshold.isWatched(0L, 600_000L, countImported = true)).isFalse()
+        }
+        assertThat(WatchedThreshold.ALMOST_FINISHED.isWatched(590_000L, 600_000L, countImported = false)).isTrue()
+    }
 }

@@ -26,7 +26,7 @@ data class StoreLocation(
 data class QrCode(
     val v: Int,
     val t: String,
-    val e: String,
+    val c: String,
     val r: String,
     val d: String,
     val s: StoreLocation? = null,
@@ -45,6 +45,9 @@ data class WelcomeStore(
     val k: String,
     val u: String? = null,
     val i: String? = null,
+    /** A WebDAV store's user name and password, which travel only inside the pairing boxes. */
+    val n: String? = null,
+    val w: String? = null,
 )
 
 @Serializable
@@ -55,6 +58,8 @@ internal sealed interface Message {
         val sig: String,
         val kem: String,
         val meta: DeviceMeta,
+        /** Over the LAN, the port this device's LAN service listens on (spec/protocol.md, Messages). */
+        val p: Int? = null,
     ) : Message
 
     @Serializable
@@ -80,6 +85,7 @@ internal sealed interface Message {
         /** A LAN group has no store to read: the roster up to [head], and the new device's wrap of the current epoch. */
         val entries: List<Entry>? = null,
         val wrap: String? = null,
+        val p: Int? = null,
     ) : Message
 
     @Serializable

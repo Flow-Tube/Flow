@@ -4,9 +4,6 @@ import io.github.aedev.flow.data.video.downloader.tags.Mp4Boxes.Span
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
-import java.io.RandomAccessFile
-import java.nio.ByteBuffer
-import java.nio.channels.FileChannel
 import javax.inject.Inject
 
 /**
@@ -18,9 +15,8 @@ import javax.inject.Inject
  * `Mp4LocationData`, `Mp4OrientationData` and `Mp4TimestampData` (`MuxerUtil.isMetadataSupported`),
  * its `WebmMuxer`/`OggMuxer` reject metadata, and platform `MediaMuxer` has no tag API.
  *
- * The `mdat` box never moves, so every chunk offset stays valid: a trailing `moov` is rewritten in
- * place, and a `moov` that precedes `mdat` is appended at the end of the file while the old one
- * becomes a `free` box of the same size. Operate on a staged copy; the file is edited in place.
+ * The `moov` box is replaced through [Mp4MoovFile], which never moves `mdat`. Operate on a staged
+ * copy; the file is edited in place.
  */
 class Mp4TagWriter
     @Inject
@@ -31,23 +27,8 @@ class Mp4TagWriter
             tags: DownloadTags,
             cover: ByteArray? = null,
         ) {
-            RandomAccessFile(file, "rw").use { raf ->
-                val channel = raf.channel
-                val boxes = Mp4Boxes.topLevel(channel)
-                val moov = boxes.firstOrNull { it.type == MOOV } ?: throw IOException("No moov box in ${file.name}")
-                if (moov.size > MAX_MOOV_BYTES) throw IOException("moov box too large: ${moov.size}")
-                val moovBytes = Mp4Boxes.readFully(channel, moov.start, moov.size.toInt())
-                val newMoov = rebuildMoov(moovBytes, moov.headerSize, IlstAtoms.build(tags, cover))
-                if (moov.end == channel.size()) {
-                    writeFully(channel, moov.start, newMoov)
-                    channel.truncate(moov.start + newMoov.size)
-                } else {
-                    boxes.last().takeIf { it.extendsToEnd }?.let { pinSize(channel, it) }
-                    writeFully(channel, channel.size(), newMoov)
-                    writeFully(channel, moov.start + 4, FREE.toByteArray(Charsets.ISO_8859_1))
-                }
-                channel.force(false)
-            }
+            val ilst = IlstAtoms.build(tags, cover)
+            Mp4MoovFile.edit(file) { moov, headerSize -> rebuildMoov(moov, headerSize, ilst) }
         }
 
         private fun rebuildMoov(
@@ -117,23 +98,6 @@ class Mp4TagWriter
             return String(bytes, typeOffset, 4, Charsets.ISO_8859_1)
         }
 
-        private fun pinSize(
-            channel: FileChannel,
-            box: Span,
-        ) {
-            if (box.size > UINT32_MAX) throw IOException("Cannot pin the size of open-ended '${box.type}' (${box.size} bytes)")
-            writeFully(channel, box.start, ByteBuffer.allocate(4).putInt(box.size.toInt()).array())
-        }
-
-        private fun writeFully(
-            channel: FileChannel,
-            position: Long,
-            bytes: ByteArray,
-        ) {
-            val buffer = ByteBuffer.wrap(bytes)
-            while (buffer.hasRemaining()) channel.write(buffer, position + buffer.position())
-        }
-
         private companion object {
             const val MOOV = "moov"
             const val UDTA = "udta"
@@ -141,10 +105,7 @@ class Mp4TagWriter
             const val HDLR = "hdlr"
             const val ILST = "ilst"
             const val MDIR = "mdir"
-            const val FREE = "free"
             const val HANDLER_TYPE_OFFSET = 8
-            const val MAX_MOOV_BYTES = 64L * 1024 * 1024
-            const val UINT32_MAX = 0xFFFFFFFFL
 
             val MDIR_HANDLER: ByteArray =
                 IlstAtoms.box(

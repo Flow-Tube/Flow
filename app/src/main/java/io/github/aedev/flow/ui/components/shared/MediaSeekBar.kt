@@ -20,6 +20,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,8 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.model.SponsorBlockSegment
+import io.github.aedev.flow.ui.theme.PlayerScrimContent
 import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val EdgeAlignedHeight = 14.dp
@@ -46,6 +50,7 @@ internal data class SeekTrackColors(
     val buffered: Color,
     val active: Color,
     val playhead: Color,
+    val mark: Color,
 )
 
 /**
@@ -81,6 +86,8 @@ fun MediaSeekBar(
      * from the map fall back to the shared defaults.
      */
     sponsorColors: Map<String, Color> = emptyMap(),
+    /** Fractions of the bar to dot, in ascending order. Only painted: they take no touches. */
+    commentMarks: List<Float> = emptyList(),
     duration: Long = 0L,
     bufferedValue: Float = 0f,
     edgeAligned: Boolean = false,
@@ -93,6 +100,8 @@ fun MediaSeekBar(
             buffered = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.56f),
             active = primaryColor,
             playhead = thumbFillColor,
+            // The bar sits over the video in every theme, so onSurface would be dark on dark in a light one.
+            mark = PlayerScrimContent,
         )
     val thumbStateLayerColor = primaryColor.copy(alpha = 0.18f)
 
@@ -135,8 +144,6 @@ fun MediaSeekBar(
                 Unit
             }
         }
-    sliderState.onValueChange = onScrub
-    sliderState.onValueChangeFinished = onScrubFinished
 
     // Animated in the draw phase rather than through Modifier.height: the track used to grow by
     // animating a layout constraint, which forced a layout pass on every frame of the touch
@@ -184,6 +191,7 @@ fun MediaSeekBar(
                     chapters = chapters,
                     sponsorSegments = sponsorSegments,
                     sponsorColors = sponsorColors,
+                    commentMarks = commentMarks,
                     duration = duration,
                     bufferedValue = bufferedValue,
                     colors = trackColors,
@@ -196,62 +204,68 @@ fun MediaSeekBar(
                     },
                 )
             } else {
-                @OptIn(ExperimentalMaterial3Api::class)
-                Slider(
-                    state = sliderState,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
-                    interactionSource = interactionSource,
-                    colors = SliderDefaults.colors(thumbColor = thumbFillColor),
-                    track = { state ->
-                        Canvas(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(ActiveTrackHeight),
-                        ) {
-                            drawSeekTrack(
-                                fraction = state.coercedValueAsFraction,
-                                expansion = trackExpansion.value,
-                                chapters = chapters,
-                                sponsorSegments = sponsorSegments,
-                                sponsorColors = sponsorColors,
-                                duration = duration,
-                                bufferedValue = bufferedValue,
-                                colors = trackColors,
-                                bottomAligned = false,
-                            )
-                        }
-                    },
-                    thumb = {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(16.dp)
-                                    .graphicsLayer {
-                                        val scale = thumbScale.value
-                                        scaleX = scale
-                                        scaleY = scale
-                                    }.drawBehind {
-                                        if (isInteracting) {
-                                            drawCircle(
-                                                color = thumbStateLayerColor,
-                                                radius = 20.dp.toPx(),
-                                            )
-                                        }
-                                    },
-                            contentAlignment = Alignment.Center,
-                        ) {
+                // A timeline runs left to right in every language, and the track below draws it that way.
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    @OptIn(ExperimentalMaterial3Api::class)
+                    Slider(
+                        state = sliderState,
+                        onValueChange = onScrub,
+                        onValueChangeFinished = onScrubFinished,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = enabled,
+                        interactionSource = interactionSource,
+                        colors = SliderDefaults.colors(thumbColor = thumbFillColor),
+                        track = { state ->
+                            Canvas(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(ActiveTrackHeight),
+                            ) {
+                                drawSeekTrack(
+                                    fraction = state.coercedValueAsFraction,
+                                    expansion = trackExpansion.value,
+                                    chapters = chapters,
+                                    sponsorSegments = sponsorSegments,
+                                    sponsorColors = sponsorColors,
+                                    commentMarks = commentMarks,
+                                    duration = duration,
+                                    bufferedValue = bufferedValue,
+                                    colors = trackColors,
+                                    bottomAligned = false,
+                                )
+                            }
+                        },
+                        thumb = {
                             Box(
                                 modifier =
                                     Modifier
-                                        .matchParentSize()
-                                        .background(thumbFillColor, CircleShape)
-                                        .border(3.dp, primaryColor, CircleShape),
-                            )
-                        }
-                    },
-                )
+                                        .size(16.dp)
+                                        .graphicsLayer {
+                                            val scale = thumbScale.value
+                                            scaleX = scale
+                                            scaleY = scale
+                                        }.drawBehind {
+                                            if (isInteracting) {
+                                                drawCircle(
+                                                    color = thumbStateLayerColor,
+                                                    radius = 20.dp.toPx(),
+                                                )
+                                            }
+                                        },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .matchParentSize()
+                                            .background(thumbFillColor, CircleShape)
+                                            .border(3.dp, primaryColor, CircleShape),
+                                )
+                            }
+                        },
+                    )
+                }
             }
         }
     }

@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.partialRowIndices
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
+import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 
 /**
  * The per-index decisions a vertical feed grid makes once its [FeedGridLayout] and its item list are
@@ -38,6 +39,10 @@ data class FeedGridPlan(
     val rowSpacing: Dp,
     val listThumbnailWidth: Dp,
     val partialRows: Set<Int>,
+    /** Every video card's density in this plan, rows included; list mode is never dense. */
+    val cardDensity: VideoCardDensity = VideoCardDensity.Regular,
+    /** The side inset a grid's playlist cards take so they line up with its video cards. */
+    val cardInset: Dp = VideoCardDefaults.Inset,
     private val listMode: Boolean,
     private val isCompact: Boolean,
     private val compactRows: Boolean,
@@ -71,10 +76,11 @@ fun feedGridPlanFor(
     compactRowSpacing: Dp = 0.dp,
 ): FeedGridPlan {
     val columns = if (listMode) 1 else layout.columns
+    val dense = layout.dense && !listMode
     return FeedGridPlan(
         cells = if (listMode) GridCells.Fixed(1) else layout.cells,
         columns = columns,
-        horizontalPadding = layout.contentPadding,
+        horizontalPadding = if (listMode) layout.listContentPadding else layout.contentPadding,
         rowSpacing =
             when {
                 columns > 1 -> layout.cardSpacing
@@ -88,6 +94,8 @@ fun feedGridPlanFor(
                 columns = columns,
                 includeLastRun = includeLastRun,
             ),
+        cardDensity = if (dense) VideoCardDensity.Dense else VideoCardDensity.Regular,
+        cardInset = if (dense) layout.cardInset else VideoCardDefaults.Inset,
         listMode = listMode,
         isCompact = layout.isCompact,
         compactRows = compactRows,

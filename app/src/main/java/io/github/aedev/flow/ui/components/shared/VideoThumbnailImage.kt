@@ -19,7 +19,10 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
+import coil3.video.preferVideoFrameEmbeddedThumbnailKey
+import coil3.video.videoFramePercent
 import io.github.aedev.flow.data.local.ThumbnailQuality
+import io.github.aedev.flow.data.localmedia.localVideoFrameFor
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 
 /**
@@ -108,14 +111,20 @@ private fun SafeAsyncImage(
             val context = LocalPlatformContext.current
             val request =
                 remember(currentModel, placeholderKey) {
-                    if (placeholderKey == null) {
+                    val localFrame = (currentModel as? String)?.let(::localVideoFrameFor)
+                    if (placeholderKey == null && localFrame == null) {
                         currentModel
                     } else {
                         ImageRequest
                             .Builder(context)
                             .data(currentModel)
-                            .placeholderMemoryCacheKey(placeholderKey)
-                            .build()
+                            .apply {
+                                placeholderKey?.let { placeholderMemoryCacheKey(it) }
+                                localFrame?.let {
+                                    preferVideoFrameEmbeddedThumbnailKey(it.preferEmbeddedThumbnail)
+                                    videoFramePercent(it.framePercent)
+                                }
+                            }.build()
                     }
                 }
             AsyncImage(

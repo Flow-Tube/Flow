@@ -1,10 +1,26 @@
 package io.github.aedev.flow.ui.screens.settings.appearance.player
 
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.aedev.flow.data.local.CoverShape
 import io.github.aedev.flow.data.local.DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP
 import io.github.aedev.flow.data.local.DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP
+import io.github.aedev.flow.data.local.DefaultCoverShapes
+import io.github.aedev.flow.data.local.DefaultMiniBarButtons
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
+import io.github.aedev.flow.data.local.IdleProgressBar
+import io.github.aedev.flow.data.local.LYRICS_ALIGN_CENTER
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
+import io.github.aedev.flow.data.local.LyricsGlow
+import io.github.aedev.flow.data.local.MiniBarBackground
+import io.github.aedev.flow.data.local.MiniBarButton
+import io.github.aedev.flow.data.local.MiniBarProgress
 import io.github.aedev.flow.data.local.MiniBarSwipeAction
+import io.github.aedev.flow.data.local.MiniCoverMotion
+import io.github.aedev.flow.data.local.MiniCoverShape
+import io.github.aedev.flow.data.local.MiniCoverTap
+import io.github.aedev.flow.data.local.MiniLongPress
 import io.github.aedev.flow.data.local.MusicPlainControlColors
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.local.PlayerOverlayPreferences
@@ -30,20 +46,47 @@ class PlayerAppearanceViewModel
         val portraitSeekbarCustom = preferences.portraitSeekbarCustomPaddingDp.asState(DEFAULT_PORTRAIT_SEEKBAR_PADDING_DP)
         val fullscreenSeekbarMode = preferences.fullscreenSeekbarPaddingMode.asState(SeekbarPaddingMode.DEFAULT)
         val fullscreenSeekbarCustom = preferences.fullscreenSeekbarCustomPaddingDp.asState(DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP)
+        val idleProgressBar = preferences.idleProgressBar.asState(overlayDefaults.idleProgressBar)
         val scrubPreview = preferences.scrubPreviewStyle.asState(overlayDefaults.scrubPreviewStyle)
         val frameStepButtons = preferences.frameStepButtonsEnabled.asState(overlayDefaults.frameStepButtonsEnabled)
         val musicBackground = preferences.musicPlayerBackgroundStyle.asState(MusicPlayerBackgroundStyle.BLUR_GRADIENT)
         val hideMusicArtwork = preferences.hideMusicPlayerArtwork.asState(false)
         val followLightTheme = preferences.musicPlayerFollowLightTheme.asState(false)
+        val lyricsOnCover = preferences.immersiveLyricsOnCover.asState(false)
         val artworkControlColors = preferences.musicArtworkControlColors.asState(true)
         val animatedArtwork = preferences.animatedArtwork.asState(false)
         val animatedArtworkWifiOnly = preferences.animatedArtworkWifiOnly.asState(true)
         val plainControlColors = preferences.musicPlainControlColors.asState(MusicPlainControlColors.MONOCHROME)
         val sleepTimerButton = preferences.musicSleepTimerButton.asState(false)
+        val miniCoverShape = preferences.miniCoverShape.asState(MiniCoverShape.MORPHING)
+        val miniCoverMotion = preferences.miniCoverMotion.asState(MiniCoverMotion.ON_PLAY)
+        val miniCoverShapes = preferences.miniCoverShapes.asState(DefaultCoverShapes)
+        val miniCoverPausedShape = preferences.miniCoverPausedShape.asState(CoverShape.CIRCLE)
+        val miniBarProgress = preferences.miniBarProgress.asState(MiniBarProgress.NONE)
+        val miniCoverRing = preferences.miniCoverRing.asState(true)
+        val miniBarButtons = preferences.miniBarButtons.asState(DefaultMiniBarButtons)
+        val miniCoverTap = preferences.miniCoverTap.asState(MiniCoverTap.OPEN)
+        val miniLongPress = preferences.miniLongPress.asState(MiniLongPress.NOTHING)
+        val miniBarBackground = preferences.miniBarBackground.asState(MiniBarBackground.TINTED)
+        val lyricsAnimationStyle = preferences.lyricsAnimationStyle.asState(LyricsAnimationStyle.CADENCE)
+        val lyricsGlow = preferences.lyricsGlow.asState(LyricsGlow.NORMAL)
+        val lyricsBlurOtherLines = preferences.lyricsBlurOtherLines.asState(true)
+        val lyricsBackground = preferences.lyricsBackground.asState(LyricsBackgroundStyle.SOLID)
+        val lyricsTextAlign = preferences.lyricsTextAlign.asState(LYRICS_ALIGN_CENTER)
+        val splitTransport = preferences.musicSplitTransport.asState(true)
         val adaptivePlayerSize = preferences.adaptivePlayerSizeEnabled.asState(true)
+        val playerScrollAway = preferences.playerScrollAwayEnabled.asState(false)
         val ambientMode = preferences.videoAmbientModeEnabled.asState(false)
+        val ambientGlow = preferences.videoAmbientGlowEnabled.asState(false)
+        val immersiveGlow = preferences.videoAmbientImmersiveEnabled.asState(false)
+        val immersiveScrollDim = preferences.videoAmbientImmersiveScrollDim.asState(true)
+        val glowInBatterySaver = preferences.videoAmbientGlowInBatterySaver.asState(false)
+        val videoArtworkColors = preferences.videoArtworkColors.asState(true)
         val groupedQualitySelector = preferences.groupedQualitySelectorEnabled.asState(false)
+        val paidPromotionLabel = preferences.paidPromotionLabel.asState(false)
         val gestureOverlay = preferences.gestureOverlayStyle.asState(GestureOverlayStyle.CIRCULAR)
+        val fullscreenSidePanelWidth = preferences.fullscreenSidePanelWidth.asState(FullscreenSidePanelWidth.DEFAULT)
+        val fullscreenZoomToFill = preferences.fullscreenZoomToFill.asState(false)
         val shortsUiMode = preferences.shortsPlayerUiMode.asState(ShortsPlayerUiMode.DEFAULT)
         val miniPlayerScale = preferences.miniPlayerScale.asState(MiniPlayerSize.NORMAL.scale)
         val miniPlayerSkip = preferences.miniPlayerShowSkipControls.asState(false)
@@ -63,6 +106,8 @@ class PlayerAppearanceViewModel
 
         fun setFullscreenSeekbarCustom(value: Int) = write { preferences.setFullscreenSeekbarCustomPaddingDp(value) }
 
+        fun setIdleProgressBar(value: IdleProgressBar) = write { preferences.setIdleProgressBar(value) }
+
         fun setScrubPreview(value: ScrubPreviewStyle) = write { preferences.setScrubPreviewStyle(value) }
 
         fun setFrameStepButtons(value: Boolean) = write { preferences.setFrameStepButtonsEnabled(value) }
@@ -72,6 +117,8 @@ class PlayerAppearanceViewModel
         fun setHideMusicArtwork(value: Boolean) = write { preferences.setHideMusicPlayerArtwork(value) }
 
         fun setFollowLightTheme(value: Boolean) = write { preferences.setMusicPlayerFollowLightTheme(value) }
+
+        fun setLyricsOnCover(value: Boolean) = write { preferences.setImmersiveLyricsOnCover(value) }
 
         fun setArtworkControlColors(value: Boolean) = write { preferences.setMusicArtworkControlColors(value) }
 
@@ -83,13 +130,69 @@ class PlayerAppearanceViewModel
 
         fun setSleepTimerButton(value: Boolean) = write { preferences.setMusicSleepTimerButton(value) }
 
+        fun setMiniCoverShape(value: MiniCoverShape) = write { preferences.setMiniCoverShape(value) }
+
+        fun setMiniCoverMotion(value: MiniCoverMotion) = write { preferences.setMiniCoverMotion(value) }
+
+        /** Adds or removes [shape]; the last one left can't be removed. */
+        fun toggleMiniCoverShape(shape: CoverShape) =
+            write {
+                val current = miniCoverShapes.value
+                val next = if (shape in current) current - shape else current + shape
+                if (next.isNotEmpty()) preferences.setMiniCoverShapes(next)
+            }
+
+        fun setMiniCoverPausedShape(shape: CoverShape?) = write { preferences.setMiniCoverPausedShape(shape) }
+
+        fun setMiniBarProgress(value: MiniBarProgress) = write { preferences.setMiniBarProgress(value) }
+
+        fun setMiniCoverRing(value: Boolean) = write { preferences.setMiniCoverRing(value) }
+
+        fun setMiniBarButtons(value: List<MiniBarButton>) = write { preferences.setMiniBarButtons(value) }
+
+        fun setMiniCoverTap(value: MiniCoverTap) = write { preferences.setMiniCoverTap(value) }
+
+        fun setMiniLongPress(value: MiniLongPress) = write { preferences.setMiniLongPress(value) }
+
+        fun setMiniBarBackground(value: MiniBarBackground) = write { preferences.setMiniBarBackground(value) }
+
+        fun setLyricsAnimationStyle(value: LyricsAnimationStyle) = write { preferences.setLyricsAnimationStyle(value) }
+
+        fun setLyricsGlow(value: LyricsGlow) = write { preferences.setLyricsGlow(value) }
+
+        fun setLyricsBlurOtherLines(value: Boolean) = write { preferences.setLyricsBlurOtherLines(value) }
+
+        fun setLyricsBackground(value: LyricsBackgroundStyle) = write { preferences.setLyricsBackground(value) }
+
+        fun setLyricsTextAlign(value: String) = write { preferences.setLyricsTextAlign(value) }
+
+        fun setSplitTransport(value: Boolean) = write { preferences.setMusicSplitTransport(value) }
+
         fun setAdaptivePlayerSize(value: Boolean) = write { preferences.setAdaptivePlayerSizeEnabled(value) }
+
+        fun setPlayerScrollAway(value: Boolean) = write { preferences.setPlayerScrollAwayEnabled(value) }
 
         fun setAmbientMode(value: Boolean) = write { preferences.setVideoAmbientModeEnabled(value) }
 
+        fun setAmbientGlow(value: Boolean) = write { preferences.setVideoAmbientGlowEnabled(value) }
+
+        fun setImmersiveGlow(value: Boolean) = write { preferences.setVideoAmbientImmersiveEnabled(value) }
+
+        fun setImmersiveScrollDim(value: Boolean) = write { preferences.setVideoAmbientImmersiveScrollDim(value) }
+
+        fun setGlowInBatterySaver(value: Boolean) = write { preferences.setVideoAmbientGlowInBatterySaver(value) }
+
+        fun setVideoArtworkColors(value: Boolean) = write { preferences.setVideoArtworkColors(value) }
+
         fun setGroupedQualitySelector(value: Boolean) = write { preferences.setGroupedQualitySelectorEnabled(value) }
 
+        fun setPaidPromotionLabel(value: Boolean) = write { preferences.setPaidPromotionLabel(value) }
+
         fun setGestureOverlay(value: GestureOverlayStyle) = write { preferences.setGestureOverlayStyle(value) }
+
+        fun setFullscreenSidePanelWidth(value: FullscreenSidePanelWidth) = write { preferences.setFullscreenSidePanelWidth(value) }
+
+        fun setFullscreenZoomToFill(value: Boolean) = write { preferences.setFullscreenZoomToFill(value) }
 
         fun setShortsUiMode(value: ShortsPlayerUiMode) = write { preferences.setShortsPlayerUiMode(value) }
 

@@ -8,6 +8,7 @@ package io.github.aedev.flow.data.lyrics
 internal object LyricsProviderOrder {
     val DEFAULT: List<String> =
         listOf(
+            YouTubeLyricsProvider.NAME,
             "BetterLyrics",
             LrcRedLyricsProvider.NAME,
             "LyricsPlus",
@@ -16,8 +17,9 @@ internal object LyricsProviderOrder {
             "Paxsenix",
             "LrcLib",
             UnisonLyricsProvider.NAME,
+            NetEaseLyricsProvider.NAME,
+            AmllLyricsProvider.NAME,
             "YouTubeSubtitle",
-            "YouTube",
         )
 
     fun resolve(saved: String): List<String> {

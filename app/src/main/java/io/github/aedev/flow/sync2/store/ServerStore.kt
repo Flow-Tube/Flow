@@ -2,11 +2,13 @@ package io.github.aedev.flow.sync2.store
 
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.qr.LocalNetworkAddress
+import io.github.aedev.flow.sync.transport.MessageLimit
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
 import io.github.aedev.flow.sync2.crypto.sign
 import io.github.aedev.flow.sync2.crypto.tag
 import io.github.aedev.flow.sync2.engine.LinkedException
 import io.github.aedev.flow.sync2.roster.Entry
+import io.github.aedev.flow.sync2.roster.MAX_ROSTER_ENTRIES
 import io.github.aedev.flow.sync2.roster.entryJson
 import io.github.aedev.flow.sync2.roster.parseEntry
 import kotlinx.coroutines.Dispatchers
@@ -40,20 +42,17 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.io.IOException
 import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /** Refresh a token this long before it expires. */
 private const val TOKEN_MARGIN_MS = 60_000L
 private const val LIVE_PING_S = 15L
+
+/** The most a live message or a server notice may hold (spec/store.md, Untrusted input). */
+internal const val MAX_LIVE_MESSAGE = 64L * 1024
 private val JSON = "application/json".toMediaType()
 private val BYTES = "application/octet-stream".toMediaType()
-
-/** A `.local` name may resolve only to local addresses, checked on every connection. */
-private val LOCAL_ONLY_DNS =
-    Dns { host ->
-        Dns.SYSTEM.lookup(host).takeIf { addresses -> addresses.all { LocalNetworkAddress.isLocal(it.hostAddress.orEmpty()) } }
-            ?: throw UnknownHostException("$host is not on the local network")
-    }
 
 /**
  * The Flow sync server as a store (spec/api.md). Requests are signed in with this member's roster
@@ -65,12 +64,23 @@ class ServerStore private constructor(
     private val member: MemberSecrets,
     private var instance: String?,
     private var group: String?,
-) : Store,
-    Mailbox {
+) : ChangeList,
+    Remote {
     private val session = Mutex()
-    private var token: Pair<String, Long>? = null
+    private val tokenKey = "$base ${SyncBytes.toHex(member.did)}"
+
+    /** A token and the instance and group it was issued for. */
+    private class Issued(
+        val value: String,
+        val expires: Long,
+        val instance: String,
+        val group: String,
+    )
 
     companion object {
+        // Shared by every store of the process, so each sync run doesn't sign in again.
+        private val tokens = ConcurrentHashMap<String, Issued>()
+
         /**
          * Prepares a connection to [url] for [member]. HTTPS anywhere; plain HTTP only to a private
          * address or a `.local` name. [instance] and [group] are the ids pinned at pairing; a device
@@ -83,19 +93,7 @@ class ServerStore private constructor(
             group: String?,
         ): ServerStore {
             val base = url.toHttpUrlOrNull() ?: throw StoreException.Insecure()
-            val builder =
-                OkHttpClient
-                    .Builder()
-                    .followRedirects(false)
-                    .followSslRedirects(false)
-                    .connectTimeout(10, TimeUnit.SECONDS)
-                    .callTimeout(60, TimeUnit.SECONDS)
-            when {
-                base.isHttps || LocalNetworkAddress.isLocal(base.host) -> Unit
-                base.host.endsWith(".local", ignoreCase = true) -> builder.dns(LOCAL_ONLY_DNS)
-                else -> throw StoreException.Insecure()
-            }
-            return ServerStore(base, builder.build(), member, instance, group)
+            return ServerStore(base, storeClient(base), member, instance, group)
         }
     }
 
@@ -104,12 +102,18 @@ class ServerStore private constructor(
 
     private fun url(path: String): HttpUrl = base.resolve(path) ?: throw StoreException.Malformed()
 
-    /** The whole body is read here, on the IO dispatcher, so callers never read the network from their own thread. */
-    private suspend fun send(request: Request): Response =
+    /**
+     * The whole body, up to [limit] bytes, is read here, on the IO dispatcher, so callers never read the network from
+     * their own thread.
+     */
+    private suspend fun send(
+        request: Request,
+        limit: Long = MAX_RESPONSE,
+    ): Response =
         withContext(Dispatchers.IO) {
             try {
                 client.newCall(request).execute().use { response ->
-                    response.newBuilder().body(response.body.bytes().toResponseBody(response.body.contentType())).build()
+                    response.newBuilder().body(response.body.bytesUpTo(limit).toResponseBody(response.body.contentType())).build()
                 }
             } catch (e: IOException) {
                 throw StoreException.Network(e)
@@ -145,25 +149,40 @@ class ServerStore private constructor(
                 throw StoreException.Malformed()
             }
         val issued =
-            postJson(
-                "v1/auth/token",
-                buildJsonObject {
-                    put("did", did)
-                    put("challenge", nonce)
-                    put("sig", SyncBytes.b64urlEncode(sign(member.sigSeed, message)))
-                },
-            )
+            try {
+                postJson(
+                    "v1/auth/token",
+                    buildJsonObject {
+                        put("did", did)
+                        put("challenge", nonce)
+                        put("sig", SyncBytes.b64urlEncode(sign(member.sigSeed, message)))
+                    },
+                )
+            } catch (e: StoreException.Refused) {
+                // The server issues tokens only to current devices: this one left or was removed.
+                if (e.status == 401 || e.status == 403) throw StoreException.SignInRefused() else throw e
+            }
         val value = issued["token"]?.jsonPrimitive?.contentOrNull ?: throw StoreException.Malformed()
         val expires = issued["expires"]?.jsonPrimitive?.longOrNull ?: throw StoreException.Malformed()
         instance = instanceId
         group = groupId
-        token = value to expires
+        tokens[tokenKey] = Issued(value, expires, instanceId, groupId)
         return value
     }
 
     private suspend fun token(renew: Boolean): String =
         session.withLock {
-            token?.takeIf { (_, expires) -> !renew && expires > System.currentTimeMillis() + TOKEN_MARGIN_MS }?.first ?: signIn()
+            val held =
+                tokens[tokenKey]?.takeIf {
+                    !renew &&
+                        it.expires > System.currentTimeMillis() + TOKEN_MARGIN_MS &&
+                        instance.let { pinned -> pinned == null || pinned == it.instance } &&
+                        group.let { pinned -> pinned == null || pinned == it.group }
+                }
+            if (held == null) return@withLock signIn()
+            instance = held.instance
+            group = held.group
+            held.value
         }
 
     /** Sends an authenticated request, signing in again once if the token was refused. */
@@ -172,6 +191,7 @@ class ServerStore private constructor(
         path: String,
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
+        limit: Long = MAX_RESPONSE,
     ): Response {
         for (renew in listOf(false, true)) {
             val request =
@@ -182,7 +202,7 @@ class ServerStore private constructor(
                     .header("Authorization", "Bearer ${token(renew)}")
                     .apply { headers.forEach { (name, value) -> header(name, value) } }
                     .build()
-            val response = send(request)
+            val response = send(request, limit)
             if (response.code != 401 || renew) return response
             response.close()
         }
@@ -190,7 +210,7 @@ class ServerStore private constructor(
     }
 
     private suspend fun getBytes(path: String): ByteArray? =
-        authorized("GET", path).use { response ->
+        authorized("GET", path, limit = MAX_OBJECT_SIZE.toLong()).use { response ->
             if (response.code == 404) null else check(response).body.bytes()
         }
 
@@ -206,8 +226,26 @@ class ServerStore private constructor(
                 put("wraps", wrapsJson(wraps))
             }
         send(admin(adminToken, "v1/claim").post(body.toString().toRequestBody(JSON)).build()).use {
-            if (it.code == 409) throw LinkedException.ServerHasGroup() else check(it)
+            if (it.code == 409) throw LinkedException.ServerHasGroup() else adminChecked(it)
         }
+    }
+
+    /** Deletes every group object on the server, which becomes unclaimed (spec/api.md, `POST /v1/admin/reset`). */
+    suspend fun resetServer(adminToken: String) {
+        val body = buildJsonObject { put("confirm", "reset") }
+        adminChecked(send(admin(adminToken, "v1/admin/reset").post(body.toString().toRequestBody(JSON)).build())).close()
+    }
+
+    /** A refused admin token, and the ban after repeated ones, said plainly (spec/api.md, Limits). */
+    private fun adminChecked(response: Response): Response {
+        val refusal =
+            when (response.code) {
+                401, 403 -> StoreException.AdminRefused()
+                429 -> StoreException.AdminBlocked()
+                else -> return check(response)
+            }
+        response.close()
+        throw refusal
     }
 
     private fun admin(
@@ -226,16 +264,17 @@ class ServerStore private constructor(
                 put("id", id)
                 put("name", name)
             }
-        check(send(admin(adminToken, "v1/join").post(body.toString().toRequestBody(JSON)).build())).close()
+        adminChecked(send(admin(adminToken, "v1/join").post(body.toString().toRequestBody(JSON)).build())).close()
     }
 
-    /** The code a member answered a join request with, or null until one does. */
+    /** The code a member answered a join request with, or null until one does; a declined request throws. */
     suspend fun joinAnswer(
         adminToken: String,
         id: String,
     ): String? {
         val response = send(admin(adminToken, "v1/join/$id").build())
         if (response.code == 404) return null.also { response.close() }
+        if (response.code == 410) throw LinkedException.JoinDeclined().also { response.close() }
         return decode(response)["code"]?.jsonPrimitive?.contentOrNull ?: throw StoreException.Malformed()
     }
 
@@ -264,6 +303,7 @@ class ServerStore private constructor(
             .pingInterval(LIVE_PING_S, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.SECONDS)
             .callTimeout(0, TimeUnit.SECONDS)
+            .addInterceptor(MessageLimit(MAX_LIVE_MESSAGE))
             .build()
             .newWebSocket(request, listener)
     }
@@ -287,7 +327,8 @@ class ServerStore private constructor(
     }
 
     suspend fun declineJoin(id: String) {
-        authorized("DELETE", "v1/join/$id").use { if (it.code != 404) check(it) }
+        // 404: it expired; 409: another member answered or declined it first.
+        authorized("DELETE", "v1/join/$id").use { if (it.code != 404 && it.code != 409) check(it) }
     }
 
     override suspend fun rosterAfter(after: Long): List<Entry> =
@@ -295,6 +336,20 @@ class ServerStore private constructor(
             ?.jsonArray
             ?.map(::parseEntry)
             ?: throw StoreException.Malformed()
+
+    /** The whole roster, page by page. A page that doesn't advance, or one past a roster's limit, ends the read. */
+    override suspend fun rosterView(): List<Entry> {
+        val entries = ArrayList<Entry>()
+        var after = -1L
+        while (true) {
+            val page = rosterAfter(after)
+            val last = page.lastOrNull()?.seq ?: return entries
+            if (last <= after) throw StoreException.Malformed()
+            after = last
+            entries += page
+            if (entries.size > MAX_ROSTER_ENTRIES) throw StoreException.Malformed()
+        }
+    }
 
     override suspend fun appendRoster(
         head: String,
@@ -317,8 +372,10 @@ class ServerStore private constructor(
         return Appended.Done
     }
 
+    /** The server names a wrap by epoch alone: only one entry can start an epoch there. */
     override suspend fun key(
         epoch: Int,
+        kc: String,
         name: String,
     ): ByteArray? = getBytes("v1/keys/${epochName(epoch)}/$name.k")
 

@@ -18,6 +18,7 @@ requested, and whether the app still works without it.
 | `ACCESS_WIFI_STATE` | install-time | Local IP for DLNA casting and device sync | No |
 | `CHANGE_WIFI_MULTICAST_STATE` | install-time | SSDP discovery for DLNA casting | No |
 | `WAKE_LOCK` | install-time | Background playback and downloads | Yes |
+| `VIBRATE` | install-time | Vibration while the system's touch feedback is off, when that setting is on | No |
 | `FOREGROUND_SERVICE` | install-time | Playback and download services | Yes |
 | `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | install-time | Media3 playback service (API 34+) | Yes |
 | `FOREGROUND_SERVICE_DATA_SYNC` | install-time | Download and device-sync services (API 34+) | No |
@@ -147,6 +148,16 @@ the public `Movies` and `Music` folders so the files survive an uninstall and ar
 apps. The app checks `Environment.isExternalStorageManager()` and sends the user to the system
 settings page rather than assuming the grant. Users who keep the default never see the prompt.
 
+### Vibration
+
+`VIBRATE` is used only when Appearance › Style › Ignore system setting is on and the system's touch
+feedback is off. Flow then plays its tap and gesture vibrations itself, as media vibrations, so they
+still follow the phone's main vibration switch, its media vibration level and battery saver. With
+the setting off, Flow's vibrations go through the normal touch feedback path and this permission is
+unused.
+
+Used at: `app/src/main/java/io/github/aedev/flow/ui/components/shared/TouchFeedbackOverride.kt`
+
 ### Battery
 
 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` only lets the app show the system dialog asking the user to
@@ -199,15 +210,30 @@ project-operated proxy or relay in between.
   `suggestqueries-clients6.youtube.com`. Content, metadata, thumbnails, search suggestions.
 - `api.pipepipe.dev`: remote signature helper, used only as a fallback when both local decoders
   fail on a given video.
+- `music.163.com` and `api.amll.dev`: the last lyrics providers, asked only when the others have no
+  lyrics for a song, and only when the user opens lyrics.
 - Lyrics providers, tried in order until one answers, and only when the user opens lyrics:
   `lrclib.net`, `lyrics.kugou.com`, `mobileservice.kugou.com`, `api-lyrics.simpmusic.org`,
   `lyrics-api.boidu.dev`, `lyrics.paxsenix.org`, the `lyricsplus` mirrors,
-  `lyrics-api.binimum.org`, `amp-api.music.apple.com`, `beta.music.apple.com`.
+  `lyrics-api.binimum.org`, `amp-api.music.apple.com`, `beta.music.apple.com`, `lrc.red`,
+  `unison.boidu.dev`.
+- `artwork.boidu.dev` and `itunes.apple.com`: animated album covers, only if the user turns them on.
+  They receive the song's title, artist, album and length, and the chosen region.
 - `amp.shazam.com`: song recognition, only on an explicit user request, and it receives an audio
   fingerprint rather than the recording.
 - `sponsor.ajay.app` and `dearrow-thumb.ajay.app`: SponsorBlock and DeArrow, only if the user turns
   them on.
 - `returnyoutubedislikeapi.com`: Return YouTube Dislike, only if the user turns it on.
+- `ailist.flow-tube.org`, or a server the user enters instead: the AiSList channel list and the AI
+  music artist list, each about once a day and only while its filter is on. The requests carry no
+  identifier; matching runs on device.
+- `api.aisloplist.com`: AiSList reports, only when the user turns reporting on and confirms a report.
+  It receives the channel handle, the video link and the submitter name the user chose, which AiSList
+  shows on its public leaderboard.
+- A LibreTranslate or Lingva server the user enters, only when the user sets one and taps Translate.
+  It receives the text being translated, the target language and, for LibreTranslate, the API key
+  the user entered. Flow has no translation server of its own; without one, Translate hands the
+  text to the translator app the user picks on the device.
 - `api.github.com` and `github.com`: release check and changelog, `github` flavor only.
 - `discord.com`: rich presence, `github` flavor only, and only after the user links an account.
 - Local network addresses: DLNA renderers on the LAN, and the peer device during Device Sync.

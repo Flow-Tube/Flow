@@ -6,8 +6,11 @@ import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.protocol.CollectionWire
 import io.github.aedev.flow.sync.protocol.SyncCollection
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
+import io.github.aedev.flow.sync2.crypto.ProtocolException
+import io.github.aedev.flow.sync2.data.AckRow
 import io.github.aedev.flow.sync2.data.CollectedRow
 import io.github.aedev.flow.sync2.data.LinkedDatabase
+import io.github.aedev.flow.sync2.data.ManifestRow
 import io.github.aedev.flow.sync2.engine.Facts
 import io.github.aedev.flow.sync2.engine.Logged
 import io.github.aedev.flow.sync2.engine.Manifest
@@ -16,12 +19,15 @@ import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.engine.Tip
 import io.github.aedev.flow.sync2.engine.VersionVector
 import io.github.aedev.flow.sync2.engine.collectGarbage
+import io.github.aedev.flow.sync2.engine.parseAck
 import io.github.aedev.flow.sync2.engine.writeSnapshot
-import io.github.aedev.flow.sync2.store.Store
+import io.github.aedev.flow.sync2.store.ChangeList
+import io.github.aedev.flow.sync2.store.MAX_SEQ
 import io.github.aedev.flow.sync2.store.StoreException
 import io.github.aedev.flow.sync2.store.StorePaths
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -96,6 +102,26 @@ class GarbageCollectionTest {
     }
 
     @Test
+    fun a_store_whose_cursor_never_moves_still_lets_collection_finish() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val db = g.deviceDb()
+            val watched = mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, ""))
+            Session.open(db, g.store, g.a).push(watched, LINK)
+            Session.open(db, StuckPages(g.store), g.a).collectGarbage(setOf(LINK))
+            assertTrue(StorePaths.log(SyncBytes.toHex(g.a.did), 1) in g.store.objects)
+        }
+
+    @Test
+    fun an_ack_naming_a_seq_above_2_53_is_refused() {
+        val ack = { seq: Long -> """{"vv":{"a":$seq}}""".toByteArray() }
+        assertEquals(mapOf("a" to MAX_SEQ), parseAck(ack(MAX_SEQ)))
+        for (seq in listOf(MAX_SEQ + 1, Long.MAX_VALUE, -1)) {
+            assertEquals("range", (runCatching { parseAck(ack(seq)) }.exceptionOrNull() as ProtocolException).error.code)
+        }
+    }
+
+    @Test
     fun old_objects_go_once_acknowledged_and_covered_by_a_snapshot() =
         runTest {
             val g = LinkedGroup(this).apply { create() }
@@ -105,26 +131,26 @@ class GarbageCollectionTest {
             val readAll =
                 suspend { db: LinkedDatabase, device: MemberSecrets ->
                     val session = Session.open(db, g.store, device)
-                    session.finish(session.pull())
+                    session.finish(session.pull(setOf(LINK)))
                 }
 
             Session.open(dbA, g.store, g.a).apply {
-                push(watched)
-                collectGarbage()
+                push(watched, LINK)
+                collectGarbage(setOf(LINK))
             }
             assertTrue("nobody acknowledged it yet", first in g.store.objects)
 
             readAll(dbB, g.b)
             readAll(dbA, g.a)
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertTrue("no snapshot covers it yet", first in g.store.objects)
 
             val a = Session.open(dbA, g.store, g.a)
-            a.writeSnapshot(watched)
+            a.writeSnapshot(watched, LINK)
             val manifest = StorePaths.log(SyncBytes.toHex(g.a.did), a.record.ownSeq)
             readAll(dbB, g.b)
             readAll(dbA, g.a)
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertFalse(first in g.store.objects)
             assertTrue("the newest snapshot stays", manifest in g.store.objects)
             assertTrue(
@@ -137,7 +163,7 @@ class GarbageCollectionTest {
     private class Watched(
         private val inner: MemoryStore,
         private val refuse: Boolean = false,
-    ) : Store by inner {
+    ) : ChangeList by inner {
         val deleted = ArrayList<String>()
 
         override suspend fun deleteObject(path: String) {
@@ -153,10 +179,10 @@ class GarbageCollectionTest {
         val (dbA, dbB) = g.deviceDb() to g.deviceDb()
         val watched = mapOf(SyncCollection.WATCH_HISTORY to CollectionWire(listOf("""{"title":"t","videoId":"aaaaaaaaaaa"}"""), 1, ""))
         Session.open(dbA, g.store, g.a).apply {
-            push(watched)
-            writeSnapshot(watched)
+            push(watched, LINK)
+            writeSnapshot(watched, LINK)
         }
-        for ((db, device) in listOf(dbB to g.b, dbA to g.a)) Session.open(db, g.store, device).run { finish(pull()) }
+        for ((db, device) in listOf(dbB to g.b, dbA to g.a)) Session.open(db, g.store, device).run { finish(pull(setOf(LINK))) }
         return Triple(g, dbA, StorePaths.log(SyncBytes.toHex(g.a.did), 1))
     }
 
@@ -164,13 +190,13 @@ class GarbageCollectionTest {
     fun a_collection_that_starts_over_deletes_only_what_this_device_still_holds() =
         runTest {
             val (g, dbA, first) = collectable()
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertFalse(first in g.store.objects)
 
             // The marker is gone, as after leaving and joining again: nothing already deleted is asked for again.
             dbA.collection().setCollected(CollectedRow(SyncBytes.toHex(g.a.did), 0))
             val store = Watched(g.store)
-            Session.open(dbA, store, g.a).collectGarbage()
+            Session.open(dbA, store, g.a).collectGarbage(setOf(LINK))
             assertEquals(emptyList<String>(), store.deleted)
         }
 
@@ -178,10 +204,35 @@ class GarbageCollectionTest {
     fun a_rate_limited_collection_stops_and_finishes_on_a_later_sync() =
         runTest {
             val (g, dbA, first) = collectable()
-            Session.open(dbA, Watched(g.store, refuse = true), g.a).collectGarbage()
+            Session.open(dbA, Watched(g.store, refuse = true), g.a).collectGarbage(setOf(LINK))
             assertTrue(first in g.store.objects)
 
-            Session.open(dbA, g.store, g.a).collectGarbage()
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
             assertFalse(first in g.store.objects)
+        }
+
+    /** Acks and manifests come from other devices: a collection visits only the objects this device holds. */
+    @Test
+    fun a_collection_up_to_a_huge_seq_ends() =
+        runTest {
+            val (g, dbA, first) = collectable()
+            val (a, b) = SyncBytes.toHex(g.a.did) to SyncBytes.toHex(g.b.did)
+            val huge = (1L shl 53) - 1
+            val manifest = Manifest("", LINK, emptyList(), mapOf(a to Tip("", huge)))
+            dbA.collection().saveAcks(
+                listOf(AckRow(a, Json.encodeToString(mapOf(b to 1L))), AckRow(b, Json.encodeToString(mapOf(a to huge)))),
+            )
+            dbA.collection().addManifests(listOf(ManifestRow(b, 1, Json.encodeToString(Manifest.serializer(), manifest))))
+
+            Session.open(dbA, g.store, g.a).collectGarbage(setOf(LINK))
+            assertFalse(first in g.store.objects)
+            assertEquals(
+                huge,
+                dbA
+                    .collection()
+                    .collected()
+                    .single { it.did == a }
+                    .through,
+            )
         }
 }

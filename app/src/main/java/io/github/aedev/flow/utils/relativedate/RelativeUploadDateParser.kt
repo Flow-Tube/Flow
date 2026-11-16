@@ -31,7 +31,8 @@ object RelativeUploadDateParser {
         if (text.isEmpty()) return null
         val vocabulary = vocabularyFor(hl)
         if (vocabulary != null && vocabulary !== english) {
-            match(text, vocabulary)?.let { (unit, amount) -> return RelativeUploadAge(now - unit.millis * amount, unit) }
+            (match(text, vocabulary) ?: matchAbbreviated(text, vocabulary))
+                ?.let { (unit, amount) -> return RelativeUploadAge(now - unit.millis * amount, unit) }
         }
         return parseEnglish(text, now)
     }
@@ -116,6 +117,41 @@ object RelativeUploadDateParser {
         return unit to amount
     }
 
+    // An abbreviated age carries exactly one number; a premiere time ("le 12 oct. à 18 h") or a
+    // view count ("1,3 M") carries two runs of digits and is left alone.
+    private fun matchAbbreviated(
+        text: String,
+        vocabulary: RelativeDateVocabulary,
+    ): Pair<RelativeDateUnit, Long>? {
+        if (vocabulary.abbreviated.isEmpty() || digitRuns(text) != 1) return null
+        for ((unit, abbreviations) in vocabulary.abbreviated) {
+            for (abbreviation in abbreviations) {
+                var from = 0
+                while (true) {
+                    val start = text.indexOf(abbreviation, from)
+                    if (start < 0) break
+                    from = start + 1
+                    val end = start + abbreviation.length
+                    if (end < text.length && text[end].isWordPart()) continue
+                    amountBefore(text, start)?.let { return unit to it }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun amountBefore(
+        text: String,
+        index: Int,
+    ): Long? {
+        val end = if (index > 0 && text[index - 1] == ' ') index - 1 else index
+        var start = end
+        while (start > 0 && text[start - 1].isDigit()) start--
+        return if (start == end) null else readNumber(text, start)
+    }
+
+    private fun digitRuns(text: String): Int = text.indices.count { text[it].isDigit() && (it == 0 || !text[it - 1].isDigit()) }
+
     private fun contains(
         text: String,
         phrase: String,
@@ -154,6 +190,13 @@ object RelativeUploadDateParser {
     /** The first run of digits in any script: YouTube writes Persian and Khmer ages in their own numerals. */
     private fun leadingAmount(text: String): Long? {
         val start = text.indexOfFirst(Char::isDigit).takeIf { it >= 0 } ?: return null
+        return readNumber(text, start)
+    }
+
+    private fun readNumber(
+        text: String,
+        start: Int,
+    ): Long? {
         var value = 0L
         var index = start
         while (index < text.length && text[index].isDigit()) {

@@ -1,19 +1,17 @@
 package io.github.aedev.flow.ui.screens.settings.integrations
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,10 +26,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.SponsorBlockAction
+import io.github.aedev.flow.data.local.SponsorBlockSkipButtonStyle
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
+import io.github.aedev.flow.ui.components.settings.choice
 import io.github.aedev.flow.ui.components.settings.switch
+import io.github.aedev.flow.ui.components.shared.FlowChoice
+import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.skipDpadFocus
 import io.github.aedev.flow.ui.screens.settings.index.IntegrationsIndex
 import io.github.aedev.flow.ui.theme.defaultSponsorBlockColor
 import io.github.aedev.flow.utils.sponsorCategoryLabelRes
@@ -46,11 +50,17 @@ internal fun SettingsListScope.sponsorBlockSection(
     submitButton: Boolean,
     userId: String?,
     segments: Map<String, SegmentSetting>,
+    skipButtonStyle: SponsorBlockSkipButtonStyle,
+    onPickSkipButtonStyle: () -> Unit,
     onEditUserId: () -> Unit,
     onPickColour: (String) -> Unit,
 ) {
     group(key = "integrations.sponsorblock.group", header = R.string.player_settings_sponsorblock) {
         switch(IntegrationsIndex.sponsorBlock, viewModel.sponsorBlock, viewModel::setSponsorBlock, iconRes = R.drawable.ic_block)
+        switch(IntegrationsIndex.skipNotice, viewModel.skipNotice, viewModel::setSkipNotice, enabled = enabled)
+        choice(IntegrationsIndex.skipButtonStyle, onClick = onPickSkipButtonStyle, enabled = enabled) {
+            stringResource(skipButtonStyleLabel(skipButtonStyle))
+        }
         switch(IntegrationsIndex.contribute, viewModel.submitButton, viewModel::setSubmitButton, enabled = enabled)
         if (submitButton) {
             row(IntegrationsIndex.userId.key) { shape ->
@@ -83,9 +93,17 @@ internal fun SettingsListScope.sponsorBlockSection(
     }
 }
 
+@StringRes
+internal fun skipButtonStyleLabel(style: SponsorBlockSkipButtonStyle): Int =
+    when (style) {
+        SponsorBlockSkipButtonStyle.FULL -> R.string.sb_skip_style_full
+        SponsorBlockSkipButtonStyle.COMPACT -> R.string.sb_skip_style_compact
+        SponsorBlockSkipButtonStyle.ICON_ONLY -> R.string.sb_skip_style_icon
+    }
+
 /**
  * One segment category: its colour on the seek bar (tap to change) and what the player does when it
- * reaches one (tap the row or the action to choose).
+ * reaches one (tap the row to choose).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -107,43 +125,95 @@ private fun SegmentRow(
         shapes = ListItemDefaults.shapes(shape = shape),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         leadingContent = {
-            IconButton(onClick = onPickColour) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(SwatchSize)
-                            .clip(CircleShape)
-                            .background(colour)
-                            .border(SwatchBorder, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                )
+            IconButton(onClick = onPickColour, modifier = Modifier.skipDpadFocus()) {
+                SegmentSwatch(colour)
             }
         },
-        trailingContent = {
-            Box {
-                TextButton(onClick = { menuOpen = true }) { Text(sponsorActionLabel(action)) }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    SponsorBlockAction.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(sponsorActionLabel(option)) },
-                            onClick = {
-                                onActionSelected(option)
-                                menuOpen = false
-                            },
-                        )
-                    }
-                }
-            }
-        },
+        supportingContent = { Text(segmentActionLabel(category, action)) },
     ) {
         Text(label)
+    }
+    if (menuOpen) {
+        FlowChoiceDialog(
+            title = label,
+            options =
+                SponsorBlockCategories.actionsFor(category).map {
+                    FlowChoice(it, segmentActionLabel(category, it), segmentActionDetail(category, it))
+                },
+            selected = action,
+            onSelect = onActionSelected,
+            onDismiss = { menuOpen = false },
+            // A remote can't reach the swatch inside the row, so the colour is offered here instead.
+            footer =
+                if (LocalDpadNavigation.current) {
+                    {
+                        FlowNavRow(
+                            title = stringResource(R.string.settings_segment_colour, label),
+                            onClick = {
+                                menuOpen = false
+                                onPickColour()
+                            },
+                            leadingContent = { SegmentSwatch(colour) },
+                            shape = MaterialTheme.shapes.large,
+                        )
+                    }
+                } else {
+                    null
+                },
+        )
     }
 }
 
 @Composable
-internal fun sponsorActionLabel(action: SponsorBlockAction): String =
+private fun SegmentSwatch(colour: Color) {
+    Box(
+        modifier =
+            Modifier
+                .size(SwatchSize)
+                .clip(CircleShape)
+                .background(colour)
+                .border(SwatchBorder, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+    )
+}
+
+@Composable
+private fun segmentActionLabel(
+    category: String,
+    action: SponsorBlockAction,
+): String =
+    if (category == SponsorBlockCategories.HIGHLIGHT && action == SponsorBlockAction.SKIP_BUTTON) {
+        stringResource(R.string.sb_action_jump_button)
+    } else {
+        sponsorActionLabel(action)
+    }
+
+@Composable
+private fun segmentActionDetail(
+    category: String,
+    action: SponsorBlockAction,
+): String? =
+    if (category == SponsorBlockCategories.HIGHLIGHT && action == SponsorBlockAction.SKIP_BUTTON) {
+        stringResource(R.string.sb_action_jump_button_detail)
+    } else {
+        sponsorActionDetail(action)
+    }
+
+@Composable
+private fun sponsorActionLabel(action: SponsorBlockAction): String =
     when (action) {
-        SponsorBlockAction.SKIP -> stringResource(R.string.sb_action_skip)
+        SponsorBlockAction.SKIP -> stringResource(R.string.sb_action_skip_automatically)
+        SponsorBlockAction.SKIP_ONCE -> stringResource(R.string.sb_action_skip_once)
+        SponsorBlockAction.SKIP_BUTTON -> stringResource(R.string.sb_action_skip_button)
+        SponsorBlockAction.SHOW_TOAST -> stringResource(R.string.sb_action_notify)
         SponsorBlockAction.MUTE -> stringResource(R.string.sb_action_mute)
-        SponsorBlockAction.SHOW_TOAST -> stringResource(R.string.sb_action_show_toast)
-        SponsorBlockAction.IGNORE -> stringResource(R.string.sb_action_ignore)
+        SponsorBlockAction.IGNORE -> stringResource(R.string.sb_action_seek_bar_only)
+        SponsorBlockAction.DISABLED -> stringResource(R.string.sb_action_disable)
+    }
+
+@Composable
+private fun sponsorActionDetail(action: SponsorBlockAction): String? =
+    when (action) {
+        SponsorBlockAction.SKIP_ONCE -> stringResource(R.string.sb_action_skip_once_detail)
+        SponsorBlockAction.SHOW_TOAST, SponsorBlockAction.MUTE -> stringResource(R.string.sb_action_with_button_detail)
+        else -> null
     }

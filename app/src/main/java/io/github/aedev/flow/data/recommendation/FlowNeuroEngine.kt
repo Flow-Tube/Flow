@@ -18,6 +18,7 @@ import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.res.Configuration
 import android.util.Log
+import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.utils.traced
@@ -432,9 +433,6 @@ class FlowNeuroEngine internal constructor(
     private val sessionTopicHistory = mutableListOf<String>()
     private val recentInteractions = mutableListOf<MomentumEntry>()
 
-    // Counts a visible item at most once per session (viewport impressions).
-    private val sessionImpressed = HashSet<String>()
-
     // IDF tracking — persisted in brain state
     private var idfWordFrequency = mutableMapOf<String, Int>()
     private var idfTotalDocuments = 0
@@ -466,6 +464,10 @@ class FlowNeuroEngine internal constructor(
         )
 
     private var currentUserBrain: UserBrain = UserBrain()
+
+    /** The AI channel list's current matcher, set once at app start (see FlowApplication). */
+    @Volatile
+    var aiListMatcher: () -> AiListMatcher = { AiListMatcher.NONE }
 
     @Volatile
     private var isInitialized = false
@@ -864,7 +866,6 @@ class FlowNeuroEngine internal constructor(
         sessionTopicHistory.clear()
         impressionCache.clear()
         recentInteractions.clear()
-        sessionImpressed.clear()
         discoveryRound = 0
         passiveProfiledChannels.clear()
     }
@@ -1910,6 +1911,7 @@ class FlowNeuroEngine internal constructor(
                 brain.blockedTopics.isNotEmpty() &&
                     NeuroScoring.isBlockedByText(title, channelName, matchers, tokenizer::keyOf)
             },
+            ai = aiListMatcher(),
         )
     }
 
@@ -2134,6 +2136,7 @@ class FlowNeuroEngine internal constructor(
                 }
 
             // Pre-filter blocked content
+            val aiList = aiListMatcher()
             val filtered =
                 candidates.filter { video ->
                     if (video.id in activeSuppressedVideos) return@filter false
@@ -2141,6 +2144,7 @@ class FlowNeuroEngine internal constructor(
                     if (brain.blockedChannels.contains(video.channelId)) {
                         return@filter false
                     }
+                    if (aiList.blocks(video)) return@filter false
                     !NeuroScoring.isBlockedByText(
                         video.title,
                         video.channelName,
@@ -2332,9 +2336,7 @@ class FlowNeuroEngine internal constructor(
 
         withBrainLock {
             syncBookkeeping(deepFlow)
-            // Only count items not already impressed this session (avoids re-penalizing
-            // content the user keeps scrolling past within one sitting).
-            val fresh = ids.filter { sessionImpressed.add(it) }
+            val fresh = FeedImpressionLedger.countable(ids, currentUserBrain.feedHistory, now)
             if (fresh.isEmpty()) return@withBrainLock
 
             fresh.forEach { id ->

@@ -105,14 +105,15 @@ private fun HomeMixGrid(
     onPlayMix: (HomeMix) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val horizontalPadding = if (isListView) feedLayout.listContentPadding else feedLayout.contentPadding
     LazyVerticalGrid(
         columns = feedLayout.cells,
         state = gridState,
         modifier = modifier.fillMaxSize().dpadFocusGroup(),
         contentPadding =
             PaddingValues(
-                start = feedLayout.contentPadding,
-                end = feedLayout.contentPadding,
+                start = horizontalPadding,
+                end = horizontalPadding,
                 top = MixGridTopPadding,
                 bottom = flowBottomContentPadding(),
             ),

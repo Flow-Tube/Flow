@@ -24,10 +24,12 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
+import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.CollaboratorsBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChannelDisplayName
+import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.DateContext
@@ -103,7 +105,7 @@ internal fun VideoInfoSection(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(vertical = InfoPadding),
     ) {
         // ============ TITLE SECTION ============
         val context = LocalContext.current
@@ -116,6 +118,7 @@ internal fun VideoInfoSection(
         Column(
             modifier =
                 Modifier
+                    .padding(horizontal = InfoPadding)
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
                     .clickable(onClick = onDescriptionClick),
@@ -188,7 +191,11 @@ internal fun VideoInfoSection(
 
         // ============ CHANNEL SECTION ============
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .padding(horizontal = InfoPadding)
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -243,6 +250,18 @@ internal fun VideoInfoSection(
                     onSubscribedClick = { showCollaborators = true },
                 )
             } else if (!isDeviceFile) {
+                val organize =
+                    rememberChannelOrganizeActions(
+                        target =
+                            remember(video.channelId, channelName, channelAvatarUrl) {
+                                ChannelOrganizeTarget(
+                                    channelId = video.channelId,
+                                    title = channelName,
+                                    avatarUrl = channelAvatarUrl.ifBlank { video.channelThumbnailUrl },
+                                )
+                            },
+                        isSubscribed = isSubscribed,
+                    )
                 FlowSubscribeButton(
                     size = FlowSubscribeButtonSize.Compact,
                     isSubscribed = isSubscribed,
@@ -250,6 +269,9 @@ internal fun VideoInfoSection(
                     onSubscribeClick = onSubscribeClick,
                     onUnsubscribeClick = onUnsubscribeClick,
                     onNotificationChange = onNotificationChange,
+                    showSubscribedLabel = false,
+                    onAddNote = organize.onAddNote,
+                    onManageGroups = organize.onManageGroups,
                 )
             }
         }
@@ -274,6 +296,7 @@ internal fun VideoInfoSection(
             onNoteClick = onNoteClick,
             hasNote = hasNote,
             isDeviceFile = isDeviceFile,
+            contentPadding = PaddingValues(horizontal = InfoPadding),
         )
     }
 
@@ -284,3 +307,5 @@ internal fun VideoInfoSection(
         )
     }
 }
+
+private val InfoPadding = 12.dp

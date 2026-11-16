@@ -177,9 +177,21 @@ data class WatchMetadataResponse(
                     ?.drop(1)
                     ?.flatMap { row -> row.metadataParts.mapNotNull { it.content() } }
                     .orEmpty()
+            // Outside English the related list abbreviates the age ("hace 3 m", "5 дн. назад"), so the
+            // part beside the view count is taken by position when no wording is recognised.
+            val viewsRowText =
+                metadataModel
+                    ?.metadata
+                    ?.contentMetadataViewModel
+                    ?.metadataRows
+                    ?.drop(1)
+                    ?.firstOrNull { row -> row.metadataParts.any { it.isViewCount } }
+                    ?.metadataParts
+                    ?.firstNotNullOfOrNull { part -> part.takeUnless { it.isViewCount }?.content() }
             val published =
                 remaining.firstOrNull { it.looksLikeDateOrDuration() && !it.contains(":") }
                     ?: laterRowTexts.firstOrNull { it != views && RelativeUploadDateParser.parse(it, hl) != null }
+                    ?: viewsRowText?.takeUnless { live }
             val byline =
                 remaining.firstOrNull { text ->
                     text != published &&

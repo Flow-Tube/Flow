@@ -9,22 +9,30 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.LikedVideosRepository
+import io.github.aedev.flow.data.local.LyricsAnimationStyle
+import io.github.aedev.flow.data.local.LyricsBackgroundStyle
+import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.localmedia.LocalLyricsReader
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.lyrics.LyricsCandidate
 import io.github.aedev.flow.data.lyrics.LyricsHelper
+import io.github.aedev.flow.data.lyrics.MusicVideoLyricsTiming
 import io.github.aedev.flow.data.music.DownloadManager
 import io.github.aedev.flow.data.music.PlaylistRepository
 import io.github.aedev.flow.data.music.YouTubeMusicService
 import io.github.aedev.flow.data.music.model.MUSIC_GENRE_SOURCE_PREFIX
+import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.newmusic.InnertubeMusicService
+import io.github.aedev.flow.data.newmusic.MusicArtistLookup
 import io.github.aedev.flow.data.recommendation.music.MusicBrainEngine
 import io.github.aedev.flow.data.recommendation.music.onRepeatShelf
 import io.github.aedev.flow.data.scrobble.Scrobbler
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
+import io.github.aedev.flow.player.PlaybackTarget
+import io.github.aedev.flow.ui.components.music.sheet.resolveTrackArtists
 import io.github.aedev.flow.ui.components.musicplayer.queue.QueueSwipes
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.Job
@@ -53,7 +61,9 @@ class MusicPlayerViewModel
         private val musicBrain: MusicBrainEngine,
         private val scrobbler: Scrobbler,
         private val lyricsHelper: LyricsHelper,
+        private val artistLookup: MusicArtistLookup,
         localLyrics: LocalLyricsReader,
+        videoLyricsTiming: MusicVideoLyricsTiming,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(MusicPlayerUiState())
         val uiState: StateFlow<MusicPlayerUiState> = _uiState.asStateFlow()
@@ -76,7 +86,7 @@ class MusicPlayerViewModel
         private var loadTrackJob: kotlinx.coroutines.Job? = null
         private val seekGuard = MusicSeekGuard()
         private val radioSwitch = MusicRadioSwitch(viewModelScope, _uiState, playerPreferences)
-        private val playStart = MusicPlayStart(downloadManager, viewHistory, playerPreferences)
+        private val playStart = MusicPlayStart(downloadManager, viewHistory, playerPreferences, playlistRepository)
         private val lyrics =
             MusicPlayerLyrics(
                 context,
@@ -86,7 +96,13 @@ class MusicPlayerViewModel
                 playerPreferences,
                 localLyrics,
                 downloadManager::getDownloadedTrackPath,
+                videoLyricsTiming,
             )
+
+        init {
+            lyrics.publishShownLyrics()
+        }
+
         private val trackActions =
             MusicPlayerTrackActions(
                 context,
@@ -102,6 +118,7 @@ class MusicPlayerViewModel
 
         init {
             EnhancedMusicPlayerManager.initialize(context, downloadManager::isDownloaded)
+            EnhancedMusicPlayerManager.setSkipStoredReader(playStart::skipStored)
             initializeObservers()
             viewModelScope.launch {
                 playerPreferences.lyricsTextAlign.collect { align ->
@@ -124,6 +141,12 @@ class MusicPlayerViewModel
 
                         is EnhancedMusicPlayerManager.PlayerEvent.RequestToggleLike -> {
                             toggleLike()
+                        }
+
+                        is EnhancedMusicPlayerManager.PlayerEvent.SkippedOnPlayer -> {
+                            loadTrackJob?.cancel()
+                            _uiState.update { it.copy(isLoading = false, error = null) }
+                            viewModelScope.launch(PerformanceDispatcher.diskIO) { playStart.recordSkip(event.track) }
                         }
                     }
                 }
@@ -164,13 +187,13 @@ class MusicPlayerViewModel
                     track?.let {
                         if (!isLocalMediaId(it.videoId)) {
                             checkIfFavorite(it.videoId)
-                            fetchLyrics(it.videoId, it.artist, it.title, it.duration, it.album)
+                            lyrics.onSongChanged(it)
                             fetchRelatedContent(it.videoId)
                         } else {
                             favoriteJob?.cancel()
                             _uiState.update { state -> state.copy(isLiked = false) }
                             EnhancedMusicPlayerManager.setLiked(false)
-                            fetchLyrics(it.videoId, it.artist, it.title, it.duration, it.album)
+                            lyrics.onSongChanged(it)
                         }
                     }
                 }
@@ -294,9 +317,15 @@ class MusicPlayerViewModel
                 return
             }
             if (isLocalMediaId(track.videoId)) {
+                // A file on this device plays here, which ends driving another device.
+                PlaybackTarget.current?.release()
                 val localUris = (queue + track).mapNotNull { t -> LocalMediaIds.audioUri(t.videoId)?.let { t.videoId to it } }.toMap()
                 playLocalMusic(track, queue.filter { isLocalMediaId(it.videoId) }, localUris)
                 return
+            }
+            PlaybackTarget.current?.let { remote ->
+                val ids = queue.ifEmpty { listOf(track) }.map { it.videoId }
+                return remote.play(ids, ids.indexOf(track.videoId).coerceAtLeast(0), music = true)
             }
             loadTrackJob?.cancel()
             // Genre-scoped surfaces tag their source; the genre becomes listen
@@ -368,6 +397,9 @@ class MusicPlayerViewModel
                     }
                 }
         }
+
+        /** The song's credited artists, looked up once when the track kept only the first one. */
+        suspend fun resolveArtists(track: MusicTrack): List<MusicArtist> = resolveTrackArtists(track, artistLookup)
 
         /** A YouTube Music link names only the song, so its details are fetched before it plays. */
         suspend fun playFromLink(videoId: String) {
@@ -538,15 +570,13 @@ class MusicPlayerViewModel
 
         fun downloadTrack(track: MusicTrack? = null) = trackActions.downloadTrack(track)
 
-        fun fetchLyrics(
-            videoId: String,
-            artist: String,
-            title: String,
-            duration: Int? = null,
-            album: String? = null,
-        ) = lyrics.fetch(videoId, artist, title, duration, album)
+        fun downloadTracks(tracks: List<MusicTrack>) = trackActions.downloadTracks(tracks)
 
         fun ensureLyricsLoaded(track: MusicTrack) = lyrics.ensureLoaded(track)
+
+        fun warmLyrics(track: MusicTrack) = lyrics.warm(track)
+
+        fun setPlayerOpen(open: Boolean) = lyrics.setPlayerOpen(open)
 
         fun refreshLyrics() = lyrics.refresh()
 
@@ -570,7 +600,17 @@ class MusicPlayerViewModel
 
         fun setLyricsAutoRomanize(enabled: Boolean) = lyrics.setAutoRomanize(enabled)
 
+        fun setLyricsRomanizationOnly(enabled: Boolean) = lyrics.setRomanizationOnly(enabled)
+
         fun setLyricsKeepScreenOn(enabled: Boolean) = lyrics.setKeepScreenOn(enabled)
+
+        fun setLyricsBlurOtherLines(enabled: Boolean) = lyrics.setBlurOtherLines(enabled)
+
+        fun setLyricsAnimationStyle(style: LyricsAnimationStyle) = lyrics.setAnimationStyle(style)
+
+        fun setLyricsGlow(glow: LyricsGlow) = lyrics.setGlow(glow)
+
+        fun setLyricsBackground(style: LyricsBackgroundStyle) = lyrics.setBackground(style)
 
         override fun onCleared() {
             super.onCleared()

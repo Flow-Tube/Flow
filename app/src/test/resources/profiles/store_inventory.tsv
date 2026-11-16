@@ -21,25 +21,26 @@ prefs_datastore	scrobbling	main:data/scrobble/ScrobbleStore.kt	PROFILE	private	P
 prefs_datastore	discord_presence	github:discord/DiscordPreferences.kt	PROFILE	private	A personal Discord link.
 prefs_datastore	sync_identity	main:sync/identity/DeviceIdentity.kt	DEVICE	-	Device id and name.
 prefs_datastore	linked_device	main:sync2/device/DeviceKeys.kt	DEVICE	-	Linked-devices keys, sealed by the Keystore; one roster member per install.
-prefs_datastore	sync_brain_crdt	main:sync/merge/BrainCrdtStore.kt	DEFAULT_ONLY	-	Bound to Default's brain; only Default syncs.
-prefs_datastore	sync_music_brain_crdt	main:sync/merge/MusicBrainCrdtStore.kt	DEFAULT_ONLY	-	Bound to Default's music brain; only Default syncs.
+prefs_datastore	linked_lan_met	main:sync2/lan/LanMet.kt	DEVICE	-	When this device last synced with each linked device on its network; never synced or backed up.
+prefs_datastore	sync_brain_crdt	main:sync/merge/BrainCrdtStore.kt	PROFILE	private	Bound to the profile's brain, which syncs under its own link.
+prefs_datastore	sync_music_brain_crdt	main:sync/merge/MusicBrainCrdtStore.kt	PROFILE	private	Bound to the profile's music brain, which syncs under its own link.
 prefs_datastore	widget_content	main:widget/core/refresh/WidgetContentSync.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
 prefs_datastore	widget_theme	main:widget/core/theme/WidgetThemeSignatureStore.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
 prefs_datastore	now_playing_widget	main:widget/core/state/NowPlayingState.kt	DEVICE	-	Mirrors what the launcher shows; cleared on switch so every widget redraws.
 prefs_datastore	animated_artwork	main:data/music/artwork/AnimatedArtworkCache.kt	DEVICE	-	Album to artwork-loop lookup; not personal.
+prefs_datastore	playback_errors	main:player/error/PlaybackErrorLog.kt	DEVICE	-	Latest music playback failures for diagnostics; song ids and error codes.
 prefs_datastore	downloads	main:data/music/DownloadManager.kt	DEVICE	-	Legacy downloaded-track list and its Room migration marker.
 factory_datastore	every safePreferencesDataStore	main:data/local/SafeDataStore.kt	DEVICE	-	The one wrapper every preferences store goes through; each call states its scope and ProfileFiles picks the file.
 shared_prefs	youtube_identity	main:utils/potoken/VisitorIdentityStore.kt	PROFILE	identity	Visitor data per profile; Default keeps the name, others get youtube_identity_<id>.
 shared_prefs	flow_prefs	main:utils/potoken/VisitorIdentityStore.kt	DEVICE	-	Only deletes the legacy visitor keys.
 shared_prefs	flow_prefs	main:utils/cipher/PipePipeNsigDecoder.kt	DEVICE	-	Player-JS id cache with a 24 h lifetime.
 shared_prefs	flow_language_prefs	main:utils/AppLanguageManager.kt	DEVICE	-	App language.
-shared_prefs	flow_storage_prefs	main:ui/components/shared/DownloadLauncher.kt	DEVICE	-	Storage permission prompt.
 shared_prefs	flow_crash_prefs	main:utils/FlowCrashHandler.kt	DEVICE	-	Crash reports.
 shared_prefs	music_home_cache_prefs	main:data/recommendation/MusicRecommendationAlgorithm.kt	CACHE	-	Freshness of the music home rows, which sit in each profile's database; suffixed per profile.
 shared_prefs	flow_file_tombstones	main:data/video/VideoDownloadManager.kt	DEVICE	-	Deleted download paths.
 room_database	flow_database	main:data/local/AppDatabase.kt	PROFILE	library	Default's database; also the device database for the download tables. Other profiles open their own file of the same class.
-room_database	linked_devices	main:sync2/data/LinkedDatabaseModule.kt	DEFAULT_ONLY	-	Linked-devices group, roster and read positions; describes Default, the only profile that syncs. Never backed up.
-profile_file	linked_store	main:sync2/data/LinkedDatabaseModule.kt	DEFAULT_ONLY	-	The linked group as this device holds it: roster entries, wraps and sealed log objects, served to LAN peers. Never backed up.
+room_database	linked_devices	main:sync2/data/LinkedDatabaseModule.kt	DEVICE	-	Linked-devices group, roster and read positions; the group belongs to the device. Never backed up.
+profile_file	linked_store	main:sync2/data/LinkedDatabaseModule.kt	DEVICE	-	The linked group as this device holds it: roster entries, wraps and sealed log objects, served to LAN peers, and batches kept for linked profiles that aren't active. Never backed up.
 room_table	videos	main:data/local/entity/VideoEntity.kt	PROFILE	library	Personal data, read through @ProfileDb.
 room_table	playlists	main:data/local/entity/PlaylistEntity.kt	PROFILE	library	Personal data, read through @ProfileDb.
 room_table	playlist_video_cross_ref	main:data/local/entity/PlaylistVideoCrossRef.kt	PROFILE	library	Personal data, read through @ProfileDb.
@@ -90,20 +91,23 @@ files_dir	local_embedded_tags.json	main:data/localmedia/LocalEmbeddedTags.kt	DEV
 files_dir	local_subtitles.json	main:data/localmedia/LocalSubtitleStore.kt	DEVICE	-	Subtitle choices for local media.
 files_dir	fake_stream_wall, fake_stream_wall_all	main:player/datasource/FakeStreamWallDataSource.kt	DEVICE	-	Debug switch files.
 no_backup_dir	headphone_resume_off	main:service/HeadphoneResume.kt	DEVICE	-	Player control; written during a switch so no headset resumes.
+no_backup_dir	aislist/	main:data/contentfilter/aislist/AiListRepository.kt	DEVICE	-	AiSList channel list and its handle index; re-downloadable, the same for every profile, never backed up or synced.
 cache_dir	innertube_http_cache/	main:FlowApplication.kt	CACHE	-	Deleted at switch: suggestion and sw.js_data GETs might be stored.
-cache_dir	recap/	main:ui/screens/recap/story/RecapShare.kt	CACHE	-	Share images from the active profile; deleted at switch.
+cache_dir	recap/, lyrics/	main:utils/SharedFiles.kt	CACHE	-	Share images from the active profile; deleted at switch.
 cache_dir	image_cache/	main:di/AppModule.kt	CACHE	-	Thumbnails; shared.
 cache_dir	http_cache/	main:di/NetworkModule.kt	CACHE	-	App OkHttp GET cache; shared.
 cache_dir	cipher/player.js	main:utils/cipher/CipherWebView.kt	CACHE	-	Player JS for the WebView; shared.
 cache_dir	sync_premerge_backup.zip	main:sync/apply/SyncApplier.kt	CACHE	-	Default's backup taken before a sync merge; deleted at switch.
 cache_dir	playlists/	main:data/playlist/PlaylistTransfer.kt	CACHE	-	Playlist share exports from the active profile; deleted at switch.
 cache_dir	staged sidecar files	main:data/video/storage/DownloadPlacement.kt	CACHE	-	Download sidecars on their way to the download folder.
-cache_dir	newpipe_history_*.db, metrolist_import_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Temporary copies of imported databases; deleted at switch.
+cache_dir	newpipe_history_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Temporary copies of imported databases; deleted at switch.
+cache_dir	metrolist_import_*.db	main:data/local/MetrolistImporter.kt	CACHE	-	Temporary copy of an imported Metrolist database; deleted at switch.
 cache_dir	subtitles/	main:data/localmedia/LocalSubtitles.kt	CACHE	-	Subtitles extracted from local files; shared.
 cache_dir	local_covers/	main:data/localmedia/LocalCovers.kt	CACHE	-	Covers extracted from local files; shared.
 cache_dir	exoplayer/, exoplayer_music/	main:player/cache/SharedPlayerCacheProvider.kt	CACHE	-	Media caches; shared (video keyed by expiring URLs, music by video id).
 cache_dir	updates/	github:updater/UpdateDownloadWorker.kt	DEVICE	-	Downloaded APKs.
-sqlite_file	newpipe_history_*.db, metrolist_import_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Opens the temporary import copies.
+sqlite_file	newpipe_history_*.db, newpipe_playlists_*.db	main:data/local/BackupRepository.kt	CACHE	-	Opens the temporary import copies.
+sqlite_file	metrolist_import_*.db	main:data/local/MetrolistImporter.kt	CACHE	-	Opens the temporary import copy.
 external_files_dir	downloads/ (Media3 download cache)	main:di/DownloadModule.kt	DEVICE	-	Legacy song downloads.
 external_files_dir	Music/Flow, Movies/Flow	main:data/video/DownloadRecoveryScanner.kt	DEVICE	-	Recovery scan of download folders.
 external_files_dir	staging/, Music/Flow, Movies/Flow	main:data/video/VideoDownloadManager.kt	DEVICE	-	Download staging and finished downloads.
@@ -134,7 +138,7 @@ profile_file	discord_tokens.enc	github:discord/DiscordTokenStore.kt	PROFILE	priv
 profile_file	music_queue	main:data/local/QueuePersistence.kt	PROFILE	private	Checks for a saved queue before the store can be read.
 profile_file	user_neuro_brain.json	main:data/recommendation/NeuroStorage.kt	DEFAULT_ONLY	-	Pre-DataStore brain, migrated for Default only.
 profile_file	flow_neuro_brain_v7.json, v8, v9	main:data/recommendation/NeuroStorage.kt	DEFAULT_ONLY	-	Legacy brains, migrated for Default only.
-profile_file	sync_ledger_<collection>.json x8	main:sync/apply/SyncChangeLedgerStore.kt	DEFAULT_ONLY	-	Diffs Default's collections against what was last pushed.
+profile_file	sync_ledger_<collection>.json x8	main:sync/apply/SyncChangeLedgerStore.kt	PROFILE	private	Diffs the profile's collections against what was last pushed.
 profile_file	flow_video_stats_v1.json	main:data/stats/MonthlyLedgerStore.kt	PROFILE	library	Monthly stats for recap; names live in VideoStatsRecorder and MusicStatsStorage.
 profile_file	flow_video_stats_hot_v1.json	main:data/stats/MonthlyLedgerStore.kt	PROFILE	library	Monthly stats for recap; names live in VideoStatsRecorder and MusicStatsStorage.
 profile_file	flow_music_stats_v1.json	main:data/stats/MonthlyLedgerStore.kt	PROFILE	library	Monthly stats for recap; names live in VideoStatsRecorder and MusicStatsStorage.
@@ -148,7 +152,7 @@ profile_file	music_home_cache_prefs	main:data/recommendation/MusicRecommendation
 files_dir	profile_settings/<id>/, profile_library/<id>/	main:data/profile/ProfileFolders.kt	PROFILE	settings	Deletes a removed profile's folders, and lists ids on disk after a restore.
 no_backup_dir	profiles/<id>/	main:data/profile/ProfileFolders.kt	PROFILE	private	Deletes a removed profile's private folder.
 profile_file	youtube_identity_<id>, music_home_cache_prefs_<id>	main:data/profile/ProfileFolders.kt	PROFILE	identity	A removed profile's SharedPreferences files, named the way ProfileFiles names them.
-cache_dir	innertube_http_cache/, recap/, playlists/	main:data/profile/AppProfileSwitchSteps.kt	CACHE	-	Deleted at a switch: search suggestions, visitor responses and share exports of the old profile.
+cache_dir	innertube_http_cache/, recap/, lyrics/, playlists/	main:data/profile/AppProfileSwitchSteps.kt	CACHE	-	Deleted at a switch: search suggestions, visitor responses and share exports of the old profile.
 profile_file	pending_restore.zip	main:FlowApplication.kt	PROFILE	private	A seed or restore waiting for the running profile, applied at start before the start destination is picked.
 profile_file	pending_restore.zip	main:data/profile/ProfileSlices.kt	PROFILE	private	The seed a new profile copies from the running one, written into the new profile's private folder.
 no_backup_dir	profiles/<id>/pending_restore.zip	main:data/profile/ProfileSlices.kt	PROFILE	private	A new profile's private folder, resolved by id before that profile ever runs.

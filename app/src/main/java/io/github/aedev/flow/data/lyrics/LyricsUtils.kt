@@ -147,18 +147,10 @@ object LyricsUtils {
                 val millisPart = if (matchResult.groupValues[3].length == 3) fraction else fraction * 10
                 val lineTimeMs = minutes * 60000 + seconds * 1000 + millisPart
 
-                var content = matchResult.groupValues[4].trimStart()
-
-                val agentMatch = AGENT_REGEX.find(content)
-                val agent = agentMatch?.groupValues?.get(1)
-                if (agentMatch != null) {
-                    content = content.replaceFirst(AGENT_REGEX, "")
-                }
-
-                val isBackground = BACKGROUND_REGEX.containsMatchIn(content)
-                if (isBackground) {
-                    content = content.replaceFirst(BACKGROUND_REGEX, "")
-                }
+                val markers = lineMarkers(matchResult.groupValues[4].trimStart())
+                val content = markers.text
+                val agent = markers.agent
+                val isBackground = markers.isBackground
 
                 val wordTimings =
                     parseRichSyncWords(content, index, lines)
@@ -182,6 +174,37 @@ object LyricsUtils {
         }
 
         return mergeRepeatedTimestampTranslations(result.sorted())
+    }
+
+    internal data class LineMarkers(
+        val text: String,
+        val agent: String?,
+        val isBackground: Boolean,
+    )
+
+    internal fun lineMarkers(content: String): LineMarkers {
+        var text = content
+        val agentMatch = AGENT_REGEX.find(text)
+        if (agentMatch != null) text = text.replaceFirst(AGENT_REGEX, "")
+        val isBackground = BACKGROUND_REGEX.containsMatchIn(text)
+        if (isBackground) text = text.replaceFirst(BACKGROUND_REGEX, "")
+        return LineMarkers(text, agentMatch?.groupValues?.get(1), isBackground)
+    }
+
+    /** Lines saved before the markers were parsed still carry them in their text. */
+    fun withoutLineMarkers(entries: List<LyricsEntry>): List<LyricsEntry> {
+        if (entries.none { AGENT_REGEX.containsMatchIn(it.text) || BACKGROUND_REGEX.containsMatchIn(it.text) }) return entries
+        var lastNonBgAgent: String? = null
+        return entries.map { entry ->
+            val markers = lineMarkers(entry.text)
+            if (!markers.isBackground && markers.agent != null) lastNonBgAgent = markers.agent
+            if (markers.text == entry.text) return@map entry
+            entry.copy(
+                text = markers.text.trim(),
+                agent = entry.agent ?: (if (markers.isBackground) lastNonBgAgent ?: "bg" else markers.agent),
+                isBackground = entry.isBackground || markers.isBackground,
+            )
+        }
     }
 
     private fun mergeRepeatedTimestampTranslations(entries: List<LyricsEntry>): List<LyricsEntry> {
@@ -319,6 +342,7 @@ object LyricsUtils {
      */
     private fun parseStandardLyrics(lines: List<String>): List<LyricsEntry> {
         val result = mutableListOf<LyricsEntry>()
+        var lastNonBgAgent: String? = null
 
         var i = 0
         while (i < lines.size) {
@@ -331,8 +355,14 @@ object LyricsUtils {
 
             val timeMatchResults = TIME_REGEX.findAll(line).toList()
             if (timeMatchResults.isNotEmpty()) {
-                val content = line.replace(TIME_REGEX, "").trim()
-                if (content.isNotEmpty()) {
+                val markers = lineMarkers(line.replace(TIME_REGEX, "").trim())
+                val content = markers.text.trim()
+                if (!markers.isBackground && markers.agent != null) lastNonBgAgent = markers.agent
+                val agent = if (markers.isBackground) lastNonBgAgent ?: "bg" else markers.agent
+                if (content.isEmpty()) {
+                    // A timed blank line is how LRC marks an instrumental break.
+                    timeMatchResults.forEach { match -> result.add(LyricsEntry(standardLineTime(match), "")) }
+                } else {
                     val wordTimestamps =
                         if (i + 1 < lines.size) {
                             val nextLine = lines[i + 1].trim()
@@ -346,19 +376,30 @@ object LyricsUtils {
                         }
 
                     timeMatchResults.forEach { match ->
-                        val min = match.groupValues[1].toLong()
-                        val sec = match.groupValues[2].toLong()
-                        val msStr = match.groupValues[3]
-                        val ms = if (msStr.length == 2) msStr.toLong() * 10 else msStr.toLong()
-                        val time = min * 60000 + sec * 1000 + ms
-                        result.add(LyricsEntry(time, content, wordTimestamps))
+                        result.add(
+                            LyricsEntry(
+                                time = standardLineTime(match),
+                                text = content,
+                                words = wordTimestamps,
+                                agent = agent,
+                                isBackground = markers.isBackground,
+                            ),
+                        )
                     }
                 }
             }
             i++
         }
 
-        return result.sorted()
+        return result.takeIf { lines -> lines.any { it.text.isNotBlank() } }.orEmpty().sorted()
+    }
+
+    private fun standardLineTime(match: MatchResult): Long {
+        val min = match.groupValues[1].toLong()
+        val sec = match.groupValues[2].toLong()
+        val msStr = match.groupValues[3]
+        val ms = if (msStr.length == 2) msStr.toLong() * 10 else msStr.toLong()
+        return min * 60000 + sec * 1000 + ms
     }
 
     /**

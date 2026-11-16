@@ -182,6 +182,49 @@ class RelativeUploadDateParserTest {
     }
 
     @Test
+    fun `reads the abbreviated ages of the related list`() {
+        val cases =
+            listOf(
+                Triple("vor 7 Std.", "de", 7 * hourMs),
+                Triple("hace 7 h", "es", 7 * hourMs),
+                Triple("hace 6 d", "es", 6 * dayMs),
+                Triple("Emitido hace 7 d", "es", 7 * dayMs),
+                Triple("hace 2 sem.", "es", 2 * weekMs),
+                Triple("hace 3 m", "es", 3 * monthMs),
+                Triple("Emitido hace 1 m", "es", monthMs),
+                Triple("hace 15 a", "es", 15 * yearMs),
+                Triple("il y a 7 h", "fr", 7 * hourMs),
+                Triple("Diffusé il y a 7 j", "fr", 7 * dayMs),
+                Triple("il y a 3 sem.", "fr", 3 * weekMs),
+                Triple("il y a 2 m.", "fr", 2 * monthMs),
+                Triple("il y a 10 a", "fr", 10 * yearMs),
+                Triple("13 h fa", "it", 13 * hourMs),
+                Triple("1 g fa", "it", dayMs),
+                Triple("4 gg fa", "it", 4 * dayMs),
+                Triple("2 sett. fa", "it", 2 * weekMs),
+                Triple("há 2 sem.", "pt", 2 * weekMs),
+                Triple("21 ч назад", "ru", 21 * hourMs),
+                Triple("Трансляция закончилась 10 ч назад", "ru", 10 * hourMs),
+                Triple("5 дн. назад", "ru", 5 * dayMs),
+                Triple("4 нед. назад", "ru", 4 * weekMs),
+                Triple("2 мес. назад", "ru", 2 * monthMs),
+                Triple("2 г. назад", "ru", 2 * yearMs),
+                Triple("15 л. назад", "ru", 15 * yearMs),
+            )
+        cases.forEach { (text, hl, age) ->
+            assertWithMessage("$hl: $text").that(parse(text, hl)).isEqualTo(now - age)
+        }
+    }
+
+    @Test
+    fun `an abbreviated unit counts only right after the one number in the text`() {
+        assertThat(parse("1,3 M", hl = "es")).isNull()
+        assertThat(parse("il y a", hl = "fr")).isNull()
+        assertThat(parse("Première le 12 oct. à 18 h", hl = "fr")).isNull()
+        assertThat(parse("hace 5 min", hl = "es")).isNotEqualTo(now - 5 * monthMs)
+    }
+
+    @Test
     fun `read and parse agree on the timestamp`() {
         listOf("today", "yesterday", "just now", "3 days ago", "2 hrs ago", "1 month ago").forEach { text ->
             assertWithMessage(text).that(RelativeUploadDateParser.read(text, "en", now)?.timestamp).isEqualTo(parse(text))

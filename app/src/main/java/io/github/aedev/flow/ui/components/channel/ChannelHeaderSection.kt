@@ -23,21 +23,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.FlowNoteCard
+import io.github.aedev.flow.ui.components.shared.FlowNoticeBanner
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FullSizeImageDialog
 import io.github.aedev.flow.ui.theme.extendedColors
@@ -56,6 +60,8 @@ internal fun ChannelHeaderSection(
     onManageGroups: (() -> Unit)?,
     note: String?,
     onEditNote: (() -> Unit)?,
+    aiVerdict: AiVerdict = AiVerdict.NONE,
+    onShowAiChannel: () -> Unit = {},
 ) {
     val bannerUrl = remember(header.bannerUrl) { ThumbnailUrlResolver.resolveChannelBanner(header.bannerUrl, targetWidth = 2048) }
     var showFullSizeAvatar by remember(header.id) { mutableStateOf(false) }
@@ -134,6 +140,19 @@ internal fun ChannelHeaderSection(
                         )
                     }
                 }
+            }
+
+            if (aiVerdict != AiVerdict.NONE) {
+                FlowNoticeBanner(
+                    icon = ImageVector.vectorResource(R.drawable.ic_ai_content),
+                    message =
+                        stringResource(
+                            if (aiVerdict == AiVerdict.BLOCK) R.string.ai_list_channel_blocked else R.string.ai_list_channel_warned,
+                        ),
+                    actionLabel = stringResource(R.string.ai_list_channel_show),
+                    onAction = onShowAiChannel,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
 
             if (!note.isNullOrBlank() && onEditNote != null) {

@@ -1,9 +1,11 @@
 package io.github.aedev.flow.ui.screens.search
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.ContentType
 import io.github.aedev.flow.data.local.Duration
+import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchFilter
 import io.github.aedev.flow.data.local.SearchHistoryRepository
 import io.github.aedev.flow.data.local.SortType
@@ -38,7 +40,15 @@ class SearchViewModelTest {
     private val context: Context = mockk(relaxed = true)
     private val history: SearchHistoryRepository = mockk(relaxed = true)
 
-    private fun viewModel() =
+    private var deepFlow = false
+    private val privacyGate =
+        PrivacyGate(
+            deepFlowActive = { deepFlow },
+            watchHistoryPaused = { false },
+            scrobbleDuringDeepFlow = { false },
+        )
+
+    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) =
         SearchViewModel(
             context,
             suggestions,
@@ -49,6 +59,8 @@ class SearchViewModelTest {
             mockk(relaxed = true),
             mockk(relaxed = true),
             mockk(relaxed = true),
+            privacyGate,
+            savedState,
         )
 
     @Before
@@ -83,6 +95,18 @@ class SearchViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify(exactly = 1) { history.saveSearchQuery("world news", filters = filters) }
+        }
+
+    @Test
+    fun `Deep Flow keeps a submitted search and its filter changes out of history`() =
+        runTest(testDispatcher) {
+            deepFlow = true
+            val viewModel = viewModel()
+            viewModel.submit("world news", SearchFilter.DEFAULT)
+            viewModel.updateFilters(SearchFilter(uploadDate = UploadDate.TODAY))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify(exactly = 0) { history.saveSearchQuery(any(), any(), any(), any()) }
         }
 
     @Test
@@ -188,5 +212,22 @@ class SearchViewModelTest {
             coEvery { suggestions.suggestions(any()) } throws IllegalStateException("offline")
 
             assertThat(viewModel().getSearchSuggestions("kotlin")).isEmpty()
+        }
+
+    @Test
+    fun `a search page opened for a query runs it once with its filters`() =
+        runTest(testDispatcher) {
+            val filters = SearchFilter(uploadDate = UploadDate.TODAY)
+            val savedState = SavedStateHandle(mapOf(SEARCH_QUERY_ARG to "world news", SEARCH_FILTERS_ARG to filters.toRouteArg()))
+            val viewModel = viewModel(savedState)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.query).isEqualTo("world news")
+            assertThat(viewModel.uiState.value.filters).isEqualTo(filters)
+
+            // A recreated process shows the same search again without keeping it twice.
+            viewModel(savedState)
+            testDispatcher.scheduler.advanceUntilIdle()
+            coVerify(exactly = 1) { history.saveSearchQuery("world news", filters = filters) }
         }
 }

@@ -11,6 +11,7 @@ import io.github.aedev.flow.data.local.ChannelSubscription
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.local.dao.SubscriptionGroupDao
+import io.github.aedev.flow.data.local.dao.WatchHistoryDao
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.toUiModel
@@ -18,16 +19,14 @@ import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedRepository
 import io.github.aedev.flow.data.subscriptions.SubscriptionRefreshPlan
 import io.github.aedev.flow.data.subscriptions.SubscriptionWatchedVideos
+import io.github.aedev.flow.data.subscriptions.channelsWithNewUploads
+import io.github.aedev.flow.data.subscriptions.parseChannelSeenAt
 import io.github.aedev.flow.data.subscriptions.withHighQualityThumbnails
+import io.github.aedev.flow.data.subscriptions.withPlayerMetadata
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.formatYouTubeRelativeTime
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,10 +45,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel as EventChannel
 
@@ -65,13 +60,11 @@ class SubscriptionsViewModel
         private val subscriptionWatchedVideos: SubscriptionWatchedVideos,
         private val neuroEngine: FlowNeuroEngine,
         private val backupCoordinator: BackupCoordinator,
+        private val watchHistoryDao: WatchHistoryDao,
     ) : ViewModel() {
         companion object {
             private const val TAG = "SubsViewModel"
 
-            private const val DURATION_ENRICHMENT_BATCH_SIZE = 3
-            private const val DURATION_METADATA_TIMEOUT_MS = 4_000L
-            private const val DURATION_RETRY_AFTER_MS = 30 * 60 * 1_000L
             private const val RELATIVE_TIME_TICK_MS = 60L * 1000L
         }
 
@@ -83,10 +76,9 @@ class SubscriptionsViewModel
         private var watchedShortIds: Set<String> = emptySet()
         private var unplayableVideoIds: Set<String> = emptySet()
         private var excludedShortsChannelIds: Set<String> = emptySet()
-        private val durationEnrichmentAttemptedAt = mutableMapOf<String, Long>()
-        private var durationEnrichmentJob: Job? = null
-        private var visibleVideoIds: Set<String> = emptySet()
-        private var hasPendingVisibleEnrichment = false
+        private var startedVideoIds: Set<String> = emptySet()
+        private var channelSeenAt: Map<String, Long> = emptyMap()
+        private var newVideosSince = 0L
         private var hasStarted = false
 
         /**
@@ -126,15 +118,17 @@ class SubscriptionsViewModel
                     playerPreferences.subscriptionShowVideos,
                     playerPreferences.effectiveSubscriptionShowShorts,
                     playerPreferences.subscriptionShowLive,
-                ) { showVideos, showShorts, showLive ->
-                    Triple(showVideos, showShorts, showLive)
+                    playerPreferences.subscriptionShowUpcoming,
+                ) { showVideos, showShorts, showLive, showUpcoming ->
+                    listOf(showVideos, showShorts, showLive, showUpcoming)
                 }.distinctUntilChanged()
-                    .collect { (showVideos, showShorts, showLive) ->
+                    .collect { (showVideos, showShorts, showLive, showUpcoming) ->
                         _uiState.update {
                             it.copy(
                                 showSubscriptionVideos = showVideos,
                                 showSubscriptionShorts = showShorts,
                                 showSubscriptionLive = showLive,
+                                showSubscriptionUpcoming = showUpcoming,
                             )
                         }
                         refreshVisibleFeed()
@@ -160,7 +154,8 @@ class SubscriptionsViewModel
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
                 playerPreferences.subsSortMode.collect { stored ->
                     val mode = SubscriptionSortMode.fromStorage(stored)
-                    _uiState.update { it.copy(sortMode = mode) }
+                    val counts = if (mode == SubscriptionSortMode.MOST_WATCHED) watchHistoryDao.channelWatchCounts() else emptyMap()
+                    _uiState.update { it.copy(sortMode = mode, channelWatchCounts = counts) }
                 }
             }
 
@@ -168,6 +163,38 @@ class SubscriptionsViewModel
                 playerPreferences.selectedSubscriptionGroup.collect { groupName ->
                     _uiState.update { it.copy(selectedGroupName = groupName) }
                     refreshVisibleFeed()
+                }
+            }
+
+            viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                combine(
+                    playerPreferences.subscriptionUngroupedEnabled,
+                    playerPreferences.subscriptionUngroupedPosition,
+                    playerPreferences.subscriptionPostsChip,
+                    ::Triple,
+                ).distinctUntilChanged()
+                    .collect { (enabled, position, postsChip) ->
+                        _uiState.update { it.copy(ungroupedEnabled = enabled, ungroupedPosition = position, showPostsChip = postsChip) }
+                        refreshVisibleFeed()
+                    }
+            }
+
+            viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                combine(
+                    playerPreferences.subscriptionHiddenGroups,
+                    playerPreferences.subscriptionGroupsOutOfAll,
+                    playerPreferences.subscriptionAllChip,
+                    ::Triple,
+                ).distinctUntilChanged()
+                    .collect { (hidden, outOfAll, allChip) ->
+                        _uiState.update { it.copy(hiddenGroups = hidden, groupsOutOfAll = outOfAll, showAllChip = allChip) }
+                        refreshVisibleFeed()
+                    }
+            }
+
+            viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                playerPreferences.subscriptionPinnedChannels.collect { stored ->
+                    _uiState.update { it.copy(pinnedChannelIds = parsePinnedChannels(stored)) }
                 }
             }
 
@@ -196,6 +223,22 @@ class SubscriptionsViewModel
                     watchedShortIds = shortIds
                     refreshVisibleFeed()
                 }
+            }
+
+            viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                playerPreferences.startSubscriptionNewVideosSince(System.currentTimeMillis())
+                combine(
+                    subscriptionWatchedVideos.startedIds,
+                    playerPreferences.subscriptionChannelSeenAt.map(::parseChannelSeenAt),
+                    playerPreferences.subscriptionNewVideosSince,
+                    ::Triple,
+                ).distinctUntilChanged()
+                    .collect { (started, seenAt, since) ->
+                        startedVideoIds = started
+                        channelSeenAt = seenAt
+                        newVideosSince = since
+                        refreshVisibleFeed()
+                    }
             }
 
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
@@ -269,12 +312,22 @@ class SubscriptionsViewModel
 
         /**
          * Fetches only the channels that are actually due, unless [force] (an explicit pull-to-refresh)
-         * asks for every channel. With a group selected, only that group's channels (#1099).
+         * asks for every channel. With a group selected, only that group's channels (#1099); on All,
+         * every channel except those only hidden or out-of-All groups hold (#1387).
          */
         private suspend fun runRefresh(
             force: Boolean,
             showLoading: Boolean,
-        ) = runRefresh(subscriptionFeedRepository.planRefresh(force, _uiState.value.selectedGroupScope()), showLoading)
+        ) {
+            val state = _uiState.value
+            val plan =
+                if (state.selectedChip() == null) {
+                    subscriptionFeedRepository.planAllRefresh(force)
+                } else {
+                    subscriptionFeedRepository.planRefresh(force, state.selectedGroupScope())
+                }
+            runRefresh(plan, showLoading)
+        }
 
         private suspend fun runRefresh(
             plan: SubscriptionRefreshPlan,
@@ -332,114 +385,48 @@ class SubscriptionsViewModel
             channels: List<Channel> = _uiState.value.subscribedChannels,
         ) {
             val state = _uiState.value
+            val filters =
+                SubscriptionFeedFilters(
+                    showVideos = state.showSubscriptionVideos,
+                    showShorts = state.showSubscriptionShorts,
+                    showLive = state.showSubscriptionLive,
+                    showUpcoming = state.showSubscriptionUpcoming,
+                    watchedVideoIds = watchedVideoIds,
+                    watchedShortIds = watchedShortIds,
+                    unplayableVideoIds = unplayableVideoIds,
+                    allowedChannelIds = state.selectedGroupScope(),
+                    excludedShortsChannelIds = excludedShortsChannelIds,
+                    exclusions = neuroEngine.feedExclusions(),
+                )
             val sections =
                 subscriptionFeedSections(
                     videos = videos.withHighQualityThumbnails().withSubscriptionAvatars(channels),
-                    filters =
-                        SubscriptionFeedFilters(
-                            showVideos = state.showSubscriptionVideos,
-                            showShorts = state.showSubscriptionShorts,
-                            showLive = state.showSubscriptionLive,
-                            watchedVideoIds = watchedVideoIds,
-                            watchedShortIds = watchedShortIds,
-                            unplayableVideoIds = unplayableVideoIds,
-                            allowedChannelIds =
-                                state.selectedGroupName?.let { name ->
-                                    state.groups
-                                        .find { it.name == name }
-                                        ?.channelIds
-                                        ?.toHashSet()
-                                },
-                            excludedShortsChannelIds = excludedShortsChannelIds,
-                            exclusions = neuroEngine.feedExclusions(),
-                        ),
+                    filters = filters,
                     now = System.currentTimeMillis(),
                 )
-            _uiState.update { it.copy(recentVideos = sections.recentVideos, shorts = sections.shorts) }
+            val newUploads = channelsWithNewUploads(videos.filter(filters::admits), channelSeenAt, newVideosSince, startedVideoIds)
+            _uiState.update { it.copy(recentVideos = sections.recentVideos, shorts = sections.shorts, newUploadChannelIds = newUploads) }
         }
 
-        fun updateVisibleVideoIds(videoIds: Set<String>) {
-            visibleVideoIds = videoIds
-            if (videoIds.isEmpty()) {
-                hasPendingVisibleEnrichment = false
-                durationEnrichmentJob?.cancel()
-                durationEnrichmentJob = null
-                return
+        private val durationEnricher =
+            SubscriptionDurationEnricher(
+                scope = viewModelScope,
+                playerPreferences = playerPreferences,
+                recentVideos = { _uiState.value.recentVideos },
+            ) { enrichedById ->
+                val mergedVideos =
+                    latestFeedVideos
+                        .map { video -> enrichedById[video.id]?.let(video::withPlayerMetadata) ?: video }
+                        .withHighQualityThumbnails()
+                        .withSubscriptionAvatars(_uiState.value.subscribedChannels)
+
+                latestFeedVideos = mergedVideos
+                updateVideos(mergedVideos)
+                subscriptionFeedRepository.updateEnrichedMetadata(enrichedById.values)
+                Log.d(TAG, "Duration enrichment applied to ${enrichedById.size} subscription videos")
             }
-            scheduleVisibleDurationEnrichment()
-        }
 
-        private fun scheduleVisibleDurationEnrichment() {
-            if (durationEnrichmentJob?.isActive == true) {
-                hasPendingVisibleEnrichment = true
-                return
-            }
-
-            val nowMillis = System.currentTimeMillis()
-            val visibleWindow =
-                visibleSubscriptionEnrichmentWindow(
-                    videos = _uiState.value.recentVideos,
-                    visibleVideoIds = visibleVideoIds,
-                )
-            val candidates =
-                missingDurationCandidates(
-                    videos = visibleWindow,
-                    attemptedAtMillis = durationEnrichmentAttemptedAt,
-                    nowMillis = nowMillis,
-                    retryAfterMillis = DURATION_RETRY_AFTER_MS,
-                )
-            if (candidates.isEmpty()) return
-
-            hasPendingVisibleEnrichment = false
-            durationEnrichmentJob =
-                viewModelScope.launch(PerformanceDispatcher.networkIO) {
-                    val runningJob = coroutineContext[Job]
-                    try {
-                        val enrichedById = mutableMapOf<String, Video>()
-                        candidates.chunked(DURATION_ENRICHMENT_BATCH_SIZE).forEach { batch ->
-                            val lookups =
-                                supervisorScope {
-                                    batch
-                                        .map { video ->
-                                            async(PerformanceDispatcher.networkIO) {
-                                                fetchSubscriptionPlayerMetadata(video, DURATION_METADATA_TIMEOUT_MS)
-                                            }
-                                        }.awaitAll()
-                                }.filterNotNull()
-                            withContext(Dispatchers.Main.immediate) {
-                                val attemptedAt = System.currentTimeMillis()
-                                batch.forEach { video ->
-                                    durationEnrichmentAttemptedAt[video.id] = attemptedAt
-                                }
-                            }
-                            lookups.filter { it.refusedToViewer }.forEach { playerPreferences.markVideoUnplayable(it.videoId) }
-                            lookups.mapNotNull { it.enriched }.associateByTo(enrichedById) { it.id }
-                        }
-
-                        if (enrichedById.isEmpty()) return@launch
-
-                        val mergedVideos =
-                            latestFeedVideos
-                                .map { video -> enrichedById[video.id]?.let(video::withPlayerMetadata) ?: video }
-                                .withHighQualityThumbnails()
-                                .withSubscriptionAvatars(_uiState.value.subscribedChannels)
-
-                        latestFeedVideos = mergedVideos
-                        updateVideos(mergedVideos)
-                        subscriptionFeedRepository.updateEnrichedMetadata(enrichedById.values)
-                        Log.d(TAG, "Duration enrichment applied to ${enrichedById.size} subscription videos")
-                    } finally {
-                        withContext(NonCancellable + Dispatchers.Main.immediate) {
-                            if (durationEnrichmentJob === runningJob) {
-                                durationEnrichmentJob = null
-                                if (hasPendingVisibleEnrichment && visibleVideoIds.isNotEmpty()) {
-                                    scheduleVisibleDurationEnrichment()
-                                }
-                            }
-                        }
-                    }
-                }
-        }
+        fun updateVisibleVideoIds(videoIds: Set<String>) = durationEnricher.updateVisibleVideoIds(videoIds)
 
         /** Shows [groupName]'s channels and tops up the ones gone stale; nothing is fetched while they are fresh. */
         fun selectGroup(groupName: String?) {
@@ -451,41 +438,46 @@ class SubscriptionsViewModel
             if (groupName != null) refreshIfStaleOrMissedUploads()
         }
 
+        private val groupEditor =
+            SubscriptionGroupEditor(
+                scope = viewModelScope,
+                dao = subscriptionGroupDao,
+                preferences = playerPreferences,
+                selectedGroup = { _uiState.value.selectedGroupName },
+                onSelectedRenamed = { newName -> _uiState.update { it.copy(selectedGroupName = newName) } },
+                onSelectedDeleted = { selectGroup(null) },
+            )
+
         fun createGroup(
             name: String,
             channelIds: List<String>,
-        ) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) { subscriptionGroupDao.appendGroup(name, channelIds) }
-        }
+            inAll: Boolean,
+        ) = groupEditor.create(name, channelIds, inAll)
 
         fun updateGroup(
             oldName: String,
             newName: String,
             channelIds: List<String>,
-        ) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                val edited = subscriptionGroupDao.editGroup(oldName, newName, channelIds)
-                if (edited && _uiState.value.selectedGroupName == oldName) {
-                    _uiState.update { it.copy(selectedGroupName = newName) }
-                    playerPreferences.setSelectedSubscriptionGroup(newName)
-                }
-            }
-        }
+            inAll: Boolean,
+        ) = groupEditor.update(oldName, newName, channelIds, inAll)
 
-        fun deleteGroup(name: String) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                subscriptionGroupDao.deleteGroup(name)
-                if (_uiState.value.selectedGroupName == name) {
-                    selectGroup(null)
-                }
-            }
-        }
+        fun setGroupHidden(
+            name: String,
+            hidden: Boolean,
+        ) = groupEditor.setHidden(name, hidden)
 
-        private val groupOrderLock = Mutex()
+        fun deleteGroup(name: String) = groupEditor.delete(name)
 
-        /** Saves [names] as the group order; each save is a whole order, so saves are kept in sequence. */
-        fun setGroupOrder(names: List<String>) {
-            viewModelScope.launch(PerformanceDispatcher.diskIO) { groupOrderLock.withLock { subscriptionGroupDao.setOrder(names) } }
+        fun setGroupOrder(names: List<String>) = groupEditor.setOrder(names)
+
+        fun togglePin(channelId: String) = savePins(togglePinned(_uiState.value.pinnedChannelIds, channelId))
+
+        /** Saves the order of the pins one list shows, leaving pins it doesn't show where they were. */
+        fun setPinnedOrder(shown: List<String>) = savePins(reorderPinnedSubset(_uiState.value.pinnedChannelIds, shown))
+
+        private fun savePins(pins: List<String>) {
+            _uiState.update { it.copy(pinnedChannelIds = pins) }
+            viewModelScope.launch(PerformanceDispatcher.diskIO) { playerPreferences.setSubscriptionPinnedChannels(pins.toPinnedStorage()) }
         }
 
         private val _importMessages = EventChannel<String>(EventChannel.BUFFERED)

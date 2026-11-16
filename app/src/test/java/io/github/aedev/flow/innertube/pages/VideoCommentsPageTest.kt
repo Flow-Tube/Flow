@@ -10,6 +10,39 @@ import org.junit.Test
 
 class VideoCommentsPageTest {
     @Test
+    fun `reads the sort menu and count from the comments panel of a watch response`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {"engagementPanels": [
+                  {"engagementPanelSectionListRenderer": {"panelIdentifier": "other", "header": {}}},
+                  {"engagementPanelSectionListRenderer": {
+                    "panelIdentifier": "engagement-panel-comments-section",
+                    "header": {"engagementPanelTitleHeaderRenderer": {
+                      "contextualInfo": {"runs": [{"text": "481K"}]},
+                      "menu": {"sortFilterSubMenuRenderer": {"subMenuItems": [
+                        {"title": "Top", "selected": true, "serviceEndpoint": {"continuationCommand": {"token": "top"}}},
+                        {"title": "Newest", "selected": false, "serviceEndpoint": {"continuationCommand": {"token": "newest"}}}
+                      ]}}
+                    }}
+                  }}
+                ]}
+                """.trimIndent(),
+            )
+
+        val header = response.videoCommentsPanelHeader()
+
+        assertEquals(listOf("top", "newest"), header?.sortOptions?.map { it.token })
+        assertEquals("481K", header?.totalText)
+        assertEquals(481_000L, header?.totalCount)
+    }
+
+    @Test
+    fun `a watch response with no comments panel has no panel header`() {
+        assertNull(Json.parseToJsonElement("""{"engagementPanels": []}""").videoCommentsPanelHeader())
+    }
+
+    @Test
     fun `reads the comment section continuation out of a watch response`() {
         val response =
             Json.parseToJsonElement(
@@ -28,7 +61,7 @@ class VideoCommentsPageTest {
                 """.trimIndent(),
             )
 
-        assertEquals("comments-token", response.videoCommentsContinuation())
+        assertEquals(VideoCommentsSection.Open("comments-token"), response.videoCommentsSection())
     }
 
     @Test
@@ -49,7 +82,54 @@ class VideoCommentsPageTest {
                 """.trimIndent(),
             )
 
-        assertNull(response.videoCommentsContinuation())
+        assertNull(response.videoCommentsSection())
+    }
+
+    @Test
+    fun `a comment section holding a message instead of a continuation means comments are turned off`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {
+                  "contents": {"twoColumnWatchNextResults": {"results": {"results": {"contents": [
+                    {"videoPrimaryInfoRenderer": {}},
+                    {"itemSectionRenderer": {
+                      "sectionIdentifier": "comment-item-section",
+                      "contents": [{"messageRenderer": {"text": {"runs": [
+                        {"text": "Kommentare sind deaktiviert. "},
+                        {"text": "Weitere Informationen"}
+                      ]}}}]
+                    }}
+                  ]}}}}
+                }
+                """.trimIndent(),
+            )
+
+        assertEquals(VideoCommentsSection.TurnedOff, response.videoCommentsSection())
+    }
+
+    @Test
+    fun `a watch response with no comment section has no section state`() {
+        val response =
+            Json.parseToJsonElement(
+                """{"contents": {"twoColumnWatchNextResults": {"results": {"results": {"contents": [{"videoPrimaryInfoRenderer": {}}]}}}}}""",
+            )
+
+        assertNull(response.videoCommentsSection())
+    }
+
+    @Test
+    fun `an empty comment section is neither open nor turned off`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {"contents": {"twoColumnWatchNextResults": {"results": {"results": {"contents": [
+                  {"itemSectionRenderer": {"sectionIdentifier": "comment-item-section", "contents": []}}
+                ]}}}}}
+                """.trimIndent(),
+            )
+
+        assertNull(response.videoCommentsSection())
     }
 
     @Test
@@ -218,6 +298,70 @@ class VideoCommentsPageTest {
         assertEquals(3_400, comment.likeCount)
         assertEquals(5, comment.replyCount)
         assertNull(comment.richText)
+    }
+
+    @Test
+    fun `reads the GIF attached to a comment through its surface entity (1939)`() {
+        val page =
+            Json
+                .parseToJsonElement(
+                    """
+                    {
+                      "onResponseReceivedEndpoints": [{"appendContinuationItemsAction": {"continuationItems": [
+                        {"commentThreadRenderer": {"commentViewModel": {"commentViewModel": {
+                          "commentKey": "gif-key",
+                          "commentSurfaceKey": "surface-key",
+                          "commentId": "gif-1"
+                        }}}},
+                        {"commentThreadRenderer": {"commentViewModel": {"commentViewModel": {
+                          "commentKey": "plain-key",
+                          "commentSurfaceKey": "plain-surface",
+                          "commentId": "plain-1"
+                        }}}}
+                      ]}}],
+                      "frameworkUpdates": {"entityBatchUpdate": {"mutations": [
+                        {"entityKey": "gif-key", "payload": {"commentEntityPayload": {
+                          "properties": {"commentId": "gif-1", "content": {"content": "me right now"}, "publishedTime": "4 hours ago"},
+                          "author": {"displayName": "@fan", "channelId": "UCfan"}
+                        }}},
+                        {"entityKey": "surface-key", "payload": {"commentSurfaceEntityPayload": {
+                          "imageAttachmentViewModel": {"commentImageAttachmentViewModel": {
+                            "width": 498, "height": 279, "aspectRatio": 1.7849462,
+                            "image": {"sources": [{"url": "https://i.ytimg.com/c_exp/gif-1/abc_webp_animated.webp?sqp=x", "width": 498, "height": 279}],
+                              "imageFormatHint": "IMAGE_FORMAT_ANIMATED_WEBP"}
+                          }}
+                        }}},
+                        {"entityKey": "plain-key", "payload": {"commentEntityPayload": {
+                          "properties": {"commentId": "plain-1", "content": {"content": "no gif"}, "publishedTime": "1 hour ago"},
+                          "author": {"displayName": "@other", "channelId": "UCother"}
+                        }}},
+                        {"entityKey": "plain-surface", "payload": {"commentSurfaceEntityPayload": {"key": "plain-surface"}}}
+                      ]}}
+                    }
+                    """.trimIndent(),
+                ).toVideoCommentsPage(ownVideoId = "fJ9rUzIMcZQ")
+
+        val (gif, plain) = page.comments
+        assertEquals("https://i.ytimg.com/c_exp/gif-1/abc_webp_animated.webp?sqp=x", gif.image?.url)
+        assertEquals(498, gif.image?.width)
+        assertEquals(279, gif.image?.height)
+        assertNull(plain.image)
+    }
+
+    @Test
+    fun `reads a GIF on a legacy comment renderer and drops one without a size`() {
+        val sized =
+            Json.parseToJsonElement(
+                """{"commentImageAttachmentViewModel": {"width": 200, "height": 200,
+                    "image": {"sources": [{"url": "//i.ytimg.com/c_exp/a.webp", "width": 200, "height": 200}]}}}""",
+            )
+        val unsized =
+            Json.parseToJsonElement(
+                """{"commentImageAttachmentViewModel": {"image": {"sources": [{"url": "https://i.ytimg.com/c_exp/b.webp"}]}}}""",
+            )
+
+        assertEquals("https://i.ytimg.com/c_exp/a.webp", sized.toCommentImage()?.url)
+        assertNull(unsized.toCommentImage())
     }
 
     private companion object {

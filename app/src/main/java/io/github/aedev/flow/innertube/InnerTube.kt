@@ -29,6 +29,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -38,6 +41,13 @@ import java.util.*
 import kotlin.io.encoding.Base64
 
 private const val TAG = "InnerTube"
+
+private val TIMED_COMMENTS_FILTER =
+    buildJsonObject {
+        putJsonObject("commentsFilterFormData") {
+            putJsonObject("commentsFilter") { put("sortBy", "SORT_BY_TIMED") }
+        }
+    }
 
 /**
  * Provide access to InnerTube endpoints.
@@ -394,9 +404,10 @@ class InnerTube {
         channelId: String,
         query: String,
         continuation: String? = null,
+        searchLocale: YouTubeLocale = locale,
     ) = webBrowse(client) { requestVisitorData ->
         BrowseBody(
-            context = client.toContext(locale, requestVisitorData, null),
+            context = client.toContext(searchLocale, requestVisitorData, null),
             browseId = if (continuation == null) channelId else null,
             params = if (continuation == null) "EgZzZWFyY2jyBgQKAloA" else null,
             query = if (continuation == null) query else null,
@@ -471,6 +482,22 @@ class InnerTube {
                 },
         )
     }
+
+    /** A player request for the paid promotion label alone: a few hundred bytes, not the whole response. */
+    suspend fun paidPromotion(videoId: String) =
+        withRetry {
+            httpClient.post("${YouTubeClient.API_URL_YOUTUBE}player") {
+                ytClient(YouTubeClient.IOS, apiUrl = YouTubeClient.API_URL_YOUTUBE)
+                header("X-Goog-FieldMask", "miniPlayerByline,playabilityStatus.status")
+                setBody(
+                    PlayerBody(
+                        context = YouTubeClient.IOS.toContext(locale, visitorData, dataSyncId),
+                        videoId = videoId,
+                        playlistId = null,
+                    ),
+                )
+            }
+        }
 
     suspend fun player(
         client: YouTubeClient,
@@ -680,14 +707,17 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.webYouTubeHeaders(client: YouTubeClient) {
+    private fun HttpRequestBuilder.webYouTubeHeaders(
+        client: YouTubeClient,
+        visitor: String? = visitorData,
+    ) {
         headers {
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId)
             append("X-YouTube-Client-Version", client.clientVersion)
             append("X-Origin", "https://www.youtube.com")
             append("Referer", "https://www.youtube.com/")
-            visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            visitor?.let { append("X-Goog-Visitor-Id", it) }
         }
         contentType(ContentType.Application.Json)
         userAgent(client.userAgent)
@@ -740,12 +770,67 @@ class InnerTube {
         }
     }
 
+    /**
+     * YouTube's Timed comments for the comment section [continuation] opens. Only the iOS client
+     * accepts the Timed filter without a login; Android answers it with HTTP 400 and the web has no
+     * Timed order at all. The web section's token works here as it is. The comments and their times
+     * are all in the entity mutations; asking for those alone takes about 0.7 s and 18 KB, against
+     * 15 s and 600 KB for the server-drawn rows Flow doesn't read.
+     */
+    suspend fun timedComments(continuation: String) =
+        withRetry {
+            val client = YouTubeClient.IOS
+            httpClient.post("${YouTubeClient.API_URL_YOUTUBE}next") {
+                ytClient(client, apiUrl = YouTubeClient.API_URL_YOUTUBE)
+                header("X-Goog-FieldMask", "frameworkUpdates.entityBatchUpdate.mutations")
+                setBody(
+                    NextBody(
+                        context = client.toContext(locale, visitorData, null),
+                        videoId = null,
+                        playlistId = null,
+                        playlistSetVideoId = null,
+                        index = null,
+                        params = null,
+                        continuation = continuation,
+                        formData = TIMED_COMMENTS_FILTER,
+                    ),
+                )
+            }
+        }
+
+    /**
+     * A mix's queue on the main site. Sent without the visitor id: with it, YouTube answers with a
+     * queue personalised for this visitor that leaves out the video the mix is named after.
+     */
+    suspend fun nextMix(
+        videoId: String?,
+        playlistId: String,
+    ) = withRetry {
+        val client = YouTubeClient.WEB
+        httpClient.post("https://www.youtube.com/youtubei/v1/next") {
+            webYouTubeHeaders(client, visitor = null)
+            setBody(
+                NextBody(
+                    context = client.toContext(locale, null, null),
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    playlistSetVideoId = null,
+                    index = null,
+                    params = null,
+                    continuation = null,
+                ),
+            )
+        }
+    }
+
     suspend fun getLiveChat(
         continuation: String,
         offsetMs: Long? = null,
+        replay: Boolean = false,
     ) = withRetry {
         val client = YouTubeClient.WEB
-        httpClient.post("https://www.youtube.com/youtubei/v1/live_chat/get_live_chat") {
+        val endpoint = if (replay) "get_live_chat_replay" else "get_live_chat"
+        httpClient.post("https://www.youtube.com/youtubei/v1/live_chat/$endpoint") {
             webYouTubeHeaders(client)
             setBody(
                 GetLiveChatBody(
@@ -1180,8 +1265,7 @@ class InnerTube {
                         ?.videoOwnerRenderer
                         ?.subscriberCountText
                         ?.simpleText
-                        ?.split(" ")
-                        ?.firstOrNull(),
+                        ?.trim(),
                 uploadDate = baseForTitle?.dateText?.simpleText,
                 viewCount = returnYouTubeDislikeResponse?.viewCount,
                 like = returnYouTubeDislikeResponse?.likes,

@@ -27,7 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.utils.parseHexColor
@@ -67,11 +69,11 @@ fun FlowColorPickerDialog(
         mutableFloatStateOf(if (allowAlpha) android.graphics.Color.alpha(initialArgb.toInt()) / MAX_CHANNEL else 1f)
     }
     val argb = hsvaToArgb(hue, saturation, brightness, alpha)
-    var hexInput by remember(initialArgb) { mutableStateOf(hexOf(initialArgb)) }
-    val hexValid = parseHexColor(hexInput) != null
+    var hexInput by remember(initialArgb) { mutableStateOf(caretAtEnd(hexOf(initialArgb))) }
+    val hexValid = parseHexColor(hexInput.text) != null
 
     fun syncHex(value: Long) {
-        hexInput = hexOf(value)
+        hexInput = caretAtEnd(hexOf(value))
     }
 
     FlowAlertDialog(
@@ -102,8 +104,11 @@ fun FlowColorPickerDialog(
                 OutlinedTextField(
                     value = hexInput,
                     onValueChange = { raw ->
-                        hexInput = sanitizeHexInput(raw)
-                        parseHexColor(hexInput)?.let { parsed ->
+                        val sanitized = sanitizeHexInput(raw.text)
+                        // The # the field puts back on its own would leave the caret in front of it,
+                        // and the next digits would land out of order.
+                        hexInput = if (sanitized == raw.text) raw else caretAtEnd(sanitized)
+                        parseHexColor(sanitized)?.let { parsed ->
                             val hsv = FloatArray(3).also { android.graphics.Color.colorToHSV(parsed.toInt(), it) }
                             hue = hsv[0]
                             saturation = hsv[1]
@@ -122,7 +127,7 @@ fun FlowColorPickerDialog(
                     isError = !hexValid,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().dpadVerticalFocusExit(),
                 )
                 ColorSlider(R.string.appearance_color_hue, hue, 0f..MAX_HUE) {
                     hue = it
@@ -162,9 +167,11 @@ private fun ColorSlider(
 ) {
     Column {
         Text(text = stringResource(label), style = MaterialTheme.typography.labelMedium)
-        Slider(value = value, onValueChange = onChange, valueRange = range)
+        Slider(value = value, onValueChange = onChange, valueRange = range, modifier = Modifier.dpadVerticalFocusExit())
     }
 }
+
+private fun caretAtEnd(text: String) = TextFieldValue(text, TextRange(text.length))
 
 private fun hsvaToArgb(
     hue: Float,

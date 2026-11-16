@@ -288,7 +288,7 @@ private fun MiniPlayerIconButton(
 }
 
 @Composable
-private fun MiniPlayerButtonBackground(
+internal fun MiniPlayerButtonBackground(
     backgroundSize: Dp,
     backgroundColor: Color = PlayerScrimMiniButton,
     content: @Composable BoxScope.() -> Unit,

@@ -26,7 +26,7 @@ internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
     // first metadata part, linked to it; that part is the byline, not an upload date.
     val collaborators = metadata?.get("image").collaboratorDialog()
     val byline = metadata.lockupByline() ?: collaborators.bylineOwner(metadata.metadataParts())
-    val itemOwner = byline?.let { owner.copy(id = it.id, name = it.name, avatarUrl = it.avatarUrl) } ?: owner
+    val itemOwner = byline?.let { owner.copy(id = it.id, name = it.name, avatarUrl = it.avatarUrl, handle = it.handle) } ?: owner
     val parts = metadata.metadataParts().filterNot { it == byline?.name }
     val badges = lockupBadges()
     val membersOnly = metadata.membersOnlyBadge()
@@ -107,7 +107,35 @@ private fun JsonObject.lockupVideo(
         collaborators = collaborators,
         isLive = isLive,
         isUpcoming = isUpcoming,
+        channelHandle = owner.handle ?: avatarHandle(owner.id),
     )
+}
+
+/**
+ * Some lockups (related videos, parts of a channel's Home) put the handle only on the avatar's tap
+ * target, not on the byline. It counts only when that avatar is the owner's own channel.
+ */
+private fun JsonObject.avatarHandle(ownerId: String): String? {
+    if (ownerId.isBlank()) return null
+    val command =
+        this["metadata"]
+            .objectOrNull()
+            ?.get("lockupMetadataViewModel")
+            .objectOrNull()
+            ?.get("image")
+            .objectOrNull()
+            ?.get("decoratedAvatarViewModel")
+            .objectOrNull()
+            ?.get("rendererContext")
+            .objectOrNull()
+            ?.get("commandContext")
+            .objectOrNull()
+            ?.get("onTap")
+            .objectOrNull()
+            ?.get("innertubeCommand")
+            .objectOrNull() ?: return null
+    val browseId = command["browseEndpoint"].objectOrNull()?.get("browseId").stringOrNull()
+    return command.browseHandle().takeIf { browseId == ownerId }
 }
 
 /** A collaboration's byline links to no channel, so it is found by the lead collaborator's name instead. */
@@ -149,7 +177,7 @@ private fun JsonObject?.lockupByline(): FeedItemOwner? =
         }.mapNotNull { part ->
             val text = part.objectOrNull()?.get("text").objectOrNull() ?: return@mapNotNull null
             val name = text.youtubeText()?.takeIf(String::isNotBlank) ?: return@mapNotNull null
-            val channelId =
+            val command =
                 text["commandRuns"]
                     .arrayOrNull()
                     ?.firstOrNull()
@@ -158,12 +186,14 @@ private fun JsonObject?.lockupByline(): FeedItemOwner? =
                     .objectOrNull()
                     ?.get("innertubeCommand")
                     .objectOrNull()
+            val channelId =
+                command
                     ?.get("browseEndpoint")
                     .objectOrNull()
                     ?.get("browseId")
                     .stringOrNull()
                     ?.takeIf { it.startsWith("UC") } ?: return@mapNotNull null
-            FeedItemOwner(id = channelId, name = name)
+            FeedItemOwner(id = channelId, name = name, handle = command?.browseHandle())
         }.firstOrNull()
 
 private fun JsonObject?.metadataParts(): List<String> =

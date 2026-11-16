@@ -75,6 +75,13 @@ internal fun GestureOverlayAutoHideEffect(screenState: PlayerScreenState) {
         }
     }
 
+    LaunchedEffect(screenState.chapterSkip) {
+        if (screenState.chapterSkip != null) {
+            delay(DOUBLE_TAP_SEEK_WINDOW_MS)
+            screenState.showChapterSkip = false
+        }
+    }
+
     LaunchedEffect(screenState.seekAccumulation, screenState.showSeekBackAnimation) {
         if (screenState.showSeekBackAnimation) {
             delay(DOUBLE_TAP_SEEK_WINDOW_MS)

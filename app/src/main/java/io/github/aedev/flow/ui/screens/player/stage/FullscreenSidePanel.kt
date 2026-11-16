@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.media3.common.util.UnstableApi
+import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerChaptersSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerCommentsPanelHost
@@ -32,11 +33,12 @@ import io.github.aedev.flow.ui.screens.player.dialogs.PlayerLiveChatColumn
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerQueueSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSettingsSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerSleepTimerSheetHost
+import io.github.aedev.flow.ui.screens.player.dialogs.PlayerTranscriptSheetHost
 import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
-import io.github.aedev.flow.ui.screens.player.state.transcriptTrackUrl
+import io.github.aedev.flow.ui.screens.player.state.hasTranscriptTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -50,6 +52,7 @@ internal class FullscreenSidePanelState(
     val showSettings: Boolean,
     val showChapters: Boolean,
     val showDescription: Boolean,
+    val showTranscript: Boolean,
     val showLiveChat: Boolean,
     val showComments: Boolean,
     val showSleepTimer: Boolean,
@@ -70,6 +73,7 @@ internal fun rememberFullscreenSidePanelState(
     canUseFullscreenSidePanel: Boolean,
     maxWidth: Dp,
     maxHeight: Dp,
+    widthPreset: FullscreenSidePanelWidth,
     scope: CoroutineScope,
 ): FullscreenSidePanelState {
     val density = LocalDensity.current
@@ -78,6 +82,7 @@ internal fun rememberFullscreenSidePanelState(
     // The drawer hosted every other sheet but this one, and the bottom sheet is suppressed wherever
     // a drawer exists — so opening the description in fullscreen drew nothing at all.
     val showDescriptionSidePanel = screenState.activeSheet == PlayerSheet.Description
+    val showTranscriptSidePanel = screenState.activeSheet == PlayerSheet.Transcript
     val showLiveChatSidePanel =
         screenState.activeSheet == PlayerSheet.LiveChat(fullscreen = true) && playerUiState.isLiveChatAvailable
     val showCommentsSidePanel =
@@ -87,10 +92,10 @@ internal fun rememberFullscreenSidePanelState(
     val fullscreenSidePanelVisible =
         canUseFullscreenSidePanel &&
             (
-                showSettingsSurface || showChaptersSidePanel || showDescriptionSidePanel ||
+                showSettingsSurface || showChaptersSidePanel || showDescriptionSidePanel || showTranscriptSidePanel ||
                     showLiveChatSidePanel || showCommentsSidePanel || showSleepTimerSidePanel || showQueueSidePanel
             )
-    val fullscreenDrawerWidth = minOf(maxWidth * 0.42f, 420.dp)
+    val fullscreenDrawerWidth = sidePanelWidth(maxWidth, widthPreset)
     val fullscreenDrawerWidthPx = with(density) { fullscreenDrawerWidth.toPx() }
     val fullscreenDrawerOffsetPx = remember { Animatable(0f) }
 
@@ -172,7 +177,7 @@ internal fun rememberFullscreenSidePanelState(
     val fullscreenSidePanelHeight = maxHeight
     val fullscreenPlayerWidth =
         if (fullscreenSidePanelVisible) {
-            (maxWidth - fullscreenReservedWidth).coerceAtLeast(maxWidth * 0.58f)
+            (maxWidth - fullscreenReservedWidth).coerceAtLeast(sidePanelMinPlayerWidth(maxWidth, widthPreset))
         } else {
             maxWidth
         }
@@ -182,6 +187,7 @@ internal fun rememberFullscreenSidePanelState(
         showSettings = showSettingsSurface,
         showChapters = showChaptersSidePanel,
         showDescription = showDescriptionSidePanel,
+        showTranscript = showTranscriptSidePanel,
         showLiveChat = showLiveChatSidePanel,
         showComments = showCommentsSidePanel,
         showSleepTimer = showSleepTimerSidePanel,
@@ -236,6 +242,7 @@ internal fun BoxScope.FullscreenSidePanel(
                 scope = scope,
                 rememberPlaybackSpeed = prefs.rememberPlaybackSpeed,
                 ambientModeEnabled = prefs.ambientModeEnabled,
+                ambientGlowEnabled = prefs.ambientGlowEnabled,
                 groupedQualitySelectorEnabled = prefs.groupedQualitySelectorEnabled,
                 rememberSubtitleLanguage = rememberSubtitleLanguage,
                 asSidePanel = true,
@@ -260,10 +267,23 @@ internal fun BoxScope.FullscreenSidePanel(
                 asSidePanel = true,
                 expandedHeight = panelState.panelHeight,
                 onDismiss = closeFullscreenSidePanel,
-                hasTranscriptTrack = transcriptTrackUrl(playerState, screenState) != null,
+                hasTranscriptTrack = hasTranscriptTrack(playerState),
                 onChaptersClick = { screenState.open(PlayerSheet.Chapters) },
                 onTranscriptClick = { screenState.open(PlayerSheet.Transcript) },
                 onChannelClick = onNavigateToChannel,
+            )
+        } else if (panelState.showTranscript) {
+            PlayerTranscriptSheetHost(
+                viewModel = playerViewModel,
+                screenState = screenState,
+                playerState = playerState,
+                prefs = prefs,
+                chapters = playerUiState.chapters,
+                artworkUrl = video.thumbnailUrl,
+                exportTitle = video.title,
+                asSidePanel = true,
+                expandedHeight = panelState.panelHeight,
+                onDismiss = closeFullscreenSidePanel,
             )
         } else if (panelState.showSleepTimer) {
             PlayerSleepTimerSheetHost(
@@ -283,6 +303,7 @@ internal fun BoxScope.FullscreenSidePanel(
                 isLoading = playerUiState.isLiveChatLoading,
                 onClose = closeFullscreenSidePanel,
                 modifier = Modifier.fillMaxSize(),
+                isReplay = !playerUiState.isLive,
             )
         } else if (panelState.showComments) {
             PlayerCommentsPanelHost(

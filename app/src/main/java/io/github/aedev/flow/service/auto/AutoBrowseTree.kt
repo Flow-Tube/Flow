@@ -21,8 +21,10 @@ internal object AutoBrowseTree {
     const val LIKED = "auto:liked"
     const val DOWNLOADS = "auto:downloads"
     const val RECENT = "auto:recent"
+    const val WATCH_LATER = "auto:watch_later"
 
     private const val PLAYLIST_PREFIX = "auto:playlist:"
+    private const val VIDEO_PLAYLIST_PREFIX = "auto:vplaylist:"
     private const val SEARCH_PREFIX = "auto:search:"
     private const val SONG_SEPARATOR = '|'
 
@@ -31,13 +33,21 @@ internal object AutoBrowseTree {
 
     val tabs = listOf(FOR_YOU, LIBRARY, PLAYLISTS, QUEUE)
     val mixes = listOf(ON_REPEAT, RIGHT_NOW, REDISCOVER)
-    val libraryLists = listOf(LIKED, DOWNLOADS, RECENT)
+    val libraryLists = listOf(LIKED, DOWNLOADS, RECENT, WATCH_LATER)
 
     fun rootTabs(limit: Int): List<String> = tabs.take(limit.takeIf { it > 0 } ?: DEFAULT_ROOT_LIMIT)
 
     fun playlist(playlistId: String) = PLAYLIST_PREFIX + playlistId
 
     fun playlistIdOf(parentId: String): String? = parentId.removePrefix(PLAYLIST_PREFIX).takeIf { parentId.startsWith(PLAYLIST_PREFIX) }
+
+    fun videoPlaylist(playlistId: String) = VIDEO_PLAYLIST_PREFIX + playlistId
+
+    fun videoPlaylistIdOf(parentId: String): String? =
+        parentId.removePrefix(VIDEO_PLAYLIST_PREFIX).takeIf { parentId.startsWith(VIDEO_PLAYLIST_PREFIX) }
+
+    /** Whether [parentId] lists videos rather than songs (#1657): they play as audio but are not music. */
+    fun isVideoList(parentId: String): Boolean = parentId == WATCH_LATER || videoPlaylistIdOf(parentId) != null
 
     fun search(query: String) = SEARCH_PREFIX + query.trim()
 

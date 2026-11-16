@@ -29,6 +29,7 @@ import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.LifecyclePlaybackPreferences
 import io.github.aedev.flow.player.MiniPlayerExpansionState
+import io.github.aedev.flow.player.PlaybackTarget
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.stream.PlaybackLoadResolver
 import io.github.aedev.flow.player.stream.ResetYouTubeSession
@@ -144,6 +145,7 @@ class VideoPlayerViewModel
         val isLoadingMoreComments: StateFlow<Boolean> = comments.isLoadingMore
         val commentSortOptions: StateFlow<List<VideoCommentSort>> = comments.sortOptions
         val commentTotalText: StateFlow<String?> = comments.totalText
+        val commentsDisabled: StateFlow<Boolean> = comments.isDisabled
         val descriptionState: StateFlow<VideoDescriptionPage?> = descriptions.description
         val transcriptState: StateFlow<TranscriptState> = transcripts.state
 
@@ -317,6 +319,8 @@ class VideoPlayerViewModel
             userOpened: Boolean = true,
             startPositionMs: Long? = null,
         ) {
+            // While this device drives another one, the video plays there.
+            if (userOpened) PlaybackTarget.current?.let { return it.play(listOf(video.id), 0, music = false) }
             val isMiniPlayerCollapsed =
                 GlobalPlayerState.miniPlayerExpansionState.value == MiniPlayerExpansionState.COLLAPSED
             if (_uiState.value.shouldReopenInsteadOfPlaying(video.id, playerManager.playerState.value, isMiniPlayerCollapsed)) {
@@ -346,6 +350,8 @@ class VideoPlayerViewModel
             video: Video,
             contentUri: String,
         ) {
+            // A file on this device plays here, which ends driving another device.
+            PlaybackTarget.current?.release()
             takeOverPlayback()
             armStartPaused(video.id, userOpened = true)
             loads.prepareDeviceFile(video, contentUri)
@@ -389,7 +395,7 @@ class VideoPlayerViewModel
             transcripts.clear()
         }
 
-        fun startBackgroundPlayback() = presence.startBackgroundPlayback()
+        fun startBackgroundPlayback(explicit: Boolean = true) = presence.startBackgroundPlayback(explicit)
 
         fun resetDismissState() = presence.resetDismissState()
 
@@ -398,10 +404,10 @@ class VideoPlayerViewModel
         fun resetSessionAndRetry() =
             viewModelScope.launch {
                 resetYouTubeSession()
-                retryLoadVideo()
+                retryLoadVideo(reuseLoadedStreams = false)
             }
 
-        fun retryLoadVideo() {
+        fun retryLoadVideo(reuseLoadedStreams: Boolean = true) {
             val videoId = _uiState.value.cachedVideo?.id ?: return
             Log.d("VideoPlayerViewModel", "Retrying video load for $videoId")
             if (upcomingPremiere.applyCountdown(_uiState.value.cachedVideo ?: return)) {
@@ -413,6 +419,7 @@ class VideoPlayerViewModel
                 return
             }
             recovery.onPlaybackRequested()
+            if (reuseLoadedStreams && recovery.retryInPlace()) return
             playerManager.clearCurrentVideo()
             _uiState.update { it.copy(error = null, errorHint = null, errorOffersSessionReset = false, isLoading = true) }
             loadVideoInfo(videoId, isWifi = detectIsWifi(), forceRefresh = true)
@@ -429,6 +436,16 @@ class VideoPlayerViewModel
         ) {
             if (videos.isEmpty()) return
             val startVideo = videos.getOrNull(startIndex) ?: videos.first()
+            PlaybackTarget.current?.let { remote ->
+                if (LocalMediaIds.isLocal(
+                        startVideo.id,
+                    )
+                ) {
+                    remote.release()
+                } else {
+                    return remote.play(videos.map(Video::id), videos.indexOf(startVideo), music = false)
+                }
+            }
 
             EnhancedMusicPlayerManager.stop()
             EnhancedMusicPlayerManager.clearCurrentTrack()
@@ -586,6 +603,18 @@ class VideoPlayerViewModel
             videoId: String,
             sort: VideoCommentSort,
         ) = comments.selectSort(videoId, sort)
+
+        val timedCommentsFollow: StateFlow<Boolean> =
+            playerPreferences.timedCommentsFollow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+        fun setTimedCommentsFollow(enabled: Boolean) {
+            viewModelScope.launch { playerPreferences.setTimedCommentsFollow(enabled) }
+        }
+
+        fun selectTimedComments(
+            videoId: String,
+            orders: List<VideoCommentSort>,
+        ) = comments.selectTimed(videoId, orders)
 
         fun loadCommentReplies(comment: Comment) {
             val videoId = _uiState.value.cachedVideo?.id ?: return

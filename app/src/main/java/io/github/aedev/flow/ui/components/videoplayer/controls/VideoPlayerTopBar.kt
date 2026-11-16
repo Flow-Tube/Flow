@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerOverlayPreferences
+import io.github.aedev.flow.ui.screens.playon.PlayOnButton
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.ui.theme.PlayerScrimAffordance
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
@@ -300,6 +301,8 @@ internal fun VideoPlayerTopBar(
                         contentDescription = stringResource(R.string.live_chat),
                     )
                 }
+
+                PlayOnButton(tint = PlayerScrimContent, buttonSize = actionButtonSize, iconSize = actionIconSize)
 
                 TopBarIconButton(
                     onClick = actions.onSettingsClick,

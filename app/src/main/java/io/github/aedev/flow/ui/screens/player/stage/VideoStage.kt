@@ -5,28 +5,39 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.player.EnhancedPlayerManager
+import io.github.aedev.flow.ui.components.shared.MediaBufferingIndicator
 import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.components.videoplayer.MINI_PLAYER_CORNER_RADIUS_DP
 import io.github.aedev.flow.ui.components.videoplayer.VideoPlayerSurface
+import io.github.aedev.flow.ui.components.videoplayer.gesture.chapterSkipTarget
 import io.github.aedev.flow.ui.components.videoplayer.gesture.videoPlayerControls
 import io.github.aedev.flow.ui.components.videoplayer.gesture.videoPlayerZoom
+import io.github.aedev.flow.ui.components.videoplayer.overlay.ChapterSkipFeedback
 import io.github.aedev.flow.ui.components.videoplayer.placedWhen
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.Media3SubtitleOverlay
 import io.github.aedev.flow.ui.screens.player.saveChosenPlaybackSpeed
+import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
+import io.github.aedev.flow.ui.screens.player.state.effectiveResizeMode
 
 /**
  * The player's video slot: the surface itself, the gesture and zoom transforms wrapped around it,
@@ -60,20 +71,62 @@ internal fun VideoStage(
     val scope = session.scope
     val activity = session.activity
     val audioSystemInfo = session.audioSystemInfo
-    val isLandscapeWindow = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val stageConfiguration = LocalConfiguration.current
+    val isLandscapeWindow = stageConfiguration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val playerPreferences = remember(session.context) { PlayerPreferences(session.context) }
+    val spherical = playerState.showsSpherical
+    val resizeMode =
+        effectiveResizeMode(
+            isFullscreen = session.isFullscreenShown && !localIsInPipMode,
+            spherical = spherical,
+            override = screenState.resizeModeOverride,
+            zoomToFill = prefs.fullscreenZoomToFill,
+            videoAspectRatio = videoAspectRatio,
+            portraitLayout =
+                usesPortraitFullscreenLayout(
+                    isFullscreen = session.isFullscreenShown,
+                    isFullscreenPortrait = screenState.isFullscreenPortrait,
+                    videoAspectRatio = videoAspectRatio,
+                    orientationRequestIgnored = session.context.orientationRequestIgnored(stageConfiguration),
+                    windowIsPortrait = stageConfiguration.screenHeightDp > stageConfiguration.screenWidthDp,
+                ),
+        )
+    val gesturesActive = !isMinimized && !localIsInPipMode && !screenState.isTouchLocked
+    val haptics = LocalHapticFeedback.current
+    val chapters = playerUiState.chapters
+    val chapterStartsMs = remember(chapters) { chapters.map { it.startTimeSeconds * 1000L } }
+    val canSkipChapters = prefs.chapterSkipGestureEnabled && chapterStartsMs.isNotEmpty() && !playerState.isLive
+    val skipChapter by rememberUpdatedState { forward: Boolean ->
+        val manager = EnhancedPlayerManager.getInstance()
+        val position = manager.getPlayer()?.currentPosition ?: screenState.currentPosition
+        chapterSkipTarget(chapterStartsMs, position, forward)?.let { index ->
+            manager.seekTo(chapterStartsMs[index], exact = true)
+            screenState.showSeekBackAnimation = false
+            screenState.showSeekForwardAnimation = false
+            val title = chapters[index].title.orEmpty().ifBlank { session.context.getString(R.string.player_chapter_number, index + 1) }
+            screenState.chapterSkip = ChapterSkipFeedback(title = title, forward = forward)
+            screenState.showChapterSkip = true
+            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        }
+    }
 
     // ALWAYS use the same video surface
     val gestureModifier =
-        if (!isMinimized && !localIsInPipMode && !screenState.isTouchLocked) {
+        if (gesturesActive) {
             modifier
                 .videoPlayerControls(
                     isSpeedBoostActive = screenState.isSpeedBoostActive,
                     onSpeedBoostChange = { screenState.isSpeedBoostActive = it },
                     showControls = screenState.showControls,
                     onShowControlsChange = { screenState.showControls = it },
-                    onShowSeekBackChange = { screenState.showSeekBackAnimation = it },
-                    onShowSeekForwardChange = { screenState.showSeekForwardAnimation = it },
+                    onShowSeekBackChange = { shown ->
+                        screenState.showSeekBackAnimation = shown
+                        if (shown) screenState.showChapterSkip = false
+                    },
+                    onShowSeekForwardChange = { shown ->
+                        screenState.showSeekForwardAnimation = shown
+                        if (shown) screenState.showChapterSkip = false
+                    },
                     onSeekAccumulate = { screenState.seekAccumulation = kotlin.math.abs(it) },
                     currentPosition = { screenState.currentPosition },
                     duration = screenState.duration,
@@ -130,14 +183,29 @@ internal fun VideoStage(
                         screenState.isFullscreenPortrait = false
                     },
                     onExitFullscreenDrag = { offsetPx -> screenState.exitDragOffsetY = offsetPx },
+                    onMoreVideos =
+                        if (canUseFullscreenSidePanel && prefs.moreVideosSwipeEnabled) {
+                            {
+                                screenState.showControls = false
+                                screenState.open(PlayerSheet.MoreVideos)
+                            }
+                        } else {
+                            null
+                        },
+                    onMoreVideosDrag = { offsetPx -> screenState.moreVideosDragY = offsetPx },
                     isSeekForwardActive = screenState.showSeekForwardAnimation,
                     isSeekBackActive = screenState.showSeekBackAnimation,
                     onTapWindowChange = { screenState.isTapWindowOpen = it },
+                    // A drag on a 360 video looks around instead.
+                    dragGesturesEnabled = !spherical,
                 ).videoPlayerZoom(
                     scope = scope,
                     scale = { screenState.zoomScale },
                     offsetX = { screenState.zoomOffsetX },
                     offsetY = { screenState.zoomOffsetY },
+                    // A 360 video is moved by looking around, so a pinch only zooms it.
+                    panEnabled = !spherical,
+                    onTwoFingerDoubleTap = if (canSkipChapters) { forward -> skipChapter(forward) } else null,
                     onTransform = { newScale, newOffsetX, newOffsetY ->
                         screenState.zoomScale = newScale
                         screenState.zoomOffsetX = newOffsetX
@@ -152,6 +220,8 @@ internal fun VideoStage(
             modifier
         }
 
+    // Removed rather than just unplaced while the player is small, so the panel's reads stop with it.
+    val expandedSurfacesPlacedNow by remember { derivedStateOf(expandedSurfacesPlaced) }
     val configuration = LocalConfiguration.current
     val firstFrameVideoId by EnhancedPlayerManager.getInstance().firstFrameVideoId.collectAsStateWithLifecycle()
 
@@ -173,7 +243,7 @@ internal fun VideoStage(
         ) {
             VideoPlayerSurface(
                 video = video,
-                resizeMode = screenState.resizeMode,
+                resizeMode = resizeMode,
                 modifier = Modifier.fillMaxSize(),
                 onVideoAspectRatioChanged = onDecodedVideoAspectRatioChanged,
                 cornerRadiusDp =
@@ -183,6 +253,14 @@ internal fun VideoStage(
                         0f
                     },
                 ambientMode = prefs.ambientModeEnabled && !isMinimized && !localIsInPipMode,
+                ambientFrames = session.ambient.frames,
+                ambientGlow = session.ambient.glow,
+                spherical = spherical,
+                sphericalMotion = prefs.sphericalMotionEnabled,
+                sphericalTouch = gesturesActive,
+                sphericalStill = !playerState.playWhenReady || playerState.hasEnded,
+                sphericalZoom = { screenState.zoomScale },
+                sphericalDragSpeed = prefs.sphericalDragSpeed,
             )
             if (expandedSurfacesMounted && !localIsInPipMode) {
                 Media3SubtitleOverlay(
@@ -198,7 +276,7 @@ internal fun VideoStage(
                             isVertical = configuration.screenHeightDp > configuration.screenWidthDp,
                         ),
                     videoAspectRatio = videoAspectRatio,
-                    resizeMode = screenState.resizeMode,
+                    resizeMode = resizeMode,
                     modifier = Modifier.fillMaxSize().placedWhen(expandedSurfacesPlaced),
                 )
             }
@@ -234,6 +312,7 @@ internal fun VideoStage(
                 session = session,
                 expandedSurfacesPlaced = expandedSurfacesPlaced,
                 videoAspectRatio = videoAspectRatio,
+                resizeMode = resizeMode,
                 canGoPrevious = canGoPrevious,
                 isCommentsAvailable = isCommentsAvailable,
                 canUseFullscreenSidePanel = canUseFullscreenSidePanel,
@@ -243,6 +322,20 @@ internal fun VideoStage(
                 onSbSubmitClick = onSbSubmitClick,
                 onCastClick = onCastClick,
             )
+        }
+
+        // The controls carry their own spinner in the play slot; the touch lock hides it with them.
+        if (expandedSurfacesMounted && !isMinimized && !localIsInPipMode) {
+            MediaBufferingIndicator(
+                visible = playerState.isBuffering && (!screenState.showControls || screenState.isTouchLocked),
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
+        if (expandedSurfacesPlacedNow && expandedSurfacesMounted && !localIsInPipMode) {
+            Box(modifier = Modifier.matchParentSize()) {
+                PlayerStatsLayer(session = session)
+            }
         }
     }
 }
