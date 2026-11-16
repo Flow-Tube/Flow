@@ -1,0 +1,212 @@
+FLOW CHANGE LOG
+VERSION: 3.0.5
+DATE: 2026-11-16
+STATUS: stable
+
+HIGHLIGHTS
+- Profiles: up to five people can each have their own feed, history, subscriptions and settings in one app
+- Linked devices: keep your phones, tablets, TVs and Flow Desktop in sync over your Wi-Fi, your own Flow server or a WebDAV folder, end to end encrypted
+- Play on: move what you're watching or listening to onto another device, or control it from here
+- Android TV is redesigned on Material 3 Expressive, using the phone's own pages and players
+- Music crossfade, music casting, a customizable mini player and new player backgrounds
+- Lyrics: a new Cadence animation, faster lookups with more sources, lyrics on the lock screen and shareable lyric cards
+- Ambient and Immersive glow, 360° videos, related videos in fullscreen and a player you can scroll away
+- A Downloads tab, a new download sheet with audio track choice, and Buffer ahead on disk
+- App lock, a daily watch time limit, and switches to hide or label AI-generated content
+
+BEHAVIOR CHANGES
+- Stable Voice is replaced by Normalize volume, which is off by default, so videos play at their full volume (#1335, #1641)
+- Audio offload is now off by default, since it made songs play silently on some phones. Turn it on in the music player's Audio settings (#1417)
+- Picture-in-picture starts by itself when you leave a playing video, and closing its window pauses the video (#1349)
+- SponsorBlock's Ignore action is now called Show in seek bar (#1673)
+- Downloads no longer ask for access to all files (#1255)
+- Vibration in Appearance now turns vibration on or off across the whole app
+- Phones in landscape show the side navigation rail instead of the bottom bar (#1845)
+
+PROFILES
+- Up to five people each get their own feed, history, subscriptions, settings and recommendations (#372, #1039)
+- Switch profiles from the profile button, now on every main tab, or on TV from the rail and a Who's watching? screen
+- Settings can move into the profile button's menu
+
+LINKED DEVICES
+- Link phones, tablets, TVs and Flow Desktop into one group that stays in sync, end to end encrypted (#1075)
+- Keep the group on your own Flow sync server, in a WebDAV folder such as Nextcloud, or on your Wi-Fi network with no server at all
+- Devices on the same Wi-Fi sync directly when they meet, and changes arrive within seconds while both are open
+- A TV or other device without a camera joins by showing a code a linked phone scans, or by typing the server address
+- Choose which profiles sync and what each device syncs, and turn off Sync automatically to sync only when you tap Sync now
+- Recovery words bring the group back if every device is lost, and can be replaced from any device
+- Removing a device signs it out for good and lists the devices it added
+- Sync devices is redesigned: a status card with Sync now, your devices first, and setup that starts with Create a group or Join a group
+- Restoring a backup while linked makes this device leave the group instead of deleting data on your other devices
+
+PLAY ON
+- Move what plays to another linked device, or control it from here, with the devices button in the players and the mini player (#1412)
+- While you control another device, everything you play goes there, and the notification, lock screen, headset and car control it
+- The Play on sheet shows what plays where, with artwork, controls and volume, and your devices right below
+- When another device is playing and nothing plays here, the mini player shows it with Play here
+- The first time a device asks to play here you choose Allow always, Allow once or Decline
+- Android TV receives handoffs, and its rail shows which device you are playing on
+
+ANDROID TV
+- Home, Subscriptions, Library, Music, Settings and channels are the phone's pages, laid out for the big screen with a rail built from your own tabs
+- The video and music players match the phone's, with the expressive play button and a floating mini player
+- Search uses the TV's own keyboard and voice search, with a Videos or Music switch
+- Downloads and Downloads settings work on TV, and a new page explains the remote's buttons
+- Every card, tab, button and player control is reachable with the remote, and the Menu key or holding OK opens quick actions
+- Reorder tabs, playlists, groups, lyrics providers and the queue with Move up and Move down
+- A Now playing item sits in the rail while music plays, and going back from a video returns to the card you played
+- Open a channel from the video player, and links in channels and descriptions open inside Flow
+- Seeking with the remote shows only the progress bar, and Up next sits on its own panel (#998)
+
+MUSIC PLAYER
+- Crossfade between songs for up to 12 seconds, with fade curves and a choice of when it runs; album tracks stay gapless (#1675)
+- Next and Previous keep the old song playing until the next one starts, so the gap between songs is mostly gone (#1761, #2076)
+- Cast music to your TV or speaker, including songs on your phone and downloads (#1380)
+- Five new backgrounds: Solid Color, Cover Colors, Moving Colors, Cover Shapes and True Black
+- Previous and next sit against play and pause as a split button, which you can turn off
+- Select several songs in the queue to play next, add to a playlist, download or remove (#2084)
+- Swipe on the left side for speed and on the right for volume, and speed now goes up to 4x (#1403, #1346)
+- Podcasts and long tracks can resume where you stopped, and a Resume from headphones setting (#1346, #1450)
+- An optional lock screen player with the cover and controls (#1859)
+- Tapping the artist lets you pick any credited artist (#1638)
+- Animated artwork shows the whole picture, keeps moving while paused and is found for more songs (#1702, #1711, #1764)
+- Seeking in a song no longer stops to load it again (#2167)
+
+MUSIC MINI PLAYER
+- Pick up to three buttons from thirteen, and choose what tapping the cover or holding the bar does
+- The cover morphs through Material shapes as music plays, with the progress ring following its outline
+- Show progress as a fill, an edge line, or a straight or wavy line, and pick its background
+- It uses much less battery while it plays
+
+LYRICS
+- New Cadence animation, where letters rise as they are sung and long notes swell. Classic and Calm are still there
+- YouTube Music's own timed lyrics come first, and lrc.red, Unison, NetEase and AMLL join the sources (#1782, #1817)
+- Lyrics appear much faster, the next song's lyrics load ahead, and songs without lyrics are remembered (#1782)
+- Lyrics match the right song and version more often, a source you pick stays picked, and your sync offset stays with each song (#1782)
+- Lyrics on the lock screen, in the notification and in the mini player (#1742, #1972)
+- Share lyrics as an image in Classic, Poster or Shape layouts and square or story sizes (#1940, #2005)
+- Colorful and Moving lyrics backgrounds, a switch for the blur, and lyrics over the cover in Immersive (#1739, #1453, #1278)
+- Romanization only, instrumental dots in line-synced lyrics, and (×2) on repeated lines (#1803, #1811)
+- Lyrics can fit music videos by skipping parts with no music, using SponsorBlock (#1742)
+- Load lyrics only when opened, and see which servers each provider contacts (#1860)
+
+VIDEO PLAYER
+- Ambient glow lights the status bar and the page under the player, and Immersive glow lights the whole watch page (#1377, #1882)
+- 360° videos open in a view you drag or turn your phone to look around in, with pinch to zoom (#1295, #1967)
+- Swipe up in landscape fullscreen for related videos, and play one without leaving fullscreen (#1411)
+- Scroll the player away so comments and the description get the whole screen (#1348)
+- Zoom to fill, Open videos in fullscreen, Tilt for fullscreen and an adjustable side panel (#1374, #807, #1219, #1528)
+- Double tap with two fingers to jump between chapters (#1971)
+- Keyboard shortcuts and media keys in the video, music and Shorts players (#1401, #2012)
+- Stats for nerds, an optional paid promotion label, and a choice of where the thin progress bar sits (#1681, #1683, #1550)
+- The autoplay countdown shows on the mini player, and the next video keeps playing there (#1670, #1669)
+- Minimize to audio bar, pause when you mute, and hide watched videos from suggestions (#1513, #2087, #2054)
+- Chat replay for finished live streams (#1105)
+- The quality list shows HDR, the frame rate and what Auto is playing (#1726, #1725)
+- Copy a transcript or save it as a text file (#1985)
+- Tapping earbuds pauses and resumes videos and Shorts (#1922)
+
+PICTURE-IN-PICTURE
+- Listen in background and Next buttons in the window (#1523, #1824)
+- The video slides straight into the window without a dark strip at the top (#1671)
+
+SPONSORBLOCK
+- New actions per segment type: Skip automatically once, Show a skip button, Show in seek bar and Disable (#1673)
+- Hook and Highlight segments, with a Jump to highlight button (#1685)
+- Any segment color, compact or icon only skip buttons, and a switch to hide the skip message (#1615, #1745, #1684)
+
+COMMENTS
+- Timed comments come from YouTube's Timed list, can follow the video, and show as dots on the seek bar (#1743, #2032, #1767)
+- GIFs in comments and replies (#1939)
+- Translate comments, replies and descriptions with your translator app or your own LibreTranslate or Lingva server (#892)
+- Comments keep your place until you open another video (#1560)
+
+HOME, SEARCH AND SUBSCRIPTIONS
+- Tap the Flow logo to scroll Home to the top, and new videos wait behind a New videos button instead of swapping the feed (#1172, #1447)
+- The Home chip row and the New videos button can be turned off (#1913)
+- A Posts chip in Subscriptions, and GIF posts play (#1881)
+- Pin channels in Quick access, which also marks channels with new videos (#1776, #1755)
+- Most watched sort, an Ungrouped chip, hidden groups and a switch to hide upcoming videos (#1640, #1387, #1430)
+- Music search filters for Artists, Podcasts, Episodes, Profiles and Featured playlists
+- Back on Search returns to your results, and recent searches show the newest 8 with Show all (#1489, #1414)
+- Channel pages show the country, join date and total views
+- Add a note or a group to a channel from any channel menu (#1998)
+- Post images open whole, and you can zoom and swipe between them (#1585)
+- Hit "not a bot"? Flow retries with a fresh session, or resets it in one tap (#1354)
+
+AI CONTENT
+- Hide or label videos from channels on the AiSList list, use your own list server, and report AI channels (#865)
+- Hide AI music leaves AI artists out of Music Home, radio and search (#865)
+
+DOWNLOADS AND STORAGE
+- A Downloads tab, Download with Flow in the share menu, and swipe to delete with Undo (#1415)
+- A new download sheet with every quality, the codecs, subtitles and the audio track or dub to save (#1382, #1444)
+- Download all on a playlist lets you pick the videos (#2117)
+- Buffer ahead on disk saves the next minutes of a video so it keeps playing when the connection drops (#1696)
+- Set your own video and song cache sizes, from 50 MB to 50 GB (#1660)
+- After reinstalling, Flow finds your downloads again in the folder you choose (#1255)
+
+LIBRARY, PLAYLISTS AND BACKUPS
+- Choose what swiping a video in your playlists or a song in Up next does, with Undo (#1418)
+- Move to top and Move to bottom in your playlists (#1418)
+- Move any saved playlist between Music and Videos
+- Export all your playlists, Watch later and liked videos to one file, and import it back (#1525)
+- Imported YouTube history can count as watched (#2060)
+- Backups keep more of your settings, and large libraries back up without running out of memory
+
+NOTIFICATIONS AND ANDROID AUTO
+- Android Auto plays your video playlists and Watch later as audio (#1657)
+- The music media card has shuffle and repeat, and the video notification has repeat
+- Swipe a new video notification to save it to Watch Later (#1363)
+- Notifications for live and scheduled streams (#2112)
+- Android's media controls offer to resume your last song
+
+SETTINGS AND APPEARANCE
+- App lock with your fingerprint, face or screen lock (#1858)
+- A daily watch time limit, and tap a day on the Wellbeing chart to see it (#1855, #1740)
+- A floating navigation bar that can shrink to the open tab while you scroll, with the mini player beside it (#1396)
+- Hide the navigation bar labels, and keep the bar on other pages and on Search (#1489)
+- Highlight new settings marks what an update added (#1676)
+- The classic spinning loading indicator, gradient loading placeholders and a Scrolling text switch (#1815)
+- Captions use your app font, and variable fonts show proper bold and regular weights (#1427, #1428)
+- Choose whether playback keeps going after you swipe Flow away (#1468)
+- DeArrow shows a frame from the video when there is no submitted thumbnail, and works on Shorts cards (#1633)
+
+FIXES: PLAYBACK
+- Fix songs going silent after switching networks, or loading forever when their server can't be reached (#1809, #1974)
+- Fix a paused video coming back black or not playing after the screen was off. It resumes where it stopped (#1527)
+- Fix a video stopping after a decoder error. It recovers once, in your language, then offers Retry (#1897)
+- Fix Auto quality and live streams stopping at 1080p on higher resolution screens (#1617)
+- Fix live streams with auto captions, and auto-translated captions on Android 14 and newer (#1369)
+- Fix Loop video and turning autoplay off (#1912)
+- Fix the system equalizer having no effect, and long custom buffers being ignored (#1373, #1438)
+- Fix headphones starting music after you closed Flow (#1450)
+- Fix paused music keeping the phone awake when the equalizer is off
+- Fix chapters: YouTube generated ones now show, and tapping one lands on the exact time (#2000, #2149)
+- Fix videos cast over DLNA playing without sound, and casting to a TV on your phone's hotspot (#2121)
+- Fix the notification losing a song's artwork during long listening (#1637)
+- Fix the music player's buttons not responding to a keyboard, a remote or TalkBack
+
+FIXES: BROWSING
+- Fix the Shorts search filter, and Shorts showing up when Shorts are turned off (#1425, #1393, #1507)
+- Fix Shorts-only playlists not loading, and a partial load shortening your saved copy (#1358)
+- Fix music search showing no songs, Mixes showing 0 videos and the Podcasts chip being empty (#1379, #1720, #1814)
+- Fix search on Android 8, the back loop from Search, and repeat searches joined with + signs (#1695, #1697, #2048)
+- Fix upload dates, subscriber counts and channel search in languages other than English (#1997, #2058, #2057)
+- Fix premieres: dates in the description, the notification bell and premieres turning into normal videos (#1466, #1467)
+- Fix Google Takeout imports adding ads to your history, and crashing History on Android 10 and older (#1944, #1424)
+- Fix Metrolist playlist imports missing artist names (#1619)
+- Fix Open in YouTube when Flow handles YouTube links (#1420)
+- Fix recommendations reading Chinese and Japanese titles and descriptions (#1341, #1395)
+
+FIXES: APP
+- Fix crashes on first launch, in Private Space, on the music home, in Library and when leaving a channel (#1355, #1357, #1386, #1439, #1338)
+- Fix status bar icons over the player and lyrics in light theme, and unreadable text with the phone dark and Flow light (#1375, #1836, #1517)
+- Fix the app flipping upside down in fullscreen, and keeping the landscape layout after rotating back (#1426, #1867)
+- Fix vertical videos covering the description on shorter phones (#1383)
+- Fix brightness and volume swipe haptics, and taps that had stopped vibrating (#1431, #1866)
+- Fix the break reminder counting time off screen and not stopping when turned off (#1700)
+- Fix Libre.fm sign in (#1658)
+- Fix a restored backup losing some settings, Liked music order and the auto backup schedule (#2037)
+- Fix lyrics in Bengali, Hindi and other joined scripts showing light lines (#1484, #2028)
+- Fix right-to-left layouts in the queue and on the TV rail (#1708, #1602)
