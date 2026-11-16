@@ -350,6 +350,7 @@ internal fun PlayerLiveChatColumn(
     isLoading: Boolean,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    isReplay: Boolean = false,
 ) {
     Column(modifier.fillMaxHeight()) {
         Row(
@@ -360,7 +361,7 @@ internal fun PlayerLiveChatColumn(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.live_chat),
+                text = stringResource(if (isReplay) R.string.chat_replay else R.string.live_chat),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )

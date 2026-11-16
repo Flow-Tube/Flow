@@ -209,6 +209,7 @@ internal fun VideoInfoContent(
     if (uiState.isLiveChatAvailable) {
         io.github.aedev.flow.ui.components.videoplayer.sheet.LiveChatPreview(
             onClick = { screenState.open(PlayerSheet.LiveChat()) },
+            isReplay = !uiState.isLive,
         )
     }
 
