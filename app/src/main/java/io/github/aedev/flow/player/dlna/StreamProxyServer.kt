@@ -1,6 +1,9 @@
 package io.github.aedev.flow.player.dlna
 
+import android.content.ContentResolver
+import android.net.Uri
 import android.util.Log
+import android.webkit.MimeTypeMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -92,6 +95,8 @@ class StreamProxyServer private constructor() {
 
     private val hlsPlaylists = ConcurrentHashMap<String, String>()
 
+    private val localFiles = ConcurrentHashMap<String, LocalCastFile>()
+
     /**
      * Starts the proxy server on a random available port.
      * Must be called before registerStream().
@@ -134,6 +139,7 @@ class StreamProxyServer private constructor() {
         isRunning.set(false)
         streams.clear()
         hlsPlaylists.clear()
+        localFiles.clear()
         try {
             serverSocket?.close()
         } catch (e: Exception) {
@@ -176,6 +182,19 @@ class StreamProxyServer private constructor() {
         val proxyUrl = "http://$host:$localPort$path"
         Log.i(TAG, "Registered stream: $proxyUrl → ${realUrl.take(80)}...")
         return proxyUrl
+    }
+
+    /** Registers a song or download on this device (content:// or file://) and returns the URL a renderer fetches it at. */
+    fun registerLocal(
+        resolver: ContentResolver,
+        uri: Uri,
+        host: String,
+        contentType: String,
+    ): String {
+        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentType) ?: CastPlaylists.segmentFileExtension(contentType)
+        val path = "/l/${java.util.UUID.randomUUID().toString().take(8)}.$extension"
+        localFiles[path] = LocalCastFile(resolver, uri, contentType)
+        return "http://$host:$localPort$path"
     }
 
     // ── HLS Playlist Generation ───────────────────────────────────────────────
@@ -323,6 +342,13 @@ class StreamProxyServer private constructor() {
                     "GET" -> handlePlaylistGet(output, playlist)
                     else -> sendError(output, 405, "Method Not Allowed")
                 }
+                return
+            }
+
+            localFiles[path]?.let { file ->
+                val served =
+                    method in setOf("GET", "HEAD") && LocalCastSource.serve(file, output, headers["range"], head = method == "HEAD")
+                if (!served) sendError(output, if (method in setOf("GET", "HEAD")) 404 else 405, "Not Served")
                 return
             }
 
