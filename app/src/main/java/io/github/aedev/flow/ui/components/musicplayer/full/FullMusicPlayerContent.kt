@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.musicplayer.full
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -149,6 +150,8 @@ internal fun FullMusicPlayerContent(
     val queueActions = rememberPlayerQueueActions(viewModel, sheets)
 
     val immersiveBackground = backgroundStyle == MusicPlayerBackgroundStyle.IMMERSIVE
+    var lyricsInPlace by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(immersiveBackground) { if (!immersiveBackground) lyricsInPlace = false }
     val displayTitle = previewTrack?.title ?: uiState.currentTrack?.title ?: track.title
     val displayArtist = previewTrack?.artist ?: uiState.currentTrack?.artist ?: track.artist
 
@@ -159,6 +162,8 @@ internal fun FullMusicPlayerContent(
             if (it == MusicPlayerLayout.WIDE && !panes.showsSidePane) MusicPlayerLayout.SPLIT else it
         }
     val isWide = layout == MusicPlayerLayout.WIDE
+    val inPlaceAvailable = lyricsShowInPlace(backgroundStyle, layout)
+    val lyricsInPlaceShown = lyricsInPlace && inPlaceAvailable
     var sidePaneTab by rememberSaveable { mutableStateOf(PlayerSidePaneTab.UP_NEXT) }
     val selectSidePaneTab: (PlayerSidePaneTab) -> Unit = { tab ->
         if (tab == PlayerSidePaneTab.LYRICS) uiState.currentTrack?.let { viewModel.ensureLyricsLoaded(it) }
@@ -167,6 +172,10 @@ internal fun FullMusicPlayerContent(
     val openLyricsSheet = {
         uiState.currentTrack?.let { viewModel.ensureLyricsLoaded(it) }
         showLyricsSheet = true
+    }
+    val showLyricsInPlace = {
+        uiState.currentTrack?.let { viewModel.ensureLyricsLoaded(it) }
+        lyricsInPlace = true
     }
 
     BoxWithConstraints(
@@ -197,6 +206,8 @@ internal fun FullMusicPlayerContent(
                 selectSidePaneTab(tab)
             } else if (queue) {
                 queueState.open()
+            } else if (inPlaceAvailable) {
+                showLyricsInPlace()
             } else {
                 openLyricsSheet()
             }
@@ -293,10 +304,17 @@ internal fun FullMusicPlayerContent(
                     MaterialTheme(colorScheme = controlScheme) {
                         // Wide windows show lyrics and the queue in the side pane, so the buttons pick its tab.
                         PlayerActionRow(
-                            lyricsActive = if (isWide) sidePaneTab == PlayerSidePaneTab.LYRICS else showLyricsSheet,
+                            lyricsActive = if (isWide) sidePaneTab == PlayerSidePaneTab.LYRICS else showLyricsSheet || lyricsInPlaceShown,
                             shuffleEnabled = uiState.shuffleEnabled,
                             repeatMode = uiState.repeatMode,
-                            onLyricsClick = { if (isWide) selectSidePaneTab(PlayerSidePaneTab.LYRICS) else openLyricsSheet() },
+                            onLyricsClick = {
+                                when {
+                                    isWide -> selectSidePaneTab(PlayerSidePaneTab.LYRICS)
+                                    lyricsInPlaceShown -> lyricsInPlace = false
+                                    inPlaceAvailable -> showLyricsInPlace()
+                                    else -> openLyricsSheet()
+                                }
+                            },
                             onShuffleClick = { viewModel.toggleShuffle() },
                             onRepeatClick = { viewModel.toggleRepeat() },
                             onQueueClick = { if (isWide) selectSidePaneTab(PlayerSidePaneTab.UP_NEXT) else queueState.open() },
@@ -310,6 +328,12 @@ internal fun FullMusicPlayerContent(
                 },
             )
 
+        val lyricsDim =
+            animateFloatAsState(
+                targetValue = if (lyricsInPlaceShown) IN_PLACE_LYRICS_DIM else 0f,
+                animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                label = "inPlaceLyricsDim",
+            )
         PlayerBackground(
             thumbnailUrl = backgroundThumbnailUrl,
             style = backgroundStyle,
@@ -322,13 +346,38 @@ internal fun FullMusicPlayerContent(
                     .orEmpty(),
             trackId = track.videoId,
             motionRunning = isPlayerSheetExpanded && uiState.isPlaying && !showLyricsSheet && !queueCoversArtwork,
+            dim = { lyricsDim.value },
         )
 
-        val sideSwipes = rememberMusicSideSwipes(layout, isPlayerSheetExpanded) { queueState.fraction() > 0f || showLyricsSheet }
+        val sideSwipes =
+            rememberMusicSideSwipes(layout, isPlayerSheetExpanded) {
+                queueState.fraction() > 0f || showLyricsSheet || lyricsInPlaceShown
+            }
         val pullUpQueue = Modifier.musicSideSwipes(sideSwipes).queuePullUpGesture(queueState, enabled = isPlayerSheetExpanded && !isWide)
+        val paneLyricsBackdrop = remember(palette.base) { lyricsBackdrop(palette.base) }
         when (layout) {
             MusicPlayerLayout.COMPACT -> {
-                CompactPlayerLayout(slots, artworkSize, queueState::fraction, navBarPadding, pullUpQueue)
+                val inPlaceLyrics: @Composable (Modifier) -> Unit = { modifier ->
+                    NowPlayingLyricsInPlace(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        accentColor = colorScheme.primary,
+                        backdropColor = paneLyricsBackdrop,
+                        contentColor = colorScheme.onSurface,
+                        positionState = positionState,
+                        active = inPlaceLyricsActive(isPlayerSheetExpanded, lyricsInPlaceShown, showLyricsSheet, queueCoversArtwork),
+                        onOpenFullScreen = openLyricsSheet,
+                        modifier = modifier,
+                    )
+                }
+                CompactPlayerLayout(
+                    slots = slots,
+                    artworkSize = artworkSize,
+                    queueFraction = queueState::fraction,
+                    bottomInset = navBarPadding,
+                    modifier = pullUpQueue,
+                    lyrics = inPlaceLyrics.takeIf { lyricsInPlaceShown },
+                )
             }
 
             MusicPlayerLayout.PORTRAIT_LARGE -> {
@@ -346,7 +395,6 @@ internal fun FullMusicPlayerContent(
             }
 
             MusicPlayerLayout.WIDE -> {
-                val paneLyricsBackdrop = remember(palette.base) { lyricsBackdrop(palette.base) }
                 WidePlayerLayout(slots, panes, immersive = immersiveBackground) { modifier ->
                     NowPlayingSidePane(
                         tab = sidePaneTab,
