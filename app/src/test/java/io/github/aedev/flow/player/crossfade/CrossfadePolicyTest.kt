@@ -137,6 +137,23 @@ class CrossfadePolicyTest {
     }
 
     @Test
+    fun `a skip's lead grows by all of a short landing and shrinks by half a long one, within limits`() {
+        assertThat(CrossfadePolicy.learnedSkipLeadMs(leadMs = 500L, apartMs = -250L)).isEqualTo(750L)
+        assertThat(CrossfadePolicy.learnedSkipLeadMs(leadMs = 500L, apartMs = 200L)).isEqualTo(400L)
+        assertThat(CrossfadePolicy.learnedSkipLeadMs(leadMs = 1_400L, apartMs = -900L)).isEqualTo(1_500L)
+        assertThat(CrossfadePolicy.learnedSkipLeadMs(leadMs = 100L, apartMs = 600L)).isEqualTo(0L)
+    }
+
+    @Test
+    fun `a skip's tail takes over only level with the session, while it may still seek (#2170)`() {
+        assertThat(CrossfadePolicy.skipTailLevel(apartMs = 30L, canSeek = true)).isTrue()
+        assertThat(CrossfadePolicy.skipTailLevel(apartMs = -45L, canSeek = true)).isTrue()
+        assertThat(CrossfadePolicy.skipTailLevel(apartMs = 600L, canSeek = true)).isFalse()
+        assertThat(CrossfadePolicy.skipTailLevel(apartMs = -600L, canSeek = true)).isFalse()
+        assertThat(CrossfadePolicy.skipTailLevel(apartMs = -600L, canSeek = false)).isTrue()
+    }
+
+    @Test
     fun `a position is extended from the moment it last moved, and only trusted once it has moved`() {
         val anchor = PositionAnchor()
 

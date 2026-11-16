@@ -336,6 +336,36 @@ internal object CrossfadePolicy {
         headStartMs: Long,
         deltaMs: Long,
     ): Long = (headStartMs - deltaMs / 2).coerceIn(MIN_HEAD_START_MS, MAX_HEAD_START_MS)
+
+    const val DEFAULT_SKIP_LEAD_MS = 500L
+    const val DEFAULT_SKIP_RESEEK_LEAD_MS = 200L
+    private const val MAX_SKIP_LEAD_MS = 1_500L
+
+    /** Positions this close at a skip's hand-off are one moment of the song to the ear. */
+    private const val SKIP_LEVEL_WITHIN_MS = 50L
+
+    /**
+     * How far past the session a skip's tail starts next time, corrected by how far [apartMs] this one
+     * landed from it. A tail behind repeats the old song (#2170), so a lead that was short grows by all
+     * of it, and one that was long shrinks by half, since starts vary a little on one phone.
+     */
+    fun learnedSkipLeadMs(
+        leadMs: Long,
+        apartMs: Long,
+    ): Long {
+        val learned = if (apartMs < 0) leadMs - apartMs else leadMs - apartMs / 2
+        return learned.coerceIn(0L, MAX_SKIP_LEAD_MS)
+    }
+
+    /**
+     * Whether a held skip's tail, [apartMs] ahead of the session, takes the song over now. Both play at
+     * the same speed, so the gap never closes by itself: a tail behind would repeat the old song and one
+     * ahead would jump it, so the muted tail seeks again while [canSeek] allows.
+     */
+    fun skipTailLevel(
+        apartMs: Long,
+        canSeek: Boolean,
+    ): Boolean = abs(apartMs) <= SKIP_LEVEL_WITHIN_MS || !canSeek
 }
 
 /**
