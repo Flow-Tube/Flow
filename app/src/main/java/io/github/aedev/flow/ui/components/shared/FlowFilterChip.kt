@@ -8,7 +8,6 @@ package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
@@ -21,7 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * The single filter chip for every surface: home feed chips, search filters, browse tabs,
- * library content filters.
+ * library content filters. Selection shows through the shape and the fill, with no check, so a
+ * chip keeps its width when it is picked.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -43,24 +43,12 @@ fun FlowFilterChip(
         },
         shapes = FilterChipDefaults.shapes(),
         modifier = modifier,
-        leadingIcon =
-            if (selected) {
-                {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(FilterChipDefaults.IconSize),
-                    )
-                }
-            } else {
-                null
-            },
     )
 }
 
 /**
  * A filter chip that opens a menu instead of toggling. [selected] marks that a non-default option is
- * active; the chevron replaces the check so the two kinds read differently side by side.
+ * active; the chevron tells it apart from a chip that toggles.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
