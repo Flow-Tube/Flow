@@ -487,6 +487,7 @@
     <string name="no_subscriptions_found">No subscriptions found</string>
     <!-- Live chat -->
     <string name="live_chat">Live chat</string>
+    <string name="chat_replay">Chat replay</string>
     <string name="live_chat_connecting">Connecting to live chat…</string>
     <string name="live_chat_empty">Waiting for messages…</string>
     <string name="live_chat_show">Show chat</string>
@@ -1460,7 +1461,7 @@
     <string name="comment_gif_description">GIF in comment</string>
     <string name="comment_gif_show">Show GIF</string>
     <string name="content_settings_live_chat_enabled_title">Live chat</string>
-    <string name="content_settings_live_chat_enabled_subtitle">Show chat on live streams</string>
+    <string name="content_settings_live_chat_enabled_subtitle">Show chat on live streams and their replays</string>
     <string name="content_settings_subs_startup_refresh_title">Refresh subscriptions at startup</string>
     <string name="content_settings_subs_startup_refresh_subtitle">Check your subscription feed when the app opens</string>
     <string name="content_settings_subs_show_checked_count_title">Checked video count</string>

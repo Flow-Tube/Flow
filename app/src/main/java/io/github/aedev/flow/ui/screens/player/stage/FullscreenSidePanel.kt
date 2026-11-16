@@ -303,6 +303,7 @@ internal fun BoxScope.FullscreenSidePanel(
                 isLoading = playerUiState.isLiveChatLoading,
                 onClose = closeFullscreenSidePanel,
                 modifier = Modifier.fillMaxSize(),
+                isReplay = !playerUiState.isLive,
             )
         } else if (panelState.showComments) {
             PlayerCommentsPanelHost(
