@@ -65,6 +65,7 @@ internal fun FullMusicPlayerContent(
     hideArtwork: Boolean,
     sleepTimerButton: Boolean,
     splitTransport: Boolean = false,
+    lyricsOnCover: Boolean = false,
     // The transport, seek bar, like and download and the action row draw with this scheme.
     controlScheme: ColorScheme = MaterialTheme.colorScheme,
     onLyricsShownChange: (Boolean) -> Unit = {},
@@ -162,7 +163,7 @@ internal fun FullMusicPlayerContent(
             if (it == MusicPlayerLayout.WIDE && !panes.showsSidePane) MusicPlayerLayout.SPLIT else it
         }
     val isWide = layout == MusicPlayerLayout.WIDE
-    val inPlaceAvailable = lyricsShowInPlace(backgroundStyle, layout)
+    val inPlaceAvailable = lyricsShowInPlace(lyricsOnCover, backgroundStyle, layout)
     val lyricsInPlaceShown = lyricsInPlace && inPlaceAvailable
     var sidePaneTab by rememberSaveable { mutableStateOf(PlayerSidePaneTab.UP_NEXT) }
     val selectSidePaneTab: (PlayerSidePaneTab) -> Unit = { tab ->

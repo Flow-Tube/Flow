@@ -198,6 +198,9 @@ internal fun PlayerAppearanceScreen(
             if (musicBackground.canTurnLight) {
                 switch(PlayerAppearanceIndex.followLightTheme, followLightTheme, viewModel::setFollowLightTheme)
             }
+            if (musicBackground == MusicPlayerBackgroundStyle.IMMERSIVE) {
+                switch(PlayerAppearanceIndex.lyricsOnCover, viewModel.lyricsOnCover, viewModel::setLyricsOnCover)
+            }
             switch(PlayerAppearanceIndex.hideMusicArtwork, hideMusicArtwork, viewModel::setHideMusicArtwork)
             switch(PlayerAppearanceIndex.animatedArtwork, animatedArtwork, viewModel::setAnimatedArtwork)
             if (animatedArtwork) {

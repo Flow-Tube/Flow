@@ -1,2 +1,2 @@
 ## New
-- In Immersive, lyrics show in the player over the cover, with a full-screen button (#1278)
+- In Immersive, lyrics can show in the player over the cover, with a full-screen button; turn on Lyrics on the cover in Player Appearance (#1278)

@@ -52,6 +52,7 @@ class PlayerAppearanceViewModel
         val musicBackground = preferences.musicPlayerBackgroundStyle.asState(MusicPlayerBackgroundStyle.BLUR_GRADIENT)
         val hideMusicArtwork = preferences.hideMusicPlayerArtwork.asState(false)
         val followLightTheme = preferences.musicPlayerFollowLightTheme.asState(false)
+        val lyricsOnCover = preferences.immersiveLyricsOnCover.asState(false)
         val artworkControlColors = preferences.musicArtworkControlColors.asState(true)
         val animatedArtwork = preferences.animatedArtwork.asState(false)
         val animatedArtworkWifiOnly = preferences.animatedArtworkWifiOnly.asState(true)
@@ -116,6 +117,8 @@ class PlayerAppearanceViewModel
         fun setHideMusicArtwork(value: Boolean) = write { preferences.setHideMusicPlayerArtwork(value) }
 
         fun setFollowLightTheme(value: Boolean) = write { preferences.setMusicPlayerFollowLightTheme(value) }
+
+        fun setLyricsOnCover(value: Boolean) = write { preferences.setImmersiveLyricsOnCover(value) }
 
         fun setArtworkControlColors(value: Boolean) = write { preferences.setMusicArtworkControlColors(value) }
 
