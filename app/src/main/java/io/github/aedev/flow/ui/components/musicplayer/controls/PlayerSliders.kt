@@ -186,6 +186,7 @@ private fun Modifier.wavyTrack(
     motion: WaveMotion,
     amplitude: () -> Float,
     wavelength: Dp,
+    thumbWidth: Dp,
     gap: Dp,
     activeColor: Color,
     inactiveColor: Color,
@@ -196,25 +197,27 @@ private fun Modifier.wavyTrack(
         val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
         val wavelengthPx = wavelength.toPx()
         val amplitudePx = WaveAmplitude.toPx()
+        val thumbWidthPx = thumbWidth.toPx()
         val gapPx = gap.toPx()
         val dotRadius = StopDotSize.toPx() / 2f
         val path = Path()
         onDrawBehind {
             val mid = size.height / 2f
-            val edge = strokePx / 2f
-            val end = size.width - edge
-            val at = edge + (end - edge) * fraction().coerceIn(0f, 1f)
-            val waveEnd = at - gapPx
-            val restStart = at + gapPx
+            val width = size.width
+            val at = fraction()
+            val start = WavyTrackGeometry.waveStart(strokePx)
+            val end = WavyTrackGeometry.trackEnd(width, strokePx)
+            val waveEnd = WavyTrackGeometry.waveEnd(width, at, thumbWidthPx, gapPx, strokePx)
+            val restStart = WavyTrackGeometry.restStart(width, at, thumbWidthPx, gapPx, strokePx)
             if (restStart < end) {
                 drawLine(inactiveColor, Offset(restStart, mid), Offset(end, mid), strokeWidth = strokePx, cap = StrokeCap.Round)
             }
             if (stopDot) drawCircle(activeColor, radius = dotRadius, center = Offset(end, mid))
-            if (waveEnd <= edge) return@onDrawBehind
-            val height = amplitudePx * amplitude()
+            if (waveEnd <= start) return@onDrawBehind
+            val height = amplitudePx * amplitude() * WavyTrackGeometry.heightFactor(waveEnd - start, wavelengthPx)
             val shift = motion.phase.floatValue * 2f * PI.toFloat()
             path.rewind()
-            var x = edge
+            var x = start
             path.moveTo(x, mid + height * sin(x / wavelengthPx * 2f * PI.toFloat() - shift))
             while (x < waveEnd) {
                 x = minOf(x + WAVE_STEP_PX, waveEnd)
@@ -275,7 +278,8 @@ fun ExpressiveWavySlider(
                         motion = motion,
                         amplitude = amplitude,
                         wavelength = wavelength,
-                        gap = ExpressiveThumbPressedSize / 2 + ExpressiveThumbGap,
+                        thumbWidth = ExpressiveThumbSize,
+                        gap = ExpressiveThumbGap,
                         activeColor = activeColor,
                         inactiveColor = inactiveColor,
                         stopDot = true,
@@ -342,6 +346,7 @@ fun SquigglySlider(
                         motion = motion,
                         amplitude = amplitude,
                         wavelength = SquigglyWavelength,
+                        thumbWidth = SquigglyThumbSize.width,
                         gap = 0.dp,
                         activeColor = colors.activeTrackColor,
                         inactiveColor = colors.inactiveTrackColor,
