@@ -361,7 +361,7 @@ fun FlowApp(
             !isInPipMode && remote.shows(activeMiniPlayer, activeVideo != null, musicPlayerSheetState.isDismissed, isShortsPlayerRoute)
         val isMiniBarObscuringContent =
             (isMusicSheetShown && !musicPlayerSheetState.isDismissed && !musicPlayerSheetState.isExpanded) || showVideoBar || showRemoteBar
-        val (bottomInsets, miniPlayerBounds) =
+        val (bottomInsets, miniPlayerBounds, miniPlayerDock) =
             rememberFlowBottomChrome(
                 barPresent = isBottomNavPresent,
                 barShown = isBottomNavShown,
@@ -512,6 +512,7 @@ fun FlowApp(
             isShortsPlayerRoute = isShortsPlayerRoute,
             bottomPadding = bottomPaddingTarget,
             startInset = if (usesNavigationRail && isNavigationRailVisible) navigationRailWidth else 0.dp,
+            miniDock = miniPlayerDock,
             miniPlayerScale = miniPlayerScale,
             miniPlayerShowSkipControls = miniPlayerShowSkipControls,
             miniPlayerShowNextPrevControls = miniPlayerShowNextPrevControls,

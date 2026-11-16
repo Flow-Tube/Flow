@@ -20,6 +20,7 @@ import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationScroll
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarBounds
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.components.shared.mediaMiniBarBounds
+import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerDock
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
 import io.github.aedev.flow.ui.utils.isMediumWidth
 import kotlinx.coroutines.flow.collectLatest
@@ -30,6 +31,7 @@ private val DockGap = 8.dp
 internal data class FlowBottomChrome(
     val insets: FlowBottomInsets,
     val miniBarBounds: MediaMiniBarBounds,
+    val miniPlayerDock: MiniPlayerDock?,
 )
 
 /**
@@ -88,10 +90,18 @@ internal fun rememberFlowBottomChrome(
                 maxWidthPx = MediaMiniBarDefaults.MaxWidth.toPx(),
             )
         }
-    val shrunkBarEnd =
-        with(density) {
-            val toolbarPadding = FloatingToolbarDefaults.ContentPadding.calculateLeftPadding(LayoutDirection.Ltr)
-            (MediaMiniBarDefaults.CompactMargin + toolbarPadding * 2 + FlowNavigationDefaults.FloatingItemSize + DockGap).toPx()
+    val toolbarPadding = FloatingToolbarDefaults.ContentPadding.calculateLeftPadding(LayoutDirection.Ltr)
+    val shrunkBarEndDp = MediaMiniBarDefaults.CompactMargin + toolbarPadding * 2 + FlowNavigationDefaults.FloatingItemSize + DockGap
+    val shrunkBarEnd = with(density) { shrunkBarEndDp.toPx() }
+    val docked = miniPlayerBesideShrunkBar && barPresent && navScrollState.isCollapsed
+    val miniPlayerDock =
+        if (docked) {
+            MiniPlayerDock(
+                restBottom = with(density) { systemBottomPx.toDp() } + FloatingToolbarDefaults.ScreenOffset,
+                sideClearance = shrunkBarEndDp,
+            )
+        } else {
+            null
         }
     val dockShiftState = rememberUpdatedState((shrunkBarEnd - miniBarBounds.start).coerceAtLeast(0f))
     val dockedLiftState = rememberUpdatedState(FloatingToolbarDefaults.ScreenOffset - MediaMiniBarDefaults.BottomSpacer)
@@ -119,5 +129,5 @@ internal fun rememberFlowBottomChrome(
                 dockedLift = dockedLiftState,
             )
         }
-    return FlowBottomChrome(insets, miniBarBounds)
+    return FlowBottomChrome(insets, miniBarBounds, miniPlayerDock)
 }

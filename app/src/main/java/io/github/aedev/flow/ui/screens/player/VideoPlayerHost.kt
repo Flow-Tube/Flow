@@ -22,6 +22,7 @@ import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.dlna.DlnaCastManager
 import io.github.aedev.flow.ui.components.layout.flowWindowAdaptiveInfo
 import io.github.aedev.flow.ui.components.videoplayer.DraggablePlayerLayout
+import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerDock
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerSheetValue
 import io.github.aedev.flow.ui.components.videoplayer.isImmersivePlayer
@@ -60,6 +61,7 @@ fun VideoPlayerHost(
     playerSheetState: PlayerDraggableState,
     bottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
     startInset: androidx.compose.ui.unit.Dp = 0.dp,
+    miniDock: MiniPlayerDock? = null,
     miniPlayerScale: Float = 0.45f,
     miniPlayerShowSkipControls: Boolean = false,
     miniPlayerShowNextPrevControls: Boolean = false,
@@ -482,6 +484,7 @@ fun VideoPlayerHost(
             isTwoPaneWindow = isTwoPaneWindow,
             detailPaneWidth = detailPaneWidth,
             startInset = startInset,
+            miniDock = miniDock,
             tapToExpand = true,
             statusBarGlow = { PlayerAmbientStatusBar(stageSession, it) },
             onDismiss = onClose,
