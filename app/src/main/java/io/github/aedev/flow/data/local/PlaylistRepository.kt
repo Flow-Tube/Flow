@@ -60,20 +60,7 @@ class PlaylistRepository
 
         // Saved Shorts Logic
         suspend fun addToSavedShorts(video: Video) {
-            // Ensure saved shorts playlist exists
-            val savedShorts = playlistDao.getPlaylist(SAVED_SHORTS_ID)
-            if (savedShorts == null) {
-                playlistDao.insertPlaylist(
-                    PlaylistEntity(
-                        id = SAVED_SHORTS_ID,
-                        name = "Saved Shorts",
-                        description = "Your saved shorts",
-                        thumbnailUrl = "",
-                        isPrivate = true,
-                        createdAt = System.currentTimeMillis(),
-                    ),
-                )
-            }
+            ensureFixedPlaylist(SAVED_SHORTS_ID)
 
             // Save video
             updateVideoMetadata(video)
@@ -108,20 +95,7 @@ class PlaylistRepository
         suspend fun addToWatchLater(video: Video) {
             try {
                 android.util.Log.d("PlaylistRepository", "Adding video to Watch Later: ${video.id}")
-                val watchLater = playlistDao.getPlaylist(WATCH_LATER_ID)
-                if (watchLater == null) {
-                    android.util.Log.d("PlaylistRepository", "Creating Watch Later playlist")
-                    playlistDao.insertPlaylist(
-                        PlaylistEntity(
-                            id = WATCH_LATER_ID,
-                            name = "Watch Later",
-                            description = "Your watch later list",
-                            thumbnailUrl = "",
-                            isPrivate = true,
-                            createdAt = System.currentTimeMillis(),
-                        ),
-                    )
-                }
+                ensureFixedPlaylist(WATCH_LATER_ID)
 
                 // Save video
                 android.util.Log.d("PlaylistRepository", "Inserting video metadata")
@@ -142,6 +116,44 @@ class PlaylistRepository
                 android.util.Log.e("PlaylistRepository", "Failed to add to Watch Later", e)
                 throw e
             }
+        }
+
+        /**
+         * Adds [videos] below what Watch later or Saved Shorts already holds, in the given order,
+         * skipping ones already there. Returns how many were added.
+         */
+        suspend fun importIntoFixedList(
+            playlistId: String,
+            videos: List<Video>,
+        ): Int {
+            ensureFixedPlaylist(playlistId)
+            val present = playlistDao.getVideoIdsInPlaylist(playlistId).toHashSet()
+            val added = videos.filter { present.add(it.id) }
+            if (added.isEmpty()) return 0
+            videoDao.insertVideosOrIgnore(added.map(::normalizedEntity))
+            val now = System.currentTimeMillis()
+            var nextPosition = (playlistDao.getMaxPlaylistPosition(playlistId) ?: -1L) + 1L
+            playlistDao.restorePlaylistVideos(
+                added.map { video ->
+                    PlaylistVideoCrossRef(playlistId, video.id, nextPosition++, video.addedAtInPlaylist ?: now)
+                },
+            )
+            return added.size
+        }
+
+        private suspend fun ensureFixedPlaylist(playlistId: String) {
+            if (playlistDao.getPlaylist(playlistId) != null) return
+            val watchLater = playlistId == WATCH_LATER_ID
+            playlistDao.insertPlaylist(
+                PlaylistEntity(
+                    id = playlistId,
+                    name = if (watchLater) "Watch Later" else "Saved Shorts",
+                    description = if (watchLater) "Your watch later list" else "Your saved shorts",
+                    thumbnailUrl = "",
+                    isPrivate = true,
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
         }
 
         suspend fun removeFromWatchLater(videoId: String) {
@@ -215,16 +227,17 @@ class PlaylistRepository
 
         /**
          * Adds an imported playlist as the viewer's own, in the given order. Videos already in the
-         * library keep their stored metadata; the file only fills in ones Flow has never seen.
+         * library keep their stored metadata; the file only fills in ones Flow has never seen. Several
+         * imported at once each take a different [createdAt], which is also the playlist's id.
          */
         suspend fun importPlaylist(
             name: String,
             description: String,
             videos: List<Video>,
             isMusic: Boolean = false,
+            createdAt: Long = System.currentTimeMillis(),
         ): String {
-            val now = System.currentTimeMillis()
-            val playlistId = now.toString()
+            val playlistId = createdAt.toString()
             videoDao.insertVideosOrIgnore(videos.map(::normalizedEntity))
             playlistDao.insertPlaylistWithVideos(
                 playlist =
@@ -234,7 +247,7 @@ class PlaylistRepository
                         description = description,
                         thumbnailUrl = videos.firstOrNull()?.thumbnailUrl.orEmpty(),
                         isPrivate = true,
-                        createdAt = now,
+                        createdAt = createdAt,
                         isMusic = isMusic,
                         isUserCreated = true,
                     ),
@@ -244,7 +257,7 @@ class PlaylistRepository
                             playlistId = playlistId,
                             videoId = video.id,
                             position = index.toLong(),
-                            addedAt = video.addedAtInPlaylist ?: now,
+                            addedAt = video.addedAtInPlaylist ?: createdAt,
                         )
                     },
             )

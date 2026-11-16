@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButtonMenu
 import androidx.compose.material3.FloatingActionButtonMenuItem
@@ -37,6 +38,7 @@ internal fun PlaylistCreationFabMenu(
     onCreateVideo: () -> Unit,
     onCreateMusic: () -> Unit,
     onImport: () -> Unit,
+    onExportAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -91,6 +93,14 @@ internal fun PlaylistCreationFabMenu(
             },
             icon = { Icon(Icons.Outlined.FileOpen, contentDescription = null) },
             text = { Text(stringResource(R.string.import_playlist_action)) },
+        )
+        FloatingActionButtonMenuItem(
+            onClick = {
+                expanded = false
+                onExportAll()
+            },
+            icon = { Icon(Icons.Outlined.SaveAs, contentDescription = null) },
+            text = { Text(stringResource(R.string.playlist_export_all_action)) },
         )
     }
 }

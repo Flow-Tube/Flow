@@ -31,7 +31,25 @@ data class PlaylistFileHeader(
     val description: String = "",
     /** A music playlist imports into the Music library; absent in files older than music export. */
     val isMusic: Boolean = false,
+    /** Set when the file holds one of Flow's own lists, which an import adds to instead of making a new playlist. */
+    val kind: String? = null,
 )
+
+/** Flow's own lists, each of which a file can say it holds. */
+enum class PlaylistFileKind(
+    val wire: String,
+) {
+    WATCH_LATER("watch_later"),
+    LIKED("liked"),
+    LIKED_MUSIC("liked_music"),
+    SAVED_SHORTS("saved_shorts"),
+    ;
+
+    companion object {
+        /** Null for an ordinary playlist, and for a list only a newer Flow knows, which then imports as a playlist. */
+        fun of(file: PlaylistFile): PlaylistFileKind? = entries.firstOrNull { it.wire == file.playlist.kind }
+    }
+}
 
 @Serializable
 data class PlaylistFileVideo(
@@ -94,6 +112,7 @@ object PlaylistFileCodec {
         videos: List<Video>,
         exportedAt: Long,
         isMusic: Boolean = false,
+        kind: PlaylistFileKind? = null,
     ): String =
         json.encodeToString(
             PlaylistFile.serializer(),
@@ -101,7 +120,7 @@ object PlaylistFileCodec {
                 format = FORMAT,
                 version = VERSION,
                 exportedAt = exportedAt,
-                playlist = PlaylistFileHeader(name = name, description = description, isMusic = isMusic),
+                playlist = PlaylistFileHeader(name = name, description = description, isMusic = isMusic, kind = kind?.wire),
                 videos =
                     videos.filter { VideoIdPattern.matches(it.id) }.map { video ->
                         PlaylistFileVideo(
