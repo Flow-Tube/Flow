@@ -178,7 +178,7 @@ suspend fun applyBatches(
             for (line in lines) {
                 recordKey(collection, Json.parseToJsonElement(line).jsonObject)?.let { keys.getOrPut(collection) { HashSet() } += it }
             }
-            ReceivedCollection(lines, SyncSerialization.collectionHash(lines))
+            ReceivedCollection(lines)
         }
     val collections = keys.keys.toList()
     val before = ownHashes(export(collections), keys)
