@@ -10,7 +10,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.dlna.DlnaCastManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
-import io.github.aedev.flow.ui.components.videoplayer.DlnaDevicePickerDialog
+import io.github.aedev.flow.ui.components.shared.DlnaDevicePickerDialog
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
@@ -78,7 +78,7 @@ internal fun PlayerDialogsContainer(
             devices = dlnaDevices,
             isDiscovering = isDlnaDiscovering,
             isCasting = DlnaCastManager.isCasting,
-            videoTitle = video.title,
+            title = video.title,
             onDeviceSelected = { device ->
                 val playerManager = EnhancedPlayerManager.getInstance()
                 val currentPlayerUrl =

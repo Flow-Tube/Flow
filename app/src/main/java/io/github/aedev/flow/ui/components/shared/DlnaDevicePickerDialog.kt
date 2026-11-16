@@ -1,4 +1,4 @@
-package io.github.aedev.flow.ui.components.videoplayer
+package io.github.aedev.flow.ui.components.shared
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -26,15 +26,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.player.dlna.DlnaDevice
-import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
 
-/** DLNA / UPnP device-picker dialog shown when the cast button is pressed. */
+/** The DLNA / UPnP renderers to cast [title] to, or the one it plays on with Stop while [isCasting]. */
 @Composable
-internal fun DlnaDevicePickerDialog(
+fun DlnaDevicePickerDialog(
     devices: List<DlnaDevice>,
     isDiscovering: Boolean,
     isCasting: Boolean,
-    videoTitle: String,
+    title: String,
     onDeviceSelected: (DlnaDevice) -> Unit,
     onStopCasting: () -> Unit,
     onDismiss: () -> Unit,
@@ -69,7 +68,7 @@ internal fun DlnaDevicePickerDialog(
                     )
                 } else if (isCasting) {
                     Text(
-                        text = stringResource(R.string.dlna_now_casting, videoTitle),
+                        text = stringResource(R.string.dlna_now_casting, title),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 } else {

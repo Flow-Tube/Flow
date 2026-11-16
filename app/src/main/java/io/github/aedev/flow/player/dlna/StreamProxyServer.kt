@@ -1,6 +1,9 @@
 package io.github.aedev.flow.player.dlna
 
+import android.content.ContentResolver
+import android.net.Uri
 import android.util.Log
+import android.webkit.MimeTypeMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -88,9 +91,12 @@ class StreamProxyServer private constructor() {
         val realUrl: String,
         val contentType: String,
         val contentLength: Long = -1,
+        val headers: Map<String, String> = emptyMap(),
     )
 
     private val hlsPlaylists = ConcurrentHashMap<String, String>()
+
+    private val localFiles = ConcurrentHashMap<String, LocalCastFile>()
 
     /**
      * Starts the proxy server on a random available port.
@@ -134,6 +140,7 @@ class StreamProxyServer private constructor() {
         isRunning.set(false)
         streams.clear()
         hlsPlaylists.clear()
+        localFiles.clear()
         try {
             serverSocket?.close()
         } catch (e: Exception) {
@@ -150,12 +157,14 @@ class StreamProxyServer private constructor() {
      * @param realUrl The actual googlevideo.com stream URL
      * @param host This phone's address on the renderer's network
      * @param contentType MIME type (e.g., "video/mp4", "audio/mp4")
+     * @param headers what the upstream request must carry, as for the client that minted [realUrl]
      * @return Local URL like "http://192.168.1.5:8080/s/abc123.mp4"
      */
     fun registerStream(
         realUrl: String,
         host: String,
         contentType: String = "video/mp4",
+        headers: Map<String, String> = emptyMap(),
     ): String {
         if (!isRunning.get()) {
             Log.w(TAG, "Proxy not running, cannot register stream")
@@ -169,13 +178,26 @@ class StreamProxyServer private constructor() {
                 .take(8)
         val path = "/s/$pathId.${CastPlaylists.segmentFileExtension(contentType)}"
 
-        val contentLength = probeContentLength(realUrl)
+        val contentLength = probeContentLength(realUrl, headers)
 
-        streams[path] = StreamEntry(realUrl, contentType, contentLength)
+        streams[path] = StreamEntry(realUrl, contentType, contentLength, headers)
 
         val proxyUrl = "http://$host:$localPort$path"
         Log.i(TAG, "Registered stream: $proxyUrl → ${realUrl.take(80)}...")
         return proxyUrl
+    }
+
+    /** Registers a song or download on this device (content:// or file://) and returns the URL a renderer fetches it at. */
+    fun registerLocal(
+        resolver: ContentResolver,
+        uri: Uri,
+        host: String,
+        contentType: String,
+    ): String {
+        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentType) ?: CastPlaylists.segmentFileExtension(contentType)
+        val path = "/l/${java.util.UUID.randomUUID().toString().take(8)}.$extension"
+        localFiles[path] = LocalCastFile(resolver, uri, contentType)
+        return "http://$host:$localPort$path"
     }
 
     // ── HLS Playlist Generation ───────────────────────────────────────────────
@@ -326,6 +348,13 @@ class StreamProxyServer private constructor() {
                 return
             }
 
+            localFiles[path]?.let { file ->
+                val served =
+                    method in setOf("GET", "HEAD") && LocalCastSource.serve(file, output, headers["range"], head = method == "HEAD")
+                if (!served) sendError(output, if (method in setOf("GET", "HEAD")) 404 else 405, "Not Served")
+                return
+            }
+
             // Direct stream proxy endpoint (/s/…)
             val streamEntry = streams[path]
             if (streamEntry == null) {
@@ -426,6 +455,7 @@ class StreamProxyServer private constructor() {
     ) {
         try {
             val requestBuilder = Request.Builder().url(entry.realUrl)
+            entry.headers.forEach { (name, value) -> requestBuilder.header(name, value) }
 
             if (rangeHeader != null) {
                 requestBuilder.addHeader("Range", rangeHeader)
@@ -520,12 +550,16 @@ class StreamProxyServer private constructor() {
         }
     }
 
-    private fun probeContentLength(url: String): Long =
+    private fun probeContentLength(
+        url: String,
+        headers: Map<String, String>,
+    ): Long =
         try {
             val request =
                 Request
                     .Builder()
                     .url(url)
+                    .apply { headers.forEach { (name, value) -> header(name, value) } }
                     .head()
                     .build()
             val response = http.newCall(request).execute()
