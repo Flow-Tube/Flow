@@ -85,6 +85,7 @@ class SubscriptionsViewModelTest {
         coEvery { subscriptionFeedRepository.planAllRefresh(any()) } returns SubscriptionRefreshPlan.NOTHING_TO_DO
         coEvery { playerPreferences.subscriptionHiddenGroups } returns flowOf(emptySet())
         coEvery { playerPreferences.subscriptionGroupsOutOfAll } returns flowOf(emptySet())
+        coEvery { playerPreferences.subscriptionAllChip } returns flowOf(true)
         coEvery { neuroEngine.feedExclusions(any()) } returns FeedExclusions.NONE
 
         viewModel =

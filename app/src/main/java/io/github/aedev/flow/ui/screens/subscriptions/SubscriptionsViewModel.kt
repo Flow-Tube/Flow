@@ -180,10 +180,14 @@ class SubscriptionsViewModel
             }
 
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
-                combine(playerPreferences.subscriptionHiddenGroups, playerPreferences.subscriptionGroupsOutOfAll, ::Pair)
-                    .distinctUntilChanged()
-                    .collect { (hidden, outOfAll) ->
-                        _uiState.update { it.copy(hiddenGroups = hidden, groupsOutOfAll = outOfAll) }
+                combine(
+                    playerPreferences.subscriptionHiddenGroups,
+                    playerPreferences.subscriptionGroupsOutOfAll,
+                    playerPreferences.subscriptionAllChip,
+                    ::Triple,
+                ).distinctUntilChanged()
+                    .collect { (hidden, outOfAll, allChip) ->
+                        _uiState.update { it.copy(hiddenGroups = hidden, groupsOutOfAll = outOfAll, showAllChip = allChip) }
                         refreshVisibleFeed()
                     }
             }

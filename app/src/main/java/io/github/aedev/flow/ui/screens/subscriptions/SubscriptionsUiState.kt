@@ -80,6 +80,8 @@ data class SubscriptionsUiState(
     val ungroupedEnabled: Boolean = false,
     val ungroupedPosition: Int = UNGROUPED_LAST,
     val showPostsChip: Boolean = true,
+    /** Off, the feed opens on the first group chip instead; All still shows while there is no other chip. */
+    val showAllChip: Boolean = true,
     /** Groups without a chip, left out of All and its refreshes (#1387). */
     val hiddenGroups: Set<String> = emptySet(),
     /** Groups with a chip whose channels All leaves out (#1387). */
@@ -112,11 +114,17 @@ data class SubscriptionsUiState(
         return groupSelectionScope(chip, groups, subscribedIds)
     }
 
-    /** The selected chip, or null for All when the stored selection has no chip, like a switched-off Ungrouped. */
+    /**
+     * The selected chip, or null for All when the stored selection has no chip, like a switched-off
+     * Ungrouped. With the All chip off, the first chip stands in for All.
+     */
     fun selectedChip(chips: List<SubscriptionGroup> = groupChips()): String? {
-        val name = selectedGroupName ?: return null
-        return name.takeIf { chips.any { chip -> chip.name == name } }
+        val stored = selectedGroupName?.takeIf { name -> chips.any { chip -> chip.name == name } }
+        return stored ?: chips.firstOrNull()?.name?.takeUnless { showAllChip }
     }
+
+    /** Whether the All chip shows: switched on, or nothing else to pick. */
+    fun allChipShown(chips: List<SubscriptionGroup> = groupChips()): Boolean = showAllChip || chips.isEmpty()
 
     /** The rows of Manage groups: the groups, plus Ungrouped while it is switched on and there is a group. */
     fun managedGroups(): List<SubscriptionGroup> =

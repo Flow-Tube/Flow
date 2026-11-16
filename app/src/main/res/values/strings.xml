@@ -1481,6 +1481,8 @@
     <string name="content_settings_subs_collaborations_subtitle">Videos made with channels you follow</string>
     <string name="content_settings_subs_posts_chip_title">Posts chip</string>
     <string name="content_settings_subs_posts_chip_subtitle">Show the Posts chip above the feed</string>
+    <string name="content_settings_subs_all_chip_title">All chip</string>
+    <string name="content_settings_subs_all_chip_subtitle">Off opens the feed on your first group</string>
     <string name="content_settings_subs_ungrouped_title">Ungrouped group</string>
     <string name="content_settings_subs_ungrouped_subtitle">A chip for channels in no group</string>
     <string name="content_settings_nav_order_title">Tab order and default</string>
