@@ -47,6 +47,7 @@ import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsHost
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.components.videoplayer.BackgroundQueueTransport
+import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerDock
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import io.github.aedev.flow.ui.components.videoplayer.PlayerSheetValue
 import io.github.aedev.flow.ui.components.videoplayer.SheetOpenOrigin
@@ -201,6 +202,7 @@ internal fun FlowPlayerOverlays(
     isShortsPlayerRoute: Boolean,
     bottomPadding: Dp,
     startInset: Dp,
+    miniDock: MiniPlayerDock?,
     miniPlayerScale: Float,
     miniPlayerShowSkipControls: Boolean,
     miniPlayerShowNextPrevControls: Boolean,
@@ -258,6 +260,7 @@ internal fun FlowPlayerOverlays(
             playerSheetState = playerSheetState,
             bottomPadding = bottomPadding.coerceAtLeast(0.dp),
             startInset = startInset,
+            miniDock = miniDock,
             miniPlayerScale = miniPlayerScale,
             miniPlayerShowSkipControls = miniPlayerShowSkipControls,
             miniPlayerShowNextPrevControls = miniPlayerShowNextPrevControls,
@@ -300,6 +303,7 @@ internal fun FlowPlayerOverlays(
                 containerWidthPx = with(density) { containerWidth.toPx() },
                 containerHeightPx = with(density) { containerHeight.toPx() },
                 restingBottomPx = { bottomInsets.miniPlayerBaselinePx(density) },
+                dockShiftPx = bottomInsets::miniPlayerDockShiftPx,
                 onRestore = { videoWindowBounds ->
                     openOrigins.holdOriginFor(barVideo.id, videoWindowBounds)
                     barHandoffId = barVideo.id
@@ -317,6 +321,7 @@ internal fun FlowPlayerOverlays(
                 bounds = miniBarBounds,
                 containerHeightPx = with(density) { containerHeight.toPx() },
                 restingBottomPx = { bottomInsets.miniPlayerBaselinePx(density) },
+                dockShiftPx = bottomInsets::miniPlayerDockShiftPx,
             )
         }
         if (showVideoBar && showBarQueue) {
@@ -339,6 +344,7 @@ internal fun FlowPlayerOverlays(
                 containerHeight = containerHeight,
                 miniBounds = miniBarBounds,
                 restingBottomPx = { bottomInsets.miniPlayerBaselinePx(density) },
+                miniDockShiftPx = bottomInsets::miniPlayerDockShiftPx,
                 track = track,
                 swipeLeftAction = swipeLeftAction,
                 swipeRightAction = swipeRightAction,

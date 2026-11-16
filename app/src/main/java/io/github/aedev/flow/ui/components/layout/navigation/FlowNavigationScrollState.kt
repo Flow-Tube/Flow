@@ -9,11 +9,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberBottomAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 
 /**
@@ -26,7 +30,28 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 @Stable
 class FlowNavigationScrollState internal constructor(
     private val behavior: BottomAppBarScrollBehavior,
+    private val moves: State<Boolean>,
+    private val shrinkMode: MutableState<Boolean>,
 ) {
+    /** Whether scrolling shrinks the floating bar to its open tab instead of moving it away. */
+    internal var shrinks: Boolean
+        get() = shrinkMode.value && moves.value
+        set(value) {
+            shrinkMode.value = value
+        }
+
+    /** True while the floating bar is shrunk to its open tab. */
+    var isCollapsed: Boolean by mutableStateOf(false)
+        internal set
+
+    internal fun expand() {
+        isCollapsed = false
+    }
+
+    internal fun collapse() {
+        if (shrinks) isCollapsed = true
+    }
+
     val nestedScrollConnection: NestedScrollConnection
         get() = behavior.nestedScrollConnection
 
@@ -48,6 +73,7 @@ class FlowNavigationScrollState internal constructor(
     }
 
     internal suspend fun show(animationSpec: AnimationSpec<Float>) {
+        isCollapsed = false
         val state = behavior.state
         if (state.heightOffset == 0f) return
         animate(state.heightOffset, 0f, animationSpec = animationSpec) { value, _ -> state.heightOffset = value }
@@ -65,14 +91,15 @@ fun rememberFlowNavigationScrollState(
     routeKey: String,
     locked: Boolean,
 ): FlowNavigationScrollState {
-    val canScroll by rememberUpdatedState(hideOnScroll && !locked)
+    val moves = rememberUpdatedState(hideOnScroll && !locked)
+    val shrinkMode = remember { mutableStateOf(false) }
     val behavior =
         BottomAppBarDefaults.exitAlwaysScrollBehavior(
             state = rememberBottomAppBarState(),
-            canScroll = remember { { canScroll } },
+            canScroll = remember { { moves.value && !shrinkMode.value } },
         )
-    val state = remember(behavior) { FlowNavigationScrollState(behavior) }
+    val state = remember(behavior) { FlowNavigationScrollState(behavior, moves, shrinkMode) }
     val showSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
-    LaunchedEffect(state, routeKey, hideOnScroll) { state.show(showSpec) }
+    LaunchedEffect(state, routeKey, hideOnScroll, shrinkMode.value) { state.show(showSpec) }
     return state
 }

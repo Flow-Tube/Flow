@@ -184,6 +184,10 @@ class PlayerPreferences(
         val BOTTOM_NAV_HIDE_ON_SCROLL = booleanPreferencesKey("bottom_nav_hide_on_scroll")
         val BOTTOM_NAV_LABELS = stringPreferencesKey("bottom_nav_labels")
         val BOTTOM_NAV_STYLE = stringPreferencesKey("bottom_nav_style")
+        val BOTTOM_NAV_SCRUB = booleanPreferencesKey("bottom_nav_scrub")
+        val BOTTOM_NAV_ICON_POP = booleanPreferencesKey("bottom_nav_icon_pop")
+        val BOTTOM_NAV_SCROLL = stringPreferencesKey("bottom_nav_scroll")
+        val BOTTOM_NAV_MINI_BESIDE = booleanPreferencesKey("bottom_nav_mini_beside")
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
         val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
@@ -1698,8 +1702,66 @@ class PlayerPreferences(
         }
     }
 
+    // Dragging along the floating bar moves between tabs.
+    val bottomNavScrub: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.BOTTOM_NAV_SCRUB] ?: true }
+            .distinctUntilChanged()
+
+    suspend fun setBottomNavScrub(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_SCRUB] = enabled
+        }
+    }
+
+    val bottomNavIconPop: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.BOTTOM_NAV_ICON_POP] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setBottomNavIconPop(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_ICON_POP] = enabled
+        }
+    }
+
+    val bottomNavScroll: Flow<NavBarScroll> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.BOTTOM_NAV_SCROLL]
+                    ?.let { stored -> runCatching { NavBarScroll.valueOf(stored) }.getOrNull() }
+                    ?: NavBarScroll.SHRINK
+            }.distinctUntilChanged()
+
+    suspend fun setBottomNavScroll(scroll: NavBarScroll) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_SCROLL] = scroll.name
+        }
+    }
+
+    // Beside the shrunk floating bar, the mini player drops into the bar's row.
+    val bottomNavMiniBeside: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.BOTTOM_NAV_MINI_BESIDE] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setBottomNavMiniBeside(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_MINI_BESIDE] = enabled
+        }
+    }
+
     val bottomNavLook: Flow<NavBarLook> =
-        combine(bottomNavStyle, bottomNavLabels) { style, labels -> NavBarLook(style, labels) }.distinctUntilChanged()
+        combine(
+            bottomNavStyle,
+            bottomNavLabels,
+            bottomNavScrub,
+            bottomNavIconPop,
+            bottomNavScroll,
+        ) { style, labels, scrub, iconPop, scroll ->
+            NavBarLook(style, labels, scrub, iconPop, scroll)
+        }.combine(bottomNavMiniBeside) { look, miniBeside -> look.copy(miniBeside = miniBeside) }
+            .distinctUntilChanged()
 
     // Search keeps its full-screen layout unless this is on.
     val searchShowsNavBar: Flow<Boolean> =
@@ -5686,7 +5748,17 @@ enum class NavBarStyle {
 data class NavBarLook(
     val style: NavBarStyle = NavBarStyle.STANDARD,
     val labels: NavBarLabels = NavBarLabels.ALWAYS,
+    val scrub: Boolean = true,
+    val iconPop: Boolean = false,
+    val scroll: NavBarScroll = NavBarScroll.SHRINK,
+    val miniBeside: Boolean = false,
 )
+
+/** What scrolling does to the floating bar, when the bar reacts to scrolling at all. */
+enum class NavBarScroll {
+    HIDE,
+    SHRINK,
+}
 
 enum class SharedLinkAction {
     /** Play the video straight away, replacing what plays. */
