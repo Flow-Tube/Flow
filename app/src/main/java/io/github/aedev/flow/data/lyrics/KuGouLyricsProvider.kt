@@ -26,7 +26,8 @@ class KuGouLyricsProvider(
         withContext(Dispatchers.IO) {
             runCatching {
                 val lrc = kuGou.getLyrics(title, artist, duration, album).getOrThrow()
-                LyricsUtils.parseLyrics(lrc)
+                val entries = LyricsUtils.parseLyrics(lrc)
+                if (LyricsChecks.isInstrumentalNotice(entries)) emptyList() else entries
             }
         }
 }

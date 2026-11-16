@@ -38,4 +38,16 @@ class LyricsChecksTest {
         assertThat(LyricsChecks.isAuthFailure("API returned 401")).isTrue()
         assertThat(LyricsChecks.isAuthFailure("No lyrics found")).isFalse()
     }
+
+    @Test
+    fun `the instrumental notice reads as no lyrics`() {
+        assertThat(LyricsChecks.isInstrumentalNotice(LyricsUtils.parseLyrics("[00:01.58]纯音乐，请欣赏"))).isTrue()
+        assertThat(LyricsChecks.isInstrumentalNotice(LyricsUtils.parseLyrics("[00:01.58]纯音乐,请欣赏"))).isTrue()
+    }
+
+    @Test
+    fun `lyrics that contain the notice are kept`() {
+        assertThat(LyricsChecks.isInstrumentalNotice(LyricsUtils.parseLyrics("[00:01.00]纯音乐，请欣赏\n[00:05.00]First"))).isFalse()
+        assertThat(LyricsChecks.isInstrumentalNotice(emptyList())).isFalse()
+    }
 }
