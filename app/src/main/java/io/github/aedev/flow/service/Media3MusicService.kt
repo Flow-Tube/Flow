@@ -569,7 +569,8 @@ class Media3MusicService : MediaLibraryService() {
 
         val renderersFactory = musicRenderers(equalizer)
 
-        val loadControl = LoadControlFactory.forMusic()
+        val isLowRamDevice = (getSystemService(ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true
+        val loadControl = MusicLoadControl(LoadControlFactory.forMusic(wholeSong = !isLowRamDevice), NetworkState.isDataSaverOn(this))
 
         player =
             ExoPlayer
@@ -600,7 +601,7 @@ class Media3MusicService : MediaLibraryService() {
         // order, the player's shuffle flag reorders nothing on its own, whichever controller sets it.
         player.setShuffleOrder(ShuffleOrder.UnshuffledShuffleOrder(0))
         musicResume.attach(player)
-        MusicPreload(this, player).attach(lifecycleScope, prefs.bufferProfile)
+        MusicPreload(this, player) { loadControl.savesData = it }.attach(lifecycleScope, prefs.bufferProfile)
         crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
         lifecycleScope.launch {
             combine(
