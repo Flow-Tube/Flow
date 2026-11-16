@@ -5,9 +5,12 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,17 +19,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.LyricsAnimationStyle
 import io.github.aedev.flow.data.local.LyricsGlow
 import io.github.aedev.flow.data.local.PlayerPreferences
@@ -34,6 +45,7 @@ import io.github.aedev.flow.data.lyrics.LyricsEntry
 import io.github.aedev.flow.data.lyrics.LyricsUtils
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 /** Alpha of the words not sung yet, against the sung colour. */
 internal const val SYNCED_LINE_UNSUNG_ALPHA = 0.45f
@@ -157,7 +169,10 @@ internal fun SyncedLyricLine(
                 glow = animation.glow,
             )
         }
-        if (singleLine) {
+        val repeat = remember(lines, shownIndex) { lyricRepeatCount(lines, shownIndex) }
+        if (repeat > 1) {
+            RepeatedLine(line.text, stringResource(R.string.lyrics_repeat_count, repeat), style, unsungColor, singleLine, karaoke)
+        } else if (singleLine) {
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 val measurer = rememberTextMeasurer()
                 val widthPx = constraints.maxWidth
@@ -166,6 +181,63 @@ internal fun SyncedLyricLine(
             }
         } else {
             karaoke(line.text)
+        }
+    }
+}
+
+/**
+ * A line that repeats the one before it, with [count] after its last word. The line is laid out
+ * narrower by the count's width, so a long line wraps or is cut before it and the count always shows.
+ */
+@Composable
+private fun RepeatedLine(
+    text: String,
+    count: String,
+    style: TextStyle,
+    countColor: Color,
+    singleLine: Boolean,
+    karaoke: @Composable (String) -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val measurer = rememberTextMeasurer()
+        val widthPx = constraints.maxWidth
+        val countLayout = remember(count, style) { measurer.measure(count, style, maxLines = 1, softWrap = false) }
+        val gapPx = remember(style) { measurer.measure(" ", style).size.width }
+        val room = (widthPx - countLayout.size.width - gapPx).coerceAtLeast(0)
+        val shown = remember(text, room, style, singleLine) { if (singleLine) fitOneRow(measurer, text, style, room) else text }
+        // Measured as KaraokeLine measures it, so the last row here is the last row it draws.
+        val lineLayout =
+            remember(shown, room, style) { measurer.measure(shown, style, constraints = Constraints(minWidth = room, maxWidth = room)) }
+        val rtlLayout = LocalLayoutDirection.current == LayoutDirection.Rtl
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Exactly [room] pixels: a dp round trip could wrap the line differently from [lineLayout].
+            Box(
+                modifier =
+                    Modifier.layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints.copy(minWidth = room, maxWidth = room))
+                        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                    },
+            ) { karaoke(shown) }
+            Text(
+                text = count,
+                style = style,
+                color = countColor,
+                maxLines = 1,
+                softWrap = false,
+                modifier =
+                    Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset {
+                        val last = lineLayout.lineCount - 1
+                        val lineStart = if (rtlLayout) widthPx - room else 0
+                        val x =
+                            if (lineLayout.getParagraphDirection(lineLayout.getLineStart(last)) == ResolvedTextDirection.Rtl) {
+                                lineStart + lineLayout.getLineLeft(last).toInt() - gapPx - countLayout.size.width
+                            } else {
+                                lineStart + lineLayout.getLineRight(last).roundToInt() + gapPx
+                            }
+                        val y = lineLayout.getLineBaseline(last) - countLayout.firstBaseline
+                        IntOffset(x.coerceIn(0, (widthPx - countLayout.size.width).coerceAtLeast(0)), y.roundToInt())
+                    },
+            )
         }
     }
 }
