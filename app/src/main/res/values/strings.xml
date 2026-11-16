@@ -179,6 +179,8 @@
     <string name="lyrics_on_lock_screen_timing">Lock screen lyrics timing</string>
     <string name="lyrics_on_lock_screen_timing_summary">Move lines earlier if they feel late</string>
     <string name="lyrics_in_mini_player">Lyrics in mini player</string>
+    <string name="player_appearance_lyrics_on_cover_title">Lyrics on the cover</string>
+    <string name="player_appearance_lyrics_on_cover_subtitle">The lyrics button shows lyrics in the player instead of a sheet</string>
     <string name="lyrics_in_mini_player_summary">Show the line being sung in place of the artist</string>
     <string name="lyrics_sponsorblock_timing">Fit lyrics to music videos</string>
     <string name="lyrics_sponsorblock_timing_summary">Uses SponsorBlock to skip parts with no music</string>

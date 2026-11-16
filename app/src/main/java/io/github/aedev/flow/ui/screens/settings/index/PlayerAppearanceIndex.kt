@@ -77,6 +77,14 @@ internal object PlayerAppearanceIndex {
             R.string.settings_section_music_player,
             revealVia = musicBackground.key,
         )
+    val lyricsOnCover =
+        entry(
+            "music_lyrics_on_cover",
+            R.string.player_appearance_lyrics_on_cover_title,
+            R.string.player_appearance_lyrics_on_cover_subtitle,
+            R.string.settings_section_music_player,
+            revealVia = musicBackground.key,
+        )
     val hideMusicArtwork =
         entry(
             "hide_music_artwork",
@@ -338,6 +346,7 @@ internal object PlayerAppearanceIndex {
             frameStep,
             musicBackground,
             followLightTheme,
+            lyricsOnCover,
             hideMusicArtwork,
             animatedArtwork,
             animatedArtworkWifiOnly,

@@ -8,11 +8,20 @@ import org.junit.Test
 
 class ImmersiveLyricsPolicyTest {
     @Test
-    fun `only the immersive background in the phone column shows lyrics in place`() {
+    fun `with the switch on, only the immersive background in the phone column shows lyrics in place`() {
         MusicPlayerBackgroundStyle.entries.forEach { style ->
             MusicPlayerLayout.entries.forEach { layout ->
                 val expected = style == MusicPlayerBackgroundStyle.IMMERSIVE && layout == MusicPlayerLayout.COMPACT
-                assertEquals("$style $layout", expected, lyricsShowInPlace(style, layout))
+                assertEquals("$style $layout", expected, lyricsShowInPlace(true, style, layout))
+            }
+        }
+    }
+
+    @Test
+    fun `with the switch off, the lyrics button always opens the sheet`() {
+        MusicPlayerBackgroundStyle.entries.forEach { style ->
+            MusicPlayerLayout.entries.forEach { layout ->
+                assertFalse("$style $layout", lyricsShowInPlace(false, style, layout))
             }
         }
     }
