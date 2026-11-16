@@ -2,6 +2,7 @@ package io.github.aedev.flow.player.factory
 
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.analytics.PlayerId
 import io.github.aedev.flow.player.config.PlayerConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -24,6 +25,33 @@ class LoadControlFactoryTest {
     @Test
     fun `music profile is accepted by the load control`() {
         LoadControlFactory.forMusic()
+    }
+
+    @Test
+    fun `whole-song music profile is accepted by the load control`() {
+        LoadControlFactory.forMusic(wholeSong = true)
+    }
+
+    @Test
+    fun `whole-song music keeps what has played and the lean profile keeps nothing`() {
+        val playerId = PlayerId("test")
+
+        assertEquals(
+            PlayerConfig.MUSIC_BACK_BUFFER_MS * 1_000L,
+            LoadControlFactory.forMusic(wholeSong = true).getBackBufferDurationUs(playerId),
+        )
+        assertEquals(0L, LoadControlFactory.forMusic().getBackBufferDurationUs(playerId))
+    }
+
+    @Test
+    fun `whole-song music constants satisfy the load control contract before any coercion`() {
+        assertContractHolds(
+            profile = "whole-song music",
+            minMs = PlayerConfig.MUSIC_MIN_BUFFER_MS,
+            maxMs = PlayerConfig.MUSIC_WHOLE_SONG_BUFFER_MS,
+            playbackMs = PlayerConfig.MUSIC_BUFFER_FOR_PLAYBACK_MS,
+            rebufferMs = PlayerConfig.MUSIC_BUFFER_FOR_REBUFFER_MS,
+        )
     }
 
     @Test
