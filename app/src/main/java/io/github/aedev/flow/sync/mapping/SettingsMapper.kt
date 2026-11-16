@@ -55,6 +55,7 @@ object SettingsMapper {
             Entry("sponsorblock_action_poi_highlight", "sb_action_poi_highlight", Ty.STRING),
             Entry("dearrow_enabled", "dearrow_enabled", Ty.BOOL),
             Entry("dearrow_badge_enabled", "dearrow_badge_enabled", Ty.BOOL),
+            Entry("dearrow_random_frame", "dearrow_random_frame", Ty.BOOL),
             Entry("subtitles_enabled", "subtitles_enabled", Ty.BOOL),
             // Another device must not switch this phone's UI language (#1277).
             Entry("app_language", "app_language", Ty.STRING, applied = false),
