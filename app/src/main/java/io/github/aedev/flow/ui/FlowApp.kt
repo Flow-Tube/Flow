@@ -2,7 +2,6 @@ package io.github.aedev.flow.ui
 
 import android.app.Activity
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.offset
@@ -17,7 +16,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,7 +36,6 @@ import io.github.aedev.flow.player.SleepTimerManager
 import io.github.aedev.flow.sync2.service.LinkedCatchUp
 import io.github.aedev.flow.ui.components.donation.DonationPromptHost
 import io.github.aedev.flow.ui.components.equalizer.LocalEqualizerState
-import io.github.aedev.flow.ui.components.layout.FlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.LocalFlowSnackbarHostState
 import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationChrome
@@ -58,10 +55,8 @@ import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.LocalMediaOpenOrigins
-import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.SubscriptionBellAlerts
-import io.github.aedev.flow.ui.components.shared.mediaMiniBarBounds
 import io.github.aedev.flow.ui.components.videoplayer.PlayerSheetValue
 import io.github.aedev.flow.ui.components.videoplayer.rememberPlayerDraggableState
 import io.github.aedev.flow.ui.screens.equalizer.EqualizerViewModel
@@ -78,8 +73,6 @@ import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import io.github.aedev.flow.ui.screens.update.UpdateLaunchEffect
 import io.github.aedev.flow.ui.theme.ThemeMode
 import io.github.aedev.flow.ui.theme.ThemeVariant
-import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
-import io.github.aedev.flow.ui.utils.isMediumWidth
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 
@@ -366,59 +359,17 @@ fun FlowApp(
             !isInPipMode && remote.shows(activeMiniPlayer, activeVideo != null, musicPlayerSheetState.isDismissed, isShortsPlayerRoute)
         val isMiniBarObscuringContent =
             (isMusicSheetShown && !musicPlayerSheetState.isDismissed && !musicPlayerSheetState.isExpanded) || showVideoBar || showRemoteBar
-        val motionScheme = MaterialTheme.motionScheme
-        val barFraction = remember { Animatable(if (isBottomNavPresent) 1f else 0f) }
-        LaunchedEffect(isBottomNavPresent) {
-            // The same springs as the bar's own slide, so whatever rides on it stays glued to it.
-            barFraction.animateTo(
-                targetValue = if (isBottomNavPresent) 1f else 0f,
-                animationSpec = if (isBottomNavPresent) motionScheme.defaultSpatialSpec() else motionScheme.fastSpatialSpec(),
+        val (bottomInsets, miniPlayerBounds) =
+            rememberFlowBottomChrome(
+                barPresent = isBottomNavPresent,
+                barShown = isBottomNavShown,
+                miniPlayerShown = isMiniBarObscuringContent,
+                systemBottomPx = navBarBottomInset,
+                barHeight = if (usesNavigationRail) 0.dp else navigationBarHeight,
+                containerWidthPx = constraints.maxWidth.toFloat(),
+                railWidth = if (usesNavigationRail && isNavigationRailVisible) navigationRailWidth else 0.dp,
+                navScrollState = navScrollState,
             )
-        }
-        val systemBottomState = rememberUpdatedState(with(density) { navBarBottomInset.toDp() })
-        val barHeightState = rememberUpdatedState(if (usesNavigationRail) 0.dp else navigationBarHeight)
-        val barShownState = rememberUpdatedState(isBottomNavShown)
-        val miniPlayerFraction = remember { Animatable(if (isMiniBarObscuringContent) 1f else 0f) }
-        LaunchedEffect(isMiniBarObscuringContent) {
-            miniPlayerFraction.animateTo(
-                targetValue = if (isMiniBarObscuringContent) 1f else 0f,
-                animationSpec = motionScheme.defaultSpatialSpec(),
-            )
-        }
-        val miniPlayerShownState = rememberUpdatedState(isMiniBarObscuringContent)
-        val miniPlayerHeightState = rememberUpdatedState(MediaMiniBarDefaults.Height + MediaMiniBarDefaults.BottomSpacer)
-        val miniPlayerBounds =
-            with(density) {
-                mediaMiniBarBounds(
-                    containerWidthPx = constraints.maxWidth.toFloat(),
-                    startInsetPx = (if (usesNavigationRail && isNavigationRailVisible) navigationRailWidth else 0.dp).toPx(),
-                    isCompactWidth = !LocalWindowSizeClass.current.isMediumWidth,
-                    compactMarginPx = MediaMiniBarDefaults.CompactMargin.toPx(),
-                    largeMarginPx = MediaMiniBarDefaults.LargeMargin.toPx(),
-                    maxWidthPx = MediaMiniBarDefaults.MaxWidth.toPx(),
-                )
-            }
-        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-        val miniPlayerSpanState =
-            rememberUpdatedState(
-                miniPlayerBounds.let { bounds ->
-                    val left = if (isRtl) constraints.maxWidth - bounds.start - bounds.width else bounds.start
-                    left..(left + bounds.width)
-                },
-            )
-        val bottomInsets =
-            remember {
-                FlowBottomInsets(
-                    systemInset = systemBottomState,
-                    barHeight = barHeightState,
-                    barShown = barShownState,
-                    miniPlayerHeight = miniPlayerHeightState,
-                    miniPlayerShown = miniPlayerShownState,
-                    barFraction = { barFraction.value * (1f - navScrollState.hiddenFraction) },
-                    miniPlayerFraction = { miniPlayerFraction.value },
-                    miniPlayerSpanPx = miniPlayerSpanState,
-                )
-            }
         FlowNavigationChrome(
             tabs = navigationTabs,
             selectedTab = selectedTab,
