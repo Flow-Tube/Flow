@@ -4836,4 +4836,26 @@
     <string name="subscriptions_pin_channel">Przypnij na początek</string>
     <string name="subscriptions_unpin_channel">Odepnij</string>
     <string name="autoplay_countdown_mini_label">Następne w %1$d</string>
+    <string name="auto_group_music_playlists">Playlisty z muzyką</string>
+    <string name="auto_group_video_playlists">Playlisty z wideo</string>
+    <string name="lyrics_background_solid_detail">Jeden kolor z okładki</string>
+    <string name="lyrics_background_colorful">Kolorowy</string>
+    <string name="lyrics_background_colorful_detail">Delikatne kolory okładki</string>
+    <string name="lyrics_animation">Animacja tekstu</string>
+    <string name="lyrics_animation_summary">Jak zsynchronizowane linie poruszają się podczas śpiewania</string>
+    <string name="lyrics_animation_calm">Spokojny</string>
+    <string name="lyrics_romanization_only_summary">Zastąp oryginalny skrypt literami łacińskimi</string>
+    <string name="lyrics_glow_bright">Jasny</string>
+    <string name="lyrics_on_lock_screen">Tekst na ekranie blokady</string>
+    <string name="lyrics_in_mini_player">Tekst w mini odtwarzaczu</string>
+    <string name="player_appearance_lyrics_on_cover_title">Tekst na okładce</string>
+    <string name="lyrics_sponsorblock_timing">Dopasuj tekst do teledysku</string>
+    <string name="settings_keywords_lyrics_on_demand">prywatność, sieć, tło, dane</string>
+    <string name="lyrics_timing_on_time">Bez zmian</string>
+    <string name="lyrics_timing_earlier">%1$s s wcześniej</string>
+    <string name="lyrics_timing_later">%1$s s później</string>
+    <string name="player_appearance_video_artwork_colors_title">Kolory z miniaturki</string>
+    <string name="player_appearance_split_transport_title">Podziel przyciski</string>
+    <string name="settings_section_music_mini_player">Mini odtwarzacz muzyczny</string>
+    <string name="player_appearance_mini_cover_title">Mała okładka odtwarzacza</string>
 </resources>
