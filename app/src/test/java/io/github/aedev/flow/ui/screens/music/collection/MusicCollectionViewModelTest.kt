@@ -349,7 +349,7 @@ class MusicCollectionViewModelTest {
 
         viewModel.saveAsPlaylist()
 
-        coVerify(timeout = 2_000) { playlists.importPlaylist("Mix 1", any(), match { it.map(Video::id) == listOf("a", "b") }, true) }
+        coVerify(timeout = 2_000) { playlists.importPlaylist("Mix 1", any(), match { it.map(Video::id) == listOf("a", "b") }, true, any()) }
     }
 
     @Test

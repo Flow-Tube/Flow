@@ -3747,6 +3747,8 @@
     <!-- Export / delete watch history (#507) -->
     <string name="export_watch_history_title">Watch history</string>
     <string name="export_watch_history_desc">Export as YouTube-history JSON (imports into LibreTube and Flow)</string>
+    <string name="export_playlists_title">Playlists</string>
+    <string name="export_playlists_desc">Your playlists, Watch later, likes and Saved Shorts in one file Flow can import</string>
     <string name="history_export_failed">Failed to export watch history</string>
     <string name="history_delete_shorts">Delete Shorts from history</string>
     <string name="history_delete_shorts_title">Delete Shorts?</string>
@@ -4966,6 +4968,16 @@
     <string name="imported_playlist_default_name">Imported playlist</string>
     <string name="playlist_exported">Playlist saved</string>
     <string name="playlist_export_failed">Couldn\'t save the playlist</string>
+    <string name="playlist_export_all_action">Export all</string>
+    <string name="playlists_export_failed">Couldn\'t save the playlists</string>
+    <plurals name="playlists_exported">
+        <item quantity="one">Saved %d playlist</item>
+        <item quantity="other">Saved %d playlists</item>
+    </plurals>
+    <plurals name="playlists_imported">
+        <item quantity="one">Imported %d playlist</item>
+        <item quantity="other">Imported %d playlists</item>
+    </plurals>
     <string name="playlist_share_failed">Couldn\'t share the playlist</string>
     <string name="playlist_import_not_a_playlist">This file isn\'t a Flow playlist</string>
     <string name="playlist_import_too_new">This playlist needs a newer version of Flow</string>

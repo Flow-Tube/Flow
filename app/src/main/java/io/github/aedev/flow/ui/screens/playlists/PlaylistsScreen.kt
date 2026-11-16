@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.backup.ExportKind
 import io.github.aedev.flow.data.model.PlaylistInfo
 import io.github.aedev.flow.data.playlist.PlaylistImport
 import io.github.aedev.flow.data.playlist.PlaylistListOrder
@@ -60,7 +61,7 @@ import kotlinx.coroutines.launch
 private val FabMenuPadding = 16.dp
 
 // Some file pickers label a .json file as plain text or a generic binary.
-private val PlaylistFileTypes = arrayOf(PLAYLIST_FILE_MIME_TYPE, "text/plain", "application/octet-stream")
+private val PlaylistFileTypes = arrayOf(PLAYLIST_FILE_MIME_TYPE, ExportKind.PLAYLISTS.mimeType, "text/plain", "application/octet-stream")
 
 /** [fixedKind] opens the page on one kind only, for a Library that lists the two separately. */
 @Composable
@@ -113,10 +114,10 @@ fun PlaylistsScreen(
     val quickActions = sharedQuickActionsViewModel()
     val scope = rememberCoroutineScope()
     val importLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            if (uris.isEmpty()) return@rememberLauncherForActivityResult
             scope.launch {
-                val result = viewModel.importPlaylist(uri, context.getString(R.string.imported_playlist_default_name))
+                val result = viewModel.importPlaylists(uris, context.getString(R.string.imported_playlist_default_name))
                 quickActions.announce(result.message(context))
                 if (result is PlaylistImport.Imported) {
                     val info =
@@ -132,6 +133,20 @@ fun PlaylistsScreen(
                     if (fixedKind == null) selectKind(if (result.isMusic) MediaKind.Music else MediaKind.Videos)
                     if (result.isMusic) onMusicPlaylistClick(info) else onVideoPlaylistClick(info)
                 }
+            }
+        }
+    val exportLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ExportKind.PLAYLISTS.mimeType)) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val count = viewModel.exportAll(uri)
+                quickActions.announce(
+                    if (count == null) {
+                        context.getString(R.string.playlists_export_failed)
+                    } else {
+                        context.resources.getQuantityString(R.plurals.playlists_exported, count, count)
+                    },
+                )
             }
         }
 
@@ -248,6 +263,7 @@ fun PlaylistsScreen(
                     onCreateVideo = { creationTarget = PlaylistCreationTarget.Video },
                     onCreateMusic = { creationTarget = PlaylistCreationTarget.Music },
                     onImport = { importLauncher.launch(PlaylistFileTypes) },
+                    onExportAll = { exportLauncher.launch(ExportKind.PLAYLISTS.fileName()) },
                     modifier =
                         Modifier
                             .align(Alignment.BottomEnd)

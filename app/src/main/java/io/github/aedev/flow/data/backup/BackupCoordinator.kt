@@ -8,6 +8,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.BackupRepository
 import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.data.local.NO_LIKES
+import io.github.aedev.flow.data.playlist.PlaylistTransfer
 import io.github.aedev.flow.data.profile.ProfileRegistry
 import io.github.aedev.flow.data.profile.ProfileSlices
 import io.github.aedev.flow.data.profile.TooManyProfiles
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -72,6 +74,7 @@ class BackupCoordinator
         private val localDataManager: LocalDataManager,
         private val linkedReset: LinkedReset,
         private val slices: ProfileSlices,
+        private val playlistTransfer: PlaylistTransfer,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         private val _operation = MutableStateFlow<BackupOperation>(BackupOperation.Idle)
@@ -112,6 +115,16 @@ class BackupCoordinator
         fun exportMusicBrain(uri: Uri) =
             exportTo(uri, R.string.music_brain_export_success, R.string.music_brain_export_failed) {
                 writeStream(uri) { out -> musicBrain.exportBrainToStream(out).let { true } }
+            }
+
+        fun exportPlaylists(uri: Uri) =
+            exportTo(uri, R.string.playlists_export_failed) {
+                val count = playlistTransfer.writeLibraryTo(uri)
+                if (count == null) {
+                    Result.failure(IOException("Playlists not written"))
+                } else {
+                    Result.success(context.resources.getQuantityString(R.plurals.playlists_exported, count, count))
+                }
             }
 
         fun exportMaster(uri: Uri) = exportTo(uri, R.string.master_backup_export_failed) { slices.exportMaster(uri).map(::masterMessage) }
