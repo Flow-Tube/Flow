@@ -34,7 +34,7 @@ private val BarPadding = 20.dp
 private val BarSpacing = 12.dp
 private const val PERCENT = 100
 
-/** "Not now" or Cancel, then the one action the current stage offers, filling with download progress. */
+/** "Not now" or Cancel, then the one action the current stage offers, filling with download or install progress. */
 @Composable
 internal fun UpdateActionBar(
     stage: UpdateStage,
@@ -50,16 +50,26 @@ internal fun UpdateActionBar(
             horizontalArrangement = Arrangement.spacedBy(BarSpacing, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onSecondary, modifier = Modifier.heightIn(min = ButtonDefaults.MediumContainerHeight)) {
+            TextButton(
+                onClick = onSecondary,
+                enabled = stage !is UpdateStage.Installing,
+                modifier = Modifier.heightIn(min = ButtonDefaults.MediumContainerHeight),
+            ) {
                 Text(stringResource(if (stage is UpdateStage.Downloading) R.string.cancel else R.string.update_not_now))
             }
             val action = stage.action()
+            val fill =
+                when (stage) {
+                    is UpdateStage.Downloading -> stage.progress ?: 0f
+                    is UpdateStage.Installing -> stage.progress ?: 0f
+                    else -> null
+                }
             FlowActionButton(
                 text = action.label(),
                 onClick = onPrimary,
                 enabled = action.enabled,
                 leading = action.icon,
-                progress = (stage as? UpdateStage.Downloading)?.let { downloading -> { downloading.progress ?: 0f } },
+                progress = fill?.let { { it } },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -99,7 +109,7 @@ private fun UpdateStage.action(): StageAction =
             StageAction(R.string.update_action_install, Icons.Outlined.InstallMobile)
         }
 
-        UpdateStage.Installing -> {
+        is UpdateStage.Installing -> {
             StageAction(R.string.update_action_installing, null, enabled = false)
         }
 

@@ -41,7 +41,6 @@ class UpdateViewModel
         private val installer: AppUpdateInstaller,
     ) : ViewModel() {
         private val canInstall = MutableStateFlow(installer.canInstall())
-        private val installing = MutableStateFlow(false)
         private val loading = MutableStateFlow(updates.latest.value == null)
 
         val state: StateFlow<UpdateUiState> =
@@ -54,10 +53,9 @@ class UpdateViewModel
                         combine(
                             installer.state(release.version),
                             canInstall,
-                            installing,
-                            installer.installFailed,
-                        ) { download, allowed, busy, failed ->
-                            UpdateUiState(release, notes, updateStage(download, allowed, busy, failed))
+                            installer.installPhase,
+                        ) { download, allowed, install ->
+                            UpdateUiState(release, notes, updateStage(download, allowed, install))
                         }
                     }
                 },
@@ -99,11 +97,10 @@ class UpdateViewModel
         /** Re-reads what may have changed while the user was in system settings or the installer. */
         fun onResume() {
             canInstall.value = installer.canInstall()
-            installing.value = false
+            installer.reconcile()
         }
 
         private fun install(release: AppRelease) {
-            installing.value = true
-            viewModelScope.launch { if (!installer.install(release.version)) installing.value = false }
+            viewModelScope.launch { installer.install(release.version) }
         }
     }
