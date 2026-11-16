@@ -5209,4 +5209,6 @@
     <string name="settings_translate_to">Buna tərcümə et</string>
     <string name="translate_to_content_language">Məzmun dili</string>
     <string name="settings_keywords_translation">tərcümə et, tərcümə, tərcüməçi, LibreTranslate, Lingva, server, şərhlər, təsvir</string>
+    <string name="dearrow_thumbnails_only">Yalnız DeArrow miniatürləri</string>
+    <string name="dearrow_thumbnails_only_subtitle">Yükləyicinin miniatürünü heç vaxt göstərmə</string>
 </resources>
