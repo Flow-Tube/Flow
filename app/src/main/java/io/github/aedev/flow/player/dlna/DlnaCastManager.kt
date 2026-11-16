@@ -137,6 +137,7 @@ object DlnaCastManager {
      *
      * @param currentPlayerUrl the currently-playing media URI, supplied by the caller so this
      *   manager stays decoupled from the player engine; used as a last-resort fallback.
+     * @return false when the video has no stream a renderer can be sent, so nothing is cast.
      */
     fun castStreamInfo(
         device: DlnaDevice,
@@ -146,7 +147,7 @@ object DlnaCastManager {
         audioStreams: List<AudioStream>,
         muxedStreams: List<VideoStream>,
         durationSeconds: Long,
-    ) {
+    ): Boolean {
         // Renderers fail playlists that mix codecs, so each playlist carries a single variant.
         fun bestVariants(codecKey: String): List<CastStreamVariant> =
             listOfNotNull(
@@ -205,7 +206,7 @@ object DlnaCastManager {
         val deviceKey = device.usn.substringBefore("::")
         // A mode is skipped only once it failed on this renderer, never because a video lacked it.
         val ladder = (modes - failedCastModes[deviceKey].orEmpty()).ifEmpty { modes }
-        if (ladder.isEmpty()) return
+        if (ladder.isEmpty()) return false
 
         castJob?.cancel()
         _castsSong.value = false
@@ -262,6 +263,7 @@ object DlnaCastManager {
                 }
                 _currentDevice.value = null
             }
+        return true
     }
 
     /**

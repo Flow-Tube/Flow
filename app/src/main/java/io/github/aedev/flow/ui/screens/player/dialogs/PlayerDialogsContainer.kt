@@ -1,11 +1,14 @@
 package io.github.aedev.flow.ui.screens.player.dialogs
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.dlna.DlnaCastManager
@@ -74,6 +77,7 @@ internal fun PlayerDialogsContainer(
     if (screenState.activeSheet == PlayerSheet.Dlna) {
         val dlnaDevices by DlnaCastManager.devices.collectAsStateWithLifecycle()
         val isDlnaDiscovering by DlnaCastManager.isDiscovering.collectAsStateWithLifecycle()
+        val context = LocalContext.current
         DlnaDevicePickerDialog(
             devices = dlnaDevices,
             isDiscovering = isDlnaDiscovering,
@@ -89,15 +93,21 @@ internal fun PlayerDialogsContainer(
                         ?.uri
                         ?.toString()
                 val (videoOnlyStreams, muxedStreams) = playerManager.getCastVideoStreams().partition { it.isVideoOnly }
-                DlnaCastManager.castStreamInfo(
-                    device = device,
-                    title = video.title,
-                    currentPlayerUrl = currentPlayerUrl,
-                    videoOnlyStreams = videoOnlyStreams,
-                    audioStreams = playerManager.getCastAudioStreams(),
-                    muxedStreams = muxedStreams,
-                    durationSeconds = playerManager.getDuration() / 1000,
-                )
+                val casting =
+                    DlnaCastManager.castStreamInfo(
+                        device = device,
+                        title = video.title,
+                        currentPlayerUrl = currentPlayerUrl,
+                        videoOnlyStreams = videoOnlyStreams,
+                        audioStreams = playerManager.getCastAudioStreams(),
+                        muxedStreams = muxedStreams,
+                        durationSeconds = playerManager.getDuration() / 1000,
+                    )
+                if (casting) {
+                    playerManager.pause()
+                } else {
+                    Toast.makeText(context, R.string.dlna_cast_no_stream, Toast.LENGTH_SHORT).show()
+                }
                 screenState.closeSheet()
             },
             onStopCasting = {

@@ -2940,6 +2940,7 @@
     <string name="dlna_searching">Searching for DLNA devices...</string>
     <string name="dlna_google_cast_unsupported">Chromecast and other Google Cast devices aren\'t supported.</string>
     <string name="dlna_now_casting">Now casting: %1$s</string>
+    <string name="dlna_cast_no_stream">This video can\'t be cast</string>
     <string name="dlna_stop_casting">Stop Casting</string>
     <string name="cast_to_tv_desc">Play the queue on a TV or speaker</string>
     <string name="cast_song_unavailable">Can\'t cast %1$s, skipped</string>
