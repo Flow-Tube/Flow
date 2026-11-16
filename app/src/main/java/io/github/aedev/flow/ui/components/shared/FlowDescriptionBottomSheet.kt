@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
 import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
 import io.github.aedev.flow.ui.components.shared.rememberRichTextInlineContent
 import io.github.aedev.flow.ui.openYouTubeUrl
+import io.github.aedev.flow.utils.TranslateIntents
 import io.github.aedev.flow.utils.toAnnotatedString
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -129,6 +131,12 @@ fun FlowDescriptionBottomSheet(
                         fontWeight = FontWeight.Bold,
                     ),
                 actions = {
+                    IconButton(
+                        onClick = { TranslateIntents.open(context, video.title + "\n\n" + descriptionText.text) },
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(Icons.Outlined.Translate, contentDescription = stringResource(R.string.translate_description))
+                    }
                     IconButton(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

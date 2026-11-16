@@ -513,6 +513,9 @@
     <string name="comment_edited">edited</string>
     <string name="comment_time_edited_template">%1$s (%2$s)</string>
     <string name="read_more">Read more</string>
+    <string name="translate">Translate</string>
+    <string name="translate_with">Translate with</string>
+    <string name="translate_no_app">No translator app found</string>
     <string name="desc_more">...more</string>
     <string name="reply">Reply</string>
     <string name="hide_replies">Hide replies</string>
@@ -547,6 +550,7 @@
     <string name="desc_see_less">See less</string>
     <string name="copy_description">Copy description</string>
     <string name="description_copied">Description copied to clipboard</string>
+    <string name="translate_description">Translate title and description</string>
     <string name="title_copied">Title copied to clipboard</string>
     <string name="channel_name_copied">Channel name copied to clipboard</string>
     <string name="copy_channel_name">Copy channel name</string>

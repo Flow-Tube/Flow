@@ -66,6 +66,14 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" />
         </intent>
+        <!-- Translator apps, for Translate on comments and descriptions and in the text selection menu (#892). -->
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TRANSLATE" />
+        </intent>
     </queries>
 
     <application
