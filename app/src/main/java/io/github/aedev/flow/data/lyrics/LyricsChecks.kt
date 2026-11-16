@@ -5,6 +5,9 @@ internal object LyricsChecks {
     const val BUSY_REST_MS = 2 * 60 * 1000L
     private const val AUTH_REST_MS = 10 * 60 * 1000L
 
+    // KuGou answers instrumentals with one line, "纯音乐，请欣赏" ("pure music, please enjoy"), not with no lyrics.
+    private val INSTRUMENTAL_NOTICE = "纯音乐[，,]?\\s*请欣赏".toRegex()
+
     /** How long a source that failed with [error] rests before it is asked again, or null when the next song asks it. */
     fun restAfter(error: Throwable): Long? =
         when {
@@ -74,6 +77,9 @@ internal object LyricsChecks {
         val distinctTimedLines = list.count { it.time > 0L }
         return distinctTimedLines >= (list.size * 0.5).toInt().coerceAtLeast(2)
     }
+
+    fun isInstrumentalNotice(entries: List<LyricsEntry>): Boolean =
+        entries.isNotEmpty() && entries.all { it.text.trim().matches(INSTRUMENTAL_NOTICE) }
 
     fun stripWordTimings(entries: List<LyricsEntry>): List<LyricsEntry> = entries.map { entry -> entry.copy(words = null) }
 

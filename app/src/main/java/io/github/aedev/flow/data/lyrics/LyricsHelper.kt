@@ -174,6 +174,11 @@ class LyricsHelper
                     LyricsCacheManager.clearManual(targetContext, videoId)
                 }
 
+                LyricsChecks.isInstrumentalNotice(saved) -> {
+                    Log.d(TAG, "Disk cache holds KuGou's instrumental notice for $videoId, discarding")
+                    LyricsCacheManager.evictLyrics(targetContext, videoId)
+                }
+
                 LyricsCacheManager.isManual(targetContext, videoId) -> {
                     cache[videoId] = saved
                     return saved to DISK_CACHE_NAME
