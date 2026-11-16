@@ -40,5 +40,28 @@ internal object LanguageRegionIndex {
             destination = page,
         )
 
-    val all = listOf(appLanguage, contentLanguage, contentCountry, originalTitles)
+    val translateWith =
+        SettingEntry(
+            key = "language_region.translate_with",
+            title = R.string.settings_translate_with,
+            keywords = R.string.settings_keywords_translation,
+            destination = page,
+        )
+    val translationServer =
+        SettingEntry(
+            key = "language_region.translation_server",
+            title = R.string.translation_server_title,
+            summary = R.string.settings_translation_server_summary,
+            keywords = R.string.settings_keywords_translation,
+            destination = page,
+        )
+    val translateTo =
+        SettingEntry(
+            key = "language_region.translate_to",
+            title = R.string.settings_translate_to,
+            keywords = R.string.settings_keywords_translation,
+            destination = page,
+        )
+
+    val all = listOf(appLanguage, contentLanguage, contentCountry, originalTitles, translateWith, translationServer, translateTo)
 }
