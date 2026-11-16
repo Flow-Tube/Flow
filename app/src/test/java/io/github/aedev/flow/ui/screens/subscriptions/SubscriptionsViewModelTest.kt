@@ -82,6 +82,9 @@ class SubscriptionsViewModelTest {
         coEvery { subscriptionRepository.getAllSubscriptions() } returns flowOf(emptyList())
         coEvery { subscriptionFeedRepository.observeFeed(any()) } returns flowOf(emptyList())
         coEvery { subscriptionFeedRepository.planRefresh(any(), any()) } returns SubscriptionRefreshPlan.NOTHING_TO_DO
+        coEvery { subscriptionFeedRepository.planAllRefresh(any()) } returns SubscriptionRefreshPlan.NOTHING_TO_DO
+        coEvery { playerPreferences.subscriptionHiddenGroups } returns flowOf(emptySet())
+        coEvery { playerPreferences.subscriptionGroupsOutOfAll } returns flowOf(emptySet())
         coEvery { neuroEngine.feedExclusions(any()) } returns FeedExclusions.NONE
 
         viewModel =
@@ -362,14 +365,37 @@ class SubscriptionsViewModelTest {
                     }
                 }
             }
-            coVerify(exactly = 0) { subscriptionFeedRepository.planRefresh(true, null) }
+            coVerify(exactly = 0) { subscriptionFeedRepository.planAllRefresh(any()) }
+        }
+
+    @Test
+    fun `on All a pull plans the All chip's channels, not every subscription (1387)`() =
+        runTest {
+            coEvery { subscriptionGroupDao.getAllGroups() } returns
+                flowOf(listOf(SubscriptionGroupEntity(name = "Gym", channelIds = "a,b")))
+            coEvery { playerPreferences.subscriptionHiddenGroups } returns flowOf(setOf("Gym"))
+            viewModel.ensureStarted()
+            awaitState { it.groups.isNotEmpty() && it.hiddenGroups == setOf("Gym") }
+
+            viewModel.refreshFeed()
+
+            withContext(Dispatchers.Default) {
+                withTimeout(VERIFY_TIMEOUT_MS) {
+                    while (true) {
+                        val asked = runCatching { coVerify { subscriptionFeedRepository.planAllRefresh(true) } }
+                        if (asked.isSuccess) break
+                        delay(20)
+                    }
+                }
+            }
+            coVerify(exactly = 0) { subscriptionFeedRepository.planRefresh(true, any()) }
         }
 
     private fun stallRefresh(subscriptions: MutableStateFlow<List<ChannelSubscription>>): CompletableDeferred<Unit> {
         val started = CompletableDeferred<Unit>()
         val plan = SubscriptionRefreshPlan(subscriptions.value.map { it.channelId }, isFullRefresh = true)
         coEvery { subscriptionRepository.getAllSubscriptions() } returns subscriptions
-        coEvery { subscriptionFeedRepository.planRefresh(false, null) } returns plan
+        coEvery { subscriptionFeedRepository.planAllRefresh(false) } returns plan
         coEvery { subscriptionFeedRepository.refresh(plan) } returns
             flow {
                 started.complete(Unit)

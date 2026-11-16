@@ -621,6 +621,10 @@
     <string name="delete_group">Delete Group</string>
     <string name="group_name_label">Group name</string>
     <string name="no_groups_yet">No groups yet. Create one to filter your feed.</string>
+    <string name="group_hide">Hide group</string>
+    <string name="group_unhide">Show group</string>
+    <string name="group_show_in_all">Show in All</string>
+    <string name="group_show_in_all_hidden">Hidden groups stay out of All</string>
     <string name="search_channels_hint">Search channels…</string>
     <string name="toggle_view_mode">Toggle View Mode</string>
     <string name="unsubscribed_from_template">Unsubscribed from %1$s</string>

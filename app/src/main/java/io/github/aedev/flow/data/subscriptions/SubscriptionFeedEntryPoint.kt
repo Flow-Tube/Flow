@@ -33,7 +33,7 @@ suspend fun refreshSubscriptionsAtStartup(context: Context) {
 
     withContext(PerformanceDispatcher.networkIO) {
         runCatching {
-            val plan = repository.planRefresh(force = false)
+            val plan = repository.planAllRefresh(force = false)
             if (plan.isEmpty) return@runCatching
             repository.refresh(plan).collect { }
         }

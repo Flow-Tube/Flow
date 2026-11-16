@@ -19,12 +19,16 @@ class SubscriptionGroupSelectionTest {
         groups: List<SubscriptionGroup> = listOf(tech, music),
         selected: String? = null,
         channels: List<String> = subscribed,
+        hidden: Set<String> = emptySet(),
+        outOfAll: Set<String> = emptySet(),
     ) = SubscriptionsUiState(
         subscribedChannels = channels.map(::channel),
         groups = groups,
         selectedGroupName = selected,
         ungroupedEnabled = enabled,
         ungroupedPosition = position,
+        hiddenGroups = hidden,
+        groupsOutOfAll = outOfAll,
     )
 
     @Test
@@ -65,5 +69,26 @@ class SubscriptionGroupSelectionTest {
     fun `a named group keeps its own channels`() {
         assertThat(state(selected = "Tech").selectedGroupScope()).containsExactly("UCa", "UCb")
         assertThat(state(selected = "Gone").selectedGroupScope()).isNull()
+    }
+
+    @Test
+    fun `a hidden group has no chip but stays in Manage groups (1387)`() {
+        val hidden = state(hidden = setOf("Tech"))
+        assertThat(hidden.groupChips().map { it.name }).containsExactly("Music", UNGROUPED_GROUP_KEY).inOrder()
+        assertThat(hidden.managedGroups().map { it.name }).contains("Tech")
+    }
+
+    @Test
+    fun `All leaves out hidden and out-of-All groups, a group chip still shows its own`() {
+        assertThat(state(hidden = setOf("Tech")).selectedGroupScope()).containsExactly("UCc", "UCd", "UCe")
+        assertThat(state(outOfAll = setOf("Music")).selectedGroupScope()).containsExactly("UCa", "UCb", "UCd", "UCe")
+        assertThat(state(outOfAll = setOf("Music"), selected = "Music").selectedGroupScope()).containsExactly("UCc")
+    }
+
+    @Test
+    fun `a selected group that gets hidden falls back to All`() {
+        val hidden = state(selected = "Tech", hidden = setOf("Tech"))
+        assertThat(hidden.selectedChip()).isNull()
+        assertThat(hidden.selectedGroupScope()).containsExactly("UCc", "UCd", "UCe")
     }
 }

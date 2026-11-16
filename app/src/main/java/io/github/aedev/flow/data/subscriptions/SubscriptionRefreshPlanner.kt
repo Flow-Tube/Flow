@@ -56,6 +56,22 @@ object SubscriptionRefreshPlanner {
         )
     }
 
+    /**
+     * [plan] over the channels the All chip shows, [shown], or every subscription when it is null.
+     * The rows of channels left out are kept; they age out of the feed window on their own.
+     */
+    fun planForAll(
+        subscriptions: List<ChannelSubscription>,
+        shown: Set<String>?,
+        now: Long,
+        force: Boolean = false,
+    ): SubscriptionRefreshPlan =
+        plan(
+            subscriptions = if (shown == null) subscriptions else subscriptions.filter { it.channelId in shown },
+            now = now,
+            force = force,
+        )
+
     fun plan(
         subscriptions: List<ChannelSubscription>,
         now: Long,

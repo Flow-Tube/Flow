@@ -8,9 +8,11 @@ import io.github.aedev.flow.data.local.AppDatabase
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.local.dao.CacheDao
+import io.github.aedev.flow.data.local.dao.SubscriptionGroupDao
 import io.github.aedev.flow.data.local.entity.SubscriptionFeedEntity
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
+import io.github.aedev.flow.data.model.toUiModel
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedMerger.preservingEnrichedMetadata
 import io.github.aedev.flow.di.ProfileDb
 import io.github.aedev.flow.utils.PerformanceDispatcher
@@ -58,6 +60,7 @@ class SubscriptionFeedRepository
         @ProfileDb private val database: AppDatabase,
         private val playerPreferences: PlayerPreferences,
         private val collabIndex: ChannelCollabIndex,
+        private val subscriptionGroupDao: SubscriptionGroupDao,
     ) {
         /**
          * Guards against overlapping refreshes; the screen, the startup pass and the worker can all
@@ -104,6 +107,19 @@ class SubscriptionFeedRepository
             } else {
                 SubscriptionRefreshPlanner.planForGroup(subscriptions, scope, now, force)
             }
+        }
+
+        /** [planRefresh] for the All chip: the channels of hidden groups and of groups kept out of All are skipped (#1387). */
+        suspend fun planAllRefresh(force: Boolean): SubscriptionRefreshPlan {
+            val subscriptions = subscriptionRepository.getAllSubscriptions().first()
+            val shown =
+                allChipScope(
+                    subscribedIds = subscriptions.map { it.channelId },
+                    groups = subscriptionGroupDao.getAllGroupsOnce().map { it.toUiModel() },
+                    hiddenGroups = playerPreferences.subscriptionHiddenGroups.first(),
+                    groupsOutOfAll = playerPreferences.subscriptionGroupsOutOfAll.first(),
+                )
+            return SubscriptionRefreshPlanner.planForAll(subscriptions, shown, System.currentTimeMillis(), force)
         }
 
         /**

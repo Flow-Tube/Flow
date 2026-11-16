@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.local.ChannelSubscription
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.SubscriptionGroup
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.subscriptions.allChipScope
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 
 enum class SubscriptionSortMode {
@@ -79,6 +80,10 @@ data class SubscriptionsUiState(
     val ungroupedEnabled: Boolean = false,
     val ungroupedPosition: Int = UNGROUPED_LAST,
     val showPostsChip: Boolean = true,
+    /** Groups without a chip, left out of All and its refreshes (#1387). */
+    val hiddenGroups: Set<String> = emptySet(),
+    /** Groups with a chip whose channels All leaves out (#1387). */
+    val groupsOutOfAll: Set<String> = emptySet(),
     val pinnedChannelIds: List<String> = emptyList(),
     /** Channels with uploads the viewer hasn't seen, marked with a dot in Quick access (#1755). */
     val newUploadChannelIds: Set<String> = emptySet(),
@@ -100,8 +105,12 @@ data class SubscriptionsUiState(
     val failedChannelIds: Set<String> = emptySet(),
     val failedChannelReasons: Map<String, String> = emptyMap(),
 ) {
-    /** The selected group's channels, which scope its refreshes and reads; null for every subscription. */
-    fun selectedGroupScope(): Set<String>? = groupSelectionScope(selectedChip(), groups, subscribedChannels.map { it.id })
+    /** The selected chip's channels, which scope its refreshes and reads; null for every subscription. */
+    fun selectedGroupScope(): Set<String>? {
+        val subscribedIds = subscribedChannels.map { it.id }
+        val chip = selectedChip() ?: return allChipScope(subscribedIds, groups, hiddenGroups, groupsOutOfAll)
+        return groupSelectionScope(chip, groups, subscribedIds)
+    }
 
     /** The selected chip, or null for All when the stored selection has no chip, like a switched-off Ungrouped. */
     fun selectedChip(chips: List<SubscriptionGroup> = groupChips()): String? {
@@ -117,8 +126,9 @@ data class SubscriptionsUiState(
             groups
         }
 
-    /** The group chips: [managedGroups] without an Ungrouped that would show nothing. */
-    fun groupChips(): List<SubscriptionGroup> = managedGroups().filterNot { it.isUngrouped() && it.channelIds.isEmpty() }
+    /** The group chips: [managedGroups] without the hidden groups or an Ungrouped that would show nothing. */
+    fun groupChips(): List<SubscriptionGroup> =
+        managedGroups().filterNot { it.name in hiddenGroups || (it.isUngrouped() && it.channelIds.isEmpty()) }
 
     /** Display names for [failedChannelIds], falling back to the raw id for an unknown channel. */
     val failedChannelNames: List<String>

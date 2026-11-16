@@ -22,18 +22,27 @@ internal class SubscriptionGroupEditor(
     fun create(
         name: String,
         channelIds: List<String>,
+        inAll: Boolean,
     ) {
-        scope.launch(PerformanceDispatcher.diskIO) { dao.appendGroup(name, channelIds) }
+        scope.launch(PerformanceDispatcher.diskIO) {
+            dao.appendGroup(name, channelIds)
+            preferences.moveSubscriptionGroupFlags(name, null)
+            if (!inAll) preferences.setSubscriptionGroupInAll(name, false)
+        }
     }
 
     fun update(
         oldName: String,
         newName: String,
         channelIds: List<String>,
+        inAll: Boolean,
     ) {
         scope.launch(PerformanceDispatcher.diskIO) {
             val edited = dao.editGroup(oldName, newName, channelIds)
-            if (edited && selectedGroup() == oldName) {
+            if (!edited) return@launch
+            if (newName != oldName) preferences.moveSubscriptionGroupFlags(oldName, newName)
+            preferences.setSubscriptionGroupInAll(newName, inAll)
+            if (selectedGroup() == oldName) {
                 onSelectedRenamed(newName)
                 preferences.setSelectedSubscriptionGroup(newName)
             }
@@ -43,8 +52,16 @@ internal class SubscriptionGroupEditor(
     fun delete(name: String) {
         scope.launch(PerformanceDispatcher.diskIO) {
             dao.deleteGroup(name)
+            preferences.moveSubscriptionGroupFlags(name, null)
             if (selectedGroup() == name) onSelectedDeleted()
         }
+    }
+
+    fun setHidden(
+        name: String,
+        hidden: Boolean,
+    ) {
+        scope.launch(PerformanceDispatcher.diskIO) { preferences.setSubscriptionGroupHidden(name, hidden) }
     }
 
     /** Saves [names] as the group order and Ungrouped's place in it; each save is a whole order, so saves are kept in sequence. */
