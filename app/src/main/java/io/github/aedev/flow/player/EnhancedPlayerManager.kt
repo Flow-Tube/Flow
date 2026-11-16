@@ -1025,6 +1025,7 @@ class EnhancedPlayerManager private constructor() {
                     reason: Int,
                 ) {
                     if (reason == Player.DISCONTINUITY_REASON_SEEK) _seekEvent.tryEmit(Unit)
+                    if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) emitCompletionOnAdvance(oldPosition)
                 }
 
                 override fun onRenderedFirstFrame() {
@@ -1942,6 +1943,16 @@ class EnhancedPlayerManager private constructor() {
         val durationMs = exoPlayer.duration.takeIf { it > 0L && it != C.TIME_UNSET } ?: return
         // A refocus glitch can report ENDED near the start; only a position at the end counts.
         if (!PlaybackResumePolicy.shouldRestartCompletedPlayback(exoPlayer.currentPosition, durationMs)) return
+        _playbackCompletedEvent.tryEmit(PlaybackCompletion(videoId, durationMs))
+    }
+
+    // The preloaded next video shares the timeline, so the one that finished never reports ENDED.
+    private fun emitCompletionOnAdvance(old: Player.PositionInfo) {
+        val videoId = currentVideoId ?: return
+        val timeline = player?.currentTimeline ?: return
+        if (old.mediaItemIndex !in 0 until timeline.windowCount) return
+        val windowDurationMs = timeline.getWindow(old.mediaItemIndex, Timeline.Window()).durationMs
+        val durationMs = PlaybackResumePolicy.finishedDurationOnAdvance(windowDurationMs, old.positionMs) ?: return
         _playbackCompletedEvent.tryEmit(PlaybackCompletion(videoId, durationMs))
     }
 
