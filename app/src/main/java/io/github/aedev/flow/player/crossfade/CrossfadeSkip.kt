@@ -23,8 +23,8 @@ internal data class SkipTarget(
 /**
  * A song the user skips away from has no tail waiting, so one is built from where the song is. A skip
  * from inside the app ([skipTo]) can wait for it: the session goes on playing the old song while the
- * tail starts muted, and changes song once the tail is playing, so the old song never goes quiet. This
- * runs with crossfade off too, as a [CrossfadePolicy.SKIP_BLEND_MS] overlap. A skip from the notification
+ * tail starts muted, and changes song once the tail plays level with it, so the old song never goes quiet
+ * or repeats. This runs with crossfade off too, as a [CrossfadePolicy.SKIP_BLEND_MS] overlap. A skip from the notification
  * or a headset has already changed the song by the time it gets here ([beginSkipFade]), so it only gets a
  * tail while the settings ask for a fade, and the next song stays muted until the tail plays. Either way
  * the fade runs once both are playing, on the [MusicCrossfader] that owns this. A next song still loading
@@ -93,7 +93,18 @@ internal class CrossfadeSkip(
     private var easeFrom = 0f
     private var easeBeganAtMs = 0L
     private var skipPressedAtMs = 0L
-    private var skipLeadMs = DEFAULT_SKIP_LEAD_MS
+    private var skipLeadMs = CrossfadePolicy.DEFAULT_SKIP_LEAD_MS
+    private var reseekLeadMs = CrossfadePolicy.DEFAULT_SKIP_RESEEK_LEAD_MS
+    private var tailSeeks = 0
+    private var sessionAnchor = PositionAnchor()
+    private var tailAnchor = PositionAnchor()
+    private var measuringSinceMs = 0L
+
+    /** Where the tail was told to start, when it starts exactly there rather than at a sync point. */
+    private var tailStartMs: Long? = null
+
+    /** The wall-clock moment the tail's audio began, once it has. */
+    private var tailPlayoutAtMs: Long? = null
     private var skippedId: String? = null
     private var overlapMs = 0L
     private var waitingSinceMs = 0L
@@ -105,11 +116,12 @@ internal class CrossfadeSkip(
             override fun onAudioPositionAdvancing(
                 eventTime: AnalyticsListener.EventTime,
                 playoutStartSystemTimeMs: Long,
-            ) = skipTailPlaying()
+            ) = skipTailPlaying(playoutStartSystemTimeMs)
         }
 
     private val easeStep = Runnable { ease() }
     private val lateSongStep = Runnable { nextSongLate() }
+    private val lineUpStep = Runnable { lineUpTail() }
     private val skipTimeoutStep = Runnable { if (host.stage == CrossfadeStage.SKIP_STARTING) skipTailOutOfTime() }
     private val queueTimeoutStep = Runnable { if (awaitingQueue) host.abort("the new queue never came") }
 
@@ -142,6 +154,7 @@ internal class CrossfadeSkip(
         handler.removeCallbacks(easeStep)
         handler.removeCallbacks(skipTimeoutStep)
         handler.removeCallbacks(lateSongStep)
+        handler.removeCallbacks(lineUpStep)
     }
 
     /**
@@ -298,18 +311,29 @@ internal class CrossfadeSkip(
         tailVolume: Float,
     ) {
         skipPressedAtMs = SystemClock.elapsedRealtime()
+        tailSeeks = 0
+        val held = heldTarget != null || queueHold != null
+        val atSyncPoint = CrossfadePolicy.tailStartsAtSyncPoint(host.settings, held)
+        tailStartMs = resumeAt.takeUnless { atSyncPoint }
+        tailPlayoutAtMs = null
         val clockMs = CrossfadePolicy.skipClockMs(host.settings, resumeAt, durationMs, session.playbackParameters.speed)
         skippedId = item.mediaId
         overlapMs = clockMs
         host.startSkipTail(item.mediaId, gain, clockMs) {
             volume = tailVolume
             addAnalyticsListener(skipTailListener)
-            if (CrossfadePolicy.tailStartsAtSyncPoint(host.settings, heldTarget != null || queueHold != null)) startAtSyncPoint(resumeAt)
+            if (atSyncPoint) startAtSyncPoint(resumeAt)
             setMediaItem(item, resumeAt)
             playWhenReady = true
             prepare()
         }
         handler.postDelayed(skipTimeoutStep, SKIP_START_TIMEOUT_MS)
+        if (held) {
+            // The session reports its position in coarse steps, so it is read from the press on to be settled by the time the tail plays.
+            sessionAnchor = PositionAnchor()
+            handler.removeCallbacks(lineUpStep)
+            handler.post(lineUpStep)
+        }
     }
 
     /**
@@ -331,7 +355,7 @@ internal class CrossfadeSkip(
 
     private fun skipTailOutOfTime() {
         if (host.tail?.isPlaying == true) {
-            skipTailPlaying()
+            handOffSkip()
             return
         }
         if (queueHold != null) {
@@ -352,16 +376,79 @@ internal class CrossfadeSkip(
         host.fadeNextSongIn("the tail took too long after a skip", index)
     }
 
-    private fun skipTailPlaying() {
+    private fun skipTailPlaying(playoutAtMs: Long) {
         if (host.stage != CrossfadeStage.SKIP_STARTING) return
         val waited = SystemClock.elapsedRealtime() - skipPressedAtMs
-        skipLeadMs = CrossfadePolicy.learnedHeadStartMs(skipLeadMs, skipLeadMs - waited)
-        val apart = (host.tail?.currentPosition ?: 0L) - session.currentPosition
-        Log.d(
-            CROSSFADE_TAG,
-            "skipped $skippedId, its tail played after ${waited}ms, ${apart}ms from the session, fading over ${overlapMs}ms",
-        )
+        Log.d(CROSSFADE_TAG, "skipped $skippedId, its tail played after ${waited}ms (seek $tailSeeks), fading over ${overlapMs}ms")
+        // Only a session still playing the old song can be lined up with; one already on the next song has gone quiet.
+        if (heldTarget == null && queueHold == null) {
+            handOffSkip()
+            return
+        }
+        tailPlayoutAtMs = playoutAtMs
+        tailAnchor = PositionAnchor()
+        measuringSinceMs = SystemClock.elapsedRealtime()
+        handler.removeCallbacks(lineUpStep)
+        handler.post(lineUpStep)
+    }
+
+    /**
+     * Reads how far the tail is from the session, once both readings can be trusted: the tail's from where
+     * it started and when its audio began, or from its own position when it began at a sync point.
+     */
+    private fun lineUpTail() {
+        if (host.stage != CrossfadeStage.SKIP_STARTING) return
+        val tail = host.tail ?: return
+        val now = SystemClock.elapsedRealtime()
+        val speed = session.playbackParameters.speed
+        val sessionMs = sessionAnchor.estimate(session.currentPosition, now, speed)
+        val playoutAt = tailPlayoutAtMs
+        if (playoutAt == null) {
+            handler.postDelayed(lineUpStep, LINE_UP_STEP_MS)
+            return
+        }
+        val startedAt = tailStartMs
+        val tailMs =
+            if (startedAt != null) {
+                startedAt + ((System.currentTimeMillis() - playoutAt) * speed).toLong()
+            } else {
+                tailAnchor.estimate(tail.currentPosition, now, speed)
+            }
+        val settled = sessionAnchor.anchored && (startedAt != null || tailAnchor.anchored)
+        if (!settled && now - measuringSinceMs < MAX_MEASURE_MS) {
+            handler.postDelayed(lineUpStep, LINE_UP_STEP_MS)
+            return
+        }
+        val apart = tailMs - sessionMs
+        if (tailSeeks == 0) {
+            skipLeadMs = CrossfadePolicy.learnedSkipLeadMs(skipLeadMs, apart)
+        } else {
+            reseekLeadMs = CrossfadePolicy.learnedSkipLeadMs(reseekLeadMs, apart)
+        }
+        if (CrossfadePolicy.skipTailLevel(apart, canSeek = tailSeeks < MAX_TAIL_SEEKS)) {
+            Log.d(CROSSFADE_TAG, "handing $skippedId off to its tail ${apart}ms from the session")
+            handOffSkip()
+            return
+        }
+        Log.d(CROSSFADE_TAG, "the tail of $skippedId is ${apart}ms from the session, seeking it")
+        val seekTo = sessionMs + (reseekLeadMs * speed).toLong()
+        tailSeeks++
+        skipPressedAtMs = now
+        tailStartMs = seekTo
+        tailPlayoutAtMs = null
         handler.removeCallbacks(skipTimeoutStep)
+        handler.postDelayed(skipTimeoutStep, SKIP_START_TIMEOUT_MS)
+        // A sync point could land the tail off the session again.
+        tail.setSeekParameters(SeekParameters.EXACT)
+        tail.seekTo(seekTo)
+        handler.postDelayed(lineUpStep, LINE_UP_STEP_MS)
+    }
+
+    /** The old song moves to its tail, and the session goes where the skip was going. */
+    private fun handOffSkip() {
+        if (host.stage != CrossfadeStage.SKIP_STARTING) return
+        handler.removeCallbacks(skipTimeoutStep)
+        handler.removeCallbacks(lineUpStep)
         queueHold?.let { answer ->
             queueHold = null
             host.restoreTailGain()
@@ -464,8 +551,10 @@ internal class CrossfadeSkip(
     }
 
     private companion object {
-        const val DEFAULT_SKIP_LEAD_MS = 400L
         const val SKIP_START_TIMEOUT_MS = 1_500L
+        const val MAX_TAIL_SEEKS = 2
+        const val LINE_UP_STEP_MS = 10L
+        const val MAX_MEASURE_MS = 400L
 
         /** How long a muted session waits for the app to hand it the new queue before the old song comes back. */
         const val QUEUE_TIMEOUT_MS = 2_500L
