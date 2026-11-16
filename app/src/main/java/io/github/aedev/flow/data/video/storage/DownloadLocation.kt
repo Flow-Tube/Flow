@@ -57,6 +57,22 @@ fun resolveDownloadDestination(
 }
 
 /**
+ * The picked folder Flow can no longer open, as after a reinstall: the saved location comes back
+ * with the settings backup, but Android drops the folder's grant. Null when every picked folder can
+ * still be used, or when All files access reaches the folder through its path anyway.
+ */
+fun lostDownloadTree(
+    locations: List<DownloadLocation>,
+    grantedTrees: Set<String>,
+    hasAllFilesAccess: Boolean,
+): String? =
+    locations
+        .firstOrNull { location ->
+            val tree = location.treeUri
+            !tree.isNullOrBlank() && tree !in grantedTrees && !(hasAllFilesAccess && !location.path.isNullOrBlank())
+        }?.treeUri
+
+/**
  * The file-system path behind a storage provider document id such as `primary:Movies/Flow`, or
  * null when the id does not name a place on a storage volume.
  */

@@ -663,6 +663,9 @@
     <string name="downloads_recover_body">Flow saves downloads in Download/Flow and Music/Flow. To list the files an earlier install saved there, allow access to videos and audio.</string>
     <string name="downloads_recover_allow">Allow access</string>
     <string name="downloads_recover_dismiss">Not now</string>
+    <string name="downloads_folder_lost_title">Choose your download folder again</string>
+    <string name="downloads_folder_lost_body">Flow lost access to the folder you picked for downloads, as happens after a reinstall. Choose it again to find your earlier downloads and keep saving there.</string>
+    <string name="downloads_folder_lost_choose">Choose folder</string>
     <plurals name="downloads_recovered_count">
         <item quantity="one">Found %d download from an earlier install</item>
         <item quantity="other">Found %d downloads from an earlier install</item>
