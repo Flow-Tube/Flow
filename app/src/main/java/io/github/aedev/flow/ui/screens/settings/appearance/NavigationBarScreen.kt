@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Slideshow
 import androidx.compose.material.icons.outlined.Swipe
@@ -49,6 +50,7 @@ internal fun NavigationBarScreen(
     val scrub by viewModel.navScrub.collectAsStateWithLifecycle()
     val iconPop by viewModel.navIconPop.collectAsStateWithLifecycle()
     val scroll by viewModel.navScroll.collectAsStateWithLifecycle()
+    val miniBeside by viewModel.navMiniBeside.collectAsStateWithLifecycle()
     val searchShowsBar by viewModel.searchShowsNavBar.collectAsStateWithLifecycle()
     val innerPagesShowBar by viewModel.innerPagesShowNavBar.collectAsStateWithLifecycle()
     val order by viewModel.navTabOrder.collectAsStateWithLifecycle()
@@ -92,6 +94,15 @@ internal fun NavigationBarScreen(
                     viewModel::setNavScroll,
                     enabled = hideOnScroll,
                 )
+                if (scroll == NavBarScroll.SHRINK) {
+                    switch(
+                        NavigationBarIndex.miniBeside,
+                        miniBeside,
+                        viewModel::setNavMiniBeside,
+                        enabled = hideOnScroll,
+                        icon = Icons.Outlined.PictureInPictureAlt,
+                    )
+                }
                 switch(NavigationBarIndex.scrub, scrub, viewModel::setNavScrub, icon = Icons.Outlined.Swipe)
                 switch(NavigationBarIndex.iconPop, iconPop, viewModel::setNavIconPop, icon = Icons.Outlined.Animation)
             }

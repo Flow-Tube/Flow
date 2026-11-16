@@ -109,6 +109,7 @@ internal fun VideoBackgroundBar(
     containerWidthPx: Float,
     containerHeightPx: Float,
     restingBottomPx: () -> Float,
+    dockShiftPx: () -> Float,
     onRestore: (videoWindowBounds: Rect) -> Unit,
     onClose: () -> Unit,
     onOpenQueue: () -> Unit,
@@ -151,11 +152,13 @@ internal fun VideoBackgroundBar(
         )
 
     val restingTop = { containerHeightPx - restingBottomPx() - spacerPx - heightPx }
+    val barStart = { bounds.start + dockShiftPx() }
+    val barWidth = { (bounds.width - dockShiftPx()).coerceAtLeast(0f) }
     val frameAt = { fraction: Float ->
         val top = restingTop()
         backgroundBarExpandFrame(
             fraction = fraction,
-            bar = Rect(bounds.start, top, bounds.start + bounds.width, top + heightPx),
+            bar = Rect(barStart(), top, barStart() + barWidth(), top + heightPx),
             containerWidth = containerWidthPx,
             containerHeight = containerHeightPx,
             statusBarHeight = statusBarPx,
@@ -200,11 +203,15 @@ internal fun VideoBackgroundBar(
     Box(
         modifier =
             Modifier
-                .offset { IntOffset(bounds.start.roundToInt(), restingTop().roundToInt()) }
-                .size(with(density) { bounds.width.toDp() }, MediaMiniBarDefaults.Height)
-                .onPlaced { coordinates ->
+                .offset { IntOffset(barStart().roundToInt(), restingTop().roundToInt()) }
+                .layout { measurable, _ ->
+                    val width = barWidth().roundToInt()
+                    val height = heightPx.roundToInt()
+                    val placeable = measurable.measure(Constraints.fixed(width, height))
+                    layout(width, height) { placeable.place(0, 0) }
+                }.onPlaced { coordinates ->
                     val position = coordinates.positionInWindow()
-                    containerOrigin[0] = position.x - bounds.start
+                    containerOrigin[0] = position.x - barStart()
                     containerOrigin[1] = position.y - restingTop()
                 }.mediaMiniBarSwipe(enabled = true, handler = swipeHandler)
                 .pointerInput(Unit) {
@@ -283,7 +290,7 @@ internal fun VideoBackgroundBar(
                         layout(constraints.maxWidth, constraints.maxHeight) {
                             val top = restingTop()
                             placeable.place(
-                                (current.card.left - bounds.start).roundToInt(),
+                                (current.card.left - barStart()).roundToInt(),
                                 (current.card.top - top).roundToInt(),
                             )
                         }
@@ -317,7 +324,7 @@ internal fun VideoBackgroundBar(
                 isBuffering = playerState.isBuffering,
                 hasQueue = hasQueue,
                 onOpenQueue = onOpenQueue,
-                barWidthPx = bounds.width,
+                barWidthPx = barWidth,
                 barHeightPx = heightPx,
                 frame = frame,
             )
@@ -332,7 +339,7 @@ private fun BackgroundBarContent(
     isBuffering: Boolean,
     hasQueue: Boolean,
     onOpenQueue: () -> Unit,
-    barWidthPx: Float,
+    barWidthPx: () -> Float,
     barHeightPx: Float,
     frame: () -> BackgroundBarExpandFrame,
 ) {
@@ -340,7 +347,7 @@ private fun BackgroundBarContent(
     Box(
         modifier =
             Modifier.layout { measurable, _ ->
-                val placeable = measurable.measure(Constraints.fixed(barWidthPx.roundToInt(), barHeightPx.roundToInt()))
+                val placeable = measurable.measure(Constraints.fixed(barWidthPx().roundToInt(), barHeightPx.roundToInt()))
                 layout(placeable.width, placeable.height) { placeable.place(0, 0) }
             },
     ) {

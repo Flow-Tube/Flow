@@ -27,9 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,6 +62,7 @@ internal fun RemoteMiniBar(
     bounds: MediaMiniBarBounds,
     containerHeightPx: Float,
     restingBottomPx: () -> Float,
+    dockShiftPx: () -> Float,
 ) {
     val playOn = LocalPlayOn.current ?: return
     val elsewhere by playOn.elsewhere.collectAsStateWithLifecycle()
@@ -68,14 +71,21 @@ internal fun RemoteMiniBar(
     val other = offered
     when {
         driven != null -> {
-            RemoteBarFrame(bounds, containerHeightPx, restingBottomPx, onClick = { playOn.open.value = true }) {
+            RemoteBarFrame(bounds, containerHeightPx, restingBottomPx, dockShiftPx, onClick = { playOn.open.value = true }) {
                 DrivenContent(playOn, driven)
             }
         }
 
         other != null -> {
             val label = stringResource(R.string.play_on_control_device, other.name)
-            RemoteBarFrame(bounds, containerHeightPx, restingBottomPx, onClick = { playOn.drive(other) }, onClickLabel = label) {
+            RemoteBarFrame(
+                bounds,
+                containerHeightPx,
+                restingBottomPx,
+                dockShiftPx,
+                onClick = { playOn.drive(other) },
+                onClickLabel = label,
+            ) {
                 OfferedContent(playOn, other)
             }
         }
@@ -87,6 +97,7 @@ private fun RemoteBarFrame(
     bounds: MediaMiniBarBounds,
     containerHeightPx: Float,
     restingBottomPx: () -> Float,
+    dockShiftPx: () -> Float,
     onClick: () -> Unit,
     onClickLabel: String? = null,
     content: @Composable RowScope.() -> Unit,
@@ -99,9 +110,17 @@ private fun RemoteBarFrame(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier =
             Modifier
-                .offset { IntOffset(bounds.start.roundToInt(), (containerHeightPx - restingBottomPx() - spacerPx - heightPx).roundToInt()) }
-                .size(with(density) { bounds.width.toDp() }, MediaMiniBarDefaults.Height)
-                .clickable(onClickLabel = onClickLabel, onClick = onClick),
+                .offset {
+                    IntOffset(
+                        (bounds.start + dockShiftPx()).roundToInt(),
+                        (containerHeightPx - restingBottomPx() - spacerPx - heightPx).roundToInt(),
+                    )
+                }.layout { measurable, _ ->
+                    val width = (bounds.width - dockShiftPx()).roundToInt().coerceAtLeast(0)
+                    val height = heightPx.roundToInt()
+                    val placeable = measurable.measure(Constraints.fixed(width, height))
+                    layout(width, height) { placeable.place(0, 0) }
+                }.clickable(onClickLabel = onClickLabel, onClick = onClick),
     ) {
         Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, content = content)
     }

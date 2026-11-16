@@ -261,6 +261,16 @@ internal object NavigationBarIndex {
             destination = page,
             revealVia = style.key,
         )
+    val miniBeside =
+        SettingEntry(
+            key = "navigation_bar.mini_beside",
+            title = R.string.settings_nav_mini_beside_title,
+            summary = R.string.settings_nav_mini_beside_summary,
+            keywords = R.string.settings_keywords_nav_style,
+            section = R.string.settings_section_style,
+            destination = page,
+            revealVia = style.key,
+        )
     val scrub =
         SettingEntry(
             key = "navigation_bar.scrub",
@@ -304,6 +314,7 @@ internal object NavigationBarIndex {
             style,
             labels,
             scroll,
+            miniBeside,
             scrub,
             iconPop,
             home,

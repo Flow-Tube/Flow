@@ -25,6 +25,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.aedev.flow.MainActivity
 import io.github.aedev.flow.data.local.NavBarLook
+import io.github.aedev.flow.data.local.NavBarScroll
+import io.github.aedev.flow.data.local.NavBarStyle
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.profile.PendingSlice
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
@@ -369,6 +371,8 @@ fun FlowApp(
                 containerWidthPx = constraints.maxWidth.toFloat(),
                 railWidth = if (usesNavigationRail && isNavigationRailVisible) navigationRailWidth else 0.dp,
                 navScrollState = navScrollState,
+                miniPlayerBesideShrunkBar =
+                    bottomNavLook.style == NavBarStyle.FLOATING && bottomNavLook.scroll == NavBarScroll.SHRINK && bottomNavLook.miniBeside,
             )
         FlowNavigationChrome(
             tabs = navigationTabs,

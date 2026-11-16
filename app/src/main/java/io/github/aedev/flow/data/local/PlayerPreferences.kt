@@ -187,6 +187,7 @@ class PlayerPreferences(
         val BOTTOM_NAV_SCRUB = booleanPreferencesKey("bottom_nav_scrub")
         val BOTTOM_NAV_ICON_POP = booleanPreferencesKey("bottom_nav_icon_pop")
         val BOTTOM_NAV_SCROLL = stringPreferencesKey("bottom_nav_scroll")
+        val BOTTOM_NAV_MINI_BESIDE = booleanPreferencesKey("bottom_nav_mini_beside")
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
         val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
@@ -1738,6 +1739,18 @@ class PlayerPreferences(
         }
     }
 
+    // Beside the shrunk floating bar, the mini player drops into the bar's row.
+    val bottomNavMiniBeside: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.BOTTOM_NAV_MINI_BESIDE] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setBottomNavMiniBeside(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_MINI_BESIDE] = enabled
+        }
+    }
+
     val bottomNavLook: Flow<NavBarLook> =
         combine(
             bottomNavStyle,
@@ -1747,7 +1760,8 @@ class PlayerPreferences(
             bottomNavScroll,
         ) { style, labels, scrub, iconPop, scroll ->
             NavBarLook(style, labels, scrub, iconPop, scroll)
-        }.distinctUntilChanged()
+        }.combine(bottomNavMiniBeside) { look, miniBeside -> look.copy(miniBeside = miniBeside) }
+            .distinctUntilChanged()
 
     // Search keeps its full-screen layout unless this is on.
     val searchShowsNavBar: Flow<Boolean> =
@@ -5737,6 +5751,7 @@ data class NavBarLook(
     val scrub: Boolean = true,
     val iconPop: Boolean = false,
     val scroll: NavBarScroll = NavBarScroll.SHRINK,
+    val miniBeside: Boolean = false,
 )
 
 /** What scrolling does to the floating bar, when the bar reacts to scrolling at all. */

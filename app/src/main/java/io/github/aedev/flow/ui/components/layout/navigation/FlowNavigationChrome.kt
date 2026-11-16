@@ -48,6 +48,9 @@ object FlowNavigationDefaults {
      * container. The bar reports its real height, which grows past this at large font scales.
      */
     val BarHeight: Dp = 64.dp
+
+    /** One tab of the floating bar; shrunk, the bar is this plus the toolbar's side padding. */
+    val FloatingItemSize: Dp = FloatingNavItemHeight
 }
 
 /**

@@ -93,6 +93,7 @@ internal fun UnifiedMusicPlayerSheet(
     containerHeight: Dp,
     miniBounds: MediaMiniBarBounds,
     restingBottomPx: () -> Float,
+    miniDockShiftPx: () -> Float,
     track: MusicTrack,
     swipeLeftAction: MiniBarSwipeAction,
     swipeRightAction: MiniBarSwipeAction,
@@ -209,6 +210,7 @@ internal fun UnifiedMusicPlayerSheet(
             miniHeightPx = miniHeightPx,
             containerWidthPx = containerWidthPx,
             miniBounds = miniBounds,
+            dockShiftPx = miniDockShiftPx,
             collapsedRadiusPx = with(density) { MediaMiniBarDefaults.CornerRadius.toPx() },
         )
     val cardShape = remember(geometry) { MusicSheetDynamicShape(geometry::cornerRadiusPx) }

@@ -1,22 +1,30 @@
 package io.github.aedev.flow.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.layout.FlowBottomInsets
+import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationDefaults
 import io.github.aedev.flow.ui.components.layout.navigation.FlowNavigationScrollState
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarBounds
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.components.shared.mediaMiniBarBounds
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
 import io.github.aedev.flow.ui.utils.isMediumWidth
+import kotlinx.coroutines.flow.collectLatest
+
+private val DockGap = 8.dp
 
 /** What the shell draws over the bottom of every page, and where the collapsed mini bars rest across it. */
 internal data class FlowBottomChrome(
@@ -28,6 +36,7 @@ internal data class FlowBottomChrome(
  * The bottom chrome's insets, riding on the bar's and the mini player's own springs, and the mini bars'
  * span across a window [containerWidthPx] wide whose content starts after [railWidth].
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun rememberFlowBottomChrome(
     barPresent: Boolean,
@@ -38,6 +47,7 @@ internal fun rememberFlowBottomChrome(
     containerWidthPx: Float,
     railWidth: Dp,
     navScrollState: FlowNavigationScrollState,
+    miniPlayerBesideShrunkBar: Boolean,
 ): FlowBottomChrome {
     val density = LocalDensity.current
     val motionScheme = MaterialTheme.motionScheme
@@ -59,6 +69,12 @@ internal fun rememberFlowBottomChrome(
             animationSpec = motionScheme.defaultSpatialSpec(),
         )
     }
+    // Beside the shrunk bar, the mini player drops into the bar's row on the bar's own spring.
+    val dock = remember { Animatable(0f) }
+    LaunchedEffect(miniPlayerBesideShrunkBar, barPresent) {
+        snapshotFlow { miniPlayerBesideShrunkBar && barPresent && navScrollState.isCollapsed }
+            .collectLatest { docked -> dock.animateTo(if (docked) 1f else 0f, motionScheme.defaultSpatialSpec()) }
+    }
     val miniPlayerShownState = rememberUpdatedState(miniPlayerShown)
     val miniPlayerHeightState = rememberUpdatedState(MediaMiniBarDefaults.Height + MediaMiniBarDefaults.BottomSpacer)
     val miniBarBounds =
@@ -72,6 +88,13 @@ internal fun rememberFlowBottomChrome(
                 maxWidthPx = MediaMiniBarDefaults.MaxWidth.toPx(),
             )
         }
+    val shrunkBarEnd =
+        with(density) {
+            val toolbarPadding = FloatingToolbarDefaults.ContentPadding.calculateLeftPadding(LayoutDirection.Ltr)
+            (MediaMiniBarDefaults.CompactMargin + toolbarPadding * 2 + FlowNavigationDefaults.FloatingItemSize + DockGap).toPx()
+        }
+    val dockShiftState = rememberUpdatedState((shrunkBarEnd - miniBarBounds.start).coerceAtLeast(0f))
+    val dockedLiftState = rememberUpdatedState(FloatingToolbarDefaults.ScreenOffset - MediaMiniBarDefaults.BottomSpacer)
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val miniPlayerSpanState =
         rememberUpdatedState(
@@ -91,6 +114,9 @@ internal fun rememberFlowBottomChrome(
                 barFraction = { barFraction.value * (1f - navScrollState.hiddenFraction) },
                 miniPlayerFraction = { miniPlayerFraction.value },
                 miniPlayerSpanPx = miniPlayerSpanState,
+                miniPlayerDock = { dock.value },
+                miniPlayerDockShift = dockShiftState,
+                dockedLift = dockedLiftState,
             )
         }
     return FlowBottomChrome(insets, miniBarBounds)

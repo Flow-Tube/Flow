@@ -41,6 +41,9 @@ class FlowBottomInsets(
     private val barFraction: () -> Float,
     private val miniPlayerFraction: () -> Float,
     private val miniPlayerSpanPx: State<ClosedFloatingPointRange<Float>> = mutableStateOf(0f..Float.MAX_VALUE),
+    private val miniPlayerDock: () -> Float = { 0f },
+    private val miniPlayerDockShift: State<Float> = mutableStateOf(0f),
+    private val dockedLift: State<Dp> = mutableStateOf(0.dp),
 ) {
     /** Bottom space the settled chrome covers: gesture area, the bar when shown, the mini player when shown. */
     val contentBottom: Dp get() = systemInset.value + barBottom + if (miniPlayerShown.value) miniPlayerHeight.value else 0.dp
@@ -57,8 +60,20 @@ class FlowBottomInsets(
     /** What the settled bar and mini player add above the gesture area, for pages that pad that area themselves. */
     val chromeAboveSystem: Dp get() = contentBottom - systemInset.value
 
-    /** Px from the window's bottom edge to where the mini player rests right now, following the bar. */
-    fun miniPlayerBaselinePx(density: Density): Float = with(density) { systemInset.value.toPx() + barHeight.value.toPx() * barFraction() }
+    /**
+     * Px from the window's bottom edge to where the mini player rests right now, following the bar, or
+     * dropping into the floating bar's row while it sits beside the shrunk bar.
+     */
+    fun miniPlayerBaselinePx(density: Density): Float =
+        with(density) {
+            val system = systemInset.value.toPx()
+            val aboveBar = system + barHeight.value.toPx() * barFraction()
+            val inRow = system + dockedLift.value.toPx()
+            aboveBar + (inRow - aboveBar) * miniPlayerDock()
+        }
+
+    /** Px the mini player's start edge moves in, and its width shrinks, to sit beside the shrunk floating bar. */
+    fun miniPlayerDockShiftPx(): Float = miniPlayerDockShift.value * miniPlayerDock()
 
     /** Px from the window's bottom edge to the top of the chrome right now, for things that float above it. */
     fun floatingBottomPx(density: Density): Float =
