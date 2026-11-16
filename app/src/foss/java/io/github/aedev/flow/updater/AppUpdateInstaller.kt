@@ -2,6 +2,7 @@ package io.github.aedev.flow.updater
 
 import android.content.Intent
 import io.github.aedev.flow.data.update.AppRelease
+import io.github.aedev.flow.data.update.InstallPhase
 import io.github.aedev.flow.data.update.UpdateDownload
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,7 @@ import javax.inject.Singleton
 class AppUpdateInstaller
     @Inject
     constructor() {
-        val installFailed: StateFlow<Boolean> = MutableStateFlow(false)
+        val installPhase: StateFlow<InstallPhase> = MutableStateFlow(InstallPhase.Idle)
 
         val isAvailable: Boolean = false
 
@@ -29,7 +30,9 @@ class AppUpdateInstaller
 
         fun installPermissionIntent(): Intent = Intent()
 
-        suspend fun install(version: String): Boolean = false
+        suspend fun install(version: String) = Unit
+
+        fun reconcile() = Unit
 
         fun clean(keepVersion: String?) = Unit
     }

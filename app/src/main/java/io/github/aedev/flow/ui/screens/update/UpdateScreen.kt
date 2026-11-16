@@ -99,6 +99,7 @@ fun UpdateScreen(
                 actions = {
                     if (release != null) {
                         UpdateMenu(
+                            enabled = state.stage !is UpdateStage.Installing,
                             onSkip = {
                                 viewModel.skip()
                                 onClose()
@@ -222,12 +223,15 @@ private fun UpdateFailure.messageRes(): Int =
 
 @Composable
 private fun UpdateMenu(
+    enabled: Boolean,
     onSkip: () -> Unit,
     onOpenGitHub: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { open = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.more_options)) }
+        IconButton(onClick = { open = true }, enabled = enabled) {
+            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.more_options))
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.update_skip_version)) },
