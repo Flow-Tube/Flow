@@ -5661,4 +5661,17 @@
     <string name="ai_music_attribution_soul_summary">رخصة CC BY 4.0، مع تعديلات من Flow</string>
     <string name="ai_music_attribution_blocker_title">قائمة الموسيقى من Spotify AI Blocker</string>
     <string name="ai_music_attribution_blocker_summary">MIT, © CennoxX</string>
+    <string name="content_settings_hide_watched_suggestions_title">إخفاء الفيديوهات التي شاهدتها من الاقتراحات</string>
+    <string name="content_settings_hide_watched_suggestions_subtitle">أبقِها خارج «التالي» والتشغيل التلقائي</string>
+    <string name="settings_pause_video_muted_title">إيقاف الفيديو مؤقتًا عند كتم الصوت</string>
+    <string name="settings_nav_scroll_title">عند التمرير</string>
+    <string name="settings_nav_scroll_summary">إخفاء الشريط، أو تصغيره إلى علامة التبويب المفتوحة</string>
+    <string name="settings_nav_scroll_hide">إخفاء</string>
+    <string name="settings_nav_scroll_shrink">تصغير</string>
+    <string name="settings_nav_mini_beside_title">المشغّل المصغّر بجانب الفقاعة</string>
+    <string name="settings_nav_mini_beside_summary">أثناء تصغير الشريط، ينتقل المشغّل المصغّر إلى صفّه</string>
+    <string name="settings_nav_scrub_title">اسحب للتبديل بين علامات التبويب</string>
+    <string name="settings_nav_scrub_summary">مرّر إصبعك على الشريط العائم للتنقل بين علامات التبويب</string>
+    <string name="settings_nav_icon_pop_title">انبثاق الأيقونة</string>
+    <string name="settings_nav_icon_pop_summary">ترتد أيقونة علامة التبويب عند فتحها</string>
 </resources>
