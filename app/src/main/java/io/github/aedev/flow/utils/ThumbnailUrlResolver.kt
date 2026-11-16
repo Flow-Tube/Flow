@@ -58,6 +58,27 @@ object ThumbnailUrlResolver {
             ThumbnailQuality.OFF -> emptyList()
         }
 
+    /**
+     * YouTube's automatic middle frame (`2.jpg`, about half way in) in the viewer's tier, best first:
+     * a still from the video, never the uploader's thumbnail. Every video has `hq2`.
+     */
+    fun youtubeFrameCandidates(
+        videoId: String,
+        quality: ThumbnailQuality = ThumbnailQuality.HIGH,
+        portrait: Boolean = false,
+    ): List<String> {
+        val id = videoId.trim()
+        if (id.isEmpty() || LocalMediaIds.isLocal(id)) return emptyList()
+        val tiers =
+            when (quality) {
+                ThumbnailQuality.HIGH -> listOf("maxres2", "sd2", "hq2")
+                ThumbnailQuality.MEDIUM -> listOf("sd2", "hq2")
+                ThumbnailQuality.LOW -> if (portrait) listOf("hq2") else listOf("mq2", "hq2")
+                ThumbnailQuality.OFF -> emptyList()
+            }
+        return tiers.map { tier -> "https://i.ytimg.com/vi/$id/$tier.jpg" }
+    }
+
     /** A cover stored on the device: a download's saved thumbnail, or a MediaStore item. */
     fun isDeviceUri(url: String): Boolean = url.startsWith("file:") || url.startsWith("content:") || url.startsWith("/")
 
@@ -66,10 +87,18 @@ object ThumbnailUrlResolver {
         rawUrl: String?,
         quality: ThumbnailQuality = ThumbnailQuality.HIGH,
         portrait: Boolean = false,
+        youTubeFrames: Boolean = false,
     ): List<String> {
         val raw = rawUrl?.trim().orEmpty()
         val resolvedVideoId = resolveYoutubeThumbnailVideoId(videoId, raw)
-        val youtubeCandidates = youtubeThumbnailCandidates(resolvedVideoId, quality, portrait)
+        val youtubeCandidates =
+            if (youTubeFrames) {
+                // Live and upcoming videos have no frames yet; only they ever reach the last entry.
+                youtubeFrameCandidates(resolvedVideoId, quality, portrait) +
+                    youtubeThumbnailCandidates(resolvedVideoId, quality, portrait).takeLast(1)
+            } else {
+                youtubeThumbnailCandidates(resolvedVideoId, quality, portrait)
+            }
 
         val candidates =
             when {

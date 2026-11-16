@@ -68,11 +68,19 @@ object PlayerConfig {
     const val SHORTS_BUFFER_FOR_REBUFFER_MS = 750
     const val SHORTS_BACK_BUFFER_MS = 2_000
 
-    /** Music buffer window. Audio-only, so a long window is cheap and a low start threshold is safe. */
+    /**
+     * Music buffer window. [MUSIC_MAX_BUFFER_MS] is the lean window (crossfade tails, low-RAM devices
+     * and Data Saver); otherwise a song loads whole and what has played stays, so a seek is in memory (#2167).
+     */
     const val MUSIC_MIN_BUFFER_MS = 2_500
     const val MUSIC_MAX_BUFFER_MS = 30_000
     const val MUSIC_BUFFER_FOR_PLAYBACK_MS = 1_000
     const val MUSIC_BUFFER_FOR_REBUFFER_MS = 1_500
+    const val MUSIC_WHOLE_SONG_BUFFER_MS = 10 * 60 * 1000
+    const val MUSIC_BACK_BUFFER_MS = 10 * 60 * 1000
+
+    /** Bounds a long mix and the music player's video mode, which would otherwise size the cap for video. */
+    const val MUSIC_TARGET_BUFFER_BYTES = 24 * 1024 * 1024
 
     /** Preferred delay from the true live edge. Keeps YouTube live playback stable. */
     const val LIVE_EDGE_GAP_MS = 10_000L

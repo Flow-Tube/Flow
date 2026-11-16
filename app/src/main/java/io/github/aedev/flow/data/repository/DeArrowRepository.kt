@@ -51,6 +51,9 @@ class DeArrowRepository internal constructor(
     /** What a request already answered, for a card's first frame. */
     fun cached(videoId: String): DeArrowContent? = fresh(videoId)?.content
 
+    /** Whether a request already answered for [videoId], even when the answer was nothing. */
+    fun isCached(videoId: String): Boolean = fresh(videoId) != null
+
     suspend fun branding(videoId: String): DeArrowContent? {
         fresh(videoId)?.let { return it.content }
         val mine = CompletableDeferred<DeArrowContent?>()

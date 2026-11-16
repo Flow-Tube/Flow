@@ -128,19 +128,19 @@ object LoadControlFactory {
         )
 
     /**
-     * Music service: audio-only, so a long window costs little memory and a low playback threshold
-     * gets the first note out quickly. No back buffer, and no byte cap — the duration window is the
-     * only budget it needs.
+     * Music: a low playback threshold gets the first note out quickly. With [wholeSong] the song loads
+     * to its end and what has played is kept, both inside one byte cap, so a seek either way stays in
+     * memory (#2167). Without it, the lean 30 s window with no back buffer.
      */
-    fun forMusic(): DefaultLoadControl =
+    fun forMusic(wholeSong: Boolean = false): DefaultLoadControl =
         build(
             minMs = PlayerConfig.MUSIC_MIN_BUFFER_MS,
-            maxMs = PlayerConfig.MUSIC_MAX_BUFFER_MS,
+            maxMs = if (wholeSong) PlayerConfig.MUSIC_WHOLE_SONG_BUFFER_MS else PlayerConfig.MUSIC_MAX_BUFFER_MS,
             playbackMs = PlayerConfig.MUSIC_BUFFER_FOR_PLAYBACK_MS,
             rebufferMs = PlayerConfig.MUSIC_BUFFER_FOR_REBUFFER_MS,
-            backBufferMs = 0,
-            retainBackBufferFromKeyframe = false,
-            targetBufferBytes = C.LENGTH_UNSET,
+            backBufferMs = if (wholeSong) PlayerConfig.MUSIC_BACK_BUFFER_MS else 0,
+            retainBackBufferFromKeyframe = wholeSong,
+            targetBufferBytes = if (wholeSong) PlayerConfig.MUSIC_TARGET_BUFFER_BYTES else C.LENGTH_UNSET,
         )
 
     /** A skipped song's tail plays for moments, so it starts on little audio and loads no more than it will play. */

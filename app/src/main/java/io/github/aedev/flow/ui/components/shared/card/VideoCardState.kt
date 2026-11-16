@@ -27,9 +27,10 @@ import io.github.aedev.flow.data.repository.DeArrowRepository
 import io.github.aedev.flow.data.repository.OriginalTitleRepository
 import io.github.aedev.flow.ui.components.LocalDeArrow
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
-import io.github.aedev.flow.ui.components.rememberDeArrowResult
+import io.github.aedev.flow.ui.components.rememberDeArrowLookup
 import io.github.aedev.flow.ui.components.shared.LocalArtworkColors
 import io.github.aedev.flow.ui.components.shared.LocalThumbnailQuality
+import io.github.aedev.flow.ui.components.shared.LocalYouTubeFramesOnly
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.utils.rememberIsOnWifi
@@ -54,6 +55,7 @@ data class VideoCardPreferences(
     val showWatchProgress: Boolean = true,
     val originalTitlesEnabled: Boolean = false,
     val deArrowRandomFrame: Boolean = true,
+    val deArrowThumbnailsOnly: Boolean = false,
 )
 
 /**
@@ -160,6 +162,8 @@ fun ProvideVideoCardState(
                 cardPreferences.copy(originalTitlesEnabled = originalTitles)
             }.combine(playerPreferences.deArrowRandomFrame) { cardPreferences, randomFrame ->
                 cardPreferences.copy(deArrowRandomFrame = randomFrame)
+            }.combine(playerPreferences.deArrowThumbnailsOnly) { cardPreferences, thumbnailsOnly ->
+                cardPreferences.copy(deArrowThumbnailsOnly = thumbnailsOnly)
             }.distinctUntilChanged()
         }
     val preferences by preferencesFlow.collectAsStateWithLifecycle(VideoCardPreferences())
@@ -193,6 +197,7 @@ fun ProvideVideoCardState(
         LocalVideoWatchProgress provides progressStore,
         LocalVideoCardActions provides actions,
         LocalThumbnailQuality provides thumbnailQuality,
+        LocalYouTubeFramesOnly provides (preferences.deArrowEnabled && preferences.deArrowThumbnailsOnly),
         LocalArtworkColors provides artworkColors,
         LocalOriginalTitles provides originalTitles,
         LocalDeArrow provides deArrow,
@@ -233,9 +238,10 @@ internal class VideoCardSheetState {
 internal class VideoCardState(
     val video: Video,
     val title: String,
-    val thumbnailUrl: String,
+    val thumbnailUrl: String?,
     val deArrowTitle: Boolean,
     val deArrowFrameUrl: String?,
+    val youTubeFrames: Boolean,
     val deArrowBadgeEnabled: Boolean,
     val channelName: String,
     val collaborators: List<VideoCollaborator>,
@@ -260,7 +266,10 @@ internal class VideoCardState(
 @Composable
 internal fun rememberVideoCardState(video: Video): VideoCardState {
     val preferences = LocalVideoCardPreferences.current
-    val deArrow = rememberDeArrowResult(video, preferences.deArrowEnabled, preferences.deArrowRandomFrame)
+    val thumbnailsOnly = preferences.deArrowEnabled && preferences.deArrowThumbnailsOnly
+    val lookup = rememberDeArrowLookup(video, preferences.deArrowEnabled, preferences.deArrowRandomFrame || thumbnailsOnly)
+    val deArrow = lookup.result
+    val thumbnail = CardThumbnailPolicy.resolve(video, lookup, thumbnailsOnly)
     val originalTitle = rememberOriginalTitle(video.id, preferences.originalTitlesEnabled && deArrow?.title == null)
     val collaborators = rememberCollaboratorItems(video)
     val channelName = rememberCollaboratorChannelDisplayName(video.channelName, collaborators)
@@ -269,9 +278,10 @@ internal fun rememberVideoCardState(video: Video): VideoCardState {
     return VideoCardState(
         video = video,
         title = deArrow?.title ?: originalTitle ?: video.title,
-        thumbnailUrl = deArrow?.thumbnailUrl ?: video.thumbnailUrl,
+        thumbnailUrl = thumbnail.url,
         deArrowTitle = deArrow?.title != null,
         deArrowFrameUrl = deArrow?.thumbnailUrl,
+        youTubeFrames = thumbnail.youTubeFrames,
         deArrowBadgeEnabled = preferences.deArrowBadgeEnabled,
         channelName = channelName,
         collaborators = collaborators,

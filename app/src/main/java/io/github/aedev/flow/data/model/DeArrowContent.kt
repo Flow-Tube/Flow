@@ -29,8 +29,11 @@ data class DeArrowContent(
 
 /**
  * The resolved deArrow overrides for a video. Non-null fields should replace the originals.
+ * [youTubeFrames] means DeArrow wants a frame here: until its own loads (or when it has no time to
+ * place one), YouTube's automatic frames stand in rather than the uploader's thumbnail (#1633).
  */
 data class DeArrowResult(
     val title: String? = null,
     val thumbnailUrl: String? = null,
+    val youTubeFrames: Boolean = false,
 )

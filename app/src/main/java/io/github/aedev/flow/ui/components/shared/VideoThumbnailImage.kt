@@ -31,7 +31,14 @@ import io.github.aedev.flow.utils.ThumbnailUrlResolver
  */
 val LocalThumbnailQuality = staticCompositionLocalOf<ThumbnailQuality?> { ThumbnailQuality.HIGH }
 
-/** [portrait] marks a card that crops the frame to 9:16, which keeps it from the smallest tier. */
+/** DeArrow thumbnails only (#1633): every YouTube video image not decided by its caller shows YouTube's own frame. */
+val LocalYouTubeFramesOnly = staticCompositionLocalOf { false }
+
+/**
+ * [portrait] marks a card that crops the frame to 9:16, which keeps it from the smallest tier.
+ * [youTubeFrames] puts YouTube's automatic frames where the uploader's thumbnail tiers would go; a
+ * portrait (Shorts) image keeps its own, since a 16:9 frame of a vertical clip is mostly bars.
+ */
 @Composable
 fun VideoThumbnailImage(
     videoId: String,
@@ -43,17 +50,18 @@ fun VideoThumbnailImage(
     placeholderKey: MemoryCache.Key? = null,
     onImageKey: ((MemoryCache.Key?) -> Unit)? = null,
     onModelLoaded: ((Any) -> Unit)? = null,
+    youTubeFrames: Boolean = LocalYouTubeFramesOnly.current && !portrait,
 ) {
     val quality = LocalThumbnailQuality.current
     val models =
-        remember(videoId, model, quality, portrait) {
+        remember(videoId, model, quality, portrait, youTubeFrames) {
             when {
                 quality == null -> {
                     emptyList()
                 }
 
                 model is String || model == null -> {
-                    ThumbnailUrlResolver.resolveVideoThumbnailCandidates(videoId, model as? String, quality, portrait)
+                    ThumbnailUrlResolver.resolveVideoThumbnailCandidates(videoId, model as? String, quality, portrait, youTubeFrames)
                 }
 
                 else -> {

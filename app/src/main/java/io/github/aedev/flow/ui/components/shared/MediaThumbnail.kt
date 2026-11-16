@@ -44,6 +44,8 @@ fun MediaThumbnail(
     showWatchProgress: Boolean = false,
     placeholder: ImageVector? = null,
     onModelLoaded: ((Any) -> Unit)? = null,
+    youTubeFrames: Boolean = LocalYouTubeFramesOnly.current,
+    showImage: Boolean = true,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val openOrigin = rememberMediaOpenOrigin(videoId, shape)
@@ -70,15 +72,18 @@ fun MediaThumbnail(
             )
         }
 
-        VideoThumbnailImage(
-            videoId = videoId,
-            model = thumbnailUrl,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            onImageKey = reportImageKey,
-            onModelLoaded = onModelLoaded,
-        )
+        if (showImage) {
+            VideoThumbnailImage(
+                videoId = videoId,
+                model = thumbnailUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                onImageKey = reportImageKey,
+                onModelLoaded = onModelLoaded,
+                youTubeFrames = youTubeFrames,
+            )
+        }
 
         if (durationSeconds != null && durationSeconds > 0) {
             DurationBadge(

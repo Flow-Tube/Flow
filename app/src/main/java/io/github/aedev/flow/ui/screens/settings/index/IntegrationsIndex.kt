@@ -74,6 +74,14 @@ internal object IntegrationsIndex {
             section = R.string.player_settings_dearrow,
             destination = page,
         )
+    val deArrowThumbnailsOnly =
+        SettingEntry(
+            key = "integrations.dearrow.thumbnails_only",
+            title = R.string.dearrow_thumbnails_only,
+            summary = R.string.dearrow_thumbnails_only_subtitle,
+            section = R.string.player_settings_dearrow,
+            destination = page,
+        )
     val deArrowBadge =
         SettingEntry(
             key = "integrations.dearrow.badge",
@@ -198,6 +206,7 @@ internal object IntegrationsIndex {
             userId,
             deArrow,
             deArrowRandomFrame,
+            deArrowThumbnailsOnly,
             deArrowBadge,
             aiListBlock,
             aiListWarn,
