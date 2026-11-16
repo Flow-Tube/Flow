@@ -1,0 +1,8 @@
+- Profiles: up to five people, each with their own feed and settings
+- Linked devices: sync phones, TVs and Flow Desktop, end to end encrypted
+- Play on: move playback to another device or control it
+- Android TV redesigned on Material 3 Expressive
+- Music crossfade, music casting and a customizable mini player
+- Lyrics: Cadence animation, more sources and lock screen lyrics
+- Ambient glow, 360 videos and related videos in fullscreen
+- Downloads tab, App lock and filters for AI content
