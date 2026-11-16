@@ -139,6 +139,8 @@
     <string name="music_player_tab_lyrics">Lyrics</string>
     <string name="music_player_lyrics_full_screen">Full screen lyrics</string>
     <string name="lyrics_play_from_line">Play from this line</string>
+    <!-- After a lyric line that repeats the one before it: ×2, ×3. -->
+    <string name="lyrics_repeat_count">×%1$d</string>
     <string name="lyrics_show_translation">Translation</string>
     <string name="lyrics_show_translation_summary">Show a translation when the lyrics include one</string>
     <string name="lyrics_no_translation">These lyrics have no translation</string>
@@ -177,6 +179,8 @@
     <string name="lyrics_on_lock_screen_timing">Lock screen lyrics timing</string>
     <string name="lyrics_on_lock_screen_timing_summary">Move lines earlier if they feel late</string>
     <string name="lyrics_in_mini_player">Lyrics in mini player</string>
+    <string name="player_appearance_lyrics_on_cover_title">Lyrics on the cover</string>
+    <string name="player_appearance_lyrics_on_cover_subtitle">The lyrics button shows lyrics in the player instead of a sheet</string>
     <string name="lyrics_in_mini_player_summary">Show the line being sung in place of the artist</string>
     <string name="lyrics_sponsorblock_timing">Fit lyrics to music videos</string>
     <string name="lyrics_sponsorblock_timing_summary">Uses SponsorBlock to skip parts with no music</string>
@@ -661,6 +665,9 @@
     <string name="downloads_recover_body">Flow saves downloads in Download/Flow and Music/Flow. To list the files an earlier install saved there, allow access to videos and audio.</string>
     <string name="downloads_recover_allow">Allow access</string>
     <string name="downloads_recover_dismiss">Not now</string>
+    <string name="downloads_folder_lost_title">Choose your download folder again</string>
+    <string name="downloads_folder_lost_body">Flow lost access to the folder you picked for downloads, as happens after a reinstall. Choose it again to find your earlier downloads and keep saving there.</string>
+    <string name="downloads_folder_lost_choose">Choose folder</string>
     <plurals name="downloads_recovered_count">
         <item quantity="one">Found %d download from an earlier install</item>
         <item quantity="other">Found %d downloads from an earlier install</item>
@@ -2866,7 +2873,6 @@
     <string name="download_sheet_all_languages">All languages</string>
     <string name="downloading_template">Downloading %1$s...</string>
     <string name="download_quality_hdr">HDR</string>
-    <string name="download_storage_access_prompt">Grant storage access to save downloads in public folders (optional)</string>
     <string name="section_downloading">Downloading</string>
     <string name="section_incomplete_downloads">Incomplete downloads</string>
     <string name="section_completed">Completed</string>

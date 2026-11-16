@@ -113,4 +113,45 @@ class DownloadLocationTest {
         assertNull(documentIdToPath("msf:1234", root))
         assertNull(documentIdToPath("1234", root))
     }
+
+    @Test
+    fun `a picked folder without its grant is lost`() {
+        val tree = "content://com.android.externalstorage.documents/tree/primary%3ADownload%2FFlow"
+        val lost = lostDownloadTree(listOf(DownloadLocation(treeUri = tree)), grantedTrees = emptySet(), hasAllFilesAccess = false)
+        assertEquals(tree, lost)
+    }
+
+    @Test
+    fun `a picked folder still granted is not lost`() {
+        val tree = "content://provider/tree/a"
+        assertNull(lostDownloadTree(listOf(DownloadLocation(treeUri = tree)), grantedTrees = setOf(tree), hasAllFilesAccess = false))
+    }
+
+    @Test
+    fun `default and typed locations are never lost`() {
+        val locations = listOf(DownloadLocation.DEFAULT, DownloadLocation(path = "/storage/emulated/0/Movies/Flow"))
+        assertNull(lostDownloadTree(locations, grantedTrees = emptySet(), hasAllFilesAccess = false))
+    }
+
+    @Test
+    fun `all files access reaches a picked folder through its path`() {
+        val withPath = DownloadLocation(path = "/storage/emulated/0/Download/Flow", treeUri = "content://provider/tree/a")
+        assertNull(lostDownloadTree(listOf(withPath), grantedTrees = emptySet(), hasAllFilesAccess = true))
+        val withoutPath = DownloadLocation(treeUri = "content://provider/tree/b")
+        assertEquals(
+            "content://provider/tree/b",
+            lostDownloadTree(listOf(withoutPath), grantedTrees = emptySet(), hasAllFilesAccess = true),
+        )
+    }
+
+    @Test
+    fun `the video folder is offered before the music folder`() {
+        val video = DownloadLocation(treeUri = "content://provider/tree/video")
+        val music = DownloadLocation(treeUri = "content://provider/tree/music")
+        assertEquals(video.treeUri, lostDownloadTree(listOf(video, music), grantedTrees = emptySet(), hasAllFilesAccess = false))
+        assertEquals(
+            music.treeUri,
+            lostDownloadTree(listOf(video, music), grantedTrees = setOf(video.treeUri!!), hasAllFilesAccess = false),
+        )
+    }
 }

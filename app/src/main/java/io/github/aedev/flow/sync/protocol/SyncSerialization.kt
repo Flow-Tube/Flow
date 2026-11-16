@@ -18,12 +18,17 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import java.security.MessageDigest
 
-/** A serialized collection ready for the wire: NDJSON [lines], [recordCount], and content [hash]. */
-data class CollectionWire(
+/**
+ * A serialized collection ready for the wire: NDJSON [lines], [recordCount], and content [hash]. The hash is
+ * worked out on first read: only FLOW-SYNC/1 sends it, and a large collection costs a pass over every record.
+ */
+class CollectionWire(
     val lines: List<String>,
     val recordCount: Int,
-    val hash: String,
-)
+    knownHash: String? = null,
+) {
+    val hash: String by lazy { knownHash ?: SyncSerialization.collectionHash(lines) }
+}
 
 /**
  * NDJSON serialization + canonical content hashing for each collection. Records are emitted in
@@ -48,8 +53,22 @@ object SyncSerialization {
             coerceInputValues = true
         }
 
-    fun sha256Hex(s: String): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(s.toByteArray(Charsets.UTF_8))
+    fun sha256Hex(s: String): String = hex(MessageDigest.getInstance("SHA-256").digest(s.toByteArray(Charsets.UTF_8)))
+
+    /**
+     * The same hash as [sha256Hex] of [lines] joined by `\n`, fed line by line: joining a large
+     * collection first ran out of memory (#2145).
+     */
+    fun collectionHash(lines: List<String>): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        lines.forEachIndexed { i, line ->
+            if (i > 0) digest.update('\n'.code.toByte())
+            digest.update(line.toByteArray(Charsets.UTF_8))
+        }
+        return hex(digest.digest())
+    }
+
+    private fun hex(digest: ByteArray): String {
         val sb = StringBuilder(digest.size * 2)
         for (b in digest) {
             val v = b.toInt() and 0xFF
@@ -90,7 +109,7 @@ object SyncSerialization {
         serializer: KSerializer<T>,
     ): CollectionWire {
         val lines = records.map { enc(serializer, it) }
-        return CollectionWire(lines, lines.size, sha256Hex(lines.joinToString("\n")))
+        return CollectionWire(lines, lines.size)
     }
 
     // --- watch history ---
@@ -167,7 +186,7 @@ object SyncSerialization {
     // --- music brain ---
     fun encodeMusicBrain(brain: CanonicalMusicBrain): CollectionWire {
         val line = enc(CanonicalMusicBrain.serializer(), brain)
-        return CollectionWire(listOf(line), 1, sha256Hex(line))
+        return CollectionWire(listOf(line), 1)
     }
 
     /** Fold every record (one snapshot per device the peer knows) so a third device converges. */

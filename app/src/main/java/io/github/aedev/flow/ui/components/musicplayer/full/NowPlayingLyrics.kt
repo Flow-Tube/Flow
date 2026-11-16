@@ -1,10 +1,24 @@
 package io.github.aedev.flow.ui.components.musicplayer.full
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.OpenInFull
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.InlineLyricsPanel
 import io.github.aedev.flow.ui.components.musicplayer.lyrics.LyricsDisplayOptions
@@ -126,4 +140,45 @@ private fun MusicPlayerViewModel.applyLyricsDisplay(
     if (new.background != old.background) setLyricsBackground(new.background)
     if (new.animationStyle != old.animationStyle) setLyricsAnimationStyle(new.animationStyle)
     if (new.glow != old.glow) setLyricsGlow(new.glow)
+}
+
+/**
+ * The lyrics in place of the immersive cover on the phone layout, with a button up to the
+ * full-screen sheet. [active] is false whenever nobody can see them, so the panel stops.
+ */
+@Composable
+internal fun NowPlayingLyricsInPlace(
+    uiState: MusicPlayerUiState,
+    viewModel: MusicPlayerViewModel,
+    accentColor: Color,
+    backdropColor: Color,
+    contentColor: Color,
+    positionState: State<Long>,
+    active: Boolean,
+    onOpenFullScreen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val appear = remember { Animatable(0f) }
+    val appearSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    LaunchedEffect(appear) { appear.animateTo(1f, appearSpec) }
+    Box(modifier = modifier.graphicsLayer { alpha = appear.value }) {
+        NowPlayingLyricsPane(
+            uiState = uiState,
+            viewModel = viewModel,
+            accentColor = accentColor,
+            backdropColor = backdropColor,
+            positionState = positionState,
+            active = active,
+        )
+        IconButton(
+            onClick = onOpenFullScreen,
+            colors = IconButtonDefaults.iconButtonColors(contentColor = contentColor),
+            modifier = Modifier.align(Alignment.TopEnd),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.OpenInFull,
+                contentDescription = stringResource(R.string.music_player_lyrics_full_screen),
+            )
+        }
+    }
 }

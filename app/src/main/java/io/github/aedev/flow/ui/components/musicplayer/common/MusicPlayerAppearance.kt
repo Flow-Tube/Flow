@@ -26,6 +26,7 @@ internal class MusicPlayerAppearance(
     val hideArtwork: Boolean,
     val sleepTimerButton: Boolean,
     val splitTransport: Boolean,
+    val lyricsOnCover: Boolean,
     val playerScheme: ColorScheme,
     val controlScheme: ColorScheme,
 )
@@ -48,6 +49,7 @@ internal fun rememberMusicPlayerAppearance(
     val hideArtwork by playerPreferences.hideMusicPlayerArtwork.collectAsState(initial = false)
     val sleepTimerButton by playerPreferences.musicSleepTimerButton.collectAsState(initial = false)
     val splitTransport by playerPreferences.musicSplitTransport.collectAsState(initial = true)
+    val lyricsOnCover by playerPreferences.immersiveLyricsOnCover.collectAsState(initial = false)
     val followLightTheme by playerPreferences.musicPlayerFollowLightTheme.collectAsState(initial = false)
     val palette = rememberMediaPalette(thumbnailUrl)
     val lightPlayer = musicPlayerTurnsLight(backgroundStyle, followLightTheme, MaterialTheme.colorScheme.surface)
@@ -64,6 +66,7 @@ internal fun rememberMusicPlayerAppearance(
         hideArtwork = hideArtwork,
         sleepTimerButton = sleepTimerButton,
         splitTransport = splitTransport,
+        lyricsOnCover = lyricsOnCover,
         playerScheme = playerScheme,
         controlScheme = controlScheme,
     )

@@ -65,6 +65,12 @@ object DownloadFiles {
         return context.contentResolver.persistedUriPermissions.any { it.uri == uri && it.isWritePermission }
     }
 
+    /** The picked folders Flow may still write to. */
+    fun grantedTrees(context: Context): Set<String> =
+        context.contentResolver.persistedUriPermissions
+            .filter { it.isWritePermission }
+            .mapTo(mutableSetOf()) { it.uri.toString() }
+
     fun releaseTree(
         context: Context,
         treeUri: String,

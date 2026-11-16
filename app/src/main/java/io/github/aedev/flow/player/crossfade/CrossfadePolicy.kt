@@ -52,6 +52,9 @@ internal object CrossfadePolicy {
     /** With no old song to blend with, the next one still comes in over this long instead of at full volume. */
     const val QUICK_FADE_IN_MS = 400L
 
+    /** A skipped-to song not playing this long after the old one moved to its tail is late, and the old one fades out anyway. */
+    const val LATE_NEXT_SONG_MS = 1_000L
+
     /** A lined-up tail takes over no sooner than this before the fade, so a short fade still ends with the song. */
     private const val HAND_OFF_EARLY_MS = 500L
 
@@ -233,6 +236,15 @@ internal object CrossfadePolicy {
         val leftOnClock = ((durationMs - positionMs) / speed.coerceAtLeast(0.1f)).toLong()
         return minOf(fadeMs.coerceIn(0L, MAX_MS), leftOnClock).coerceAtLeast(1L)
     }
+
+    /** How long a skipped-to song that came late fades in: quickly, since the old song is already fading or gone. */
+    fun lateFadeInClockMs(skipClockMs: Long): Long = minOf(QUICK_FADE_IN_MS, skipClockMs).coerceAtLeast(1L)
+
+    /** A song's length from its metadata, or the player's own when the metadata has none; null while neither knows it. */
+    fun knownDurationMs(
+        metadataMs: Long?,
+        playerMs: Long,
+    ): Long? = metadataMs ?: playerMs.takeIf { it > 0L }
 
     /** How long a skip overlaps the two songs on the clock: the chosen fade, or just [SKIP_BLEND_MS] without one. */
     fun skipClockMs(
