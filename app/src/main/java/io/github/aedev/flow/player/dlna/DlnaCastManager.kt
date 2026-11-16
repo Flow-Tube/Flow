@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.stream.AudioStream
@@ -62,7 +63,7 @@ object DlnaCastManager {
 
     private var discoveryJob: Job? = null
     private val discovery = SsdpDiscovery(http, scope)
-    private val transport = DlnaTransport(http)
+    internal val transport = DlnaTransport(http)
 
     private val proxy = StreamProxyServer.getInstance()
 
@@ -73,6 +74,11 @@ object DlnaCastManager {
     val castDuration: StateFlow<Long> = _castDuration.asStateFlow()
 
     private var positionPollingJob: Job? = null
+
+    private val _castsSong = MutableStateFlow(false)
+
+    /** Whether the current cast is the music queue's song, which [DlnaMusicDriver] follows itself. */
+    val castsSong: StateFlow<Boolean> = _castsSong.asStateFlow()
 
     private enum class CastMode { SEGMENTED_AV1, SEGMENTED, WHOLE_FILE, MUXED }
 
@@ -202,6 +208,7 @@ object DlnaCastManager {
         if (ladder.isEmpty()) return
 
         castJob?.cancel()
+        _castsSong.value = false
         castJob =
             scope.launch {
                 val host = castHost(device)
@@ -243,7 +250,7 @@ object DlnaCastManager {
                     // Registration blocks, so a newer cast or stop() may have cancelled this one meanwhile.
                     ensureActive()
                     try {
-                        startCast(device, title, castUrl, contentType)
+                        startCast(device, CastItem(title), castUrl, contentType)
                         if (!segmented || awaitPlaying(device)) return@launch
                         Log.w(TAG, "Renderer did not start $mode within ${SEGMENTED_START_TIMEOUT_MS}ms, falling back")
                     } catch (e: CancellationException) {
@@ -257,6 +264,31 @@ object DlnaCastManager {
             }
     }
 
+    /**
+     * Plays one song of the music queue on [device]. [DlnaMusicDriver] asks the renderer for its
+     * state when it needs to, so no position poll runs here.
+     */
+    internal suspend fun castSong(
+        device: DlnaDevice,
+        url: String,
+        contentType: String,
+        item: CastItem,
+    ) {
+        castJob?.cancel()
+        positionPollingJob?.cancel()
+        _castsSong.value = true
+        withContext(Dispatchers.IO) { startCast(device, item, url, contentType, pollPosition = false) }
+    }
+
+    /** The renderer's transport state and position, or null when it didn't answer. */
+    internal fun status(device: DlnaDevice): CastStatus? {
+        val state = transport.state(device) ?: return null
+        val position = runCatching { transport.position(device) }.getOrNull()
+        return CastStatus(state, position?.position?.times(1000), position?.duration?.times(1000))
+    }
+
+    internal fun hostFor(device: DlnaDevice): String = castHost(device)
+
     /** The address the renderer can reach this phone on, for the stream URLs it is handed. */
     private fun castHost(device: DlnaDevice): String =
         CastNetwork.advertisedHostFor(
@@ -267,9 +299,10 @@ object DlnaCastManager {
 
     private suspend fun startCast(
         device: DlnaDevice,
-        title: String,
+        item: CastItem,
         castUrl: String,
         contentType: String,
+        pollPosition: Boolean = true,
     ) {
         // Renderers still holding a previous session reject SetAVTransportURI with UPnP 701.
         runCatching { transport.stop(device) }
@@ -277,12 +310,12 @@ object DlnaCastManager {
         withTimeoutOrNull(STOP_TIMEOUT_MS) {
             while (transport.state(device).let { it != null && it != "STOPPED" && it != "NO_MEDIA_PRESENT" }) delay(500)
         }
-        setAVTransportUri(device, castUrl, title, contentType)
+        transport.setUri(device, castUrl, CastXml.didlLite(castUrl, item, contentType))
         delay(500)
         // Renderers that buffer before answering can time Play out and still start playback.
         runCatching { transport.play(device) }.onFailure { Log.w(TAG, "Play failed: ${it.message}") }
         _currentDevice.value = device
-        startPositionPolling(device)
+        if (pollPosition) startPositionPolling(device)
     }
 
     private suspend fun awaitPlaying(device: DlnaDevice): Boolean =
@@ -301,6 +334,7 @@ object DlnaCastManager {
                 Log.e(TAG, "stop failed: ${e.message}")
             } finally {
                 positionPollingJob?.cancel()
+                _castsSong.value = false
                 _currentDevice.value = null
                 _castPosition.value = 0
                 _castDuration.value = 0
@@ -360,11 +394,4 @@ object DlnaCastManager {
         info.position?.let { _castPosition.value = it }
         info.duration?.let { _castDuration.value = it }
     }
-
-    private fun setAVTransportUri(
-        device: DlnaDevice,
-        uri: String,
-        title: String,
-        contentType: String = "video/mp4",
-    ) = transport.setUri(device, uri, CastXml.didlLite(uri, title, contentType))
 }

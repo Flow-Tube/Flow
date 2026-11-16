@@ -91,6 +91,7 @@ class StreamProxyServer private constructor() {
         val realUrl: String,
         val contentType: String,
         val contentLength: Long = -1,
+        val headers: Map<String, String> = emptyMap(),
     )
 
     private val hlsPlaylists = ConcurrentHashMap<String, String>()
@@ -156,12 +157,14 @@ class StreamProxyServer private constructor() {
      * @param realUrl The actual googlevideo.com stream URL
      * @param host This phone's address on the renderer's network
      * @param contentType MIME type (e.g., "video/mp4", "audio/mp4")
+     * @param headers what the upstream request must carry, as for the client that minted [realUrl]
      * @return Local URL like "http://192.168.1.5:8080/s/abc123.mp4"
      */
     fun registerStream(
         realUrl: String,
         host: String,
         contentType: String = "video/mp4",
+        headers: Map<String, String> = emptyMap(),
     ): String {
         if (!isRunning.get()) {
             Log.w(TAG, "Proxy not running, cannot register stream")
@@ -175,9 +178,9 @@ class StreamProxyServer private constructor() {
                 .take(8)
         val path = "/s/$pathId.${CastPlaylists.segmentFileExtension(contentType)}"
 
-        val contentLength = probeContentLength(realUrl)
+        val contentLength = probeContentLength(realUrl, headers)
 
-        streams[path] = StreamEntry(realUrl, contentType, contentLength)
+        streams[path] = StreamEntry(realUrl, contentType, contentLength, headers)
 
         val proxyUrl = "http://$host:$localPort$path"
         Log.i(TAG, "Registered stream: $proxyUrl → ${realUrl.take(80)}...")
@@ -452,6 +455,7 @@ class StreamProxyServer private constructor() {
     ) {
         try {
             val requestBuilder = Request.Builder().url(entry.realUrl)
+            entry.headers.forEach { (name, value) -> requestBuilder.header(name, value) }
 
             if (rangeHeader != null) {
                 requestBuilder.addHeader("Range", rangeHeader)
@@ -546,12 +550,16 @@ class StreamProxyServer private constructor() {
         }
     }
 
-    private fun probeContentLength(url: String): Long =
+    private fun probeContentLength(
+        url: String,
+        headers: Map<String, String>,
+    ): Long =
         try {
             val request =
                 Request
                     .Builder()
                     .url(url)
+                    .apply { headers.forEach { (name, value) -> header(name, value) } }
                     .head()
                     .build()
             val response = http.newCall(request).execute()

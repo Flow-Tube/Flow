@@ -2934,6 +2934,9 @@
     <string name="dlna_google_cast_unsupported">Chromecast and other Google Cast devices aren\'t supported.</string>
     <string name="dlna_now_casting">Now casting: %1$s</string>
     <string name="dlna_stop_casting">Stop Casting</string>
+    <string name="cast_to_tv_desc">Play the queue on a TV or speaker</string>
+    <string name="cast_song_unavailable">Can\'t cast %1$s, skipped</string>
+    <string name="cast_connection_lost">Lost the connection to %1$s</string>
     <!-- Subtitle customization -->
     <string name="subtitle_customization_title">Subtitle Customization</string>
     <string name="subtitle_preview_text">Preview Subtitle Text</string>

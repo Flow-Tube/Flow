@@ -160,12 +160,19 @@ object EnhancedMusicPlayerManager {
      */
     private var preciseProgressConsumers = 0
 
+    private val _preciseProgressWanted = MutableStateFlow(false)
+
+    /** Whether a screen shows the position to the second now, so a cast renderer is asked about it each second. */
+    val preciseProgressWanted: StateFlow<Boolean> = _preciseProgressWanted.asStateFlow()
+
     fun acquirePreciseProgress() {
         preciseProgressConsumers++
+        _preciseProgressWanted.value = true
     }
 
     fun releasePreciseProgress() {
         preciseProgressConsumers = (preciseProgressConsumers - 1).coerceAtLeast(0)
+        _preciseProgressWanted.value = preciseProgressConsumers > 0
     }
 
     // Events

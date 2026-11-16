@@ -6,6 +6,16 @@ internal data class CastPosition(
     val duration: Long?,
 )
 
+/** What a renderer is told about the item it plays; a [music] item is a song with its artist, album and art. */
+internal data class CastItem(
+    val title: String,
+    val artist: String? = null,
+    val album: String? = null,
+    val artUrl: String? = null,
+    val durationSeconds: Long = 0,
+    val music: Boolean = false,
+)
+
 /** The XML a renderer is sent: SOAP envelopes for AVTransport actions and the DIDL-Lite item metadata. */
 internal object CastXml {
     fun soapEnvelope(
@@ -22,17 +32,43 @@ internal object CastXml {
 
     fun didlLite(
         uri: String,
-        title: String,
+        item: CastItem,
         contentType: String = "video/mp4",
-    ): String =
-        """<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" """ +
+    ): String {
+        val song =
+            if (item.music) {
+                item.artist
+                    ?.takeIf {
+                        it.isNotBlank()
+                    }?.let { """<dc:creator>${escape(it)}</dc:creator><upnp:artist>${escape(it)}</upnp:artist>""" }
+                    .orEmpty() +
+                    item.album
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { """<upnp:album>${escape(it)}</upnp:album>""" }
+                        .orEmpty() +
+                    item.artUrl?.let { """<upnp:albumArtURI>${escape(it)}</upnp:albumArtURI>""" }.orEmpty()
+            } else {
+                ""
+            }
+        val duration =
+            item.durationSeconds
+                .takeIf { it > 0 }
+                ?.let { """ duration="${formatDuration(it)}"""" }
+                .orEmpty()
+        val upnpClass = if (item.music) "object.item.audioItem.musicTrack" else "object.item.videoItem"
+        return """<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" """ +
             """xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" """ +
             """xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">""" +
             """<item id="1" parentID="0" restricted="0">""" +
-            """<dc:title>${escape(title)}</dc:title>""" +
-            """<res protocolInfo="http-get:*:$contentType:*">${escape(uri)}</res>""" +
-            """<upnp:class>object.item.videoItem</upnp:class>""" +
+            """<dc:title>${escape(item.title)}</dc:title>""" +
+            song +
+            """<res protocolInfo="http-get:*:$contentType:*"$duration>${escape(uri)}</res>""" +
+            """<upnp:class>$upnpClass</upnp:class>""" +
             """</item></DIDL-Lite>"""
+    }
+
+    /** A DIDL-Lite `res` duration, `H:MM:SS.000`. */
+    fun formatDuration(seconds: Long): String = "%d:%02d:%02d.000".format(seconds / 3600, (seconds % 3600) / 60, seconds % 60)
 
     fun escape(s: String) =
         s

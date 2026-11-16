@@ -6,11 +6,39 @@ import org.junit.Test
 class CastXmlTest {
     @Test
     fun `didl escapes the title and the uri`() {
-        val didl = CastXml.didlLite("http://10.0.0.2:4000/s/a.mp4?x=1&y=2", "Tom & Jerry <live>", "video/mp4")
+        val didl = CastXml.didlLite("http://10.0.0.2:4000/s/a.mp4?x=1&y=2", CastItem("Tom & Jerry <live>"), "video/mp4")
 
         assertThat(didl).contains("<dc:title>Tom &amp; Jerry &lt;live&gt;</dc:title>")
         assertThat(didl).contains("""<res protocolInfo="http-get:*:video/mp4:*">http://10.0.0.2:4000/s/a.mp4?x=1&amp;y=2</res>""")
         assertThat(didl).contains("<upnp:class>object.item.videoItem</upnp:class>")
+    }
+
+    @Test
+    fun `a song goes out as a music track with its artist, album, art and length`() {
+        val item =
+            CastItem(
+                "Song",
+                artist = "Artist",
+                album = "Album",
+                artUrl = "https://lh3.example/a=w1080",
+                durationSeconds = 3725,
+                music = true,
+            )
+        val didl = CastXml.didlLite("http://10.0.0.2:4000/s/b.m4a", item, "audio/mp4")
+
+        assertThat(didl).contains("<upnp:class>object.item.audioItem.musicTrack</upnp:class>")
+        assertThat(didl).contains("<upnp:artist>Artist</upnp:artist>")
+        assertThat(didl).contains("<upnp:album>Album</upnp:album>")
+        assertThat(didl).contains("<upnp:albumArtURI>https://lh3.example/a=w1080</upnp:albumArtURI>")
+        assertThat(didl).contains("""<res protocolInfo="http-get:*:audio/mp4:*" duration="1:02:05.000">""")
+    }
+
+    @Test
+    fun `a video carries no song fields`() {
+        val didl = CastXml.didlLite("http://h/v.mp4", CastItem("Video", artist = "Channel"), "video/mp4")
+
+        assertThat(didl).doesNotContain("upnp:artist")
+        assertThat(didl).contains("""<res protocolInfo="http-get:*:video/mp4:*">""")
     }
 
     @Test
