@@ -16,6 +16,8 @@ class WavyTrackGeometryTest {
 
     private fun thumbLeadingEdge(fraction: Float) = WavyTrackGeometry.thumbCentre(width, fraction) - thumb / 2f
 
+    private fun thumbTrailingEdge(fraction: Float) = WavyTrackGeometry.thumbCentre(width, fraction) + thumb / 2f
+
     @Test
     fun `the thumb centre is the fraction of the full track width`() {
         assertThat(WavyTrackGeometry.thumbCentre(width, 0f)).isEqualTo(0f)
@@ -31,13 +33,22 @@ class WavyTrackGeometryTest {
     }
 
     @Test
-    fun `the wave's cap never passes the thumb's leading edge`() {
+    fun `with no gap the wave runs into the thumb and its cap stays under it`() {
         for (step in 0..1000) {
             val fraction = step / 1000f
             if (waveEnd(fraction) > WavyTrackGeometry.waveStart(stroke)) {
-                assertThat(capEnd(fraction)).isAtMost(thumbLeadingEdge(fraction))
+                assertThat(capEnd(fraction)).isGreaterThan(thumbLeadingEdge(fraction))
+                assertThat(capEnd(fraction)).isAtMost(thumbTrailingEdge(fraction))
             }
         }
+    }
+
+    @Test
+    fun `with no gap both caps meet at the thumb's centre`() {
+        val restCapStart = WavyTrackGeometry.restStart(width, 0.5f, thumb, gap, stroke) - stroke / 2f
+
+        assertThat(capEnd(0.5f)).isEqualTo(500f)
+        assertThat(restCapStart).isEqualTo(500f)
     }
 
     @Test
@@ -45,13 +56,12 @@ class WavyTrackGeometryTest {
         val withGap = { fraction: Float -> WavyTrackGeometry.waveEnd(width, fraction, thumb, 12f, stroke) + stroke / 2f }
         assertThat(withGap(0.5f)).isEqualTo(500f - thumb / 2f - 12f)
         assertThat(withGap(1f)).isEqualTo(1000f - thumb / 2f - 12f)
-        assertThat(capEnd(0.5f)).isEqualTo(thumbLeadingEdge(0.5f))
     }
 
     @Test
-    fun `the rest of the track starts past the thumb's trailing edge`() {
-        val restCapStart = WavyTrackGeometry.restStart(width, 0.5f, thumb, gap, stroke) - stroke / 2f
-        assertThat(restCapStart).isEqualTo(500f + thumb / 2f)
+    fun `with a gap the rest of the track starts past the thumb's trailing edge`() {
+        val restCapStart = WavyTrackGeometry.restStart(width, 0.5f, thumb, 12f, stroke) - stroke / 2f
+        assertThat(restCapStart).isEqualTo(500f + thumb / 2f + 12f)
         assertThat(WavyTrackGeometry.restStart(width, 1f, thumb, gap, stroke)).isGreaterThan(WavyTrackGeometry.trackEnd(width, stroke))
     }
 
