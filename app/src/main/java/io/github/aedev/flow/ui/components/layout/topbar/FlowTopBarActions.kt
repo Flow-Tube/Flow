@@ -32,25 +32,34 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 
 /**
- * The Notifications and Settings actions every root destination gets.
+ * The Notifications, Settings and profile actions every root destination gets, Settings and profile
+ * as [topBarAccount] decides for a [crowded] or roomy bar. Until the account switches are read only
+ * Notifications shows, so a bar whose profile holds Settings never flashes the settings icon.
  *
  * Renders nothing when the shell has not provided [LocalFlowGlobalActions] — the case in previews
  * and in isolated Compose tests.
  */
 @Composable
-internal fun FlowGlobalActionsRow() {
+internal fun FlowGlobalActionsRow(crowded: Boolean) {
     val actions = LocalFlowGlobalActions.current ?: return
     val unreadCount by actions.unreadNotifications.collectAsStateWithLifecycle()
+    val settings by actions.account.collectAsStateWithLifecycle()
 
     FlowNotificationsAction(
         unreadCount = unreadCount,
         onClick = actions.onOpenNotifications,
     )
-    IconButton(onClick = actions.onOpenSettings) {
-        Icon(
-            imageVector = Icons.Outlined.Settings,
-            contentDescription = stringResource(R.string.settings),
-        )
+    val account = settings?.let { topBarAccount(it, crowded) } ?: return
+    if (account != TopBarAccount.PROFILE_WITH_SETTINGS) {
+        IconButton(onClick = actions.onOpenSettings) {
+            Icon(
+                imageVector = Icons.Outlined.Settings,
+                contentDescription = stringResource(R.string.settings),
+            )
+        }
+    }
+    if (account != TopBarAccount.SETTINGS_ONLY) {
+        actions.profileAction(account == TopBarAccount.PROFILE_WITH_SETTINGS)
     }
 }
 

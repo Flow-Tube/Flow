@@ -74,6 +74,26 @@ internal object AppearanceIndex {
             section = R.string.settings_section_layout,
             destination = page,
         )
+    val topBarProfile =
+        SettingEntry(
+            key = "appearance.top_bar_profile",
+            title = R.string.settings_top_bar_profile_title,
+            summary = R.string.settings_top_bar_profile_summary,
+            keywords = R.string.settings_top_bar_profile_keywords,
+            section = R.string.settings_section_layout,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
+        )
+    val settingsInProfileMenu =
+        SettingEntry(
+            key = "appearance.settings_in_profile_menu",
+            title = R.string.settings_profile_menu_settings_title,
+            summary = R.string.settings_profile_menu_settings_summary,
+            keywords = R.string.settings_top_bar_profile_keywords,
+            section = R.string.settings_section_layout,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
+        )
     val groupBadges =
         SettingEntry(
             key = "appearance.group_badges",
@@ -186,6 +206,8 @@ internal object AppearanceIndex {
             libraryPreviews,
             separatePlaylists,
             appLogo,
+            topBarProfile,
+            settingsInProfileMenu,
             groupBadges,
             cardLikeButtons,
             cardWatchProgress,

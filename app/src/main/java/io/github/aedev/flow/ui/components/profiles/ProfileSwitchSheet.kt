@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.ManageAccounts
 import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +35,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.profile.Profile
@@ -73,34 +73,40 @@ fun SwitchRefusals(viewModel: ProfileSwitchViewModel) {
 }
 
 /**
- * The running profile's avatar as a top bar action, opening the way to switch, add or manage profiles. It shows with
- * a single profile too, so the feature can be found.
+ * The running profile's avatar as a top bar action, opening the way to switch, add or manage profiles, and to
+ * Settings [withSettings]. It shows with a single profile too, so the feature can be found. The caller shows
+ * [SwitchRefusals] once for [viewModel], since several bars can share it.
  */
 @Composable
 fun ProfileTopBarAction(
-    onOpenSettings: (SettingsTarget) -> Unit,
-    viewModel: ProfileSwitchViewModel = hiltViewModel(),
+    withSettings: Boolean,
+    onOpenSettings: () -> Unit,
+    onOpenSettingsPage: (SettingsTarget) -> Unit,
+    viewModel: ProfileSwitchViewModel,
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val running = state?.profiles?.firstOrNull { it.id == viewModel.runningId } ?: return
     var open by rememberSaveable { mutableStateOf(false) }
-    val description = stringResource(R.string.profiles_action_description, running.displayName(context))
+    val description =
+        stringResource(
+            if (withSettings) R.string.profiles_action_settings_description else R.string.profiles_action_description,
+            running.displayName(context),
+        )
 
     IconButton(onClick = { open = true }, modifier = Modifier.semantics { contentDescription = description }) {
         ProfileAvatar(running, size = TopBarAvatarSize)
     }
-
-    SwitchRefusals(viewModel)
 
     if (open) {
         ProfileSwitchSheet(
             profiles = state?.profiles.orEmpty(),
             runningId = viewModel.runningId,
             onSwitch = viewModel::switchTo,
-            onAdd = { onOpenSettings(SettingsTarget(SettingsDestination.PROFILE_EDIT)) },
-            onManage = { onOpenSettings(SettingsTarget(SettingsDestination.PROFILES)) },
+            onAdd = { onOpenSettingsPage(SettingsTarget(SettingsDestination.PROFILE_EDIT)) },
+            onManage = { onOpenSettingsPage(SettingsTarget(SettingsDestination.PROFILES)) },
             onDismiss = { open = false },
+            onOpenSettings = onOpenSettings.takeIf { withSettings },
         )
     }
 }
@@ -113,6 +119,7 @@ internal fun ProfileSwitchSheet(
     onAdd: () -> Unit,
     onManage: () -> Unit,
     onDismiss: () -> Unit,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val atLimit = profiles.size >= ProfileRegistry.MAX_PROFILES
@@ -158,6 +165,26 @@ internal fun ProfileSwitchSheet(
                     },
                 ),
         )
+        if (onOpenSettings != null) {
+            Spacer(Modifier.height(GroupSpacing))
+            QuickActionsGroup(
+                title = null,
+                rows =
+                    listOf(
+                        QuickActionRow("profiles.settings") { shape ->
+                            FlowNavRow(
+                                title = stringResource(R.string.settings),
+                                onClick = {
+                                    sheet.close()
+                                    onOpenSettings()
+                                },
+                                leadingIcon = Icons.Outlined.Settings,
+                                shape = shape,
+                            )
+                        },
+                    ),
+            )
+        }
         Text(
             text = stringResource(R.string.profiles_sheet_footer),
             style = MaterialTheme.typography.bodySmall,

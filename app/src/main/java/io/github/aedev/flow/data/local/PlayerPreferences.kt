@@ -397,6 +397,8 @@ class PlayerPreferences(
 
         // Show app logo icon in home screen top bar
         val SHOW_APP_LOGO_ICON = booleanPreferencesKey("show_app_logo_icon")
+        val SHOW_PROFILE_IN_TOP_BAR = booleanPreferencesKey("show_profile_in_top_bar")
+        val SETTINGS_IN_PROFILE_MENU = booleanPreferencesKey("settings_in_profile_menu")
 
         // Player comments preview
         val COMMENTS_ENABLED = booleanPreferencesKey("comments_enabled")
@@ -4283,6 +4285,26 @@ class PlayerPreferences(
     suspend fun setShowAppLogoIcon(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.SHOW_APP_LOGO_ICON] = enabled
+        }
+    }
+
+    val showProfileInTopBar: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SHOW_PROFILE_IN_TOP_BAR] ?: true }
+
+    suspend fun setShowProfileInTopBar(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SHOW_PROFILE_IN_TOP_BAR] = enabled
+        }
+    }
+
+    val settingsInProfileMenu: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SETTINGS_IN_PROFILE_MENU] ?: false }
+
+    suspend fun setSettingsInProfileMenu(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SETTINGS_IN_PROFILE_MENU] = enabled
         }
     }
 
