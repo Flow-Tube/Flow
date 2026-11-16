@@ -1461,7 +1461,11 @@ class Media3MusicService : MediaLibraryService() {
 
     /** The session's player: a resume from a controller turns offload back on before playback starts. */
     private fun sessionPlayer(): Player =
-        SessionPlayer(player, { mediaLibrarySession.controllerForCurrentRequest }) {
+        SessionPlayer(
+            player,
+            { mediaLibrarySession.controllerForCurrentRequest },
+            onSkip = { index, mediaId -> crossfader?.skipTo(index, mediaId) != null },
+        ) {
             updateOffload { it.copy(pausedLong = false) }
         }.also {
             it.follow(lifecycleScope)
