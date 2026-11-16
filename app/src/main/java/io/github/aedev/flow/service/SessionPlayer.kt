@@ -17,12 +17,15 @@ import kotlinx.coroutines.launch
  * The music session's player. While the app follows another device's music (Play on), it reports
  * that device's play state and position, and the notification, lock screen, headset and car drive
  * that device; the app's own controller still reaches the player here. [onResume] runs before a
- * resume here, which turns offload back on.
+ * resume here, which turns offload back on. A Next or Previous from those buttons that changes song
+ * goes to [onSkip], which holds the old song for the fade like the app's own buttons, and falls back
+ * to the player's seek when it returns false (#2163).
  */
 @OptIn(UnstableApi::class)
 internal class SessionPlayer(
     player: Player,
     private val requester: () -> MediaSession.ControllerInfo?,
+    private val onSkip: (index: Int, mediaId: String) -> Boolean,
     private val onResume: () -> Unit,
 ) : ForwardingSimpleBasePlayer(player) {
     private var lyricLine: String? = null
@@ -83,7 +86,13 @@ internal class SessionPlayer(
         positionMs: Long,
         seekCommand: Int,
     ): ListenableFuture<*> {
-        val remote = driven() ?: return super.handleSeek(mediaItemIndex, positionMs, seekCommand)
+        val remote = driven()
+        if (remote == null) {
+            val skipTo =
+                sessionSkipIndex(seekCommand, mediaItemIndex, player.currentMediaItemIndex, player.mediaItemCount, player.playWhenReady)
+            if (skipTo != null && onSkip(skipTo, player.getMediaItemAt(skipTo).mediaId)) return Futures.immediateVoidFuture()
+            return super.handleSeek(mediaItemIndex, positionMs, seekCommand)
+        }
         when (seekCommand) {
             COMMAND_SEEK_TO_NEXT, COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> remote.command("next")
             COMMAND_SEEK_TO_PREVIOUS, COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> remote.command("previous")
@@ -93,3 +102,24 @@ internal class SessionPlayer(
         return Futures.immediateVoidFuture()
     }
 }
+
+private val songSkips =
+    setOf(
+        Player.COMMAND_SEEK_TO_NEXT,
+        Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+        Player.COMMAND_SEEK_TO_PREVIOUS,
+        Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+    )
+
+/**
+ * The queue slot a Next or Previous from outside the app moves to, when it changes song while the
+ * music plays; null when the player's own seek is right (a Previous that restarts the song, a seek
+ * within it, or nothing playing).
+ */
+internal fun sessionSkipIndex(
+    seekCommand: Int,
+    targetIndex: Int,
+    currentIndex: Int,
+    itemCount: Int,
+    playWhenReady: Boolean,
+): Int? = targetIndex.takeIf { playWhenReady && seekCommand in songSkips && it != currentIndex && it in 0 until itemCount }

@@ -9,18 +9,13 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Metadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.inspector.MetadataRetriever
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.utils.await
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.concurrent.ExecutionException
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /**
  * Reads the tags Flow embedded into a download (see [Mp4Remuxer] and [Mp4TagWriter]) back from a
@@ -80,23 +75,6 @@ class DownloadTagReader
                 runCatching { retriever.release() }
             }
         }
-
-        private suspend fun <T> ListenableFuture<T>.await(): T =
-            suspendCancellableCoroutine { continuation ->
-                addListener(
-                    {
-                        try {
-                            continuation.resume(get())
-                        } catch (e: ExecutionException) {
-                            continuation.resumeWithException(e.cause ?: e)
-                        } catch (e: CancellationException) {
-                            continuation.cancel(e)
-                        }
-                    },
-                    MoreExecutors.directExecutor(),
-                )
-                continuation.invokeOnCancellation { cancel(false) }
-            }
 
         private companion object {
             const val TAG = "DownloadTagReader"

@@ -139,8 +139,8 @@
     <string name="music_player_tab_lyrics">Lyrics</string>
     <string name="music_player_lyrics_full_screen">Full screen lyrics</string>
     <string name="lyrics_play_from_line">Play from this line</string>
-    <!-- After a lyric line that repeats the one before it: ×2, ×3. -->
-    <string name="lyrics_repeat_count">×%1$d</string>
+    <!-- After a lyric line that repeats the one before it: (×2), (×3). -->
+    <string name="lyrics_repeat_count">(×%1$d)</string>
     <string name="lyrics_show_translation">Translation</string>
     <string name="lyrics_show_translation_summary">Show a translation when the lyrics include one</string>
     <string name="lyrics_no_translation">These lyrics have no translation</string>

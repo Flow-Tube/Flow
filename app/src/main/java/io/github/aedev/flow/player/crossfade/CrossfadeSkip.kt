@@ -29,7 +29,8 @@ internal data class SkipTarget(
  * tail while the settings ask for a fade, and the next song stays muted until the tail plays. Either way
  * the fade runs once both are playing, on the [MusicCrossfader] that owns this. A next song still loading
  * [CrossfadePolicy.LATE_NEXT_SONG_MS] after the hand-off doesn't hold the old one at full volume: that one
- * fades out anyway, and the next one comes in quickly once it plays (#2076).
+ * fades out anyway, and the next one comes in quickly once it plays (#2076). A song picked from a list
+ * ([holdForNewQueue]) is held the same way, with the app replacing the queue once the tail plays.
  */
 internal class CrossfadeSkip(
     private val session: ExoPlayer,
@@ -80,6 +81,13 @@ internal class CrossfadeSkip(
     /** Where a skip goes once the tail plays; the session stays on the old song until then. */
     private var heldTarget: SkipTarget? = null
 
+    /** Told whether the session may take a new queue, once the old song plays on its tail or can't. */
+    private var queueHold: ((Boolean) -> Unit)? = null
+
+    /** True while the tail carries the old song and the session, muted, waits for a new queue. */
+    var awaitingQueue = false
+        private set
+
     /** Where a second skip goes once the song that was fading in has eased out. */
     private var easingTo: SkipTarget? = null
     private var easeFrom = 0f
@@ -103,6 +111,7 @@ internal class CrossfadeSkip(
     private val easeStep = Runnable { ease() }
     private val lateSongStep = Runnable { nextSongLate() }
     private val skipTimeoutStep = Runnable { if (host.stage == CrossfadeStage.SKIP_STARTING) skipTailOutOfTime() }
+    private val queueTimeoutStep = Runnable { if (awaitingQueue) host.abort("the new queue never came") }
 
     /** True while a skip waits for its tail, with the session still on the old song. */
     val holding: Boolean get() = heldTarget != null
@@ -111,18 +120,68 @@ internal class CrossfadeSkip(
         heldTarget = null
     }
 
-    /** Lets go of where the skip was going; the caller still takes the session there. */
+    /** Lets go of where the skip was going; the caller still takes the session there. A new queue goes ahead unfaded. */
     fun dropTargets(): SkipTarget? {
         val held = heldTarget ?: easingTo
         heldTarget = null
         easingTo = null
+        forgetQueue()
+        queueHold?.let { answer ->
+            queueHold = null
+            answer(false)
+        }
         return held
+    }
+
+    fun forgetQueue() {
+        awaitingQueue = false
+        handler.removeCallbacks(queueTimeoutStep)
     }
 
     fun cancelSteps() {
         handler.removeCallbacks(easeStep)
         handler.removeCallbacks(skipTimeoutStep)
         handler.removeCallbacks(lateSongStep)
+    }
+
+    /**
+     * A song picked from a list replaces the whole queue (#2163). Before it does, the old song moves to a
+     * tail from where it is, so it plays on while the new one loads. [answer] gets true once the tail
+     * plays and the session can take the new queue, false when the queue should go ahead without a fade.
+     */
+    fun holdForNewQueue(answer: (Boolean) -> Unit) {
+        if (awaitingQueue) {
+            handler.removeCallbacks(queueTimeoutStep)
+            handler.postDelayed(queueTimeoutStep, QUEUE_TIMEOUT_MS)
+            answer(true)
+            return
+        }
+        if (queueHold != null) {
+            queueHold = answer
+            return
+        }
+        val left = session.currentMediaItem
+        val durationMs = left?.let { durationOf(it, session.currentMediaItemIndex) }
+        val resumeAt =
+            left
+                ?.takeIf { heldTarget == null && CrossfadePolicy.newQueueFades(host.settings, host.stage, session.isPlaying) }
+                ?.let { skipResumeAt(session.currentPosition, durationMs) }
+        if (left == null || durationMs == null || resumeAt == null) {
+            answer(false)
+            return
+        }
+        Log.d(CROSSFADE_TAG, "new queue: holding ${left.mediaId} on a tail")
+        val gain = session.volume
+        host.abort(null)
+        queueHold = answer
+        startSkipTail(left, durationMs, resumeAt, gain, tailVolume = 0f)
+    }
+
+    /** The new queue has replaced the old one under the tail; the fade waits for its first song. */
+    fun queueArrived() {
+        if (!awaitingQueue) return
+        forgetQueue()
+        if (session.isPlaying) startFade() else waitForLateSong()
     }
 
     /** Next or Previous from inside the app, which plays the song at [index] (still [mediaId]) whatever else happens. */
@@ -245,7 +304,7 @@ internal class CrossfadeSkip(
         host.startSkipTail(item.mediaId, gain, clockMs) {
             volume = tailVolume
             addAnalyticsListener(skipTailListener)
-            if (CrossfadePolicy.tailStartsAtSyncPoint(host.settings, heldTarget != null)) startAtSyncPoint(resumeAt)
+            if (CrossfadePolicy.tailStartsAtSyncPoint(host.settings, heldTarget != null || queueHold != null)) startAtSyncPoint(resumeAt)
             setMediaItem(item, resumeAt)
             playWhenReady = true
             prepare()
@@ -275,6 +334,11 @@ internal class CrossfadeSkip(
             skipTailPlaying()
             return
         }
+        if (queueHold != null) {
+            host.abort("the tail took too long before a new queue")
+            host.schedule()
+            return
+        }
         val target = heldTarget
         val index = target?.let(::indexOf)
         if (target != null && index == null) {
@@ -298,6 +362,16 @@ internal class CrossfadeSkip(
             "skipped $skippedId, its tail played after ${waited}ms, ${apart}ms from the session, fading over ${overlapMs}ms",
         )
         handler.removeCallbacks(skipTimeoutStep)
+        queueHold?.let { answer ->
+            queueHold = null
+            host.restoreTailGain()
+            host.scaleSession(0f)
+            host.waitForNextSong()
+            awaitingQueue = true
+            handler.postDelayed(queueTimeoutStep, QUEUE_TIMEOUT_MS)
+            answer(true)
+            return
+        }
         val target = heldTarget
         heldTarget = null
         if (target != null) {
@@ -335,7 +409,7 @@ internal class CrossfadeSkip(
 
     /** The next song has started: a tail already playing fades it in, and one still starting has [SKIP_START_TIMEOUT_MS] to. */
     fun nextSongPlaying() {
-        if (heldTarget == null && easingTo == null && host.stage == CrossfadeStage.WAITING_FOR_NEXT_SONG) startFade()
+        if (heldTarget == null && easingTo == null && !awaitingQueue && host.stage == CrossfadeStage.WAITING_FOR_NEXT_SONG) startFade()
     }
 
     private fun startFade() {
@@ -392,5 +466,8 @@ internal class CrossfadeSkip(
     private companion object {
         const val DEFAULT_SKIP_LEAD_MS = 400L
         const val SKIP_START_TIMEOUT_MS = 1_500L
+
+        /** How long a muted session waits for the app to hand it the new queue before the old song comes back. */
+        const val QUEUE_TIMEOUT_MS = 2_500L
     }
 }

@@ -374,6 +374,25 @@ class CrossfadePolicyTest {
     }
 
     @Test
+    fun `a picked song fades in only with fades on skip, while playing, before a tail is heard`() {
+        val fading = CrossfadePolicy.Settings(fadeMs = 6_000L, onManualSkip = true)
+        assertThat(CrossfadePolicy.newQueueFades(fading, CrossfadeStage.IDLE, playing = true)).isTrue()
+        assertThat(CrossfadePolicy.newQueueFades(fading, CrossfadeStage.PREPARED, playing = true)).isTrue()
+        assertThat(CrossfadePolicy.newQueueFades(fading, CrossfadeStage.WAITING_FOR_TAIL, playing = true)).isTrue()
+        assertThat(CrossfadePolicy.newQueueFades(fading, CrossfadeStage.IDLE, playing = false)).isFalse()
+        assertThat(CrossfadePolicy.newQueueFades(fading.copy(onManualSkip = false), CrossfadeStage.IDLE, playing = true)).isFalse()
+        assertThat(CrossfadePolicy.newQueueFades(CrossfadePolicy.Settings(), CrossfadeStage.IDLE, playing = true)).isFalse()
+        listOf(
+            CrossfadeStage.ALIGNING,
+            CrossfadeStage.SKIP_STARTING,
+            CrossfadeStage.WAITING_FOR_NEXT_SONG,
+            CrossfadeStage.FADING,
+            CrossfadeStage.THROUGH,
+            CrossfadeStage.THROUGH_IN,
+        ).forEach { assertThat(CrossfadePolicy.newQueueFades(fading, it, playing = true)).isFalse() }
+    }
+
+    @Test
     fun `a fade kept waiting by the next song goes on from where it was`() {
         assertThat(CrossfadePolicy.fadeBeganAtMs(nowMs = 10_000L, progress = 0f, fadeClockMs = 6_000L)).isEqualTo(10_000L)
         assertThat(CrossfadePolicy.fadeBeganAtMs(nowMs = 10_000L, progress = 0.5f, fadeClockMs = 6_000L)).isEqualTo(7_000L)
