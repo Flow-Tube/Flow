@@ -100,7 +100,7 @@ internal fun VideoStage(
         val manager = EnhancedPlayerManager.getInstance()
         val position = manager.getPlayer()?.currentPosition ?: screenState.currentPosition
         chapterSkipTarget(chapterStartsMs, position, forward)?.let { index ->
-            manager.seekTo(chapterStartsMs[index])
+            manager.seekTo(chapterStartsMs[index], exact = true)
             screenState.showSeekBackAnimation = false
             screenState.showSeekForwardAnimation = false
             val title = chapters[index].title.orEmpty().ifBlank { session.context.getString(R.string.player_chapter_number, index + 1) }
