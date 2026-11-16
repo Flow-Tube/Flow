@@ -260,6 +260,18 @@ internal object CrossfadePolicy {
     }
 
     /**
+     * Whether a song picked from a list fades in over the one playing (#2163): while fades on skip are on,
+     * something plays, and no tail is heard yet.
+     */
+    fun newQueueFades(
+        settings: Settings,
+        stage: CrossfadeStage,
+        playing: Boolean,
+    ): Boolean = settings.fadesOnSkip && playing && stage in quietStages
+
+    private val quietStages = setOf(CrossfadeStage.IDLE, CrossfadeStage.PREPARED, CrossfadeStage.WAITING_FOR_TAIL)
+
+    /**
      * A tail heard for moments, or after the song has already gone quiet, starts sooner from a sync point
      * at the cost of a small jump. One carrying a whole fade straight on from the session starts exactly.
      */

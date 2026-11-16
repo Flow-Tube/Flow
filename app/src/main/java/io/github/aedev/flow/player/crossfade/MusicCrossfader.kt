@@ -84,6 +84,7 @@ internal class MusicCrossfader(
                 reason: Int,
             ) {
                 if (handingOff) return
+                if (skip.awaitingQueue && reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) skip.queueArrived()
                 if (skipFade) return
                 val songEnded = reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT
                 if (stage == CrossfadeStage.THROUGH && songEnded) {
@@ -103,6 +104,10 @@ internal class MusicCrossfader(
                 val left = oldPosition.mediaItem
                 val changedSong = left != null && left.mediaId != newPosition.mediaItem?.mediaId
                 val byHand = reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_REMOVE
+                if (skip.awaitingQueue && changedSong) {
+                    skip.queueArrived()
+                    return
+                }
                 if (skip.holding && (changedSong || byHand)) {
                     abort("the player moved while a skip waited for its tail")
                     return
@@ -208,6 +213,9 @@ internal class MusicCrossfader(
         index: Int,
         mediaId: String,
     ) = skip.skipTo(index, mediaId)
+
+    /** A song picked from a list is about to replace the queue; [answer] is true once the old song plays on, on a tail. */
+    fun holdForNewQueue(answer: (Boolean) -> Unit) = skip.holdForNewQueue(answer)
 
     private fun startFade(late: Boolean) {
         stage = CrossfadeStage.FADING
@@ -437,6 +445,7 @@ internal class MusicCrossfader(
 
     private fun finish() {
         skipFade = false
+        skip.forgetQueue()
         releaseTail()
         stage = CrossfadeStage.IDLE
         restoreScale()

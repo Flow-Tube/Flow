@@ -129,6 +129,8 @@ class Media3MusicService : MediaLibraryService() {
         private const val ACTION_SKIP_TO = "ACTION_SKIP_TO"
         private const val EXTRA_SKIP_INDEX = "index"
         private const val EXTRA_SKIP_MEDIA_ID = "mediaId"
+        private const val ACTION_HOLD_FOR_NEW_QUEUE = "ACTION_HOLD_FOR_NEW_QUEUE"
+        private const val EXTRA_QUEUE_HELD = "held"
 
         private const val MAX_RETRY_PER_SONG = 5
         private const val BASE_RETRY_DELAY_MS = 3000L
@@ -148,6 +150,7 @@ class Media3MusicService : MediaLibraryService() {
         private val CommandToggleRepeat = SessionCommand(ACTION_TOGGLE_REPEAT, Bundle.EMPTY)
         private val CommandStop = SessionCommand(ACTION_STOP, Bundle.EMPTY)
         private val CommandSkipTo = SessionCommand(ACTION_SKIP_TO, Bundle.EMPTY)
+        private val CommandHoldForNewQueue = SessionCommand(ACTION_HOLD_FOR_NEW_QUEUE, Bundle.EMPTY)
 
         const val ACTION_TOGGLE_LIKE = "ACTION_TOGGLE_LIKE"
         private val CommandToggleLike = SessionCommand(ACTION_TOGGLE_LIKE, Bundle.EMPTY)
@@ -181,6 +184,15 @@ class Media3MusicService : MediaLibraryService() {
                     putString(EXTRA_SKIP_MEDIA_ID, mediaId)
                 },
             )
+
+        /**
+         * Asked before the app replaces the queue with a song picked from a list: the service moves the
+         * playing song to a fade tail first. [queueHeld] on the result says whether it did.
+         */
+        fun holdForNewQueue(controller: MediaController): ListenableFuture<SessionResult> =
+            controller.sendCustomCommand(CommandHoldForNewQueue, Bundle.EMPTY)
+
+        fun queueHeld(result: SessionResult): Boolean = result.extras.getBoolean(EXTRA_QUEUE_HELD)
     }
 
     private lateinit var mediaLibrarySession: MediaLibrarySession
@@ -2051,6 +2063,7 @@ class Media3MusicService : MediaLibraryService() {
                     .add(CommandToggleLike)
                     .add(CommandStop)
                     .add(CommandSkipTo)
+                    .add(CommandHoldForNewQueue)
                     .build()
             return MediaSession.ConnectionResult
                 .AcceptedResultBuilder(session)
@@ -2123,6 +2136,15 @@ class Media3MusicService : MediaLibraryService() {
             if (customCommand.customAction == ACTION_SKIP_TO) {
                 crossfader?.skipTo(args.getInt(EXTRA_SKIP_INDEX), args.getString(EXTRA_SKIP_MEDIA_ID).orEmpty())
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+            if (customCommand.customAction == ACTION_HOLD_FOR_NEW_QUEUE) {
+                val answer = SettableFuture.create<SessionResult>()
+                val reply = { held: Boolean ->
+                    answer.set(SessionResult(SessionResult.RESULT_SUCCESS, Bundle().apply { putBoolean(EXTRA_QUEUE_HELD, held) }))
+                }
+                crossfader?.holdForNewQueue { reply(it) } ?: reply(false)
+                return answer
             }
 
             if (customCommand.customAction == ACTION_STOP) {
