@@ -10,6 +10,8 @@ import io.github.aedev.flow.applock.DEFAULT_APP_LOCK_DELAY_MINUTES
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.playlist.PlaylistListOrder
 import io.github.aedev.flow.data.profile.StoreScope
+import io.github.aedev.flow.data.translation.TranslationServerType
+import io.github.aedev.flow.data.translation.TranslationSettings
 import io.github.aedev.flow.data.video.downloader.work.RetagResult
 import io.github.aedev.flow.data.video.storage.DownloadLocation
 import io.github.aedev.flow.network.AppProxyConfig
@@ -69,13 +71,14 @@ val DEFAULT_NAV_TAB_ORDER = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 private const val MAX_UNPLAYABLE_VIDEO_IDS = 1_000
 
 /**
- * Preferences that never leave the device in a backup: the proxy password, SponsorBlock's
- * submission id, which is a private identity for the user's votes and segments, and the app lock,
- * which a restored backup must not be able to turn on or off.
+ * Preferences that never leave the device in a backup: the proxy password and the translation
+ * server's API key, SponsorBlock's submission id, which is a private identity for the user's votes
+ * and segments, and the app lock, which a restored backup must not be able to turn on or off.
  */
 private val BackupExcludedKeys =
     setOf(
         "proxy_password",
+        "translation_api_key",
         "sb_user_id",
         "app_lock_enabled",
         "app_lock_delay_minutes",
@@ -612,6 +615,13 @@ class PlayerPreferences(
         // AI channel list source: device-wide, like the list file it decides
         val AI_LIST_SOURCE_URL = device(stringPreferencesKey("ai_list_source_url"))
         val AI_LIST_SOURCE_KEY = device(stringPreferencesKey("ai_list_source_key"))
+
+        // Translate (#892): the viewer's own server, device-wide like the AiSList source
+        val TRANSLATION_USE_SERVER = device(booleanPreferencesKey("translation_use_server"))
+        val TRANSLATION_SERVER_TYPE = device(stringPreferencesKey("translation_server_type"))
+        val TRANSLATION_SERVER_URL = device(stringPreferencesKey("translation_server_url"))
+        val TRANSLATION_API_KEY = device(stringPreferencesKey("translation_api_key"))
+        val TRANSLATION_TARGET = device(stringPreferencesKey("translation_target"))
 
         val NAMES: Set<String> = names
     }
@@ -2541,6 +2551,54 @@ class PlayerPreferences(
         context.devicePreferencesDataStore.edit { preferences ->
             if (url.isNullOrBlank()) preferences.remove(DeviceKeys.AI_LIST_SOURCE_URL) else preferences[DeviceKeys.AI_LIST_SOURCE_URL] = url
             if (key.isNullOrBlank()) preferences.remove(DeviceKeys.AI_LIST_SOURCE_KEY) else preferences[DeviceKeys.AI_LIST_SOURCE_KEY] = key
+        }
+    }
+
+    val translationSettings: Flow<TranslationSettings> =
+        context.devicePreferencesDataStore.data
+            .map { preferences ->
+                TranslationSettings(
+                    useServer = preferences[DeviceKeys.TRANSLATION_USE_SERVER] ?: false,
+                    serverType = TranslationServerType.fromKey(preferences[DeviceKeys.TRANSLATION_SERVER_TYPE]),
+                    serverUrl = preferences[DeviceKeys.TRANSLATION_SERVER_URL],
+                    apiKey = preferences[DeviceKeys.TRANSLATION_API_KEY],
+                    target = preferences[DeviceKeys.TRANSLATION_TARGET].orEmpty(),
+                )
+            }.distinctUntilChanged()
+
+    suspend fun setTranslationUseServer(useServer: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.TRANSLATION_USE_SERVER] = useServer
+        }
+    }
+
+    /** Saving a server also switches Translate to it. */
+    suspend fun setTranslationServer(
+        type: TranslationServerType,
+        url: String,
+        apiKey: String?,
+    ) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.TRANSLATION_SERVER_TYPE] = type.key
+            preferences[DeviceKeys.TRANSLATION_SERVER_URL] = url
+            if (apiKey.isNullOrBlank()) {
+                preferences.remove(DeviceKeys.TRANSLATION_API_KEY)
+            } else {
+                preferences[DeviceKeys.TRANSLATION_API_KEY] =
+                    apiKey.trim()
+            }
+            preferences[DeviceKeys.TRANSLATION_USE_SERVER] = true
+        }
+    }
+
+    suspend fun setTranslationTarget(languageTag: String) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            if (languageTag.isBlank()) {
+                preferences.remove(DeviceKeys.TRANSLATION_TARGET)
+            } else {
+                preferences[DeviceKeys.TRANSLATION_TARGET] =
+                    languageTag
+            }
         }
     }
 
