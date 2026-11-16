@@ -5419,4 +5419,12 @@
         <item quantity="many">Se han importado %d listas</item>
         <item quantity="other">Se han importado %d listas</item>
     </plurals>
+    <string name="settings_top_bar_profile_title">Perfil en la barra superior</string>
+    <string name="settings_top_bar_profile_summary">Cambiar de perfil desde cualquier pestaña principal</string>
+    <string name="settings_profile_menu_settings_title">Ajustes en el menú del perfil</string>
+    <string name="settings_profile_menu_settings_summary">Oculta el icono de ajustes y abre Ajustes desde tu perfil</string>
+    <string name="settings_top_bar_profile_keywords">perfil, avatar, cuenta, barra superior, icono de ajustes, engranaje</string>
+    <string name="dearrow_thumbnails_only">Solo miniaturas de DeArrow</string>
+    <string name="dearrow_thumbnails_only_subtitle">Nunca mostrar la miniatura original del creador</string>
+    <string name="profiles_action_settings_description">Perfil: %1$s. Cambiar de perfil o abrir ajustes</string>
 </resources>
