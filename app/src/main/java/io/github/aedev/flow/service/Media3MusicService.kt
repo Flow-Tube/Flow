@@ -588,6 +588,7 @@ class Media3MusicService : MediaLibraryService() {
         // order, the player's shuffle flag reorders nothing on its own, whichever controller sets it.
         player.setShuffleOrder(ShuffleOrder.UnshuffledShuffleOrder(0))
         musicResume.attach(player)
+        MusicPreload(this, player).attach(lifecycleScope, prefs.bufferProfile)
         crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
         lifecycleScope.launch {
             combine(
