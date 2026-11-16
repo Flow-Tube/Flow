@@ -1,7 +1,9 @@
 package io.github.aedev.flow.ui.screens.library
 
 import android.content.Context
+import android.content.Intent
 import android.content.IntentSender
+import android.net.Uri
 import android.os.StatFs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,7 +21,11 @@ import io.github.aedev.flow.data.video.DownloadedVideo
 import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.data.video.downloader.collection.DownloadedCollections
 import io.github.aedev.flow.data.video.downloader.work.DownloadController
+import io.github.aedev.flow.data.video.storage.DownloadFiles
+import io.github.aedev.flow.data.video.storage.DownloadLocation
+import io.github.aedev.flow.data.video.storage.StorageAccess
 import io.github.aedev.flow.data.video.storage.deleteRequestFor
+import io.github.aedev.flow.data.video.storage.lostDownloadTree
 import io.github.aedev.flow.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
@@ -54,7 +61,7 @@ class DownloadsViewModel
         private val musicDownloadManager: MusicDownloadManager,
         private val downloadController: DownloadController,
         private val collections: DownloadedCollections,
-        preferences: PlayerPreferences,
+        private val preferences: PlayerPreferences,
         @param:ApplicationScope private val applicationScope: CoroutineScope,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DownloadsUiState())
@@ -83,6 +90,9 @@ class DownloadsViewModel
         // Each pull to refresh reads the lists again, so a file deleted outside Flow drops out and
         // the free space is measured again, not only when the database changes.
         private val refreshTick = MutableStateFlow(0)
+
+        // Bumped on return to the screen, since a folder grant can change outside the app.
+        private val accessTick = MutableStateFlow(0)
 
         init {
             observeDownloads()
@@ -284,7 +294,41 @@ class DownloadsViewModel
 
         /** On open and on return to the screen: the viewer may have granted access in system settings. */
         fun scanIfMoreIsReadable() {
+            accessTick.update { it + 1 }
             if (recoveryScanner.needsScan()) scan(reportNone = false)
+        }
+
+        /** A picked download folder Flow can no longer open, to be picked again; null when there is none. */
+        val lostFolder: StateFlow<String?> =
+            combine(
+                preferences.downloadLocation,
+                preferences.musicDownloadLocation,
+                accessTick,
+            ) { video, music, _ -> lostTree(video, music) }
+                .flowOn(Dispatchers.IO)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        private fun lostTree(
+            video: DownloadLocation,
+            music: DownloadLocation,
+        ): String? = lostDownloadTree(listOf(video, music), DownloadFiles.grantedTrees(context), StorageAccess.read(context).allFiles)
+
+        /** Saves [picked] wherever the lost folder was the location, then looks through it for earlier downloads. */
+        fun relinkFolder(picked: Uri) {
+            viewModelScope.launch {
+                val video = preferences.downloadLocation.first()
+                val music = preferences.musicDownloadLocation.first()
+                val lost = withContext(Dispatchers.IO) { lostTree(video, music) } ?: return@launch
+                withContext(Dispatchers.IO) {
+                    runCatching { context.contentResolver.takePersistableUriPermission(picked, TREE_GRANT) }
+                }
+                val tree = picked.toString()
+                val location = DownloadLocation(path = DownloadFiles.treePath(tree), treeUri = tree)
+                if (video.treeUri == lost) preferences.setDownloadLocation(location)
+                if (music.treeUri == lost) preferences.setMusicDownloadLocation(location)
+                accessTick.update { it + 1 }
+                scan(reportNone = true)
+            }
         }
 
         private fun scan(reportNone: Boolean) {
@@ -321,3 +365,5 @@ data class DownloadsUiState(
     val sort: DownloadSort = DownloadSort.NEWEST,
     val isScanning: Boolean = false,
 )
+
+private const val TREE_GRANT = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +47,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -93,6 +95,10 @@ fun DownloadsScreen(
     val snackbarHostState = shellSnackbar ?: remember { SnackbarHostState() }
     var access by remember { mutableStateOf(StorageAccess.read(context)) }
     var recoveryDismissed by rememberSaveable { mutableStateOf(false) }
+    val lostFolder by viewModel.lostFolder.collectAsStateWithLifecycle()
+    var lostFolderDismissed by rememberSaveable { mutableStateOf(false) }
+    val folderPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { picked -> picked?.let(viewModel::relinkFolder) }
     LifecycleResumeEffect(Unit) {
         access = StorageAccess.read(context)
         viewModel.scanIfMoreIsReadable()
@@ -236,7 +242,18 @@ fun DownloadsScreen(
                         uiState.totalMusicCount == 0 &&
                         uiState.incompleteVideoDownloads.isEmpty() &&
                         uiState.incompleteMusicDownloads.isEmpty()
-                if (hasNothing && !access.seesAllDownloads && !recoveryDismissed) {
+                val lost = lostFolder
+                if (lost != null && !lostFolderDismissed) {
+                    DownloadsRecoveryCard(
+                        onAllow = { folderPicker.launch(lost.toUri()) },
+                        onDismiss = { lostFolderDismissed = true },
+                        icon = Icons.Outlined.FolderOpen,
+                        title = stringResource(R.string.downloads_folder_lost_title),
+                        body = stringResource(R.string.downloads_folder_lost_body),
+                        allowLabel = stringResource(R.string.downloads_folder_lost_choose),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                } else if (hasNothing && !access.seesAllDownloads && !recoveryDismissed) {
                     DownloadsRecoveryCard(
                         onAllow = { accessRequest.launch(downloadReadPermissions()) },
                         onDismiss = { recoveryDismissed = true },
