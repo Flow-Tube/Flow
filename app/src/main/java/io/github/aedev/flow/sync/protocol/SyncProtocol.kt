@@ -259,7 +259,7 @@ class SyncProtocol(
             }
             val complete = decode(expect(FrameType.COMPLETE, NETWORK_WAIT), Complete.serializer())
             if (complete.collection != name) throw protocolError("COMPLETE for ${complete.collection} ended $name")
-            val computed = SyncSerialization.sha256Hex(lines.joinToString("\n"))
+            val computed = SyncSerialization.collectionHash(lines)
             if (computed != complete.hash || computed != entry.hash) {
                 throw SyncProtocolException("payload hash mismatch for $name", CODE_HASH_MISMATCH, tellPeer = true)
             }

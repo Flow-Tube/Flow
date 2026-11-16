@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.ByteArrayOutputStream
 
 /** FLOW-SYNC/1's chunk size; it keeps every batch well under the 4 MiB object limit. */
 private const val RECORDS_PER_BATCH = 1000
@@ -98,7 +99,13 @@ fun batchContent(
     lines: List<String>,
 ): ByteArray {
     val header = SyncSerialization.canonicalJson(Json.encodeToJsonElement(BatchHeader.serializer(), BatchHeader(collection, head, link)))
-    return (listOf(header) + lines).joinToString("\n").toByteArray()
+    val out = ByteArrayOutputStream()
+    out.write(header.toByteArray(Charsets.UTF_8))
+    for (line in lines) {
+        out.write('\n'.code)
+        out.write(line.toByteArray(Charsets.UTF_8))
+    }
+    return out.toByteArray()
 }
 
 /**
@@ -171,7 +178,7 @@ suspend fun applyBatches(
             for (line in lines) {
                 recordKey(collection, Json.parseToJsonElement(line).jsonObject)?.let { keys.getOrPut(collection) { HashSet() } += it }
             }
-            ReceivedCollection(lines, SyncSerialization.sha256Hex(lines.joinToString("\n")))
+            ReceivedCollection(lines, SyncSerialization.collectionHash(lines))
         }
     val collections = keys.keys.toList()
     val before = ownHashes(export(collections), keys)
