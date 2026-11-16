@@ -2868,7 +2868,6 @@
     <string name="download_sheet_all_languages">All languages</string>
     <string name="downloading_template">Downloading %1$s...</string>
     <string name="download_quality_hdr">HDR</string>
-    <string name="download_storage_access_prompt">Grant storage access to save downloads in public folders (optional)</string>
     <string name="section_downloading">Downloading</string>
     <string name="section_incomplete_downloads">Incomplete downloads</string>
     <string name="section_completed">Completed</string>

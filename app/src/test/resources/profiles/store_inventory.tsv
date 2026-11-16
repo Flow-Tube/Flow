@@ -35,7 +35,6 @@ shared_prefs	youtube_identity	main:utils/potoken/VisitorIdentityStore.kt	PROFILE
 shared_prefs	flow_prefs	main:utils/potoken/VisitorIdentityStore.kt	DEVICE	-	Only deletes the legacy visitor keys.
 shared_prefs	flow_prefs	main:utils/cipher/PipePipeNsigDecoder.kt	DEVICE	-	Player-JS id cache with a 24 h lifetime.
 shared_prefs	flow_language_prefs	main:utils/AppLanguageManager.kt	DEVICE	-	App language.
-shared_prefs	flow_storage_prefs	main:ui/components/shared/DownloadLauncher.kt	DEVICE	-	Storage permission prompt.
 shared_prefs	flow_crash_prefs	main:utils/FlowCrashHandler.kt	DEVICE	-	Crash reports.
 shared_prefs	music_home_cache_prefs	main:data/recommendation/MusicRecommendationAlgorithm.kt	CACHE	-	Freshness of the music home rows, which sit in each profile's database; suffixed per profile.
 shared_prefs	flow_file_tombstones	main:data/video/VideoDownloadManager.kt	DEVICE	-	Deleted download paths.
