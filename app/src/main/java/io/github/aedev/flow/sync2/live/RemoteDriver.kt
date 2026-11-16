@@ -67,8 +67,15 @@ class RemoteDriver
         fun install() {
             scope.launch {
                 choice.did.collect {
-                    PlaybackTarget.remote = if (it != null) this@RemoteDriver else null
-                    if (it == null) PlaybackTarget.followed.value = null
+                    // Another target (a TV the music is cast to) is left alone unless a device is chosen here.
+                    val other = PlaybackTarget.remote?.takeIf { remote -> remote !== this@RemoteDriver }
+                    if (it != null) {
+                        other?.release()
+                        PlaybackTarget.remote = this@RemoteDriver
+                    } else if (other == null) {
+                        PlaybackTarget.remote = null
+                        PlaybackTarget.followed.value = null
+                    }
                 }
             }
         }
@@ -80,7 +87,16 @@ class RemoteDriver
                 combine(choice.did, devices.devices) { did, peers -> did?.let { peers[it] } }
                     .distinctUntilChanged { old, new -> old?.now == new?.now }
                     .collectLatest { peer ->
-                        if (peer?.now?.music == true) follow(peer) else PlaybackTarget.followed.value = null
+                        when {
+                            peer?.now?.music == true -> {
+                                follow(peer)
+                            }
+
+                            PlaybackTarget.remote == null || PlaybackTarget.remote === this@RemoteDriver -> {
+                                PlaybackTarget.followed.value =
+                                    null
+                            }
+                        }
                     }
             }
 

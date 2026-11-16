@@ -491,6 +491,7 @@
     <string name="no_subscriptions_found">No subscriptions found</string>
     <!-- Live chat -->
     <string name="live_chat">Live chat</string>
+    <string name="chat_replay">Chat replay</string>
     <string name="live_chat_connecting">Connecting to live chat…</string>
     <string name="live_chat_empty">Waiting for messages…</string>
     <string name="live_chat_show">Show chat</string>
@@ -517,6 +518,13 @@
     <string name="comment_edited">edited</string>
     <string name="comment_time_edited_template">%1$s (%2$s)</string>
     <string name="read_more">Read more</string>
+    <string name="translate">Translate</string>
+    <string name="translate_with">Translate with</string>
+    <string name="translate_no_app">No translator app found. You can add your own server in Settings › Language &amp; region.</string>
+    <string name="translation_in_progress">Translating…</string>
+    <string name="translation_show_original">Show original</string>
+    <string name="translation_by_host">Translated by %1$s</string>
+    <string name="translation_failed">%1$s couldn\'t translate this</string>
     <string name="desc_more">...more</string>
     <string name="reply">Reply</string>
     <string name="hide_replies">Hide replies</string>
@@ -551,6 +559,7 @@
     <string name="desc_see_less">See less</string>
     <string name="copy_description">Copy description</string>
     <string name="description_copied">Description copied to clipboard</string>
+    <string name="translate_description">Translate title and description</string>
     <string name="title_copied">Title copied to clipboard</string>
     <string name="channel_name_copied">Channel name copied to clipboard</string>
     <string name="copy_channel_name">Copy channel name</string>
@@ -625,6 +634,10 @@
     <string name="delete_group">Delete Group</string>
     <string name="group_name_label">Group name</string>
     <string name="no_groups_yet">No groups yet. Create one to filter your feed.</string>
+    <string name="group_hide">Hide group</string>
+    <string name="group_unhide">Show group</string>
+    <string name="group_show_in_all">Show in All</string>
+    <string name="group_show_in_all_hidden">Hidden groups stay out of All</string>
     <string name="search_channels_hint">Search channels…</string>
     <string name="toggle_view_mode">Toggle View Mode</string>
     <string name="unsubscribed_from_template">Unsubscribed from %1$s</string>
@@ -1467,7 +1480,7 @@
     <string name="comment_gif_description">GIF in comment</string>
     <string name="comment_gif_show">Show GIF</string>
     <string name="content_settings_live_chat_enabled_title">Live chat</string>
-    <string name="content_settings_live_chat_enabled_subtitle">Show chat on live streams</string>
+    <string name="content_settings_live_chat_enabled_subtitle">Show chat on live streams and their replays</string>
     <string name="content_settings_subs_startup_refresh_title">Refresh subscriptions at startup</string>
     <string name="content_settings_subs_startup_refresh_subtitle">Check your subscription feed when the app opens</string>
     <string name="content_settings_subs_show_checked_count_title">Checked video count</string>
@@ -1484,6 +1497,8 @@
     <string name="content_settings_subs_collaborations_subtitle">Videos made with channels you follow</string>
     <string name="content_settings_subs_posts_chip_title">Posts chip</string>
     <string name="content_settings_subs_posts_chip_subtitle">Show the Posts chip above the feed</string>
+    <string name="content_settings_subs_all_chip_title">All chip</string>
+    <string name="content_settings_subs_all_chip_subtitle">Off opens the feed on your first group</string>
     <string name="content_settings_subs_ungrouped_title">Ungrouped group</string>
     <string name="content_settings_subs_ungrouped_subtitle">A chip for channels in no group</string>
     <string name="content_settings_nav_order_title">Tab order and default</string>
@@ -2939,7 +2954,11 @@
     <string name="dlna_searching">Searching for DLNA devices...</string>
     <string name="dlna_google_cast_unsupported">Chromecast and other Google Cast devices aren\'t supported.</string>
     <string name="dlna_now_casting">Now casting: %1$s</string>
+    <string name="dlna_cast_no_stream">This video can\'t be cast</string>
     <string name="dlna_stop_casting">Stop Casting</string>
+    <string name="cast_to_tv_desc">Play the queue on a TV or speaker</string>
+    <string name="cast_song_unavailable">Can\'t cast %1$s, skipped</string>
+    <string name="cast_connection_lost">Lost the connection to %1$s</string>
     <!-- Subtitle customization -->
     <string name="subtitle_customization_title">Subtitle Customization</string>
     <string name="subtitle_preview_text">Preview Subtitle Text</string>
@@ -3753,6 +3772,8 @@
     <!-- Export / delete watch history (#507) -->
     <string name="export_watch_history_title">Watch history</string>
     <string name="export_watch_history_desc">Export as YouTube-history JSON (imports into LibreTube and Flow)</string>
+    <string name="export_playlists_title">Playlists</string>
+    <string name="export_playlists_desc">Your playlists, Watch later, likes and Saved Shorts in one file Flow can import</string>
     <string name="history_export_failed">Failed to export watch history</string>
     <string name="history_delete_shorts">Delete Shorts from history</string>
     <string name="history_delete_shorts_title">Delete Shorts?</string>
@@ -4492,6 +4513,26 @@
     <string name="settings_original_titles">Original titles</string>
     <string name="settings_original_titles_summary">Show titles and descriptions in the video\'s own language</string>
     <string name="settings_keywords_original_titles">untranslated, auto-translated, translation, original language, titles, descriptions</string>
+    <string name="settings_translation_header">Translate</string>
+    <string name="settings_translate_with">Translate with</string>
+    <string name="translate_with_app">Translator app</string>
+    <string name="translate_with_app_summary">Sends comments and descriptions to the translator app you have</string>
+    <string name="translate_with_server">Your server</string>
+    <string name="translate_with_server_summary">Translates in place with a LibreTranslate or Lingva server you enter</string>
+    <string name="translation_server_title">Translation server</string>
+    <string name="settings_translation_server_summary">Not set</string>
+    <string name="translation_server_value">%1$s · %2$s</string>
+    <string name="translation_server_dialog_body">Flow sends the text you translate to this server. Flow has no server of its own.</string>
+    <string name="translation_server_libretranslate">LibreTranslate</string>
+    <string name="translation_server_lingva">Lingva</string>
+    <string name="translation_server_url_hint">Server address</string>
+    <string name="translation_server_url_placeholder">https://translate.example.com</string>
+    <string name="translation_server_url_help">https, or http on your local network</string>
+    <string name="translation_server_invalid">Use an https address, or http on your local network</string>
+    <string name="translation_server_key_hint">API key (optional)</string>
+    <string name="settings_translate_to">Translate to</string>
+    <string name="translate_to_content_language">Content language</string>
+    <string name="settings_keywords_translation">translate, translation, translator, LibreTranslate, Lingva, server, comments, description</string>
     <string name="settings_section_speed">Speed</string>
     <string name="settings_section_player_buttons">Player buttons</string>
     <string name="settings_section_pip">Picture-in-picture and mini player</string>
@@ -4972,6 +5013,16 @@
     <string name="imported_playlist_default_name">Imported playlist</string>
     <string name="playlist_exported">Playlist saved</string>
     <string name="playlist_export_failed">Couldn\'t save the playlist</string>
+    <string name="playlist_export_all_action">Export all</string>
+    <string name="playlists_export_failed">Couldn\'t save the playlists</string>
+    <plurals name="playlists_exported">
+        <item quantity="one">Saved %d playlist</item>
+        <item quantity="other">Saved %d playlists</item>
+    </plurals>
+    <plurals name="playlists_imported">
+        <item quantity="one">Imported %d playlist</item>
+        <item quantity="other">Imported %d playlists</item>
+    </plurals>
     <string name="playlist_share_failed">Couldn\'t share the playlist</string>
     <string name="playlist_import_not_a_playlist">This file isn\'t a Flow playlist</string>
     <string name="playlist_import_too_new">This playlist needs a newer version of Flow</string>

@@ -17,14 +17,19 @@ import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.data.transcript.TranscriptRepository
 import io.github.aedev.flow.data.video.OfflineSubtitleStore
 import io.github.aedev.flow.data.video.VideoDownloadManager
+import io.github.aedev.flow.innertube.models.response.ChatReplaySeed
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.stream.UpcomingPremiereProbe
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.ui.screens.player.state.richVideoFor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 /**
  * Builds the collaborators one player screen runs on, in the order they depend on each other, and
@@ -132,6 +137,20 @@ internal class PlayerCollaborators(
             repository = liveChatRepository,
             scope = scope,
             dispatcher = networkDispatcher,
+            replay =
+                ChatReplayController(
+                    repository = liveChatRepository,
+                    playback =
+                        object : ChatReplayPlayback {
+                            override fun isPlaying(videoId: String): Flow<Boolean> =
+                                playerManager.playerState
+                                    .map { it.isPlaying && it.currentVideoId == videoId }
+                                    .distinctUntilChanged()
+
+                            override suspend fun positionMs(): Long = withContext(Dispatchers.Main) { playerManager.getCurrentPosition() }
+                        },
+                    seed = { videoId -> repository.watchNextResponse(videoId)?.let(ChatReplaySeed::token) },
+                ),
         )
 
     val engagementState =

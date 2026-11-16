@@ -112,6 +112,7 @@ internal fun PlayerBottomSheetsContainer(
             collapsedHeight = mediaSheetCollapsedHeight,
             onSheetProgressChange = onMediaSheetProgressChange,
             onDismiss = { screenState.closeSheet() },
+            isReplay = !uiState.isLive,
         )
     }
 

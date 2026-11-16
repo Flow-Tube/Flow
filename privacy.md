@@ -230,6 +230,10 @@ project-operated proxy or relay in between.
 - `api.aisloplist.com`: AiSList reports, only when the user turns reporting on and confirms a report.
   It receives the channel handle, the video link and the submitter name the user chose, which AiSList
   shows on its public leaderboard.
+- A LibreTranslate or Lingva server the user enters, only when the user sets one and taps Translate.
+  It receives the text being translated, the target language and, for LibreTranslate, the API key
+  the user entered. Flow has no translation server of its own; without one, Translate hands the
+  text to the translator app the user picks on the device.
 - `api.github.com` and `github.com`: release check and changelog, `github` flavor only.
 - `discord.com`: rich presence, `github` flavor only, and only after the user links an account.
 - Local network addresses: DLNA renderers on the LAN, and the peer device during Device Sync.

@@ -4,7 +4,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SharedLinkAction
 import io.github.aedev.flow.data.local.WatchedThreshold
+import io.github.aedev.flow.data.local.dao.SubscriptionGroupDao
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 /** What shows up in the feeds: Home, Subscriptions, Shorts, Watch later, watched filtering, notes and sharing. */
@@ -13,6 +15,7 @@ class ContentSettingsViewModel
     @Inject
     constructor(
         private val preferences: PlayerPreferences,
+        subscriptionGroupDao: SubscriptionGroupDao,
     ) : SettingsViewModel() {
         val homeFeed = preferences.homeFeedEnabled.asState(true)
         val refreshOnReselect = preferences.refreshHomeOnReselect.asState(true)
@@ -30,6 +33,13 @@ class ContentSettingsViewModel
         val subsUpcoming = preferences.subscriptionShowUpcoming.asState(true)
         val subsPostsChip = preferences.subscriptionPostsChip.asState(true)
         val subsUngrouped = preferences.subscriptionUngroupedEnabled.asState(false)
+        val subsAllChip = preferences.subscriptionAllChip.asState(true)
+
+        /** Whether a group chip shows, so the All chip can be switched off. */
+        val subsHasGroupChip =
+            combine(subscriptionGroupDao.getAllGroups(), preferences.subscriptionHiddenGroups) { groups, hidden ->
+                groups.any { it.name !in hidden }
+            }.asState(false)
         val subsCollaborations = preferences.subscriptionCollaborationsEnabled.asState(true)
         val hideWatchedSubs = preferences.hideWatchedVideosFromSubscriptions.asState(false)
         val hideUnplayableSubs = preferences.hideUnplayableVideosFromSubscriptions.asState(false)
@@ -79,6 +89,8 @@ class ContentSettingsViewModel
         fun setSubsPostsChip(value: Boolean) = write { preferences.setSubscriptionPostsChip(value) }
 
         fun setSubsUngrouped(value: Boolean) = write { preferences.setSubscriptionUngroupedEnabled(value) }
+
+        fun setSubsAllChip(value: Boolean) = write { preferences.setSubscriptionAllChip(value) }
 
         fun setSubsCollaborations(value: Boolean) = write { preferences.setSubscriptionCollaborationsEnabled(value) }
 

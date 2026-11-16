@@ -73,11 +73,14 @@ class PlaylistsViewModel
             }
         }
 
-        /** Imports the playlist file at [source]; the result says what to tell the viewer and where to go. */
-        suspend fun importPlaylist(
-            source: Uri,
+        /** Imports the playlist files or zips at [sources]; the result says what to tell the viewer and where to go. */
+        suspend fun importPlaylists(
+            sources: List<Uri>,
             fallbackName: String,
-        ): PlaylistImport = transfer.import(source, fallbackName)
+        ): PlaylistImport = transfer.importAll(sources, fallbackName)
+
+        /** Saves every playlist into [target] as one zip; null when it could not be written, else how many it holds. */
+        suspend fun exportAll(target: Uri): Int? = transfer.writeLibraryTo(target)
 
         fun setListOrder(order: PlaylistListOrder) {
             viewModelScope.launch { preferences.setPlaylistListOrder(order) }

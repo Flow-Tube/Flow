@@ -2257,10 +2257,11 @@ object YouTube {
     suspend fun liveChat(
         continuation: String,
         offsetMs: Long? = null,
+        replay: Boolean = false,
     ): Result<io.github.aedev.flow.innertube.models.response.GetLiveChatResponse> =
         runCatching {
             innerTube
-                .getLiveChat(continuation, offsetMs)
+                .getLiveChat(continuation, offsetMs, replay)
                 .body<io.github.aedev.flow.innertube.models.response.GetLiveChatResponse>()
         }
 

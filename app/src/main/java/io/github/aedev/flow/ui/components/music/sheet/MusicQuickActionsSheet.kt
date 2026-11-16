@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Cast
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Info
@@ -65,8 +66,8 @@ class CrossfadePauseRow(
 )
 
 /**
- * A song's menu. [onAudioEffectsClick], [onSleepTimerClick] and [crossfadePause] are the player's own
- * settings, so their rows appear only when the player passes them.
+ * A song's menu. [onAudioEffectsClick], [onSleepTimerClick], [crossfadePause] and [onCastClick] are
+ * the player's own, so their rows appear only when the player passes them.
  */
 @Composable
 fun MusicQuickActionsSheet(
@@ -75,6 +76,7 @@ fun MusicQuickActionsSheet(
     onAudioEffectsClick: (() -> Unit)? = null,
     onSleepTimerClick: (() -> Unit)? = null,
     crossfadePause: CrossfadePauseRow? = null,
+    onCastClick: (() -> Unit)? = null,
     viewModel: MusicPlayerViewModel = sharedMusicPlayerViewModel(),
     quickActions: QuickActionsViewModel = sharedQuickActionsViewModel(),
 ) {
@@ -131,7 +133,14 @@ fun MusicQuickActionsSheet(
                 }
                 QuickActionsGroup(
                     title = stringResource(R.string.playback_header),
-                    rows = playbackRows(track, viewModel, quickActions, onAudioEffectsClick, onSleepTimerClick, crossfadePause, close),
+                    rows =
+                        playbackRows(
+                            track,
+                            viewModel,
+                            quickActions,
+                            PlayerRows(onAudioEffectsClick, onSleepTimerClick, crossfadePause, onCastClick),
+                            close,
+                        ),
                 )
                 // A file on the device has no artist page, feed or online details to offer.
                 if (isDeviceFile) return@QuickActionsSheet
@@ -212,14 +221,20 @@ private fun SongPrimaryActions(
     )
 }
 
+/** The rows only the player's own menu shows. */
+private class PlayerRows(
+    val onAudioEffectsClick: (() -> Unit)?,
+    val onSleepTimerClick: (() -> Unit)?,
+    val crossfadePause: CrossfadePauseRow?,
+    val onCastClick: (() -> Unit)?,
+)
+
 @Composable
 private fun playbackRows(
     track: MusicTrack,
     viewModel: MusicPlayerViewModel,
     quickActions: QuickActionsViewModel,
-    onAudioEffectsClick: (() -> Unit)?,
-    onSleepTimerClick: (() -> Unit)?,
-    crossfadePause: CrossfadePauseRow?,
+    player: PlayerRows,
     onDismiss: () -> Unit,
 ): List<QuickActionRow> {
     val navigator = LocalMediaNavigator.current
@@ -267,7 +282,15 @@ private fun playbackRows(
                 },
             )
         }
-        onAudioEffectsClick?.let { open ->
+        player.onCastClick?.let { open ->
+            add(
+                actionRow("cast", Icons.Outlined.Cast, stringResource(R.string.cast_to_tv), stringResource(R.string.cast_to_tv_desc)) {
+                    open()
+                    onDismiss()
+                },
+            )
+        }
+        player.onAudioEffectsClick?.let { open ->
             add(
                 actionRow("audio_effects", Icons.Outlined.GraphicEq, stringResource(R.string.audio_effects)) {
                     open()
@@ -275,7 +298,7 @@ private fun playbackRows(
                 },
             )
         }
-        onSleepTimerClick?.let { open ->
+        player.onSleepTimerClick?.let { open ->
             add(
                 actionRow("sleep_timer", Icons.Outlined.Bedtime, stringResource(R.string.sleep_timer)) {
                     open()
@@ -283,7 +306,7 @@ private fun playbackRows(
                 },
             )
         }
-        crossfadePause?.let { row ->
+        player.crossfadePause?.let { row ->
             add(
                 if (row.paused) {
                     actionRow("crossfade_pause", Icons.Outlined.JoinInner, stringResource(R.string.crossfade_resume)) {

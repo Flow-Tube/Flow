@@ -18,10 +18,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
+import io.github.aedev.flow.ui.screens.music.MusicCastViewModel
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
 import io.github.aedev.flow.ui.screens.playon.PlayOnButton
 
@@ -32,12 +34,19 @@ fun PlayerTopBar(
     modifier: Modifier = Modifier,
     contentColor: Color = Color.White,
     modeSwitch: (@Composable () -> Unit)? = null,
+    cast: MusicCastViewModel = hiltViewModel(),
 ) {
     val elsewhere =
         LocalPlayOn.current
             ?.elsewhere
             ?.collectAsStateWithLifecycle()
             ?.value
+            ?.name
+    val castTo =
+        cast.device
+            .collectAsStateWithLifecycle()
+            .value
+            ?.friendlyName
     CenterAlignedTopAppBar(
         title = {
             if (modeSwitch != null) {
@@ -55,7 +64,7 @@ fun PlayerTopBar(
                         color = contentColor.copy(alpha = 0.9f),
                     )
                     Text(
-                        text = elsewhere?.let { stringResource(R.string.play_on_playing_on, it.name) } ?: playingFrom,
+                        text = (elsewhere ?: castTo)?.let { stringResource(R.string.play_on_playing_on, it) } ?: playingFrom,
                         style = MaterialTheme.typography.bodyMedium,
                         color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,
@@ -65,7 +74,10 @@ fun PlayerTopBar(
                 }
             }
         },
-        actions = { PlayOnButton(tint = contentColor) },
+        actions = {
+            MusicCastButton(cast)
+            PlayOnButton(tint = contentColor)
+        },
         colors =
             TopAppBarDefaults.centerAlignedTopAppBarColors(
                 containerColor = Color.Transparent,

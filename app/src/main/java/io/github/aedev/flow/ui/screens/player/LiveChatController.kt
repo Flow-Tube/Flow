@@ -21,11 +21,15 @@ import kotlinx.coroutines.launch
  * nobody is looking at is a network round trip and a state write every few hundred milliseconds
  * for the length of a stream, and the player keeps its surfaces composed while they are hidden.
  * Leaving the panel keeps the transcript, so reopening it is instant.
+ *
+ * A finished stream's chat replay goes through the same flows and the same visibility gate; its
+ * pace comes from the video's position instead of the server's ([ChatReplayController]).
  */
 internal class LiveChatController(
     private val repository: LiveChatRepository,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
+    private val replay: ChatReplayController? = null,
 ) {
     private val _messages = MutableStateFlow<List<LiveChatMessage>>(emptyList())
     val messages: StateFlow<List<LiveChatMessage>> = _messages.asStateFlow()
@@ -43,6 +47,8 @@ internal class LiveChatController(
     private var dripJob: Job? = null
     private var pendingContinuation: String? = null
     private val seen = LinkedHashSet<String>()
+    private var isReplay = false
+    private var replayTimeline: ChatReplayTimeline? = null
 
     fun start(videoId: String) {
         if (this.videoId == videoId) return
@@ -55,18 +61,36 @@ internal class LiveChatController(
         if (enabled) probe(videoId)
     }
 
+    /** A regular video: shows its chat replay when it was a stream that kept one. */
+    fun startReplay(videoId: String) {
+        if (replay == null || this.videoId == videoId) return
+        stop()
+        this.videoId = videoId
+        isReplay = true
+        seen.clear()
+        _messages.value = emptyList()
+        _isAvailable.value = false
+        _isLoading.value = false
+        if (enabled) probeReplay(videoId)
+    }
+
     /** The Live chat setting: off, nothing is requested at all, not even whether a stream has chat. */
     fun setEnabled(value: Boolean) {
         if (enabled == value) return
         enabled = value
         val current = videoId ?: return
         if (value) {
-            _isLoading.value = true
-            probe(current)
+            if (isReplay) {
+                probeReplay(current)
+            } else {
+                _isLoading.value = true
+                probe(current)
+            }
         } else {
             probeJob?.cancel()
             dripJob?.cancel()
             pendingContinuation = null
+            replayTimeline = null
             seen.clear()
             _messages.value = emptyList()
             _isAvailable.value = false
@@ -91,6 +115,18 @@ internal class LiveChatController(
             }
     }
 
+    private fun probeReplay(videoId: String) {
+        val replay = replay ?: return
+        probeJob =
+            scope.launch(dispatcher) {
+                val seed = replay.seedFor(videoId)
+                if (this@LiveChatController.videoId != videoId || seed == null) return@launch
+                replayTimeline = ChatReplayTimeline(seed)
+                _isAvailable.value = true
+                if (panelVisible) startReplayLoop(videoId)
+            }
+    }
+
     fun stop() {
         probeJob?.cancel()
         probeJob = null
@@ -98,6 +134,8 @@ internal class LiveChatController(
         dripJob = null
         videoId = null
         pendingContinuation = null
+        isReplay = false
+        replayTimeline = null
     }
 
     fun setPanelVisible(visible: Boolean) {
@@ -108,7 +146,22 @@ internal class LiveChatController(
             dripJob = null
             return
         }
-        videoId?.takeIf { _isAvailable.value }?.let(::startDrip)
+        val current = videoId?.takeIf { _isAvailable.value } ?: return
+        if (isReplay) startReplayLoop(current) else startDrip(current)
+    }
+
+    private fun startReplayLoop(videoId: String) {
+        val replay = replay ?: return
+        val timeline = replayTimeline ?: return
+        if (dripJob?.isActive == true) return
+        dripJob =
+            scope.launch(dispatcher) {
+                replay.run(
+                    videoId = videoId,
+                    timeline = timeline,
+                    onMessages = { if (this@LiveChatController.videoId == videoId) _messages.value = it },
+                )
+            }
     }
 
     private fun startDrip(videoId: String) {
