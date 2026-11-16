@@ -107,7 +107,6 @@ fun NavGraphBuilder.flowAppGraph(
                 // With a Search tab in the bar, the icon opens that tab, so Search keeps its state like any other tab.
                 if (searchIsTab()) navController.navigateToTab(FlowTab.Search, defaultStartRoute) else navController.navigate("search")
             },
-            onOpenSettings = { target -> navController.navigate("settings?target=${target.encode()}") },
             onNavigateToHistory = {
                 navController.navigate("history")
             },

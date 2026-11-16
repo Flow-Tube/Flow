@@ -4675,4 +4675,5 @@
     <string name="player_appearance_mini_long_press_options">Opções</string>
     <string name="player_appearance_mini_long_press_like">Curtir</string>
     <string name="player_appearance_mini_long_press_queue">Fila</string>
+    <string name="player_appearance_cover_paused_title">Quando pausado</string>
 </resources>

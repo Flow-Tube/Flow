@@ -1426,6 +1426,11 @@
     <string name="pause_watch_history_subtitle">Stop saving what you watch. Deep Flow also pauses learning</string>
     <string name="content_settings_show_app_logo_title">Show app logo icon</string>
     <string name="content_settings_show_app_logo_subtitle">Show the Flow logo in the Home top bar</string>
+    <string name="settings_top_bar_profile_title">Profile in the top bar</string>
+    <string name="settings_top_bar_profile_summary">Switch profiles from every main tab</string>
+    <string name="settings_profile_menu_settings_title">Settings in the profile menu</string>
+    <string name="settings_profile_menu_settings_summary">Hide the settings icon and open Settings from your profile</string>
+    <string name="settings_top_bar_profile_keywords">profile, avatar, account, top bar, settings icon, gear</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Show Shorts</string>
     <string name="content_settings_shorts_content_subtitle">Hide Shorts everywhere. Saved Shorts and history are kept.</string>
@@ -3553,6 +3558,7 @@
     <string name="profiles_show_others">Show other profiles</string>
     <string name="profiles_hide_others">Hide other profiles</string>
     <string name="profiles_action_description">Profile: %1$s. Switch profile</string>
+    <string name="profiles_action_settings_description">Profile: %1$s. Switch profile or open settings</string>
     <string name="profiles_sheet_footer">Profiles keep feeds, history and settings apart. They are not locked, so anyone using this device can switch.</string>
     <string name="profiles_add_summary">Each profile keeps its own feed, history and settings</string>
     <string name="profiles_limit">You can have up to %1$d profiles</string>
