@@ -186,6 +186,7 @@ class PlayerPreferences(
         val BOTTOM_NAV_STYLE = stringPreferencesKey("bottom_nav_style")
         val BOTTOM_NAV_SCRUB = booleanPreferencesKey("bottom_nav_scrub")
         val BOTTOM_NAV_ICON_POP = booleanPreferencesKey("bottom_nav_icon_pop")
+        val BOTTOM_NAV_SCROLL = stringPreferencesKey("bottom_nav_scroll")
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
         val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
@@ -1723,9 +1724,29 @@ class PlayerPreferences(
         }
     }
 
+    val bottomNavScroll: Flow<NavBarScroll> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.BOTTOM_NAV_SCROLL]
+                    ?.let { stored -> runCatching { NavBarScroll.valueOf(stored) }.getOrNull() }
+                    ?: NavBarScroll.SHRINK
+            }.distinctUntilChanged()
+
+    suspend fun setBottomNavScroll(scroll: NavBarScroll) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.BOTTOM_NAV_SCROLL] = scroll.name
+        }
+    }
+
     val bottomNavLook: Flow<NavBarLook> =
-        combine(bottomNavStyle, bottomNavLabels, bottomNavScrub, bottomNavIconPop) { style, labels, scrub, iconPop ->
-            NavBarLook(style, labels, scrub, iconPop)
+        combine(
+            bottomNavStyle,
+            bottomNavLabels,
+            bottomNavScrub,
+            bottomNavIconPop,
+            bottomNavScroll,
+        ) { style, labels, scrub, iconPop, scroll ->
+            NavBarLook(style, labels, scrub, iconPop, scroll)
         }.distinctUntilChanged()
 
     // Search keeps its full-screen layout unless this is on.
@@ -5715,7 +5736,14 @@ data class NavBarLook(
     val labels: NavBarLabels = NavBarLabels.ALWAYS,
     val scrub: Boolean = true,
     val iconPop: Boolean = false,
+    val scroll: NavBarScroll = NavBarScroll.SHRINK,
 )
+
+/** What scrolling does to the floating bar, when the bar reacts to scrolling at all. */
+enum class NavBarScroll {
+    HIDE,
+    SHRINK,
+}
 
 enum class SharedLinkAction {
     /** Play the video straight away, replacing what plays. */

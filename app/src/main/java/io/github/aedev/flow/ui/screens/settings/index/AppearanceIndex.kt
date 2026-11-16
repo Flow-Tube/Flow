@@ -251,6 +251,16 @@ internal object NavigationBarIndex {
             section = R.string.settings_section_style,
             destination = page,
         )
+    val scroll =
+        SettingEntry(
+            key = "navigation_bar.scroll",
+            title = R.string.settings_nav_scroll_title,
+            summary = R.string.settings_nav_scroll_summary,
+            keywords = R.string.settings_keywords_nav_style,
+            section = R.string.settings_section_style,
+            destination = page,
+            revealVia = style.key,
+        )
     val scrub =
         SettingEntry(
             key = "navigation_bar.scrub",
@@ -293,6 +303,7 @@ internal object NavigationBarIndex {
         listOf(
             style,
             labels,
+            scroll,
             scrub,
             iconPop,
             home,

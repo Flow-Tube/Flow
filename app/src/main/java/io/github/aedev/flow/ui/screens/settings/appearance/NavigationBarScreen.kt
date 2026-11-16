@@ -24,6 +24,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.NavBarLabels
+import io.github.aedev.flow.data.local.NavBarScroll
 import io.github.aedev.flow.data.local.NavBarStyle
 import io.github.aedev.flow.ui.components.layout.navigation.resolveDefaultFlowTab
 import io.github.aedev.flow.ui.components.layout.navigation.visibleFlowTabs
@@ -47,6 +48,7 @@ internal fun NavigationBarScreen(
     val style by viewModel.navStyle.collectAsStateWithLifecycle()
     val scrub by viewModel.navScrub.collectAsStateWithLifecycle()
     val iconPop by viewModel.navIconPop.collectAsStateWithLifecycle()
+    val scroll by viewModel.navScroll.collectAsStateWithLifecycle()
     val searchShowsBar by viewModel.searchShowsNavBar.collectAsStateWithLifecycle()
     val innerPagesShowBar by viewModel.innerPagesShowNavBar.collectAsStateWithLifecycle()
     val order by viewModel.navTabOrder.collectAsStateWithLifecycle()
@@ -68,6 +70,12 @@ internal fun NavigationBarScreen(
             FlowToggleOption(NavBarLabels.NEVER, stringResource(R.string.settings_nav_labels_never)),
         )
 
+    val scrollOptions =
+        listOf(
+            FlowToggleOption(NavBarScroll.HIDE, stringResource(R.string.settings_nav_scroll_hide)),
+            FlowToggleOption(NavBarScroll.SHRINK, stringResource(R.string.settings_nav_scroll_shrink)),
+        )
+
     SettingsPage(
         title = stringResource(R.string.settings_navigation_bar_title),
         onBack = onBack,
@@ -77,6 +85,13 @@ internal fun NavigationBarScreen(
             toggleGroup(NavigationBarIndex.style, styleOptions, style, viewModel::setNavStyle)
             toggleGroup(NavigationBarIndex.labels, labelOptions, labels, viewModel::setNavLabels)
             if (style == NavBarStyle.FLOATING) {
+                toggleGroup(
+                    NavigationBarIndex.scroll,
+                    scrollOptions,
+                    scroll,
+                    viewModel::setNavScroll,
+                    enabled = hideOnScroll,
+                )
                 switch(NavigationBarIndex.scrub, scrub, viewModel::setNavScrub, icon = Icons.Outlined.Swipe)
                 switch(NavigationBarIndex.iconPop, iconPop, viewModel::setNavIconPop, icon = Icons.Outlined.Animation)
             }

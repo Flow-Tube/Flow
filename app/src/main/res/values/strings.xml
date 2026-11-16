@@ -4455,6 +4455,10 @@
     <string name="settings_nav_style_summary">Full width, or floating above the page</string>
     <string name="settings_nav_style_standard">Standard</string>
     <string name="settings_nav_style_floating">Floating</string>
+    <string name="settings_nav_scroll_title">When you scroll</string>
+    <string name="settings_nav_scroll_summary">Hide the bar, or shrink it to the open tab</string>
+    <string name="settings_nav_scroll_hide">Hide</string>
+    <string name="settings_nav_scroll_shrink">Shrink</string>
     <string name="settings_nav_scrub_title">Drag to switch tabs</string>
     <string name="settings_nav_scrub_summary">Slide along the floating bar to move between tabs</string>
     <string name="settings_nav_icon_pop_title">Icon pop</string>

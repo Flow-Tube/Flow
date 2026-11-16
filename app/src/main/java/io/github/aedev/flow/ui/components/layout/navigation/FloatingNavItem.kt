@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -52,6 +53,7 @@ internal fun FloatingNavItem(
     namedWidth: Float,
     contentColor: Color,
     pop: Boolean,
+    hidden: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -118,8 +120,10 @@ internal fun FloatingNavItem(
                         }
                     }
                 }.clip(CircleShape)
+                .then(if (hidden) Modifier.clearAndSetSemantics {} else Modifier)
                 .selectable(
                     selected = selected,
+                    enabled = !hidden,
                     onClick = onClick,
                     role = Role.Tab,
                     interactionSource = interaction,

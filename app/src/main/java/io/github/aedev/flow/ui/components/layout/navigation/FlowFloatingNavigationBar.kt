@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -83,6 +84,8 @@ internal fun FlowFloatingNavigationBar(
     selectedTab: FlowTab?,
     onTabSelected: (FlowTab) -> Unit,
     look: NavBarLook,
+    collapsed: Boolean,
+    onExpand: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val (barTabs, overflowTabs) = splitTabsForOverflow(tabs, MAX_BAR_TABS)
@@ -118,9 +121,23 @@ internal fun FlowFloatingNavigationBar(
             }
         }
     val geometry =
-        remember(nameWidths, open, labels, maxRowWidth, metrics) {
-            floatingNavGeometry(nameWidths, open.coerceAtLeast(0), labels, maxRowWidth, collapsed = false, metrics = metrics)
+        remember(nameWidths, open, labels, maxRowWidth, metrics, collapsed) {
+            floatingNavGeometry(
+                nameWidths,
+                open.coerceAtLeast(0),
+                labels,
+                maxRowWidth,
+                collapsed = collapsed && open >= 0,
+                metrics = metrics,
+            )
         }
+    val folded = collapsed && open >= 0
+    val fold =
+        animateFloatAsState(
+            targetValue = if (folded) 1f else 0f,
+            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+            label = "navFold",
+        )
 
     var scrubbing by remember { mutableStateOf(false) }
     val scrubScale by animateFloatAsState(
@@ -137,7 +154,7 @@ internal fun FlowFloatingNavigationBar(
                 .windowInsetsPadding(ShortNavigationBarDefaults.windowInsets.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
                 .padding(horizontal = MediaMiniBarDefaults.CompactMargin)
                 .padding(bottom = FloatingToolbarDefaults.ScreenOffset),
-        contentAlignment = Alignment.BottomCenter,
+        contentAlignment = Alignment.BottomStart,
     ) {
         HorizontalFloatingToolbar(
             expanded = true,
@@ -145,26 +162,35 @@ internal fun FlowFloatingNavigationBar(
             // Items bring their own height; the toolbar's vertical padding would make the bar taller than 64 dp.
             contentPadding = PaddingValues(horizontal = sidePadding),
             modifier =
-                Modifier.graphicsLayer {
-                    scaleX = scrubScale
-                    scaleY = scrubScale
-                    transformOrigin = TransformOrigin(0.5f, 1f)
-                },
+                Modifier
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints.copy(minWidth = 0))
+                        layout(constraints.maxWidth, placeable.height) {
+                            // Centred while open, sliding to the start edge as it folds to the open tab.
+                            val centred = (constraints.maxWidth - placeable.width) / 2f
+                            placeable.placeRelative((centred * (1f - fold.value)).roundToInt(), 0)
+                        }
+                    }.graphicsLayer {
+                        scaleX = scrubScale
+                        scaleY = scrubScale
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                    },
         ) {
             FloatingNavRow(
                 slots = slots,
                 open = open,
                 geometry = geometry,
                 metrics = metrics,
-                scrub = look.scrub,
+                scrub = look.scrub && !folded,
+                folded = folded,
                 pop = look.iconPop,
                 onScrubbing = { scrubbing = it },
                 onSelect = { index ->
                     val tab = slots.getOrNull(index)?.tab
-                    if (tab != null) {
-                        onTabSelected(tab)
-                    } else if (overflowTabs.isNotEmpty()) {
-                        menuOpen = true
+                    when {
+                        folded -> onExpand()
+                        tab != null -> onTabSelected(tab)
+                        overflowTabs.isNotEmpty() -> menuOpen = true
                     }
                 },
             )
@@ -191,6 +217,7 @@ private fun FloatingNavRow(
     geometry: FloatingNavGeometry,
     metrics: FloatingNavMetrics,
     scrub: Boolean,
+    folded: Boolean,
     pop: Boolean,
     onScrubbing: (Boolean) -> Unit,
     onSelect: (Int) -> Unit,
@@ -234,6 +261,7 @@ private fun FloatingNavRow(
                                 else -> colors.selectedTextColorStartIconPosition
                             },
                         pop = pop,
+                        hidden = folded && !selected,
                         onClick = { currentSelect(index) },
                     )
                 }
