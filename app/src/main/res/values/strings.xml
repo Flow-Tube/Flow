@@ -2527,6 +2527,7 @@
     <string name="music_video_failed">Couldn\'t load the music video</string>
     <string name="music_watch_video">Watch video</string>
     <string name="settings_pause_music_muted_title">Pause music when muted</string>
+    <string name="settings_pause_video_muted_title">Pause video when muted</string>
     <string name="settings_pause_music_muted_summary">Resume when the volume comes back</string>
     <string name="settings_music_resume_title">Resume podcasts and long tracks</string>
     <string name="settings_music_resume_summary">Start tracks over 10 minutes where you left off</string>

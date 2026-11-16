@@ -101,6 +101,14 @@ internal object PlaybackIndex {
             section = R.string.playback_header,
             destination = page,
         )
+    val pauseVideoWhenMuted =
+        SettingEntry(
+            key = "playback.pause_video_when_muted",
+            title = R.string.settings_pause_video_muted_title,
+            summary = R.string.settings_pause_music_muted_summary,
+            section = R.string.playback_header,
+            destination = page,
+        )
     val rememberSpeed =
         SettingEntry(
             key = "playback.remember_speed",
@@ -446,6 +454,7 @@ internal object PlaybackIndex {
             loopAll,
             skipSilence,
             playDuringCalls,
+            pauseVideoWhenMuted,
             normalizeVolume,
             rememberSpeed,
             musicNormalSpeed,

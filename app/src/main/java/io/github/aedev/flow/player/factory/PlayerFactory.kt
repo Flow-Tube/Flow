@@ -170,6 +170,7 @@ class PlayerFactory {
                     .build(),
                 shouldHandleAudioFocus(prefs.playDuringCalls),
             ).setHandleAudioBecomingNoisy(true)
+            .setDeviceVolumeControlEnabled(true)
             .setLoadControl(loadControl)
             .setMediaSourceFactory(DefaultMediaSourceFactory(factory))
             .build()

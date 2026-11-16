@@ -116,6 +116,7 @@ class PlaybackSettingsViewModel
         val endlessRadio = preferences.musicEndlessRadioEnabled.asState(true)
         val musicVideoSwitch = preferences.musicVideoSwitch.asState(false)
         val pauseMusicWhenMuted = preferences.pauseMusicWhenMuted.asState(false)
+        val pauseVideoWhenMuted = preferences.pauseVideoWhenMuted.asState(false)
         val musicResume = preferences.musicResumeLongTracks.asState(false)
         val crossfadeEnabled = preferences.musicCrossfadeEnabled.asState(false)
         val crossfadeMs = preferences.musicCrossfadeMs.asState(DEFAULT_CROSSFADE_MS)
@@ -299,6 +300,8 @@ class PlaybackSettingsViewModel
         fun setMusicVideoSwitch(value: Boolean) = write { preferences.setMusicVideoSwitch(value) }
 
         fun setPauseMusicWhenMuted(value: Boolean) = write { preferences.setPauseMusicWhenMuted(value) }
+
+        fun setPauseVideoWhenMuted(value: Boolean) = write { preferences.setPauseVideoWhenMuted(value) }
 
         fun setMusicResume(value: Boolean) = write { preferences.setMusicResumeLongTracks(value) }
 

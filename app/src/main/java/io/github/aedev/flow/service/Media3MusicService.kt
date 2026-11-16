@@ -69,13 +69,13 @@ import io.github.aedev.flow.innertube.models.WatchEndpoint
 import io.github.aedev.flow.player.LifecyclePlaybackPreferences
 import io.github.aedev.flow.player.MusicFailureStreak
 import io.github.aedev.flow.player.MusicLoadErrorPolicy
-import io.github.aedev.flow.player.MusicMutePause
 import io.github.aedev.flow.player.MusicPauseLog
 import io.github.aedev.flow.player.MusicPlaybackDiagnostics
 import io.github.aedev.flow.player.MusicPlaybackRecoveryPlanner
 import io.github.aedev.flow.player.MusicQueuePlanner
 import io.github.aedev.flow.player.MusicRadioPlanner
 import io.github.aedev.flow.player.MusicResumeTracker
+import io.github.aedev.flow.player.MutePausePolicy
 import io.github.aedev.flow.player.PlaylistQueueOrder
 import io.github.aedev.flow.player.audio.AudioSessionAnnouncer
 import io.github.aedev.flow.player.audio.AudioSessionRegistry
@@ -732,20 +732,20 @@ class Media3MusicService : MediaLibraryService() {
                     volume: Int,
                     muted: Boolean,
                 ) {
-                    val action = MusicMutePause.onVolume(muted || volume == 0, pauseWhenMuted, player.isPlaying, pausedForMute)
+                    val action = MutePausePolicy.onVolume(muted || volume == 0, pauseWhenMuted, player.isPlaying, pausedForMute)
                     when (action) {
-                        MusicMutePause.Action.PAUSE -> {
+                        MutePausePolicy.Action.PAUSE -> {
                             pauseLog.noteCause("pause music when muted")
                             player.pause()
                             pausedForMute = true
                         }
 
-                        MusicMutePause.Action.RESUME -> {
+                        MutePausePolicy.Action.RESUME -> {
                             pausedForMute = false
                             player.play()
                         }
 
-                        MusicMutePause.Action.NONE -> {}
+                        MutePausePolicy.Action.NONE -> {}
                     }
                 }
 

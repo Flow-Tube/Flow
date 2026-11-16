@@ -566,6 +566,7 @@ class PlayerPreferences(
 
         // Remember playback speed
         val PAUSE_MUSIC_WHEN_MUTED = device(booleanPreferencesKey("pause_music_when_muted"))
+        val PAUSE_VIDEO_WHEN_MUTED = device(booleanPreferencesKey("pause_video_when_muted"))
         val MUSIC_SIDE_SWIPES = device(booleanPreferencesKey("music_side_swipes"))
         val LOCK_SCREEN_PLAYER = device(booleanPreferencesKey("lock_screen_player"))
         val APP_LOCK_ENABLED = device(booleanPreferencesKey("app_lock_enabled"))
@@ -3021,6 +3022,17 @@ class PlayerPreferences(
     suspend fun setPauseMusicWhenMuted(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.PAUSE_MUSIC_WHEN_MUTED] = enabled
+        }
+    }
+
+    val pauseVideoWhenMuted: Flow<Boolean> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.PAUSE_VIDEO_WHEN_MUTED] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setPauseVideoWhenMuted(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.PAUSE_VIDEO_WHEN_MUTED] = enabled
         }
     }
 

@@ -1,10 +1,10 @@
 package io.github.aedev.flow.player
 
 /**
- * Pause music when the device is muted and resume it when sound comes back, but only music this
- * pause stopped: a song the listener paused by hand stays paused when they turn the volume up.
+ * Pause playback when the device is muted and resume it when sound comes back, but only what this
+ * pause stopped: something the listener paused by hand stays paused when they turn the volume up.
  */
-internal object MusicMutePause {
+internal object MutePausePolicy {
     enum class Action { PAUSE, RESUME, NONE }
 
     fun onVolume(
