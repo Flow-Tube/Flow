@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -54,6 +55,8 @@ fun PlayerBackground(
     trackId: String = "",
     // Moving colours only: whether the field may drift, false while the player is hidden or the song paused.
     motionRunning: Boolean = false,
+    // Immersive only: the scrim's alpha over the cover, read while drawing so a fade never recomposes.
+    dim: () -> Float = { 0f },
 ) {
     val context = LocalContext.current
     LaunchedEffect(preloadCovers) { preloadCovers.forEach { context.imageLoader.execute(ImageRequest.Builder(context).data(it).build()) } }
@@ -144,6 +147,14 @@ fun PlayerBackground(
                                         ),
                                 ),
                             ),
+                )
+                val scrim = MaterialTheme.colorScheme.scrim
+                Box(
+                    modifier =
+                        Modifier.fillMaxSize().drawBehind {
+                            val alpha = dim()
+                            if (alpha > 0f) drawRect(scrim, alpha = alpha)
+                        },
                 )
             }
 

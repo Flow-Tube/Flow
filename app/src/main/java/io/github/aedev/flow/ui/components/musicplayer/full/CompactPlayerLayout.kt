@@ -26,6 +26,8 @@ internal fun CompactPlayerLayout(
     queueFraction: () -> Float,
     bottomInset: Dp,
     modifier: Modifier = Modifier,
+    // Lyrics shown in place take the cover's whole space, so the cover and its skip swipes leave.
+    lyrics: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val sidePadding = Modifier.padding(horizontal = PlayerHorizontalPadding)
     Column(
@@ -43,17 +45,21 @@ internal fun CompactPlayerLayout(
                     .weight(1f),
         ) {
             slots.topBar(Modifier.statusBarsPadding())
-            Spacer(modifier = Modifier.weight(1f))
-            slots.artwork(
-                sidePadding
-                    .size(artworkSize)
-                    .graphicsLayer {
-                        val scale = 1f - queueFraction() * 0.10f
-                        scaleX = scale
-                        scaleY = scale
-                    },
-            )
-            Spacer(modifier = Modifier.weight(1f))
+            if (lyrics != null) {
+                lyrics(Modifier.fillMaxWidth().weight(1f))
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+                slots.artwork(
+                    sidePadding
+                        .size(artworkSize)
+                        .graphicsLayer {
+                            val scale = 1f - queueFraction() * 0.10f
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                )
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
         Spacer(modifier = Modifier.height(16.dp))
         slots.header(sidePadding)
