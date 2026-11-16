@@ -5,7 +5,7 @@
     <string name="subscriptions_sort_label">Kanalları çeşidlə</string>
     <string name="subscriptions_sort_default">Standart</string>
     <string name="subscriptions_sort_name">Ad (A–Z)</string>
-    <string name="subscriptions_sort_recent">Son yenilənənlər</string>
+    <string name="subscriptions_sort_recent">Son yenilənən</string>
     <string name="top_bar_subscriptions_title">Abunəliklər</string>
     <string name="view_all_button_label">Hamısı</string>
     <string name="subscribed">Abunə olunub</string>
@@ -5119,4 +5119,18 @@
     <string name="ai_music_attribution_blocker_summary">MIT, © CennoxX</string>
     <string name="ai_music_artist_listed">Bu sənətçi Sİ musiqi siyahısındadır</string>
     <string name="ai_music_artist_show">Onların musiqisini göstər</string>
+    <string name="notification_new_video_live">İndi canlı: %1$s</string>
+    <string name="notification_new_video_scheduled">%1$s \'da Canlı: %2$s</string>
+    <string name="notification_new_video_premiere">Premyera %1$s-də: %2$s</string>
+    <string name="settings_keywords_nav_labels">etiketlər, adlar, yalnız simvollar, mətn</string>
+    <string name="settings_nav_labels_title">Səhifə etiketləri</string>
+    <string name="settings_nav_labels_summary">Alt zolaqdakı simvolların altındakı adlar</string>
+    <string name="settings_nav_labels_always">Həmişə</string>
+    <string name="settings_nav_labels_selected">Seçilmiş</string>
+    <string name="settings_nav_labels_never">Heç vaxt</string>
+    <string name="settings_keywords_nav_style">üzən, həb, üslub, alt zolaq</string>
+    <string name="settings_nav_style_title">Zolaq üslubu</string>
+    <string name="settings_nav_style_summary">Tam en və ya səhifənin üstündə üzən</string>
+    <string name="settings_nav_style_standard">Standart</string>
+    <string name="settings_nav_style_floating">Üzən</string>
 </resources>
