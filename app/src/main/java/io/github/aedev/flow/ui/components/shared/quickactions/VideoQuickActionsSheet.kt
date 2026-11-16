@@ -50,6 +50,7 @@ import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
+import io.github.aedev.flow.ui.components.shared.LocalYouTubeFramesOnly
 import io.github.aedev.flow.ui.components.shared.MediaThumbnail
 import io.github.aedev.flow.ui.components.shared.SaveVideoSheet
 import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardPreferences
@@ -82,7 +83,7 @@ fun VideoQuickActionsBottomSheet(
     onDismiss: () -> Unit,
     title: String = rememberCardTitle(video),
     thumbnailUrl: String = video.thumbnailUrl,
-    youTubeFrames: Boolean = false,
+    youTubeFrames: Boolean = LocalYouTubeFramesOnly.current && !video.isShort,
     showChannel: Boolean = true,
     whyShown: String? = null,
     onRemoveFromCollection: (() -> Unit)? = null,

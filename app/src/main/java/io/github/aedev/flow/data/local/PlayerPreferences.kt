@@ -273,6 +273,7 @@ class PlayerPreferences(
         val DEARROW_ENABLED = booleanPreferencesKey("dearrow_enabled")
         val DEARROW_BADGE_ENABLED = booleanPreferencesKey("dearrow_badge_enabled")
         val DEARROW_RANDOM_FRAME = booleanPreferencesKey("dearrow_random_frame")
+        val DEARROW_THUMBNAILS_ONLY = booleanPreferencesKey("dearrow_thumbnails_only")
 
         // AI channel list
         val AI_LIST_BLOCK_ENABLED = booleanPreferencesKey("ai_list_block_enabled")
@@ -2497,6 +2498,17 @@ class PlayerPreferences(
     suspend fun setDeArrowRandomFrame(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.DEARROW_RANDOM_FRAME] = enabled
+        }
+    }
+
+    /** Never load the uploader's thumbnail: DeArrow's, or else a frame YouTube takes from the video (#1633). */
+    val deArrowThumbnailsOnly: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.DEARROW_THUMBNAILS_ONLY] ?: false }
+
+    suspend fun setDeArrowThumbnailsOnly(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.DEARROW_THUMBNAILS_ONLY] = enabled
         }
     }
 

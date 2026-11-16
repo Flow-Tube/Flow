@@ -46,6 +46,7 @@ internal fun VideoCardThumbnail(
         showWatchProgress = LocalVideoCardPreferences.current.showWatchProgress,
         onModelLoaded = state.deArrowFrameUrl?.let { frame -> { loaded -> deArrowFrameShown = loaded == frame } },
         youTubeFrames = state.youTubeFrames,
+        showImage = state.thumbnailUrl != null,
         modifier = modifier,
     ) {
         val badgeModifier = Modifier.padding(MediaThumbnailDefaults.BadgePadding)

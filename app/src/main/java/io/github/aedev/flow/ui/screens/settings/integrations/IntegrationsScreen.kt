@@ -44,6 +44,8 @@ internal fun IntegrationsScreen(
     val segments by viewModel.segments.collectAsStateWithLifecycle()
     val skipButtonStyle by viewModel.skipButtonStyle.collectAsStateWithLifecycle()
     val deArrow by viewModel.deArrow.collectAsStateWithLifecycle()
+    val deArrowRandomFrame by viewModel.deArrowRandomFrame.collectAsStateWithLifecycle()
+    val deArrowThumbnailsOnly by viewModel.deArrowThumbnailsOnly.collectAsStateWithLifecycle()
     val discordState by viewModel.discordState.collectAsStateWithLifecycle()
     val aiListBlock by viewModel.aiListBlock.collectAsStateWithLifecycle()
     val aiListWarn by viewModel.aiListWarn.collectAsStateWithLifecycle()
@@ -92,7 +94,19 @@ internal fun IntegrationsScreen(
         }
         group(key = "integrations.dearrow.group", header = R.string.player_settings_dearrow) {
             switch(IntegrationsIndex.deArrow, viewModel.deArrow, viewModel::setDeArrow, icon = Icons.Outlined.AutoFixHigh)
-            switch(IntegrationsIndex.deArrowRandomFrame, viewModel.deArrowRandomFrame, viewModel::setDeArrowRandomFrame, enabled = deArrow)
+            // With thumbnails only, a frame is the only fallback left, so the row reads on; the stored value is kept.
+            switch(
+                IntegrationsIndex.deArrowRandomFrame,
+                checked = deArrowRandomFrame || deArrowThumbnailsOnly,
+                onCheckedChange = viewModel::setDeArrowRandomFrame,
+                enabled = deArrow && !deArrowThumbnailsOnly,
+            )
+            switch(
+                IntegrationsIndex.deArrowThumbnailsOnly,
+                viewModel.deArrowThumbnailsOnly,
+                viewModel::setDeArrowThumbnailsOnly,
+                enabled = deArrow,
+            )
             switch(IntegrationsIndex.deArrowBadge, viewModel.deArrowBadge, viewModel::setDeArrowBadge, enabled = deArrow)
         }
         aiListSection(

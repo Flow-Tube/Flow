@@ -1665,6 +1665,8 @@
     <string name="dearrow_badge_toggle">Show DeArrow Badge</string>
     <string name="dearrow_random_frame">Use a video frame</string>
     <string name="dearrow_random_frame_subtitle">When nothing is submitted, show a frame from the video</string>
+    <string name="dearrow_thumbnails_only">DeArrow thumbnails only</string>
+    <string name="dearrow_thumbnails_only_subtitle">Never show the uploader\'s thumbnail</string>
     <string name="dearrow_badge_toggle_subtitle">Display a badge on thumbnails corrected by DeArrow</string>
     <string name="global_loop">Global Video Loop</string>
     <string name="global_loop_subtitle">Loop all videos by default</string>

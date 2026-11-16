@@ -40,6 +40,7 @@ class IntegrationsViewModel
         val deArrow = preferences.deArrowEnabled.asState(false)
         val deArrowBadge = preferences.deArrowBadgeEnabled.asState(false)
         val deArrowRandomFrame = preferences.deArrowRandomFrame.asState(true)
+        val deArrowThumbnailsOnly = preferences.deArrowThumbnailsOnly.asState(false)
         val dislikes = preferences.rytdEnabled.asState(true)
         val aiListBlock = aiList.blockEnabled.asState(false)
         val aiListWarn = aiList.warnEnabled.asState(false)
@@ -115,6 +116,8 @@ class IntegrationsViewModel
         ) = write { onResult(aiList.setSource(url, key)) }
 
         fun setDeArrowRandomFrame(value: Boolean) = write { preferences.setDeArrowRandomFrame(value) }
+
+        fun setDeArrowThumbnailsOnly(value: Boolean) = write { preferences.setDeArrowThumbnailsOnly(value) }
 
         fun setDislikes(value: Boolean) = write { preferences.setRytdEnabled(value) }
 
