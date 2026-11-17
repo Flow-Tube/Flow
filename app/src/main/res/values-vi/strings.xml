@@ -5090,4 +5090,5 @@
     <string name="ai_report_rate_limited">Đã gửi quá nhiều báo cáo, hãy thử lại sau</string>
     <string name="ai_report_rejected">AiSList đã từ chối báo cáo</string>
     <string name="ai_report_failed">Báo cáo thất bại, hãy kiểm tra kết nối của bạn</string>
+    <string name="lyrics_repeat_count">(×%1$d)</string>
 </resources>
