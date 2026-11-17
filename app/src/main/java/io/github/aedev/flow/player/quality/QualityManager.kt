@@ -10,8 +10,8 @@ import io.github.aedev.flow.player.config.adaptiveTrackSelectorDefaults
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.state.QualityOption
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.model.VideoStream
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 @UnstableApi
 class QualityManager(
@@ -66,7 +66,7 @@ class QualityManager(
      * Update available video streams.
      */
     fun setAvailableStreams(streams: List<VideoStream>) {
-        availableVideoStreams = streams.distinctBy { it.getContent() }.sortedByDescending { qualityHeight(it) }
+        availableVideoStreams = streams.distinctBy { it.content }.sortedByDescending { qualityHeight(it) }
     }
 
     /**
@@ -444,7 +444,7 @@ class QualityManager(
         }
     }
 
-    private fun streamKey(stream: VideoStream): String = stream.getContent().takeIf { it.isNotBlank() } ?: stream.hashCode().toString()
+    private fun streamKey(stream: VideoStream): String = stream.content.takeIf { it.isNotBlank() } ?: stream.hashCode().toString()
 
     private fun failureVariantKey(stream: VideoStream): String {
         val height = qualityHeight(stream)
@@ -551,7 +551,7 @@ class QualityManager(
         if (!failingCodec.equals("av1", ignoreCase = true)) return false
 
         val currentHeight = qualityHeight(current)
-        markStreamFailed(current.getContent())
+        markStreamFailed(current.content)
 
         val candidate =
             getWorkingStreams()

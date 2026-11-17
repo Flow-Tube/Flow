@@ -1,33 +1,32 @@
 package io.github.aedev.flow.player.dlna
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.ItagInfo
+import io.github.aedev.flow.player.stream.model.MediaFormat
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.services.youtube.ItagItem
-import org.schabi.newpipe.extractor.stream.AudioStream
 
 class CastStreamVariantTest {
-    private fun audioStream(itagItem: ItagItem?): AudioStream =
-        AudioStream
-            .Builder()
-            .setId("140")
-            .setContent("https://example.com/audio.m4a", true)
-            .setMediaFormat(MediaFormat.M4A)
-            .setAverageBitrate(128)
-            .apply { itagItem?.let(::setItagItem) }
-            .build()
+    private fun audioStream(itagItem: ItagInfo?): AudioStream =
+        AudioStream(
+            id = "140",
+            content = "https://example.com/audio.m4a",
+            format = MediaFormat.M4A,
+            itagItem = itagItem,
+            averageBitrate = 128,
+        )
 
     private fun itag(
         initStart: Int,
         initEnd: Int,
         indexStart: Int,
         indexEnd: Int,
-    ): ItagItem =
-        ItagItem(ItagItem.getItag(140)).apply {
-            setInitStart(initStart)
-            setInitEnd(initEnd)
-            setIndexStart(indexStart)
-            setIndexEnd(indexEnd)
+    ): ItagInfo =
+        ItagInfo.forItag(140)!!.apply {
+            this.initStart = initStart
+            this.initEnd = initEnd
+            this.indexStart = indexStart
+            this.indexEnd = indexEnd
         }
 
     @Test

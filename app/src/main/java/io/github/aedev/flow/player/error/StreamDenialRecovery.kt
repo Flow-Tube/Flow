@@ -9,10 +9,10 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.stream.ClientGateTracker
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.utils.potoken.WebPoTokenSession
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 /**
  * Everything that happens when a stream URL is refused rather than broken: reading the cause out of
@@ -91,7 +91,7 @@ internal class StreamDenialRecovery(
                     PlayerDiagnostics.logWarning(TAG, "AV1 stream CDN-gated (HTTP $httpCode) — switched to a compatible codec")
                     resetExpiryCounter()
                 } else {
-                    getCurrentVideoStream()?.getContent()?.let { markStreamFailed(it) }
+                    getCurrentVideoStream()?.content?.let { markStreamFailed(it) }
                     PlayerDiagnostics.logWarning(TAG, "Failed stream variant: ${context.toLogString()}")
                     reportDenial(context, httpCode)
                     handleStreamExpired(context)
@@ -100,7 +100,7 @@ internal class StreamDenialRecovery(
             }
 
             404 -> {
-                getCurrentVideoStream()?.getContent()?.let { markStreamFailed(it) }
+                getCurrentVideoStream()?.content?.let { markStreamFailed(it) }
                 PlayerDiagnostics.logError(TAG, "HTTP 404 — stream resource not found")
                 handleStreamExpired(buildFailureContext("http-404", 404))
                 true
@@ -230,7 +230,7 @@ internal class StreamDenialRecovery(
     ): StreamFailureContext {
         val video = getCurrentVideoStream()
         val audio = getCurrentAudioStream()
-        val url = video?.getContent()
+        val url = video?.content
         return StreamFailureContext(
             reason = reason,
             httpCode = httpCode,

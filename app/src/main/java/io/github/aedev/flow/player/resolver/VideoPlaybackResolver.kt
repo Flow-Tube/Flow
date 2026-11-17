@@ -12,8 +12,8 @@ import androidx.media3.exoplayer.source.MergingMediaSource
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.stream.StreamProcessor
 import io.github.aedev.flow.player.stream.VideoCodecUtils
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /**
  * Specialized resolver for video playback that handles different stream types

@@ -2,8 +2,8 @@ package io.github.aedev.flow.player.error
 
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
 import io.github.aedev.flow.player.stream.InnerTubeStreamBridge
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /**
  * Streams for the recovery and cast tests, built from InnerTube formats through the bridge the

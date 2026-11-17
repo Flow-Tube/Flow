@@ -1,15 +1,15 @@
 package io.github.aedev.flow.player.resolver
 
 import android.util.Log
-import org.schabi.newpipe.extractor.services.youtube.ItagItem
-import org.schabi.newpipe.extractor.stream.Stream
+import io.github.aedev.flow.player.stream.model.ItagInfo
+import io.github.aedev.flow.player.stream.model.Stream
 
 object ManifestGenerator {
     private const val TAG = "ManifestGenerator"
 
     fun generateProgressiveManifest(
         stream: Stream,
-        itagItem: ItagItem,
+        itagItem: ItagInfo,
         durationSeconds: Long,
     ): String? =
         try {
@@ -23,10 +23,10 @@ object ManifestGenerator {
             null
         }
 
-    private fun ItagItem.manifestInput() =
+    private fun ItagInfo.manifestInput() =
         ProgressiveDashManifest.Input(
             itag = id,
-            isAudio = itagType == ItagItem.ItagType.AUDIO,
+            isAudio = itagType == ItagInfo.ItagType.AUDIO,
             containerMimeType = mediaFormat?.mimeType,
             codec = codec,
             bitrate = bitrate,

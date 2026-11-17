@@ -8,8 +8,8 @@ import androidx.media3.exoplayer.dash.manifest.Representation
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.player.quality.LadderTestStreams.h264
 import io.github.aedev.flow.player.quality.LadderTestStreams.vp9
+import io.github.aedev.flow.player.stream.model.VideoStream
 import org.junit.Test
-import org.schabi.newpipe.extractor.stream.VideoStream
 import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
 import java.time.Duration

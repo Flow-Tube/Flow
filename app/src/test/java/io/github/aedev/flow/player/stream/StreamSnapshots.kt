@@ -6,12 +6,12 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingDa
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.player.resolver.AdaptiveDashManifest
 import io.github.aedev.flow.player.resolver.ManifestGenerator
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.ui.components.videoplayer.controls.ScrubInfo
 import io.github.aedev.flow.ui.components.videoplayer.controls.scrubInfoAt
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.ui.screens.player.state.applyChapters
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 /*
  * The one place the stream, manifest and chapter safety-net tests touch the extractor's types.
@@ -26,10 +26,8 @@ internal data class VideoSnapshot(
     val url: String,
     val itag: Int,
     val containerMime: String,
-    val suffix: String,
     val label: String,
     val videoOnly: Boolean,
-    val delivery: String,
     val codec: String?,
     val bitrate: Int,
     val width: Int,
@@ -52,8 +50,6 @@ internal data class AudioSnapshot(
     val url: String,
     val itag: Int,
     val containerMime: String,
-    val suffix: String,
-    val delivery: String,
     val averageBitrate: Int,
     val bitrate: Int,
     val codec: String?,
@@ -179,10 +175,8 @@ private fun VideoStream.snapshot(): VideoSnapshot {
         url = content,
         itag = itag,
         containerMime = format!!.mimeType,
-        suffix = format!!.suffix,
-        label = getResolution(),
-        videoOnly = isVideoOnly(),
-        delivery = deliveryMethod.name,
+        label = resolution,
+        videoOnly = isVideoOnly,
         codec = codec,
         bitrate = bitrate,
         width = width,
@@ -207,8 +201,6 @@ private fun AudioStream.snapshot(): AudioSnapshot {
         url = content,
         itag = itag,
         containerMime = format!!.mimeType,
-        suffix = format!!.suffix,
-        delivery = deliveryMethod.name,
         averageBitrate = averageBitrate,
         bitrate = bitrate,
         codec = codec,

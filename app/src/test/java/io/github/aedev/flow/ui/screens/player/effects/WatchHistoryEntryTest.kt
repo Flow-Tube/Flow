@@ -5,8 +5,6 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.stream.model.StreamType
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import org.junit.Test
-import org.schabi.newpipe.extractor.Image
-import org.schabi.newpipe.extractor.stream.StreamInfo
 
 /**
  * The watch-history write is described in exactly one place so the 3 s save, the 10 s loop and the
@@ -32,11 +30,6 @@ class WatchHistoryEntryTest {
             uploadDate = "2026-01-01",
             isShort = isShort,
         )
-
-    private fun image(
-        url: String,
-        height: Int,
-    ): Image = Image(url, height, Image.WIDTH_UNKNOWN, Image.ResolutionLevel.UNKNOWN)
 
     private fun entry(
         uiState: VideoPlayerUiState,

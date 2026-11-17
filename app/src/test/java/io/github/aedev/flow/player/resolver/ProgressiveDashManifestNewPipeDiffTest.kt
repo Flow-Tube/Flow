@@ -6,9 +6,11 @@ import io.github.aedev.flow.player.stream.GoldenFormats
 import io.github.aedev.flow.player.stream.InnerTubeStreamBridge
 import io.github.aedev.flow.player.stream.ManifestSnapshot
 import io.github.aedev.flow.player.stream.fromXml
+import io.github.aedev.flow.player.stream.model.ItagInfo
+import io.github.aedev.flow.player.stream.model.Stream
 import org.junit.Test
+import org.schabi.newpipe.extractor.services.youtube.ItagItem
 import org.schabi.newpipe.extractor.services.youtube.dashmanifestcreators.YoutubeProgressiveDashManifestCreator
-import org.schabi.newpipe.extractor.stream.Stream
 
 /**
  * The native progressive manifest against NewPipe's creator on the same converted stream: either
@@ -26,8 +28,38 @@ class ProgressiveDashManifestNewPipeDiffTest {
         durationSeconds: Long,
     ): String? =
         runCatching {
-            YoutubeProgressiveDashManifestCreator.fromProgressiveStreamingUrl(stream.content, stream.itagItem!!, durationSeconds)
+            YoutubeProgressiveDashManifestCreator.fromProgressiveStreamingUrl(
+                stream.content,
+                stream.itagItem!!.toNewPipe(),
+                durationSeconds,
+            )
         }.getOrNull()
+
+    private fun ItagInfo.toNewPipe(): ItagItem =
+        ItagItem(
+            id,
+            ItagItem.ItagType.valueOf(itagType.name),
+            mediaFormat?.let {
+                org.schabi.newpipe.extractor.MediaFormat
+                    .valueOf(it.name)
+            },
+            resolutionString,
+            fps,
+        ).also { item ->
+            item.bitrate = bitrate
+            item.codec = codec
+            item.width = width
+            item.height = height
+            item.initStart = initStart
+            item.initEnd = initEnd
+            item.indexStart = indexStart
+            item.indexEnd = indexEnd
+            item.contentLength = contentLength
+            item.approxDurationMs = approxDurationMs
+            item.quality = quality
+            item.sampleRate = sampleRate
+            item.audioChannels = audioChannels
+        }
 
     private fun assertSame(
         stream: Stream?,

@@ -13,10 +13,10 @@ import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.stream.ClientGateTracker
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.utils.potoken.WebPoTokenSession
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 /**
  * Handles player errors and recovery logic.
@@ -199,14 +199,14 @@ class PlayerErrorHandler(
 
             PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES -> {
                 PlayerDiagnostics.logWarning(TAG, "Format exceeds device capabilities — downgrading quality")
-                getCurrentVideoStream()?.getContent()?.let { markStreamFailed(it) }
+                getCurrentVideoStream()?.content?.let { markStreamFailed(it) }
                 onQualityDowngrade()
                 return true
             }
 
             PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> {
                 PlayerDiagnostics.logWarning(TAG, "Decoding format unsupported on this device — downgrading")
-                getCurrentVideoStream()?.getContent()?.let { markStreamFailed(it) }
+                getCurrentVideoStream()?.content?.let { markStreamFailed(it) }
                 onQualityDowngrade()
                 return true
             }
@@ -279,13 +279,13 @@ class PlayerErrorHandler(
             error.cause?.javaClass?.simpleName == "UnrecognizedInputFormatException"
         ) {
             Log.w(TAG, "Unrecognized format error — trying alternative stream format")
-            getCurrentVideoStream()?.getContent()?.let { markStreamFailed(it) }
+            getCurrentVideoStream()?.content?.let { markStreamFailed(it) }
             onQualityDowngrade()
             return
         }
 
         // NAL corruption / ParserException
-        val videoContent = getCurrentVideoStream()?.getContent()
+        val videoContent = getCurrentVideoStream()?.content
         if ((
                 fullErrorInfo.contains("NAL", ignoreCase = true) ||
                     error.cause is androidx.media3.common.ParserException
@@ -326,7 +326,7 @@ class PlayerErrorHandler(
             error.cause is androidx.media3.common.ParserException
         ) {
             Log.e(TAG, "Parser error in IO path: $fullErrorInfo")
-            val videoContent = getCurrentVideoStream()?.getContent()
+            val videoContent = getCurrentVideoStream()?.content
             if (videoContent != null) {
                 markStreamFailed(videoContent)
                 incrementStreamErrors()
@@ -361,7 +361,7 @@ class PlayerErrorHandler(
 
         // Standard network error
         Log.w(TAG, "Network error (${error.errorCode}): ${error.message}")
-        val videoContent = getCurrentVideoStream()?.getContent()
+        val videoContent = getCurrentVideoStream()?.content
         if (videoContent != null) {
             incrementStreamErrors()
             if (getStreamErrorCount() >= PlayerConfig.MAX_STREAM_ERRORS) {
@@ -403,9 +403,9 @@ class PlayerErrorHandler(
             return true
         }
 
-        val failedAudio = getCurrentAudioStream()?.takeIf { it.getContent() != null }
+        val failedAudio = getCurrentAudioStream()?.takeIf { it.content != null }
         if (isAudioError && failedAudio != null) {
-            markStreamFailed(failedAudio.getContent())
+            markStreamFailed(failedAudio.content)
             val alternativeAudio = AudioRecoveryPick.pick(getAllAudioStreams(), failedAudio, getFailedStreamUrls())
             if (alternativeAudio != null) {
                 setCurrentAudioStream(alternativeAudio)

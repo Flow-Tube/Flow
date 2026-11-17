@@ -11,8 +11,7 @@ import androidx.media3.exoplayer.dash.manifest.Period
 import androidx.media3.exoplayer.dash.manifest.RangedUri
 import androidx.media3.exoplayer.dash.manifest.Representation
 import androidx.media3.exoplayer.dash.manifest.SegmentBase
-import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /**
  * One DASH manifest holding a whole quality ladder, built straight into Media3's manifest model so
@@ -27,8 +26,7 @@ internal object AdaptiveDashManifest {
     /** Whether [stream] carries what a rung needs: a progressive URL, its byte ranges and a codec. */
     fun canDescribe(stream: VideoStream): Boolean {
         val itag = stream.itagItem ?: return false
-        return stream.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP &&
-            stream.isVideoOnly &&
+        return stream.isVideoOnly &&
             stream.content.isNotBlank() &&
             !itag.codec.isNullOrBlank() &&
             itag.bitrate > 0 &&

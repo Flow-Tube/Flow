@@ -79,7 +79,9 @@ import io.github.aedev.flow.player.stream.ResolvedStreamData
 import io.github.aedev.flow.player.stream.ServicePlaybackStreamSelector
 import io.github.aedev.flow.player.stream.StreamProcessor
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.model.AudioStream
 import io.github.aedev.flow.player.stream.model.StreamType
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.player.subtitle.SubtitleAutoPolicy
 import io.github.aedev.flow.player.subtitle.SubtitleDelay
 import io.github.aedev.flow.player.subtitle.SubtitleTracks
@@ -110,8 +112,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 @UnstableApi
 class EnhancedPlayerManager private constructor() {
@@ -679,7 +679,7 @@ class EnhancedPlayerManager private constructor() {
                 onGatedCodecFallback = { position -> qualityManager?.fallbackToAlternateCodec(position) ?: false },
                 getFailedStreamUrls = {
                     qualityManager?.let { qm ->
-                        (availableVideoStreams.map { it.getContent() } + castAudioStreams.map { it.getContent() })
+                        (availableVideoStreams.map { it.content } + castAudioStreams.map { it.content })
                             .filter { qm.hasStreamFailed(it) }
                             .toSet()
                     } ?: emptySet()
@@ -1288,7 +1288,7 @@ class EnhancedPlayerManager private constructor() {
                             ?.let(QualityManager::normalizeQualityHeight)
                             ?: 0
                     },
-                currentQualityKey = if (isAutoMode) null else currentVideoStream?.getContent()?.takeIf { it.isNotBlank() },
+                currentQualityKey = if (isAutoMode) null else currentVideoStream?.content?.takeIf { it.isNotBlank() },
                 currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, currentAudioStream),
                 isLive = currentIsLiveStream,
                 isAtLiveEdge = false,
@@ -2438,7 +2438,7 @@ class EnhancedPlayerManager private constructor() {
                             ?.let(QualityManager::normalizeQualityHeight)
                             ?: 0
                     },
-                currentQualityKey = if (isAutoMode) null else currentVideoStream?.getContent()?.takeIf { it.isNotBlank() },
+                currentQualityKey = if (isAutoMode) null else currentVideoStream?.content?.takeIf { it.isNotBlank() },
                 currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, currentAudioStream),
                 isLive = false,
                 isAtLiveEdge = false,
@@ -3560,7 +3560,7 @@ class EnhancedPlayerManager private constructor() {
                     }
 
                     currentVideoStream?.let { stream ->
-                        if (qualityManager?.hasStreamFailed(stream.getContent()) == true) {
+                        if (qualityManager?.hasStreamFailed(stream.content) == true) {
                             val working =
                                 qualityManager?.getWorkingStreams()?.maxByOrNull {
                                     VideoCodecUtils.qualityHeightFromStream(it)

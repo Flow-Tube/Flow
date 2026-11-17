@@ -6,13 +6,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.player.state.EnhancedPlayerState
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioTrackType
+import io.github.aedev.flow.player.stream.model.MediaFormat
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.AudioTrackType
 import java.util.Locale
 
 @UnstableApi
@@ -60,15 +60,15 @@ class PlayerErrorHandlerDecoderTest {
         trackType: AudioTrackType,
         format: MediaFormat = MediaFormat.M4A,
     ): AudioStream =
-        AudioStream
-            .Builder()
-            .setId(id)
-            .setContent("https://example.invalid/$id", true)
-            .setMediaFormat(format)
-            .setAverageBitrate(129_000)
-            .setAudioTrackType(trackType)
-            .setAudioLocale(Locale.forLanguageTag(languageTag))
-            .build()
+        AudioStream(
+            id = id,
+            content = "https://example.invalid/$id",
+            format = format,
+            itagItem = null,
+            averageBitrate = 129_000,
+            audioLocale = Locale.forLanguageTag(languageTag),
+            audioTrackType = trackType,
+        )
 
     private fun originalAac(): AudioStream = audio("140-en", "en", AudioTrackType.ORIGINAL)
 
@@ -111,7 +111,7 @@ class PlayerErrorHandlerDecoderTest {
         handler.handleError(audioDecoderFailure(), player)
         handler.handleError(audioDecoderFailure(), player)
 
-        assertThat(failedUrls).containsExactly(aac.getContent())
+        assertThat(failedUrls).containsExactly(aac.content)
         assertThat(currentAudio).isSameInstanceAs(opus)
         assertThat(events).isEmpty()
     }

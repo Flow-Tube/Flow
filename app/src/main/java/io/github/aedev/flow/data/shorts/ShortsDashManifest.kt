@@ -3,7 +3,7 @@ package io.github.aedev.flow.data.shorts
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.resolver.ManifestGenerator
 import io.github.aedev.flow.player.stream.InnerTubeStreamBridge
-import org.schabi.newpipe.extractor.stream.Stream
+import io.github.aedev.flow.player.stream.model.Stream
 
 /**
  * Wraps a resolved Shorts stream URL in a single-representation DASH manifest.
@@ -43,7 +43,7 @@ internal object ShortsDashManifest {
             ?.let { forStream(it, durationMs) }
 
     /**
-     * The NewPipe leg already hands us streams carrying an [org.schabi.newpipe.extractor.services.youtube.ItagItem],
+     * The NewPipe leg already hands us streams carrying an [io.github.aedev.flow.player.stream.model.ItagInfo],
      * so they need no conversion.
      */
     fun forStream(

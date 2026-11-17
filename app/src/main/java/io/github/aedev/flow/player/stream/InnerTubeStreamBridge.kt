@@ -2,13 +2,11 @@ package io.github.aedev.flow.player.stream
 
 import android.util.Log
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.services.youtube.ItagItem
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.AudioTrackType
-import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.Stream
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioTrackType
+import io.github.aedev.flow.player.stream.model.ItagInfo
+import io.github.aedev.flow.player.stream.model.MediaFormat
+import io.github.aedev.flow.player.stream.model.VideoStream
 import java.util.Locale
 
 object InnerTubeStreamBridge {
@@ -24,21 +22,14 @@ object InnerTubeStreamBridge {
                     ?.takeIf { it.isNotBlank() }
                     ?: "${height}p"
 
-            try {
-                VideoStream
-                    .Builder()
-                    .setId(format.itag.toString())
-                    .setItagItem(buildItagItem(format, isAudio = false))
-                    .setContent(url, true)
-                    .setMediaFormat(mediaFormat)
-                    .setResolution(resolutionLabel)
-                    .setIsVideoOnly(true)
-                    .setDeliveryMethod(DeliveryMethod.PROGRESSIVE_HTTP)
-                    .build()
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to build VideoStream for itag=${format.itag}: ${e.message}")
-                null
-            }
+            VideoStream(
+                id = format.itag.toString(),
+                content = url,
+                format = mediaFormat,
+                itagItem = buildItagItem(format, isAudio = false),
+                resolution = resolutionLabel,
+                isVideoOnly = true,
+            )
         }
     }
 
@@ -48,37 +39,22 @@ object InnerTubeStreamBridge {
             val mediaFormat = mapAudioMimeToMediaFormat(format.mimeType) ?: return@mapNotNull null
             val bitrate = format.averageBitrate ?: format.bitrate
 
-            try {
-                AudioStream
-                    .Builder()
-                    .setId(format.itag.toString())
-                    .setItagItem(buildItagItem(format, isAudio = true))
-                    .setContent(url, true)
-                    .setMediaFormat(mediaFormat)
-                    .setAverageBitrate(bitrate)
-                    .setDeliveryMethod(DeliveryMethod.PROGRESSIVE_HTTP)
-                    .applyAudioTrackMetadata(format)
-                    .build()
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to build AudioStream for itag=${format.itag}: ${e.message}")
-                null
-            }
+            val track = format.audioTrack
+            AudioStream(
+                id = format.itag.toString(),
+                content = url,
+                format = mediaFormat,
+                itagItem = buildItagItem(format, isAudio = true),
+                averageBitrate = bitrate,
+                audioTrackId = track?.id?.takeIf { it.isNotBlank() },
+                audioTrackName = track?.displayName?.takeIf { it.isNotBlank() },
+                audioLocale =
+                    format.audioLanguageTag?.let { tag ->
+                        runCatching { Locale.forLanguageTag(tag) }.getOrNull()?.takeIf { it.language.isNotBlank() }
+                    },
+                audioTrackType = if (format.isOriginal) AudioTrackType.ORIGINAL else AudioTrackType.DUBBED,
+            )
         }
-    }
-
-    private fun AudioStream.Builder.applyAudioTrackMetadata(format: PlayerResponse.StreamingData.Format): AudioStream.Builder {
-        setAudioTrackType(if (format.isOriginal) AudioTrackType.ORIGINAL else AudioTrackType.DUBBED)
-        format.audioTrack?.let { track ->
-            track.id?.takeIf { it.isNotBlank() }?.let { setAudioTrackId(it) }
-            track.displayName?.takeIf { it.isNotBlank() }?.let { setAudioTrackName(it) }
-        }
-        format.audioLanguageTag?.let { tag ->
-            runCatching { Locale.forLanguageTag(tag) }
-                .getOrNull()
-                ?.takeIf { it.language.isNotBlank() }
-                ?.let { setAudioLocale(it) }
-        }
-        return this
     }
 
     private fun mapVideoMimeToMediaFormat(mimeType: String): MediaFormat? {
@@ -128,16 +104,14 @@ object InnerTubeStreamBridge {
     private fun buildItagItem(
         format: PlayerResponse.StreamingData.Format,
         isAudio: Boolean,
-    ): ItagItem? {
+    ): ItagInfo? {
         val item =
-            try {
-                ItagItem.getItag(format.itag)
-            } catch (e: Exception) {
-                syntheticItagItem(format, isAudio) ?: run {
-                    Log.d(TAG, "No NewPipe ItagItem metadata for itag=${format.itag}: ${e.message}")
+            ItagInfo.forItag(format.itag)
+                ?: syntheticItagItem(format, isAudio)
+                ?: run {
+                    Log.d(TAG, "No itag metadata for itag=${format.itag}")
                     return null
                 }
-            }
 
         VideoCodecUtils
             .codecStringFromMimeType(format.mimeType)
@@ -169,19 +143,19 @@ object InnerTubeStreamBridge {
     }
 
     /**
-     * NewPipe's itag table lags YouTube's ladder — the 608×1080 Shorts tier (779/780 vp9, 787/788
-     * av01) is absent from 0.26.5 — and a format it cannot describe would lose its DASH manifest and
+     * The itag table lags YouTube's ladder — the 608×1080 Shorts tier (779/780 vp9, 787/788 av01)
+     * and HDR VP9 are not in it — and a format it cannot describe would lose its DASH manifest and
      * fall back to the throttled progressive path. The response carries everything the table would
      * have said, so describe the format from it instead.
      */
     private fun syntheticItagItem(
         format: PlayerResponse.StreamingData.Format,
         isAudio: Boolean,
-    ): ItagItem? {
+    ): ItagInfo? {
         if (isAudio) return null
         val mediaFormat = mapVideoMimeToMediaFormat(format.mimeType) ?: return null
         val height = format.height ?: return null
         val resolution = format.qualityLabel?.takeIf { it.isNotBlank() } ?: "${height}p"
-        return ItagItem(format.itag, ItagItem.ItagType.VIDEO_ONLY, mediaFormat, resolution, format.fps ?: 30)
+        return ItagInfo(format.itag, ItagInfo.ItagType.VIDEO_ONLY, mediaFormat, resolution, format.fps ?: 30)
     }
 }

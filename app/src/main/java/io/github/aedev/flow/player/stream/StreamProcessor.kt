@@ -4,9 +4,9 @@ import android.util.Log
 import io.github.aedev.flow.player.state.AudioTrackOption
 import io.github.aedev.flow.player.state.SubtitleOption
 import io.github.aedev.flow.player.state.SubtitleOrigin
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.AudioTrackType
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioTrackType
+import io.github.aedev.flow.player.stream.model.VideoStream
 import java.util.Locale
 
 /**
@@ -25,7 +25,7 @@ object StreamProcessor {
      */
     fun processVideoStreams(streams: List<VideoStream>): List<VideoStream> =
         streams
-            .distinctBy { it.getContent() }
+            .distinctBy { it.content }
             .sortedWith(
                 compareByDescending<VideoStream> { VideoCodecUtils.qualityHeightFromStream(it) }
                     .thenBy { VideoCodecUtils.playbackCodecRank(it) }

@@ -4,11 +4,10 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingDa
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.AudioTrack
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.ColorInfo
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.Range
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.MediaFormat
 import io.github.aedev.flow.player.stream.model.StreamType
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /*
  * The one place the quality, media source and player bookkeeping tests touch the extractor's stream
@@ -189,15 +188,14 @@ internal object PlaybackTestStreams {
 
     /** A muxed (audio and video) progressive stream; the InnerTube bridge never builds one. */
     fun muxed(height: Int): TestVideoStream =
-        VideoStream
-            .Builder()
-            .setId("18")
-            .setContent("https://rr1---sn-test.googlevideo.com/videoplayback?itag=18&h=$height", true)
-            .setMediaFormat(MediaFormat.MPEG_4)
-            .setResolution("${height}p")
-            .setIsVideoOnly(false)
-            .setDeliveryMethod(DeliveryMethod.PROGRESSIVE_HTTP)
-            .build()
+        VideoStream(
+            id = "18",
+            content = "https://rr1---sn-test.googlevideo.com/videoplayback?itag=18&h=$height",
+            format = MediaFormat.MPEG_4,
+            itagItem = null,
+            resolution = "${height}p",
+            isVideoOnly = false,
+        )
 }
 
 internal val TestVideoStream.testUrl: String get() = content

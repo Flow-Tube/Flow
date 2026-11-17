@@ -9,9 +9,9 @@ import io.github.aedev.flow.player.error.VideoErrorMapper
 import io.github.aedev.flow.player.stream.ResolvedPlayback
 import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.player.stream.VideoQualityOptions
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.ui.screens.player.SecondaryMetadata
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 /*
  * Every state transition the player screen makes while a load resolves, as pure functions over

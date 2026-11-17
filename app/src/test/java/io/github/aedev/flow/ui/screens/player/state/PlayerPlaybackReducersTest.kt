@@ -6,15 +6,14 @@ import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.error.VideoErrorMapper
 import io.github.aedev.flow.player.stream.ResolvedPlayback
+import io.github.aedev.flow.player.stream.model.MediaFormat
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.ui.screens.player.SecondaryMetadata
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 /**
  * Pins the fields every playback outcome writes onto [VideoPlayerUiState]. These are the reducers
@@ -344,13 +343,12 @@ class PlayerPlaybackReducersTest {
         SponsorBlockSegment(category = "sponsor", segment = listOf(0f, 1f), uuid = "uuid_1", actionType = "skip")
 
     private fun videoStream(resolution: String): VideoStream =
-        VideoStream
-            .Builder()
-            .setId(resolution)
-            .setContent("https://example.invalid/$resolution.mp4", true)
-            .setMediaFormat(MediaFormat.MPEG_4)
-            .setResolution(resolution)
-            .setIsVideoOnly(true)
-            .setDeliveryMethod(DeliveryMethod.PROGRESSIVE_HTTP)
-            .build()
+        VideoStream(
+            id = resolution,
+            content = "https://example.invalid/$resolution.mp4",
+            format = MediaFormat.MPEG_4,
+            itagItem = null,
+            resolution = resolution,
+            isVideoOnly = true,
+        )
 }

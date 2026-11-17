@@ -2,7 +2,7 @@ package io.github.aedev.flow.player.quality
 
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.stream.VideoCodecUtils
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /**
  * Auto's rules for picking a stream by bandwidth, judged on each stream's own bitrate. Media3's

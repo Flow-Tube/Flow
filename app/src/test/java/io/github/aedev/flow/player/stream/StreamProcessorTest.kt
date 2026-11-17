@@ -1,13 +1,13 @@
 package io.github.aedev.flow.player.stream
 
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioTrackType
+import io.github.aedev.flow.player.stream.model.MediaFormat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.AudioTrackType
 
 private fun audioStream(
     trackId: String?,
@@ -18,17 +18,16 @@ private fun audioStream(
             if (it.endsWith(".4")) AudioTrackType.ORIGINAL else AudioTrackType.DUBBED
         },
 ): AudioStream =
-    AudioStream
-        .Builder()
-        .setId(trackId ?: "140")
-        .setContent("https://example.invalid/${trackId ?: "default"}-$bitrate", true)
-        .setMediaFormat(MediaFormat.M4A)
-        .setAverageBitrate(bitrate)
-        .apply {
-            trackId?.let { setAudioTrackId(it) }
-            trackName?.let { setAudioTrackName(it) }
-            trackType?.let { setAudioTrackType(it) }
-        }.build()
+    AudioStream(
+        id = trackId ?: "140",
+        content = "https://example.invalid/${trackId ?: "default"}-$bitrate",
+        format = MediaFormat.M4A,
+        itagItem = null,
+        averageBitrate = bitrate,
+        audioTrackId = trackId,
+        audioTrackName = trackName,
+        audioTrackType = trackType,
+    )
 
 class StreamProcessorTest {
     @Test

@@ -37,7 +37,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import org.schabi.newpipe.extractor.stream.StreamInfo
 
 /**
  * Pins what [PlaybackLoadResolver] hands back for each way a load can end, with the InnerTube

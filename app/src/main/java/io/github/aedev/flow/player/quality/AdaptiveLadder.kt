@@ -2,7 +2,7 @@ package io.github.aedev.flow.player.quality
 
 import io.github.aedev.flow.player.resolver.AdaptiveDashManifest
 import io.github.aedev.flow.player.stream.VideoCodecUtils
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /**
  * The qualities Auto hands to Media3 as one source: every describable stream in the anchor's codec

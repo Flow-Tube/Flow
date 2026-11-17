@@ -1,8 +1,8 @@
 package io.github.aedev.flow.player.error
 
 import io.github.aedev.flow.player.stream.StreamProcessor
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.MediaFormat
 
 /**
  * The stream to retry after an audio decoder failure: another format of the track that failed,
@@ -19,14 +19,14 @@ internal object AudioRecoveryPick {
         // With the failed stream in the pool, streamsOfTrack always finds its track and never falls back to another.
         return StreamProcessor
             .streamsOfTrack(streams + failed, failed)
-            .filter { it.getContent() != failed.getContent() && it.getContent() !in failedUrls }
+            .filter { it.content != failed.content && it.content !in failedUrls }
             .sortedWith(compareBy<AudioStream> { it.isOpus() == failedIsOpus }.thenByDescending { it.averageBitrate })
             .firstOrNull()
     }
 
     private fun AudioStream.isOpus(): Boolean =
         when (format) {
-            MediaFormat.WEBMA_OPUS, MediaFormat.OPUS, MediaFormat.WEBMA -> true
+            MediaFormat.WEBMA_OPUS, MediaFormat.WEBMA -> true
             else -> codec?.contains("opus", ignoreCase = true) == true
         }
 }
