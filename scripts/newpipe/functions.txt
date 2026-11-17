@@ -25,7 +25,7 @@ test data/shorts/ShortsStreamResolver.kt availableQualities
 test data/shorts/ShortsStreamSelection.kt sortedForPlayback
 test innertube/YouTube.kt currentWebClient
 delete player/EnhancedMusicPlayerManager.kt playTrack
-test player/EnhancedPlayerManager.kt initializeComponents
+device player/EnhancedPlayerManager.kt initializeComponents
 test player/EnhancedPlayerManager.kt setStreams
 test player/EnhancedPlayerManager.kt loadMediaInternal
 test player/EnhancedPlayerManager.kt prepareMediaSource
