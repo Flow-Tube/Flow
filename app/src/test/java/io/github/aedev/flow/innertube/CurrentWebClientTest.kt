@@ -15,7 +15,7 @@ import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 class CurrentWebClientTest {
     @After
     fun tearDown() {
-        NewPipeClientVersion.reset()
+        WebClientVersionStub.reset()
     }
 
     private fun currentWebClient(): YouTubeClient =
@@ -26,14 +26,14 @@ class CurrentWebClientTest {
 
     @Test
     fun `the WEB client carries the version YouTube currently serves`() {
-        NewPipeClientVersion.answer("2.20261116.01.00")
+        WebClientVersionStub.answer("2.20261116.01.00")
 
         assertThat(currentWebClient()).isEqualTo(YouTubeClient.WEB.copy(clientVersion = "2.20261116.01.00"))
     }
 
     @Test
     fun `when the version cannot be read the shipped WEB version is used`() {
-        NewPipeClientVersion.fail()
+        WebClientVersionStub.fail()
 
         assertThat(currentWebClient()).isEqualTo(YouTubeClient.WEB)
         assertThat(currentWebClient().clientVersion).isEqualTo("2.20260710.06.00")

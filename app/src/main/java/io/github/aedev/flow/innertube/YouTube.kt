@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube
 
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.innertube.models.AccountInfo
@@ -149,7 +150,6 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import java.net.Proxy
 import java.time.Instant
 import java.time.ZoneId
@@ -327,14 +327,10 @@ object YouTube {
             ?.let { visitorData = it }
     }
 
-    private suspend fun currentWebClient(): YouTubeClient =
-        withContext(Dispatchers.IO) {
-            WEB.copy(
-                clientVersion =
-                    runCatching { YoutubeParsingHelper.getClientVersion() }
-                        .getOrDefault(WEB.clientVersion),
-            )
-        }
+    @VisibleForTesting
+    internal var webClientVersion = WebClientVersion(fetchServiceWorker = { innerTube.getWebServiceWorker() })
+
+    private suspend fun currentWebClient(): YouTubeClient = WEB.copy(clientVersion = webClientVersion.get(WEB.clientVersion))
 
     suspend fun searchContinuation(continuation: String): Result<SearchResult> =
         runCatching {
