@@ -15,10 +15,9 @@ import org.junit.Test
 import java.util.Locale
 
 /**
- * The content languages (and translation targets) the Language and region screen offers. They
- * come from NewPipe's list of YouTube localizations, which in 0.26.5 holds a single entry, so the
- * pickers offer English (United Kingdom) beside "follow the app". Pinned so the native list that
- * replaces it is a decision, not an accident.
+ * The content languages (and translation targets) the Language and region screen offers: YouTube's
+ * own list of `hl` values. NewPipe 0.26.5's list held only "en-GB", so the pickers used to offer
+ * English (United Kingdom) alone beside "follow the app".
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ContentLanguagesTest {
@@ -38,10 +37,15 @@ class ContentLanguagesTest {
     }
 
     @Test
-    fun `the pickers list each YouTube content language by its own name`() {
+    fun `the pickers list every YouTube content language by its own name`() {
         val viewModel = LanguageRegionViewModel(mockk<Context>(relaxed = true), mockk<PlayerPreferences>(relaxed = true))
+        val languages = viewModel.contentLanguages
 
-        assertThat(viewModel.contentLanguages)
-            .containsExactly(LanguageOption(tag = "en-GB", nativeName = "English (United Kingdom)", localizedName = null))
+        assertThat(languages).hasSize(83)
+        assertThat(languages.map { it.tag }).containsAtLeast("en-GB", "pt-PT", "pt", "es-419", "iw", "zh-TW", "zh-HK", "sr-Latn", "fil")
+        assertThat(languages).contains(LanguageOption(tag = "en-GB", nativeName = "English (United Kingdom)", localizedName = null))
+        assertThat(languages).contains(LanguageOption(tag = "de", nativeName = "Deutsch", localizedName = "German"))
+        assertThat(languages.map { it.nativeName }).containsNoDuplicates()
+        assertThat(languages.map { it.nativeName.lowercase(Locale.US) }).isInOrder()
     }
 }

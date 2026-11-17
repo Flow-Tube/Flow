@@ -32,7 +32,10 @@ class YouTubeLocaleValuesTest {
     @Test
     fun `a chosen content language and region are sent as chosen`() {
         assertThat(locale("en", contentLanguage = "ja", region = "jp")).isEqualTo(YouTubeLocale(gl = "JP", hl = "ja"))
-        assertThat(locale("en", contentLanguage = "en-GB", region = "GB")).isEqualTo(YouTubeLocale(gl = "GB", hl = "en"))
+        // A language picked from YouTube's own list keeps its regional variant; it used to be cut to "en".
+        assertThat(locale("en", contentLanguage = "en-GB", region = "GB")).isEqualTo(YouTubeLocale(gl = "GB", hl = "en-GB"))
+        assertThat(locale("en", contentLanguage = "pt-PT", region = "PT")).isEqualTo(YouTubeLocale(gl = "PT", hl = "pt-PT"))
+        assertThat(locale("en", contentLanguage = "es-419", region = "MX")).isEqualTo(YouTubeLocale(gl = "MX", hl = "es-419"))
     }
 
     @Test

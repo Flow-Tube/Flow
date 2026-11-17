@@ -1,6 +1,7 @@
 package io.github.aedev.flow.utils
 
 import io.github.aedev.flow.data.local.CONTENT_LANGUAGE_FOLLOW_APP
+import io.github.aedev.flow.innertube.models.YouTubeContentLanguages
 import io.github.aedev.flow.innertube.models.YouTubeLocale
 import io.github.aedev.flow.innertube.models.normalizeYouTubeHostLanguage
 import org.schabi.newpipe.extractor.localization.ContentCountry
@@ -53,8 +54,10 @@ fun contentYouTubeLocale(
     region: String,
     deviceLocale: Locale,
 ): YouTubeLocale {
-    val language = if (contentLanguage == CONTENT_LANGUAGE_FOLLOW_APP) appliedAppLanguage else contentLanguage
-    return YouTubeLocale(gl = normalizeYouTubeCountry(region), hl = normalizeYouTubeHostLanguage(language, deviceLocale))
+    val requested = if (contentLanguage == CONTENT_LANGUAGE_FOLLOW_APP) appliedAppLanguage else contentLanguage
+    // A language picked from YouTube's own list is already an `hl` YouTube accepts, regional variant included.
+    val hl = if (contentLanguage in YouTubeContentLanguages) contentLanguage else normalizeYouTubeHostLanguage(requested, deviceLocale)
+    return YouTubeLocale(gl = normalizeYouTubeCountry(region), hl = hl)
 }
 
 fun newPipeContentCountry(region: String): ContentCountry = ContentCountry(normalizeYouTubeCountry(region))

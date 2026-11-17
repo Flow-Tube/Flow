@@ -8,9 +8,9 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.translation.TranslationServer
 import io.github.aedev.flow.data.translation.TranslationServerType
 import io.github.aedev.flow.data.translation.TranslationSettings
+import io.github.aedev.flow.innertube.models.YouTubeContentLanguages
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
 import io.github.aedev.flow.utils.AppLanguageManager
-import org.schabi.newpipe.extractor.ServiceList
 import java.util.Locale
 import javax.inject.Inject
 
@@ -37,12 +37,12 @@ class LanguageRegionViewModel
         /** The languages YouTube localizes content into, i.e. every value its `hl` accepts. */
         val contentLanguages: List<LanguageOption> by lazy {
             val displayLocale = Locale.getDefault()
-            ServiceList.YouTube.supportedLocalizations
-                .map { localization ->
-                    val locale = Locale.forLanguageTag(localization.localizationCode)
+            YouTubeContentLanguages
+                .map { tag ->
+                    val locale = Locale.forLanguageTag(tag)
                     val native = locale.getDisplayName(locale)
                     LanguageOption(
-                        tag = localization.localizationCode,
+                        tag = tag,
                         nativeName = native,
                         localizedName = locale.getDisplayName(displayLocale).takeIf { it != native },
                     )
