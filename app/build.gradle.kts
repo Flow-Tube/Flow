@@ -151,6 +151,8 @@ android {
             isDebuggable = true
             isMinifyEnabled = false
             isShrinkResources = false
+            // `-Pflow.unitTestCoverage` turns on JaCoCo for the unit tests; scripts/newpipe/coverage_gate.py reads the report.
+            enableUnitTestCoverage = providers.gradleProperty("flow.unitTestCoverage").isPresent
         }
         release {
             buildConfigField("String", "UPDATE_CHANNEL", "\"stable\"")
