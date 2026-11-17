@@ -22,7 +22,6 @@ import io.github.aedev.flow.data.profile.ProfileSlices
 import io.github.aedev.flow.data.profile.ProfileWebView
 import io.github.aedev.flow.data.profile.ProfileWorkReconciler
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
-import io.github.aedev.flow.data.repository.NewPipeDownloader
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.discord.DiscordPresenceRuntime
 import io.github.aedev.flow.innertube.YouTube
@@ -45,9 +44,6 @@ import io.github.aedev.flow.utils.FlowCrashHandler
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.cipher.PipePipeNsigDecoder
 import io.github.aedev.flow.utils.contentYouTubeLocale
-import io.github.aedev.flow.utils.newPipeContentCountry
-import io.github.aedev.flow.utils.newPipeLocalization
-import io.github.aedev.flow.utils.potoken.NewPipePoTokenProvider
 import io.github.aedev.flow.utils.potoken.VisitorIdentityStore
 import io.github.aedev.flow.utils.potoken.WebPoTokenSession
 import kotlinx.coroutines.CoroutineScope
@@ -66,9 +62,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import org.conscrypt.Conscrypt
-import org.schabi.newpipe.extractor.NewPipe
-import org.schabi.newpipe.extractor.localization.ContentCountry
-import org.schabi.newpipe.extractor.services.youtube.extractors.YoutubeStreamExtractor
 import java.security.Security
 import java.util.Locale
 import javax.inject.Inject
@@ -162,22 +155,6 @@ class FlowApplication :
         FlowCrashHandler.install(this)
 
         try {
-            // Seeded from the device locale so the very first extraction is already localized; the
-            // stored app-language/region preference takes over as soon as it loads below.
-            val localization = newPipeLocalization(Locale.getDefault().toLanguageTag())
-            NewPipe.init(
-                NewPipeDownloader.getInstance(this),
-                localization,
-                newPipeContentCountry(Locale.getDefault().country),
-            )
-            YoutubeStreamExtractor.setPoTokenProvider(NewPipePoTokenProvider)
-            Log.d(TAG, "NewPipe initialized with ${localization.localizationCode}")
-        } catch (e: Exception) {
-            // Log error but don't crash the app
-            Log.e(TAG, "Failed to initialize NewPipe", e)
-        }
-
-        try {
             io.github.aedev.flow.utils.cipher.CipherDeobfuscator
                 .initialize(this)
             Log.d(TAG, "CipherDeobfuscator initialized")
@@ -263,10 +240,6 @@ class FlowApplication :
                 contentYouTubeLocale(appLanguage, contentLanguage, region, AppLanguageManager.deviceLocale(this@FlowApplication))
             }.distinctUntilChanged().collectLatest { newLocale ->
                 YouTube.locale = newLocale
-                NewPipe.setupLocalization(
-                    newPipeLocalization(newLocale.hl),
-                    ContentCountry(newLocale.gl),
-                )
                 Log.d(TAG, "Dynamic YouTube Locale updated: gl=${newLocale.gl}, hl=${newLocale.hl}")
                 homeFeedLanguageReset.onContentLanguage(newLocale.hl)
             }

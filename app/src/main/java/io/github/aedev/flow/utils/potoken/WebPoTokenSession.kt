@@ -15,8 +15,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Single source of truth for the WEB BotGuard PoToken session used by the **native video
- * stream extractor** (separate from [NewPipePoTokenProvider], which serves the NewPipe path).
+ * Single source of truth for the WEB BotGuard PoToken session used by the native video
+ * stream extractor.
  */
 object WebPoTokenSession {
     private const val TAG = "WebPoTokenSession"

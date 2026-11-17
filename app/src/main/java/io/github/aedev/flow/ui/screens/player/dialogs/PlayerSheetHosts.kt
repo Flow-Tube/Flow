@@ -36,7 +36,6 @@ import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.LiveChatMessage
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.toVideo
-import io.github.aedev.flow.data.model.uploadDateMillis
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.ui.components.shared.FlowDescriptionBottomSheet
