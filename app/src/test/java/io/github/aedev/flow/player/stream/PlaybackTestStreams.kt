@@ -198,18 +198,6 @@ internal object PlaybackTestStreams {
             .setIsVideoOnly(false)
             .setDeliveryMethod(DeliveryMethod.PROGRESSIVE_HTTP)
             .build()
-
-    /** A stream delivered as an HLS playlist; the InnerTube bridge never builds one. */
-    fun hlsVideo(url: String): TestVideoStream =
-        VideoStream
-            .Builder()
-            .setId("95")
-            .setContent(url, true)
-            .setMediaFormat(MediaFormat.MPEG_4)
-            .setResolution("720p")
-            .setIsVideoOnly(false)
-            .setDeliveryMethod(DeliveryMethod.HLS)
-            .build()
 }
 
 internal val TestVideoStream.testUrl: String get() = content

@@ -96,7 +96,7 @@ delete player/resolver/VideoPlaybackResolver.kt createOtfDashSourceForAudio
 test player/resolver/VideoPlaybackResolver.kt createProgressiveDashSourceForAudio
 test player/resolver/VideoPlaybackResolver.kt createProgressiveSource
 test player/resolver/VideoPlaybackResolver.kt createProgressiveSourceForAudio
-test player/resolver/VideoPlaybackResolver.kt createHlsSource
+delete player/resolver/VideoPlaybackResolver.kt createHlsSource
 test player/sabr/integration/SabrUrlResolver.kt selectBestVideo
 test player/sabr/integration/SabrUrlResolver.kt selectVideoForHeight
 test player/stream/AudioStreamSelector.kt selectPreferredAudioStream

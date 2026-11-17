@@ -10,7 +10,6 @@ import io.github.aedev.flow.player.stream.PlaybackTestStreams.audio
 import io.github.aedev.flow.player.stream.PlaybackTestStreams.audioFormat
 import io.github.aedev.flow.player.stream.PlaybackTestStreams.av1
 import io.github.aedev.flow.player.stream.PlaybackTestStreams.h264
-import io.github.aedev.flow.player.stream.PlaybackTestStreams.hlsVideo
 import io.github.aedev.flow.player.stream.PlaybackTestStreams.m4a
 import io.github.aedev.flow.player.stream.PlaybackTestStreams.muxed
 import io.github.aedev.flow.player.stream.PlaybackTestStreams.opus
@@ -268,16 +267,6 @@ class VideoPlaybackResolverTest {
 
         assertThat(shape.kind).isEqualTo("merging")
         assertThat(shape.children[1].uri).isEqualTo(dub.testUrl)
-    }
-
-    @Test
-    fun `a stream delivered as HLS plays as an HLS source`() {
-        val stream = hlsVideo("https://m/vod.m3u8")
-
-        val shape = resolver().resolve(listOf(stream), null, null, null, duration).shape()!!
-
-        assertThat(shape.kind).isEqualTo("hls")
-        assertThat(shape.uri).isEqualTo("https://m/vod.m3u8")
     }
 
     @Test
