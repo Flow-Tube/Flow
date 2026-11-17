@@ -2185,6 +2185,19 @@ object YouTube {
                 ?.takeIf { it.isNotBlank() }
         }
 
+    /** [videoId]'s details and microformat, in the app's content language; no streams are needed from it. */
+    suspend fun videoSummary(videoId: String): Result<PlayerResponse> =
+        runCatching {
+            innerTube
+                .player(
+                    YouTubeClient.MWEB,
+                    videoId,
+                    playlistId = null,
+                    signatureTimestamp = null,
+                    apiUrl = YouTubeClient.API_URL_YOUTUBE,
+                ).body<PlayerResponse>()
+        }
+
     suspend fun paidPromotion(videoId: String): Result<PaidPromotionLabel?> =
         runCatching { innerTube.paidPromotion(videoId).body<PaidPromotionResponse>().label() }
 

@@ -24,6 +24,8 @@ data class ChannelHeader(
     val viewCountText: String? = null,
     val countryText: String? = null,
     val canonicalUrl: String? = null,
+    /** The keyword tags the creator set for the channel, from `microformatDataRenderer.tags`. */
+    val keywords: List<String> = emptyList(),
 )
 
 data class ChannelLink(

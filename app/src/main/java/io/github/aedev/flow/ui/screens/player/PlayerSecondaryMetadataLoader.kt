@@ -85,7 +85,7 @@ internal sealed interface SecondaryMetadata {
 
 /**
  * The metadata the player screen wants *after* the first frame: the channel avatar and subscriber
- * count, the related lane, the late NewPipe enrichment of an InnerTube-only load, and the live
+ * count, the related lane, the late enrichment of an InnerTube-only load, and the live
  * watch refresh.
  *
  * Each concern holds at most one job, keyed by the video and the load it belongs to: a repeat call
@@ -398,8 +398,8 @@ internal class PlayerSecondaryMetadataLoader(
     }
 
     /**
-     * Folds the NewPipe metadata a fast InnerTube load raced past into the screen once it lands,
-     * then re-arms the related lane and the channel request from the richer references it carries.
+     * Folds the live watch metadata a fast load raced past into the screen once it lands, then
+     * re-arms the related lane and the channel request from the richer references it carries.
      */
     fun refreshLiveWatchMetadata(
         videoId: String,
@@ -410,21 +410,9 @@ internal class PlayerSecondaryMetadataLoader(
 
         liveWatchLoad.job =
             scope.launch(networkDispatcher) {
-                val newPipeMeta =
-                    withTimeoutOrNull(LIVE_NEWPIPE_METADATA_TIMEOUT_MS) {
-                        repository.getLiveWatchMetadataFromNewPipe(videoId)
-                    }
-                val innerTubeMeta =
-                    if (
-                        newPipeMeta == null ||
-                        newPipeMeta.relatedVideos.isEmpty() ||
-                        newPipeMeta.subscriberCount == null
-                    ) {
-                        withTimeoutOrNull(LIVE_INNERTUBE_METADATA_TIMEOUT_MS) { repository.getLiveWatchMetadata(videoId) }
-                    } else {
-                        null
-                    }
-                val meta = newPipeMeta ?: innerTubeMeta ?: return@launch
+                val meta =
+                    withTimeoutOrNull(LIVE_INNERTUBE_METADATA_TIMEOUT_MS) { repository.getLiveWatchMetadata(videoId) }
+                        ?: return@launch
                 if (!isPlaybackCurrent(loadToken)) return@launch
 
                 val likes =
@@ -448,10 +436,7 @@ internal class PlayerSecondaryMetadataLoader(
                 val metadataRelated =
                     PlayerRelatedVideosPolicy.sanitize(
                         videoId = videoId,
-                        candidates =
-                            newPipeMeta?.relatedVideos?.takeIf { it.isNotEmpty() }
-                                ?: innerTubeMeta?.relatedVideos
-                                ?: meta.relatedVideos,
+                        candidates = meta.relatedVideos,
                         shortsEnabled = shortsEnabled(),
                         exclusions = exclusions(),
                     )
@@ -475,7 +460,7 @@ internal class PlayerSecondaryMetadataLoader(
                             video = enriched,
                             relatedVideos = unwatched,
                             channelAvatarUrl = meta.channelAvatarUrl,
-                            subscriberCount = meta.subscriberCount ?: innerTubeMeta?.subscriberCount,
+                            subscriberCount = meta.subscriberCount,
                         ),
                     )
                 }
@@ -506,7 +491,6 @@ internal class PlayerSecondaryMetadataLoader(
         const val PLAYBACK_STARTED_TIMEOUT_MS = 15_000L
         const val CHANNEL_INFO_TIMEOUT_MS = 8_000L
         const val RELATED_FALLBACK_TIMEOUT_MS = 10_000L
-        const val LIVE_NEWPIPE_METADATA_TIMEOUT_MS = 12_000L
         const val LIVE_INNERTUBE_METADATA_TIMEOUT_MS = 8_000L
         const val LIVE_RELATED_SEARCH_TIMEOUT_MS = 8_000L
         const val RYD_TIMEOUT_MS = 5_000L

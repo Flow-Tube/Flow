@@ -16,8 +16,8 @@ test data/repository/YouTubeRepository.kt learnChannelTags
 delete data/repository/YouTubeRepository.kt getRelatedVideosFromStreamInfo
 delete data/repository/YouTubeRepository.kt getLiveWatchMetadataFromNewPipe
 delete data/repository/YouTubeRepository.kt fetchWatchStreamInfoWithAlternates
-test data/repository/YouTubeRepository.kt toVideo
-test data/shorts/ShortsClassifier.kt isReel
+delete data/repository/YouTubeRepository.kt toVideo
+delete data/shorts/ShortsClassifier.kt isReel
 test data/shorts/ShortsDashManifest.kt forVideo
 test data/shorts/ShortsDashManifest.kt forAudio
 test data/shorts/ShortsDashManifest.kt forStream
@@ -156,8 +156,8 @@ ui ui/tv/player/TvPlayerControls.kt TvPlayerControls
 delete utils/ContentLocalization.kt newPipeLocalization
 delete utils/ContentLocalization.kt hasTimeAgoPatterns
 delete utils/ContentLocalization.kt newPipeContentCountry
-test utils/NewPipeImageUtils.kt bestImageUrl
-test utils/NewPipeImageUtils.kt distinctBestImageUrls
+delete utils/NewPipeImageUtils.kt bestImageUrl
+delete utils/NewPipeImageUtils.kt distinctBestImageUrls
 delete utils/potoken/NewPipePoTokenProvider.kt getWebClientPoToken
 delete utils/potoken/NewPipePoTokenProvider.kt getWebEmbedClientPoToken
 delete utils/potoken/NewPipePoTokenProvider.kt getAndroidClientPoToken

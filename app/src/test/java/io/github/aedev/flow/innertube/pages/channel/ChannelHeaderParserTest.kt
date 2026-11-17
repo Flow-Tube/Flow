@@ -237,4 +237,20 @@ class ChannelHeaderParserTest {
     fun `keeps the requested id when the response carries none`() {
         assertEquals("UCrequested", parse("""{"contents":{}}""").id)
     }
+
+    @Test
+    fun `reads the channel's keyword tags from the microformat`() {
+        val header =
+            parse(
+                """
+                {
+                  "metadata": { "channelMetadataRenderer": { "externalId": "UCuAXFkgsw1L7xaCfnd5JJOw", "title": "Rick Astley" } },
+                  "microformat": { "microformatDataRenderer": { "tags": ["Official", "rick astley", "", "never gonna give you up"] } }
+                }
+                """.trimIndent(),
+            )
+
+        assertEquals(listOf("Official", "rick astley", "never gonna give you up"), header.keywords)
+        assertEquals(emptyList<String>(), parse(modernHeader).keywords)
+    }
 }

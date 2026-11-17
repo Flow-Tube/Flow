@@ -83,8 +83,20 @@ internal fun JsonElement.toChannelHeader(requestedId: String): ChannelHeader {
             about?.get("canonicalChannelUrl").stringOrNull()
                 ?: metadata?.get("vanityChannelUrl").stringOrNull()
                 ?: metadata?.get("channelUrl").stringOrNull(),
+        keywords = channelKeywords(),
     )
 }
+
+private fun JsonElement.channelKeywords(): List<String> =
+    objectOrNull()
+        ?.get("microformat")
+        .objectOrNull()
+        ?.get("microformatDataRenderer")
+        .objectOrNull()
+        ?.get("tags")
+        .arrayOrNull()
+        ?.mapNotNull { it.stringOrNull()?.takeIf(String::isNotBlank) }
+        .orEmpty()
 
 private class MetadataPart(
     val text: String,

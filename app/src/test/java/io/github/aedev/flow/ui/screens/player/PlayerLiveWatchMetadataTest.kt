@@ -27,9 +27,8 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * What a live video's screen is refreshed with once its watch metadata lands, and what it costs.
- * The second extraction stack is stubbed to answer nothing, which is how a live open behaves when
- * it is gone: the InnerTube answer alone has to fill every field.
+ * What a live video's screen is refreshed with once its watch metadata lands, and what it costs:
+ * the InnerTube watch answer alone fills every field.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerLiveWatchMetadataTest {
@@ -46,7 +45,6 @@ class PlayerLiveWatchMetadataTest {
         every { playerManager.watchedSuggestionsSource } returns null
         every { playerPreferences.originalTitles } returns flowOf(false)
         every { playerPreferences.rytdEnabled } returns flowOf(false)
-        coEvery { repository.getLiveWatchMetadataFromNewPipe(any()) } returns null
     }
 
     @After
@@ -174,7 +172,6 @@ class PlayerLiveWatchMetadataTest {
             advanceUntilIdle()
 
             coVerify(exactly = 1) { repository.getLiveWatchMetadata("live1") }
-            coVerify(atMost = 1) { repository.getLiveWatchMetadataFromNewPipe(any()) }
             assertThat(results.filterIsInstance<SecondaryMetadata.LiveWatch>()).hasSize(1)
         }
 

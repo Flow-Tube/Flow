@@ -8,7 +8,6 @@ import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.model.needsCollaboratorResolution
-import io.github.aedev.flow.data.shorts.ShortsClassifier
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.VideoChapter
@@ -19,15 +18,13 @@ import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
 import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.YouTubeCountParser
+import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.search.resultVideos
 import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.avatarImageIdentityKey
-import io.github.aedev.flow.utils.bestImageUrl
-import io.github.aedev.flow.utils.distinctBestImageUrls
-import io.github.aedev.flow.utils.newPipeLocalization
 import io.github.aedev.flow.utils.parseToTimestamp
 import io.github.aedev.flow.utils.relativedate.RelativeUploadDateParser
 import kotlinx.coroutines.CoroutineScope
@@ -45,11 +42,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import org.schabi.newpipe.extractor.NewPipe
-import org.schabi.newpipe.extractor.ServiceList
-import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.StreamInfoItem
-import org.schabi.newpipe.extractor.stream.StreamType
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -60,8 +52,6 @@ class YouTubeRepository
     constructor(
         private val playerPreferences: PlayerPreferences,
     ) {
-        private val service = ServiceList.YouTube
-
         private val returnYouTubeDislikeCoalescer =
             InFlightRequestCoalescer<String, ReturnYouTubeDislikeCounts?>(
                 CoroutineScope(SupervisorJob() + Dispatchers.IO),
@@ -234,13 +224,9 @@ class YouTubeRepository
                     withTimeoutOrNull(6_000L) {
                         getChannelInfo(channelId)?.let { info ->
                             VideoChannelMetadata(
-                                channelId = info.id.orEmpty(),
-                                channelName = info.name.orEmpty(),
-                                avatarUrl =
-                                    info.avatars
-                                        .maxByOrNull { it.height }
-                                        ?.url
-                                        .orEmpty(),
+                                channelId = info.id,
+                                channelName = info.title,
+                                avatarUrl = info.avatarUrl,
                             )
                         }
                     }
@@ -394,137 +380,44 @@ class YouTubeRepository
             }
 
         /**
-         * Get video stream info for playback.
-         *
-         * Throws the original exception on failure so callers can display specific, accurate
-         * error messages (age restriction, geo-block, private video, etc.) instead of a
-         * generic "unknown error".  Callers that want null-on-failure should wrap in
-         * try/catch themselves.
-         */
-        suspend fun getVideoStreamInfo(videoId: String): StreamInfo? =
-            withContext(Dispatchers.IO) {
-                try {
-                    val url = "https://www.youtube.com/watch?v=$videoId"
-                    StreamInfo.getInfo(service, url)
-                } catch (e: Exception) {
-                    // NewPipe "The page needs to be reloaded" error handling
-                    // This often happens due to stale internal state or specific YouTube bot identifiers
-                    val isReloadError =
-                        e.message?.contains("page needs to be reloaded", ignoreCase = true) == true ||
-                            (
-                                e is org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException &&
-                                    e.message?.contains("reloaded") == true
-                            )
-
-                    if (isReloadError) {
-                        Log.w(
-                            "YouTubeRepository",
-                            "Hit 'page needs to be reloaded' error for $videoId. Retrying with fresh state...",
-                        )
-
-                        // Re-init NewPipe to potentially clear internal state
-                        try {
-                            NewPipe.init(
-                                NewPipe.getDownloader(),
-                                NewPipe.getPreferredLocalization(),
-                                NewPipe.getPreferredContentCountry(),
-                            )
-                        } catch (initEx: Exception) {
-                            Log.e("YouTubeRepository", "Failed to re-init NewPipe", initEx)
-                        }
-
-                        // Retry with alternate URL format which works as a cache buster sometimes
-                        try {
-                            val altUrl = "https://youtu.be/$videoId"
-                            Log.d("YouTubeRepository", "Retrying with alternate URL: $altUrl")
-                            return@withContext StreamInfo.getInfo(service, altUrl)
-                        } catch (retryEx: Exception) {
-                            Log.e("YouTubeRepository", "Retry failed for $videoId: ${retryEx.message}", retryEx)
-                            throw retryEx
-                        }
-                    } else {
-                        Log.e("YouTubeRepository", "Error getting stream info for $videoId: ${e.message}", e)
-                        throw e
-                    }
-                }
-            }
-
-        /**
-         * Get a single video object by ID
+         * One video's details for a playlist or history row that is missing them: title, channel,
+         * thumbnail, duration, views, upload date and the channel avatar.
          */
         suspend fun getVideo(videoId: String): Video? =
             withContext(Dispatchers.IO) {
-                try {
-                    val info = getVideoStreamInfo(videoId) ?: return@withContext null
-
-                    val bestThumbnail =
-                        info.thumbnails
-                            .sortedByDescending { it.height }
-                            .map { it.url }
-                            .firstOrNull()
-                            .let { ThumbnailUrlResolver.normalizeVideoThumbnail(videoId, it) }
-
-                    val avatarUrls = info.uploaderAvatars.distinctBestImageUrls()
-                    val bestAvatar = avatarUrls.firstOrNull().orEmpty()
-
-                    Video(
-                        id = videoId,
-                        title = info.name ?: "Unknown Title",
-                        channelName = info.uploaderName ?: "Unknown Channel",
-                        channelId = extractChannelId(info.uploaderUrl),
-                        channelHandle = extractChannelHandle(info.uploaderUrl),
-                        thumbnailUrl = bestThumbnail,
-                        duration = info.duration.toInt(),
-                        viewCount = info.viewCount,
-                        uploadDate = info.textualUploadDate ?: "Unknown",
-                        timestamp =
-                            resolveUploadTimestamp(
-                                info.uploadDate
-                                    ?.offsetDateTime()
-                                    ?.toInstant()
-                                    ?.toEpochMilli(),
-                                info.textualUploadDate,
-                            ),
-                        channelThumbnailUrl = bestAvatar,
-                        channelThumbnailUrls = avatarUrls,
-                    )
-                } catch (e: Exception) {
-                    Log.w(TAG, "${e::class.simpleName}: ${e.message}")
-                    null
+                coroutineScope {
+                    val watch = async { runCatching { watchMetadataFor(videoId) }.getOrNull() }
+                    val player =
+                        YouTube
+                            .videoSummary(videoId)
+                            .onFailure { Log.w(TAG, "${it::class.simpleName}: ${it.message}") }
+                            .getOrNull()
+                    if (player == null) {
+                        watch.cancel()
+                        return@coroutineScope null
+                    }
+                    VideoSummaryMapper
+                        .toVideo(videoId, player, watch.await()) { resolveUploadTimestamp(null, it) }
+                        ?.also { video -> video.category?.let { videoCategoryCache.remember(videoId, it) } }
                 }
             }
 
-        /**
-         * Get related videos
-         */
-        suspend fun getRelatedVideos(videoId: String): List<Video> =
+        /** The channel's header (id, name, avatar, description, keywords), best-effort. */
+        suspend fun getChannelInfo(channelIdOrUrl: String): ChannelHeader? =
             withContext(Dispatchers.IO) {
-                val streamInfo = fetchWatchStreamInfoWithAlternates(videoId) ?: return@withContext emptyList()
-                getRelatedVideosFromStreamInfo(streamInfo)
-                    .filter { it.id.isNotBlank() && it.id != videoId }
-                    .distinctBy { it.id }
-            }
-
-        /**
-         * Fetch channel info (best-effort) using NewPipe's channel extractor.
-         */
-        suspend fun getChannelInfo(channelIdOrUrl: String): org.schabi.newpipe.extractor.channel.ChannelInfo? =
-            withContext(Dispatchers.IO) {
-                try {
-                    val value = channelIdOrUrl.trim()
-                    val channelUrl =
-                        when {
-                            value.startsWith("http") -> value
-                            value.startsWith("UC") -> "https://www.youtube.com/channel/$value"
-                            value.startsWith("@") -> "https://www.youtube.com/$value"
-                            else -> "https://www.youtube.com/@$value"
-                        }
-                    org.schabi.newpipe.extractor.channel.ChannelInfo
-                        .getInfo(service, channelUrl)
-                } catch (e: Exception) {
-                    Log.w(TAG, "${e::class.simpleName}: ${e.message}")
-                    null
-                }
+                val value = channelIdOrUrl.trim()
+                val channelId =
+                    when {
+                        value.startsWith("UC") -> value
+                        value.startsWith("http") -> YouTube.resolveChannelId(value).getOrNull()
+                        value.startsWith("@") -> YouTube.resolveChannelId("https://www.youtube.com/$value").getOrNull()
+                        else -> YouTube.resolveChannelId("https://www.youtube.com/@$value").getOrNull()
+                    } ?: return@withContext null
+                YouTube
+                    .channelLanding(channelId)
+                    .onFailure { Log.w(TAG, "${it::class.simpleName}: ${it.message}") }
+                    .getOrNull()
+                    ?.header
             }
 
         /**
@@ -537,7 +430,7 @@ class YouTubeRepository
             channelId: String,
         ) {
             val info = getChannelInfo(channelId) ?: return
-            val tags = info.tags.orEmpty()
+            val tags = info.keywords
             if (tags.isEmpty() && info.description.isNullOrBlank()) return
             io.github.aedev.flow.data.recommendation.FlowNeuroEngine
                 .onChannelTagsLearned(context, channelId, tags, info.description)
@@ -728,21 +621,6 @@ class YouTubeRepository
                 CommentsPageResult(comments = page.comments, continuation = page.continuation)
             }
 
-        /**
-         * Helper to extract related videos directly from a StreamInfo object
-         * This avoids a redundant network call when we already have the stream info.
-         */
-        fun getRelatedVideosFromStreamInfo(info: StreamInfo): List<Video> =
-            try {
-                info.relatedItems
-                    .filterIsInstance<StreamInfoItem>()
-                    .map { it.toVideo() }
-                    .filter { it.id.isNotBlank() }
-                    .distinctBy { it.id }
-            } catch (e: Exception) {
-                emptyList()
-            }
-
         /** Like and dislike counts from the Return YouTube Dislike archive. */
         data class ReturnYouTubeDislikeCounts(
             val likes: Long?,
@@ -842,175 +720,6 @@ class YouTubeRepository
                 Log.i(TAG, "Live related search fallback for $videoId: query='$query' results=${videos.size}")
                 videos
             }
-
-        suspend fun getLiveWatchMetadataFromNewPipe(videoId: String): LiveWatchMetadata? =
-            withContext(Dispatchers.IO) {
-                val info = fetchWatchStreamInfoWithAlternates(videoId) ?: return@withContext null
-                val thumbnail =
-                    info.uploaderAvatars
-                        .sortedByDescending { it.height }
-                        .firstOrNull()
-                        ?.url
-                LiveWatchMetadata(
-                    title = info.name,
-                    channelName = info.uploaderName,
-                    channelId = extractChannelId(info.uploaderUrl),
-                    channelAvatarUrl = thumbnail,
-                    subscriberCount = null,
-                    viewCount = info.viewCount.takeIf { it > 0L },
-                    description = info.description?.content,
-                    relatedVideos =
-                        getRelatedVideosFromStreamInfo(info)
-                            .filter { it.id != videoId }
-                            .distinctBy { it.id },
-                )
-            }
-
-        private suspend fun fetchWatchStreamInfoWithAlternates(videoId: String): StreamInfo? {
-            val urls =
-                listOf(
-                    "https://www.youtube.com/watch?v=$videoId",
-                    "https://youtu.be/$videoId",
-                    "https://m.youtube.com/watch?v=$videoId",
-                    "https://www.youtube.com/live/$videoId",
-                )
-            var lastError: Throwable? = null
-            urls.forEach { url ->
-                val info =
-                    try {
-                        withTimeoutOrNull(6_000L) { StreamInfo.getInfo(service, url) }
-                    } catch (e: Exception) {
-                        lastError = e
-                        null
-                    }
-                if (info != null) return info
-            }
-            Log.w(TAG, "NewPipe watch metadata unavailable for $videoId: ${lastError?.message}")
-            return null
-        }
-
-        /**
-         * Extension function to convert StreamInfoItem to our Video model
-         */
-        private fun StreamInfoItem.toVideo(): Video {
-            val rawUrl = url ?: ""
-            val videoId =
-                when {
-                    rawUrl.contains("watch?v=") -> rawUrl.substringAfter("watch?v=").substringBefore("&")
-                    rawUrl.contains("youtu.be/") -> rawUrl.substringAfter("youtu.be/").substringBefore("?")
-                    rawUrl.contains("/shorts/") -> rawUrl.substringAfter("/shorts/").substringBefore("?")
-                    else -> rawUrl.substringAfterLast("/")
-                }
-
-            val bestThumbnail =
-                thumbnails
-                    .sortedByDescending { it.height }
-                    .map { it.url }
-                    .firstOrNull()
-                    .let { ThumbnailUrlResolver.normalizeVideoThumbnail(videoId, it) }
-
-            val avatarUrls = uploaderAvatars.distinctBestImageUrls()
-            val bestAvatar = avatarUrls.firstOrNull().orEmpty()
-
-            var durationSecs = if (duration > 0) duration.toInt() else 0
-
-            val isReel = ShortsClassifier.isReel(this)
-
-            if (isReel && durationSecs == 0) {
-                durationSecs = 60
-            }
-
-            val isLiveStream = streamType == StreamType.LIVE_STREAM
-            if (isLiveStream) {
-                durationSecs = 0
-            }
-
-            return Video(
-                id = videoId,
-                title = name ?: "Unknown Title",
-                channelName = uploaderName ?: "Unknown Channel",
-                channelId = extractChannelId(uploaderUrl),
-                channelHandle = extractChannelHandle(uploaderUrl),
-                thumbnailUrl = bestThumbnail,
-                duration = durationSecs,
-                viewCount = viewCount,
-                uploadDate =
-                    run {
-                        val date = uploadDate
-                        when {
-                            textualUploadDate != null -> {
-                                textualUploadDate!!
-                            }
-
-                            date != null -> {
-                                try {
-                                    val d = java.util.Date.from(date.offsetDateTime().toInstant())
-                                    val sdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
-                                    sdf.format(d)
-                                } catch (e: Exception) {
-                                    "Unknown"
-                                }
-                            }
-
-                            else -> {
-                                "Unknown"
-                            }
-                        }
-                    },
-                timestamp =
-                    resolveUploadTimestamp(
-                        uploadDate?.offsetDateTime()?.toInstant()?.toEpochMilli(),
-                        textualUploadDate,
-                    ),
-                channelThumbnailUrl = bestAvatar,
-                channelThumbnailUrls = avatarUrls,
-                isUpcoming = streamType == StreamType.NONE,
-                isLive = isLiveStream,
-                isShort = isReel,
-                isMusic = looksLikeMusicVideo(name.orEmpty(), uploaderName.orEmpty()),
-            )
-        }
-
-        private fun extractChannelHandle(uploaderUrl: String?): String? = uploaderUrl?.takeIf { "/@" in it }
-
-        private fun extractChannelId(uploaderUrl: String?): String {
-            if (uploaderUrl.isNullOrBlank()) return ""
-            val url = uploaderUrl.trim()
-            return when {
-                url.contains("/channel/") -> {
-                    url
-                        .substringAfter("/channel/")
-                        .substringBefore("/")
-                        .substringBefore("?")
-                }
-
-                url.contains("/@") -> {
-                    "@" +
-                        url
-                            .substringAfter("/@")
-                            .substringBefore("/")
-                            .substringBefore("?")
-                }
-
-                url.contains("/user/") -> {
-                    url
-                        .substringAfter("/user/")
-                        .substringBefore("/")
-                        .substringBefore("?")
-                }
-
-                url.contains("/c/") -> {
-                    url
-                        .substringAfter("/c/")
-                        .substringBefore("/")
-                        .substringBefore("?")
-                }
-
-                else -> {
-                    url.substringAfterLast("/").substringBefore("?")
-                }
-            }
-        }
 
         private fun resolveUploadTimestamp(
             absoluteMillis: Long?,
