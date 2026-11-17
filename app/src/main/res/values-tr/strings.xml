@@ -141,7 +141,7 @@
     <string name="save_to">Buraya kaydet...</string>
     <string name="playlist_private">Gizli</string>
     <string name="views">Görüntülemeler</string>
-    <string name="empty_subscriptions_body">Son videoları görmek için\\nkanala abone ol</string>
+    <string name="empty_subscriptions_body">En son videolarını buradan görmek için kanallara abone olun</string>
     <string name="share_message_template">Şu parçaya göz at: %1$s - %2$s\nhttps://music.youtube.com/watch?v=%3$s</string>
     <string name="playlist_public">Herkese açık</string>
     <string name="create_new_playlist">Yeni oynatma listesi oluştur</string>
@@ -152,7 +152,7 @@
     <string name="i_like_this">İlgimi çekti</string>
     <string name="empty_offline_body">İndirdiğin %1$s burada görünecek.\nİnternetin olmasa bile içeriğinin keyfini çıkar.</string>
     <string name="watch_later_unsave">Daha Sonra İzle\'den Kaldır</string>
-    <string name="mark_as_watched_toast">İzlendi olarak işaretlendi — önerilerin gelişecek!</string>
+    <string name="mark_as_watched_toast">İzlenen olarak işaretlendi</string>
     <string name="i_like_this_toast">Anlaşıldı! Buna benzer daha fazla içerik göreceksin.</string>
     <string name="go_to_channel">Kanala git</string>
     <string name="track_info">Parça Bilgisi</string>
@@ -353,7 +353,7 @@
     <string name="settings_flow_engine_header">Flow Motoru</string>
     <string name="settings_active_learning">AKTİF ÖĞRENME</string>
     <string name="settings_reset_brain_title">Flow Kişiliğini Sıfırla?</string>
-    <string name="settings_reset_brain_body">Bu işlem, \'Flow Beyni\' ilgi profilinizi tamamen silecektir.\\n\\n• Öğrenilen tüm konular unutulacak.\\n• Kişilik özellikleri sıfırlanacak.\\n• Öneriler ilk haline dönecek.\\n\\nBu işlemi geri alamazsın.</string>
+    <string name="settings_reset_brain_body">Bu, Flow Brain profilinizi siler.\n\n• Öğrenilen konular unutulur.\n• Kişilik özellikleri sıfırlanır.\n• Öneriler varsayılana döner.\n\nBu işlem geri alınamaz.</string>
     <string name="settings_reset_everything">Her Şeyi Sıfırla</string>
     <string name="settings_analyzing_interactions">Etkileşimlerin analiz ediliyor...</string>
     <string name="settings_view_analytics">Analizleri Gör</string>
@@ -940,7 +940,7 @@
     <string name="player_settings_show_pip_subtitle">Oynatıcı ayarlarında resim içinde resim düğmesini göster</string>
     <string name="player_settings_header_audio">Ses</string>
     <string name="player_settings_play_during_calls">Aramalar Sırasında Oynat</string>
-    <string name="player_settings_play_during_calls_subtitle">Telefon veya VoIP aramaları sırasında oynatmaya devam et</string>
+    <string name="player_settings_play_during_calls_subtitle">Telefon ve uygulama aramaları sırasında oynamaya devam edin</string>
     <string name="player_settings_audio_language">Tercih Edilen Ses Dili</string>
     <string name="player_settings_audio_language_dialog_title">Ses Dili</string>
     <string name="player_settings_audio_language_dialog_body">Tercih ettiğin ses dilini seç. Mevcut değilse orijinal dil kullanılacak.</string>
@@ -1461,7 +1461,7 @@
     <string name="diagnostics_clear_crashes">Çökme Raporlarını Temizle</string>
     <string name="diagnostics_clear_confirm_title">Çökme raporları temizlensin mi?</string>
     <string name="diagnostics_clear_confirm_body">Kaydedilen tüm çökme raporları kalıcı olarak silinecek. Bu işlemi geri alamazsın.</string>
-    <string name="diagnostics_no_crashes">Çökme raporu yok — harika!</string>
+    <string name="diagnostics_no_crashes">Çökme raporu yok</string>
     <string name="diagnostics_no_session_logs">Bu oturumda uyarı veya hata yok.</string>
     <string name="diagnostics_loading">Günlükler okunuyor…</string>
     <string name="diagnostics_copied">Rapor panoya kopyalandı</string>
@@ -1865,7 +1865,7 @@
     <string name="sync_error_no_network">Wi-Fi/LAN bağlantısı yok. İki cihazı aynı ağa veya bir erişim noktasına bağla.</string>
     <string name="sync_error_peer_also_send">Diğer cihaz da Gönder olarak ayarlanmış. Onu Al olarak ayarla ve yeniden tara.</string>
     <string name="sync_error_peer_also_receive">Diğer cihaz da Al olarak ayarlanmış. Onu Gönder olarak ayarla ve yeniden tara.</string>
-    <string name="sync_error_qr_expired">Bu QR kodunun süresi dolmuş. Diğer cihazda yeni bir kod göster.</string>
+    <string name="sync_error_qr_expired">Bu kodun süresi doldu. Diğer cihazdan yeni bir kod oluşturmasını isteyin. Kodlar hemen süresi doluyorsa, her iki cihazda da tarih ve saatin doğru olduğunu kontrol edin.</string>
     <string name="sync_error_qr_wrong_version">Diğer cihazdaki uygulama sürümü uyumlu değil.</string>
     <string name="sync_error_qr_not_flow">Bu, Flow eşitleme koduna benzemiyor.</string>
     <string name="sync_error_qr_bad_address">Eşitleme kodunda geçerli bir ağ adresi yok.</string>
@@ -2272,7 +2272,7 @@
     <string name="lyrics_sync_offset_value">%1$ss</string>
     <string name="audio_bitrate_kbps_template">%1$d kbps</string>
     <string name="explicit_badge">E</string>
-    <string name="check_out_short_template">Şu Shorts\'a göz at: %1$s\\nhttps://youtube.com/shorts/%2$s</string>
+    <string name="check_out_short_template">Şu Shorts\'a göz at: %1$s\nhttps://youtube.com/shorts/%2$s</string>
     <string name="link_not_supported">Flow bu tür bağlantıları açamaz</string>
     <string name="music_service_disabled">Müzik çalınamıyor. Flow\'un müzik servisi bu cihazda kapatılmış.</string>
     <string name="quick_action_watched">İzlendi</string>
@@ -2894,7 +2894,7 @@
     <string name="equalizer_frequency_label">F</string>
     <string name="equalizer_gain_label">K</string>
     <string name="equalizer_q_label">Q</string>
-    <string name="section_on_repeat">Tekrar Tekrar</string>
+    <string name="section_on_repeat">Tekrar</string>
     <string name="section_daily_mix_title">%1$s Karışımı</string>
     <string name="section_daily_mix_label">Günlük Karışım</string>
     <string name="daily_mix_page_description">Birlikte dinlediğin sanatçılardan oluşturuldu. Bugünün karışımını saklamak için kaydet.</string>
@@ -3244,7 +3244,7 @@
     <string name="diagnostics_report_subject">Flow Tanılama Raporu</string>
     <string name="diagnostics_reset_session">YouTube oturumunu sıfırla</string>
     <string name="diagnostics_reset_session_confirm_title">YouTube oturumu sıfırlansın mı?</string>
-    <string name="diagnostics_reset_session_confirm_body">Flow yeni bir oynatma kimliği oluşturacak. Videolar bir dakika sonra duruyorsa veya oynatılamıyorsa bunu dene.\\n\\nOynatma bir iki dakika boyunca sorunlu olabilir. Kaydedilen verilerin bundan etkilenmez.</string>
+    <string name="diagnostics_reset_session_confirm_body">Flow yeni bir oynatma kimliği oluşturacak. Videolar bir dakika sonra duruyorsa veya oynamıyorsa bunu deneyin.\n\nOynatma bir iki dakika boyunca sorunlu olabilir. Kaydedilmiş verileriniz etkilenmez.</string>
     <string name="diagnostics_reset_session_done">YouTube oturumu sıfırlandı. Tekrar denemek için videoyu yeniden aç.</string>
     <string name="diagnostics_profiles_section">Profiller (hata ayıklama)</string>
     <string name="diagnostics_profiles_footer">Yalnızca hata ayıklama sürümlerinde geçerlidir. Profil değiştirmek uygulamayı yeniden başlatır.</string>
@@ -4899,4 +4899,29 @@
     <string name="app_lock_screen_title">Flow kilitli</string>
     <string name="app_lock_screen_body">Açmak için parmak izini, yüzünü veya ekran kilidini kullan</string>
     <string name="app_lock_unlock">Kilidi aç</string>
+    <string name="settings_pause_video_muted_title">Sessize alındığında videoyu duraklat</string>
+    <string name="player_appearance_split_transport_title">Bölünmüş düğmeler</string>
+    <string name="player_appearance_split_transport_subtitle">Önceki ve sonraki, oynat/duraklat düğmesine bitişik düz şekilde durur</string>
+    <string name="settings_nav_mini_beside_title">Mini oynatıcı baloncuğun yanında</string>
+    <string name="settings_nav_mini_beside_summary">Çubuk küçültülürken, mini oynatıcı kendi satırına taşınır</string>
+    <string name="settings_section_music_mini_player">Müzik mini oynatıcı</string>
+    <string name="player_appearance_mini_cover_title">Mini oynatıcı kapağı</string>
+    <string name="player_appearance_mini_cover_subtitle">Mini oynatıcıdaki kapağın şekli</string>
+    <string name="player_appearance_mini_cover_morphing">Dönüşüm</string>
+    <string name="player_appearance_mini_cover_motion_title">Kapak hareketi</string>
+    <string name="player_appearance_mini_cover_motion_always">Her zaman</string>
+    <string name="player_appearance_mini_background_title">Arka plan</string>
+    <string name="player_appearance_mini_background_subtitle">Mini oynatıcının neyle boyandığı</string>
+    <string name="mini_button_close">Oynatıcıyı kapatın</string>
+    <string name="player_appearance_mini_buttons_title">Butonlar</string>
+    <string name="player_appearance_mini_buttons_subtitle">En fazla üç tanesi, belirlediğiniz sırayla; geniş ekranlarda ayrıca Önceki eklenir</string>
+    <string name="player_appearance_mini_buttons_none">Buton yok</string>
+    <string name="player_appearance_mini_cover_tap_title">Kapağa dokunun</string>
+    <string name="player_appearance_mini_cover_tap_open">Oynatıcı aç</string>
+    <string name="player_appearance_mini_cover_tap_play">Oynat veya duraklat</string>
+    <string name="player_appearance_mini_long_press_title">Uzun basın</string>
+    <string name="player_appearance_mini_long_press_nothing">Hiçbir şey</string>
+    <string name="player_appearance_mini_long_press_options">Seçenekler</string>
+    <string name="player_appearance_mini_long_press_like">Beğen</string>
+    <string name="lyrics_animation">Şarkı sözleri animasyonu</string>
 </resources>
