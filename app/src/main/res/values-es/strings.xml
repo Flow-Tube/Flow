@@ -430,7 +430,7 @@
     <string name="android_sdk_label">SDK de Android: %1$s</string>
     <string name="btn_copy">Copiar</string>
     <string name="remove_from_playlist_action">Eliminar de la lista de reproducción</string>
-    <string name="category_gaming">Juego de azar</string>
+    <string name="category_gaming">Videojuegos</string>
     <string name="category_creative">Creativo</string>
     <string name="channel_memory_subtitle">Comentarios implícitos de su historial de visualización</string>
     <string name="header_your_collection">Tu colección</string>
@@ -976,7 +976,7 @@
     <string name="onboarding_instructions">Elige al menos 3 temas para personalizar tu experiencia</string>
     <string name="btn_skip_for_now">Saltar por ahora</string>
     <string name="onboarding_btn_continue">Continuar</string>
-    <string name="cd_collapse_category">Colapsar</string>
+    <string name="cd_collapse_category">Contraer</string>
     <string name="category_music">Música</string>
     <string name="category_technology">Tecnología</string>
     <string name="category_entertainment">Entretenimiento</string>
