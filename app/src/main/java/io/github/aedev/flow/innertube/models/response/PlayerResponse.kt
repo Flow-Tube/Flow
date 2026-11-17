@@ -117,6 +117,8 @@ data class PlayerResponse(
         val reason: String?,
         val liveStreamability: LiveStreamability? = null,
         val errorScreen: ErrorScreen? = null,
+        /** YouTube's longer explanation, e.g. "This is a private video. Please sign in to verify that you may see it." */
+        val messages: List<String>? = null,
     ) {
         /** The error screen's second line, which says when the refusal is about the viewer's country. */
         val subreason: String? get() = errorScreen?.playerErrorMessageRenderer?.subreason?.text

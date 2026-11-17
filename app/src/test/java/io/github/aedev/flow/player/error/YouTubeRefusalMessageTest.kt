@@ -7,24 +7,28 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse.Playability
 import io.github.aedev.flow.player.stream.PlayabilityVerdict
 import io.github.aedev.flow.player.stream.PlaybackBlock
 import io.github.aedev.flow.player.stream.PlaybackBlockedException
+import io.github.aedev.flow.player.stream.VideoUnavailableException
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Test
 
 /**
- * What the video screen shows today for each refusal YouTube really sends, traced the way a failed
- * load travels: every client's playabilityStatus becomes a failure reason, [PlayabilityVerdict]
- * reads the reasons, and the screen maps `blockOf(videoId)?.let(::PlaybackBlockedException)` (the
- * cause PlaybackLoadResolver hands over) through [VideoErrorMapper].
+ * What the video screen shows for each refusal YouTube really sends, traced the way a failed load
+ * travels: every client's playabilityStatus becomes a failure reason, [PlayabilityVerdict] reads the
+ * block and YouTube's own reason from them, PlaybackLoadResolver hands the screen a
+ * [PlaybackBlockedException] or [VideoUnavailableException] carrying both, and [VideoErrorMapper]
+ * names it.
  *
  * The statuses and reasons are the ones ANDROID_VR, IOS and WEB returned on 2026-11-17 for real
- * videos (ids in notes/newpipe-parity). The NewPipe column is what NewPipe 0.26.5's own reading of
- * the same answer would have shown, which is what the screen showed while NewPipe extracted.
+ * videos (ids in notes/newpipe-parity). Before this, private and age-restricted videos both said
+ * "sign-in required", Music Premium said "members-only or paid", and every removal said "failed to
+ * load video".
  */
 class YouTubeRefusalMessageTest {
     private val context =
         mockk<Context> {
             every { getString(any()) } answers { "s:${firstArg<Int>()}" }
+            every { getString(any(), *anyVararg()) } answers { "s:${firstArg<Int>()}:${secondArg<Array<Any>>().joinToString()}" }
         }
 
     private class Answer(
@@ -32,24 +36,36 @@ class YouTubeRefusalMessageTest {
         val status: String,
         val reason: String,
         val hasDetails: Boolean,
+        val messages: List<String>? = null,
     )
 
     private data class Outcome(
         val message: String,
+        val hint: String?,
         val gone: Boolean,
         val block: PlaybackBlock?,
     )
 
     private fun native(vararg answers: Answer): Outcome {
         val reasons =
-            answers.map { "${it.client}: ${PlayabilityVerdict.refusal(PlayabilityStatus(it.status, it.reason), it.hasDetails)}" }
+            answers.map {
+                "${it.client}: ${PlayabilityVerdict.refusal(
+                    PlayabilityStatus(it.status, it.reason, messages = it.messages),
+                    it.hasDetails,
+                )}"
+            }
         val block = PlayabilityVerdict.block(reasons)
-        val shown = VideoErrorMapper.from(context, block?.let(::PlaybackBlockedException))
-        return Outcome(shown.message, PlayabilityVerdict.isGone(reasons), block)
+        val gone = PlayabilityVerdict.isGone(reasons)
+        val refusal = PlayabilityVerdict.refusalOf(reasons)
+        val cause =
+            when {
+                block != null -> PlaybackBlockedException(block, refusal)
+                gone || refusal != null -> VideoUnavailableException("id", refusal)
+                else -> null
+            }
+        val shown = VideoErrorMapper.from(context, cause)
+        return Outcome(shown.message, shown.hint, gone, block)
     }
-
-    private fun newPipe(answer: Answer): String =
-        VideoErrorMapper.from(context, NewPipeErrorCases.newPipeVerdict(answer.status, answer.reason)).message
 
     private fun s(id: Int) = "s:$id"
 
@@ -71,9 +87,10 @@ class YouTubeRefusalMessageTest {
         details: Boolean,
     ) = Answer("WEB", status, reason, details)
 
+    private val privateMessage = listOf("This is a private video. Please sign in to verify that you may see it.")
     private val privateVideo =
         listOf(
-            vr("LOGIN_REQUIRED", "Please sign in", false),
+            Answer("ANDROID_VR", "LOGIN_REQUIRED", "Please sign in", false, privateMessage),
             ios("LOGIN_REQUIRED", "This video is private", false),
             web("LOGIN_REQUIRED", "Private video", false),
         )
@@ -164,82 +181,79 @@ class YouTubeRefusalMessageTest {
             ios("UNPLAYABLE", "This live stream recording is not available.", true),
         )
 
+    private fun outcome(
+        message: Int,
+        hint: String,
+        gone: Boolean,
+        block: PlaybackBlock?,
+    ) = Outcome(s(message), hint, gone, block)
+
     @Test
-    fun `a private video shows the sign-in message`() {
+    fun `a private video says it is private`() {
         assertThat(native(*privateVideo.toTypedArray()))
-            .isEqualTo(Outcome(s(R.string.error_login_required), gone = false, block = PlaybackBlock.LOGIN_REQUIRED))
+            .isEqualTo(outcome(R.string.error_private_video, s(R.string.error_private_video_hint), false, PlaybackBlock.LOGIN_REQUIRED))
+        // ANDROID_VR alone says only "Please sign in"; its message still names the video private.
+        assertThat(native(privateVideo.first()).message).isEqualTo(s(R.string.error_private_video))
     }
 
     @Test
-    fun `an age restricted video shows the sign-in message`() {
+    fun `an age restricted video says it is age-restricted`() {
         assertThat(native(*ageRestricted.toTypedArray()))
-            .isEqualTo(Outcome(s(R.string.error_login_required), gone = false, block = PlaybackBlock.LOGIN_REQUIRED))
+            .isEqualTo(outcome(R.string.error_age_restricted, s(R.string.error_age_restricted_hint), false, PlaybackBlock.LOGIN_REQUIRED))
+        assertThat(native(ageRestricted[1]).message).isEqualTo(s(R.string.error_age_restricted))
     }
 
     @Test
-    fun `a members-only video shows the members message once a client says members-only`() {
-        assertThat(native(*membersOnly.toTypedArray()))
-            .isEqualTo(Outcome(s(R.string.error_members_or_paid), gone = false, block = PlaybackBlock.MEMBERS_OR_PAID))
+    fun `a members-only video says members-only, from any client's wording`() {
+        val expected = outcome(R.string.error_members_only, s(R.string.error_members_only_hint), false, PlaybackBlock.MEMBERS_OR_PAID)
+        assertThat(native(*membersOnly.toTypedArray())).isEqualTo(expected)
+        assertThat(native(membersOnly.first())).isEqualTo(expected)
     }
 
     @Test
-    fun `a members-only video refused by ANDROID_VR alone is not recognised and shows the generic message`() {
-        assertThat(native(membersOnly.first()))
-            .isEqualTo(Outcome(s(R.string.error_generic), gone = false, block = null))
-    }
-
-    @Test
-    fun `a Music Premium video shows the members message`() {
+    fun `a Music Premium video names Music Premium`() {
         assertThat(native(*musicPremium.toTypedArray()))
-            .isEqualTo(Outcome(s(R.string.error_members_or_paid), gone = false, block = PlaybackBlock.MEMBERS_OR_PAID))
+            .isEqualTo(
+                outcome(R.string.error_yt_music_premium, s(R.string.error_yt_music_premium_hint), false, PlaybackBlock.MEMBERS_OR_PAID),
+            )
     }
 
     @Test
-    fun `removed videos are gone and show the generic message`() {
-        for (refusal in listOf(
-            accountTerminated,
-            copyrightRemoval,
-            removedByUploader,
-            communityGuidelines,
-            nuditySexualContent,
-            unavailable,
-        )) {
-            assertThat(native(*refusal.toTypedArray()))
-                .isEqualTo(Outcome(s(R.string.error_generic), gone = true, block = null))
-        }
+    fun `each removal says why YouTube removed it`() {
+        assertThat(native(*accountTerminated.toTypedArray()))
+            .isEqualTo(outcome(R.string.error_channel_terminated, s(R.string.error_channel_terminated_hint), true, null))
+        assertThat(native(*copyrightRemoval.toTypedArray()))
+            .isEqualTo(outcome(R.string.error_copyright_removed, "s:${R.string.error_copyright_removed_hint}:Nonami Docs", true, null))
+        assertThat(native(*removedByUploader.toTypedArray()))
+            .isEqualTo(outcome(R.string.error_removed_by_uploader, s(R.string.error_removed_by_uploader_hint), true, null))
+        assertThat(native(*communityGuidelines.toTypedArray()))
+            .isEqualTo(outcome(R.string.error_policy_removed, s(R.string.error_policy_removed_hint), true, null))
+        assertThat(native(*nuditySexualContent.toTypedArray()))
+            .isEqualTo(outcome(R.string.error_policy_removed, s(R.string.error_policy_removed_hint), true, null))
+        assertThat(native(*unavailable.toTypedArray()))
+            .isEqualTo(outcome(R.string.error_not_available, s(R.string.error_not_available_hint), true, null))
     }
 
     @Test
-    fun `a video removed for hate speech reads as region blocked because its reason says in your country`() {
+    fun `a video removed for hate speech is removed, not region blocked`() {
         assertThat(native(*hateSpeech.toTypedArray()))
-            .isEqualTo(Outcome(s(R.string.error_geo_restricted), gone = false, block = PlaybackBlock.REGION))
+            .isEqualTo(outcome(R.string.error_policy_removed, s(R.string.error_policy_removed_hint), true, null))
     }
 
     @Test
-    fun `a live stream whose recording is gone is not gone and shows the generic message`() {
+    fun `a live stream whose recording is gone says the recording is not available`() {
         assertThat(native(*liveRecordingGone.toTypedArray()))
-            .isEqualTo(Outcome(s(R.string.error_generic), gone = false, block = null))
+            .isEqualTo(outcome(R.string.error_recording_unavailable, s(R.string.error_recording_unavailable_hint), false, null))
     }
 
     @Test
-    fun `NewPipe read each refusal by its English reason, so the client decided the message`() {
-        assertThat(newPipe(privateVideo[0])).isEqualTo(s(R.string.error_not_available))
-        assertThat(newPipe(privateVideo[1])).isEqualTo(s(R.string.error_private_video))
-        assertThat(newPipe(privateVideo[2])).isEqualTo(s(R.string.error_not_available))
-
-        assertThat(newPipe(ageRestricted[0])).isEqualTo(s(R.string.error_not_available))
-        assertThat(newPipe(ageRestricted[1])).isEqualTo(s(R.string.error_age_restricted))
-
-        assertThat(newPipe(membersOnly[0])).isEqualTo(s(R.string.error_paid_content))
-        assertThat(newPipe(musicPremium[0])).isEqualTo(s(R.string.error_yt_music_premium))
-
-        assertThat(newPipe(accountTerminated[0])).isEqualTo(s(R.string.error_channel_terminated))
-        assertThat(newPipe(accountTerminated[2])).isEqualTo(s(R.string.error_not_available))
-        assertThat(newPipe(copyrightRemoval[0])).isEqualTo(s(R.string.error_not_available))
-        assertThat(newPipe(removedByUploader[0])).isEqualTo(s(R.string.error_not_available))
-        assertThat(newPipe(communityGuidelines[0])).isEqualTo(s(R.string.error_not_available))
-        assertThat(newPipe(hateSpeech[0])).isEqualTo(s(R.string.error_geo_restricted))
-        assertThat(newPipe(unavailable[0])).isEqualTo(s(R.string.error_not_available))
-        assertThat(newPipe(liveRecordingGone[0])).isEqualTo(s(R.string.error_not_available))
+    fun `a region block that another client calls unavailable still names the region`() {
+        val outcome =
+            native(
+                vr("UNPLAYABLE", "The uploader has not made this video available in your country", true),
+                web("ERROR", "Video unavailable", false),
+            )
+        assertThat(outcome.message).isEqualTo(s(R.string.error_geo_restricted))
+        assertThat(outcome.block).isEqualTo(PlaybackBlock.REGION)
     }
 }

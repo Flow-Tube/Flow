@@ -10,7 +10,9 @@ import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.R
 import io.github.aedev.flow.player.stream.PlaybackBlock
 import io.github.aedev.flow.player.stream.PlaybackBlockedException
+import io.github.aedev.flow.player.stream.RefusalKind
 import io.github.aedev.flow.player.stream.VideoUnavailableException
+import io.github.aedev.flow.player.stream.YouTubeRefusal
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.TimeoutCancellationException
@@ -22,9 +24,8 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
 /**
- * Every branch of [VideoErrorMapper.from] as it maps today: the string shown, the hint under it,
- * and the three flags the error panel reads. The NewPipe branches are the before-picture for the
- * native refusal messages that replace them.
+ * Every branch of [VideoErrorMapper.from]: the string shown, the hint under it, and the three
+ * flags the error panel reads.
  */
 class VideoErrorMapperBranchesTest {
     private val context =
@@ -56,66 +57,104 @@ class VideoErrorMapperBranchesTest {
         sessionReset: Boolean = false,
     ) = Shown(s(message), s(hint), retryable, actionable, sessionReset)
 
+    private fun refused(
+        kind: RefusalKind,
+        claimant: String? = null,
+    ) = shown(VideoUnavailableException("abc", YouTubeRefusal(kind, claimant)))
+
+    private fun refusedViewer(kind: RefusalKind) = shown(PlaybackBlockedException(PlaybackBlock.LOGIN_REQUIRED, YouTubeRefusal(kind)))
+
+    // The messages the NewPipe exceptions used to carry, now read from YouTube's own refusal.
     @Test
     fun `an age restricted video says so and offers no retry`() {
-        assertThat(shown(NewPipeErrorCases.ageRestricted))
+        assertThat(refusedViewer(RefusalKind.AGE_RESTRICTED))
             .isEqualTo(fixed(R.string.error_age_restricted, R.string.error_age_restricted_hint, retryable = false, actionable = false))
     }
 
     @Test
     fun `a private video says so and offers no retry`() {
-        assertThat(shown(NewPipeErrorCases.privateVideo))
+        assertThat(refusedViewer(RefusalKind.PRIVATE))
             .isEqualTo(fixed(R.string.error_private_video, R.string.error_private_video_hint, retryable = false, actionable = false))
     }
 
     @Test
-    fun `both kinds of country restriction say the region and are the user's to change`() {
-        val expected = fixed(R.string.error_geo_restricted, R.string.error_geo_restricted_hint, retryable = false, actionable = true)
-
-        assertThat(shown(NewPipeErrorCases.geographic)).isEqualTo(expected)
-        assertThat(shown(NewPipeErrorCases.notInCountry)).isEqualTo(expected)
-    }
-
-    @Test
     fun `a paid video says it has to be bought`() {
-        assertThat(shown(NewPipeErrorCases.paid))
+        assertThat(refusedViewer(RefusalKind.PAID))
             .isEqualTo(fixed(R.string.error_paid_content, R.string.error_paid_content_hint, retryable = false, actionable = false))
     }
 
     @Test
-    fun `a Music Premium video names Music Premium`() {
-        assertThat(shown(NewPipeErrorCases.musicPremium))
-            .isEqualTo(fixed(R.string.error_yt_music_premium, R.string.error_yt_music_premium_hint, retryable = false, actionable = false))
+    fun `a members-only video says members-only`() {
+        assertThat(refusedViewer(RefusalKind.MEMBERS_ONLY))
+            .isEqualTo(fixed(R.string.error_members_only, R.string.error_members_only_hint, retryable = false, actionable = false))
     }
 
     @Test
-    fun `a terminated account shows YouTube's reason when it gave one, else the stock hint`() {
-        assertThat(shown(NewPipeErrorCases.terminatedWithReason))
-            .isEqualTo(Shown(s(R.string.error_channel_terminated), "The account was closed", retryable = false, actionable = false))
-        assertThat(shown(NewPipeErrorCases.terminatedWithoutReason))
+    fun `a Music Premium video names Music Premium`() {
+        assertThat(refusedViewer(RefusalKind.MUSIC_PREMIUM))
+            .isEqualTo(fixed(R.string.error_yt_music_premium, R.string.error_yt_music_premium_hint, retryable = false, actionable = false))
+    }
+
+    // NewPipe put YouTube's English reason in the hint; the stock hint is translated.
+    @Test
+    fun `a terminated account says the channel is gone`() {
+        assertThat(refused(RefusalKind.ACCOUNT_TERMINATED))
             .isEqualTo(
                 fixed(R.string.error_channel_terminated, R.string.error_channel_terminated_hint, retryable = false, actionable = false),
             )
     }
 
     @Test
-    fun `a captcha can be retried and solved by the user`() {
-        assertThat(shown(NewPipeErrorCases.reCaptcha))
-            .isEqualTo(fixed(R.string.error_captcha, R.string.error_captcha_hint, retryable = true, actionable = true))
+    fun `a copyright removal names who asked for it when YouTube says`() {
+        assertThat(refused(RefusalKind.COPYRIGHT_REMOVED, claimant = "Nonami Docs"))
+            .isEqualTo(
+                Shown(
+                    s(R.string.error_copyright_removed),
+                    "s:${R.string.error_copyright_removed_hint}:Nonami Docs",
+                    retryable = false,
+                    actionable = false,
+                ),
+            )
+        assertThat(refused(RefusalKind.COPYRIGHT_REMOVED))
+            .isEqualTo(
+                fixed(
+                    R.string.error_copyright_removed,
+                    R.string.error_copyright_removed_hint_unnamed,
+                    retryable = false,
+                    actionable = false,
+                ),
+            )
     }
 
     @Test
-    fun `content that is not available or not supported offers no retry`() {
-        assertThat(shown(NewPipeErrorCases.notAvailable))
+    fun `other removals and plain unavailability offer no retry`() {
+        assertThat(refused(RefusalKind.UPLOADER_REMOVED))
+            .isEqualTo(
+                fixed(R.string.error_removed_by_uploader, R.string.error_removed_by_uploader_hint, retryable = false, actionable = false),
+            )
+        assertThat(refused(RefusalKind.POLICY_REMOVED))
+            .isEqualTo(fixed(R.string.error_policy_removed, R.string.error_policy_removed_hint, retryable = false, actionable = false))
+        assertThat(refused(RefusalKind.RECORDING_UNAVAILABLE))
+            .isEqualTo(
+                fixed(
+                    R.string.error_recording_unavailable,
+                    R.string.error_recording_unavailable_hint,
+                    retryable = false,
+                    actionable = false,
+                ),
+            )
+        assertThat(refused(RefusalKind.UNAVAILABLE))
             .isEqualTo(fixed(R.string.error_not_available, R.string.error_not_available_hint, retryable = false, actionable = false))
-        assertThat(shown(NewPipeErrorCases.notSupported))
-            .isEqualTo(fixed(R.string.error_not_supported, R.string.error_not_supported_hint, retryable = false, actionable = false))
     }
 
     @Test
-    fun `a parsing failure of the extractor is retryable`() {
-        assertThat(shown(NewPipeErrorCases.extraction))
-            .isEqualTo(fixed(R.string.error_extraction_failed, R.string.error_extraction_failed_hint, retryable = true, actionable = false))
+    fun `a refusal reached through a wrapping exception is still named`() {
+        val wrapped =
+            java.io.IOException(
+                "refused",
+                PlaybackBlockedException(PlaybackBlock.LOGIN_REQUIRED, YouTubeRefusal(RefusalKind.PRIVATE)),
+            )
+        assertThat(shown(wrapped).message).isEqualTo(s(R.string.error_private_video))
     }
 
     @Test
@@ -144,9 +183,9 @@ class VideoErrorMapperBranchesTest {
     }
 
     @Test
-    fun `a video gone on every client reads as a network failure because it is an IOException`() {
+    fun `a video gone on every client without a reason says it is not available`() {
         assertThat(shown(VideoUnavailableException("abc")))
-            .isEqualTo(fixed(R.string.error_network, R.string.error_network_hint, retryable = true, actionable = true))
+            .isEqualTo(fixed(R.string.error_not_available, R.string.error_not_available_hint, retryable = false, actionable = false))
     }
 
     @Test
@@ -186,13 +225,28 @@ class VideoErrorMapperBranchesTest {
         )
 
     @Test
-    fun `a player source error always carries an IOException, so even a 403 or a 500 reads as a network failure`() {
-        val network = fixed(R.string.error_network, R.string.error_network_hint, retryable = true, actionable = true)
-
-        assertThat(shown(httpStatus(403))).isEqualTo(network)
-        assertThat(shown(httpStatus(500))).isEqualTo(network)
+    fun `a player HTTP status is named, and a source error is the stream's unless the connection dropped`() {
+        assertThat(shown(httpStatus(403)))
+            .isEqualTo(fixed(R.string.error_http_forbidden, R.string.error_http_forbidden_hint, retryable = true, actionable = false))
+        assertThat(shown(httpStatus(500)))
+            .isEqualTo(
+                Shown(
+                    "s:${R.string.error_http_general}:500",
+                    "s:${R.string.error_http_general_hint}:500",
+                    retryable = true,
+                    actionable = false,
+                ),
+            )
         assertThat(shown(ExoPlaybackException.createForSource(IOException("source"), PlaybackException.ERROR_CODE_IO_UNSPECIFIED)))
-            .isEqualTo(network)
+            .isEqualTo(fixed(R.string.error_stream_failed, R.string.error_stream_failed_hint, retryable = true, actionable = false))
+        assertThat(
+            shown(
+                ExoPlaybackException.createForSource(
+                    IOException("dropped", java.net.SocketException("reset")),
+                    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+                ),
+            ),
+        ).isEqualTo(fixed(R.string.error_network, R.string.error_network_hint, retryable = true, actionable = true))
     }
 
     @Test

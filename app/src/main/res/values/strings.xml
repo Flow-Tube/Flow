@@ -3425,6 +3425,17 @@
     <string name="error_paid_content_hint">This video requires a purchase or rental on YouTube.</string>
     <string name="error_members_or_paid">Members-only or paid video</string>
     <string name="error_members_or_paid_hint">This video needs a channel membership or a purchase on YouTube.</string>
+    <string name="error_members_only">Members-only video</string>
+    <string name="error_members_only_hint">Join this channel on YouTube to watch it.</string>
+    <string name="error_copyright_removed">Removed for copyright</string>
+    <string name="error_copyright_removed_hint">%1$s asked YouTube to remove this video.</string>
+    <string name="error_copyright_removed_hint_unnamed">A copyright owner asked YouTube to remove this video.</string>
+    <string name="error_removed_by_uploader">Removed by the uploader</string>
+    <string name="error_removed_by_uploader_hint">The uploader deleted this video from YouTube.</string>
+    <string name="error_policy_removed">Removed by YouTube</string>
+    <string name="error_policy_removed_hint">YouTube removed this video for breaking its rules.</string>
+    <string name="error_recording_unavailable">Recording not available</string>
+    <string name="error_recording_unavailable_hint">This live stream ended without a recording on YouTube.</string>
     <string name="error_rate_limited">YouTube is limiting this network</string>
     <string name="error_rate_limited_hint">Wait a while and try again, or switch networks.</string>
     <string name="error_yt_music_premium">YouTube Music Premium content</string>
