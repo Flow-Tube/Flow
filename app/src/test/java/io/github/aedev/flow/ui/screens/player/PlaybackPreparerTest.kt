@@ -8,6 +8,7 @@ import io.github.aedev.flow.data.localmedia.LocalSubtitles
 import io.github.aedev.flow.data.video.OfflineSubtitleStore
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.sabr.integration.SabrStreamInfo
+import io.github.aedev.flow.player.stream.model.StreamType
 import io.github.aedev.flow.utils.NetworkState
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -29,8 +30,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.StreamType
 
 /**
  * Pins the sequence [PlaybackPreparer] drives on one player manager for each way playback can be
@@ -452,14 +451,6 @@ class PlaybackPreparerTest {
                 playerManager.setAutoplayCandidates(sourceVideoId = VIDEO_ID, videos = emptyList(), enabled = false)
             }
         }
-
-    private fun streamInfo(durationSeconds: Long): StreamInfo {
-        val info = mockk<StreamInfo>(relaxed = true)
-        every { info.streamType } returns StreamType.VIDEO_STREAM
-        every { info.duration } returns durationSeconds
-        every { info.dashMpdUrl } returns DASH_URL
-        return info
-    }
 
     private companion object {
         const val VIDEO_ID = "vid_preparer"

@@ -79,6 +79,7 @@ import io.github.aedev.flow.player.stream.ResolvedStreamData
 import io.github.aedev.flow.player.stream.ServicePlaybackStreamSelector
 import io.github.aedev.flow.player.stream.StreamProcessor
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.model.StreamType
 import io.github.aedev.flow.player.subtitle.SubtitleAutoPolicy
 import io.github.aedev.flow.player.subtitle.SubtitleDelay
 import io.github.aedev.flow.player.subtitle.SubtitleTracks
@@ -110,7 +111,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.StreamType
 import org.schabi.newpipe.extractor.stream.VideoStream
 
 @UnstableApi

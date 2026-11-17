@@ -1,8 +1,8 @@
 package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.player.stream.model.StreamType
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
-import org.schabi.newpipe.extractor.stream.StreamType
 
 /**
  * The played video as the player response describes it.

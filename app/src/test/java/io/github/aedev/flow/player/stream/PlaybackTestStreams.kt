@@ -4,10 +4,10 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingDa
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.AudioTrack
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.ColorInfo
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.Range
+import io.github.aedev.flow.player.stream.model.StreamType
 import org.schabi.newpipe.extractor.MediaFormat
 import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.StreamType
 import org.schabi.newpipe.extractor.stream.VideoStream
 
 /*

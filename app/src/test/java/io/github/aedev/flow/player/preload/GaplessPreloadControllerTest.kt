@@ -7,6 +7,7 @@ import androidx.media3.exoplayer.source.MediaSource
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.stream.ResolvedStreamData
+import io.github.aedev.flow.player.stream.model.StreamType
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -16,7 +17,6 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.schabi.newpipe.extractor.stream.StreamType
 
 /**
  * Preloading is what makes advancing to the next video gapless, and every one of its guards exists

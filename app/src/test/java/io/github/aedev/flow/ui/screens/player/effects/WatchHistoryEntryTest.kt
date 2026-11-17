@@ -2,11 +2,11 @@ package io.github.aedev.flow.ui.screens.player.effects
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.player.stream.model.StreamType
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import org.junit.Test
 import org.schabi.newpipe.extractor.Image
 import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.StreamType
 
 /**
  * The watch-history write is described in exactly one place so the 3 s save, the 10 s loop and the

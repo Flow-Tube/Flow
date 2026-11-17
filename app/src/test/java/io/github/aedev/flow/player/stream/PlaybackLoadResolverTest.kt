@@ -11,6 +11,7 @@ import io.github.aedev.flow.data.video.DownloadedVideo
 import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.error.PlayerDiagnostics
+import io.github.aedev.flow.player.stream.model.StreamType
 import io.github.aedev.flow.utils.NetworkState
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -37,7 +38,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.StreamType
 
 /**
  * Pins what [PlaybackLoadResolver] hands back for each way a load can end, with the InnerTube

@@ -18,7 +18,6 @@ import io.github.aedev.flow.ui.components.shared.card.rememberKnownOriginalTitle
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.utils.DateContext
-import org.schabi.newpipe.extractor.stream.StreamType
 
 /**
  * Display values derived from the played [Video] and the loaded stream info.
