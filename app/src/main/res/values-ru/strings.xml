@@ -4523,4 +4523,5 @@
     <string name="player_settings_keep_playing_after_swipe_subtitle">Воспроизведение продолжается, когда вы смахиваете Flow из списка недавних приложений</string>
     <string name="player_settings_open_fullscreen">Открывать видео в полноэкранном режиме</string>
     <string name="player_settings_open_fullscreen_subtitle">Видео, которое вы открываете, запускается в полноэкранном режиме</string>
+    <string name="subscriptions_sort_most_watched">Наиболее просматриваемые</string>
 </resources>
