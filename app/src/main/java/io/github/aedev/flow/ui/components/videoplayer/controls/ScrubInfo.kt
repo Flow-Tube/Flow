@@ -1,8 +1,8 @@
 package io.github.aedev.flow.ui.components.videoplayer.controls
 
 import io.github.aedev.flow.data.model.SponsorBlockSegment
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 /** What the seek read-out can say about the moment being scrubbed to, beyond the timestamp. */
 internal data class ScrubInfo(
@@ -21,7 +21,7 @@ internal data class ScrubInfo(
  */
 internal fun scrubInfoAt(
     positionMs: Long,
-    chapters: List<StreamSegment>,
+    chapters: List<VideoChapter>,
     sponsorSegments: List<SponsorBlockSegment>,
     heatmap: VideoHeatmap?,
 ): ScrubInfo {

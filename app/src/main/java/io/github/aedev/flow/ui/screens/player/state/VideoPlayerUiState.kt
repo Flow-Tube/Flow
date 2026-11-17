@@ -6,10 +6,10 @@ import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.player.stream.StoryboardLevel
 import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.StreamSegment
 import org.schabi.newpipe.extractor.stream.VideoStream
 
 data class VideoPlayerUiState(
@@ -34,7 +34,7 @@ data class VideoPlayerUiState(
     val streamClient: String? = null,
     val paidPromotion: PaidPromotionLabel? = null,
     val channelAvatarUrl: String? = null,
-    val chapters: List<StreamSegment> = emptyList(),
+    val chapters: List<VideoChapter> = emptyList(),
     val storyboard: List<StoryboardLevel> = emptyList(),
     /** A livestream that has ended: its date reads "Streamed …" rather than a plain date. */
     val isArchivedLivestream: Boolean = false,

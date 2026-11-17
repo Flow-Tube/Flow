@@ -88,7 +88,7 @@ class PlayerPlaybackReducersTest {
     @Test
     fun `the InnerTube VOD path writes its own field set and leaves the merged-only fields alone`() {
         val videoStream = videoStream("720p")
-        val chapters = emptyList<org.schabi.newpipe.extractor.stream.StreamSegment>()
+        val chapters = emptyList<io.github.aedev.flow.innertube.models.response.VideoChapter>()
         val before =
             VideoPlayerUiState(
                 isLoading = true,

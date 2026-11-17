@@ -38,8 +38,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.model.SponsorBlockSegment
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val EdgeAlignedHeight = 14.dp
 private val ExpandedRowHeight = 32.dp
@@ -79,7 +79,7 @@ fun MediaSeekBar(
     enabled: Boolean = true,
     onValueChangeFinished: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    chapters: List<StreamSegment> = emptyList(),
+    chapters: List<VideoChapter> = emptyList(),
     sponsorSegments: List<SponsorBlockSegment> = emptyList(),
     /**
      * Per-category colour overrides chosen by the user in SponsorBlock settings. Categories absent

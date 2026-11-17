@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.player.state
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.stream.StoryboardLevel
@@ -10,7 +11,6 @@ import io.mockk.mockk
 import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Test
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 /**
  * Pins the decisions a load makes before it does anything: whether it runs at all, what the screen
@@ -142,7 +142,7 @@ class PlayerLoadDecisionsTest {
     fun `the next video starts without the chapters, curve or filmstrip of the one before`() {
         val before =
             VideoPlayerUiState(
-                chapters = listOf(StreamSegment("Intro", 0)),
+                chapters = listOf(VideoChapter("Intro", 0)),
                 heatmap = VideoHeatmap(markers = listOf(mockk()), highlights = emptyList()),
                 storyboard = listOf(mockk<StoryboardLevel>()),
             )

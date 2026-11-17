@@ -11,7 +11,6 @@ import io.github.aedev.flow.ui.components.videoplayer.controls.scrubInfoAt
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.ui.screens.player.state.applyChapters
 import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.StreamSegment
 import org.schabi.newpipe.extractor.stream.VideoStream
 
 /*
@@ -147,7 +146,7 @@ internal data class ChapterSnapshot(
 )
 
 internal fun VideoPlayerUiState.chapterSnapshots(): List<ChapterSnapshot> =
-    chapters.map { ChapterSnapshot(it.title, it.startTimeSeconds, it.previewUrl) }
+    chapters.map { ChapterSnapshot(it.title, it.startTimeSeconds, it.thumbnailUrl) }
 
 /** Chapters in the player state's shape, built the way the watch response feeds them in. */
 internal fun stateWithChapters(chapters: List<VideoChapter>): VideoPlayerUiState = VideoPlayerUiState().applyChapters(chapters)

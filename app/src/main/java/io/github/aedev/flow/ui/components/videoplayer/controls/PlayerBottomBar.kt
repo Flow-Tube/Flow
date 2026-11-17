@@ -38,11 +38,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import io.github.aedev.flow.R
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.ui.theme.PlayerScrimAffordance
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
 import io.github.aedev.flow.ui.theme.PlayerScrimContentSecondary
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 /** A tappable text pill on video: the playback speed and the current quality. */
 @Composable
@@ -104,7 +104,7 @@ internal fun PlayerBottomBar(
     showRemainingTime: Boolean,
     showCommentsButton: Boolean,
     isCommentsPanelOpen: Boolean,
-    currentChapter: StreamSegment?,
+    currentChapter: VideoChapter?,
     compactQualityLabel: String?,
     speedIndicatorLabel: String?,
     seekbarContent: PlayerSeekbarContent,
