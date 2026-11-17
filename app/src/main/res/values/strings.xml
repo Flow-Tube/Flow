@@ -2250,7 +2250,7 @@
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Source code &amp; Issues</string>
     <string name="newpipe_extractor_title">NewPipe Extractor</string>
-    <string name="newpipe_extractor_subtitle">Core extraction library</string>
+    <string name="newpipe_extractor_credit">Where Flow\'s YouTube extraction began</string>
     <string name="about_license">License</string>
     <string name="about_notices">Open source notices</string>
     <string name="about_notices_summary">Word lists and code from other projects</string>
