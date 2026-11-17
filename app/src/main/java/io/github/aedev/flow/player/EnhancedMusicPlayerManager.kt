@@ -41,7 +41,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.schabi.newpipe.extractor.stream.AudioStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -703,17 +702,6 @@ object EnhancedMusicPlayerManager {
 
     fun showPlaybackWarning(message: String) {
         _playbackWarnings.tryEmit(message)
-    }
-
-    fun playTrack(
-        track: MusicTrack,
-        audioStream: AudioStream,
-        durationSeconds: Long,
-        queue: List<MusicTrack> = emptyList(),
-        startIndex: Int = -1,
-        sourceName: String? = null,
-    ) {
-        playTrack(track, audioStream.content, queue, startIndex, sourceName = sourceName)
     }
 
     fun playTrack(

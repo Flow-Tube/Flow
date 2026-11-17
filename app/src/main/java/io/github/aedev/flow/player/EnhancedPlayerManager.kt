@@ -17,7 +17,6 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
-import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
@@ -29,14 +28,12 @@ import androidx.media3.session.MediaSession
 import dagger.hilt.android.EntryPointAccessors
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SponsorBlockAction
-import io.github.aedev.flow.data.local.VideoQuality
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.YouTube
-import io.github.aedev.flow.innertube.models.YouTubeClient
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
 import io.github.aedev.flow.player.analytics.RenderedFirstFrameListener
@@ -65,7 +62,6 @@ import io.github.aedev.flow.player.recovery.ClearedMediaRecoveryState
 import io.github.aedev.flow.player.recovery.StreamDenialReloader
 import io.github.aedev.flow.player.resolver.AdaptiveDashManifest
 import io.github.aedev.flow.player.sabr.integration.SabrStreamInfo
-import io.github.aedev.flow.player.sabr.integration.SabrUrlResolver
 import io.github.aedev.flow.player.service.BackgroundServiceManager
 import io.github.aedev.flow.player.sponsorblock.SponsorBlockHandler
 import io.github.aedev.flow.player.sponsorblock.SponsorBlockSkip
@@ -91,7 +87,6 @@ import io.github.aedev.flow.player.surface.VideoSurfacePolicy
 import io.github.aedev.flow.player.tracker.PlaybackTracker
 import io.github.aedev.flow.utils.FlowCrashHandler
 import io.github.aedev.flow.utils.NetworkState
-import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -114,10 +109,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
 import org.schabi.newpipe.extractor.stream.VideoStream
 

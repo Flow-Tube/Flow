@@ -10,9 +10,7 @@ import io.github.aedev.flow.player.stream.ResolvedPlayback
 import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.player.stream.VideoQualityOptions
 import io.github.aedev.flow.ui.screens.player.SecondaryMetadata
-import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamSegment
 import org.schabi.newpipe.extractor.stream.VideoStream
 
@@ -224,30 +222,6 @@ internal fun VideoPlayerUiState.applyRelatedVideos(
     } else {
         copy(relatedVideos = videos)
     }
-
-/**
- * The video the session identity and the media notification are armed from once NewPipe's metadata
- * lands, or null when it carried no usable title and the screen keeps what it had.
- */
-internal fun VideoPlayerUiState.liveWatchFallbackVideo(
-    videoId: String,
-    streamInfo: StreamInfo,
-): Video =
-    Video(
-        id = videoId,
-        title = streamInfo.name ?: cachedVideo?.title ?: "Live",
-        channelName = streamInfo.uploaderName ?: cachedVideo?.channelName ?: "",
-        channelId = streamInfo.uploaderUrl?.substringAfterLast("/") ?: cachedVideo?.channelId ?: "",
-        thumbnailUrl =
-            streamInfo.thumbnails.maxByOrNull { it.height }?.url
-                ?: cachedVideo?.thumbnailUrl
-                ?: ThumbnailUrlResolver.normalizeVideoThumbnail(videoId, null),
-        duration = 0,
-        viewCount = streamInfo.viewCount,
-        uploadDate = "",
-        description = streamInfo.description?.content ?: cachedVideo?.description ?: "",
-        isLive = true,
-    )
 
 /**
  * The richest [Video] the screen holds for [videoId], or null when it holds none.

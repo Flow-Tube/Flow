@@ -13,9 +13,7 @@ import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Test
 import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.VideoStream
 
 /**
@@ -273,26 +271,6 @@ class PlayerPlaybackReducersTest {
         assertThat(next.cachedVideo).isEqualTo(refreshed)
         assertThat(next.channelAvatarUrl).isEqualTo("old.jpg")
         assertThat(next.channelSubscriberCount).isEqualTo(7L)
-    }
-
-    @Test
-    fun `the live watch fallback video falls back to the cached metadata field by field`() {
-        val streamInfo = mockk<StreamInfo>(relaxed = true)
-        every { streamInfo.name } returns null
-        every { streamInfo.uploaderName } returns null
-        every { streamInfo.uploaderUrl } returns null
-        every { streamInfo.thumbnails } returns emptyList()
-        every { streamInfo.description } returns null
-        every { streamInfo.viewCount } returns 5L
-        val cached = video("vid_a").copy(title = "Cached title", channelName = "Cached channel", thumbnailUrl = "cached.jpg")
-
-        val fallback = VideoPlayerUiState(cachedVideo = cached).liveWatchFallbackVideo("vid_a", streamInfo)
-
-        assertThat(fallback.title).isEqualTo("Cached title")
-        assertThat(fallback.channelName).isEqualTo("Cached channel")
-        assertThat(fallback.thumbnailUrl).isEqualTo("cached.jpg")
-        assertThat(fallback.duration).isEqualTo(0)
-        assertThat(fallback.isLive).isTrue()
     }
 
     @Test

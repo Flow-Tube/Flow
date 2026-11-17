@@ -44,7 +44,6 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.schabi.newpipe.extractor.stream.*
 import javax.inject.Inject
 
 private const val QUEUE_SAVE_DEBOUNCE_MS = 1_000L
