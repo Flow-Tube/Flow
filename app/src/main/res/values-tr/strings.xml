@@ -4003,7 +4003,7 @@
     <string name="diagnostics_engine_queries_none">Henüz yok</string>
     <string name="taste_starter_searches">Başlangıç aramaları</string>
     <string name="taste_starter_searches_detail">%1$s. Flow ne izlediğini öğrenene kadar kullanılır.</string>
-    <string name="recap_title">Flow Recap</string>
+    <string name="recap_title">Flow Özeti</string>
     <string name="recap_summary">Ay be ay izlediklerin ve dinlediklerin</string>
     <string name="recap_keywords">wrapped, istatistikler, özet, yıl özeti, izleme süresi, dinleme süresi, en çok izlenenler, en iyi sanatçılar, recap</string>
     <string name="recap_period_month">Ay</string>
