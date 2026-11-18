@@ -63,3 +63,13 @@ internal class TvPlayerInput(
         return true
     }
 }
+
+/**
+ * The mode the remote's keys follow. The autoplay countdown and a load error hold their own buttons, so
+ * like a panel they leave the D-pad to Compose focus; otherwise OK would toggle playback behind them (#2189).
+ */
+internal fun tvPlayerInputMode(
+    overlayMode: TvOverlayMode,
+    countdownActive: Boolean,
+    errorShown: Boolean,
+): TvOverlayMode = if (countdownActive || errorShown) TvOverlayMode.PANEL else overlayMode

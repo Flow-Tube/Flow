@@ -9,6 +9,7 @@ package io.github.aedev.flow.ui.components.shared
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,7 +36,7 @@ private val StateIconContainerSize = 96.dp
 private val StateIconSize = 44.dp
 
 /**
- * Failure state for any surface, with a single retry affordance.
+ * Failure state for any surface, with a retry affordance and an optional [secondaryAction] beside it.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -43,6 +44,7 @@ fun FlowErrorState(
     error: String,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    secondaryAction: (@Composable () -> Unit)? = null,
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -60,11 +62,24 @@ fun FlowErrorState(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Button(
-                onClick = onRetry,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(stringResource(R.string.action_retry))
+            val retry: @Composable () -> Unit = {
+                Button(
+                    onClick = onRetry,
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.action_retry))
+                }
+            }
+            if (secondaryAction == null) {
+                retry()
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    retry()
+                    secondaryAction()
+                }
             }
         }
     }

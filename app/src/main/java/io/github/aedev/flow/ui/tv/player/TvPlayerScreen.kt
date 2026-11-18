@@ -92,6 +92,7 @@ fun TvPlayerScreen(
     val playPauseFocusRequester = remember { FocusRequester() }
     val upNextFocusRequester = remember { FocusRequester() }
     val countdownFocusRequester = remember { FocusRequester() }
+    val errorFocusRequester = remember { FocusRequester() }
     var seekBarFocused by remember { mutableStateOf(false) }
     var upNextShown by remember { mutableStateOf(false) }
     var pendingFocusTarget by remember { mutableStateOf(TvPlayerFocusTarget.PLAY_PAUSE) }
@@ -225,7 +226,11 @@ fun TvPlayerScreen(
         remember {
             TvPlayerInput(
                 overlayMode = {
-                    if (manager.autoplayCountdown.value.isActive) TvOverlayMode.PANEL else overlayController.state.value.mode
+                    tvPlayerInputMode(
+                        overlayMode = overlayController.state.value.mode,
+                        countdownActive = manager.autoplayCountdown.value.isActive,
+                        errorShown = viewModel.uiState.value.error != null,
+                    )
                 },
                 seekBarFocused = { seekBarFocused },
                 isScrubbing = { scrubController.current.isScrubbing },
@@ -242,7 +247,7 @@ fun TvPlayerScreen(
     TvOverlayAutoHideEffect(overlayController, overlayState, playerState.isPlaying, scrubUiState.isScrubbing)
     TvOverlayFocusEffect(
         mode = overlayState.mode,
-        rootFocusRequester = rootFocusRequester,
+        hiddenTarget = { if (viewModel.uiState.value.error != null) errorFocusRequester else rootFocusRequester },
         transportTarget = {
             val target = pendingFocusTarget
             pendingFocusTarget = TvPlayerFocusTarget.PLAY_PAUSE
@@ -263,6 +268,16 @@ fun TvPlayerScreen(
     }
     LaunchedEffect(autoplayCountdown.isActive) {
         if (autoplayCountdown.isActive) countdownFocusRequester.requestFocus()
+    }
+    val errorShown = uiState.error != null
+    LaunchedEffect(errorShown) {
+        if (errorShown) {
+            if (overlayController.state.value.mode == TvOverlayMode.PANEL) closeSheet()
+            overlayController.hide()
+            errorFocusRequester.requestFocus()
+        } else {
+            rootFocusRequester.requestFocus()
+        }
     }
 
     BackHandler {
@@ -392,6 +407,8 @@ fun TvPlayerScreen(
                     (uiState.isLoading || playerState.isBuffering),
             error = uiState.error?.let { error -> uiState.errorHint?.let { hint -> "$error\n$hint" } ?: error },
             onRetry = viewModel::retryLoadVideo,
+            onResetSession = if (uiState.errorOffersSessionReset) ({ viewModel.resetSessionAndRetry() }) else null,
+            errorFocusRequester = errorFocusRequester,
             modifier = Modifier.align(Alignment.Center),
         )
     }
