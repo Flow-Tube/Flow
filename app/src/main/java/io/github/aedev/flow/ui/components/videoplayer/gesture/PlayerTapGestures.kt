@@ -3,7 +3,6 @@ package io.github.aedev.flow.ui.components.videoplayer.gesture
 import android.os.SystemClock
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -11,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
@@ -190,14 +190,16 @@ internal fun Modifier.playerTapGestures(
                 }
             },
             onLongPress = { offset ->
-                if (currentLongPressPlaybackSpeed <= 0f) return@detectPlayerTaps
+                if (currentLongPressPlaybackSpeed <= 0f) return@detectPlayerTaps false
 
                 val bottomExclusion = if (currentIsFullscreen) LongPressBottomExclusionFullscreen else LongPressBottomExclusion
-                if (offset.y > size.height - bottomExclusion.toPx()) return@detectPlayerTaps
+                if (offset.y > size.height - bottomExclusion.toPx()) return@detectPlayerTaps false
 
                 val manager = EnhancedPlayerManager.getInstance()
                 val player = manager.getPlayer()
-                if (player != null && !currentIsSpeedBoostActive) {
+                if (player == null || currentIsSpeedBoostActive) {
+                    false
+                } else {
                     val restoreSpeed =
                         manager.playerState.value.playbackSpeed
                             .takeIf { it > 0f }
@@ -212,6 +214,7 @@ internal fun Modifier.playerTapGestures(
                         ),
                     )
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    true
                 }
             },
             onLongPressReleased = {
@@ -245,6 +248,8 @@ internal fun Modifier.playerTapGestures(
  * [onTapWindowChange] reports the double-tap window, so the controls the first tap revealed can
  * leave the second tap to this detector (#1308). It is closed in a finally: the modifier is removed
  * mid-gesture on minimise, PiP and touch lock, and a window left open would lock the controls.
+ * [onLongPress] reports whether it boosted the speed; only then is the press held, and
+ * [onLongPressReleased] runs in a finally for the same reason, so a hold never leaves the speed boosted.
  */
 private suspend fun PointerInputScope.detectPlayerTaps(
     isEdge: (Offset) -> Boolean,
@@ -253,7 +258,7 @@ private suspend fun PointerInputScope.detectPlayerTaps(
     onTapUp: (Offset) -> Unit,
     onSingleTapConfirmed: () -> Unit,
     onDoubleTap: (Offset) -> Unit,
-    onLongPress: (Offset) -> Unit,
+    onLongPress: (Offset) -> Boolean,
     onLongPressReleased: () -> Unit,
 ) {
     awaitEachGesture {
@@ -267,9 +272,13 @@ private suspend fun PointerInputScope.detectPlayerTaps(
                 try {
                     withTimeout(viewConfiguration.longPressTimeoutMillis) { awaitStillUp(down) }
                 } catch (_: PointerEventTimeoutCancellationException) {
-                    onLongPress(down.position)
-                    waitForUpOrCancellation()
-                    onLongPressReleased()
+                    if (onLongPress(down.position)) {
+                        try {
+                            holdUntilAllUp()
+                        } finally {
+                            onLongPressReleased()
+                        }
+                    }
                     return@awaitEachGesture
                 }
             } ?: return@awaitEachGesture
@@ -298,6 +307,18 @@ private suspend fun PointerInputScope.detectPlayerTaps(
 
         onDoubleTap(secondUp.position)
     }
+}
+
+/**
+ * Holds a long press until every finger lifts. Each move is consumed on the Initial pass, before the
+ * drag, zoom and player-sheet detectors see it, so a slide during the hold neither ends it nor seeks,
+ * changes brightness or volume, or drags the sheet (#2185).
+ */
+private suspend fun AwaitPointerEventScope.holdUntilAllUp() {
+    do {
+        val event = awaitPointerEvent(PointerEventPass.Initial)
+        event.changes.forEach { it.consume() }
+    } while (event.changes.any { it.pressed })
 }
 
 /** The up of [down], or null once it moves past touch slop, leaves the bounds or is consumed. */
