@@ -3442,7 +3442,7 @@
     <string name="error_rate_limited_hint">Espera un poco y vuelve a intentarlo, o cambia de red.</string>
     <string name="error_bot_wall">YouTube está bloqueando esta red</string>
     <string name="error_bot_wall_hint">Prueba con otra red o desactiva la VPN.</string>
-    <string name="error_bot_wall_network_hint">Prueba con otra red, como los datos móviles.</string>
+    <string name="error_bot_wall_network_hint">Prueba con datos móviles o espera un poco. Normalmente se soluciona solo.</string>
     <string name="error_bot_wall_session">YouTube quiere confirmar que no eres un bot</string>
     <string name="error_bot_wall_session_hint">Restablece la sesión de YouTube y vuelve a intentarlo.</string>
     <string name="error_login_required">Es necesario iniciar sesión</string>
@@ -5439,4 +5439,5 @@
     <string name="error_policy_removed_hint">YouTube eliminó este vídeo por incumplir sus normas.</string>
     <string name="error_recording_unavailable">Grabación no disponible</string>
     <string name="error_recording_unavailable_hint">Este directo finalizó sin dejar grabación en YouTube.</string>
+    <string name="error_bot_wall_mobile_data_hint">Prueba con Wi-Fi o espera un poco. Normalmente se soluciona solo.</string>
 </resources>
