@@ -39,13 +39,14 @@ internal fun TvOverlayAutoHideEffect(
 }
 
 /**
- * Puts focus where the overlay mode calls for: the player itself while the controls are hidden, so the
- * D-pad reaches playback, and [transportTarget] as they appear. A panel moves focus on its own.
+ * Puts focus where the overlay mode calls for: [hiddenTarget] while the controls are hidden (the player
+ * itself, so the D-pad reaches playback, or a load error's buttons), and [transportTarget] as they
+ * appear. A panel moves focus on its own.
  */
 @Composable
 internal fun TvOverlayFocusEffect(
     mode: TvOverlayMode,
-    rootFocusRequester: FocusRequester,
+    hiddenTarget: () -> FocusRequester,
     transportTarget: () -> FocusRequester,
     onHidden: () -> Unit,
 ) {
@@ -53,7 +54,7 @@ internal fun TvOverlayFocusEffect(
         when (mode) {
             TvOverlayMode.HIDDEN -> {
                 onHidden()
-                rootFocusRequester.requestFocus()
+                hiddenTarget().requestFocus()
             }
 
             TvOverlayMode.TRANSPORT -> {
