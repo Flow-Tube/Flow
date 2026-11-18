@@ -25,6 +25,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
+import io.github.aedev.flow.ui.components.shared.dpadReadThrough
 import io.github.aedev.flow.ui.screens.sync.QrCodeImage
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncCard
@@ -50,7 +52,9 @@ internal fun LinkedRecoveryWords(
             title = stringResource(R.string.linked_words_title),
             body = stringResource(R.string.linked_words_body),
         )
-        SyncCard {
+        // On a remote, the words are a focus stop that Down reads through; nothing else in them takes
+        // focus, so without it the remote can't scroll back up to them from the button below.
+        SyncCard(modifier = Modifier.dpadReadThrough()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 list.withIndex().chunked(2).forEach { pair ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -61,13 +65,20 @@ internal fun LinkedRecoveryWords(
                 }
             }
         }
+        val saved: @Composable () -> Unit = {
+            SyncActionRow(confirmLabel = stringResource(R.string.linked_words_saved), onConfirm = { checking = true })
+        }
+        // A remote's next stop after the button is the section below; with the button above the code,
+        // reaching it scrolls the whole code into view instead of pushing its top under the title.
+        val dpad = LocalDpadNavigation.current
+        if (dpad) saved()
         SyncCard(
             modifier = Modifier.dpadQrPlate(),
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ) {
             QrCodeImage(words, Modifier.fillMaxWidth().aspectRatio(1f).padding(16.dp))
         }
-        SyncActionRow(confirmLabel = stringResource(R.string.linked_words_saved), onConfirm = { checking = true })
+        if (!dpad) saved()
         return
     }
 
