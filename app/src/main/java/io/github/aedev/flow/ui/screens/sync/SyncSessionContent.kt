@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -56,8 +55,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** The steps that run once a session is live: QR connection, verification, merge consent, outcome. */
-
-private val QrMaxWidthWithRemote = 240.dp
 
 @Composable
 internal fun SyncQrContent(
@@ -116,7 +113,7 @@ internal fun SyncQrContent(
     // The code stays dark-on-light so any camera can read it, and sits on a tonal plate so it reads
     // as a deliberate element in both themes. Rounding only ever clips the quiet zone, never the
     // finder patterns.
-    SyncCard(modifier = if (dpad) Modifier.widthIn(max = QrMaxWidthWithRemote) else Modifier) {
+    SyncCard(modifier = Modifier.dpadQrPlate(bringIntoView = true)) {
         QrCodeImage(
             text = s.qrText,
             modifier =

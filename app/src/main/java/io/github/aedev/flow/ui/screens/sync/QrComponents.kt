@@ -9,12 +9,17 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -28,8 +33,29 @@ import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeWriter
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+
+private val QrMaxWidthWithRemote = 240.dp
+
+/**
+ * Caps a QR code's plate at phone-camera size where a remote drives the page. A full-width square is
+ * taller than a TV screen, and TV scrolls a focused button a third of the way down, which pushed the
+ * top of the code under the title bar (#2192). Full width elsewhere.
+ *
+ * With [bringIntoView], the plate also scrolls fully into view when it appears: nothing below the
+ * code takes focus, so a remote has no other way to scroll to its bottom on a short TV screen.
+ */
+@Composable
+internal fun Modifier.dpadQrPlate(bringIntoView: Boolean = false): Modifier {
+    if (!LocalDpadNavigation.current) return this
+    val capped = widthIn(max = QrMaxWidthWithRemote)
+    if (!bringIntoView) return capped
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(requester) { requester.bringIntoView() }
+    return capped.bringIntoViewRequester(requester)
+}
 
 /** Renders [text] as a QR code (ZXing, FOSS). */
 @Composable
