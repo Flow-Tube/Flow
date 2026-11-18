@@ -9,6 +9,7 @@ import io.github.aedev.flow.player.stream.PlaybackBlockedException
 import io.github.aedev.flow.player.stream.RefusalKind
 import io.github.aedev.flow.player.stream.VideoUnavailableException
 import io.github.aedev.flow.player.stream.YouTubeRefusal
+import io.github.aedev.flow.utils.NetworkState
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
@@ -77,7 +78,7 @@ object VideoErrorMapper {
                     message = context.getString(R.string.error_bot_wall),
                     hint =
                         context.getString(
-                            if (context.appTrafficUsesVpn()) R.string.error_bot_wall_hint else R.string.error_bot_wall_network_hint,
+                            networkWallHint(onVpn = context.appTrafficUsesVpn(), onWifi = NetworkState.isOnWifi(context)),
                         ),
                     isRetryable = true,
                     isUserActionable = true,
@@ -251,6 +252,17 @@ object VideoErrorMapper {
     // A source error over a dropped connection is the network's fault, not the stream's.
     private fun hasConnectivityCause(t: Throwable): Boolean =
         causes(t).any { it is java.net.UnknownHostException || it is java.net.SocketException || it is java.net.SocketTimeoutException }
+
+    /** Where to send a walled user: off the VPN, or to the other kind of network than the one in use. */
+    internal fun networkWallHint(
+        onVpn: Boolean,
+        onWifi: Boolean,
+    ): Int =
+        when {
+            onVpn -> R.string.error_bot_wall_hint
+            onWifi -> R.string.error_bot_wall_network_hint
+            else -> R.string.error_bot_wall_mobile_data_hint
+        }
 
     private fun unavailableCause(t: Throwable): VideoUnavailableException? =
         causes(t).filterIsInstance<VideoUnavailableException>().firstOrNull()

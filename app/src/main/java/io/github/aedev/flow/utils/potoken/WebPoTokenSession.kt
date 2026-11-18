@@ -311,7 +311,11 @@ object WebPoTokenSession {
         PlayerDiagnostics.logWarning(TAG, message)
     }
 
-    /** Unconditional reset, for the user-facing "Reset YouTube session" action. */
+    /**
+     * Unconditional reset, for the user-facing "Reset YouTube session" action. The next visitor is
+     * already fresh, so a wall on it counts as a fresh visitor walled: the user is told the network is
+     * blocked instead of being asked to reset again (#2188).
+     */
     suspend fun resetIdentity() {
         rotationMutex.withLock {
             consecutiveLowTrustMints = 0
@@ -319,6 +323,7 @@ object WebPoTokenSession {
             generator.resetSession()
             YouTube.visitorData = null
             identityGeneration++
+            playerWallRerollGeneration = identityGeneration
         }
     }
 

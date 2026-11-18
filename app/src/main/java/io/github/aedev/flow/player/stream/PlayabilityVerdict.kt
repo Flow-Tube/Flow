@@ -114,7 +114,8 @@ internal object PlayabilityVerdict {
         hasVideoDetails: Boolean,
     ): String {
         val reason = status.reason
-        if (isBotWall(reason)) return "BOT_WALL, reason=$reason"
+        val walled = isBotWall(reason) || isBotWall(status.subreason) || status.messages.orEmpty().any(::isBotWall)
+        if (walled) return "BOT_WALL, reason=$reason"
         return buildString {
             append("status=${status.status}, reason=$reason")
             status.subreason?.let { append(", subreason=$it") }
@@ -174,6 +175,23 @@ internal object PlayabilityVerdict {
         return answered.isNotEmpty() && answered.all { "BOT_WALL" in it }
     }
 
+    /**
+     * A bot wall explains the failure: every client that answered was walled, or some were and the rest
+     * only asked for a sign-in without naming why. Flow has no sign-in, so the wall is the likelier cause
+     * there, and calling it an account requirement hid the session reset and the video itself (#2188).
+     * A named refusal (age, privacy, removal, country, membership) is never a wall.
+     */
+    fun wallExplains(failureReasons: List<String>): Boolean {
+        if (everyClientWalled(failureReasons)) return true
+        val anyWalled = failureReasons.any { "BOT_WALL" in it }
+        return anyWalled &&
+            failureReasons.any(::asksForSignIn) &&
+            failureReasons.none { viewerBlock(it) != null } &&
+            refusalOf(failureReasons) == null
+    }
+
+    private fun asksForSignIn(reason: String): Boolean = StatusPattern.find(reason)?.groupValues?.get(1) == "LOGIN_REQUIRED"
+
     /** Extraction runs in en-US, so the reason is English; "confirm your age" is not a bot wall. */
     fun isBotWall(reason: String?): Boolean = reason != null && BotWallReason.containsMatchIn(reason)
 
@@ -183,15 +201,13 @@ internal object PlayabilityVerdict {
         freshVisitorWalled: Boolean = false,
     ): PlaybackBlock? =
         when {
-            everyClientWalled(failureReasons) -> {
+            wallExplains(failureReasons) -> {
                 if (freshVisitorWalled) PlaybackBlock.NETWORK_WALL else PlaybackBlock.BOT_WALL
             }
 
             else -> {
                 failureReasons.firstNotNullOfOrNull(::viewerBlock)
-                    ?: PlaybackBlock.LOGIN_REQUIRED.takeIf {
-                        failureReasons.any { StatusPattern.find(it)?.groupValues?.get(1) == "LOGIN_REQUIRED" }
-                    }
+                    ?: PlaybackBlock.LOGIN_REQUIRED.takeIf { failureReasons.any(::asksForSignIn) }
             }
         }
 

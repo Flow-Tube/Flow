@@ -13,6 +13,7 @@ class VideoErrorMapperTest {
     private val context =
         mockk<Context> {
             every { getString(any()) } answers { "string:${firstArg<Int>()}" }
+            every { getSystemService(any<String>()) } returns null
         }
 
     @Test
@@ -30,7 +31,16 @@ class VideoErrorMapperTest {
         val error = VideoErrorMapper.from(context, PlaybackBlockedException(PlaybackBlock.NETWORK_WALL))
 
         assertThat(error.message).isEqualTo("string:${R.string.error_bot_wall}")
-        assertThat(error.hint).isEqualTo("string:${R.string.error_bot_wall_network_hint}")
+        assertThat(error.hint).isEqualTo("string:${R.string.error_bot_wall_mobile_data_hint}")
+        assertThat(error.offersSessionReset).isTrue()
+    }
+
+    @Test
+    fun `a walled network's hint points at the other kind of network, or off the VPN (#2188)`() {
+        assertThat(VideoErrorMapper.networkWallHint(onVpn = true, onWifi = true)).isEqualTo(R.string.error_bot_wall_hint)
+        assertThat(VideoErrorMapper.networkWallHint(onVpn = true, onWifi = false)).isEqualTo(R.string.error_bot_wall_hint)
+        assertThat(VideoErrorMapper.networkWallHint(onVpn = false, onWifi = true)).isEqualTo(R.string.error_bot_wall_network_hint)
+        assertThat(VideoErrorMapper.networkWallHint(onVpn = false, onWifi = false)).isEqualTo(R.string.error_bot_wall_mobile_data_hint)
     }
 
     @Test
