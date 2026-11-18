@@ -55,10 +55,10 @@
     <string name="remove">Eliminar</string>
     <string name="related_content">Contenido relacionado</string>
     <string name="no_related_content">No se encontró contenido relacionado</string>
-    <string name="share_message_template">Escucha esta canción: %1$s by %2$s\nhttps://music.youtube.com/watch?v=%3$s</string>
+    <string name="share_message_template">Escucha esta canción: %1$s de %2$s\nhttps://music.youtube.com/watch?v=%3$s</string>
     <string name="filter_discover">Descubrir</string>
     <string name="filter_popular">Popular</string>
-    <string name="filter_deep_cuts">Pistas ocultas</string>
+    <string name="filter_deep_cuts">Joyas ocultas</string>
     <string name="track_details">Detalles de la pista</string>
     <string name="title_label">Titulo</string>
     <string name="artist_label">Artista</string>
@@ -74,7 +74,7 @@
     <string name="check_out_video_template">Mira este video: %1$s\nhttps://youtube.com/watch?v=%2$s</string>
     <string name="related_videos">Videos relacionados</string>
     <string name="quality_auto">Automático</string>
-    <string name="video_marked_not_interested">Vídeo marcado como no interesante</string>
+    <string name="video_marked_not_interested">Vídeo marcado como «No me interesa»</string>
     <string name="play_mode_suggestion_title">Sugerencia del modo reproducir</string>
     <string name="play_mode_suggestion_body">Este video dura menos de 2 minutos. ¿Quieres cambiar a un reproductor especializado?</string>
     <string name="tab_music">Música</string>
@@ -111,9 +111,9 @@
     <string name="autoplay">Reproducción automática</string>
     <string name="move_up">Subir</string>
     <string name="move_down">Bajar</string>
-    <string name="lyrics_not_available">Letra no disponible</string>
+    <string name="lyrics_not_available">Letras no disponibles</string>
     <string name="video_id_label">ID de Video</string>
-    <string name="unsubscribe">Darse de baja</string>
+    <string name="unsubscribe">Desuscribirse</string>
     <string name="music_player">Reproductor de música</string>
     <plurals name="channels_count">
         <item quantity="one">%d canal</item>
@@ -212,7 +212,7 @@
     <string name="resume">Reanudar</string>
     <string name="kbps">kbps</string>
     <string name="codec_label">Códec</string>
-    <string name="quality_auto_template">Automático (%1$dsp)</string>
+    <string name="quality_auto_template">Automático (%1$dp)</string>
     <string name="shorts_player">Reproductor de Shorts</string>
     <string name="video_metadata_template">%1$s • %2$s • %3$s</string>
     <string name="video_metadata_short_template">%1$s • %2$s</string>
