@@ -5211,4 +5211,9 @@
     <string name="settings_keywords_translation">tərcümə et, tərcümə, tərcüməçi, LibreTranslate, Lingva, server, şərhlər, təsvir</string>
     <string name="dearrow_thumbnails_only">Yalnız DeArrow miniatürləri</string>
     <string name="dearrow_thumbnails_only_subtitle">Yükləyicinin miniatürünü heç vaxt göstərmə</string>
+    <string name="error_members_only">Yalnız üzvlər videosu</string>
+    <string name="newpipe_extractor_credit">Flow-un YouTube çıxarışı harada başladı</string>
+    <string name="error_members_only_hint">İzləmək üçün YouTube-da bu kanala qoşul.</string>
+    <string name="error_copyright_removed">Müəllif hüquqları üçün silindi</string>
+    <string name="error_copyright_removed_hint">%1$s YouTube-un bu videonu silməsini istədi.</string>
 </resources>
