@@ -5427,4 +5427,16 @@
     <string name="dearrow_thumbnails_only">Solo miniaturas de DeArrow</string>
     <string name="dearrow_thumbnails_only_subtitle">Nunca mostrar la miniatura original del creador</string>
     <string name="profiles_action_settings_description">Perfil: %1$s. Cambiar de perfil o abrir ajustes</string>
+    <string name="newpipe_extractor_credit">Donde empezó la extracción de YouTube de Flow</string>
+    <string name="error_members_only">Vídeo exclusivo para miembros</string>
+    <string name="error_members_only_hint">Únete a este canal en YouTube para verlo.</string>
+    <string name="error_copyright_removed">Eliminado por derechos de autor</string>
+    <string name="error_copyright_removed_hint">%1$s pidió a YouTube que eliminara este vídeo.</string>
+    <string name="error_copyright_removed_hint_unnamed">Un titular de derechos de autor pidió a YouTube que eliminara este vídeo.</string>
+    <string name="error_removed_by_uploader">Eliminado por el autor del vídeo</string>
+    <string name="error_removed_by_uploader_hint">El autor del vídeo lo eliminó de YouTube.</string>
+    <string name="error_policy_removed">Eliminado por YouTube</string>
+    <string name="error_policy_removed_hint">YouTube eliminó este vídeo por incumplir sus normas.</string>
+    <string name="error_recording_unavailable">Grabación no disponible</string>
+    <string name="error_recording_unavailable_hint">Este directo finalizó sin dejar grabación en YouTube.</string>
 </resources>
