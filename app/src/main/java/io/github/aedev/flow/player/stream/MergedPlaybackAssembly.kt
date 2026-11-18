@@ -2,8 +2,8 @@ package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.data.local.VideoQuality
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 object MergedPlaybackAssembly {
     /**

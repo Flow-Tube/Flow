@@ -27,7 +27,7 @@ internal object AboutIndex {
     val reddit = entry("reddit", R.string.about_reddit, R.string.section_contact, R.string.about_reddit_subtitle)
     val creator = entry("creator", R.string.about_creator, R.string.section_contact, R.string.about_creator_name)
     val license = entry("license", R.string.about_license, R.string.section_legal, R.string.about_license_name)
-    val newPipe = entry("newpipe", R.string.newpipe_extractor_title, R.string.section_legal, R.string.newpipe_extractor_subtitle)
+    val newPipe = entry("newpipe", R.string.newpipe_extractor_title, R.string.section_legal, R.string.newpipe_extractor_credit)
     val notices = entry("notices", R.string.about_notices, R.string.section_legal, R.string.about_notices_summary)
     val deviceInfo = entry("device_info", R.string.about_device_info, R.string.section_device)
 

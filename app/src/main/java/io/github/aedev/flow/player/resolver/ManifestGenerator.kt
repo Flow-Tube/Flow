@@ -1,37 +1,43 @@
 package io.github.aedev.flow.player.resolver
 
 import android.util.Log
-import org.schabi.newpipe.extractor.services.youtube.dashmanifestcreators.YoutubeOtfDashManifestCreator
-import org.schabi.newpipe.extractor.services.youtube.dashmanifestcreators.YoutubeProgressiveDashManifestCreator
-import org.schabi.newpipe.extractor.stream.Stream
-import org.schabi.newpipe.extractor.services.youtube.ItagItem
+import io.github.aedev.flow.player.stream.model.ItagInfo
+import io.github.aedev.flow.player.stream.model.Stream
 
 object ManifestGenerator {
     private const val TAG = "ManifestGenerator"
-    
-    fun generateOtfManifest(stream: Stream, itagItem: ItagItem, durationSeconds: Long): String? {
-        return try {
-            YoutubeOtfDashManifestCreator.fromOtfStreamingUrl(
-                stream.content,
-                itagItem,
-                durationSeconds
-            )
-        } catch (e: Exception) {
-            Log.w(TAG, "OTF manifest generation failed for itag=${itagItem.id}: ${e.javaClass.simpleName}: ${e.message}")
-            null
-        }
-    }
 
-    fun generateProgressiveManifest(stream: Stream, itagItem: ItagItem, durationSeconds: Long): String? {
-        return try {
-            YoutubeProgressiveDashManifestCreator.fromProgressiveStreamingUrl(
-                stream.content,
-                itagItem,
-                durationSeconds
-            )
+    fun generateProgressiveManifest(
+        stream: Stream,
+        itagItem: ItagInfo,
+        durationSeconds: Long,
+    ): String? =
+        try {
+            ProgressiveDashManifest.create(stream.content, itagItem.manifestInput(), durationSeconds)
+                ?: run {
+                    Log.w(TAG, "Progressive manifest cannot describe itag=${itagItem.id}")
+                    null
+                }
         } catch (e: Exception) {
             Log.w(TAG, "Progressive manifest generation failed for itag=${itagItem.id}: ${e.javaClass.simpleName}: ${e.message}")
             null
         }
-    }
+
+    private fun ItagInfo.manifestInput() =
+        ProgressiveDashManifest.Input(
+            itag = id,
+            isAudio = itagType == ItagInfo.ItagType.AUDIO,
+            containerMimeType = mediaFormat?.mimeType,
+            codec = codec,
+            bitrate = bitrate,
+            width = width,
+            height = height,
+            fps = fps,
+            audioChannels = audioChannels,
+            initStart = initStart,
+            initEnd = initEnd,
+            indexStart = indexStart,
+            indexEnd = indexEnd,
+            approxDurationMs = approxDurationMs,
+        )
 }

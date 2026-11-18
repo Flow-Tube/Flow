@@ -13,9 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.lerp
 import io.github.aedev.flow.data.model.SponsorBlockSegment
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.ui.theme.SPONSOR_BLOCK_SEGMENT_ALPHA
 import io.github.aedev.flow.ui.theme.defaultSponsorBlockColor
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val SponsorPointWidth = 3.dp
 private val CommentMarkDiameter = 3.dp
@@ -32,7 +32,7 @@ internal val ActiveTrackHeight = 10.dp
 internal fun DrawScope.drawSeekTrack(
     fraction: Float,
     expansion: Float,
-    chapters: List<StreamSegment>,
+    chapters: List<VideoChapter>,
     sponsorSegments: List<SponsorBlockSegment>,
     sponsorColors: Map<String, Color>,
     commentMarks: List<Float>,

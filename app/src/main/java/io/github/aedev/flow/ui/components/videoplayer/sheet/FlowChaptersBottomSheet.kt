@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.ui.components.shared.FlowBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
 import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
@@ -28,11 +29,10 @@ import io.github.aedev.flow.ui.components.shared.flowSegmentShape
 import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
 import io.github.aedev.flow.ui.components.shared.rememberMediaArtworkTint
 import io.github.aedev.flow.utils.formatDurationMillis
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 @Composable
 fun FlowChaptersBottomSheet(
-    chapters: List<StreamSegment>,
+    chapters: List<VideoChapter>,
     currentPosition: Long,
     durationMs: Long = 0L,
     onChapterClick: (Long) -> Unit,
@@ -131,7 +131,7 @@ fun FlowChaptersBottomSheet(
                     isCurrent = isCurrent,
                     progress = progress,
                     durationSeconds = durationSeconds,
-                    thumbnailUrl = chapter.previewUrl?.takeIf { it.isNotBlank() } ?: thumbnailUrl,
+                    thumbnailUrl = chapter.thumbnailUrl?.takeIf { it.isNotBlank() } ?: thumbnailUrl,
                     shape = flowSegmentShape(index, chapters.size),
                     tint = tint,
                     onClick = {
@@ -144,7 +144,7 @@ fun FlowChaptersBottomSheet(
     }
 }
 
-private fun List<StreamSegment>.chapterStartMs(index: Int): Long? = getOrNull(index)?.let { it.startTimeSeconds.toLong() * 1000L }
+private fun List<VideoChapter>.chapterStartMs(index: Int): Long? = getOrNull(index)?.let { it.startTimeSeconds.toLong() * 1000L }
 
 @Composable
 private fun chaptersSubtitle(

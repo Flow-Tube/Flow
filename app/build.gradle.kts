@@ -151,6 +151,8 @@ android {
             isDebuggable = true
             isMinifyEnabled = false
             isShrinkResources = false
+            // `-Pflow.unitTestCoverage` turns on JaCoCo for the unit tests (createGithubDebugUnitTestCoverageReport).
+            enableUnitTestCoverage = providers.gradleProperty("flow.unitTestCoverage").isPresent
         }
         release {
             buildConfigField("String", "UPDATE_CHANNEL", "\"stable\"")
@@ -334,7 +336,6 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     // --- Data & Network ---
-    implementation(libs.newpipe.extractor)
 
     // Networking
     implementation(libs.okhttp)

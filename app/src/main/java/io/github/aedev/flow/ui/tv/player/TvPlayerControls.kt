@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.FocusLiftDefaults
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackControls
@@ -73,7 +74,6 @@ import io.github.aedev.flow.ui.theme.PlayerScrimContentSecondary
 import io.github.aedev.flow.ui.theme.PlayerScrimEdgeGradient
 import io.github.aedev.flow.ui.tv.theme.LocalTvDimens
 import io.github.aedev.flow.utils.formatDuration
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val AvatarSize = 28.dp
 private val ChannelNameMaxWidth = 240.dp
@@ -115,7 +115,7 @@ internal fun BoxScope.TvPlayerControls(
     durationMs: () -> Long,
     scrubTargetMs: Long?,
     bufferedFraction: Float,
-    chapters: List<StreamSegment>,
+    chapters: List<VideoChapter>,
     sponsorSegments: List<SponsorBlockSegment>,
     sponsorColors: Map<String, Color>,
     playActions: PlayerControlActions,

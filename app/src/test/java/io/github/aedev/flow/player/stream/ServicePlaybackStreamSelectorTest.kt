@@ -1,15 +1,15 @@
 package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.data.local.VideoQuality
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioTrackType
+import io.github.aedev.flow.player.stream.model.MediaFormat
+import io.github.aedev.flow.player.stream.model.VideoStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.AudioTrackType
-import org.schabi.newpipe.extractor.stream.VideoStream
 import java.util.Locale
 
 private fun audio(
@@ -19,17 +19,16 @@ private fun audio(
     trackType: AudioTrackType = AudioTrackType.DUBBED,
     bitrate: Int = 128_000,
 ): AudioStream =
-    AudioStream
-        .Builder()
-        .setId(id)
-        .setContent("https://example.invalid/$id", true)
-        .setMediaFormat(MediaFormat.M4A)
-        .setAverageBitrate(bitrate)
-        .apply {
-            setAudioTrackType(trackType)
-            languageTag?.let { setAudioLocale(Locale.forLanguageTag(it)) }
-            trackName?.let { setAudioTrackName(it) }
-        }.build()
+    AudioStream(
+        id = id,
+        content = "https://example.invalid/$id",
+        format = MediaFormat.M4A,
+        itagItem = null,
+        averageBitrate = bitrate,
+        audioTrackName = trackName,
+        audioLocale = languageTag?.let { Locale.forLanguageTag(it) },
+        audioTrackType = trackType,
+    )
 
 private fun video(
     id: String,
@@ -37,14 +36,14 @@ private fun video(
     videoOnly: Boolean = true,
     format: MediaFormat = MediaFormat.MPEG_4,
 ): VideoStream =
-    VideoStream
-        .Builder()
-        .setId(id)
-        .setContent("https://example.invalid/$id", true)
-        .setMediaFormat(format)
-        .setResolution(resolution)
-        .setIsVideoOnly(videoOnly)
-        .build()
+    VideoStream(
+        id = id,
+        content = "https://example.invalid/$id",
+        format = format,
+        itagItem = null,
+        resolution = resolution,
+        isVideoOnly = videoOnly,
+    )
 
 class ServicePlaybackStreamSelectorTest {
     private fun select(

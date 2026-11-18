@@ -36,7 +36,7 @@ import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.LiveChatMessage
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.toVideo
-import io.github.aedev.flow.data.model.uploadDateMillis
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.ui.components.shared.FlowDescriptionBottomSheet
@@ -67,7 +67,6 @@ import io.github.aedev.flow.ui.screens.player.state.transcriptTrackUrl
 import io.github.aedev.flow.ui.screens.player.state.visibleComments
 import io.github.aedev.flow.utils.DateContext
 import kotlinx.coroutines.launch
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 /**
  * The surfaces the portrait bottom-sheet slot, the landscape fullscreen side panel and the tablet
@@ -77,7 +76,7 @@ import org.schabi.newpipe.extractor.stream.StreamSegment
 @Composable
 internal fun PlayerChaptersSheetHost(
     screenState: PlayerScreenState,
-    chapters: List<StreamSegment>,
+    chapters: List<VideoChapter>,
     thumbnailUrl: String,
     asSidePanel: Boolean,
     expandedHeight: Dp?,
@@ -207,7 +206,7 @@ internal fun PlayerTranscriptSheetHost(
     screenState: PlayerScreenState,
     playerState: EnhancedPlayerState,
     prefs: VideoPlayerPreferencesState,
-    chapters: List<StreamSegment>,
+    chapters: List<VideoChapter>,
     artworkUrl: String?,
     exportTitle: String?,
     asSidePanel: Boolean,

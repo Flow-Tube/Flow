@@ -1,10 +1,10 @@
 package io.github.aedev.flow.player.error
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioTrackType
+import io.github.aedev.flow.player.stream.model.MediaFormat
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.AudioTrackType
 import java.util.Locale
 
 class AudioRecoveryPickTest {
@@ -15,15 +15,15 @@ class AudioRecoveryPickTest {
         format: MediaFormat = MediaFormat.M4A,
         bitrate: Int = 129_000,
     ): AudioStream =
-        AudioStream
-            .Builder()
-            .setId(id)
-            .setContent("https://example.invalid/$id", true)
-            .setMediaFormat(format)
-            .setAverageBitrate(bitrate)
-            .setAudioTrackType(trackType)
-            .setAudioLocale(Locale.forLanguageTag(languageTag))
-            .build()
+        AudioStream(
+            id = id,
+            content = "https://example.invalid/$id",
+            format = format,
+            itagItem = null,
+            averageBitrate = bitrate,
+            audioLocale = Locale.forLanguageTag(languageTag),
+            audioTrackType = trackType,
+        )
 
     private val originalAac = audio("140-en", "en", AudioTrackType.ORIGINAL)
     private val originalOpus = audio("251-en", "en", AudioTrackType.ORIGINAL, MediaFormat.WEBMA_OPUS, bitrate = 135_000)
@@ -32,7 +32,7 @@ class AudioRecoveryPickTest {
     private val spanishDubAac = audio("140-es", "es", AudioTrackType.DUBBED)
     private val spanishDubOpus = audio("251-es", "es", AudioTrackType.DUBBED, MediaFormat.WEBMA_OPUS)
 
-    private fun failedUrls(vararg streams: AudioStream) = streams.map { it.getContent() }.toSet()
+    private fun failedUrls(vararg streams: AudioStream) = streams.map { it.content }.toSet()
 
     @Test
     fun `a failed dub with no other format is not replaced by another dub`() {

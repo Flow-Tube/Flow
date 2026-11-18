@@ -14,7 +14,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import io.github.aedev.flow.data.model.SponsorBlockSegment
-import org.schabi.newpipe.extractor.stream.StreamSegment
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import kotlin.math.abs
 
 /**
@@ -28,7 +28,7 @@ import kotlin.math.abs
 internal fun EdgeAlignedSeekbar(
     displayValueProvider: () -> Float,
     enabled: Boolean,
-    chapters: List<StreamSegment>,
+    chapters: List<VideoChapter>,
     sponsorSegments: List<SponsorBlockSegment>,
     sponsorColors: Map<String, Color>,
     commentMarks: List<Float>,

@@ -1,6 +1,6 @@
 package io.github.aedev.flow.player.dlna
 
-import org.schabi.newpipe.extractor.stream.Stream
+import io.github.aedev.flow.player.stream.model.Stream
 
 data class CastStreamVariant(
     val url: String,

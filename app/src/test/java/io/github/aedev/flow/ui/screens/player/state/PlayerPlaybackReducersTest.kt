@@ -6,17 +6,14 @@ import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.error.VideoErrorMapper
 import io.github.aedev.flow.player.stream.ResolvedPlayback
+import io.github.aedev.flow.player.stream.model.MediaFormat
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.ui.screens.player.SecondaryMetadata
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 /**
  * Pins the fields every playback outcome writes onto [VideoPlayerUiState]. These are the reducers
@@ -90,7 +87,7 @@ class PlayerPlaybackReducersTest {
     @Test
     fun `the InnerTube VOD path writes its own field set and leaves the merged-only fields alone`() {
         val videoStream = videoStream("720p")
-        val chapters = emptyList<org.schabi.newpipe.extractor.stream.StreamSegment>()
+        val chapters = emptyList<io.github.aedev.flow.innertube.models.response.VideoChapter>()
         val before =
             VideoPlayerUiState(
                 isLoading = true,
@@ -276,26 +273,6 @@ class PlayerPlaybackReducersTest {
     }
 
     @Test
-    fun `the live watch fallback video falls back to the cached metadata field by field`() {
-        val streamInfo = mockk<StreamInfo>(relaxed = true)
-        every { streamInfo.name } returns null
-        every { streamInfo.uploaderName } returns null
-        every { streamInfo.uploaderUrl } returns null
-        every { streamInfo.thumbnails } returns emptyList()
-        every { streamInfo.description } returns null
-        every { streamInfo.viewCount } returns 5L
-        val cached = video("vid_a").copy(title = "Cached title", channelName = "Cached channel", thumbnailUrl = "cached.jpg")
-
-        val fallback = VideoPlayerUiState(cachedVideo = cached).liveWatchFallbackVideo("vid_a", streamInfo)
-
-        assertThat(fallback.title).isEqualTo("Cached title")
-        assertThat(fallback.channelName).isEqualTo("Cached channel")
-        assertThat(fallback.thumbnailUrl).isEqualTo("cached.jpg")
-        assertThat(fallback.duration).isEqualTo(0)
-        assertThat(fallback.isLive).isTrue()
-    }
-
-    @Test
     fun `a blank video is only built when the screen holds nothing for the id`() {
         val cached = video("vid_a")
 
@@ -366,13 +343,12 @@ class PlayerPlaybackReducersTest {
         SponsorBlockSegment(category = "sponsor", segment = listOf(0f, 1f), uuid = "uuid_1", actionType = "skip")
 
     private fun videoStream(resolution: String): VideoStream =
-        VideoStream
-            .Builder()
-            .setId(resolution)
-            .setContent("https://example.invalid/$resolution.mp4", true)
-            .setMediaFormat(MediaFormat.MPEG_4)
-            .setResolution(resolution)
-            .setIsVideoOnly(true)
-            .setDeliveryMethod(DeliveryMethod.PROGRESSIVE_HTTP)
-            .build()
+        VideoStream(
+            id = resolution,
+            content = "https://example.invalid/$resolution.mp4",
+            format = MediaFormat.MPEG_4,
+            itagItem = null,
+            resolution = resolution,
+            isVideoOnly = true,
+        )
 }

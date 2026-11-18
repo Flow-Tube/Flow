@@ -8,12 +8,12 @@ import androidx.media3.exoplayer.source.MediaSource
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.ResolvedStreamData
+import io.github.aedev.flow.player.stream.model.StreamType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.schabi.newpipe.extractor.stream.StreamType
 
 internal data class PreloadTarget(
     val video: Video,

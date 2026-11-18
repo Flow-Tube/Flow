@@ -895,6 +895,13 @@ class InnerTube {
 
     suspend fun getSwJsData() = httpClient.get("https://music.youtube.com/sw.js_data")
 
+    suspend fun getWebServiceWorker(): String =
+        httpClient
+            .get("https://www.youtube.com/sw.js") {
+                header("Origin", "https://www.youtube.com")
+                header("Referer", "https://www.youtube.com")
+            }.bodyAsText()
+
     suspend fun accountMenu(client: YouTubeClient) =
         httpClient.post("account/account_menu") {
             ytClient(client, setLogin = true)

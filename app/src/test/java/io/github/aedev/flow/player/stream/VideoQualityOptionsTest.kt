@@ -1,24 +1,24 @@
 package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.data.local.VideoQuality
+import io.github.aedev.flow.player.stream.model.MediaFormat
+import io.github.aedev.flow.player.stream.model.VideoStream
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 class VideoQualityOptionsTest {
     private fun video(
         id: String,
         resolution: String,
     ): VideoStream =
-        VideoStream
-            .Builder()
-            .setId(id)
-            .setContent("https://example.invalid/$id", true)
-            .setMediaFormat(MediaFormat.MPEG_4)
-            .setResolution(resolution)
-            .setIsVideoOnly(true)
-            .build()
+        VideoStream(
+            id = id,
+            content = "https://example.invalid/$id",
+            format = MediaFormat.MPEG_4,
+            itagItem = null,
+            resolution = resolution,
+            isVideoOnly = true,
+        )
 
     @Test
     fun `qualities are listed low to high with AUTO offered last`() {

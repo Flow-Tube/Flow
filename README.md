@@ -211,7 +211,7 @@ If you already use crypto, you can send it directly to my wallets below:
 
 Flow stands on the shoulders of giants. Special thanks to:
 
-*   **[NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor):** The backbone of our data extraction.
+*   **[NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor):** Where Flow's data extraction began, and the source of the relative-date word lists Flow still ships.
 *   **[NewPipe](https://github.com/TeamNewPipe/NewPipe):** For inspiration from their solid foundation for YouTube data handling.
 *   **[PipePipe](https://codeberg.org/NullPointerException/PipePipe):** For their SABR and InnerTube playback implementation, which guided Flow's YouTube streaming pipeline.
 *   **[PipePipe Developer Docs](https://priveetee.github.io/Docs-PipePipe/):** For their reference documentation on SABR, BotGuard/PoToken attestation, and InnerTube extraction internals.

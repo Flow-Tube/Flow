@@ -153,9 +153,10 @@ object MusicPlayerUtils {
      */
     private fun resolveFailure(videoId: String): IOException {
         val block = InnerTubeVideoStreamExtractor.blockOf(videoId)
+        val refusal = InnerTubeVideoStreamExtractor.refusalOf(videoId)
         return when {
-            InnerTubeVideoStreamExtractor.isGone(videoId) -> VideoUnavailableException(videoId)
-            block != null -> IOException("YouTube refused $videoId to this viewer: $block", PlaybackBlockedException(block))
+            InnerTubeVideoStreamExtractor.isGone(videoId) -> VideoUnavailableException(videoId, refusal)
+            block != null -> IOException("YouTube refused $videoId to this viewer: $block", PlaybackBlockedException(block, refusal))
             else -> IOException("Failed to resolve stream for $videoId after trying all clients")
         }
     }

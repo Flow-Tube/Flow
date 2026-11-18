@@ -1,8 +1,8 @@
 package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.data.local.MusicAudioQuality
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.AudioTrackType
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.AudioTrackType
 import java.util.Locale
 import kotlin.math.abs
 

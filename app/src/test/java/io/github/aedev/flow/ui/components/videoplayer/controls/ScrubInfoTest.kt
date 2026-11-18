@@ -4,14 +4,14 @@ import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.innertube.models.response.HeatmapHighlight
 import io.github.aedev.flow.innertube.models.response.HeatmapMarker
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import org.junit.Test
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private fun chapter(
     title: String,
     startSeconds: Int,
-) = StreamSegment(title, startSeconds)
+) = VideoChapter(title, startSeconds)
 
 private fun sponsor(
     category: String,

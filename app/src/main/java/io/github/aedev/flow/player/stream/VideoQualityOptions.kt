@@ -1,7 +1,7 @@
 package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.data.local.VideoQuality
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /**
  * Maps resolved video streams onto the [VideoQuality] rows the player's quality menu is built from.

@@ -30,12 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import io.github.aedev.flow.data.local.ScrubPreviewStyle
 import io.github.aedev.flow.data.model.SponsorBlockSegment
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.player.stream.StoryboardSpec
 import io.github.aedev.flow.ui.components.shared.MediaSeekBar
 import io.github.aedev.flow.ui.theme.PlayerLiveIndicator
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val SeekPreviewGap = 12.dp
 private val SeekInfoGap = 8.dp
@@ -46,7 +46,7 @@ private val SeekInfoGap = 8.dp
  */
 @Immutable
 data class PlayerSeekbarContent(
-    val chapters: List<StreamSegment> = emptyList(),
+    val chapters: List<VideoChapter> = emptyList(),
     val sponsorSegments: List<SponsorBlockSegment> = emptyList(),
     val sponsorColors: Map<String, Color> = emptyMap(),
     val commentMarks: List<Float> = emptyList(),

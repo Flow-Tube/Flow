@@ -6,9 +6,13 @@ import java.io.IOException
 private val StatusPattern = Regex("""status=(\w+)""")
 private val BotWallReason = Regex("""not a bot|confirm you.re""", RegexOption.IGNORE_CASE)
 private val RegionReason = Regex("""in your (country|region)""", RegexOption.IGNORE_CASE)
+private val RemovalReason = Regex("""has been removed|removed following|no longer available""", RegexOption.IGNORE_CASE)
 private val RateLimitReason = Regex("""try again later""", RegexOption.IGNORE_CASE)
 private val MembersOrPaidReason =
-    Regex("""members-only|join this channel|requires payment|premium members""", RegexOption.IGNORE_CASE)
+    Regex(
+        """members-only|join this (youtube )?channel|channel's members|requires payment|premium members""",
+        RegexOption.IGNORE_CASE,
+    )
 private const val HAS_DETAILS = "details=yes"
 private val LastingBlocks = setOf(PlaybackBlock.REGION, PlaybackBlock.MEMBERS_OR_PAID, PlaybackBlock.LOGIN_REQUIRED)
 
@@ -39,15 +43,55 @@ enum class PlaybackBlock {
     MEMBERS_OR_PAID,
 }
 
+/** What YouTube's own refusal says about a video, one kind per reason it gives. */
+enum class RefusalKind {
+    PRIVATE,
+    AGE_RESTRICTED,
+    MEMBERS_ONLY,
+    PAID,
+    MUSIC_PREMIUM,
+    ACCOUNT_TERMINATED,
+    COPYRIGHT_REMOVED,
+    UPLOADER_REMOVED,
+    POLICY_REMOVED,
+    RECORDING_UNAVAILABLE,
+    UNAVAILABLE,
+}
+
+/** YouTube's refusal of one video: its [kind], and for a copyright removal who asked for it. */
+data class YouTubeRefusal(
+    val kind: RefusalKind,
+    val claimant: String? = null,
+)
+
 /** A failed extraction whose [block] explains it better than a generic error. */
 class PlaybackBlockedException(
     val block: PlaybackBlock,
+    val refusal: YouTubeRefusal? = null,
 ) : Exception("YouTube refused playback: $block")
 
 /** Every client said the video itself is gone, so retrying it can only fail the same way. */
 class VideoUnavailableException(
     videoId: String,
+    val refusal: YouTubeRefusal? = null,
 ) : IOException("$videoId is unavailable on every client")
+
+// Most specific first: when one client says "Video unavailable" and another names a copyright claim, the claim wins.
+private val RefusalPatterns: List<Pair<RefusalKind, Regex>> =
+    listOf(
+        RefusalKind.ACCOUNT_TERMINATED to Regex("""account associated with this video has been terminated""", RegexOption.IGNORE_CASE),
+        RefusalKind.COPYRIGHT_REMOVED to Regex("""copyright""", RegexOption.IGNORE_CASE),
+        RefusalKind.UPLOADER_REMOVED to Regex("""removed by the uploader""", RegexOption.IGNORE_CASE),
+        RefusalKind.POLICY_REMOVED to Regex("""removed for violating""", RegexOption.IGNORE_CASE),
+        RefusalKind.PRIVATE to Regex("""private video|video is private""", RegexOption.IGNORE_CASE),
+        RefusalKind.AGE_RESTRICTED to Regex("""confirm your age|inappropriate for some users|age-restricted""", RegexOption.IGNORE_CASE),
+        RefusalKind.MUSIC_PREMIUM to Regex("""music premium""", RegexOption.IGNORE_CASE),
+        RefusalKind.PAID to Regex("""requires payment|rent this|purchase""", RegexOption.IGNORE_CASE),
+        RefusalKind.MEMBERS_ONLY to Regex("""members-only|join this (youtube )?channel|channel's members""", RegexOption.IGNORE_CASE),
+        RefusalKind.RECORDING_UNAVAILABLE to Regex("""live stream recording is not available""", RegexOption.IGNORE_CASE),
+        RefusalKind.UNAVAILABLE to Regex("""video (is )?unavailable""", RegexOption.IGNORE_CASE),
+    )
+private val CopyrightClaimant = Regex("""copyright removal request by (.+?)(?:, (?:subreason|messages)=|, details=yes|$)""")
 
 /**
  * Whether a failed extraction means the video itself is gone (removed), as opposed to a failure
@@ -74,6 +118,10 @@ internal object PlayabilityVerdict {
         return buildString {
             append("status=${status.status}, reason=$reason")
             status.subreason?.let { append(", subreason=$it") }
+            status.messages
+                ?.filter { it.isNotBlank() }
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { append(", messages=${it.joinToString(" ")}") }
             if (hasVideoDetails) append(", $HAS_DETAILS")
         }
     }
@@ -88,6 +136,7 @@ internal object PlayabilityVerdict {
     private fun viewerBlock(reason: String): PlaybackBlock? =
         when {
             !StatusPattern.containsMatchIn(reason) -> null
+            RemovalReason.containsMatchIn(reason) -> null
             RegionReason.containsMatchIn(reason) -> PlaybackBlock.REGION
             RateLimitReason.containsMatchIn(reason) -> PlaybackBlock.RATE_LIMITED
             MembersOrPaidReason.containsMatchIn(reason) -> PlaybackBlock.MEMBERS_OR_PAID
@@ -145,4 +194,32 @@ internal object PlayabilityVerdict {
                     }
             }
         }
+
+    /**
+     * What YouTube said about the video in its own words, read from every client that answered;
+     * the most specific reason any of them gave wins. Bot walls and timeouts say nothing about it.
+     */
+    fun refusalOf(failureReasons: List<String>): YouTubeRefusal? {
+        val answered =
+            failureReasons.filter {
+                StatusPattern.containsMatchIn(it) && !NotAskedReason.containsMatchIn(it) && !NoAnswerReason.containsMatchIn(it)
+            }
+        val kind =
+            RefusalPatterns.firstOrNull { (_, pattern) -> answered.any(pattern::containsMatchIn) }?.first
+                ?: return null
+        val claimant =
+            if (kind == RefusalKind.COPYRIGHT_REMOVED) {
+                answered.firstNotNullOfOrNull {
+                    CopyrightClaimant
+                        .find(it)
+                        ?.groupValues
+                        ?.get(1)
+                        ?.trim()
+                        ?.takeIf(String::isNotEmpty)
+                }
+            } else {
+                null
+            }
+        return YouTubeRefusal(kind, claimant)
+    }
 }

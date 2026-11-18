@@ -6,26 +6,16 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.network.appTrafficUsesVpn
 import io.github.aedev.flow.player.stream.PlaybackBlock
 import io.github.aedev.flow.player.stream.PlaybackBlockedException
-import org.schabi.newpipe.extractor.exceptions.AccountTerminatedException
-import org.schabi.newpipe.extractor.exceptions.AgeRestrictedContentException
-import org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException
-import org.schabi.newpipe.extractor.exceptions.ContentNotSupportedException
-import org.schabi.newpipe.extractor.exceptions.ExtractionException
-import org.schabi.newpipe.extractor.exceptions.GeographicRestrictionException
-import org.schabi.newpipe.extractor.exceptions.PaidContentException
-import org.schabi.newpipe.extractor.exceptions.PrivateContentException
-import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
-import org.schabi.newpipe.extractor.exceptions.UnsupportedContentInCountryException
-import org.schabi.newpipe.extractor.exceptions.YoutubeMusicPremiumContentException
+import io.github.aedev.flow.player.stream.RefusalKind
+import io.github.aedev.flow.player.stream.VideoUnavailableException
+import io.github.aedev.flow.player.stream.YouTubeRefusal
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
 /**
- * Maps throwables (from NewPipe Extractor, ExoPlayer, network layer, etc.) to
- * human-readable, actionable error messages shown in the video player.
- *
- * Designed to mirror NewPipe's `ErrorInfo.getMessage()` logic but return plain
- * strings suitable for the Flow player's snackbar / error panel.
+ * Maps throwables (YouTube's refusals, ExoPlayer, the network layer, etc.) to
+ * human-readable, actionable error messages shown in the video player. A refusal is
+ * named the way YouTube names it: private, age-restricted, members-only, removed.
  */
 object VideoErrorMapper {
     private const val TAG = "VideoErrorMapper"
@@ -66,62 +56,8 @@ object VideoErrorMapper {
         Log.w(TAG, "Mapping error for video=$videoId: ${throwable?.javaClass?.simpleName}: ${throwable?.message}")
 
         return when {
-            // ── Content restriction exceptions (NewPipe Extractor) ────────────
-
-            throwable is AgeRestrictedContentException -> {
-                VideoError(
-                    message = context.getString(R.string.error_age_restricted),
-                    hint = context.getString(R.string.error_age_restricted_hint),
-                    isRetryable = false,
-                    isUserActionable = false,
-                )
-            }
-
-            throwable is PrivateContentException -> {
-                VideoError(
-                    message = context.getString(R.string.error_private_video),
-                    hint = context.getString(R.string.error_private_video_hint),
-                    isRetryable = false,
-                    isUserActionable = false,
-                )
-            }
-
-            throwable is GeographicRestrictionException ||
-                throwable is UnsupportedContentInCountryException -> {
-                VideoError(
-                    message = context.getString(R.string.error_geo_restricted),
-                    hint = context.getString(R.string.error_geo_restricted_hint),
-                    isRetryable = false,
-                    isUserActionable = true,
-                )
-            }
-
-            throwable is PaidContentException -> {
-                VideoError(
-                    message = context.getString(R.string.error_paid_content),
-                    hint = context.getString(R.string.error_paid_content_hint),
-                    isRetryable = false,
-                    isUserActionable = false,
-                )
-            }
-
-            throwable is YoutubeMusicPremiumContentException -> {
-                VideoError(
-                    message = context.getString(R.string.error_yt_music_premium),
-                    hint = context.getString(R.string.error_yt_music_premium_hint),
-                    isRetryable = false,
-                    isUserActionable = false,
-                )
-            }
-
-            throwable is AccountTerminatedException -> {
-                val reason = throwable.message?.takeIf { it.isNotBlank() }
-                VideoError(
-                    message = context.getString(R.string.error_channel_terminated),
-                    hint = if (reason != null) reason else context.getString(R.string.error_channel_terminated_hint),
-                    isRetryable = false,
-                    isUserActionable = false,
-                )
+            throwable != null && specificRefusal(throwable) != null -> {
+                refusalError(context, specificRefusal(throwable)!!)
             }
 
             throwable is PlaybackBlockedException && throwable.block == PlaybackBlock.BOT_WALL -> {
@@ -185,32 +121,8 @@ object VideoErrorMapper {
                 )
             }
 
-            throwable is ReCaptchaException -> {
-                VideoError(
-                    message = context.getString(R.string.error_captcha),
-                    hint = context.getString(R.string.error_captcha_hint),
-                    isRetryable = true,
-                    isUserActionable = true,
-                )
-            }
-
-            // Generic "content not available" must come AFTER the specific sub-classes above
-            throwable is ContentNotAvailableException -> {
-                VideoError(
-                    message = context.getString(R.string.error_not_available),
-                    hint = context.getString(R.string.error_not_available_hint),
-                    isRetryable = false,
-                    isUserActionable = false,
-                )
-            }
-
-            throwable is ContentNotSupportedException -> {
-                VideoError(
-                    message = context.getString(R.string.error_not_supported),
-                    hint = context.getString(R.string.error_not_supported_hint),
-                    isRetryable = false,
-                    isUserActionable = false,
-                )
+            throwable != null && unavailableCause(throwable) != null -> {
+                refusalError(context, unavailableCause(throwable)?.refusal ?: YouTubeRefusal(RefusalKind.UNAVAILABLE))
             }
 
             // ── Network / connectivity errors ─────────────────────────────────
@@ -242,15 +154,6 @@ object VideoErrorMapper {
                 )
             }
 
-            throwable != null && isNetworkRelated(throwable) -> {
-                VideoError(
-                    message = context.getString(R.string.error_network),
-                    hint = context.getString(R.string.error_network_hint),
-                    isRetryable = true,
-                    isUserActionable = true,
-                )
-            }
-
             // ── ExoPlayer / media source errors ──────────────────────────────
 
             throwable != null && isExoHttpForbidden(throwable) -> {
@@ -272,12 +175,21 @@ object VideoErrorMapper {
                 )
             }
 
-            throwable != null && isExoSourceError(throwable) -> {
+            throwable != null && isExoSourceError(throwable) && !hasConnectivityCause(throwable) -> {
                 VideoError(
                     message = context.getString(R.string.error_stream_failed),
                     hint = context.getString(R.string.error_stream_failed_hint),
                     isRetryable = true,
                     isUserActionable = false,
+                )
+            }
+
+            throwable != null && isNetworkRelated(throwable) -> {
+                VideoError(
+                    message = context.getString(R.string.error_network),
+                    hint = context.getString(R.string.error_network_hint),
+                    isRetryable = true,
+                    isUserActionable = true,
                 )
             }
 
@@ -294,17 +206,6 @@ object VideoErrorMapper {
                 VideoError(
                     message = context.getString(R.string.error_playback_failed),
                     hint = context.getString(R.string.error_playback_failed_hint),
-                    isRetryable = true,
-                    isUserActionable = false,
-                )
-            }
-
-            // ── NewPipe parsing error (extraction failed, not network) ────────
-
-            throwable is ExtractionException -> {
-                VideoError(
-                    message = context.getString(R.string.error_extraction_failed),
-                    hint = context.getString(R.string.error_extraction_failed_hint),
                     isRetryable = true,
                     isUserActionable = false,
                 )
@@ -344,6 +245,83 @@ object VideoErrorMapper {
         )
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private fun causes(t: Throwable): Sequence<Throwable> = generateSequence(t) { it.cause?.takeIf { cause -> cause !== it } }.take(8)
+
+    // A source error over a dropped connection is the network's fault, not the stream's.
+    private fun hasConnectivityCause(t: Throwable): Boolean =
+        causes(t).any { it is java.net.UnknownHostException || it is java.net.SocketException || it is java.net.SocketTimeoutException }
+
+    private fun unavailableCause(t: Throwable): VideoUnavailableException? =
+        causes(t).filterIsInstance<VideoUnavailableException>().firstOrNull()
+
+    /**
+     * The refusal to name, when YouTube gave one more specific than a viewer block: a plain
+     * "video unavailable" next to a region or membership block says less than the block does.
+     */
+    private fun specificRefusal(t: Throwable): YouTubeRefusal? =
+        causes(t)
+            .filterIsInstance<PlaybackBlockedException>()
+            .firstOrNull()
+            ?.refusal
+            ?.takeIf { it.kind != RefusalKind.UNAVAILABLE }
+
+    private fun refusalError(
+        context: Context,
+        refusal: YouTubeRefusal,
+    ): VideoError {
+        val (message, hint) =
+            when (refusal.kind) {
+                RefusalKind.PRIVATE -> {
+                    R.string.error_private_video to context.getString(R.string.error_private_video_hint)
+                }
+
+                RefusalKind.AGE_RESTRICTED -> {
+                    R.string.error_age_restricted to context.getString(R.string.error_age_restricted_hint)
+                }
+
+                RefusalKind.MEMBERS_ONLY -> {
+                    R.string.error_members_only to context.getString(R.string.error_members_only_hint)
+                }
+
+                RefusalKind.PAID -> {
+                    R.string.error_paid_content to context.getString(R.string.error_paid_content_hint)
+                }
+
+                RefusalKind.MUSIC_PREMIUM -> {
+                    R.string.error_yt_music_premium to context.getString(R.string.error_yt_music_premium_hint)
+                }
+
+                RefusalKind.ACCOUNT_TERMINATED -> {
+                    R.string.error_channel_terminated to context.getString(R.string.error_channel_terminated_hint)
+                }
+
+                RefusalKind.COPYRIGHT_REMOVED -> {
+                    R.string.error_copyright_removed to
+                        (
+                            refusal.claimant?.let { context.getString(R.string.error_copyright_removed_hint, it) }
+                                ?: context.getString(R.string.error_copyright_removed_hint_unnamed)
+                        )
+                }
+
+                RefusalKind.UPLOADER_REMOVED -> {
+                    R.string.error_removed_by_uploader to context.getString(R.string.error_removed_by_uploader_hint)
+                }
+
+                RefusalKind.POLICY_REMOVED -> {
+                    R.string.error_policy_removed to context.getString(R.string.error_policy_removed_hint)
+                }
+
+                RefusalKind.RECORDING_UNAVAILABLE -> {
+                    R.string.error_recording_unavailable to context.getString(R.string.error_recording_unavailable_hint)
+                }
+
+                RefusalKind.UNAVAILABLE -> {
+                    R.string.error_not_available to context.getString(R.string.error_not_available_hint)
+                }
+            }
+        return VideoError(message = context.getString(message), hint = hint, isRetryable = false, isUserActionable = false)
+    }
 
     private fun isNetworkRelated(t: Throwable): Boolean =
         t is java.io.IOException ||

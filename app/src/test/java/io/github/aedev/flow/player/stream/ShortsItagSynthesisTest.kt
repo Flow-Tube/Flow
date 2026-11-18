@@ -1,14 +1,14 @@
 package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
+import io.github.aedev.flow.player.stream.model.MediaFormat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
 
 /**
  * The 608×1080 Shorts tier (itags 779/780/787/788) is missing from NewPipe's table. Without an
- * [org.schabi.newpipe.extractor.services.youtube.ItagItem] the bridge cannot describe the format
+ * [io.github.aedev.flow.player.stream.model.ItagInfo] the bridge cannot describe the format
  * for a DASH manifest, and the reel falls back to the throttled progressive path.
  */
 class ShortsItagSynthesisTest {

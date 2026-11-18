@@ -1,10 +1,10 @@
 package io.github.aedev.flow.player.stream
 
+import io.github.aedev.flow.player.stream.model.MediaFormat
+import io.github.aedev.flow.player.stream.model.VideoStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 /**
  * The quality selector has to name the high-frame-rate ladder, otherwise 1080p60 and 1080p30 are
@@ -12,14 +12,14 @@ import org.schabi.newpipe.extractor.stream.VideoStream
  */
 class VideoCodecUtilsFrameRateTest {
     private fun stream(resolution: String): VideoStream =
-        VideoStream
-            .Builder()
-            .setId("test")
-            .setContent("https://example.invalid/test", true)
-            .setMediaFormat(MediaFormat.MPEG_4)
-            .setResolution(resolution)
-            .setIsVideoOnly(true)
-            .build()
+        VideoStream(
+            id = "test",
+            content = "https://example.invalid/test",
+            format = MediaFormat.MPEG_4,
+            itagItem = null,
+            resolution = resolution,
+            isVideoOnly = true,
+        )
 
     @Test
     fun `the frame rate is only spelled out above the standard ladder`() {

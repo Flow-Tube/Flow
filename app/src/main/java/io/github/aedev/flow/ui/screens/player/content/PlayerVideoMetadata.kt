@@ -11,7 +11,6 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.model.needsCollaboratorResolution
 import io.github.aedev.flow.data.model.toVideo
-import io.github.aedev.flow.data.model.uploadDateMillis
 import io.github.aedev.flow.data.repository.VideoCollaboratorResolver
 import io.github.aedev.flow.ui.components.rememberDeArrowResult
 import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardPreferences
@@ -19,7 +18,6 @@ import io.github.aedev.flow.ui.components.shared.card.rememberKnownOriginalTitle
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.utils.DateContext
-import org.schabi.newpipe.extractor.stream.StreamType
 
 /**
  * Display values derived from the played [Video] and the loaded stream info.

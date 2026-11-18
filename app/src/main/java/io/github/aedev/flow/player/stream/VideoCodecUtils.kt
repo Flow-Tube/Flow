@@ -1,7 +1,7 @@
 package io.github.aedev.flow.player.stream
 
 import android.net.Uri
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 object VideoCodecUtils {
     private val QUALITY_HEIGHT_REGEX = Regex("""(\d+)p""")
@@ -173,7 +173,7 @@ object VideoCodecUtils {
 
     fun frameRateFromStream(stream: VideoStream): Int {
         if (stream.fps > 0) return stream.fps
-        // A stream built without ItagItem metadata carries the frame rate only inside its label.
+        // A stream built without ItagInfo metadata carries the frame rate only inside its label.
         return frameRateFromLabel(stream.resolution)
             ?: frameRateFromLabel(stream.itagItem?.resolutionString)
             ?: 0

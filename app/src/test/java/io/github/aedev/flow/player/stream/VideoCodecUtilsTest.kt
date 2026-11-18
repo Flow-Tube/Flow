@@ -1,10 +1,9 @@
 package io.github.aedev.flow.player.stream
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.player.stream.model.MediaFormat
+import io.github.aedev.flow.player.stream.model.VideoStream
 import org.junit.Test
-import org.schabi.newpipe.extractor.MediaFormat
-import org.schabi.newpipe.extractor.stream.DeliveryMethod
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 class VideoCodecUtilsTest {
     @Test
@@ -28,15 +27,14 @@ class VideoCodecUtilsTest {
     @Test
     fun `stream helpers read the resolution label and the container`() {
         val stream =
-            VideoStream
-                .Builder()
-                .setId("248")
-                .setContent("https://example.invalid/248.webm", true)
-                .setMediaFormat(MediaFormat.WEBM)
-                .setResolution("1080p60")
-                .setIsVideoOnly(true)
-                .setDeliveryMethod(DeliveryMethod.PROGRESSIVE_HTTP)
-                .build()
+            VideoStream(
+                id = "248",
+                content = "https://example.invalid/248.webm",
+                format = MediaFormat.WEBM,
+                itagItem = null,
+                resolution = "1080p60",
+                isVideoOnly = true,
+            )
 
         assertThat(VideoCodecUtils.codecKeyFromStream(stream)).isEqualTo("vp9")
         assertThat(VideoCodecUtils.qualityHeightFromStream(stream)).isEqualTo(1080)

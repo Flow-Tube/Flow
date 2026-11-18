@@ -146,6 +146,7 @@ object InnerTubeVideoStreamExtractor {
             dropGatesOnIdentityChange()
             blockedVideoIds.remove(videoId)
             goneVideoIds.remove(videoId)
+            refusals.remove(videoId)
             if (forceSabr) {
                 val failureReasons = mutableListOf<String>()
                 trySabrClients(videoId, failureReasons)?.let {
@@ -311,12 +312,18 @@ object InnerTubeVideoStreamExtractor {
     /** Why the last extraction of [videoId] failed, when YouTube refused the viewer rather than the video. */
     fun blockOf(videoId: String): PlaybackBlock? = blockedVideoIds[videoId]
 
+    private val refusals = java.util.concurrent.ConcurrentHashMap<String, YouTubeRefusal>()
+
+    /** What YouTube said about [videoId] when its last extraction failed, in its own terms. */
+    fun refusalOf(videoId: String): YouTubeRefusal? = refusals[videoId]
+
     private fun recordBlock(
         videoId: String,
         failureReasons: List<String>,
         freshVisitorWalled: Boolean = false,
     ) {
         PlayabilityVerdict.block(failureReasons, freshVisitorWalled)?.let { blockedVideoIds[videoId] = it }
+        PlayabilityVerdict.refusalOf(failureReasons)?.let { refusals[videoId] = it }
     }
 
     /** The clients GVS is not currently refusing to serve. See [ClientGateTracker]. */

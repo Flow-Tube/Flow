@@ -1,64 +1,65 @@
 package io.github.aedev.flow.player.stream
 
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
+import io.github.aedev.flow.player.stream.model.AudioTrackType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.schabi.newpipe.extractor.stream.AudioTrackType
 
 /**
  * Covers the multi-audio path from InnerTube formats through the selector rows. The fixture is
  * built in code so the test does not depend on a missing binary or captured network response.
  */
 class MultiAudioTrackPipelineTest {
-
-    private val audioFormats = buildList {
-        add(audioFormat(id = "en.4", name = "English original", original = true, itag = 140))
-        add(
-            audioFormat(
-                id = "en.4",
-                name = "English original",
-                original = true,
-                itag = 140,
-                isDrc = true,
+    private val audioFormats =
+        buildList {
+            add(audioFormat(id = "en.4", name = "English original", original = true, itag = 140))
+            add(
+                audioFormat(
+                    id = "en.4",
+                    name = "English original",
+                    original = true,
+                    itag = 140,
+                    isDrc = true,
+                ),
             )
-        )
-        listOf(
-            "Arabic" to "ar",
-            "Bengali" to "bn",
-            "Chinese" to "zh",
-            "Czech" to "cs",
-            "Dutch" to "nl",
-            "French" to "fr",
-            "German" to "de",
-            "Greek" to "el",
-            "Hindi" to "hi",
-            "Indonesian" to "id",
-            "Italian" to "it",
-            "Japanese" to "ja",
-            "Korean" to "ko",
-            "Malay" to "ms",
-            "Polish" to "pl",
-            "Portuguese" to "pt",
-            "Romanian" to "ro",
-            "Russian" to "ru",
-            "Spanish" to "es",
-            "Swedish" to "sv",
-            "Tamil" to "ta",
-            "Telugu" to "te",
-            "Thai" to "th",
-            "Turkish" to "tr",
-            "Ukrainian" to "uk",
-        ).forEachIndexed { index, (name, language) ->
-            add(audioFormat(id = "$language.3", name = name, original = false, itag = 141 + index))
+            listOf(
+                "Arabic" to "ar",
+                "Bengali" to "bn",
+                "Chinese" to "zh",
+                "Czech" to "cs",
+                "Dutch" to "nl",
+                "French" to "fr",
+                "German" to "de",
+                "Greek" to "el",
+                "Hindi" to "hi",
+                "Indonesian" to "id",
+                "Italian" to "it",
+                "Japanese" to "ja",
+                "Korean" to "ko",
+                "Malay" to "ms",
+                "Polish" to "pl",
+                "Portuguese" to "pt",
+                "Romanian" to "ro",
+                "Russian" to "ru",
+                "Spanish" to "es",
+                "Swedish" to "sv",
+                "Tamil" to "ta",
+                "Telugu" to "te",
+                "Thai" to "th",
+                "Turkish" to "tr",
+                "Ukrainian" to "uk",
+            ).forEachIndexed { index, (name, language) ->
+                add(audioFormat(id = "$language.3", name = name, original = false, itag = 141 + index))
+            }
         }
-    }
 
     @Test
     fun `every dubbed track reaches the selector as its own row`() {
-        val tracks = StreamProcessor.processAudioStreams(
-            InnerTubeStreamBridge.convertAudioFormats(audioFormats)
-        )
+        val tracks =
+            StreamProcessor.processAudioStreams(
+                InnerTubeStreamBridge.convertAudioFormats(audioFormats),
+            )
 
         assertEquals(26, tracks.size)
         assertEquals(26, tracks.mapNotNull { it.audioTrackId }.distinct().size)
@@ -66,9 +67,10 @@ class MultiAudioTrackPipelineTest {
 
     @Test
     fun `exactly one track is reported as the original`() {
-        val tracks = StreamProcessor.processAudioStreams(
-            InnerTubeStreamBridge.convertAudioFormats(audioFormats)
-        )
+        val tracks =
+            StreamProcessor.processAudioStreams(
+                InnerTubeStreamBridge.convertAudioFormats(audioFormats),
+            )
 
         val originals = tracks.filter { it.audioTrackType == AudioTrackType.ORIGINAL }
         assertEquals(1, originals.size)
@@ -77,13 +79,14 @@ class MultiAudioTrackPipelineTest {
 
     @Test
     fun `dubs are the ones that bypass the default audio path`() {
-        val tracks = StreamProcessor.processAudioStreams(
-            InnerTubeStreamBridge.convertAudioFormats(audioFormats)
-        )
+        val tracks =
+            StreamProcessor.processAudioStreams(
+                InnerTubeStreamBridge.convertAudioFormats(audioFormats),
+            )
 
         assertEquals(25, tracks.count { StreamProcessor.overridesDefaultAudioTrack(it) })
         assertTrue(
-            !StreamProcessor.overridesDefaultAudioTrack(tracks.single { it.audioTrackId == "en.4" })
+            !StreamProcessor.overridesDefaultAudioTrack(tracks.single { it.audioTrackId == "en.4" }),
         )
     }
 
@@ -95,16 +98,17 @@ class MultiAudioTrackPipelineTest {
 
         val converted = InnerTubeStreamBridge.convertAudioFormats(audioFormats)
 
-        assertTrue(converted.none { it.getContent().contains("drc=True") })
+        assertTrue(converted.none { it.content.contains("drc=True") })
     }
 
     @Test
     fun `selector rows are labelled with their language`() {
-        val options = StreamProcessor.toAudioTrackOptions(
-            StreamProcessor.processAudioStreams(
-                InnerTubeStreamBridge.convertAudioFormats(audioFormats)
+        val options =
+            StreamProcessor.toAudioTrackOptions(
+                StreamProcessor.processAudioStreams(
+                    InnerTubeStreamBridge.convertAudioFormats(audioFormats),
+                ),
             )
-        )
 
         assertTrue(options.none { it.label.isBlank() })
         assertTrue(options.any { it.label.contains("original", ignoreCase = true) })
@@ -146,12 +150,13 @@ class MultiAudioTrackPipelineTest {
         loudnessDb = null,
         lastModified = null,
         signatureCipher = null,
-        audioTrack = PlayerResponse.StreamingData.Format.AudioTrack(
-            displayName = name,
-            id = id,
-            isAutoDubbed = !original,
-            audioIsDefault = original,
-        ),
+        audioTrack =
+            PlayerResponse.StreamingData.Format.AudioTrack(
+                displayName = name,
+                id = id,
+                isAutoDubbed = !original,
+                audioIsDefault = original,
+            ),
         isDrc = isDrc,
     )
 }

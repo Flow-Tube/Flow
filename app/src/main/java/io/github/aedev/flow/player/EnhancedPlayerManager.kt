@@ -17,7 +17,6 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
-import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
@@ -29,14 +28,12 @@ import androidx.media3.session.MediaSession
 import dagger.hilt.android.EntryPointAccessors
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SponsorBlockAction
-import io.github.aedev.flow.data.local.VideoQuality
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.YouTube
-import io.github.aedev.flow.innertube.models.YouTubeClient
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
 import io.github.aedev.flow.player.analytics.RenderedFirstFrameListener
@@ -65,7 +62,6 @@ import io.github.aedev.flow.player.recovery.ClearedMediaRecoveryState
 import io.github.aedev.flow.player.recovery.StreamDenialReloader
 import io.github.aedev.flow.player.resolver.AdaptiveDashManifest
 import io.github.aedev.flow.player.sabr.integration.SabrStreamInfo
-import io.github.aedev.flow.player.sabr.integration.SabrUrlResolver
 import io.github.aedev.flow.player.service.BackgroundServiceManager
 import io.github.aedev.flow.player.sponsorblock.SponsorBlockHandler
 import io.github.aedev.flow.player.sponsorblock.SponsorBlockSkip
@@ -83,6 +79,9 @@ import io.github.aedev.flow.player.stream.ResolvedStreamData
 import io.github.aedev.flow.player.stream.ServicePlaybackStreamSelector
 import io.github.aedev.flow.player.stream.StreamProcessor
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.model.AudioStream
+import io.github.aedev.flow.player.stream.model.StreamType
+import io.github.aedev.flow.player.stream.model.VideoStream
 import io.github.aedev.flow.player.subtitle.SubtitleAutoPolicy
 import io.github.aedev.flow.player.subtitle.SubtitleDelay
 import io.github.aedev.flow.player.subtitle.SubtitleTracks
@@ -91,7 +90,6 @@ import io.github.aedev.flow.player.surface.VideoSurfacePolicy
 import io.github.aedev.flow.player.tracker.PlaybackTracker
 import io.github.aedev.flow.utils.FlowCrashHandler
 import io.github.aedev.flow.utils.NetworkState
-import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -114,12 +112,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.schabi.newpipe.extractor.ServiceList
-import org.schabi.newpipe.extractor.stream.AudioStream
-import org.schabi.newpipe.extractor.stream.StreamInfo
-import org.schabi.newpipe.extractor.stream.StreamInfoItem
-import org.schabi.newpipe.extractor.stream.StreamType
-import org.schabi.newpipe.extractor.stream.VideoStream
 
 @UnstableApi
 class EnhancedPlayerManager private constructor() {
@@ -687,7 +679,7 @@ class EnhancedPlayerManager private constructor() {
                 onGatedCodecFallback = { position -> qualityManager?.fallbackToAlternateCodec(position) ?: false },
                 getFailedStreamUrls = {
                     qualityManager?.let { qm ->
-                        (availableVideoStreams.map { it.getContent() } + castAudioStreams.map { it.getContent() })
+                        (availableVideoStreams.map { it.content } + castAudioStreams.map { it.content })
                             .filter { qm.hasStreamFailed(it) }
                             .toSet()
                     } ?: emptySet()
@@ -1296,7 +1288,7 @@ class EnhancedPlayerManager private constructor() {
                             ?.let(QualityManager::normalizeQualityHeight)
                             ?: 0
                     },
-                currentQualityKey = if (isAutoMode) null else currentVideoStream?.getContent()?.takeIf { it.isNotBlank() },
+                currentQualityKey = if (isAutoMode) null else currentVideoStream?.content?.takeIf { it.isNotBlank() },
                 currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, currentAudioStream),
                 isLive = currentIsLiveStream,
                 isAtLiveEdge = false,
@@ -2446,7 +2438,7 @@ class EnhancedPlayerManager private constructor() {
                             ?.let(QualityManager::normalizeQualityHeight)
                             ?: 0
                     },
-                currentQualityKey = if (isAutoMode) null else currentVideoStream?.getContent()?.takeIf { it.isNotBlank() },
+                currentQualityKey = if (isAutoMode) null else currentVideoStream?.content?.takeIf { it.isNotBlank() },
                 currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, currentAudioStream),
                 isLive = false,
                 isAtLiveEdge = false,
@@ -3568,7 +3560,7 @@ class EnhancedPlayerManager private constructor() {
                     }
 
                     currentVideoStream?.let { stream ->
-                        if (qualityManager?.hasStreamFailed(stream.getContent()) == true) {
+                        if (qualityManager?.hasStreamFailed(stream.content) == true) {
                             val working =
                                 qualityManager?.getWorkingStreams()?.maxByOrNull {
                                     VideoCodecUtils.qualityHeightFromStream(it)

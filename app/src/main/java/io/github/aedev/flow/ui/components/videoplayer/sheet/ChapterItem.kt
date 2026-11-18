@@ -28,12 +28,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.ui.components.shared.DurationBadge
 import io.github.aedev.flow.ui.components.shared.MediaArtworkTint
 import io.github.aedev.flow.ui.components.shared.MediaThumbnailDefaults
 import io.github.aedev.flow.ui.components.shared.thumbnailUrlOrNull
 import io.github.aedev.flow.utils.formatDuration
-import org.schabi.newpipe.extractor.stream.StreamSegment
 
 private val ThumbnailWidth: Dp = 104.dp
 
@@ -43,7 +43,7 @@ private val ThumbnailWidth: Dp = 104.dp
  */
 @Composable
 internal fun ChapterItem(
-    chapter: StreamSegment,
+    chapter: VideoChapter,
     isCurrent: Boolean,
     progress: Float,
     durationSeconds: Int?,

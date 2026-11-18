@@ -32,8 +32,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.schabi.newpipe.extractor.Page
-import org.schabi.newpipe.extractor.stream.StreamInfo
 
 /**
  * Pins how many times each network entry point is entered per user-visible cause, with both

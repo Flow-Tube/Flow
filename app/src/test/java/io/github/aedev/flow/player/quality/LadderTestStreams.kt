@@ -3,7 +3,7 @@ package io.github.aedev.flow.player.quality
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.Range
 import io.github.aedev.flow.player.stream.InnerTubeStreamBridge
-import org.schabi.newpipe.extractor.stream.VideoStream
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 internal object LadderTestStreams {
     private val H264_ITAGS = mapOf(144 to 160, 240 to 133, 360 to 134, 480 to 135, 720 to 136, 1080 to 137)
