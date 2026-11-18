@@ -1708,7 +1708,7 @@
     <string name="recognition_clear_history_body">Cette opération supprime toutes les chansons reconnues. Elle est irréversible.</string>
     <string name="player_settings_display">Affichage</string>
     <string name="player_settings_ambient_mode">Mode ambiant</string>
-    <string name="player_settings_ambient_mode_subtitle">Remplissez les bandes autour de la vidéo d\'une douce lueur aux couleurs de celle-ci</string>
+    <string name="player_settings_ambient_mode_subtitle">Remplit les bandes noires avec les couleurs de la vidéo</string>
     <string name="player_appearance_shorts_ui_title">Interface utilisateur de Shorts</string>
     <string name="player_appearance_shorts_ui_subtitle">Choisissez la partie de la superposition « Shorts » qui restera visible</string>
     <string name="shorts_player_ui_default">Par défaut</string>
@@ -2708,7 +2708,7 @@
     <string name="channel_post_poll_votes">%1$s</string>
     <string name="player_background_style_immersive">Illustration immersive</string>
     <string name="player_appearance_haptics_title">Vibration</string>
-    <string name="player_appearance_haptics_subtitle">Provoquer une légère vibration lorsque l\'utilisateur appuie ou effectue des gestes sur le lecteur</string>
+    <string name="player_appearance_haptics_subtitle">Vibrer légèrement lors des tapotements et des gestes</string>
     <string name="player_appearance_gesture_overlay_title">Style de superposition des gestes</string>
     <string name="player_appearance_scrub_preview_title">Aperçu du nettoyage</string>
     <string name="player_appearance_scrub_preview_subtitle">Ce que la barre de défilement affiche lorsque vous la faites glisser</string>
@@ -2950,7 +2950,7 @@
     <string name="settings_open_music_player_on_play_title">Ouvrez le lecteur complet pour de nouvelles chansons</string>
     <string name="settings_open_music_player_on_play_summary">Off conserve une nouvelle chanson dans le mini-lecteur</string>
     <string name="content_settings_live_chat_enabled_title">Chat en direct</string>
-    <string name="content_settings_live_chat_enabled_subtitle">Afficher le chat sur les flux en direct</string>
+    <string name="content_settings_live_chat_enabled_subtitle">Afficher le chat pendant les diffusions en direct et leurs rediffusions</string>
     <string name="content_settings_subs_collaborations_title">Collaborations</string>
     <string name="content_settings_subs_collaborations_subtitle">Vidéos réalisées avec les chaînes que vous suivez</string>
     <string name="nav_downloads">Téléchargements</string>
@@ -4210,7 +4210,7 @@
     <string name="settings_hide_password">Masquer le mot de passe</string>
     <string name="settings_proxy_unsaved">Vous avez des modifications non enregistrées</string>
     <string name="settings_keywords_history">recherches récentes, confidentialité, oublier, supprimer, saisie semi-automatique</string>
-    <string name="settings_keywords_wellbeing">temps d\'écran, bien-être numérique, sommeil, heure du coucher, pause, temps de visionnage, utilisation</string>
+    <string name="settings_keywords_wellbeing">temps passé devant les écrans, bien-être numérique, sommeil, heure du coucher, pause, temps de visionnage, utilisation, limite quotidienne, limite de temps</string>
     <string name="settings_sleep_window_summary">Fenêtre de veille : %1$s</string>
     <string name="settings_notification_permission_needed">Autoriser les notifications pour recevoir des rappels</string>
     <string name="settings_watch_time_week_total">%1$s cette semaine</string>
@@ -4822,7 +4822,7 @@
     <string name="paid_promotion_label">شامل تبلیغات پولی</string>
     <string name="stats_for_nerds">آمار برای افراد عصبی</string>
     <string name="stats_copy">کپی</string>
-    <string name="stats_line">%1$s: %2$s</string>
+    <string name="stats_line">%1$s : %2$s</string>
     <string name="stats_device">دستگاه</string>
     <string name="stats_video_id">شناسه ویدیو</string>
     <string name="stats_video">ویدیو</string>
@@ -4831,7 +4831,7 @@
     <string name="stats_volume">حجم صدا</string>
     <string name="stats_bandwidth">پهنای باند</string>
     <string name="stats_buffered">بافر شده</string>
-    <string name="stats_viewport">Viewport</string>
+    <string name="stats_viewport">Fenêtre d\'affichage</string>
     <string name="stats_dropped_frames">فریم های افت شده</string>
     <string name="content_settings_navbar_show_on_search_title">نمایش نوار پیمایش در جستجو</string>
     <string name="content_settings_navbar_show_on_search_subtitle">نوار را روی صفحه جستجو نگه دارید</string>
@@ -4841,7 +4841,7 @@
     <string name="sb_action_jump_button_detail">پرش را برای 10 ثانیه با شروع ویدیو ارائه می‌کند</string>
     <string name="sb_jump_to_highlight">پرش به برجسته کردن</string>
     <string name="sb_color_custom">رنگ سفارشی</string>
-    <string name="sb_color_custom_value">رنگ سفارشی: %1$s</string>
+    <string name="sb_color_custom_value">Couleur personnalisée : %1$s</string>
     <string name="settings_crossfade_auto_title">وقتی آهنگی تمام می‌شود محو می‌شود</string>
     <string name="settings_crossfade_auto_summary">آهنگ بعدی را به تنهایی ترکیب کنید</string>
     <string name="settings_crossfade_skip_title">وقتی رد می‌شوید محو می‌شود</string>
@@ -4864,7 +4864,7 @@
     <string name="lyrics_background_moving">متحرک</string>
     <string name="lyrics_background_moving_detail">رنگ‌های ملایمی که در حین پخش آهنگ تغییر می‌کنند</string>
     <string name="lyrics_on_lock_screen">متن ترانه‌ها در صفحه قفل</string>
-    <string name="lyrics_on_lock_screen_summary">\@@@ZXQITEMFQZX@@@@@@ZXQITEMFQZX@@@.</string>
+    <string name="lyrics_on_lock_screen_summary">Affiche la ligne en cours comme titre du morceau, y compris dans d\'autres applications</string>
     <string name="lyrics_on_lock_screen_timing">زمان‌بندی متن ترانه‌های صفحه قفل</string>
     <string name="lyrics_background">پس زمینه</string>
     <string name="lyrics_on_lock_screen_timing_summary">اگر خط‌ها دیر شد زودتر حرکت کنید</string>
@@ -4891,7 +4891,7 @@
     <string name="eq_spatial_sound_summary">استریو را روی هر هدفونی گسترش می‌دهد</string>
     <string name="eq_spatial_sound_keywords">صدای فضایی، فراگیر، صدای سه بعدی، استریو</string>
     <string name="eq_spatial_low">کم</string>
-    <string name="eq_spatial_medium">"متوسط "</string>
+    <string name="eq_spatial_medium">Moyen</string>
     <string name="eq_spatial_high">بالا</string>
     <string name="linked_login_change_title">رمز عبور این پوشه را تغییر دهید</string>
     <string name="linked_login_change_due">دستگاهی که حذف کرده‌اید همچنان می‌تواند به این پوشه دسترسی پیدا کند تا زمانی که رمز عبور آن تغییر کند. این کار را روی دستگاهی که آن را از آن حذف کرده اید انجام دهید.</string>
@@ -4995,7 +4995,7 @@
     <string name="cover_shape_clam_shell">پوسته صدف</string>
     <string name="cover_shape_pentagon">پنتاگون</string>
     <string name="cover_shape_gem">Gem</string>
-    <string name="cover_shape_sunny">Sunny</string>
+    <string name="cover_shape_sunny">Ensoleillé</string>
     <string name="cover_shape_very_sunny">بسیار آفتابی</string>
     <string name="cover_shape_cookie_4">کوکی 4</string>
     <string name="cover_shape_cookie_6">کوکی 6</string>
@@ -5005,8 +5005,8 @@
     <string name="cover_shape_ghostish">شبح</string>
     <string name="cover_shape_clover_4">Clover 4</string>
     <string name="cover_shape_clover_8">Clover 8</string>
-    <string name="cover_shape_burst">Burst</string>
-    <string name="cover_shape_soft_burst">Soft burst</string>
+    <string name="cover_shape_burst">Salve</string>
+    <string name="cover_shape_soft_burst">Explosion douce</string>
     <string name="cover_shape_boom">بوم</string>
     <string name="cover_shape_soft_boom">بوم نرم</string>
     <string name="cover_shape_flower">گل</string>
@@ -5015,7 +5015,7 @@
     <string name="cover_shape_pixel_circle">دایره پیکسل</string>
     <string name="cover_shape_pixel_triangle">مثلث پیکسل</string>
     <string name="cover_shape_bun">Bun</string>
-    <string name="cover_shape_heart">Heart</string>
+    <string name="cover_shape_heart">Cœur</string>
     <string name="player_appearance_cover_shapes_title">شکل‌های جلد</string>
     <string name="player_appearance_cover_shapes_subtitle">هر آهنگ هنگام پخش یکی از اینها را می‌گیرد</string>
     <string name="player_appearance_bar_progress_title">پیشرفت نوار</string>
@@ -5039,7 +5039,7 @@
     <string name="mini_background_app_theme">تم برنامه</string>
     <string name="mini_background_cover_colours">رنگ جلد</string>
     <string name="mini_background_black">مشکی</string>
-    <string name="mini_background_outlined">Outlined</string>
+    <string name="mini_background_outlined">En bref</string>
     <string name="mini_button_play_pause">پخش یا مکث</string>
     <string name="mini_button_queue">باز کردن صف</string>
     <string name="mini_button_lyrics">اشعار را باز کنید</string>
@@ -5056,7 +5056,7 @@
     <string name="player_appearance_mini_long_press_title">فشار طولانی</string>
     <string name="player_appearance_mini_long_press_nothing">هیچی</string>
     <string name="player_appearance_mini_long_press_options">گزینه‌ها</string>
-    <string name="player_appearance_mini_long_press_like">Like</string>
+    <string name="player_appearance_mini_long_press_like">J\'aime</string>
     <string name="player_appearance_mini_long_press_queue">صف</string>
     <string name="player_appearance_cover_paused_title">وقتی مکث شد</string>
     <string name="player_appearance_cover_paused_subtitle">شکلی که جلد در آن قرار دارد</string>
@@ -5088,7 +5088,7 @@
     <string name="comments_timed_next">نظر بعدی در %1$s</string>
     <string name="comments_timed_end">دیگر در این ویدیو نظر زمان‌بندی شده وجود ندارد</string>
     <string name="comments_turned_off">نظرات غیرفعال هستند</string>
-    <string name="translate">Translate</string>
+    <string name="translate">Traduire</string>
     <string name="translate_with">ترجمه با</string>
     <string name="translate_no_app">برنامه مترجمی یافت نشد. می توانید سرور خود را در تنظیمات › زبان و منطقه اضافه کنید.</string>
     <string name="translation_in_progress">در حال ترجمه…</string>
@@ -5110,7 +5110,7 @@
     <string name="group_show_in_all">نمایش در همه</string>
     <string name="group_show_in_all_hidden">گروه‌های مخفی از همه حذف می‌شوند</string>
     <string name="downloads_folder_lost_title">دوباره پوشه دانلود خود را انتخاب کنید</string>
-    <string name="downloads_folder_lost_body">\@@ZXQPHAQZX@@@Flow دسترسی به پوشه‌ای را که برای دانلود انتخاب کرده‌اید از دست داد، همانطور که بعد از نصب مجدد اتفاق می‌افتد. دوباره آن را انتخاب کنید تا دانلودهای قبلی خود را پیدا کرده و در آنجا ذخیره کنید.</string>
+    <string name="downloads_folder_lost_body">Flow n\'a plus accès au dossier que vous aviez choisi pour les téléchargements, comme cela arrive souvent après une réinstallation. Sélectionnez-le à nouveau pour retrouver vos anciens téléchargements et continuer à y enregistrer vos fichiers.</string>
     <string name="downloads_folder_lost_choose">انتخاب پوشه</string>
     <string name="recent_searches_show_all">نمایش همه</string>
     <string name="subscription_posts_empty">هیچ پستی در 30 روز گذشته وجود ندارد</string>
@@ -5407,4 +5407,56 @@
     <string name="ai_report_rate_limited">گزارش‌های بسیار زیادی ارسال شد، بعداً دوباره امتحان کنید</string>
     <string name="ai_report_rejected">AiSList گزارش را رد کرد</string>
     <string name="ai_report_failed">گزارش ناموفق بود، اتصال خود را بررسی کنید</string>
+    <plurals name="player_appearance_cover_shapes_count">
+        <item quantity="one">%d forme</item>
+        <item quantity="many">%d formes</item>
+        <item quantity="other">%d formes</item>
+    </plurals>
+    <plurals name="disk_read_ahead_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="many">%1$d minutes</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="import_takeout_part_ads_removed">
+        <item quantity="one">%d publicité supprimée de l\'historique</item>
+        <item quantity="many">%d publicités supprimées de l\'historique</item>
+        <item quantity="other">%d publicités supprimées de l\'historique</item>
+    </plurals>
+    <string name="newpipe_extractor_credit">Les débuts de l\'extraction de vidéos YouTube par Flow</string>
+    <string name="error_members_only">Vidéo réservée aux membres</string>
+    <string name="error_members_only_hint">Abonnez-vous à cette chaîne YouTube pour la regarder.</string>
+    <string name="error_copyright_removed">Supprimé pour des raisons de droits d\'auteur</string>
+    <string name="error_copyright_removed_hint">%1$s a demandé à YouTube de supprimer cette vidéo.</string>
+    <string name="error_copyright_removed_hint_unnamed">Le titulaire des droits d\'auteur a demandé à YouTube de retirer cette vidéo.</string>
+    <string name="error_removed_by_uploader">Supprimé par l\'auteur de la publication</string>
+    <string name="error_removed_by_uploader_hint">L\'auteur de la vidéo a supprimé celle-ci de YouTube.</string>
+    <string name="error_policy_removed">Supprimé par YouTube</string>
+    <string name="error_policy_removed_hint">YouTube a supprimé cette vidéo car elle enfreignait ses règles.</string>
+    <string name="error_recording_unavailable">Enregistrement indisponible</string>
+    <string name="error_recording_unavailable_hint">Cette diffusion en direct s\'est terminée sans qu\'il y ait d\'enregistrement sur YouTube.</string>
+    <plurals name="songs_removed_from_queue">
+        <item quantity="one">%d titre a été retiré de la file d\'attente</item>
+        <item quantity="many">%d titres ont été supprimés de la file d\'attente</item>
+        <item quantity="other">%d titres ont été supprimés de la file d\'attente</item>
+    </plurals>
+    <plurals name="add_songs_to_playlist_title">
+        <item quantity="one">Ajouter %d titre à une playlist</item>
+        <item quantity="many">Ajouter %d titres à une playlist</item>
+        <item quantity="other">Ajouter %d titres à une playlist</item>
+    </plurals>
+    <plurals name="playlists_exported">
+        <item quantity="one">%d playlist enregistrée</item>
+        <item quantity="many">%d playlists enregistrées</item>
+        <item quantity="other">%d playlists enregistrées</item>
+    </plurals>
+    <plurals name="playlists_imported">
+        <item quantity="one">%d playlist importée</item>
+        <item quantity="many">%d playlists importées</item>
+        <item quantity="other">%d playlists importées</item>
+    </plurals>
+    <plurals name="app_lock_after_minutes">
+        <item quantity="one">Au bout de %1$d minute</item>
+        <item quantity="many">Au bout de %1$d minutes</item>
+        <item quantity="other">Au bout de %1$d minutes</item>
+    </plurals>
 </resources>
