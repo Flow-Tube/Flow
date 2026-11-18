@@ -30,6 +30,7 @@ import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncCard
 import io.github.aedev.flow.ui.screens.sync.SyncRowGroup
 import io.github.aedev.flow.ui.screens.sync.SyncStepHeader
+import io.github.aedev.flow.ui.screens.sync.dpadQrPlate
 
 /** How many words the user types back before the key counts as saved (spec/protocol.md, Recovery). */
 private const val CHECKED_WORDS = 2
@@ -60,7 +61,10 @@ internal fun LinkedRecoveryWords(
                 }
             }
         }
-        SyncCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest) {
+        SyncCard(
+            modifier = Modifier.dpadQrPlate(),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        ) {
             QrCodeImage(words, Modifier.fillMaxWidth().aspectRatio(1f).padding(16.dp))
         }
         SyncActionRow(confirmLabel = stringResource(R.string.linked_words_saved), onConfirm = { checking = true })

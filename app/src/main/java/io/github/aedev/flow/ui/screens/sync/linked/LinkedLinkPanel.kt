@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.sync2.service.LinkPhase
+import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.screens.sync.QrCodeImage
 import io.github.aedev.flow.ui.screens.sync.SyncActionRow
 import io.github.aedev.flow.ui.screens.sync.SyncBusyContent
@@ -20,6 +21,7 @@ import io.github.aedev.flow.ui.screens.sync.SyncCard
 import io.github.aedev.flow.ui.screens.sync.SyncFailedContent
 import io.github.aedev.flow.ui.screens.sync.SyncSasContent
 import io.github.aedev.flow.ui.screens.sync.SyncStepHeader
+import io.github.aedev.flow.ui.screens.sync.dpadQrPlate
 
 /** Adding or joining a device: the code to show, the six digits to compare, and the outcome. */
 @Composable
@@ -33,19 +35,29 @@ internal fun LinkedLinkPanel(
 
         is LinkPhase.Waiting -> {
             val code = phase.code
+            val cancel: @Composable () -> Unit = {
+                SyncActionRow(confirmLabel = stringResource(R.string.linked_cancel), onConfirm = onClose)
+            }
             if (code == null) {
                 SyncBusyContent(stringResource(R.string.linked_waiting))
+                cancel()
             } else {
+                // A remote lands on Cancel; above the code, focusing it leaves the whole code on screen.
+                val dpad = LocalDpadNavigation.current
                 SyncStepHeader(
                     icon = Icons.Outlined.QrCode2,
                     title = stringResource(R.string.linked_scan_this_code),
                     body = stringResource(R.string.linked_scan_this_code_body),
                 )
-                SyncCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest) {
+                if (dpad) cancel()
+                SyncCard(
+                    modifier = Modifier.dpadQrPlate(bringIntoView = true),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                ) {
                     QrCodeImage(code, Modifier.fillMaxWidth().aspectRatio(1f).padding(16.dp))
                 }
+                if (!dpad) cancel()
             }
-            SyncActionRow(confirmLabel = stringResource(R.string.linked_cancel), onConfirm = onClose)
         }
 
         is LinkPhase.Confirm -> {
