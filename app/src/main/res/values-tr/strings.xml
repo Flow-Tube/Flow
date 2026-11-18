@@ -2596,7 +2596,7 @@
     <string name="content_settings_hide_unplayable_subscriptions_title">Oynatılamayan Videoları Aboneliklerden Gizle</string>
     <string name="content_settings_hide_unplayable_subscriptions_subtitle">Oynatılamayan gizli, silinmiş ve kısıtlanmış videoları gizle</string>
     <string name="content_settings_live_chat_enabled_title">Canlı sohbet</string>
-    <string name="content_settings_live_chat_enabled_subtitle">Canlı yayınlarda sohbeti göster</string>
+    <string name="content_settings_live_chat_enabled_subtitle">Canlı yayınlarda ve tekrarlarında sohbeti göster</string>
     <string name="content_settings_subs_collaborations_title">İş birlikleri</string>
     <string name="content_settings_subs_collaborations_subtitle">Takip ettiğin kanallarla birlikte yapılan videolar</string>
     <string name="nav_downloads">İndirmeler</string>
@@ -4924,4 +4924,23 @@
     <string name="player_appearance_mini_long_press_options">Seçenekler</string>
     <string name="player_appearance_mini_long_press_like">Beğen</string>
     <string name="lyrics_animation">Şarkı sözleri animasyonu</string>
+    <string name="lyrics_animation_summary">Senkronize satırların söylenirken nasıl hareket ettiği</string>
+    <string name="lyrics_animation_cadence_detail">Harfler söylendikçe yükselir</string>
+    <string name="lyrics_animation_classic">Klasik</string>
+    <string name="lyrics_animation_classic_detail">Kelimeler doldukça yükselir</string>
+    <string name="lyrics_animation_calm_detail">Sadece doldur, hareket yok</string>
+    <string name="lyrics_glow">Uzatılan nota parlaması</string>
+    <string name="lyrics_glow_summary">Uzun notaların söylenirken ne kadar parlak parladığı</string>
+    <string name="lyrics_glow_soft">Yumuşak</string>
+    <string name="player_appearance_lyrics_on_cover_title">Kapaktaki şarkı sözleri</string>
+    <string name="player_appearance_lyrics_on_cover_subtitle">Şarkı sözleri butonu, bir sayfa yerine oynatıcıda şarkı sözlerini gösterir</string>
+    <string name="player_appearance_cover_shapes_title">Kapak şekilleri</string>
+    <string name="player_appearance_cover_shapes_subtitle">Her şarkı çalarken bunlardan birini kullanır</string>
+    <string name="player_appearance_bar_progress_title">İlerleme çubuğu</string>
+    <string name="mini_button_play_pause">Oynat veya duraklat</string>
+    <string name="mini_button_queue">Kuyruğu aç</string>
+    <string name="mini_button_lyrics">Şarkı sözlerini aç</string>
+    <string name="mini_button_sleep_timer">Uyku zamanlayıcısı</string>
+    <string name="mini_button_back_10">10 saniye geri</string>
+    <string name="mini_button_forward_10">10 saniye ileri</string>
 </resources>
