@@ -705,7 +705,7 @@
     <string name="notifications_clear_confirm">Tühjenda kõik</string>
     <string name="notifications_empty_body">Olete kõik kinni! Siin kuvatakse teie tellimuste uued värskendused.</string>
     <string name="deep_flow_mode_title">Sügav Flow režiim</string>
-    <string name="deep_flow_mode_subtitle">Peatage õppimine sirvimise ajal</string>
+    <string name="deep_flow_mode_subtitle">Peata õppimise ja otsinguajaloo salvestamine</string>
     <string name="deep_flow_learning_paused">ÕPPIMINE PEATETUD</string>
     <string name="deep_flow_expires_in">Aegub %s pärast</string>
     <string name="deep_flow_expire_duration_title">Automaatne keelamine pärast</string>
@@ -908,7 +908,7 @@
     <string name="player_appearance_hide_music_artwork_title">Peida muusikapleieri kujundus</string>
     <string name="player_appearance_hide_music_artwork_subtitle">Selle asemel kuvage ekstraheeritud kunstiteose värvil rakenduse ikooni</string>
     <string name="player_appearance_haptics_title">Vibratsioon</string>
-    <string name="player_appearance_haptics_subtitle">Vibreerige mängija puudutustel ja žestidel kergelt</string>
+    <string name="player_appearance_haptics_subtitle">Vibreeri kergelt mängija puudutustel ja viipamisel</string>
     <string name="player_appearance_gesture_overlay_title">Žestiga ülekatte stiil</string>
     <string name="player_appearance_gesture_overlay_subtitle">Helitugevus ja heledus kuvatakse pühkides</string>
     <string name="gesture_overlay_style_circular">Ringkiri</string>
@@ -1254,7 +1254,7 @@
     <string name="proxy_settings_host">Host</string>
     <string name="proxy_settings_port">Port</string>
     <string name="proxy_settings_username">Kasutajanimi</string>
-    <string name="proxy_settings_password">Parool</string>
+    <string name="proxy_settings_password">Salasõna</string>
     <string name="proxy_settings_optional_auth">Kui puhverserveril pole sisselogimist, jätke need tühjaks.</string>
     <string name="proxy_settings_bypass_vpn">Jätke VPN-i puhverserver vahele</string>
     <string name="proxy_settings_bypass_vpn_subtitle">Ühendage otse, kui VPN on sisse lülitatud</string>
@@ -2596,13 +2596,13 @@
     <string name="linked_where_server">Flow sünkroonimisserver</string>
     <string name="linked_where_server_body">Teie server: reaalajas värskendused ja kiireim sünkroonimine. Vajab aadressi ja administraatori tunnust</string>
     <string name="linked_where_webdav">WebDAV-i kaust</string>
-    <string name="linked_where_webdav_body">Nextcloud või mõni muu WebDAV-server. Vajab kausta aadressi, kasutajanime ja parooli</string>
+    <string name="linked_where_webdav_body">Nextcloud või mõni muu WebDAV-server. Vajab kausta aadressi, kasutajanime ja salasõna</string>
     <string name="linked_webdav_body">Kasutage tühja kausta ainult Flow jaoks. Sisselogimist hoitakse ainult selle seadme turvalises salvestusruumis ja see antakse seadmetele, mille linkite.</string>
     <string name="linked_webdav_url">Kausta aadress</string>
     <string name="linked_webdav_url_hint">https://cloud.example.org/remote.php/dav/files/you/flow-sync/</string>
     <string name="linked_webdav_user">Kasutajanimi</string>
-    <string name="linked_webdav_password">Parool</string>
-    <string name="linked_webdav_password_hint">Rakenduse parool, kui teie server seda pakub</string>
+    <string name="linked_webdav_password">Salasõna</string>
+    <string name="linked_webdav_password_hint">Rakenduse salasõna, kui sinu server seda pakub</string>
     <string name="linked_join_login_title">Rühmitada WebDAV-i kaustas? Sisestage selle sisselogimine</string>
     <string name="linked_join_login_body">Vajalik ainult siis, kui kaks seadet pole samas võrgus: siis toimub sidumine kausta kaudu.</string>
     <string name="linked_join_login_entered">WebDAV-i sisselogimine sisestatud. Muuda seda</string>
@@ -2686,7 +2686,7 @@
     <string name="linked_confirm">Kinnita</string>
     <string name="linked_error_insecure">Server peab kasutama HTTPS-i, välja arvatud juhul, kui see on teie kohalikus võrgus.</string>
     <string name="linked_error_unreachable">Serveriga ei saanud ühendust. Kontrollige aadressi ja ühendust.</string>
-    <string name="linked_error_login_refused">WebDAV-server keeldus kasutajanime või parooli andmisest. Sisestage need uuesti.</string>
+    <string name="linked_error_login_refused">WebDAV-server keeldus kasutajanime või salasõna vastvõtmisest. Sisesta need uuesti.</string>
     <string name="linked_error_refused">Server keeldus taotlusest. Kontrollige aadressi ja administraatori tunnust.</string>
     <string name="linked_error_instance_changed">See ei ole server, mille kaudu see seade lingiti.</string>
     <string name="linked_error_protocol">Server või muu seade saatis midagi valesti. Midagi ei muudetud.</string>
@@ -3981,8 +3981,8 @@
     <string name="settings_section_proxy_server">Server</string>
     <string name="settings_section_proxy_sign_in">Logi sisse</string>
     <string name="settings_keywords_network">puhverserver, sokid, http, vpn, ühendus</string>
-    <string name="settings_show_password">Näita parooli</string>
-    <string name="settings_hide_password">Peida parool</string>
+    <string name="settings_show_password">Näita salasõna</string>
+    <string name="settings_hide_password">Peida salasõna</string>
     <string name="settings_proxy_unsaved">Teil on salvestamata muudatusi</string>
     <string name="settings_keywords_history">hiljutised otsingud, privaatsus, unustamine, kustutamine, automaatne täitmine</string>
     <string name="settings_keywords_wellbeing">ekraaniaeg, digitaalne heaolu, uni, uneaeg, paus, vaatamisaeg, kasutus</string>
@@ -4487,8 +4487,8 @@
     </plurals>
     <string name="scrobbling_sign_in_title">Logige sisse teenusesse %1$s</string>
     <string name="scrobbling_user_name">Kasutajanimi</string>
-    <string name="scrobbling_password">Parool</string>
-    <string name="scrobbling_password_note">Teie parool saadetakse üks kord ja seda ei salvestata.</string>
+    <string name="scrobbling_password">Salasõna</string>
+    <string name="scrobbling_password_note">Sinu salasõna saadetakse üks kord ja seda ei salvestata.</string>
     <string name="scrobbling_token">Kasutaja tunnus</string>
     <string name="scrobbling_token_note">Kopeerige see saidilt listenbrainz.org/settings.</string>
     <string name="scrobbling_sign_in">Logi sisse</string>
@@ -4903,13 +4903,13 @@
     <string name="play_on_status_paused_short">Peatatud</string>
     <string name="play_on_play_here">Esita siin</string>
     <string name="play_on_control_device">Juhi seadet %1$s</string>
-    <string name="linked_login_change_title">Muuda selle kausta parooli</string>
-    <string name="linked_login_change_due">Eemaldatud seade pääseb sellesse kausta ligi, kuni parool muutub. Muuda parool seadmes, kust selle eemaldasid.</string>
-    <string name="linked_login_change_first">Sisesta uus parool siin enne selle teenusepakkuja juures määramist, et teised seadmed saaksid selle esimesena.</string>
+    <string name="linked_login_change_title">Muuda selle kausta salasõna</string>
+    <string name="linked_login_change_due">Eemaldatud seade pääseb sellesse kausta ligi, kuni salasõna muutub. Muuda salasõna seadmes, kust selle eemaldasid.</string>
+    <string name="linked_login_change_first">Sisesta uus salasõna siin enne selle teenusepakkuja juures määramist, et teised seadmed saaksid selle esimesena.</string>
     <string name="linked_login_change_send">Saada minu seadmetesse</string>
-    <string name="linked_login_change_waiting">Ootan, kuni need seadmed saavad uue parooli: %1$s. Saad jätkata ka ilma mõne seadmeta, kuid pead parooli sellele hiljem sisestama.</string>
-    <string name="linked_login_change_everyone">Teistel seadmetel on uus parool.</string>
-    <string name="linked_login_change_now">Määra nüüd see parool teenusepakkuja juures. Kui saad kasutada rakenduseparoole, loo uus ja tühista seejärel vana.</string>
+    <string name="linked_login_change_waiting">Ootan, kuni need seadmed saavad uue salasõna: %1$s. Saad jätkata ka ilma mõne seadmeta, kuid pead salasõna sellele hiljem sisestama.</string>
+    <string name="linked_login_change_everyone">Teistes seadmetes on uus salasõna.</string>
+    <string name="linked_login_change_now">Määra nüüd see salasõna teenusepakkuja juures. Kui saad kasutada rakenduse salasõnu, loo uus ja tühista seejärel vana.</string>
     <string name="linked_login_change_done">Olen selle muutnud</string>
     <string name="linked_restore_choose_title">Millised seadmed on sul alles?</string>
     <string name="linked_restore_choose_body">Taastamisel logitakse välja kõik seadmed, mida sa ei märgi. Märgi seade ainult siis, kui see on sul käepärast, mitte pelgalt nime järgi. Kui sul on alles töötav seade, mine tagasi ja seo see seade selle kaudu.</string>
@@ -5077,7 +5077,7 @@
     <string name="session_lyric_repeated">%1$s (x%2$d)</string>
     <string name="settings_security_title">Turvalisus</string>
     <string name="settings_security_summary">Rakenduse lukk</string>
-    <string name="settings_keywords_security">rakenduse lukk, privaatsus, parool, PIN-kood, muster, sõrmejälg, nägu, biomeetria, hiljutised rakendused</string>
+    <string name="settings_keywords_security">rakenduse lukk, privaatsus, salasõna, PIN-kood, muster, sõrmejälg, nägu, biomeetria, hiljutised rakendused</string>
     <string name="app_lock_title">Rakenduse lukk</string>
     <string name="app_lock_summary">Flow avamiseks küsi telefoni avamiskinnitust</string>
     <string name="app_lock_needs_screen_lock">Määra esmalt telefonis ekraanilukk</string>
