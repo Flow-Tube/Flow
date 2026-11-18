@@ -1667,7 +1667,7 @@
     <string name="recognition_clear_history_body">Questa operazione rimuove tutti i brani identificati. L\'azione non può essere annullata.</string>
     <string name="content_settings_watched_threshold_title">Segna come visto quando</string>
     <string name="player_settings_ambient_mode">Modalità Ambient</string>
-    <string name="player_settings_ambient_mode_subtitle">Un bagliore delicato dei colori del video intorno ad esso</string>
+    <string name="player_settings_ambient_mode_subtitle">Riempie le barre nere con i colori del video</string>
     <string name="player_settings_display">Display</string>
     <string name="player_appearance_shorts_ui_title">UI player degli Shorts</string>
     <string name="player_appearance_shorts_ui_subtitle">Scegli quanto dell\'overlay degli Shorts rimane visibile</string>
@@ -2894,9 +2894,9 @@
     <string name="lyrics_provider_lrclib_desc">Sincr. linea · database aperto</string>
     <string name="lyrics_provider_unison_desc">Testi comunitari · catalogo piccolo</string>
     <string name="lyrics_provider_youtube_captions_desc">Sincr. linea · sottotitoli del video</string>
-    <string name="lyrics_provider_youtube_music_desc">Testo normale · la scheda Testi</string>
+    <string name="lyrics_provider_youtube_music_desc">Sincronizzazione riga · la scheda Testi</string>
     <string name="content_settings_live_chat_enabled_title">Chat in diretta</string>
-    <string name="content_settings_live_chat_enabled_subtitle">Mostra la chat nelle dirette</string>
+    <string name="content_settings_live_chat_enabled_subtitle">Mostra la chat nelle live e le loro risposte</string>
     <string name="nav_downloads">Scaricati</string>
     <string name="settings_downloads_nav_tab_title">Scheda Scaricati in navigazione</string>
     <string name="settings_downloads_nav_tab_subtitle">Aggiungi una scheda Scaricati alla barra di navigazione</string>
@@ -3199,7 +3199,7 @@
     </plurals>
     <string name="eq_settings_section">Suono</string>
     <string name="eq_settings_summary">Importazione di preset, bande e AutoEQ</string>
-    <string name="eq_settings_keywords">equalizzatore, eq, bassi, alti, autoeq, preamplificatore, suono</string>
+    <string name="eq_settings_keywords">equalizzatore, eq, bass boost, alti, autoeq, preamplificatore, suono</string>
     <string name="eq_reset_done">Reset della curva</string>
     <string name="filter_artists">Artisti</string>
     <string name="filter_featured_playlists">Playlist in primo piano</string>
@@ -3316,11 +3316,11 @@
     <string name="linked_join_admin_body">Nessuna fotocamera? Digita l\'indirizzo del server e il token amministratore, quindi accetta su un dispositivo collegato</string>
     <string name="linked_join_admin_ask">Chiedi di partecipare</string>
     <string name="linked_asked">In attesa che un dispositivo collegato accetti…</string>
-    <string name="linked_join_request">%1$s vuole unirsi</string>
+    <string name="linked_join_request">Un device di nome %1$s vuole unirsi</string>
     <string name="linked_accept">Accettare</string>
     <string name="linked_decline">Declino</string>
     <string name="linked_join_notification_title">Un dispositivo vuole unirsi</string>
-    <string name="linked_join_notification_text">%1$s ha chiesto di unirsi ai tuoi dispositivi collegati. Apri Dispositivi collegati per accettare o rifiutare.</string>
+    <string name="linked_join_notification_text">Un device di nome %1$s ha chiesto di unirsi ai tuoi dispositivi collegati. Accetta solo se hai avviato il processo su quel dispositivo.</string>
     <string name="linked_join_title">Unisciti a un gruppo</string>
     <string name="linked_join_body">Scansiona o incolla il codice mostrato da un altro dispositivo collegato</string>
     <string name="linked_restore_title">Ripristina con parole di recupero</string>
@@ -5375,4 +5375,20 @@
     <string name="ai_report_rate_limited">Troppe segnalazioni inviate, riprova più tardi</string>
     <string name="ai_report_rejected">AiSList ha rifiutato il rapporto</string>
     <string name="ai_report_failed">Segnalazione non riuscita, controlla la connessione</string>
+    <plurals name="player_appearance_cover_shapes_count">
+        <item quantity="one">%d forma</item>
+        <item quantity="many">%d forme</item>
+        <item quantity="other">%d forme</item>
+    </plurals>
+    <plurals name="disk_read_ahead_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="many">%1$d minuti</item>
+        <item quantity="other">%1$d minuti</item>
+    </plurals>
+    <plurals name="import_takeout_part_ads_removed">
+        <item quantity="one">%d annuncio rimosso dalla cronologia</item>
+        <item quantity="many">%d annunci rimossi dalla cronologia</item>
+        <item quantity="other">%d annunci rimossi dalla cronologia</item>
+    </plurals>
+    <string name="newpipe_extractor_credit">Dove ha inizio l\'estrazione di YouTube di Flow</string>
 </resources>
