@@ -3446,7 +3446,8 @@
     <string name="error_captcha_hint">YouTube is asking for bot verification. Please open YouTube in a browser and solve the CAPTCHA, then try again.</string>
     <string name="error_bot_wall">YouTube is blocking this network</string>
     <string name="error_bot_wall_hint">Try another network or turn off your VPN.</string>
-    <string name="error_bot_wall_network_hint">Try another network, such as mobile data.</string>
+    <string name="error_bot_wall_network_hint">Try mobile data, or wait a while. This usually clears on its own.</string>
+    <string name="error_bot_wall_mobile_data_hint">Try Wi-Fi, or wait a while. This usually clears on its own.</string>
     <string name="error_bot_wall_session">YouTube wants to confirm you\'re not a bot</string>
     <string name="error_bot_wall_session_hint">Reset the YouTube session, then try again.</string>
     <string name="error_login_required">Sign-in required</string>

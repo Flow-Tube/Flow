@@ -32,6 +32,7 @@ class VideoErrorMapperBranchesTest {
         mockk<Context> {
             every { getString(any()) } answers { "s:${firstArg<Int>()}" }
             every { getString(any(), *anyVararg()) } answers { "s:${firstArg<Int>()}:${secondArg<Array<Any>>().joinToString()}" }
+            every { getSystemService(any<String>()) } returns null
         }
 
     private data class Shown(

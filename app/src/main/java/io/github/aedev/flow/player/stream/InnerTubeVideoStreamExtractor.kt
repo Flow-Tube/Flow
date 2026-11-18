@@ -166,10 +166,10 @@ object InnerTubeVideoStreamExtractor {
 
             // A wall at /player issues no stream URLs, so no 403 ever reaches the re-roll that GVS
             // refusals trigger, and a retry would ask again with the same walled visitor (#1354).
-            val fullWall = PlayabilityVerdict.everyClientWalled(failureReasons)
-            val reroll = if (fullWall) WebPoTokenSession.rerollAfterPlayerWall(walledGeneration) else null
+            val walled = PlayabilityVerdict.wallExplains(failureReasons)
+            val reroll = if (walled) WebPoTokenSession.rerollAfterPlayerWall(walledGeneration) else null
             if (reroll == PlayerWallReroll.REROLLED) {
-                PlayerDiagnostics.logWarning(TAG, "every client bot-walled $videoId, retrying once with a fresh visitor")
+                PlayerDiagnostics.logWarning(TAG, "bot wall on $videoId, retrying once with a fresh visitor")
                 dropGatesOnIdentityChange()
                 failureReasons = mutableListOf()
                 walkLadder(videoId, audioOnly, failureReasons)?.let { return@withContext it }
@@ -178,7 +178,7 @@ object InnerTubeVideoStreamExtractor {
 
             Log.e(TAG, "All clients failed for $videoId (forceSabr=$forceSabr). Reasons: ${failureReasons.joinToString(" | ")}")
             PlayerDiagnostics.logError(TAG, "ALL clients failed $videoId: ${failureReasons.joinToString(" | ")}")
-            if (PlayabilityVerdict.everyClientWalled(failureReasons)) {
+            if (PlayabilityVerdict.wallExplains(failureReasons)) {
                 PlayerDiagnostics.logError(TAG, "bot wall $videoId: ${WebPoTokenSession.identitySummary()} freshWalled=$freshVisitorWalled")
             }
             if (PlayabilityVerdict.isGone(failureReasons)) goneVideoIds += videoId

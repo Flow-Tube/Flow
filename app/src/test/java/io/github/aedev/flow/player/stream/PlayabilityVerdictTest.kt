@@ -79,6 +79,54 @@ class PlayabilityVerdictTest {
     }
 
     @Test
+    fun `a sign-in answer next to a wall is the wall, not an account requirement (#2188)`() {
+        val reasons =
+            listOf(
+                "VISIONOS: BOT_WALL, reason=Sign in to confirm you’re not a bot",
+                "ANDROID_VR: BOT_WALL, reason=Sign in to confirm you’re not a bot",
+                "TV_TIZEN: 0/26 formats solved",
+                "ANDROID_VR_1_43_32: status=LOGIN_REQUIRED, reason=Please sign in",
+            )
+
+        assertThat(PlayabilityVerdict.wallExplains(reasons)).isTrue()
+        assertThat(PlayabilityVerdict.block(reasons)).isEqualTo(PlaybackBlock.BOT_WALL)
+        assertThat(PlayabilityVerdict.block(reasons, freshVisitorWalled = true)).isEqualTo(PlaybackBlock.NETWORK_WALL)
+        assertThat(PlayabilityVerdict.isLasting(isGone = false, block = PlayabilityVerdict.block(reasons))).isFalse()
+    }
+
+    @Test
+    fun `a named refusal next to a wall keeps its name`() {
+        val wall = "VISIONOS: BOT_WALL, reason=Sign in to confirm you're not a bot"
+        val age = "ANDROID_VR: status=LOGIN_REQUIRED, reason=Sign in to confirm your age"
+        val region =
+            "ANDROID_VR: status=UNPLAYABLE, reason=Video unavailable, " +
+                "subreason=The uploader has not made this video available in your country"
+
+        assertThat(PlayabilityVerdict.wallExplains(listOf(wall, age))).isFalse()
+        assertThat(PlayabilityVerdict.block(listOf(wall, age))).isEqualTo(PlaybackBlock.LOGIN_REQUIRED)
+        assertThat(PlayabilityVerdict.block(listOf(wall, region, "MWEB: status=LOGIN_REQUIRED, reason=Please sign in")))
+            .isEqualTo(PlaybackBlock.REGION)
+    }
+
+    @Test
+    fun `a bot check in the subreason or messages is still a wall`() {
+        val inSubreason =
+            Json { ignoreUnknownKeys = true }.decodeFromString<PlayerResponse.PlayabilityStatus>(
+                """{"status":"LOGIN_REQUIRED","reason":"Please sign in","errorScreen":{"playerErrorMessageRenderer":""" +
+                    """{"subreason":{"runs":[{"text":"Sign in to confirm you’re not a bot"}]}}}}""",
+            )
+        val inMessages =
+            PlayerResponse.PlayabilityStatus(
+                status = "LOGIN_REQUIRED",
+                reason = null,
+                messages = listOf("Sign in to confirm you're not a bot. This helps protect our community."),
+            )
+
+        assertThat(PlayabilityVerdict.refusal(inSubreason, hasVideoDetails = false)).startsWith("BOT_WALL")
+        assertThat(PlayabilityVerdict.refusal(inMessages, hasVideoDetails = false)).startsWith("BOT_WALL")
+    }
+
+    @Test
     fun `a sign-in status without a bot check needs an account`() {
         val reasons = listOf("VISIONOS: status=LOGIN_REQUIRED, reason=Sign in to confirm your age")
 
