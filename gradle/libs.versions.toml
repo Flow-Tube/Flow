@@ -6,6 +6,7 @@ conscrypt = "2.6.1"
 bouncycastle = "1.86"
 kotlinBip39 = "1.0.9"
 activityCompose = "1.13.0"
+navigationEvent = "1.2.0"  # pinned above the 1.1.x that activity and compose ask for: 1.1.x crashes on a back swipe while a popup closes (#2190)
 composeBom = "2026.11.00"
 navigationCompose = "2.10.0"
 lifecycle = "2.11.0"
@@ -56,6 +57,7 @@ androidxTestCore = "1.7.0"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-navigationevent = { group = "androidx.navigationevent", name = "navigationevent", version.ref = "navigationEvent" }
 # Alpha BOM: pins material3 1.5.0-rc01 (M3 Expressive) + compose 1.13.0-rc01 consistently.
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom-alpha", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
