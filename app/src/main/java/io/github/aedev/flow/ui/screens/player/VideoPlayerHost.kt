@@ -164,11 +164,6 @@ fun VideoPlayerHost(
     )
 
     val progressProvider = remember(screenState) { { screenState.playbackFraction() } }
-    PlayerSheetCollapseSyncEffects(
-        playerSheetState = playerSheetState,
-        screenState = screenState,
-    )
-
     val sponsorSkipBottomInset = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
     val updateBrightnessLevel =
@@ -262,7 +257,7 @@ fun VideoPlayerHost(
         onHideControls = { screenState.showControls = false },
     )
 
-    GestureOverlayAutoHideEffect(screenState)
+    GestureOverlayAutoHideEffect(screenState, seekStepSeconds = prefs.doubleTapSeekSeconds)
 
     SetupPipEffects(
         context = context,
@@ -285,6 +280,11 @@ fun VideoPlayerHost(
             windowIsLandscape = isLandscape,
             rotationHonoured = !isInPipWindow && !isLargeWindow && !context.orientationRequestIgnored(config),
         )
+    PlayerSheetCollapseSyncEffects(
+        playerSheetState = playerSheetState,
+        screenState = screenState,
+        isFullscreenShown = fullscreenShown,
+    )
     FullscreenEffect(
         isFullscreen = screenState.isFullscreen,
         activity = activity,
@@ -394,7 +394,6 @@ fun VideoPlayerHost(
         screenState = screenState,
         isInPipMode = localIsInPipMode,
         isEnteringPip = isEnteringPip,
-        isLandscape = isLandscape,
         pipForcedFullscreen = pipForcedFullscreen,
     )
 

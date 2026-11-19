@@ -6,45 +6,59 @@ import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerTuckSide
 import org.junit.Test
 
 class DraggablePlayerDragMathTest {
+    private val t = PlayerGestureThresholds(density = 3f)
     private val bounds = MiniPlayerBounds(minX = 24f, maxX = 624f, minY = 200f, maxY = 1400f)
 
     @Test
     fun `expand drag zoom rests at one and never reaches its ceiling`() {
-        assertThat(expandDragZoomFor(0f)).isEqualTo(1f)
-        assertThat(expandDragZoomFor(-10f)).isEqualTo(1f)
-        assertThat(expandDragZoomFor(60f)).isWithin(0.0001f).of(1.03f)
-        assertThat(expandDragZoomFor(10_000f)).isLessThan(1.06f)
-        assertThat(expandDragZoomFor(300f)).isGreaterThan(expandDragZoomFor(100f))
+        assertThat(expandDragZoomFor(0f, thresholds = t)).isEqualTo(1f)
+        assertThat(expandDragZoomFor(-10f, thresholds = t)).isEqualTo(1f)
+        assertThat(expandDragZoomFor(60f, thresholds = t)).isWithin(0.0001f).of(1.03f)
+        assertThat(expandDragZoomFor(10_000f, thresholds = t)).isLessThan(1.06f)
+        assertThat(expandDragZoomFor(300f, thresholds = t)).isGreaterThan(expandDragZoomFor(100f, thresholds = t))
     }
 
     @Test
     fun `upward swipe commits to fullscreen on travel or on a fast fling`() {
-        assertThat(shouldEnterFullscreenFromSwipe(totalUpwardDragPx = 81f, scaledVelocityY = 0f)).isTrue()
-        assertThat(shouldEnterFullscreenFromSwipe(totalUpwardDragPx = 10f, scaledVelocityY = -900f)).isTrue()
-        assertThat(shouldEnterFullscreenFromSwipe(totalUpwardDragPx = 40f, scaledVelocityY = -200f)).isFalse()
+        assertThat(shouldEnterFullscreenFromSwipe(totalUpwardDragPx = 81f, scaledVelocityY = 0f, thresholds = t)).isTrue()
+        assertThat(shouldEnterFullscreenFromSwipe(totalUpwardDragPx = 10f, scaledVelocityY = -900f, thresholds = t)).isTrue()
+        assertThat(shouldEnterFullscreenFromSwipe(totalUpwardDragPx = 40f, scaledVelocityY = -200f, thresholds = t)).isFalse()
     }
 
     @Test
     fun `collapse release needs travel or a downward fling`() {
-        assertThat(shouldCollapseOnRelease(fraction = 0.21f, scaledVelocityY = 0f)).isTrue()
-        assertThat(shouldCollapseOnRelease(fraction = 0.02f, scaledVelocityY = 1100f)).isTrue()
-        assertThat(shouldCollapseOnRelease(fraction = 0.12f, scaledVelocityY = 600f)).isFalse()
-        assertThat(shouldCollapseOnRelease(fraction = 0.06f, scaledVelocityY = 350f)).isFalse()
-        assertThat(shouldCollapseOnRelease(fraction = 0.15f, scaledVelocityY = -100f)).isFalse()
+        assertThat(shouldCollapseOnRelease(fraction = 0.21f, scaledVelocityY = 0f, thresholds = t)).isTrue()
+        assertThat(shouldCollapseOnRelease(fraction = 0.02f, scaledVelocityY = 1100f, thresholds = t)).isTrue()
+        assertThat(shouldCollapseOnRelease(fraction = 0.12f, scaledVelocityY = 600f, thresholds = t)).isFalse()
+        assertThat(shouldCollapseOnRelease(fraction = 0.06f, scaledVelocityY = 350f, thresholds = t)).isFalse()
+        assertThat(shouldCollapseOnRelease(fraction = 0.15f, scaledVelocityY = -100f, thresholds = t)).isFalse()
+    }
+
+    @Test
+    fun `a flick back up cancels a collapse however far it travelled`() {
+        assertThat(shouldCollapseOnRelease(fraction = 0.3f, scaledVelocityY = -2000f, thresholds = t)).isFalse()
+        assertThat(shouldCollapseOnRelease(fraction = 0.9f, scaledVelocityY = -1100f, thresholds = t)).isFalse()
+        assertThat(shouldCollapseOnRelease(fraction = 0.3f, scaledVelocityY = -900f, thresholds = t)).isTrue()
+    }
+
+    @Test
+    fun `a slow release past the commit point and a fast flick down both collapse`() {
+        assertThat(shouldCollapseOnRelease(fraction = 0.5f, scaledVelocityY = -50f, thresholds = t)).isTrue()
+        assertThat(shouldCollapseOnRelease(fraction = 0.05f, scaledVelocityY = 3000f, thresholds = t)).isTrue()
     }
 
     @Test
     fun `portrait fullscreen commits on travel or a downward fling`() {
-        assertThat(shouldEnterPortraitFullscreen(fraction = 0.3f, velocityY = 0f)).isTrue()
-        assertThat(shouldEnterPortraitFullscreen(fraction = 0.1f, velocityY = 2600f)).isTrue()
-        assertThat(shouldEnterPortraitFullscreen(fraction = 0.1f, velocityY = 1500f)).isFalse()
-        assertThat(shouldEnterPortraitFullscreen(fraction = 0.2f, velocityY = 0f)).isFalse()
+        assertThat(shouldEnterPortraitFullscreen(fraction = 0.3f, velocityY = 0f, thresholds = t)).isTrue()
+        assertThat(shouldEnterPortraitFullscreen(fraction = 0.1f, velocityY = 2600f, thresholds = t)).isTrue()
+        assertThat(shouldEnterPortraitFullscreen(fraction = 0.1f, velocityY = 1500f, thresholds = t)).isFalse()
+        assertThat(shouldEnterPortraitFullscreen(fraction = 0.2f, velocityY = 0f, thresholds = t)).isFalse()
     }
 
     @Test
     fun `a flick back up takes the pull back however far it travelled`() {
-        assertThat(shouldEnterPortraitFullscreen(fraction = 0.9f, velocityY = -1500f)).isFalse()
-        assertThat(shouldEnterPortraitFullscreen(fraction = 0.9f, velocityY = -900f)).isTrue()
+        assertThat(shouldEnterPortraitFullscreen(fraction = 0.9f, velocityY = -1500f, thresholds = t)).isFalse()
+        assertThat(shouldEnterPortraitFullscreen(fraction = 0.9f, velocityY = -900f, thresholds = t)).isTrue()
     }
 
     @Test
@@ -72,6 +86,7 @@ class DraggablePlayerDragMathTest {
                 bounds = bounds,
                 scaledVelocityX = -1500f,
                 scaledVelocityY = 100f,
+                thresholds = t,
             )
         assertThat(corner).isEqualTo(MiniPlayerCorner.BottomLeft)
     }
@@ -86,6 +101,7 @@ class DraggablePlayerDragMathTest {
                 bounds = bounds,
                 scaledVelocityX = 50f,
                 scaledVelocityY = -1200f,
+                thresholds = t,
             )
         assertThat(corner).isEqualTo(MiniPlayerCorner.TopRight)
     }
@@ -100,6 +116,7 @@ class DraggablePlayerDragMathTest {
                 bounds = bounds,
                 scaledVelocityX = 0f,
                 scaledVelocityY = 0f,
+                thresholds = t,
             )
         assertThat(stays).isEqualTo(MiniPlayerCorner.BottomRight)
 
@@ -111,6 +128,7 @@ class DraggablePlayerDragMathTest {
                 bounds = bounds,
                 scaledVelocityX = 0f,
                 scaledVelocityY = 0f,
+                thresholds = t,
             )
         assertThat(switches).isEqualTo(MiniPlayerCorner.BottomLeft)
     }
@@ -125,6 +143,7 @@ class DraggablePlayerDragMathTest {
                 bounds = bounds,
                 scaledVelocityX = -350f,
                 scaledVelocityY = 0f,
+                thresholds = t,
             )
         assertThat(corner).isEqualTo(MiniPlayerCorner.BottomLeft)
     }
@@ -142,19 +161,29 @@ class DraggablePlayerDragMathTest {
 
     @Test
     fun `pulling well below the lowest corner closes the mini player`() {
-        assertThat(shouldCloseMiniDownward(1500f, 1400f, 200f, startedAtBottom = false, velocityX = 0f, velocityY = 0f)).isTrue()
-        assertThat(shouldCloseMiniDownward(1460f, 1400f, 200f, startedAtBottom = true, velocityX = 0f, velocityY = 0f)).isFalse()
+        assertThat(
+            shouldCloseMiniDownward(1500f, 1400f, 200f, startedAtBottom = false, velocityX = 0f, velocityY = 0f, thresholds = t),
+        ).isTrue()
+        assertThat(
+            shouldCloseMiniDownward(1460f, 1400f, 200f, startedAtBottom = true, velocityX = 0f, velocityY = 0f, thresholds = t),
+        ).isFalse()
     }
 
     @Test
     fun `a downward flick closes it only from a bottom corner`() {
-        assertThat(shouldCloseMiniDownward(1400f, 1400f, 200f, startedAtBottom = true, velocityX = 100f, velocityY = 1500f)).isTrue()
-        assertThat(shouldCloseMiniDownward(600f, 1400f, 200f, startedAtBottom = false, velocityX = 100f, velocityY = 1500f)).isFalse()
+        assertThat(
+            shouldCloseMiniDownward(1400f, 1400f, 200f, startedAtBottom = true, velocityX = 100f, velocityY = 1500f, thresholds = t),
+        ).isTrue()
+        assertThat(
+            shouldCloseMiniDownward(600f, 1400f, 200f, startedAtBottom = false, velocityX = 100f, velocityY = 1500f, thresholds = t),
+        ).isFalse()
     }
 
     @Test
     fun `a diagonal flick moves to a corner instead of closing`() {
-        assertThat(shouldCloseMiniDownward(1400f, 1400f, 200f, startedAtBottom = true, velocityX = 1200f, velocityY = 1500f)).isFalse()
+        assertThat(
+            shouldCloseMiniDownward(1400f, 1400f, 200f, startedAtBottom = true, velocityX = 1200f, velocityY = 1500f, thresholds = t),
+        ).isFalse()
     }
 
     private val tuckBounds = MiniPlayerBounds(minX = 24f, maxX = 570f, minY = 272f, maxY = 2200f)
@@ -164,7 +193,15 @@ class DraggablePlayerDragMathTest {
         startedOnLeft: Boolean,
         velocityX: Float = 0f,
         velocityY: Float = 0f,
-    ) = resolveMiniPlayerTuck(fingerX, startedOnLeft, tuckBounds, miniWidth = 486f, velocityX = velocityX, velocityY = velocityY)
+    ) = resolveMiniPlayerTuck(
+        fingerX,
+        startedOnLeft,
+        tuckBounds,
+        miniWidth = 486f,
+        velocityX = velocityX,
+        velocityY = velocityY,
+        thresholds = t,
+    )
 
     @Test
     fun `dragging half its width past a side tucks the mini player into it`() {

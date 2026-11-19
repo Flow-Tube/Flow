@@ -4,24 +4,14 @@ import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerCorner
 import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerTuckSide
 import kotlin.math.abs
 
-/** Upward travel that commits to fullscreen; mirrors the release check. */
-private const val EXPAND_DRAG_COMMIT_PX = 80f
-
-/** How hard the zoom resists — smaller reaches the ceiling sooner. */
-private const val EXPAND_DRAG_SOFTNESS_PX = 60f
-
 /** Ceiling the zoom approaches but never reaches, so the drag always has somewhere to go. */
 private const val EXPAND_DRAG_MAX_ZOOM = 1.06f
 
-private const val FULLSCREEN_SWIPE_VELOCITY = -800f
 private const val COLLAPSE_COMMIT_FRACTION = 0.2f
-private const val COLLAPSE_FLING_VELOCITY = 1000f
-private const val CORNER_FLING_VELOCITY = 400f
 private const val CORNER_FLING_AXIS_DOMINANCE = 0.8f
 private const val CORNER_SWITCH_TRAVEL_FRACTION = 0.15f
 private const val CORNER_VELOCITY_PROJECTION_S = 0.3f
 private const val TUCK_TRAVEL_FRACTION = 0.5f
-private const val TUCK_FLING_VELOCITY = 2500f
 private const val TUCK_AXIS_DOMINANCE = 3f
 
 /** Share of the finger's travel past a bound that the mini player still follows. */
@@ -29,13 +19,10 @@ private const val RUBBER_BAND_FOLLOW = 0.35f
 
 /** How far below its lowest resting place, in mini player heights, a release closes it. */
 private const val CLOSE_BELOW_HEIGHTS = 0.4f
-private const val CLOSE_FLING_VELOCITY = 1200f
 private const val CLOSE_AXIS_DOMINANCE = 2f
 
-/** Share of the pull, and the fling, that commits to portrait fullscreen; a flick back up cancels it. */
+/** Share of the pull that commits to portrait fullscreen. */
 private const val PORTRAIT_FS_COMMIT_FRACTION = 0.25f
-private const val PORTRAIT_FS_COMMIT_VELOCITY = 2500f
-private const val PORTRAIT_FS_CANCEL_VELOCITY = 1400f
 
 internal fun lerpClamped(
     start: Float,
@@ -43,16 +30,20 @@ internal fun lerpClamped(
     fraction: Float,
 ): Float = start + (stop - start) * fraction.coerceIn(0f, 1f)
 
-internal fun expandDragZoomFor(travelPx: Float): Float {
+internal fun expandDragZoomFor(
+    travelPx: Float,
+    thresholds: PlayerGestureThresholds,
+): Float {
     if (travelPx <= 0f) return 1f
-    val progress = travelPx / (travelPx + EXPAND_DRAG_SOFTNESS_PX)
+    val progress = travelPx / (travelPx + thresholds.expandDragSoftness)
     return 1f + (EXPAND_DRAG_MAX_ZOOM - 1f) * progress
 }
 
 internal fun shouldEnterFullscreenFromSwipe(
     totalUpwardDragPx: Float,
     scaledVelocityY: Float,
-): Boolean = totalUpwardDragPx > EXPAND_DRAG_COMMIT_PX || scaledVelocityY < FULLSCREEN_SWIPE_VELOCITY
+    thresholds: PlayerGestureThresholds,
+): Boolean = totalUpwardDragPx > thresholds.expandDragCommit || scaledVelocityY < -thresholds.fullscreenSwipeVelocity
 
 /**
  * Whether a released portrait-fullscreen pull grows the rest of the way. A flick back up is the
@@ -62,9 +53,10 @@ internal fun shouldEnterFullscreenFromSwipe(
 internal fun shouldEnterPortraitFullscreen(
     fraction: Float,
     velocityY: Float,
+    thresholds: PlayerGestureThresholds,
 ): Boolean =
-    velocityY > -PORTRAIT_FS_CANCEL_VELOCITY &&
-        (fraction > PORTRAIT_FS_COMMIT_FRACTION || velocityY > PORTRAIT_FS_COMMIT_VELOCITY)
+    velocityY > -thresholds.portraitFsCancelVelocity &&
+        (fraction > PORTRAIT_FS_COMMIT_FRACTION || velocityY > thresholds.portraitFsCommitVelocity)
 
 /**
  * The release fling, handed over in pixels a second, as the fraction a second the settle
@@ -100,14 +92,27 @@ internal fun shouldCloseMiniDownward(
     startedAtBottom: Boolean,
     velocityX: Float,
     velocityY: Float,
+    thresholds: PlayerGestureThresholds,
 ): Boolean =
     fingerY - maxY > miniHeight * CLOSE_BELOW_HEIGHTS ||
-        (startedAtBottom && velocityY > CLOSE_FLING_VELOCITY && velocityY > abs(velocityX) * CLOSE_AXIS_DOMINANCE)
+        (
+            startedAtBottom &&
+                velocityY > thresholds.closeFlingVelocity &&
+                velocityY > abs(velocityX) * CLOSE_AXIS_DOMINANCE
+        )
 
+/**
+ * Whether a released collapse drag finishes in the mini player. A flick back up is the user
+ * changing their mind, so it wins over how far the drag had already gone, as it does for the
+ * portrait fullscreen pull.
+ */
 internal fun shouldCollapseOnRelease(
     fraction: Float,
     scaledVelocityY: Float,
-): Boolean = fraction > COLLAPSE_COMMIT_FRACTION || scaledVelocityY > COLLAPSE_FLING_VELOCITY
+    thresholds: PlayerGestureThresholds,
+): Boolean =
+    scaledVelocityY > -thresholds.collapseCancelVelocity &&
+        (fraction > COLLAPSE_COMMIT_FRACTION || scaledVelocityY > thresholds.collapseFlingVelocity)
 
 internal data class MiniPlayerBounds(
     val minX: Float,
@@ -156,6 +161,7 @@ internal fun resolveMiniPlayerCorner(
     bounds: MiniPlayerBounds,
     scaledVelocityX: Float,
     scaledVelocityY: Float,
+    thresholds: PlayerGestureThresholds,
 ): MiniPlayerCorner {
     val originX = cornerTargetX(current, bounds.minX, bounds.maxX)
     val originY = cornerTargetY(current, bounds.minY, bounds.maxY)
@@ -170,7 +176,7 @@ internal fun resolveMiniPlayerCorner(
 
     val goLeft =
         when {
-            abs(scaledVelocityX) > CORNER_FLING_VELOCITY &&
+            abs(scaledVelocityX) > thresholds.cornerFlingVelocity &&
                 abs(scaledVelocityX) > abs(scaledVelocityY) * CORNER_FLING_AXIS_DOMINANCE -> {
                 scaledVelocityX < 0
             }
@@ -189,7 +195,7 @@ internal fun resolveMiniPlayerCorner(
         }
     val goTop =
         when {
-            abs(scaledVelocityY) > CORNER_FLING_VELOCITY &&
+            abs(scaledVelocityY) > thresholds.cornerFlingVelocity &&
                 abs(scaledVelocityY) > abs(scaledVelocityX) * CORNER_FLING_AXIS_DOMINANCE -> {
                 scaledVelocityY < 0
             }
@@ -221,14 +227,15 @@ internal fun resolveMiniPlayerTuck(
     miniWidth: Float,
     velocityX: Float,
     velocityY: Float,
+    thresholds: PlayerGestureThresholds,
 ): MiniPlayerTuckSide? {
     val reach = miniWidth * TUCK_TRAVEL_FRACTION
     val sideways = abs(velocityX) > abs(velocityY) * TUCK_AXIS_DOMINANCE
     return when {
         fingerX - bounds.maxX > reach -> MiniPlayerTuckSide.Right
         bounds.minX - fingerX > reach -> MiniPlayerTuckSide.Left
-        sideways && velocityX > TUCK_FLING_VELOCITY && !startedOnLeft -> MiniPlayerTuckSide.Right
-        sideways && velocityX < -TUCK_FLING_VELOCITY && startedOnLeft -> MiniPlayerTuckSide.Left
+        sideways && velocityX > thresholds.tuckFlingVelocity && !startedOnLeft -> MiniPlayerTuckSide.Right
+        sideways && velocityX < -thresholds.tuckFlingVelocity && startedOnLeft -> MiniPlayerTuckSide.Left
         else -> null
     }
 }

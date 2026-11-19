@@ -28,11 +28,15 @@ import io.github.aedev.flow.ui.screens.player.state.expandsOnLoad
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
-/** Collapsing the sheet, or leaving fullscreen, drops every surface the expanded player owns. */
+/**
+ * Collapsing the sheet, or leaving fullscreen, drops every surface the expanded player owns. A zoom
+ * belongs to the fullscreen it was made in, so leaving fullscreen also sets it back.
+ */
 @Composable
 internal fun PlayerSheetCollapseSyncEffects(
     playerSheetState: PlayerDraggableState,
     screenState: PlayerScreenState,
+    isFullscreenShown: Boolean,
 ) {
     LaunchedEffect(playerSheetState.currentValue) {
         if (playerSheetState.currentValue == PlayerSheetValue.Collapsed) {
@@ -48,8 +52,18 @@ internal fun PlayerSheetCollapseSyncEffects(
 
     LaunchedEffect(screenState.isFullscreen) {
         screenState.dismissMediaSheets()
-        screenState.exitDragOffsetY = 0f
         screenState.moreVideosDragY = 0f
+    }
+
+    // A released exit drag holds the video where the finger left it until the window has turned,
+    // instead of snapping back to the centre for the length of the rotation.
+    LaunchedEffect(isFullscreenShown) {
+        screenState.exitDragOffsetY = 0f
+        if (!isFullscreenShown) {
+            screenState.zoomScale = 1f
+            screenState.zoomOffsetX = 0f
+            screenState.zoomOffsetY = 0f
+        }
     }
 }
 
@@ -268,7 +282,6 @@ internal fun PlayerEndAndPipEffects(
     screenState: PlayerScreenState,
     isInPipMode: Boolean,
     isEnteringPip: Boolean,
-    isLandscape: Boolean,
     pipForcedFullscreen: MutableState<Boolean>,
 ) {
     // Controls drawn as the window shrinks end up in the PiP animation's first frames.
@@ -286,7 +299,9 @@ internal fun PlayerEndAndPipEffects(
         }
     }
 
-    LaunchedEffect(isInPipMode, isLandscape) {
+    // Any way out of PiP gives back the fullscreen choice the viewer had before it. Waiting for a
+    // portrait window left the forced fullscreen on for good when the phone was held sideways.
+    LaunchedEffect(isInPipMode) {
         if (isInPipMode) {
             playerSheetState.expand()
             if (!screenState.isFullscreen) {
@@ -294,7 +309,7 @@ internal fun PlayerEndAndPipEffects(
                 screenState.isFullscreen = true
             }
             screenState.showControls = false
-        } else if (pipForcedFullscreen.value && !isLandscape) {
+        } else if (pipForcedFullscreen.value) {
             pipForcedFullscreen.value = false
             screenState.isFullscreen = false
         }

@@ -26,6 +26,7 @@ import androidx.compose.ui.zIndex
 import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.ui.components.videoplayer.motion.PlayerGestureThresholds
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerChaptersSheetHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerCommentsPanelHost
 import io.github.aedev.flow.ui.screens.player.dialogs.PlayerDescriptionSheetHost
@@ -127,6 +128,7 @@ internal fun rememberFullscreenSidePanelState(
     val fullscreenSidePanelDragModifier =
         Modifier.pointerInput(fullscreenDrawerWidthPx, fullscreenSidePanelVisible) {
             if (!fullscreenSidePanelVisible || fullscreenDrawerWidthPx <= 0f) return@pointerInput
+            val closeVelocity = PlayerGestureThresholds(density.density).sidePanelCloseVelocity
             val velocityTracker = VelocityTracker()
             detectHorizontalDragGestures(
                 onHorizontalDrag = { change, dragAmount ->
@@ -152,7 +154,7 @@ internal fun rememberFullscreenSidePanelState(
                     val velocityX = velocityTracker.calculateVelocity().x
                     velocityTracker.resetTracking()
                     val shouldDismiss =
-                        velocityX > 900f ||
+                        velocityX > closeVelocity ||
                             fullscreenDrawerOffsetPx.value > fullscreenDrawerWidthPx * 0.38f
                     if (shouldDismiss) {
                         closeFullscreenSidePanel()

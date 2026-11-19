@@ -24,6 +24,7 @@ internal class PlayerBodyNestedScrollConnection(
     private val portraitFsTravel: () -> Float,
     private val portraitFsEnabled: () -> Boolean,
     private val portraitFsActivationPx: () -> Float,
+    private val thresholds: PlayerGestureThresholds,
     private val expandFraction: () -> Float,
     private val onEnterPortraitFullscreen: () -> (() -> Unit)?,
     private val scrollAwayEnabled: () -> Boolean = { false },
@@ -121,7 +122,7 @@ internal class PlayerBodyNestedScrollConnection(
             onEnterPortraitFullscreen()?.invoke()
             return available
         }
-        val shouldEnter = shouldEnterPortraitFullscreen(fraction = frac, velocityY = available.y)
+        val shouldEnter = shouldEnterPortraitFullscreen(fraction = frac, velocityY = available.y, thresholds = thresholds)
         animatePortraitFs(if (shouldEnter) 1f else 0f, fractionVelocity(available.y, portraitFsTravel()))
         if (shouldEnter) onEnterPortraitFullscreen()?.invoke()
         return available

@@ -35,7 +35,10 @@ internal fun AutoHideControlsEffect(
 }
 
 @Composable
-internal fun GestureOverlayAutoHideEffect(screenState: PlayerScreenState) {
+internal fun GestureOverlayAutoHideEffect(
+    screenState: PlayerScreenState,
+    seekStepSeconds: Int,
+) {
     LaunchedEffect(screenState) {
         snapshotFlow { screenState.showBrightnessOverlay to screenState.brightnessLevel }
             .collectLatest { (visible, _) ->
@@ -71,7 +74,7 @@ internal fun GestureOverlayAutoHideEffect(screenState: PlayerScreenState) {
             delay(DOUBLE_TAP_SEEK_WINDOW_MS)
             screenState.showSeekForwardAnimation = false
             delay(400)
-            screenState.seekAccumulation = 10
+            screenState.seekAccumulation = seekStepSeconds
         }
     }
 
@@ -87,7 +90,7 @@ internal fun GestureOverlayAutoHideEffect(screenState: PlayerScreenState) {
             delay(DOUBLE_TAP_SEEK_WINDOW_MS)
             screenState.showSeekBackAnimation = false
             delay(400)
-            screenState.seekAccumulation = 10
+            screenState.seekAccumulation = seekStepSeconds
         }
     }
 }
