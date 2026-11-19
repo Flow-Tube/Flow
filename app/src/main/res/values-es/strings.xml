@@ -5440,4 +5440,11 @@
     <string name="error_recording_unavailable">Grabación no disponible</string>
     <string name="error_recording_unavailable_hint">Este directo finalizó sin dejar grabación en YouTube.</string>
     <string name="error_bot_wall_mobile_data_hint">Prueba con Wi-Fi o espera un poco. Normalmente se soluciona solo.</string>
+    <string name="mini_player_action_open">Abrir reproductor</string>
+    <string name="mini_player_action_larger">Ampliar</string>
+    <string name="mini_player_action_smaller">Reducir</string>
+    <string name="mini_player_action_next_corner">Mover a la siguiente esquina</string>
+    <string name="mini_player_action_tuck">Minimizar</string>
+    <string name="player_zoomed_to_fill">Ajustado para llenar la pantalla</string>
+    <string name="player_seek_release_to_cancel">Suelta para cancelar</string>
 </resources>
