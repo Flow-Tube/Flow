@@ -394,7 +394,6 @@ fun VideoPlayerHost(
         screenState = screenState,
         isInPipMode = localIsInPipMode,
         isEnteringPip = isEnteringPip,
-        isLandscape = isLandscape,
         pipForcedFullscreen = pipForcedFullscreen,
     )
 
