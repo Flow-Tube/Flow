@@ -21,11 +21,18 @@ import androidx.compose.material3.ShortNavigationBarDefaults
 import androidx.compose.material3.WideNavigationRailDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -87,6 +94,8 @@ fun FlowNavigationChrome(
     barVisible: Boolean,
     railVisible: Boolean,
     modifier: Modifier = Modifier,
+    barCovered: Boolean = false,
+    barCoveredFraction: () -> Float = { 0f },
     barScrollState: FlowNavigationScrollState? = null,
     barLook: NavBarLook = NavBarLook(),
     onBarHeightChanged: (Dp) -> Unit = {},
@@ -143,6 +152,8 @@ fun FlowNavigationChrome(
                     selectedTab = selectedTab,
                     onTabSelected = onTabSelected,
                     visible = barVisible,
+                    covered = barCovered,
+                    coveredFraction = barCoveredFraction,
                     scrollState = barScrollState,
                     look = barLook,
                     onHeightChanged = onBarHeightChanged,
@@ -158,6 +169,8 @@ private fun BoxScope.NavigationBarSlot(
     selectedTab: FlowTab?,
     onTabSelected: (FlowTab) -> Unit,
     visible: Boolean,
+    covered: Boolean,
+    coveredFraction: () -> Float,
     scrollState: FlowNavigationScrollState?,
     look: NavBarLook,
     onHeightChanged: (Dp) -> Unit,
@@ -165,19 +178,26 @@ private fun BoxScope.NavigationBarSlot(
     val density = LocalDensity.current
     val bottomInsetPx = ShortNavigationBarDefaults.windowInsets.getBottom(density)
     val motion = MaterialTheme.motionScheme
+    val travelToBottom = remember { mutableFloatStateOf(0f) }
     AnimatedVisibility(
         visible = visible,
         modifier = Modifier.align(Alignment.BottomCenter),
         enter = slideInVertically(motion.defaultSpatialSpec()) { it } + fadeIn(motion.defaultEffectsSpec()),
         exit = slideOutVertically(motion.fastSpatialSpec()) { it } + fadeOut(motion.fastEffectsSpec()),
     ) {
+        // While a video player is up the bar stays under it and rides its expand fraction down
+        // off screen, measured from where the bar rests so the scroll-away offset is not counted.
         val barModifier =
             Modifier
                 .testTag(FLOW_NAV_BAR_TAG)
-                .onSizeChanged {
+                .onPlaced { coords ->
+                    travelToBottom.floatValue = coords.findRootCoordinates().size.height - coords.positionInRoot().y
+                }.onSizeChanged {
                     onHeightChanged(with(density) { (it.height - bottomInsetPx).toDp() })
                     scrollState?.setBarHeight(it.height.toFloat())
                 }.offset { IntOffset(0, scrollState?.offsetPx?.roundToInt() ?: 0) }
+                .graphicsLayer { translationY = coveredFraction().coerceIn(0f, 1f) * travelToBottom.floatValue }
+                .then(if (covered) Modifier.clearAndSetSemantics { } else Modifier)
         when (look.style) {
             NavBarStyle.STANDARD -> {
                 FlowNavigationBar(
