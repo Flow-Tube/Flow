@@ -112,6 +112,7 @@ fun PlayerGestureOverlays(
                 isVisible = screenState.isSeekDragging,
                 targetMs = { screenState.seekDragTargetMs },
                 deltaMs = { screenState.seekDragDeltaMs },
+                cancelArmed = screenState.isSeekCancelArmed,
                 storyboard = storyboard,
                 modifier = Modifier.align(Alignment.Center),
             )

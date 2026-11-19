@@ -64,6 +64,12 @@ internal class PlayerGestureThresholds(
     /** Upward speed that opens the more videos row however short the swipe was. */
     val moreVideosFlingVelocity = 1000f * scale
 
+    /** How far a swipe to seek has to go before coming back to its start can cancel it. */
+    val seekUndoAway = 75f * scale
+
+    /** How close to its start a swipe to seek has to come back to offer to cancel. */
+    val seekUndoBack = 60f * scale
+
     /** Speed toward its edge that closes the fullscreen side panel. */
     val sidePanelCloseVelocity = 900f * scale
 }

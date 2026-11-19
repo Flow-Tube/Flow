@@ -158,6 +158,7 @@ internal fun VideoStage(
                         screenState.isSeekDragging = dragging
                         screenState.onInteraction()
                     },
+                    onSeekCancelArmed = { screenState.isSeekCancelArmed = it },
                     onSeekDragUpdate = { targetMs, deltaMs ->
                         screenState.seekDragTargetMs = targetMs
                         screenState.seekDragDeltaMs = deltaMs

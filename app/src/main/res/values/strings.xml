@@ -2841,6 +2841,7 @@
     <string name="resize_fill">Fill</string>
     <string name="resize_zoom">Zoom</string>
     <string name="player_zoomed_to_fill">Zoomed to fill</string>
+    <string name="player_seek_release_to_cancel">Release to cancel</string>
     <!-- Shorts Player Features -->
     <string name="shorts_audio_track">Audio Track</string>
     <string name="shorts_settings_this_short">This Short</string>

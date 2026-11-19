@@ -38,6 +38,7 @@ internal fun SeekDragOverlay(
     targetMs: () -> Long,
     deltaMs: () -> Long,
     modifier: Modifier = Modifier,
+    cancelArmed: Boolean = false,
     storyboard: List<StoryboardLevel> = emptyList(),
 ) {
     val frameWidthPx = with(LocalDensity.current) { SeekPreviewWidth.roundToPx() }
@@ -75,10 +76,14 @@ internal fun SeekDragOverlay(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text =
-                    stringResource(
-                        if (delta < 0L) R.string.player_seek_delta_back else R.string.player_seek_delta_forward,
-                        formatDurationMillis(abs(delta)),
-                    ),
+                    if (cancelArmed) {
+                        stringResource(R.string.player_seek_release_to_cancel)
+                    } else {
+                        stringResource(
+                            if (delta < 0L) R.string.player_seek_delta_back else R.string.player_seek_delta_forward,
+                            formatDurationMillis(abs(delta)),
+                        )
+                    },
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,

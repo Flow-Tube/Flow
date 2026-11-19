@@ -33,6 +33,7 @@ class PlayerScreenState {
     var isScrubbing by mutableStateOf(false)
 
     var isSeekDragging by mutableStateOf(false)
+    var isSeekCancelArmed by mutableStateOf(false)
     var seekDragTargetMs by mutableLongStateOf(0L)
     var seekDragDeltaMs by mutableLongStateOf(0L)
 
@@ -117,6 +118,7 @@ class PlayerScreenState {
         showControls = true
         isScrubbing = false
         isSeekDragging = false
+        isSeekCancelArmed = false
         seekDragTargetMs = 0L
         seekDragDeltaMs = 0L
         isFullscreenPortrait = false
