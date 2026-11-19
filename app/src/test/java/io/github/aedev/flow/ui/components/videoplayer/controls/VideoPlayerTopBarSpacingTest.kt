@@ -74,7 +74,7 @@ class VideoPlayerTopBarSpacingTest {
                     isLiveChatAvailable = false,
                     hasQueue = true,
                     topPadding = 0.dp,
-                    horizontalPadding = 12.dp,
+                    horizontalPadding = { 12.dp },
                     verticalPadding = 8.dp,
                     rowMinHeight = 44.dp,
                     pillHeight = 28.dp,

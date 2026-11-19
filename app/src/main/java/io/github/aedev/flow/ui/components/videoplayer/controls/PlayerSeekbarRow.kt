@@ -70,7 +70,7 @@ internal fun PlayerSeekbarRow(
     isLive: Boolean,
     content: PlayerSeekbarContent,
     edgeAligned: Boolean,
-    horizontalPadding: Dp,
+    horizontalPadding: () -> Dp,
     onScrubProgress: (progress: Float, duration: Long) -> Unit,
     onScrubFinished: () -> Unit,
     modifier: Modifier = Modifier,
@@ -146,17 +146,17 @@ private fun ScrubOverlay(
     positionProvider: () -> Long,
     duration: Long,
     content: PlayerSeekbarContent,
-    horizontalPadding: Dp,
+    horizontalPadding: () -> Dp,
     trackWidthPx: Int,
 ) {
     val trackPx =
-        (trackWidthPx - 2 * with(LocalDensity.current) { horizontalPadding.roundToPx() }).coerceAtLeast(0)
+        (trackWidthPx - 2 * with(LocalDensity.current) { horizontalPadding().roundToPx() }).coerceAtLeast(0)
 
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = horizontalPadding),
+                .insetPadding(horizontalPadding),
     ) {
         SeekScrubInfoRow(
             positionProvider = positionProvider,
@@ -233,7 +233,7 @@ private fun SeekBar(
     seekDuration: Long,
     content: PlayerSeekbarContent,
     edgeAligned: Boolean,
-    horizontalPadding: Dp,
+    horizontalPadding: () -> Dp,
     onScrubProgress: (progress: Float, duration: Long) -> Unit,
     onScrubFinished: () -> Unit,
     onTrackWidth: (Int) -> Unit,
@@ -261,6 +261,6 @@ private fun SeekBar(
             Modifier
                 .fillMaxWidth()
                 .onSizeChanged { onTrackWidth(it.width) }
-                .padding(horizontal = horizontalPadding),
+                .insetPadding(horizontalPadding),
     )
 }
