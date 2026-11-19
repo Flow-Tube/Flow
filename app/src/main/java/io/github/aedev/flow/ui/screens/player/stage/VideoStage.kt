@@ -131,7 +131,9 @@ internal fun VideoStage(
                     currentPosition = { screenState.currentPosition },
                     duration = screenState.duration,
                     scope = scope,
-                    isFullscreen = screenState.isFullscreen,
+                    // The gestures follow what is on screen: during the wait for the window to turn,
+                    // the layout is still the one being left, and so are its gestures.
+                    isFullscreen = session.isFullscreenShown,
                     onBrightnessChange = updateBrightnessLevel,
                     onShowBrightnessChange = { screenState.showBrightnessOverlay = it },
                     onVolumeChange = { level ->
@@ -214,7 +216,7 @@ internal fun VideoStage(
                         screenState.zoomIndicatorSequence += 1
                     },
                 ).graphicsLayer {
-                    if (screenState.isFullscreen) translationY = screenState.exitDragOffsetY
+                    if (session.isFullscreenShown) translationY = screenState.exitDragOffsetY
                 }
         } else {
             modifier

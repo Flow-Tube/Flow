@@ -164,11 +164,6 @@ fun VideoPlayerHost(
     )
 
     val progressProvider = remember(screenState) { { screenState.playbackFraction() } }
-    PlayerSheetCollapseSyncEffects(
-        playerSheetState = playerSheetState,
-        screenState = screenState,
-    )
-
     val sponsorSkipBottomInset = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
     val updateBrightnessLevel =
@@ -285,6 +280,11 @@ fun VideoPlayerHost(
             windowIsLandscape = isLandscape,
             rotationHonoured = !isInPipWindow && !isLargeWindow && !context.orientationRequestIgnored(config),
         )
+    PlayerSheetCollapseSyncEffects(
+        playerSheetState = playerSheetState,
+        screenState = screenState,
+        isFullscreenShown = fullscreenShown,
+    )
     FullscreenEffect(
         isFullscreen = screenState.isFullscreen,
         activity = activity,

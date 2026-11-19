@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.first
 internal fun PlayerSheetCollapseSyncEffects(
     playerSheetState: PlayerDraggableState,
     screenState: PlayerScreenState,
+    isFullscreenShown: Boolean,
 ) {
     LaunchedEffect(playerSheetState.currentValue) {
         if (playerSheetState.currentValue == PlayerSheetValue.Collapsed) {
@@ -48,8 +49,13 @@ internal fun PlayerSheetCollapseSyncEffects(
 
     LaunchedEffect(screenState.isFullscreen) {
         screenState.dismissMediaSheets()
-        screenState.exitDragOffsetY = 0f
         screenState.moreVideosDragY = 0f
+    }
+
+    // A released exit drag holds the video where the finger left it until the window has turned,
+    // instead of snapping back to the centre for the length of the rotation.
+    LaunchedEffect(isFullscreenShown) {
+        screenState.exitDragOffsetY = 0f
     }
 }
 
