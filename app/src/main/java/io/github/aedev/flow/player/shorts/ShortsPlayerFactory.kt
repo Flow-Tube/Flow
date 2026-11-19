@@ -25,6 +25,7 @@ import io.github.aedev.flow.player.MediaButtonSessionCallback
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
 import io.github.aedev.flow.player.analytics.PlaybackSessionStats
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
+import io.github.aedev.flow.player.cache.StreamIdentityCacheKeyFactory
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
@@ -44,6 +45,7 @@ internal object ShortsPlayerFactory {
         CacheDataSource
             .Factory()
             .setCache(cache)
+            .setCacheKeyFactory(StreamIdentityCacheKeyFactory)
             .setUpstreamDataSourceFactory(DefaultDataSource.Factory(appContext, YouTubeHttpDataSource.Factory()))
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 

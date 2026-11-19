@@ -5,9 +5,9 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheKeyFactory
 
 /**
- * Media3's default cache keys, plus a note of which video each key was opened for. Video streams
- * are keyed by their full URL, which carries no video id, so this record is the only way to drop
- * one video's data from the shared cache without wiping everything else in it.
+ * [StreamIdentityCacheKeyFactory]'s keys, plus a note of which video each key was opened for. Keys
+ * carry no video id, so this record is the only way to drop one video's data from the shared cache
+ * without wiping everything else in it.
  */
 @UnstableApi
 internal class VideoCacheKeys(
@@ -19,7 +19,7 @@ internal class VideoCacheKeys(
         }
 
     override fun buildCacheKey(dataSpec: DataSpec): String {
-        val key = CacheKeyFactory.DEFAULT.buildCacheKey(dataSpec)
+        val key = StreamIdentityCacheKeyFactory.buildCacheKey(dataSpec)
         currentVideoId()?.let { videoId ->
             synchronized(keysByVideo) { keysByVideo.getOrPut(videoId) { mutableSetOf() }.add(key) }
         }
