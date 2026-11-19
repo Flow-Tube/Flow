@@ -16,6 +16,9 @@ private const val EXPAND_DRAG_MAX_ZOOM = 1.06f
 private const val FULLSCREEN_SWIPE_VELOCITY = -800f
 private const val COLLAPSE_COMMIT_FRACTION = 0.2f
 private const val COLLAPSE_FLING_VELOCITY = 1000f
+
+/** An upward flick this fast at release takes a collapse back, however far it had travelled. */
+private const val COLLAPSE_CANCEL_VELOCITY = 1000f
 private const val CORNER_FLING_VELOCITY = 400f
 private const val CORNER_FLING_AXIS_DOMINANCE = 0.8f
 private const val CORNER_SWITCH_TRAVEL_FRACTION = 0.15f
@@ -104,10 +107,17 @@ internal fun shouldCloseMiniDownward(
     fingerY - maxY > miniHeight * CLOSE_BELOW_HEIGHTS ||
         (startedAtBottom && velocityY > CLOSE_FLING_VELOCITY && velocityY > abs(velocityX) * CLOSE_AXIS_DOMINANCE)
 
+/**
+ * Whether a released collapse drag finishes in the mini player. A flick back up is the user
+ * changing their mind, so it wins over how far the drag had already gone, as it does for the
+ * portrait fullscreen pull.
+ */
 internal fun shouldCollapseOnRelease(
     fraction: Float,
     scaledVelocityY: Float,
-): Boolean = fraction > COLLAPSE_COMMIT_FRACTION || scaledVelocityY > COLLAPSE_FLING_VELOCITY
+): Boolean =
+    scaledVelocityY > -COLLAPSE_CANCEL_VELOCITY &&
+        (fraction > COLLAPSE_COMMIT_FRACTION || scaledVelocityY > COLLAPSE_FLING_VELOCITY)
 
 internal data class MiniPlayerBounds(
     val minX: Float,

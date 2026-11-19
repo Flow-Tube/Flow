@@ -34,6 +34,19 @@ class DraggablePlayerDragMathTest {
     }
 
     @Test
+    fun `a flick back up cancels a collapse however far it travelled`() {
+        assertThat(shouldCollapseOnRelease(fraction = 0.3f, scaledVelocityY = -2000f)).isFalse()
+        assertThat(shouldCollapseOnRelease(fraction = 0.9f, scaledVelocityY = -1100f)).isFalse()
+        assertThat(shouldCollapseOnRelease(fraction = 0.3f, scaledVelocityY = -900f)).isTrue()
+    }
+
+    @Test
+    fun `a slow release past the commit point and a fast flick down both collapse`() {
+        assertThat(shouldCollapseOnRelease(fraction = 0.5f, scaledVelocityY = -50f)).isTrue()
+        assertThat(shouldCollapseOnRelease(fraction = 0.05f, scaledVelocityY = 3000f)).isTrue()
+    }
+
+    @Test
     fun `portrait fullscreen commits on travel or a downward fling`() {
         assertThat(shouldEnterPortraitFullscreen(fraction = 0.3f, velocityY = 0f)).isTrue()
         assertThat(shouldEnterPortraitFullscreen(fraction = 0.1f, velocityY = 2600f)).isTrue()
