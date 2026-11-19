@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
@@ -298,14 +299,23 @@ internal class DraggablePlayerGestureHandler(
                     rawX += delta.x
                     rawY += delta.y
                     snapSignal.trySend(Unit)
+                    armClose(isPastMiniCloseLine(rawY, metrics.maxY, metrics.miniHeight))
                 }
             }
         } finally {
             snapSignal.close()
             snapDriver.cancel()
             state.isDragging = false
+            state.isCloseArmed = false
         }
         return MiniDrag(Offset(rawX, rawY), travel, following, interrupted = false)
+    }
+
+    /** Shows that letting go now closes the player, with one tick as the line is crossed. */
+    private fun armClose(armed: Boolean) {
+        if (armed == state.isCloseArmed) return
+        state.isCloseArmed = armed
+        if (armed) metrics.haptics?.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
     }
 
     private fun onMiniTap(

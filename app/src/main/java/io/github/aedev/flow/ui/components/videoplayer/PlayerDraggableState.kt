@@ -61,6 +61,9 @@ class PlayerDraggableState(
     /** The edge the mini player is tucked past, with only its handle on screen; null while in view. */
     var tuckedSide by mutableStateOf<MiniPlayerTuckSide?>(null)
 
+    /** True while a mini player drag is far enough down that letting go closes it. */
+    internal var isCloseArmed by mutableStateOf(false)
+
     /** Zoom applied while dragging up to enter fullscreen, read in the draw phase only. */
     val expandDragScale = Animatable(1f)
 

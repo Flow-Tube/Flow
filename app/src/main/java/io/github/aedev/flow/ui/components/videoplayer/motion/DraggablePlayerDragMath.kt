@@ -80,6 +80,13 @@ internal fun rubberBand(
         else -> raw
     }
 
+/** Whether the mini player has been taken far enough below its lowest resting place to close. */
+internal fun isPastMiniCloseLine(
+    fingerY: Float,
+    maxY: Float,
+    miniHeight: Float,
+): Boolean = fingerY - maxY > miniHeight * CLOSE_BELOW_HEIGHTS
+
 /**
  * Whether a released mini player closes by leaving through the bottom: the finger took it well past
  * its lowest resting place, or flicked it down from a bottom corner. A flick down from a top corner
@@ -94,7 +101,7 @@ internal fun shouldCloseMiniDownward(
     velocityY: Float,
     thresholds: PlayerGestureThresholds,
 ): Boolean =
-    fingerY - maxY > miniHeight * CLOSE_BELOW_HEIGHTS ||
+    isPastMiniCloseLine(fingerY, maxY, miniHeight) ||
         (
             startedAtBottom &&
                 velocityY > thresholds.closeFlingVelocity &&

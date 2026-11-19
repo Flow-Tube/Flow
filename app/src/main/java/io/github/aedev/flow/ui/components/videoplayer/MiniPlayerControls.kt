@@ -1,5 +1,8 @@
 package io.github.aedev.flow.ui.components.videoplayer
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +50,7 @@ import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.ui.components.videoplayer.motion.lerpClamped
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
+import io.github.aedev.flow.ui.theme.PlayerScrimGestureHud
 import io.github.aedev.flow.ui.theme.PlayerScrimMiniButton
 import io.github.aedev.flow.ui.theme.PlayerScrimMiniTopButton
 import io.github.aedev.flow.ui.utils.LocalWindowSizeClass
@@ -106,6 +110,24 @@ internal fun BoxScope.MiniPlayerControlsLayer(
             color = MaterialTheme.colorScheme.primary,
             trackColor = Color.Transparent,
         )
+
+        AnimatedVisibility(
+            visible = state.isCloseArmed,
+            enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
+            exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(PlayerScrimGestureHud),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = null,
+                    tint = PlayerScrimContent,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+        }
     }
 }
 
