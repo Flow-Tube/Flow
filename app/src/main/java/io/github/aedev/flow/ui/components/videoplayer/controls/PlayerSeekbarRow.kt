@@ -77,6 +77,7 @@ internal fun PlayerSeekbarRow(
     seekbarZIndex: Float = 0f,
     isScrubbing: Boolean = false,
     interactive: Boolean = true,
+    onFineScrub: (() -> Unit)? = null,
 ) {
     if (isLive && duration <= 0L) {
         Box(
@@ -130,6 +131,7 @@ internal fun PlayerSeekbarRow(
             onScrubFinished = onScrubFinished,
             onTrackWidth = { trackWidthPx = it },
             interactive = interactive,
+            onFineScrub = onFineScrub,
         )
     }
 }
@@ -238,6 +240,7 @@ private fun SeekBar(
     onScrubFinished: () -> Unit,
     onTrackWidth: (Int) -> Unit,
     interactive: Boolean,
+    onFineScrub: (() -> Unit)?,
 ) {
     MediaSeekBar(
         value = {
@@ -261,6 +264,7 @@ private fun SeekBar(
             Modifier
                 .fillMaxWidth()
                 .onSizeChanged { onTrackWidth(it.width) }
+                .fineScrubPull(onFineScrub)
                 .insetPadding(horizontalPadding),
     )
 }

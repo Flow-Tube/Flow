@@ -116,6 +116,7 @@ internal fun PlayerBottomBar(
     hidePills: Boolean,
     modifier: Modifier = Modifier,
     isLayerVisible: () -> Boolean = { true },
+    onFineScrub: (() -> Unit)? = null,
 ) {
     val accentColor = MaterialTheme.colorScheme.primary
     // Faded rather than removed: the pills hold the height the seek bar sits at, and a bar that
@@ -246,6 +247,7 @@ internal fun PlayerBottomBar(
             onScrubFinished = onScrubFinished,
             isScrubbing = isScrubbing,
             seekbarZIndex = 2f,
+            onFineScrub = onFineScrub,
         )
     }
 }

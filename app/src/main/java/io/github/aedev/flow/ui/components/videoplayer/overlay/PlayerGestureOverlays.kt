@@ -10,8 +10,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.local.GestureOverlayStyle
-import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.data.local.SpeedSwipeSide
+import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.ui.components.shared.BrightnessOverlay
 import io.github.aedev.flow.ui.components.shared.SpeedSwipeOverlay
 import io.github.aedev.flow.ui.components.shared.VolumeOverlay
