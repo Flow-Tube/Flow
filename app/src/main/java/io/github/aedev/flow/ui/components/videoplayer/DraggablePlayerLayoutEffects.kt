@@ -101,3 +101,34 @@ private class GlidingHeight(
 ) {
     val height = Animatable(height)
 }
+
+/**
+ * Whether the player shows its immersive fullscreen layout. A fullscreen that does not turn the
+ * window first slides the video to the centre, as the list pull does, and swaps to the immersive
+ * layout once it is there; leaving slides it back to the page. Composition reads only whether the
+ * slide has reached the centre, never the slide itself.
+ */
+@Composable
+internal fun rememberImmersiveFullscreen(
+    state: PlayerDraggableState,
+    isFullscreen: Boolean,
+    isLandscape: Boolean,
+    isLargeWindow: Boolean,
+): Boolean {
+    LaunchedEffect(isFullscreen) {
+        if (!isFullscreen) state.settlePortraitFullscreen()
+    }
+    val atCentre by remember(state) { derivedStateOf { state.portraitFsFraction >= 0.999f } }
+    val isExpanded = state.currentValue == PlayerSheetValue.Expanded
+    val slidingIn = isFullscreen && !isLandscape && !isLargeWindow && isExpanded && !atCentre
+    LaunchedEffect(slidingIn) {
+        if (slidingIn) state.animatePortraitFullscreen(1f, 0f)
+    }
+    return !slidingIn &&
+        isImmersivePlayer(
+            isExpanded = isExpanded,
+            isFullscreen = isFullscreen,
+            isLandscape = isLandscape,
+            isLargeWindow = isLargeWindow,
+        )
+}
