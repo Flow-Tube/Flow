@@ -285,6 +285,7 @@ internal fun VideoStage(
                 ambientMode = prefs.ambientModeEnabled && !isMinimized && !localIsInPipMode,
                 ambientFrames = session.ambient.frames,
                 ambientGlow = session.ambient.glow,
+                ambientStoryboard = playerUiState.storyboard,
                 spherical = spherical,
                 sphericalMotion = prefs.sphericalMotionEnabled,
                 sphericalTouch = gesturesActive,

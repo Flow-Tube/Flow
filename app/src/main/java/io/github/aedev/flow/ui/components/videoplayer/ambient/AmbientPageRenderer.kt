@@ -36,16 +36,16 @@ class AmbientPageFrame internal constructor(
 /**
  * Turns the smoothed grid into the page's light. The bitmaps are half float in linear light: an
  * 8-bit fade stretched over a few hundred pixels shows steps, which is the banding this avoids.
- * Double buffered like the bars, since the render thread may still be uploading the last pair.
+ * Written in a ring like the bars, since the render thread may still be uploading earlier images.
  */
 internal class AmbientPageRenderer(
     private val gridWidth: Int,
     private val gridHeight: Int,
 ) {
     private val linear = ColorSpace.get(ColorSpace.Named.LINEAR_EXTENDED_SRGB)
-    private val strips = Array(2) { halfFloatBitmap(gridWidth, 1) }
-    private val glowPages by lazy { Array(2) { halfFloatBitmap(gridWidth, GLOW_PAGE_ROWS) } }
-    private val immersivePages by lazy { Array(2) { halfFloatBitmap(gridWidth, IMMERSIVE_ROWS) } }
+    private val strips = Array(OUTPUT_RING) { halfFloatBitmap(gridWidth, 1) }
+    private val glowPages by lazy { Array(OUTPUT_RING) { halfFloatBitmap(gridWidth, GLOW_PAGE_ROWS) } }
+    private val immersivePages by lazy { Array(OUTPUT_RING) { halfFloatBitmap(gridWidth, IMMERSIVE_ROWS) } }
     private val rows = maxOf(GLOW_PAGE_ROWS, IMMERSIVE_ROWS)
     private val light = FloatArray(gridWidth * rows * 3)
     private val halves = ShortArray(gridWidth * rows * 4)
@@ -56,7 +56,7 @@ internal class AmbientPageRenderer(
         grid: FloatArray,
         style: AmbientPageStyle,
     ): AmbientPageFrame {
-        index = index xor 1
+        index = (index + 1) % OUTPUT_RING
         glowStripLight(grid, gridWidth, style.strip, light)
         val strip = upload(strips[index], gridWidth)
         val page =

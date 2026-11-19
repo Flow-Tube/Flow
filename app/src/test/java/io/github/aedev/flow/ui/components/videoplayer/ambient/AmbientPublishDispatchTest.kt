@@ -50,15 +50,12 @@ class AmbientPublishDispatchTest {
     }
 
     @Test
-    fun `publish alternates buffers so a handed over frame is never overwritten`() {
+    fun `publish rotates buffers so a handed over frame is never overwritten`() {
         val pipeline = AmbientPipeline(Dispatchers.Default)
 
-        val first = runBlocking { pipeline.publish() }.frame?.asAndroidBitmap()
-        val second = runBlocking { pipeline.publish() }.frame?.asAndroidBitmap()
-        val third = runBlocking { pipeline.publish() }.frame?.asAndroidBitmap()
+        val frames = List(OUTPUT_RING + 1) { runBlocking { pipeline.publish() }.frame?.asAndroidBitmap() }
 
-        assertThat(second).isNotSameInstanceAs(first)
-        assertThat(third).isNotSameInstanceAs(second)
-        assertThat(third).isSameInstanceAs(first)
+        assertThat(frames.take(OUTPUT_RING).toSet()).hasSize(OUTPUT_RING)
+        assertThat(frames.last()).isSameInstanceAs(frames.first())
     }
 }

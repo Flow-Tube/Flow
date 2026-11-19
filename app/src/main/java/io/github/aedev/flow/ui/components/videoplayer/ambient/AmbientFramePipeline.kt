@@ -1,14 +1,11 @@
 package io.github.aedev.flow.ui.components.videoplayer.ambient
 
 import android.graphics.Bitmap
-import android.os.Build
+import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.view.PixelCopy
-import android.view.SurfaceView
 import android.view.TextureView
-import android.view.View
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.media3.common.Player
@@ -26,22 +23,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.math.abs
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.exp
-import kotlin.math.pow
 
-private const val SAMPLE_W = 96
-private const val SAMPLE_H = 54
-private const val DISPLAY_W = 32
-private const val DISPLAY_H = 18
-
-/** 96/32 == 54/18 == 3, so decimation is an exact 3x3 box and needs no resampler. */
-private const val DECIMATION = 3
-
-private const val CAPTURE_MS_ASYNC = 900L
+private const val CAPTURE_MS_ASYNC = 750L
 private const val CAPTURE_MS_BLOCKING = 1800L
 
 /** How often the frame is sampled: the bars and the glow change slowly, a lit page follows the picture. */
@@ -54,7 +40,7 @@ private const val LIVELY_STILL_MS = 1000L
 internal const val IDLE_MS = 1500L
 
 /**
- * Temporal smoothing. One exponential filter over the pixel buffer replaces what used to be three
+ * Temporal smoothing for a lit page, which samples every [LIVELY_CHANGING_MS]. One exponential filter over the pixel buffer replaces what used to be three
  * overlapping Compose animations — `Crossfade(800ms)` on the frame plus `animateColorAsState(700ms)`
  * on base and accent.
  *
@@ -77,67 +63,43 @@ internal const val IDLE_MS = 1500L
 private const val SMOOTH_TICK_MS = 60L
 private const val SMOOTH_TAU_MS = 600f
 
-/** Once every channel is within this of its target (linear units) the filter stops emitting. */
-private const val CONVERGENCE_EPS = 0.0015f
-
-private const val BLUR_RADIUS_PX = 2
-private const val BLUR_PASSES = 3
-
-private const val AMBIENT_GAIN = 0.28f
-
 /**
- * Below this mean per-channel delta (0..255, sRGB) the frame is treated as unchanged and the
- * smoothing target is left alone. Static shots are most of a watch session.
+ * Live frames at the standard pace, storyboard frames and thumbnails arrive hundreds of ms or
+ * seconds apart, so they crossfade instead of going through the filter. The fade steps on its own 15 fps clock and only moves an alpha read in draw, so it
+ * never drives the display at its refresh rate; at the glow's brightness a step is about one sRGB
+ * level. One change per [MIN_STORYBOARD_STEP_MS] stays far under WCAG 2.3.1's three flashes a second.
  */
-internal const val FRAME_CHANGE_THRESHOLD = 4
-
-/** Every Nth pixel is compared for change detection; the sample is already tiny. */
-internal const val CHANGE_SAMPLE_STEP = 7
+private const val FADE_TICK_MS = 66L
 
 /**
- * Only a permanent signal disables capture. `ERROR_SOURCE_INVALID` on a protected surface is a
- * platform guarantee that the readback will never succeed, so reissuing it every cadence for the
- * length of a video is pure waste.
+ * A live frame at the standard pace is current when it is read, so it fades in quickly and the
+ * light trails the picture by under a second without ever running ahead of it. Captures are at
+ * least [CAPTURE_MS_ASYNC] apart, so the fades stay far under three flashes a second.
+ */
+private const val LIVE_FADE_MS = 450L
+
+/** A seek, a resume or a paused frame is a deliberate jump, so it settles sooner. */
+private const val JUMP_FADE_MS = 1_000L
+
+/** How often a warm device samples the live surface. */
+private const val HOT_CAPTURE_MS = 4_500L
+
+/** The first light of a video, from its thumbnail. */
+private const val SEED_FADE_MS = 500L
+
+/** Below this mean change (linear units) a new still is not worth a fade. */
+private const val STILL_CHANGE_EPS = 0.006f
+
+/** Output images in flight: two on screen during a fade, two more being written. */
+internal const val OUTPUT_RING = 4
+
+/**
+ * Owns every buffer the light needs for as long as its holder lives. Everything is allocated once:
+ * the loops below must not allocate in steady state.
  *
- * Everything else backs off but never latches. A surface can be legitimately unavailable for
- * seconds — during startup, after a fullscreen transition, or while the surface is re-created — and
- * a counter that disabled the effect after N of those would turn a transient hiccup into "ambient
- * is black for the rest of this video" with no way back.
- */
-private const val MAX_BACKOFF_MULTIPLIER = 8L
-
-private const val CAPTURE_OK = 0
-private const val CAPTURE_RETRY = 1
-private const val CAPTURE_UNSUPPORTED = 2
-
-private const val LINEAR_LUT_SIZE = 4096
-
-/** Exact sRGB EOTF; 256 entries covers every possible input byte. */
-private val SRGB_TO_LINEAR =
-    FloatArray(256) { i ->
-        val c = i / 255f
-        if (c <= 0.04045f) c / 12.92f else ((c + 0.055f) / 1.055f).pow(2.4f)
-    }
-
-/**
- * Inverse EOTF. 4096 entries rather than the ~2048 that would give half-LSB accuracy across most of
- * the range: the curve's slope is 12.92 near black, so a coarser table quantises visibly there —
- * and near-black is exactly where a dim glow lives.
- */
-private val LINEAR_TO_SRGB =
-    IntArray(LINEAR_LUT_SIZE + 1) { i ->
-        val c = i / LINEAR_LUT_SIZE.toFloat()
-        val s = if (c <= 0.0031308f) c * 12.92f else 1.055f * c.pow(1f / 2.4f) - 0.055f
-        (s * 255f + 0.5f).toInt().coerceIn(0, 255)
-    }
-
-/**
- * Owns every buffer the effect needs for the lifetime of one STARTED window. Everything is
- * allocated once: the loops below must not allocate in steady state.
- *
- * [pixelDispatcher] carries every per-pixel pass — the decimate/blur that builds a target and the
- * encode that turns the smoothed grid into a bitmap. Both loops themselves stay on the caller's
- * dispatcher (Main), which is what keeps the buffers they share free of locks.
+ * Sources ([runSources]) hand targets to one presenter ([runPresenter]). Both run on the caller's
+ * dispatcher (Main), which keeps the buffers they share free of locks; every per-pixel pass hops
+ * to [pixelDispatcher] and is joined before anything is published.
  */
 internal class AmbientPipeline(
     private val pixelDispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -154,25 +116,34 @@ internal class AmbientPipeline(
     private val currentGrid = FloatArray(cells * 3)
     private val scratchGrid = FloatArray(cells * 3)
     private val stagingGrid = FloatArray(cells * 3)
+    private val stillSourceGrid = FloatArray(cells * 3)
+    private val stillGrid = FloatArray(cells * 3)
+    private val lastStillGrid = FloatArray(cells * 3)
+    private val fromGrid = FloatArray(cells * 3)
+    private val toGrid = FloatArray(cells * 3)
+    private val renderScratch = FloatArray(cells * 3)
     private val outPixels = IntArray(cells)
 
-    // Double buffered: the render thread may still be uploading the bitmap handed over last tick.
-    private val buffers =
-        arrayOf(
-            Bitmap.createBitmap(DISPLAY_W, DISPLAY_H, Bitmap.Config.ARGB_8888),
-            Bitmap.createBitmap(DISPLAY_W, DISPLAY_H, Bitmap.Config.ARGB_8888),
-        )
+    // The render thread may still be uploading images handed over earlier, so writes rotate.
+    private val buffers = Array(OUTPUT_RING) { Bitmap.createBitmap(DISPLAY_W, DISPLAY_H, Bitmap.Config.ARGB_8888) }
     private var bufferIndex = 0
 
     private var hasPreviousSample = false
-    private var hasTarget = false
-    private var seeded = false
     private var supported = true
     private var consecutiveFailures = 0
 
+    private var shown = false
+    private var fadeMode = false
+    private var fadeProgress = 1f
+    private var filtering = false
+    private var filterPending = false
+    private var stillPending = false
+    private var stillFadeMs = 0L
+    private var hasLastStill = false
+
     /**
-     * Signalled whenever there is something new to publish. Conflated: the smoothing loop only
-     * needs to know that it should look, not how many times it was told.
+     * Signalled whenever there is something new to publish. Conflated: the presenter only needs to
+     * know that it should look, not how many times it was told.
      */
     private val wake = Channel<Unit>(Channel.CONFLATED)
     private var restyled = false
@@ -184,54 +155,106 @@ internal class AmbientPipeline(
         wake.trySend(Unit)
     }
 
-    suspend fun runCapture(
+    /** Forgets what is on screen, for a holder whose light was cleared. */
+    fun reset() {
+        shown = false
+        fadeMode = false
+        filtering = false
+        filterPending = false
+        stillPending = false
+        hasLastStill = false
+    }
+
+    /**
+     * Feeds the presenter for one video: its [thumbnail] first, then the live surface, which keeps
+     * the light on the frame being shown. [storyboard] frames stand in where reading the surface is
+     * impossible, blocks Main, or [hot] asks for less work; see [ambientUsesStoryboard].
+     */
+    suspend fun runSources(
         playerView: PlayerView,
         isPlaying: Flow<Boolean>,
+        storyboard: AmbientStoryboardFrames?,
+        thumbnail: (suspend () -> AmbientStill?)?,
+        hot: () -> Boolean,
     ) {
-        var first = true
-        while (currentCoroutineContext().isActive && supported) {
-            // The first pass lights a video that opens paused; after that a paused video is captured
-            // again only when the player draws a new frame, e.g. after a seek.
-            if (!first) awaitPlayingOrNewFrame(playerView, isPlaying)
-            first = false
-            val surface = playerView.videoSurfaceView
-            var cadence = IDLE_MS
-            if (surface != null && surface.width > 0 && surface.height > 0) {
-                val base = if (surface is TextureView) CAPTURE_MS_BLOCKING else CAPTURE_MS_ASYNC
-                when (captureSurface(surface, sample, handler)) {
-                    CAPTURE_OK -> {
-                        consecutiveFailures = 0
-                        // Heavy work off Main; withContext joins before anything is published, so
-                        // the staging buffers are never read concurrently.
-                        val accepted = withContext(pixelDispatcher) { computeTarget() }
-                        // A TextureView readback blocks Main, so it keeps its slow pace whatever is asked.
-                        cadence =
-                            when {
-                                capturePace() == AmbientCadence.STANDARD || surface is TextureView -> base
-                                accepted -> LIVELY_CHANGING_MS
-                                else -> LIVELY_STILL_MS
-                            }
-                        if (accepted) {
-                            stagingGrid.copyInto(targetGrid)
-                            hasTarget = true
-                            wake.trySend(Unit)
-                        }
-                    }
+        supported = true
+        consecutiveFailures = 0
+        hasPreviousSample = false
+        var board = storyboard
+        thumbnail?.invoke()?.let { offerStill(it, SEED_FADE_MS) }
+        var jumped = true
+        while (currentCoroutineContext().isActive) {
+            val useBoard = ambientUsesStoryboard(board != null, supported, hot(), playerView.videoSurfaceView is TextureView)
+            if (!useBoard && !supported) return
+            val playing = isPlaying.first()
+            if (board != null && useBoard) {
+                val player = playerView.player
+                val position = player?.currentPosition ?: 0L
+                val step = storyboardStepMs(board.intervalMs)
+                val fade = storyboardFadeMs(step)
+                val target = if (playing) storyboardTargetMs(position, fade, player?.duration ?: 0L) else position
+                val crop = board.sheetAt(target)
+                if (crop == null) {
+                    board = null
+                    continue
+                }
+                val frames = board
+                withContext(pixelDispatcher) { frames.toGrid(crop, stillSourceGrid, renderScratch) }
+                offerStill(stillSourceGrid, if (jumped || !playing) JUMP_FADE_MS else fade)
+                if (playing && player != null) {
+                    val wait = storyboardDelayMs(position, step, fade, player.playbackParameters.speed)
+                    jumped = withTimeoutOrNull(wait) { player.renderedFrames().first() } != null
+                } else {
+                    awaitPlayingOrNewFrame(playerView, isPlaying)
+                    jumped = true
+                }
+            } else {
+                val cadence = capturePass(playerView, hot())
+                if (playing) delay(cadence) else awaitPlayingOrNewFrame(playerView, isPlaying)
+            }
+        }
+    }
 
-                    CAPTURE_UNSUPPORTED -> {
-                        supported = false
-                    }
-
-                    else -> {
-                        consecutiveFailures++
-                        val multiplier =
-                            (1L shl consecutiveFailures.coerceAtMost(3))
-                                .coerceAtMost(MAX_BACKOFF_MULTIPLIER)
-                        cadence = base * multiplier
-                    }
+    /** One readback of the live surface; returns how long to wait before the next. */
+    private suspend fun capturePass(
+        playerView: PlayerView,
+        hot: Boolean,
+    ): Long {
+        val surface = playerView.videoSurfaceView
+        if (surface == null || surface.width <= 0 || surface.height <= 0) return IDLE_MS
+        val base = if (surface is TextureView) CAPTURE_MS_BLOCKING else CAPTURE_MS_ASYNC
+        return when (captureSurface(surface, sample, handler)) {
+            CAPTURE_OK -> {
+                consecutiveFailures = 0
+                // Heavy work off Main; withContext joins before anything is published, so the
+                // staging buffers are never read concurrently.
+                val accepted = withContext(pixelDispatcher) { computeTarget() }
+                if (accepted && capturePace() == AmbientCadence.STANDARD) {
+                    offerStill(stagingGrid, LIVE_FADE_MS)
+                } else if (accepted) {
+                    stagingGrid.copyInto(targetGrid)
+                    filterPending = true
+                    hasLastStill = false
+                    wake.trySend(Unit)
+                }
+                // A TextureView readback blocks Main, so it keeps its slow pace whatever is asked.
+                when {
+                    hot -> maxOf(base, HOT_CAPTURE_MS)
+                    capturePace() == AmbientCadence.STANDARD || surface is TextureView -> base
+                    accepted -> LIVELY_CHANGING_MS
+                    else -> LIVELY_STILL_MS
                 }
             }
-            delay(cadence)
+
+            CAPTURE_UNSUPPORTED -> {
+                supported = false
+                0L
+            }
+
+            else -> {
+                consecutiveFailures++
+                base * (1L shl consecutiveFailures.coerceAtMost(3)).coerceAtMost(MAX_BACKOFF_MULTIPLIER)
+            }
         }
     }
 
@@ -258,73 +281,196 @@ internal class AmbientPipeline(
 
         decimateToLinear(samplePixels, stagingGrid)
         boxBlurLinear(stagingGrid, scratchGrid, DISPLAY_W, DISPLAY_H, BLUR_RADIUS_PX, BLUR_PASSES)
+        boostChroma(stagingGrid, AMBIENT_CHROMA_BOOST)
         return true
     }
 
-    suspend fun runSmoothing(emit: (AmbientFrameState) -> Unit) {
+    /** Turns a decoded still into a grid, off Main. */
+    private suspend fun gridOf(still: AmbientStill): FloatArray =
+        withContext(pixelDispatcher) {
+            val pixels = IntArray(still.rect.width() * still.rect.height())
+            bitmapAreaToGrid(still.bitmap, still.rect, pixels, stillSourceGrid, renderScratch)
+            boostChroma(stillSourceGrid, AMBIENT_CHROMA_BOOST)
+            stillSourceGrid
+        }
+
+    private suspend fun offerStill(
+        still: AmbientStill,
+        fadeMs: Long,
+    ) = offerStill(gridOf(still), fadeMs)
+
+    private fun offerStill(
+        grid: FloatArray,
+        fadeMs: Long,
+    ) {
+        if (hasLastStill && gridDifference(grid, lastStillGrid) < STILL_CHANGE_EPS) return
+        grid.copyInto(lastStillGrid)
+        hasLastStill = true
+        grid.copyInto(stillGrid)
+        stillFadeMs = fadeMs
+        stillPending = true
+        wake.trySend(Unit)
+    }
+
+    /**
+     * Shows each target: stills crossfade from what is on screen, live frames walk the filter.
+     * [progress] receives the crossfade position, read only in draw.
+     */
+    suspend fun runPresenter(
+        emit: (AmbientFrameState) -> Unit,
+        progress: (Float) -> Unit,
+    ) {
         var last = SystemClock.elapsedRealtime()
         while (currentCoroutineContext().isActive) {
-            if (!hasTarget) {
-                wake.receive()
-                last = SystemClock.elapsedRealtime()
-                continue
-            }
-            if (!seeded) {
-                targetGrid.copyInto(currentGrid)
-                seeded = true
-                emit(publish())
-                delay(SMOOTH_TICK_MS)
-                last = SystemClock.elapsedRealtime()
-                continue
-            }
+            when {
+                stillPending -> {
+                    stillPending = false
+                    crossfade(emit, progress)
+                    last = SystemClock.elapsedRealtime()
+                }
 
-            val now = SystemClock.elapsedRealtime()
-            val dt = (now - last).coerceIn(1L, 500L)
-            last = now
-            val alpha = 1f - exp(-dt.toFloat() / SMOOTH_TAU_MS)
+                filterPending -> {
+                    filterPending = false
+                    if (!shown) {
+                        targetGrid.copyInto(currentGrid)
+                        shown = true
+                        fadeMode = false
+                        show(render(currentGrid, null), 1f, emit, progress)
+                        delay(SMOOTH_TICK_MS)
+                    } else {
+                        if (fadeMode) displayedGrid(currentGrid)
+                        fadeMode = false
+                        filtering = true
+                    }
+                    last = SystemClock.elapsedRealtime()
+                }
 
-            if (step(currentGrid, targetGrid, alpha) || restyled) {
-                emit(publish())
-                delay(SMOOTH_TICK_MS)
-            } else {
-                // Converged: nothing changes until capture sets a new target.
-                wake.receive()
-                last = SystemClock.elapsedRealtime()
+                filtering -> {
+                    val now = SystemClock.elapsedRealtime()
+                    val dt = (now - last).coerceIn(1L, 500L)
+                    last = now
+                    val alpha = 1f - exp(-dt.toFloat() / SMOOTH_TAU_MS)
+                    filtering = step(currentGrid, targetGrid, alpha)
+                    if (filtering || restyled) {
+                        show(render(currentGrid, null), 1f, emit, progress)
+                        delay(SMOOTH_TICK_MS)
+                    }
+                }
+
+                restyled && shown -> {
+                    displayedGrid(scratchGrid)
+                    show(render(scratchGrid, null), 1f, emit, progress)
+                }
+
+                else -> {
+                    restyled = false
+                    wake.receive()
+                    last = SystemClock.elapsedRealtime()
+                }
             }
         }
     }
 
+    private suspend fun crossfade(
+        emit: (AmbientFrameState) -> Unit,
+        progress: (Float) -> Unit,
+    ) {
+        if (!shown) {
+            stillGrid.copyInto(toGrid)
+            shown = true
+            fadeMode = true
+            fadeProgress = 1f
+            show(render(toGrid, null), 1f, emit, progress)
+            return
+        }
+        displayedGrid(fromGrid)
+        stillGrid.copyInto(toGrid)
+        fadeMode = true
+        filtering = false
+        fadeProgress = 0f
+        show(render(toGrid, fromGrid), 0f, emit, progress)
+        val start = SystemClock.elapsedRealtime()
+        val duration = stillFadeMs.coerceAtLeast(FADE_TICK_MS).toFloat()
+        while (fadeProgress < 1f && currentCoroutineContext().isActive) {
+            delay(FADE_TICK_MS)
+            if (stillPending || filterPending) return
+            if (restyled) emit(render(toGrid, fromGrid))
+            fadeProgress = smoothStep((SystemClock.elapsedRealtime() - start) / duration)
+            progress(fadeProgress)
+        }
+    }
+
+    /** Hands over a rendered state and the fade position it belongs to in one step. */
+    private fun show(
+        state: AmbientFrameState,
+        at: Float,
+        emit: (AmbientFrameState) -> Unit,
+        progress: (Float) -> Unit,
+    ) {
+        progress(at)
+        emit(state)
+    }
+
+    /** What is on screen now, as a grid. */
+    private fun displayedGrid(out: FloatArray) {
+        if (fadeMode) lerpGrid(fromGrid, toGrid, fadeProgress, out) else currentGrid.copyInto(out)
+    }
+
+    /** The light for the current grid alone, for callers that only need one image. */
+    internal suspend fun publish(): AmbientFrameState = render(currentGrid, null)
+
     /**
-     * The encode is 576 cells of inverse-EOTF plus a bitmap upload, and it ran on Main once per
-     * 60 ms tick for the whole of playback.
-     *
-     * Hopping it needs no copy of [currentGrid]: the smoothing loop is a single sequential
-     * coroutine, so it cannot step the grid while it is awaiting this, and no other loop touches
-     * [currentGrid], [outPixels] or [buffers]. [supported] is read on the caller instead, because
-     * that one *is* written by the capture loop.
+     * The encode and the page light are per-pixel work, so they run on [pixelDispatcher]. Nothing
+     * else touches the grids, [outPixels] or [buffers] while this is awaited: the presenter is one
+     * sequential coroutine. [supported] is read on the caller, because the sources write it.
      */
-    internal suspend fun publish(): AmbientFrameState {
+    private suspend fun render(
+        grid: FloatArray,
+        previous: FloatArray?,
+    ): AmbientFrameState {
         restyled = false
         val style = pageStyle()
         val isSupported = supported
         return withContext(pixelDispatcher) {
+            val previousFrame = previous?.let { encodeFrame(it) }
+            val previousPage = previous?.let { g -> style?.let { pageRenderer.render(g, it) } }
             AmbientFrameState(
-                frame = encodeFrame(),
+                frame = encodeFrame(grid),
                 supported = isSupported,
-                page = style?.let { pageRenderer.render(currentGrid, it) },
+                page = style?.let { pageRenderer.render(grid, it) },
+                previousFrame = previousFrame,
+                previousPage = previousPage,
             )
         }
     }
 
     /** Runs on [pixelDispatcher]. */
-    private fun encodeFrame(): ImageBitmap {
-        encodeToPixels(currentGrid, outPixels)
-        bufferIndex = bufferIndex xor 1
+    private fun encodeFrame(grid: FloatArray): ImageBitmap {
+        encodeToPixels(grid, outPixels)
+        bufferIndex = (bufferIndex + 1) % OUTPUT_RING
         val bitmap = buffers[bufferIndex]
         bitmap.setPixels(outPixels, 0, DISPLAY_W, 0, 0, DISPLAY_W, DISPLAY_H)
         return bitmap.asImageBitmap()
     }
 }
+
+/**
+ * Whether storyboard frames light the video instead of the live surface: only when there are
+ * some and the surface cannot be read, its readback blocks Main (a TextureView), or the device is
+ * warm. Elsewhere the live frame is cheap to read and is the one on screen.
+ */
+internal fun ambientUsesStoryboard(
+    hasStoryboard: Boolean,
+    captureSupported: Boolean,
+    hot: Boolean,
+    blockingSurface: Boolean,
+): Boolean = hasStoryboard && (!captureSupported || hot || blockingSurface)
+
+/** A decoded picture and the part of it that is the video. */
+internal class AmbientStill(
+    val bitmap: Bitmap,
+    val rect: Rect,
+)
 
 /** One emission per frame the player draws after a seek, a new item or a new surface. */
 internal fun Player.renderedFrames(): Flow<Unit> =
@@ -337,196 +483,4 @@ internal fun Player.renderedFrames(): Flow<Unit> =
             }
         addListener(listener)
         awaitClose { removeListener(listener) }
-    }
-
-/** Advances [current] toward [target]; returns whether anything moved beyond the epsilon. */
-internal fun step(
-    current: FloatArray,
-    target: FloatArray,
-    alpha: Float,
-): Boolean {
-    var moved = false
-    for (i in current.indices) {
-        val delta = target[i] - current[i]
-        if (abs(delta) > CONVERGENCE_EPS) {
-            current[i] += delta * alpha
-            moved = true
-        } else {
-            current[i] = target[i]
-        }
-    }
-    return moved
-}
-
-/**
- * Fuses the 3x3 decimation with the sRGB to linear conversion in one pass.
- *
- * The previous implementation used `createScaledBitmap(..., filter = true)`, which is bilinear: it
- * samples 2x2 texels where a 3x reduction needs 3x3, so roughly half the source was discarded and
- * the aliasing the 96x54 capture existed to prevent came back as a crawling glow on fine detail.
- * Averaging in gamma-encoded sRGB was the other half — mixing saturated complementaries there lands
- * darker than either input.
- */
-private fun decimateToLinear(
-    src: IntArray,
-    dst: FloatArray,
-) {
-    val n = (DECIMATION * DECIMATION).toFloat()
-    var o = 0
-    for (y in 0 until DISPLAY_H) {
-        for (x in 0 until DISPLAY_W) {
-            var r = 0f
-            var g = 0f
-            var b = 0f
-            for (dy in 0 until DECIMATION) {
-                var idx = (y * DECIMATION + dy) * SAMPLE_W + x * DECIMATION
-                for (dx in 0 until DECIMATION) {
-                    val c = src[idx++]
-                    r += SRGB_TO_LINEAR[(c shr 16) and 0xFF]
-                    g += SRGB_TO_LINEAR[(c shr 8) and 0xFF]
-                    b += SRGB_TO_LINEAR[c and 0xFF]
-                }
-            }
-            dst[o++] = r / n
-            dst[o++] = g / n
-            dst[o++] = b / n
-        }
-    }
-}
-
-internal fun boxBlurLinear(
-    buf: FloatArray,
-    scratch: FloatArray,
-    w: Int,
-    h: Int,
-    radius: Int,
-    passes: Int,
-) {
-    if (radius <= 0 || w <= 0 || h <= 0) return
-    repeat(passes) {
-        blurAxisLinear(buf, scratch, w, h, radius, horizontal = true)
-        blurAxisLinear(scratch, buf, w, h, radius, horizontal = false)
-    }
-}
-
-private fun blurAxisLinear(
-    src: FloatArray,
-    dst: FloatArray,
-    w: Int,
-    h: Int,
-    radius: Int,
-    horizontal: Boolean,
-) {
-    val lines = if (horizontal) h else w
-    val span = if (horizontal) w else h
-    for (line in 0 until lines) {
-        for (i in 0 until span) {
-            var r = 0f
-            var g = 0f
-            var b = 0f
-            var n = 0
-            for (k in -radius..radius) {
-                val j = (i + k).coerceIn(0, span - 1)
-                val o = (if (horizontal) line * w + j else j * w + line) * 3
-                r += src[o]
-                g += src[o + 1]
-                b += src[o + 2]
-                n++
-            }
-            val o = (if (horizontal) line * w + i else i * w + line) * 3
-            dst[o] = r / n
-            dst[o + 1] = g / n
-            dst[o + 2] = b / n
-        }
-    }
-}
-
-private fun encodeToPixels(
-    grid: FloatArray,
-    out: IntArray,
-) {
-    for (i in out.indices) {
-        val o = i * 3
-        out[i] = (0xFF shl 24) or
-            (linearToSrgb(grid[o] * AMBIENT_GAIN) shl 16) or
-            (linearToSrgb(grid[o + 1] * AMBIENT_GAIN) shl 8) or
-            linearToSrgb(grid[o + 2] * AMBIENT_GAIN)
-    }
-}
-
-/**
- * Rounds rather than truncates into the table. Flooring costs up to a full table step, which near
- * black — where the EOTF slope is 12.92 — is enough to lose a whole output level and break the
- * round trip.
- */
-internal fun linearToSrgb(v: Float): Int = LINEAR_TO_SRGB[(v.coerceIn(0f, 1f) * LINEAR_LUT_SIZE + 0.5f).toInt()]
-
-internal fun srgbToLinear(byteValue: Int): Float = SRGB_TO_LINEAR[byteValue.coerceIn(0, 255)]
-
-/** Mean absolute per-channel difference over a strided subset of the two buffers. */
-internal fun meanAbsDiff(
-    current: IntArray,
-    previous: IntArray,
-): Int {
-    var sum = 0L
-    var count = 0
-    var i = 0
-    while (i < current.size) {
-        val a = current[i]
-        val b = previous[i]
-        sum += abs(((a shr 16) and 0xFF) - ((b shr 16) and 0xFF))
-        sum += abs(((a shr 8) and 0xFF) - ((b shr 8) and 0xFF))
-        sum += abs((a and 0xFF) - (b and 0xFF))
-        count += 3
-        i += CHANGE_SAMPLE_STEP
-    }
-    return if (count == 0) 0 else (sum / count).toInt()
-}
-
-private suspend fun captureSurface(
-    surface: View,
-    dst: Bitmap,
-    handler: Handler,
-): Int =
-    suspendCancellableCoroutine { cont ->
-        try {
-            when {
-                surface is TextureView -> {
-                    if (surface.isAvailable) {
-                        surface.getBitmap(dst)
-                        cont.resume(CAPTURE_OK)
-                    } else {
-                        cont.resume(CAPTURE_RETRY)
-                    }
-                }
-
-                surface is SurfaceView && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
-                    val holderSurface = surface.holder?.surface
-                    if (holderSurface != null && holderSurface.isValid) {
-                        PixelCopy.request(
-                            surface,
-                            dst,
-                            { result ->
-                                cont.resume(
-                                    when (result) {
-                                        PixelCopy.SUCCESS -> CAPTURE_OK
-                                        PixelCopy.ERROR_SOURCE_INVALID -> CAPTURE_UNSUPPORTED
-                                        else -> CAPTURE_RETRY
-                                    },
-                                )
-                            },
-                            handler,
-                        )
-                    } else {
-                        cont.resume(CAPTURE_RETRY)
-                    }
-                }
-
-                else -> {
-                    cont.resume(CAPTURE_RETRY)
-                }
-            }
-        } catch (t: Throwable) {
-            cont.resume(CAPTURE_RETRY)
-        }
     }
