@@ -146,6 +146,11 @@ internal object ShortsPlayerFactory {
                             ShortsStartupTrace.onFirstFrame(slotVideoId())
                         }
 
+                        // Per slot: the pool's own current id is set after playWhenReady, and this fires inside it.
+                        override fun onIsPlayingChanged(isPlaying: Boolean) {
+                            if (isPlaying) ShortsStartupTrace.onPlaying(slotVideoId())
+                        }
+
                         override fun onPlaybackStateChanged(playbackState: Int) {
                             ShortsStartupTrace.onState(
                                 slotVideoId(),

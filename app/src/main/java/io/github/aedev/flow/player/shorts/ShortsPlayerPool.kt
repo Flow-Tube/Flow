@@ -143,7 +143,6 @@ class ShortsPlayerPool private constructor() {
         object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _anyPlaying.value = players.any { it?.isPlaying == true }
-                if (isPlaying) ShortsStartupTrace.onPlaying(_currentVideoId.value)
             }
         }
 
