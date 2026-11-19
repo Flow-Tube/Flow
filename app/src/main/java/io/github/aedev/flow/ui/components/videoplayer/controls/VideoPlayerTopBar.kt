@@ -92,7 +92,7 @@ internal fun VideoPlayerTopBar(
     isLiveChatAvailable: Boolean,
     hasQueue: Boolean,
     topPadding: Dp,
-    horizontalPadding: Dp,
+    horizontalPadding: () -> Dp,
     verticalPadding: Dp,
     rowMinHeight: Dp,
     pillHeight: Dp,
@@ -114,7 +114,8 @@ internal fun VideoPlayerTopBar(
                 Modifier
                     .fillMaxWidth()
                     .heightIn(min = rowMinHeight)
-                    .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+                    .insetPadding(horizontalPadding)
+                    .padding(vertical = verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -318,7 +319,7 @@ internal fun VideoPlayerTopBar(
             PortraitFullscreenTitle(
                 videoTitle = videoTitle,
                 channelName = channelName,
-                horizontalPadding = horizontalPadding + TitleInsetCorrection,
+                horizontalPadding = { horizontalPadding() + TitleInsetCorrection },
                 onClick = actions.onDescriptionClick,
                 modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
             )

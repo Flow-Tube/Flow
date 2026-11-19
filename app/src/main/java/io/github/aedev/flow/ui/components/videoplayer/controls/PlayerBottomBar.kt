@@ -84,9 +84,9 @@ data class PlayerBottomBarMetrics(
     val pillHeight: Dp,
     val pillsRowMinHeight: Dp,
     val actionSpacing: Dp,
-    val horizontalPadding: Dp,
-    val seekbarHorizontalPadding: Dp,
-    val seekbarBottomPadding: Dp,
+    val horizontalPadding: () -> Dp,
+    val seekbarHorizontalPadding: () -> Dp,
+    val seekbarBottomPadding: () -> Dp,
     val expandIconSize: Dp,
     val chapterMaxWidth: Dp,
 )
@@ -131,7 +131,7 @@ internal fun PlayerBottomBar(
             modifier
                 .fillMaxWidth()
                 .playerEdgeScrim(ScrimEdge.Bottom, PlayerScrim.copy(alpha = BOTTOM_BAR_SCRIM_ALPHA))
-                .padding(bottom = metrics.seekbarBottomPadding),
+                .insetPadding(bottom = metrics.seekbarBottomPadding),
     ) {
         Row(
             modifier =
@@ -140,11 +140,8 @@ internal fun PlayerBottomBar(
                     .heightIn(min = metrics.pillsRowMinHeight)
                     .zIndex(1f)
                     .graphicsLayer { alpha = pillsAlpha }
-                    .padding(
-                        start = metrics.horizontalPadding,
-                        end = metrics.horizontalPadding,
-                        top = if (isFullscreen) 4.dp else 0.dp,
-                    ),
+                    .insetPadding(metrics.horizontalPadding)
+                    .padding(top = if (isFullscreen) 4.dp else 0.dp),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically,
         ) {

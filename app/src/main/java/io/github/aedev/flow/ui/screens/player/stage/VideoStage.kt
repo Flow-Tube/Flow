@@ -1,10 +1,14 @@
 package io.github.aedev.flow.ui.screens.player.stage
 
 import android.content.res.Configuration
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -33,11 +38,15 @@ import io.github.aedev.flow.ui.components.videoplayer.fadedOutByCollapse
 import io.github.aedev.flow.ui.components.videoplayer.gesture.chapterSkipTarget
 import io.github.aedev.flow.ui.components.videoplayer.gesture.videoPlayerControls
 import io.github.aedev.flow.ui.components.videoplayer.gesture.videoPlayerZoom
+import io.github.aedev.flow.ui.components.videoplayer.motion.rememberPlayerGestureThresholds
 import io.github.aedev.flow.ui.components.videoplayer.overlay.ChapterSkipFeedback
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.Media3SubtitleOverlay
 import io.github.aedev.flow.ui.screens.player.saveChosenPlaybackSpeed
+import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.effectiveResizeMode
+import kotlinx.coroutines.flow.collectLatest
+import kotlin.math.abs
 
 /**
  * The player's video slot: the surface itself, the gesture and zoom transforms wrapped around it,
@@ -111,6 +120,7 @@ internal fun VideoStage(
     }
 
     // ALWAYS use the same video surface
+    val exitGive = rememberExitDragGive(screenState, session.isFullscreenShown)
     val gestureModifier =
         if (gesturesActive) {
             modifier
@@ -217,6 +227,8 @@ internal fun VideoStage(
                     },
                 ).graphicsLayer {
                     if (session.isFullscreenShown) translationY = screenState.exitDragOffsetY
+                    scaleX = 1f - exitGive.value
+                    scaleY = 1f - exitGive.value
                 }
         } else {
             modifier
@@ -340,4 +352,34 @@ internal fun VideoStage(
             }
         }
     }
+}
+
+/** How much smaller the video gets as an exit drag reaches its commit point. */
+private const val EXIT_DRAG_SHRINK = 0.05f
+
+/**
+ * How much the video gives as it is pulled out of fullscreen: it follows the drag toward 95% over
+ * the travel that commits the exit, and eases back once fullscreen ends, so a portrait exit, where
+ * the slide takes over from the finger, does not jump back to full size as it starts.
+ */
+@Composable
+private fun rememberExitDragGive(
+    screenState: PlayerScreenState,
+    isFullscreenShown: Boolean,
+): Animatable<Float, AnimationVector1D> {
+    val give = remember { Animatable(0f) }
+    val commitPx = rememberPlayerGestureThresholds().exitFullscreenDrag
+    val settle = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val shown by rememberUpdatedState(isFullscreenShown)
+    LaunchedEffect(screenState, commitPx) {
+        snapshotFlow { if (shown) screenState.exitDragOffsetY else 0f }
+            .collectLatest { offset ->
+                if (offset != 0f) {
+                    give.snapTo((abs(offset) / commitPx).coerceIn(0f, 1f) * EXIT_DRAG_SHRINK)
+                } else {
+                    give.animateTo(0f, settle)
+                }
+            }
+    }
+    return give
 }

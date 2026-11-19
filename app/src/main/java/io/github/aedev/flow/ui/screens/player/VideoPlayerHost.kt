@@ -510,7 +510,8 @@ fun VideoPlayerHost(
                 Modifier
                     .align(Alignment.CenterStart)
                     .width(sidePanelState.playerWidth)
-                    .fillMaxHeight(),
+                    .fillMaxHeight()
+                    .then(sidePanelState.playerSlide(videoAspectRatio)),
             videoContent = { modifier ->
                 VideoStage(
                     modifier = modifier,

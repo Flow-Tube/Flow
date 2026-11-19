@@ -33,7 +33,7 @@ private val TitleFadeWidth = 36.dp
 internal fun PortraitFullscreenTitle(
     videoTitle: String?,
     channelName: String?,
-    horizontalPadding: Dp,
+    horizontalPadding: () -> Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -46,7 +46,7 @@ internal fun PortraitFullscreenTitle(
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
                 .clickable(onClick = onClick, onClickLabel = openDescription)
-                .padding(horizontal = horizontalPadding),
+                .insetPadding(horizontalPadding),
     ) {
         Text(
             text = videoTitle,

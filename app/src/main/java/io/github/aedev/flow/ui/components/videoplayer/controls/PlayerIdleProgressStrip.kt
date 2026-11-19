@@ -31,7 +31,7 @@ internal fun BoxScope.PlayerIdleProgressStrip(
     duration: Long,
     isLive: Boolean,
     content: PlayerSeekbarContent,
-    horizontalPadding: Dp,
+    horizontalPadding: () -> Dp,
     onScrubProgress: (progress: Float, duration: Long) -> Unit,
     onScrubFinished: () -> Unit,
     isScrubbing: Boolean,
