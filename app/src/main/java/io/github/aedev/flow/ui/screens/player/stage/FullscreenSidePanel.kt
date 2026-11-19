@@ -1,7 +1,6 @@
 package io.github.aedev.flow.ui.screens.player.stage
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.BoxScope
@@ -16,11 +15,14 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.media3.common.util.UnstableApi
@@ -42,10 +44,15 @@ import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.ui.screens.player.state.hasTranscriptTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * The drawer a landscape fullscreen player slides in from the trailing edge instead of raising a
  * bottom sheet, plus the width it leaves for the video beside it.
+ *
+ * The video is laid out at its settled width only. While the drawer moves, [playerSlide] scales and
+ * shifts it in a graphics layer so its fitted picture sits where the room left by the drawer puts it;
+ * a width change every frame would resize the video surface every frame.
  */
 @Stable
 internal class FullscreenSidePanelState(
@@ -59,12 +66,33 @@ internal class FullscreenSidePanelState(
     val showSleepTimer: Boolean,
     val showQueue: Boolean,
     val drawerWidth: Dp,
-    val drawerOffset: Dp,
+    /** How far the drawer is still pushed out past the edge, in px; read in the layout phase. */
+    val drawerOffsetPx: () -> Float,
     val panelHeight: Dp,
+    /** The video's settled width beside the drawer; it changes once per open or close, never per frame. */
     val playerWidth: Dp,
+    private val maxWidthPx: Float,
+    private val maxHeightPx: Float,
+    private val drawerWidthPx: Float,
     val dragModifier: Modifier,
     val close: () -> Unit,
-)
+) {
+    fun playerSlide(videoAspectRatio: Float): Modifier =
+        Modifier.graphicsLayer {
+            if (!visible || drawerWidthPx <= 0f) return@graphicsLayer
+            val settledWidth = playerWidth.toPx()
+            val reserved = (drawerWidthPx - drawerOffsetPx()).coerceIn(0f, drawerWidthPx)
+            val roomNow = (maxWidthPx - reserved).coerceAtLeast(settledWidth)
+            val aspect = videoAspectRatio.coerceAtLeast(0.1f)
+            val fittedNow = minOf(roomNow, maxHeightPx * aspect)
+            val fittedSettled = minOf(settledWidth, maxHeightPx * aspect).coerceAtLeast(1f)
+            val scale = fittedNow / fittedSettled
+            transformOrigin = TransformOrigin(0.5f, 0.5f)
+            scaleX = scale
+            scaleY = scale
+            translationX = (roomNow - settledWidth) / 2f
+        }
+}
 
 @Composable
 internal fun rememberFullscreenSidePanelState(
@@ -100,6 +128,8 @@ internal fun rememberFullscreenSidePanelState(
     val fullscreenDrawerWidthPx = with(density) { fullscreenDrawerWidth.toPx() }
     val fullscreenDrawerOffsetPx = remember { Animatable(0f) }
 
+    val openSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    val closeSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     LaunchedEffect(fullscreenSidePanelVisible, fullscreenDrawerWidthPx) {
         fullscreenDrawerOffsetPx.updateBounds(
             lowerBound = 0f,
@@ -111,7 +141,7 @@ internal fun rememberFullscreenSidePanelState(
             }
             fullscreenDrawerOffsetPx.animateTo(
                 targetValue = 0f,
-                animationSpec = tween(durationMillis = 260),
+                animationSpec = openSpec,
             )
         }
     }
@@ -120,7 +150,7 @@ internal fun rememberFullscreenSidePanelState(
         scope.launch {
             fullscreenDrawerOffsetPx.animateTo(
                 targetValue = fullscreenDrawerWidthPx,
-                animationSpec = tween(durationMillis = 220),
+                animationSpec = closeSpec,
             )
             screenState.dismissMediaSheets()
         }
@@ -146,7 +176,7 @@ internal fun rememberFullscreenSidePanelState(
                     scope.launch {
                         fullscreenDrawerOffsetPx.animateTo(
                             targetValue = 0f,
-                            animationSpec = tween(durationMillis = 220),
+                            animationSpec = openSpec,
                         )
                     }
                 },
@@ -162,24 +192,17 @@ internal fun rememberFullscreenSidePanelState(
                         scope.launch {
                             fullscreenDrawerOffsetPx.animateTo(
                                 targetValue = 0f,
-                                animationSpec = tween(durationMillis = 220),
+                                animationSpec = openSpec,
                             )
                         }
                     }
                 },
             )
         }
-    val fullscreenDrawerOffset = with(density) { fullscreenDrawerOffsetPx.value.toDp() }
-    val fullscreenReservedWidth =
-        if (fullscreenSidePanelVisible) {
-            (fullscreenDrawerWidth - fullscreenDrawerOffset).coerceIn(0.dp, fullscreenDrawerWidth)
-        } else {
-            0.dp
-        }
     val fullscreenSidePanelHeight = maxHeight
     val fullscreenPlayerWidth =
         if (fullscreenSidePanelVisible) {
-            (maxWidth - fullscreenReservedWidth).coerceAtLeast(sidePanelMinPlayerWidth(maxWidth, widthPreset))
+            (maxWidth - fullscreenDrawerWidth).coerceAtLeast(sidePanelMinPlayerWidth(maxWidth, widthPreset))
         } else {
             maxWidth
         }
@@ -195,9 +218,12 @@ internal fun rememberFullscreenSidePanelState(
         showSleepTimer = showSleepTimerSidePanel,
         showQueue = showQueueSidePanel,
         drawerWidth = fullscreenDrawerWidth,
-        drawerOffset = fullscreenDrawerOffset,
+        drawerOffsetPx = { fullscreenDrawerOffsetPx.value },
         panelHeight = fullscreenSidePanelHeight,
         playerWidth = fullscreenPlayerWidth,
+        maxWidthPx = with(density) { maxWidth.toPx() },
+        maxHeightPx = with(density) { maxHeight.toPx() },
+        drawerWidthPx = fullscreenDrawerWidthPx,
         dragModifier = fullscreenSidePanelDragModifier,
         close = ::closeFullscreenSidePanel,
     )
@@ -227,7 +253,7 @@ internal fun BoxScope.FullscreenSidePanel(
         modifier =
             Modifier
                 .align(Alignment.CenterEnd)
-                .offset(x = panelState.drawerOffset)
+                .offset { IntOffset(panelState.drawerOffsetPx().roundToInt(), 0) }
                 .width(panelState.drawerWidth)
                 .fillMaxHeight()
                 .then(panelState.dragModifier)
