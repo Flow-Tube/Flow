@@ -164,7 +164,7 @@ class LanSync
                         launch {
                             val connection = connect(row.address) ?: return@launch
                             try {
-                                converse(connectLink(connection, session), session, leaving = true)
+                                converse(connectLink(connection, session), session, serveOnly = true)
                                 Log.i(TAG, "LAN farewell delivered")
                             } catch (e: CancellationException) {
                                 throw e
@@ -328,13 +328,24 @@ class LanSync
             devices.lanPeers { it + did }
         }
 
-        /** One session with the member that dialed this device over [connection]. Returns the closed link when it got that far. */
+        /**
+         * One session with the member that dialed this device over [connection]. Returns the closed link when it got that
+         * far, or null for a device this one removed: it is only served the roster, and its address isn't kept.
+         */
         private suspend fun meet(
             connection: SyncConnection,
             greeter: LanGreeter,
         ): LanLink? =
             try {
-                greeter.greet(connection)?.let { (link, session) -> talk(link, session, "LAN session accepted") }
+                greeter.greet(connection)?.let { (link, session) ->
+                    if (link.peerRemoved) {
+                        converse(link, session, serveOnly = true)
+                        Log.i(TAG, "LAN session served the roster to a removed device")
+                        null
+                    } else {
+                        talk(link, session, "LAN session accepted")
+                    }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -385,18 +396,18 @@ class LanSync
 
         /**
          * Answers the other member's requests until its pull is over. This device pulls too and sends
-         * live messages on the session, unless it is [leaving].
+         * live messages on the session, unless it [serveOnly]: when it is leaving, or the other was removed.
          */
         private suspend fun converse(
             link: LanLink,
             session: Session,
-            leaving: Boolean = false,
+            serveOnly: Boolean = false,
             envelope: ByteArray? = null,
         ) = coroutineScope {
             val peer = LanPeer(link, session, local) { live.receive(it) }
             val reader = peer.start(this)
             val detach =
-                if (leaving) {
+                if (serveOnly) {
                     null
                 } else {
                     live.attach(
@@ -407,7 +418,7 @@ class LanSync
                 }
             try {
                 envelope?.let { peer.sendLive(it) }
-                if (!leaving) peer.pull()
+                if (!serveOnly) peer.pull()
                 peer.awaitQuiet(QUIET_MS)
             } finally {
                 detach?.invoke()
