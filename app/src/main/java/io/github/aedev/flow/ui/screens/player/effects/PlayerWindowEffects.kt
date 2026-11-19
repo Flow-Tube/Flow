@@ -4,7 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.database.ContentObserver
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.OrientationEventListener
 import android.view.WindowManager
@@ -205,18 +208,11 @@ internal fun OrientationListenerEffect(
     val listener =
         remember(context) {
             object : OrientationEventListener(context) {
+                @Volatile var autoRotateOn = true
+
                 override fun onOrientationChanged(orientation: Int) {
                     if (orientation == ORIENTATION_UNKNOWN) return
-
-                    val autoRotateOn = {
-                        try {
-                            Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION) == 1
-                        } catch (e: Exception) {
-                            true
-                        }
-                    }
-
-                    if (!followsTilt(currentIgnoreRotationLock, autoRotateOn)) return
+                    if (!followsTilt(currentIgnoreRotationLock) { autoRotateOn }) return
 
                     val newOrientation = heldOrientation(orientation, physicalOrientation)
 
@@ -227,11 +223,32 @@ internal fun OrientationListenerEffect(
             }
         }
 
-    // Sensor-driven fullscreen changes are only meaningful while the user is looking at the
-    // player, and an accelerometer left registered in the background costs battery for nothing.
-    LifecycleResumeEffect(listener, lifecycleOwner) {
+    // Tilt only turns the expanded player, so the accelerometer is held only while it is expanded
+    // and in front: behind the mini player or in the background it would cost battery for nothing.
+    // The auto-rotate setting is read once here and then followed, not read on every sensor event.
+    LifecycleResumeEffect(listener, lifecycleOwner, isExpanded) {
+        if (!isExpanded) return@LifecycleResumeEffect onPauseOrDispose { }
+        val resolver = context.contentResolver
+        val readAutoRotate = {
+            try {
+                Settings.System.getInt(resolver, Settings.System.ACCELEROMETER_ROTATION) == 1
+            } catch (e: Settings.SettingNotFoundException) {
+                true
+            }
+        }
+        val observer =
+            object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean) {
+                    listener.autoRotateOn = readAutoRotate()
+                }
+            }
+        listener.autoRotateOn = readAutoRotate()
+        resolver.registerContentObserver(Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION), false, observer)
         listener.enable()
-        onPauseOrDispose { listener.disable() }
+        onPauseOrDispose {
+            listener.disable()
+            resolver.unregisterContentObserver(observer)
+        }
     }
 
     LaunchedEffect(physicalOrientation, isExpanded) {
