@@ -254,10 +254,41 @@ class QualityManagerTest {
     @Test
     fun `returning to Auto while a ladder already adapts does not reload`() {
         val qm = manager()
-        qm.isAdaptiveLadderActive = true
+        qm.setActiveLadder(ladder)
 
         qm.switchQualityByHeight(0, 0L)
 
+        assertThat(switches.calls).isEmpty()
+        assertThat(state.value.currentQuality).isEqualTo(0)
+    }
+
+    @Test
+    fun `picking a rung of the playing ladder holds Media3 there instead of reloading`() {
+        val qm = manager(streams = ladder + vp9(720, 2_000_000))
+        qm.preferredCodecKey = "vp9"
+        qm.setActiveLadder(ladder)
+
+        assertThat(qm.switchQualityByHeight(720, 42_000L)).isTrue()
+        assertThat(qm.switchQualityByStreamKey(h480.testUrl, 42_000L)).isTrue()
+
+        assertThat(switches.calls).isEmpty()
+        assertThat(qm.getCurrentStream()!!.testUrl).isEqualTo(h480.testUrl)
+        assertThat(qm.isAdaptiveQualityEnabled).isFalse()
+        assertThat(state.value.currentQuality).isEqualTo(480)
+    }
+
+    @Test
+    fun `a pick outside the playing ladder still reloads, and Auto after a pin inside it does not`() {
+        val vp9At720 = vp9(720, 2_000_000)
+        val qm = manager(streams = ladder + vp9At720)
+        qm.setActiveLadder(ladder)
+
+        qm.switchQualityByStreamKey(vp9At720.testUrl, 0L)
+        assertThat(switches.last.first.testCodec).isEqualTo("vp9")
+
+        switches.calls.clear()
+        qm.switchQualityByStreamKey(h720.testUrl, 0L)
+        qm.switchQualityByHeight(0, 0L)
         assertThat(switches.calls).isEmpty()
         assertThat(state.value.currentQuality).isEqualTo(0)
     }
@@ -304,11 +335,11 @@ class QualityManagerTest {
     fun `Auto's own steps stand down while Media3 adapts over a ladder or a quality is pinned`() {
         val qm = manager(estimateBps = 50_000_000L)
         qm.setCurrentStream(h480)
-        qm.isAdaptiveLadderActive = true
+        qm.setActiveLadder(ladder)
         qm.checkAdaptiveQualityUpgrade(0L)
         qm.checkAdaptiveQualityDowngrade(forceCheck = true, currentPosition = 0L)
 
-        qm.isAdaptiveLadderActive = false
+        qm.setActiveLadder(emptyList())
         qm.setManualMode(480)
         qm.checkAdaptiveQualityUpgrade(0L)
 

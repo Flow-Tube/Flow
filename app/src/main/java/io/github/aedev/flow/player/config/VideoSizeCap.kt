@@ -4,6 +4,8 @@ import android.app.ActivityManager
 import android.content.Context
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import io.github.aedev.flow.player.quality.PlayerViewport
+import io.github.aedev.flow.player.stream.model.VideoStream
 
 /**
  * The largest frame the track selector may pick: never above 4K, and 1080p on a low-RAM device. The
@@ -13,6 +15,13 @@ data class VideoSizeCap(
     val maxWidth: Int,
     val maxHeight: Int,
 ) {
+    /** Whether [stream] fits in either orientation; a stream with no known size always fits. */
+    fun fits(stream: VideoStream): Boolean {
+        val width = stream.itagItem?.width?.takeIf { it > 0 } ?: return true
+        val height = stream.itagItem?.height?.takeIf { it > 0 } ?: return true
+        return maxOf(width, height) <= maxOf(maxWidth, maxHeight) && minOf(width, height) <= minOf(maxWidth, maxHeight)
+    }
+
     companion object {
         val UHD = VideoSizeCap(PlayerConfig.MAX_VIDEO_WIDTH, PlayerConfig.MAX_VIDEO_HEIGHT)
 
@@ -38,7 +47,7 @@ fun DefaultTrackSelector.Parameters.Builder.resetVideoSizeTo(cap: VideoSizeCap):
         clearVideoSizeConstraints()
         setMinVideoSize(0, 0)
         setMaxVideoSize(cap.maxWidth, cap.maxHeight)
-        setViewportSizeToPhysicalDisplaySize(true)
+        with(PlayerViewport) { applyViewport() }
     }
 
 /** Automatic quality: any size up to the device cap, no forced bitrate, the default codec order. */
