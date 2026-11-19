@@ -67,13 +67,15 @@ private const val SMOOTH_TAU_MS = 600f
  * Storyboard frames and thumbnails arrive seconds apart, so they crossfade instead of going through
  * the filter. The fade steps on its own 15 fps clock and only moves an alpha read in draw, so it
  * never drives the display at its refresh rate; at the glow's brightness a step is about one sRGB
- * level. One change per [STORYBOARD_UPDATE_MS] stays far under WCAG 2.3.1's three flashes a second.
+ * level. One change per [MIN_STORYBOARD_STEP_MS] stays far under WCAG 2.3.1's three flashes a second.
  */
 private const val FADE_TICK_MS = 66L
-private const val STORYBOARD_FADE_MS = 2_500L
 
 /** A seek, a resume or a paused frame is a deliberate jump, so it settles sooner. */
 private const val JUMP_FADE_MS = 1_000L
+
+/** How often a warm device samples the live surface. */
+private const val HOT_CAPTURE_MS = 4_500L
 
 /** The first light of a video, from its thumbnail. */
 private const val SEED_FADE_MS = 500L
@@ -173,7 +175,7 @@ internal class AmbientPipeline(
         hasPreviousSample = false
         var board = storyboard
         thumbnail?.invoke()?.let { offerStill(it, SEED_FADE_MS) }
-        var nextFadeMs = STORYBOARD_FADE_MS
+        var jumped = true
         while (currentCoroutineContext().isActive) {
             val useBoard = board != null && (!supported || hot() || capturePace() == AmbientCadence.STANDARD)
             if (!useBoard && !supported) return
@@ -181,7 +183,9 @@ internal class AmbientPipeline(
             if (board != null && useBoard) {
                 val player = playerView.player
                 val position = player?.currentPosition ?: 0L
-                val target = if (playing) storyboardTargetMs(position, player?.duration ?: 0L) else position
+                val step = storyboardStepMs(board.intervalMs)
+                val fade = storyboardFadeMs(step)
+                val target = if (playing) storyboardTargetMs(position, fade, player?.duration ?: 0L) else position
                 val crop = board.sheetAt(target)
                 if (crop == null) {
                     board = null
@@ -189,15 +193,13 @@ internal class AmbientPipeline(
                 }
                 val frames = board
                 withContext(pixelDispatcher) { frames.toGrid(crop, stillSourceGrid, renderScratch) }
+                offerStill(stillSourceGrid, if (jumped || !playing) JUMP_FADE_MS else fade)
                 if (playing && player != null) {
-                    val wait = storyboardDelayMs(target, frames.intervalMs, player.playbackParameters.speed)
-                    offerStill(stillSourceGrid, minOf(nextFadeMs, wait * 2 / 3))
-                    val jumped = withTimeoutOrNull(wait) { player.renderedFrames().first() } != null
-                    nextFadeMs = if (jumped) JUMP_FADE_MS else STORYBOARD_FADE_MS
+                    val wait = storyboardDelayMs(position, step, fade, player.playbackParameters.speed)
+                    jumped = withTimeoutOrNull(wait) { player.renderedFrames().first() } != null
                 } else {
-                    offerStill(stillSourceGrid, JUMP_FADE_MS)
                     awaitPlayingOrNewFrame(playerView, isPlaying)
-                    nextFadeMs = JUMP_FADE_MS
+                    jumped = true
                 }
             } else {
                 val cadence = capturePass(playerView, hot())
@@ -228,7 +230,7 @@ internal class AmbientPipeline(
                 }
                 // A TextureView readback blocks Main, so it keeps its slow pace whatever is asked.
                 when {
-                    hot -> maxOf(base, STORYBOARD_UPDATE_MS)
+                    hot -> maxOf(base, HOT_CAPTURE_MS)
                     capturePace() == AmbientCadence.STANDARD || surface is TextureView -> base
                     accepted -> LIVELY_CHANGING_MS
                     else -> LIVELY_STILL_MS

@@ -23,29 +23,22 @@ class AmbientStoryboardFramesTest {
     )
 
     @Test
-    fun `the single sheet level is used while it changes often enough`() {
-        val levels = listOf(level(0, 48, 6_000L), level(1, 80, 2_000L), level(2, 160, 2_000L))
+    fun `the level with the closest frames is used`() {
+        val levels = listOf(level(0, 48, 7_400L), level(1, 80, 2_000L), level(2, 160, 2_000L))
+
+        assertThat(ambientStoryboardLevel(levels)?.index).isEqualTo(1)
+    }
+
+    @Test
+    fun `a short video keeps its single sheet level`() {
+        val levels = listOf(level(0, 48, 600L), level(1, 80, 2_000L))
 
         assertThat(ambientStoryboardLevel(levels)?.index).isEqualTo(0)
     }
 
     @Test
-    fun `a long video moves to a finer level`() {
-        val levels = listOf(level(0, 48, 72_000L), level(1, 80, 2_000L), level(2, 160, 2_000L))
-
-        assertThat(ambientStoryboardLevel(levels)?.index).isEqualTo(1)
-    }
-
-    @Test
     fun `levels smaller than the light grid are skipped`() {
-        val levels = listOf(level(0, 24, 2_000L), level(1, 80, 2_000L))
-
-        assertThat(ambientStoryboardLevel(levels)?.index).isEqualTo(1)
-    }
-
-    @Test
-    fun `with every level too coarse the most frequent one is used`() {
-        val levels = listOf(level(0, 48, 90_000L), level(1, 80, 20_000L))
+        val levels = listOf(level(0, 24, 500L), level(1, 80, 2_000L))
 
         assertThat(ambientStoryboardLevel(levels)?.index).isEqualTo(1)
     }
@@ -56,40 +49,69 @@ class AmbientStoryboardFramesTest {
     }
 
     @Test
-    fun `the target looks ahead but never past the end`() {
-        assertThat(storyboardTargetMs(10_000L, 60_000L)).isEqualTo(10_000L + STORYBOARD_LOOKAHEAD_MS)
-        assertThat(storyboardTargetMs(59_000L, 60_000L)).isEqualTo(60_000L)
-        assertThat(storyboardTargetMs(5_000L, 0L)).isEqualTo(5_000L + STORYBOARD_LOOKAHEAD_MS)
+    fun `steps are whole storyboard frames at least two seconds apart`() {
+        assertThat(storyboardStepMs(2_000L)).isEqualTo(2_000L)
+        assertThat(storyboardStepMs(600L)).isEqualTo(2_400L)
+        assertThat(storyboardStepMs(7_400L)).isEqualTo(7_400L)
     }
 
     @Test
-    fun `the next fetch lands on the first new frame after the update interval`() {
-        val delay = storyboardDelayMs(targetMs = 12_500L, intervalMs = 2_000L, speed = 1f)
-
-        val next = 12_500L + delay
-        assertThat(next % 2_000L).isEqualTo(0L)
-        assertThat(delay).isAtLeast(STORYBOARD_UPDATE_MS)
-        assertThat(delay).isLessThan(STORYBOARD_UPDATE_MS + 2_000L)
+    fun `a fade is half a step within its bounds`() {
+        assertThat(storyboardFadeMs(2_000L)).isEqualTo(1_000L)
+        assertThat(storyboardFadeMs(2_400L)).isEqualTo(1_200L)
+        assertThat(storyboardFadeMs(7_400L)).isEqualTo(2_500L)
     }
 
     @Test
-    fun `a coarse level waits for its own next frame`() {
-        val delay = storyboardDelayMs(targetMs = 3_000L, intervalMs = 6_000L, speed = 1f)
+    fun `the next fade is centred on the next frame`() {
+        val wait = storyboardDelayMs(positionMs = 10_000L, stepMs = 2_000L, fadeMs = 1_000L, speed = 1f)
 
-        assertThat(delay).isEqualTo(9_000L)
+        val fadeStart = 10_000L + wait
+        assertThat(fadeStart + 500L).isEqualTo(12_000L)
+    }
+
+    @Test
+    fun `waking a little early still picks the frame it woke for`() {
+        val early = 11_500L - 40L
+        val target = storyboardTargetMs(early, fadeMs = 1_000L, durationMs = 60_000L)
+
+        assertThat(target / 2_000L).isEqualTo(6L)
+        val wait = storyboardDelayMs(early, stepMs = 2_000L, fadeMs = 1_000L, speed = 1f)
+        assertThat(early + wait + 500L).isEqualTo(14_000L)
+    }
+
+    @Test
+    fun `the target never passes the end`() {
+        assertThat(storyboardTargetMs(59_900L, fadeMs = 1_000L, durationMs = 60_000L)).isEqualTo(60_000L)
     }
 
     @Test
     fun `faster playback shortens the wall clock wait`() {
-        val normal = storyboardDelayMs(targetMs = 12_500L, intervalMs = 2_000L, speed = 1f)
-        val double = storyboardDelayMs(targetMs = 12_500L, intervalMs = 2_000L, speed = 2f)
+        val normal = storyboardDelayMs(positionMs = 10_000L, stepMs = 2_000L, fadeMs = 1_000L, speed = 1f)
+        val double = storyboardDelayMs(positionMs = 10_000L, stepMs = 2_000L, fadeMs = 1_000L, speed = 2f)
 
         assertThat(double).isEqualTo(normal / 2)
     }
 
     @Test
-    fun `very fast playback still waits a second`() {
-        assertThat(storyboardDelayMs(targetMs = 0L, intervalMs = 2_000L, speed = 16f)).isEqualTo(1_000L)
+    fun `chroma boost leaves grey alone and keeps luminance`() {
+        val grid = floatArrayOf(0.4f, 0.4f, 0.4f, 0.1f, 0.3f, 0.2f)
+        val before = relativeLuminance(0.1f, 0.3f, 0.2f)
+
+        boostChroma(grid, 1.15f)
+
+        assertThat(grid[0]).isWithin(1e-6f).of(0.4f)
+        assertThat(relativeLuminance(grid[3], grid[4], grid[5])).isWithin(1e-5f).of(before)
+        assertThat(grid[4] - grid[3]).isWithin(1e-5f).of(0.2f * 1.15f)
+    }
+
+    @Test
+    fun `chroma boost stays inside the gamut`() {
+        val grid = floatArrayOf(1f, 0f, 0f)
+
+        boostChroma(grid, 1.15f)
+
+        assertThat(grid.all { it in 0f..1f }).isTrue()
     }
 
     @Test

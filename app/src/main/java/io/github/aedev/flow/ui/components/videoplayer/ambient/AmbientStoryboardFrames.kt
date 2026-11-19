@@ -4,52 +4,84 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import io.github.aedev.flow.player.stream.StoryboardLevel
 
-/** Frames are taken this far ahead, so a fade is half done when playback reaches its frame. */
-internal const val STORYBOARD_LOOKAHEAD_MS = 2_500L
+/** The light moves to a new storyboard frame at most this often. */
+internal const val MIN_STORYBOARD_STEP_MS = 2_000L
 
-/** The light changes at most this often, then waits for the storyboard's next frame. */
-internal const val STORYBOARD_UPDATE_MS = 4_500L
+private const val MIN_FADE_MS = 1_000L
+private const val MAX_FADE_MS = 2_500L
+private const val MIN_WALL_DELAY_MS = 200L
 
-/** A coarser level would leave the light on one picture for too long. */
-internal const val MAX_LEVEL_INTERVAL_MS = 10_000L
-
-private const val MIN_WALL_DELAY_MS = 1_000L
+/** A wake-up a little early must still pick the frame it woke for. */
+private const val SCHEDULE_SLACK_MS = 150L
 
 /**
- * The coarsest level that still changes at least every [MAX_LEVEL_INTERVAL_MS]. For most videos
- * that is the single-sheet level, so one request covers the whole video.
+ * Storyboard JPEGs are small and heavily compressed, which costs some colour; measured against
+ * the live frame, the smallest tiles lose up to 18% of their chroma and 80 px ones up to 6%.
  */
-internal fun ambientStoryboardLevel(levels: List<StoryboardLevel>): StoryboardLevel? {
-    val usable = levels.filter { it.thumbnailWidth >= DISPLAY_W && it.thumbnailHeight >= DISPLAY_H && it.intervalMs > 0L }
-    return usable.filter { it.intervalMs <= MAX_LEVEL_INTERVAL_MS }.minByOrNull { it.thumbnailWidth }
-        ?: usable.minByOrNull { it.intervalMs }
+private const val SMALL_TILE_CHROMA_BOOST = 1.15f
+private const val LARGE_TILE_CHROMA_BOOST = 1.06f
+private const val SMALL_TILE_WIDTH = 64
+
+/**
+ * The level whose frames are closest together, so the light follows the picture; between levels
+ * as frequent, the smallest tiles, which fit the most frames on one sheet.
+ */
+internal fun ambientStoryboardLevel(levels: List<StoryboardLevel>): StoryboardLevel? =
+    levels
+        .filter { it.thumbnailWidth >= DISPLAY_W && it.thumbnailHeight >= DISPLAY_H && it.intervalMs > 0L }
+        .minWithOrNull(compareBy<StoryboardLevel> { it.intervalMs }.thenBy { it.thumbnailWidth })
+
+/** How far apart the frames the light uses are: whole storyboard frames, at least [MIN_STORYBOARD_STEP_MS]. */
+internal fun storyboardStepMs(intervalMs: Long): Long {
+    if (intervalMs <= 0L) return MIN_STORYBOARD_STEP_MS
+    return ((MIN_STORYBOARD_STEP_MS + intervalMs - 1) / intervalMs) * intervalMs
 }
 
+/** Half a step, so a fade never runs into the next one. */
+internal fun storyboardFadeMs(stepMs: Long): Long = (stepMs / 2).coerceIn(MIN_FADE_MS, MAX_FADE_MS)
+
+/**
+ * The frame to fade to at [positionMs]: the one on screen half a fade from now, so the middle of
+ * the fade lands where the frame starts.
+ */
 internal fun storyboardTargetMs(
     positionMs: Long,
+    fadeMs: Long,
     durationMs: Long,
 ): Long {
-    val ahead = positionMs.coerceAtLeast(0L) + STORYBOARD_LOOKAHEAD_MS
-    return if (durationMs > 0L) minOf(ahead, durationMs) else ahead
+    val target = positionMs.coerceAtLeast(0L) + fadeMs / 2 + SCHEDULE_SLACK_MS
+    return if (durationMs > 0L) minOf(target, durationMs) else target
 }
 
-/**
- * Wall-clock wait until the first storyboard frame that starts at least [STORYBOARD_UPDATE_MS]
- * after [targetMs], so the same frame is never fetched twice.
- */
+/** Wall-clock wait until the next fade should start: half a fade before the next step begins. */
 internal fun storyboardDelayMs(
-    targetMs: Long,
-    intervalMs: Long,
+    positionMs: Long,
+    stepMs: Long,
+    fadeMs: Long,
     speed: Float,
 ): Long {
-    val media =
-        if (intervalMs > 0L) {
-            ((STORYBOARD_UPDATE_MS + targetMs) / intervalMs + 1) * intervalMs - targetMs
-        } else {
-            STORYBOARD_UPDATE_MS
-        }
+    val position = positionMs.coerceAtLeast(0L)
+    val nextStep = ((position + fadeMs / 2 + SCHEDULE_SLACK_MS) / stepMs + 1) * stepMs
     val rate = if (speed > 0f) speed else 1f
-    return (media / rate).toLong().coerceAtLeast(MIN_WALL_DELAY_MS)
+    return ((nextStep - fadeMs / 2 - position) / rate).toLong().coerceAtLeast(MIN_WALL_DELAY_MS)
+}
+
+/** Restores colour storyboard compression took out, in linear light around each cell's luminance. */
+internal fun boostChroma(
+    grid: FloatArray,
+    boost: Float,
+) {
+    var i = 0
+    while (i < grid.size) {
+        val r = grid[i]
+        val g = grid[i + 1]
+        val b = grid[i + 2]
+        val luminance = relativeLuminance(r, g, b)
+        grid[i] = (luminance + (r - luminance) * boost).coerceIn(0f, 1f)
+        grid[i + 1] = (luminance + (g - luminance) * boost).coerceIn(0f, 1f)
+        grid[i + 2] = (luminance + (b - luminance) * boost).coerceIn(0f, 1f)
+        i += 3
+    }
 }
 
 /**
@@ -118,6 +150,7 @@ internal class AmbientStoryboardFrames(
         val needed = rect.width() * rect.height()
         if (pixels.size < needed) pixels = IntArray(needed)
         bitmapAreaToGrid(bitmap, rect, pixels, dst, scratch)
+        boostChroma(dst, if (level.thumbnailWidth < SMALL_TILE_WIDTH) SMALL_TILE_CHROMA_BOOST else LARGE_TILE_CHROMA_BOOST)
     }
 }
 
