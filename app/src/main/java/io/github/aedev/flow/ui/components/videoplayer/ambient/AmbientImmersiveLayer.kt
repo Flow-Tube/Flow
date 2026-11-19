@@ -86,15 +86,14 @@ fun AmbientImmersiveLayer(
                 }.graphicsLayer()
                 .drawBehind {
                     drawRect(background)
-                    val page = frames.state.page?.page ?: return@drawBehind
+                    val state = frames.state
+                    val page = state.page?.page ?: return@drawBehind
                     val alpha = appear.value * dim.value
                     if (alpha <= 0f) return@drawBehind
-                    drawImage(
-                        image = page,
-                        dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
-                        alpha = alpha,
-                        filterQuality = FilterQuality.Low,
-                    )
+                    val dst = IntSize(size.width.roundToInt(), size.height.roundToInt())
+                    crossfade(state.previousPage?.page, page, frames.fade, alpha) { image, a ->
+                        drawImage(image = image, dstSize = dst, alpha = a, filterQuality = FilterQuality.Low)
+                    }
                 },
     )
 }

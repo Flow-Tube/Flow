@@ -1,5 +1,7 @@
 package io.github.aedev.flow.ui.components.videoplayer.ambient
 
+import android.graphics.Bitmap
+import android.graphics.Rect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,8 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -24,6 +28,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -33,6 +38,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.player.DEFAULT_VIDEO_ASPECT_RATIO
 import io.github.aedev.flow.player.EnhancedPlayerManager
+import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
@@ -44,25 +50,41 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/** Latest smoothed frame. */
+/** What the light shows now. During a crossfade the previous images fade out under it. */
 data class AmbientFrameState(
     val frame: ImageBitmap? = null,
     /** False once capture has been found permanently impossible, e.g. a protected surface. */
     val supported: Boolean = true,
     /** The light for the page around the player, while a page has asked for it. */
     val page: AmbientPageFrame? = null,
+    val previousFrame: ImageBitmap? = null,
+    val previousPage: AmbientPageFrame? = null,
 )
 
 /**
- * The latest frame of one player, shared by every surface that draws it, so the player's bars and
- * the page around it read one capture instead of starting a second loop on the same surface.
+ * The light of one player, shared by every surface that draws it, so the player's bars and the
+ * page around it read one source instead of starting a second loop on the same surface. It keeps
+ * its pipeline across videos, so a new video fades from the last one's light.
  */
 @Stable
 class AmbientFrameHolder {
     var state by mutableStateOf(AmbientFrameState())
         internal set
 
+    /** How far the crossfade from the previous images has come. Read it only in draw. */
+    var fade by mutableFloatStateOf(1f)
+        internal set
+
     internal var pageStyle by mutableStateOf<AmbientPageStyle?>(null)
+
+    internal var seededUrl: String? = null
+
+    internal val pipeline by lazy {
+        AmbientPipeline(
+            pageStyle = { pageStyle },
+            capturePace = { if (pageStyle is AmbientPageStyle.Immersive) AmbientCadence.LIVELY else AmbientCadence.STANDARD },
+        )
+    }
 }
 
 /** Starts the capture for a player that is not the main one, e.g. a pooled Shorts player. */
@@ -92,7 +114,11 @@ fun Player.isPlayingFlow(): Flow<Boolean> =
         awaitClose { removeListener(listener) }
     }.distinctUntilChanged()
 
-/** Runs the capture for [playerView] while [active] and publishes each frame into [holder]. */
+/**
+ * Runs the light for [playerView] while [active] and publishes it into [holder]. [storyboard] frames
+ * are the source when the video has them; otherwise, or when they fail to load, the live surface
+ * is sampled. [thumbnailUrl] lights a new video before its first frame. [hot] slows live sampling.
+ */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun AmbientFrameCaptureEffect(
@@ -100,38 +126,49 @@ fun AmbientFrameCaptureEffect(
     active: Boolean,
     holder: AmbientFrameHolder,
     isPlaying: Flow<Boolean> = mainPlayerIsPlaying(),
+    storyboard: List<StoryboardLevel> = emptyList(),
+    thumbnailUrl: String? = null,
+    hot: Boolean = false,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current.applicationContext
+    val currentHot by rememberUpdatedState(hot)
 
-    LaunchedEffect(active, playerView, lifecycleOwner, holder, isPlaying) {
+    LaunchedEffect(active, playerView, lifecycleOwner, holder, isPlaying, storyboard, thumbnailUrl) {
         if (!active) {
+            holder.pipeline.reset()
+            holder.seededUrl = null
             holder.state = AmbientFrameState()
+            holder.fade = 1f
             return@LaunchedEffect
         }
+        val pipeline = holder.pipeline
+        val load: suspend (String) -> Bitmap? = { loadAmbientBitmap(context, it, thumbnail = false) }
         // Gated on STARTED. Background audio keeps the composition alive and the player playing, so
         // without this the loop kept running a GPU readback every cadence with the screen off,
         // painting a surface nobody could see.
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            val pipeline =
-                AmbientPipeline(
-                    pageStyle = { holder.pageStyle },
-                    capturePace = {
-                        if (holder.pageStyle is AmbientPageStyle.Immersive) AmbientCadence.LIVELY else AmbientCadence.STANDARD
-                    },
-                )
-            // coroutineScope, not a bare launch pair: it suspends until both loops finish, so the
-            // pipeline is never abandoned while either loop can still touch its buffers.
+            val seedUrl = thumbnailUrl?.takeIf { it.isNotEmpty() && it != holder.seededUrl }
+            holder.seededUrl = thumbnailUrl
+            val thumbnail = seedUrl?.let { url -> suspend { loadAmbientBitmap(context, url, thumbnail = true)?.let { stillOf(it, url) } } }
+            val frames = ambientStoryboardLevel(storyboard)?.let { AmbientStoryboardFrames(it, load) }
+            // coroutineScope, not a bare launch pair: it suspends until every loop finishes, so the
+            // pipeline is never left while one of them can still touch its buffers.
             coroutineScope {
-                // Capture sets targets at whatever cadence the surface can afford; smoothing
-                // walks toward them on its own clock. Both run on Main, so the shared target
-                // buffers need no synchronisation — the heavy work inside each hops to Default
-                // and is joined before anything is published.
-                launch { pipeline.runCapture(playerView, isPlaying) }
-                launch { pipeline.runSmoothing { holder.state = it } }
+                launch { pipeline.runSources(playerView, isPlaying, frames, thumbnail) { currentHot } }
+                launch { pipeline.runPresenter(emit = { holder.state = it }, progress = { holder.fade = it }) }
                 launch { snapshotFlow { holder.pageStyle }.collect { pipeline.requestPublish() } }
             }
         }
     }
+}
+
+private fun stillOf(
+    bitmap: Bitmap,
+    url: String,
+): AmbientStill {
+    val rect = if (url.startsWith("http")) thumbnailContentRect(bitmap.width, bitmap.height) else Rect(0, 0, bitmap.width, bitmap.height)
+    return AmbientStill(bitmap, rect)
 }
 
 @Composable
@@ -143,6 +180,31 @@ private fun mainPlayerIsPlaying(): Flow<Boolean> =
             .map { it.isPlaying }
             .distinctUntilChanged()
     }
+
+/**
+ * Draws [previous] fading out under [current] at [progress], the pair at [alpha] overall. The
+ * previous image's alpha is solved so two plain draws match one blended layer, with no offscreen pass.
+ */
+internal inline fun <T : Any> DrawScope.crossfade(
+    previous: T?,
+    current: T,
+    progress: Float,
+    alpha: Float,
+    draw: DrawScope.(T, Float) -> Unit,
+) {
+    if (previous == null || progress >= 1f) {
+        draw(current, alpha)
+        return
+    }
+    val currentAlpha = alpha * progress
+    if (currentAlpha < 1f) draw(previous, previousAlpha(alpha, progress))
+    draw(current, currentAlpha)
+}
+
+internal fun previousAlpha(
+    alpha: Float,
+    progress: Float,
+): Float = alpha * (1f - progress) / (1f - alpha * progress)
 
 private const val AMBIENT_EDGE_ALPHA = 0.82f
 private const val AMBIENT_EDGE_KNEE = 0.30f
@@ -159,7 +221,11 @@ fun VideoAmbientBackground(
             modifier
                 .fillMaxSize()
                 .background(PlayerScrim)
-                .drawBehind { frames.state.frame?.let { drawCropped(it) } },
+                .drawBehind {
+                    val state = frames.state
+                    val frame = state.frame ?: return@drawBehind
+                    crossfade(state.previousFrame, frame, frames.fade, 1f) { image, alpha -> drawCropped(image, alpha) }
+                },
     ) {
         AmbientEdgeMask(
             videoAspect = videoAspect,
@@ -169,14 +235,17 @@ fun VideoAmbientBackground(
 }
 
 /** Scales [image] to cover the whole area and centres it, as `ContentScale.Crop` does. */
-internal fun DrawScope.drawCropped(image: ImageBitmap) {
+internal fun DrawScope.drawCropped(
+    image: ImageBitmap,
+    alpha: Float = 1f,
+) {
     val scale = max(size.width / image.width, size.height / image.height)
     val scaled = IntSize((image.width * scale).roundToInt(), (image.height * scale).roundToInt())
     val area = IntSize(size.width.roundToInt(), size.height.roundToInt())
     val offset = Alignment.Center.align(scaled, area, layoutDirection)
     clipRect {
         translate(offset.x.toFloat(), offset.y.toFloat()) {
-            drawImage(image = image, dstSize = scaled, filterQuality = FilterQuality.Low)
+            drawImage(image = image, dstSize = scaled, alpha = alpha, filterQuality = FilterQuality.Low)
         }
     }
 }

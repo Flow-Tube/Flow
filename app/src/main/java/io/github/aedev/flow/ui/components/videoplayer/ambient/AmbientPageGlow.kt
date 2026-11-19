@@ -62,16 +62,15 @@ fun AmbientPageGlow(
                     alpha = appear.value
                     compositingStrategy = CompositingStrategy.ModulateAlpha
                 }.drawBehind {
-                    val page = frames.state.page?.page ?: return@drawBehind
+                    val state = frames.state
+                    val page = state.page?.page ?: return@drawBehind
                     val glowHeight = min(size.height, size.width * GLOW_HEIGHT_PER_WIDTH)
                     val fade = (1f - scrolledPx() / glowHeight).coerceIn(0f, 1f)
                     if (fade <= 0f || glowHeight < 1f) return@drawBehind
-                    drawImage(
-                        image = page,
-                        dstSize = IntSize(size.width.roundToInt(), glowHeight.roundToInt()),
-                        alpha = fade,
-                        filterQuality = FilterQuality.Low,
-                    )
+                    val dst = IntSize(size.width.roundToInt(), glowHeight.roundToInt())
+                    crossfade(state.previousPage?.page, page, frames.fade, fade) { image, alpha ->
+                        drawImage(image = image, dstSize = dst, alpha = alpha, filterQuality = FilterQuality.Low)
+                    }
                 },
     )
 }
@@ -100,12 +99,12 @@ fun AmbientStatusBarGlow(
                     this.alpha = appear.value * alpha()
                     compositingStrategy = CompositingStrategy.ModulateAlpha
                 }.drawBehind {
-                    val strip = frames.state.page?.strip ?: return@drawBehind
-                    drawImage(
-                        image = strip,
-                        dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
-                        filterQuality = FilterQuality.Low,
-                    )
+                    val state = frames.state
+                    val strip = state.page?.strip ?: return@drawBehind
+                    val dst = IntSize(size.width.roundToInt(), size.height.roundToInt())
+                    crossfade(state.previousPage?.strip, strip, frames.fade, 1f) { image, alpha ->
+                        drawImage(image = image, dstSize = dst, alpha = alpha, filterQuality = FilterQuality.Low)
+                    }
                 },
     )
 }

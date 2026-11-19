@@ -53,6 +53,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PictureInPictureHelper
 import io.github.aedev.flow.player.PipBounds
+import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.player.toDisplayAspectRatioOrNull
 import io.github.aedev.flow.ui.components.shared.clipToCornerRadius
 import io.github.aedev.flow.ui.components.shared.flowPlayerViewLayout
@@ -72,6 +73,7 @@ fun VideoPlayerSurface(
     ambientMode: Boolean = false,
     ambientFrames: AmbientFrameHolder? = null,
     ambientGlow: Boolean = false,
+    ambientStoryboard: List<StoryboardLevel> = emptyList(),
     spherical: Boolean = false,
     sphericalMotion: Boolean = true,
     sphericalTouch: Boolean = false,
@@ -241,7 +243,13 @@ fun VideoPlayerSurface(
 
     val currentSurfaceRestoreTrigger = surfaceRestoreTrigger
 
-    AmbientFrameCaptureEffect(playerView, !spherical && (ambientActive || ambientGlow), frames)
+    AmbientFrameCaptureEffect(
+        playerView = playerView,
+        active = !spherical && (ambientActive || ambientGlow),
+        holder = frames,
+        storyboard = ambientStoryboard,
+        thumbnailUrl = video.thumbnailUrl,
+    )
 
     Box(modifier = modifier.fillMaxSize()) {
         if (ambientActive) AmbientBars(frames, ambientVideoAspect)
