@@ -468,6 +468,44 @@ internal class DraggablePlayerGestureHandler(
         }
     }
 
+    private var tabFinger = Offset.Zero
+    private var tabPath = Offset.Zero
+    private var tabStartCorner = MiniPlayerCorner.BottomRight
+
+    /** A drag on the tuck tab takes hold of the tucked player where it is. */
+    fun startTabDrag() {
+        state.scope.launch { state.motion.stopOffsets() }
+        tabStartCorner = state.corner
+        tabFinger = Offset(state.offsetX.value, state.offsetY.value)
+        tabPath = Offset.Zero
+        velocityTracker.resetTracking()
+        state.isDragging = true
+    }
+
+    /** The tab is not under the morph's scale, so its deltas are already screen travel. */
+    fun tabDrag(
+        uptimeMillis: Long,
+        delta: Offset,
+    ) {
+        tabPath += delta
+        velocityTracker.addPosition(uptimeMillis, tabPath)
+        tabFinger += delta
+        val x = tabFinger.x
+        val y = miniDragY(tabFinger.y)
+        state.scope.launch {
+            state.offsetX.snapTo(x)
+            state.offsetY.snapTo(y)
+        }
+    }
+
+    /** Lets go of a player pulled out by its tab: it settles by the same rules as any mini drag. */
+    fun endTabDrag(uptimeMillis: Long) {
+        velocityTracker.addPosition(uptimeMillis, tabPath)
+        state.isDragging = false
+        state.tuckedSide = null
+        releaseMini(tabFinger, tabStartCorner)
+    }
+
     /** Brings a tucked mini player back to the corner on the side it was tucked into. */
     fun untuck() {
         if (state.tuckedSide == null) return

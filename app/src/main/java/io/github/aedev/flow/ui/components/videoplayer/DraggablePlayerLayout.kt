@@ -424,8 +424,19 @@ fun DraggablePlayerLayout(
             MiniPlayerTuckHandle(
                 state = state,
                 miniY = miniRestingY,
+                miniWidth = geometry.miniWidth,
                 miniHeight = geometry.miniHeight,
+                screenWidth = geometry.screenWidth,
                 onUntuck = gestureHandler::untuck,
+                onDragStart = gestureHandler::startTabDrag,
+                onDrag = gestureHandler::tabDrag,
+                onDragEnd = gestureHandler::endTabDrag,
+            )
+            MiniPlayerGestureExclusion(
+                state = state,
+                miniY = miniRestingY,
+                miniWidth = geometry.miniWidth,
+                miniHeight = geometry.miniHeight,
             )
 
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
