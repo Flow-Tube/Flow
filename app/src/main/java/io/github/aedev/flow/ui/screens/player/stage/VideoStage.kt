@@ -29,11 +29,11 @@ import io.github.aedev.flow.ui.components.shared.MediaBufferingIndicator
 import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.components.videoplayer.MINI_PLAYER_CORNER_RADIUS_DP
 import io.github.aedev.flow.ui.components.videoplayer.VideoPlayerSurface
+import io.github.aedev.flow.ui.components.videoplayer.fadedOutByCollapse
 import io.github.aedev.flow.ui.components.videoplayer.gesture.chapterSkipTarget
 import io.github.aedev.flow.ui.components.videoplayer.gesture.videoPlayerControls
 import io.github.aedev.flow.ui.components.videoplayer.gesture.videoPlayerZoom
 import io.github.aedev.flow.ui.components.videoplayer.overlay.ChapterSkipFeedback
-import io.github.aedev.flow.ui.components.videoplayer.placedWhen
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.Media3SubtitleOverlay
 import io.github.aedev.flow.ui.screens.player.saveChosenPlaybackSpeed
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
@@ -279,7 +279,7 @@ internal fun VideoStage(
                         ),
                     videoAspectRatio = videoAspectRatio,
                     resizeMode = resizeMode,
-                    modifier = Modifier.fillMaxSize().placedWhen(expandedSurfacesPlaced),
+                    modifier = Modifier.fillMaxSize().fadedOutByCollapse { playerSheetState.fraction },
                 )
             }
             // Until this video's first frame, the box shows its thumbnail: the card it grew out of,
@@ -302,7 +302,7 @@ internal fun VideoStage(
 
         // Non-zoomable UI overlays (always at full-screen position)
         if (expandedSurfacesMounted && !localIsInPipMode) {
-            Box(modifier = Modifier.matchParentSize().placedWhen(expandedSurfacesPlaced)) {
+            Box(modifier = Modifier.matchParentSize().fadedOutByCollapse { playerSheetState.fraction }) {
                 VideoStageOverlays(session = session)
             }
         }

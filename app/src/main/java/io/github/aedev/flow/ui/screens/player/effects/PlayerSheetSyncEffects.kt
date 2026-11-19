@@ -5,6 +5,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,9 @@ import io.github.aedev.flow.ui.screens.player.state.expandsOnLoad
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
+/** How far a collapse has to move the video before the full controls hand over. */
+private const val CONTROLS_HANDOFF_FRACTION = 0.01f
+
 /**
  * Collapsing the sheet, or leaving fullscreen, drops every surface the expanded player owns. A zoom
  * belongs to the fullscreen it was made in, so leaving fullscreen also sets it back.
@@ -38,8 +42,27 @@ internal fun PlayerSheetCollapseSyncEffects(
     screenState: PlayerScreenState,
     isFullscreenShown: Boolean,
 ) {
+    // A collapse hands the video to the mini player's controls: the full controls fade out as soon
+    // as it starts instead of shrinking with the video, and come back only if the drag is called off.
+    val collapsing by remember(playerSheetState) {
+        derivedStateOf { playerSheetState.fraction > CONTROLS_HANDOFF_FRACTION }
+    }
+    var controlsBeforeCollapse by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(collapsing) {
+        if (collapsing) {
+            if (controlsBeforeCollapse == null && playerSheetState.currentValue == PlayerSheetValue.Expanded) {
+                controlsBeforeCollapse = screenState.showControls
+            }
+            screenState.showControls = false
+        } else {
+            if (controlsBeforeCollapse == true) screenState.showControls = true
+            controlsBeforeCollapse = null
+        }
+    }
+
     LaunchedEffect(playerSheetState.currentValue) {
         if (playerSheetState.currentValue == PlayerSheetValue.Collapsed) {
+            controlsBeforeCollapse = null
             screenState.isFullscreen = false
             screenState.isFullscreenPortrait = false
             screenState.dismissMediaSheets()
