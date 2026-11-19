@@ -5224,4 +5224,11 @@
     <string name="error_recording_unavailable">Qeydəalma mövcud deyil</string>
     <string name="error_recording_unavailable_hint">Bu canlı yayım YouTube-da qeydə alınmadan bitdi.</string>
     <string name="error_bot_wall_mobile_data_hint">Wi-Fi-ı sına və ya bir müddət gözlə. Bu, adətən öz-özünə keçir.</string>
+    <string name="mini_player_action_open">Oynadıcını aç</string>
+    <string name="mini_player_action_larger">Daha böyük et</string>
+    <string name="mini_player_action_smaller">Daha kiçik et</string>
+    <string name="mini_player_action_next_corner">Növbəti küncə keçir</string>
+    <string name="mini_player_action_tuck">Kənara yığ</string>
+    <string name="player_zoomed_to_fill">Doldurmaq üçün yaxınlaşdırılıb</string>
+    <string name="player_seek_release_to_cancel">Ləğv etmək üçün burax</string>
 </resources>
