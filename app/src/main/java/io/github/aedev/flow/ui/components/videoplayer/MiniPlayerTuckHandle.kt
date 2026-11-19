@@ -29,12 +29,37 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerGestureHandler
 import kotlin.math.roundToInt
 
 private val HandleWidth = 28.dp
 
 // Under Android's 200 dp limit on how much of each edge may be kept from the back gesture.
 private val HandleHeight = 108.dp
+
+/** What sits at the screen's edge for the mini player: the tuck tab and the back gesture exclusion. */
+@Composable
+internal fun BoxScope.MiniPlayerEdgeLayers(
+    state: PlayerDraggableState,
+    miniY: () -> Float,
+    miniWidth: Float,
+    miniHeight: Float,
+    screenWidth: Float,
+    handler: DraggablePlayerGestureHandler,
+) {
+    MiniPlayerTuckHandle(
+        state = state,
+        miniY = miniY,
+        miniWidth = miniWidth,
+        miniHeight = miniHeight,
+        screenWidth = screenWidth,
+        onUntuck = handler::untuck,
+        onDragStart = handler::startTabDrag,
+        onDrag = handler::tabDrag,
+        onDragEnd = handler::endTabDrag,
+    )
+    MiniPlayerGestureExclusion(state = state, miniY = miniY, miniWidth = miniWidth, miniHeight = miniHeight)
+}
 
 /**
  * The tab left at the screen edge while the mini player is tucked past it. It rides at the mini
@@ -43,7 +68,7 @@ private val HandleHeight = 108.dp
  * from the system back gesture, which would otherwise take any swipe that starts on it.
  */
 @Composable
-internal fun BoxScope.MiniPlayerTuckHandle(
+private fun BoxScope.MiniPlayerTuckHandle(
     state: PlayerDraggableState,
     miniY: () -> Float,
     miniWidth: Float,
@@ -116,7 +141,7 @@ internal fun BoxScope.MiniPlayerTuckHandle(
  * stands in for it, placed in the layout phase where the player is. It takes no touches.
  */
 @Composable
-internal fun BoxScope.MiniPlayerGestureExclusion(
+private fun BoxScope.MiniPlayerGestureExclusion(
     state: PlayerDraggableState,
     miniY: () -> Float,
     miniWidth: Float,

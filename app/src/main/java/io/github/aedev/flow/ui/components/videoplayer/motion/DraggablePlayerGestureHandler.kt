@@ -359,7 +359,7 @@ internal class DraggablePlayerGestureHandler(
         }
     }
 
-    private fun toggleWideMode() {
+    fun toggleWideMode() {
         if (state.isInlineMode) {
             state.shrinkToCorner(
                 baseMiniWidth = metrics.baseMiniWidth,
@@ -514,6 +514,33 @@ internal class DraggablePlayerGestureHandler(
         state.isDragging = false
         state.tuckedSide = null
         releaseMini(tabFinger, tabStartCorner)
+    }
+
+    /** Moves the mini player clockwise to the next corner, for accessibility services. */
+    fun moveToNextCorner() {
+        if (state.tuckedSide != null || state.isInlineMode) return
+        val next =
+            when (state.corner) {
+                MiniPlayerCorner.TopLeft -> MiniPlayerCorner.TopRight
+                MiniPlayerCorner.TopRight -> MiniPlayerCorner.BottomRight
+                MiniPlayerCorner.BottomRight -> MiniPlayerCorner.BottomLeft
+                MiniPlayerCorner.BottomLeft -> MiniPlayerCorner.TopLeft
+            }
+        state.corner = next
+        val bounds = metrics.bounds
+        state.scope.launch {
+            state.motion.moveOffsets {
+                launch { state.offsetX.animateTo(cornerTargetX(next, bounds.minX, bounds.maxX), miniSnapSpringSpec) }
+                launch { state.offsetY.animateTo(cornerTargetY(next, bounds.minY, bounds.maxY), miniSnapSpringSpec) }
+            }
+        }
+    }
+
+    /** Tucks the mini player past the edge its corner is on, for accessibility services. */
+    fun tuckToNearestSide() {
+        if (state.tuckedSide != null || state.isInlineMode) return
+        val side = if (state.corner.isLeft) MiniPlayerTuckSide.Left else MiniPlayerTuckSide.Right
+        tuck(side, state.offsetY.value, velocityX = 0f)
     }
 
     /** Brings a tucked mini player back to the corner on the side it was tucked into. */

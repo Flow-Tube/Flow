@@ -1182,6 +1182,11 @@
     <string name="mini_player_large">Large</string>
     <string name="mini_player_normal">Normal</string>
     <string name="mini_player_show">Show mini player</string>
+    <string name="mini_player_action_open">Open player</string>
+    <string name="mini_player_action_larger">Make larger</string>
+    <string name="mini_player_action_smaller">Make smaller</string>
+    <string name="mini_player_action_next_corner">Move to next corner</string>
+    <string name="mini_player_action_tuck">Tuck away</string>
     <string name="mini_bar_swipe_left">Swipe left</string>
     <string name="mini_bar_swipe_right">Swipe right</string>
     <string name="mini_bar_swipe_subtitle">For the music bar and the background video bar</string>
