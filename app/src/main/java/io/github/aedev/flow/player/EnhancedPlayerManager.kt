@@ -51,6 +51,7 @@ import io.github.aedev.flow.player.config.VideoSizeCap
 import io.github.aedev.flow.player.config.resetVideoSizeTo
 import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.error.PlayerErrorHandler
+import io.github.aedev.flow.player.factory.BandwidthSeedRecorder
 import io.github.aedev.flow.player.factory.PlayerFactory
 import io.github.aedev.flow.player.media.MediaLoader
 import io.github.aedev.flow.player.preload.GaplessPreloadController
@@ -140,6 +141,7 @@ class EnhancedPlayerManager private constructor() {
     private var player: ExoPlayer? = null
     private var trackSelector: DefaultTrackSelector? = null
     private var bandwidthMeter: DefaultBandwidthMeter? = null
+    private var bandwidthSeedRecorder: BandwidthSeedRecorder? = null
     private var analyticsLogger: PlaybackAnalyticsLogger? = null
     private var videoEqualizer: EqualizerAudioProcessor? = null
     private var eqObserver: Job? = null
@@ -618,7 +620,8 @@ class EnhancedPlayerManager private constructor() {
         audioFeaturesManager = AudioFeaturesManager(scope, _playerState)
 
         // Initialize bandwidth meter and track selector via factory
-        bandwidthMeter = playerFactory.createBandwidthMeter(context)
+        bandwidthMeter =
+            playerFactory.createBandwidthMeter(context).also { bandwidthSeedRecorder = BandwidthSeedRecorder(context, scope, it) }
         videoSizeCap = VideoSizeCap.forDevice(context)
         trackSelector = playerFactory.createTrackSelector(context, videoSizeCap)
 
@@ -1049,7 +1052,7 @@ class EnhancedPlayerManager private constructor() {
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _playerState.value = _playerState.value.copy(isPlaying = isPlaying)
-                    if (isPlaying) abandonedSkips.onPlaybackStarted()
+                    if (isPlaying) abandonedSkips.onPlaybackStarted() else bandwidthSeedRecorder?.save()
                     autoNextLog("onIsPlayingChanged isPlaying=$isPlaying")
                 }
 
@@ -3521,6 +3524,8 @@ class EnhancedPlayerManager private constructor() {
         audioSessionAnnouncer = null
         diskReadAhead?.release()
         diskReadAhead = null
+        bandwidthSeedRecorder?.release()
+        bandwidthSeedRecorder = null
         player?.release()
         player = null
         playerFactory.clearPreferences()

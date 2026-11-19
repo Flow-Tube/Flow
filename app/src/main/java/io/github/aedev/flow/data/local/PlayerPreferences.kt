@@ -477,6 +477,7 @@ class PlayerPreferences(
         val BUFFER_PROFILE = device(stringPreferencesKey("buffer_profile"))
         val DISK_READ_AHEAD_MINUTES = device(intPreferencesKey("disk_read_ahead_minutes"))
         val DISK_READ_AHEAD_UNMETERED_ONLY = device(booleanPreferencesKey("disk_read_ahead_unmetered_only"))
+        val BANDWIDTH_SEEDS = device(stringPreferencesKey("bandwidth_seeds"))
 
         // Download settings
         val DOWNLOAD_THREADS = device(intPreferencesKey("download_threads"))
@@ -4427,6 +4428,14 @@ class PlayerPreferences(
 
     suspend fun setDiskReadAheadMinutes(minutes: Int) {
         context.devicePreferencesDataStore.edit { it[DeviceKeys.DISK_READ_AHEAD_MINUTES] = minutes }
+    }
+
+    /** The last bandwidth estimate per network type, encoded by `BandwidthSeeds`. */
+    val bandwidthSeeds: Flow<String> =
+        context.devicePreferencesDataStore.data.map { it[DeviceKeys.BANDWIDTH_SEEDS].orEmpty() }
+
+    suspend fun setBandwidthSeeds(encoded: String) {
+        context.devicePreferencesDataStore.edit { it[DeviceKeys.BANDWIDTH_SEEDS] = encoded }
     }
 
     val diskReadAheadUnmeteredOnly: Flow<Boolean> =

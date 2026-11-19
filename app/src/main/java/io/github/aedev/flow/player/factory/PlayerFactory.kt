@@ -44,27 +44,12 @@ class PlayerFactory {
         val bufferForPlaybackMs: Int,
         val bufferRebufferMs: Int,
         val playDuringCalls: Boolean,
+        val bandwidthSeeds: Map<Int, Long>,
     )
 
     private var cachedPrefs: CachedPrefs? = null
 
-    private fun ensurePrefs(context: Context): CachedPrefs {
-        cachedPrefs?.let { return it }
-        val prefs = PlayerPreferences(context)
-        val result =
-            runBlocking {
-                CachedPrefs(
-                    audioLanguage = prefs.preferredAudioLanguage.first(),
-                    minBufferMs = prefs.minBufferMs.first(),
-                    maxBufferMs = prefs.maxBufferMs.first(),
-                    bufferForPlaybackMs = prefs.bufferForPlaybackMs.first(),
-                    bufferRebufferMs = prefs.bufferForPlaybackAfterRebufferMs.first(),
-                    playDuringCalls = prefs.playDuringCalls.first(),
-                )
-            }
-        cachedPrefs = result
-        return result
-    }
+    private fun ensurePrefs(context: Context): CachedPrefs = cachedPrefs ?: runBlocking { readPrefs(context) }.also { cachedPrefs = it }
 
     /** Drops the preferences read for the released player, so the next one is built with today's settings. */
     fun clearPreferences() {
@@ -72,23 +57,30 @@ class PlayerFactory {
     }
 
     suspend fun preloadPreferences(context: Context) {
-        if (cachedPrefs != null) return
-        val prefs = PlayerPreferences(context)
-        cachedPrefs =
-            CachedPrefs(
-                audioLanguage = prefs.preferredAudioLanguage.first(),
-                minBufferMs = prefs.minBufferMs.first(),
-                maxBufferMs = prefs.maxBufferMs.first(),
-                bufferForPlaybackMs = prefs.bufferForPlaybackMs.first(),
-                bufferRebufferMs = prefs.bufferForPlaybackAfterRebufferMs.first(),
-                playDuringCalls = prefs.playDuringCalls.first(),
-            )
+        if (cachedPrefs == null) cachedPrefs = readPrefs(context)
     }
 
+    private suspend fun readPrefs(context: Context): CachedPrefs {
+        val prefs = PlayerPreferences(context)
+        return CachedPrefs(
+            audioLanguage = prefs.preferredAudioLanguage.first(),
+            minBufferMs = prefs.minBufferMs.first(),
+            maxBufferMs = prefs.maxBufferMs.first(),
+            bufferForPlaybackMs = prefs.bufferForPlaybackMs.first(),
+            bufferRebufferMs = prefs.bufferForPlaybackAfterRebufferMs.first(),
+            playDuringCalls = prefs.playDuringCalls.first(),
+            bandwidthSeeds = freshSeeds(prefs),
+        )
+    }
+
+    private suspend fun freshSeeds(prefs: PlayerPreferences): Map<Int, Long> =
+        BandwidthSeeds.fresh(BandwidthSeeds.decode(prefs.bandwidthSeeds.first()), System.currentTimeMillis())
+
+    /** Seeded from this network type's last measured speed when recent, else Media3's per-country table. */
     fun createBandwidthMeter(context: Context): DefaultBandwidthMeter =
         DefaultBandwidthMeter
             .Builder(context)
-            .setInitialBitrateEstimate(PlayerConfig.INITIAL_BANDWIDTH_ESTIMATE)
+            .apply { ensurePrefs(context).bandwidthSeeds.forEach { (type, bits) -> setInitialBitrateEstimate(type, bits) } }
             .setResetOnNetworkTypeChange(true)
             .build()
 
