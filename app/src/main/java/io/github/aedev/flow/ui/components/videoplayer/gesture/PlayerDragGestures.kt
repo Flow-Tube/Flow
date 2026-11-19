@@ -22,7 +22,6 @@ import io.github.aedev.flow.ui.components.shared.SpeedSwipeStepTravel
 import io.github.aedev.flow.ui.components.videoplayer.motion.PlayerGestureThresholds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -512,11 +511,6 @@ internal fun Modifier.playerDragGestures(
                             endMoreDrag(commit = isCenterZone)
                             endExitDrag(commit = isCenterZone)
                             endSpeedDrag()
-                            scope.launch {
-                                delay(500) // Delay hiding controls
-                                currentOnShowBrightnessChange(false)
-                                currentOnShowVolumeChange(false)
-                            }
                         }
                     }
                     isCenterZone = false

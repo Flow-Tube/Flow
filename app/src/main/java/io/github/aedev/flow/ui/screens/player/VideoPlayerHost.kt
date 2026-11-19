@@ -257,7 +257,7 @@ fun VideoPlayerHost(
         onHideControls = { screenState.showControls = false },
     )
 
-    GestureOverlayAutoHideEffect(screenState)
+    GestureOverlayAutoHideEffect(screenState, seekStepSeconds = prefs.doubleTapSeekSeconds)
 
     SetupPipEffects(
         context = context,
