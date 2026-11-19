@@ -10,6 +10,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.dash.manifest.DashManifest
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
 import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
@@ -318,6 +319,7 @@ class ShortsPlayerPool private constructor() {
         videoDashManifest: String? = null,
         audioDashManifest: String? = null,
         loudnessGainDb: Float? = null,
+        videoAdaptiveManifest: DashManifest? = null,
     ) {
         if (!isInitialized || index < 0) return
         val slot = index % POOL_SIZE
@@ -339,13 +341,13 @@ class ShortsPlayerPool private constructor() {
         firstFrames.forget(slots.videoIds[slot])
         firstFrames.forget(videoId)
 
-        slots.assign(slot, index, videoId, videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb)
+        slots.assign(slot, index, videoId, videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb, videoAdaptiveManifest)
         applyVolume(slot)
         bumpOwnership()
 
         // Load media
         if (shouldPlay) ShortsStartupTrace.onPrepared(videoId)
-        preparePlayerInternal(player, videoUrl, audioUrl, videoDashManifest, audioDashManifest)
+        preparePlayerInternal(player, videoUrl, audioUrl, videoDashManifest, audioDashManifest, videoAdaptiveManifest)
 
         // Set playback state
         player.setPlaybackSpeed(basePlaybackSpeed)
@@ -448,7 +450,14 @@ class ShortsPlayerPool private constructor() {
         slots.audioUrls[slot] = newAudioUrl
         slots.audioManifests[slot] = newAudioDashManifest
 
-        preparePlayerInternal(player, videoUrl, newAudioUrl, slots.videoManifests[slot], newAudioDashManifest)
+        preparePlayerInternal(
+            player,
+            videoUrl,
+            newAudioUrl,
+            slots.videoManifests[slot],
+            newAudioDashManifest,
+            slots.adaptiveManifests[slot],
+        )
         player.setPlaybackSpeed(basePlaybackSpeed)
         player.playWhenReady = wasPlaying
         player.repeatMode = if (shortsPlaybackMode == "loop") Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
@@ -476,9 +485,10 @@ class ShortsPlayerPool private constructor() {
         player.clearMediaItems()
         slots.videoUrls[slot] = newVideoUrl
         slots.videoManifests[slot] = newVideoDashManifest
+        slots.adaptiveManifests[slot] = null
 
         val audioUrl = slots.audioUrls[slot]
-        preparePlayerInternal(player, newVideoUrl, audioUrl, newVideoDashManifest, slots.audioManifests[slot])
+        preparePlayerInternal(player, newVideoUrl, audioUrl, newVideoDashManifest, slots.audioManifests[slot], null)
         player.setPlaybackSpeed(basePlaybackSpeed)
         player.playWhenReady = wasPlaying
         player.seekTo(position)
@@ -491,9 +501,10 @@ class ShortsPlayerPool private constructor() {
         audioUrl: String?,
         videoDashManifest: String?,
         audioDashManifest: String?,
+        videoAdaptiveManifest: DashManifest?,
     ) {
         val factory = cachedDataSourceFactory ?: dataSourceFactory ?: return
-        ShortsMediaSources.load(player, factory, videoUrl, audioUrl, videoDashManifest, audioDashManifest)
+        ShortsMediaSources.load(player, factory, videoUrl, audioUrl, videoDashManifest, audioDashManifest, videoAdaptiveManifest)
         player.setPlaybackSpeed(basePlaybackSpeed)
     }
 

@@ -7,6 +7,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.dash.DashMediaSource
+import androidx.media3.exoplayer.dash.manifest.DashManifest
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -24,9 +26,12 @@ internal object ShortsMediaSources {
         audioUrl: String?,
         videoDashManifest: String?,
         audioDashManifest: String?,
+        videoAdaptiveManifest: DashManifest? = null,
     ) {
         if (audioUrl != null && audioUrl != videoUrl) {
-            val videoSource = sourceFor(factory, videoUrl, videoDashManifest)
+            val videoSource =
+                videoAdaptiveManifest?.let { DashMediaSource.Factory(factory).createMediaSource(it, MediaItem.fromUri(videoUrl)) }
+                    ?: sourceFor(factory, videoUrl, videoDashManifest)
             val audioSource = sourceFor(factory, audioUrl, audioDashManifest)
             player.setMediaSource(MergingMediaSource(true, true, videoSource, audioSource))
         } else {
