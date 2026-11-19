@@ -17,6 +17,12 @@ internal const val BLUR_PASSES = 3
 private const val AMBIENT_GAIN = 0.28f
 
 /**
+ * A blurred, dimmed glow reads greyer than the picture it comes from, so its colour is lifted a
+ * little. Grey stays grey and brightness is kept; see [boostChroma].
+ */
+internal const val AMBIENT_CHROMA_BOOST = 1.15f
+
+/**
  * Below this mean per-channel delta (0..255, sRGB) the frame is treated as unchanged and the
  * smoothing target is left alone. Static shots are most of a watch session.
  */
@@ -243,4 +249,22 @@ internal fun lerpGrid(
     out: FloatArray,
 ) {
     for (i in out.indices) out[i] = from[i] + (to[i] - from[i]) * t
+}
+
+/** Scales each cell's colour away from its own luminance, in linear light, so brightness is kept. */
+internal fun boostChroma(
+    grid: FloatArray,
+    boost: Float,
+) {
+    var i = 0
+    while (i < grid.size) {
+        val r = grid[i]
+        val g = grid[i + 1]
+        val b = grid[i + 2]
+        val luminance = relativeLuminance(r, g, b)
+        grid[i] = (luminance + (r - luminance) * boost).coerceIn(0f, 1f)
+        grid[i + 1] = (luminance + (g - luminance) * boost).coerceIn(0f, 1f)
+        grid[i + 2] = (luminance + (b - luminance) * boost).coerceIn(0f, 1f)
+        i += 3
+    }
 }

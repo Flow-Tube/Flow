@@ -94,6 +94,15 @@ class AmbientStoryboardFramesTest {
     }
 
     @Test
+    fun `the live frame lights the video wherever it can be read cheaply`() {
+        assertThat(ambientUsesStoryboard(hasStoryboard = true, captureSupported = true, hot = false, blockingSurface = false)).isFalse()
+        assertThat(ambientUsesStoryboard(hasStoryboard = true, captureSupported = false, hot = false, blockingSurface = false)).isTrue()
+        assertThat(ambientUsesStoryboard(hasStoryboard = true, captureSupported = true, hot = true, blockingSurface = false)).isTrue()
+        assertThat(ambientUsesStoryboard(hasStoryboard = true, captureSupported = true, hot = false, blockingSurface = true)).isTrue()
+        assertThat(ambientUsesStoryboard(hasStoryboard = false, captureSupported = true, hot = true, blockingSurface = true)).isFalse()
+    }
+
+    @Test
     fun `chroma boost leaves grey alone and keeps luminance`() {
         val grid = floatArrayOf(0.4f, 0.4f, 0.4f, 0.1f, 0.3f, 0.2f)
         val before = relativeLuminance(0.1f, 0.3f, 0.2f)

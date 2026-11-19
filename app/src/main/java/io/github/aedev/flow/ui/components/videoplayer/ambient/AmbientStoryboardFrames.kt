@@ -16,7 +16,8 @@ private const val SCHEDULE_SLACK_MS = 150L
 
 /**
  * Storyboard JPEGs are small and heavily compressed, which costs some colour; measured against
- * the live frame, the smallest tiles lose up to 18% of their chroma and 80 px ones up to 6%.
+ * the live frame, the smallest tiles lose up to 18% of their chroma and 80 px ones up to 6%. This
+ * is on top of [AMBIENT_CHROMA_BOOST], which every source gets.
  */
 private const val SMALL_TILE_CHROMA_BOOST = 1.15f
 private const val LARGE_TILE_CHROMA_BOOST = 1.06f
@@ -64,24 +65,6 @@ internal fun storyboardDelayMs(
     val nextStep = ((position + fadeMs / 2 + SCHEDULE_SLACK_MS) / stepMs + 1) * stepMs
     val rate = if (speed > 0f) speed else 1f
     return ((nextStep - fadeMs / 2 - position) / rate).toLong().coerceAtLeast(MIN_WALL_DELAY_MS)
-}
-
-/** Restores colour storyboard compression took out, in linear light around each cell's luminance. */
-internal fun boostChroma(
-    grid: FloatArray,
-    boost: Float,
-) {
-    var i = 0
-    while (i < grid.size) {
-        val r = grid[i]
-        val g = grid[i + 1]
-        val b = grid[i + 2]
-        val luminance = relativeLuminance(r, g, b)
-        grid[i] = (luminance + (r - luminance) * boost).coerceIn(0f, 1f)
-        grid[i + 1] = (luminance + (g - luminance) * boost).coerceIn(0f, 1f)
-        grid[i + 2] = (luminance + (b - luminance) * boost).coerceIn(0f, 1f)
-        i += 3
-    }
 }
 
 /**
@@ -150,7 +133,8 @@ internal class AmbientStoryboardFrames(
         val needed = rect.width() * rect.height()
         if (pixels.size < needed) pixels = IntArray(needed)
         bitmapAreaToGrid(bitmap, rect, pixels, dst, scratch)
-        boostChroma(dst, if (level.thumbnailWidth < SMALL_TILE_WIDTH) SMALL_TILE_CHROMA_BOOST else LARGE_TILE_CHROMA_BOOST)
+        val compression = if (level.thumbnailWidth < SMALL_TILE_WIDTH) SMALL_TILE_CHROMA_BOOST else LARGE_TILE_CHROMA_BOOST
+        boostChroma(dst, AMBIENT_CHROMA_BOOST * compression)
     }
 }
 

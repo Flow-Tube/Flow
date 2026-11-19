@@ -27,7 +27,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.exp
 
-private const val CAPTURE_MS_ASYNC = 900L
+private const val CAPTURE_MS_ASYNC = 750L
 private const val CAPTURE_MS_BLOCKING = 1800L
 
 /** How often the frame is sampled: the bars and the glow change slowly, a lit page follows the picture. */
@@ -40,7 +40,7 @@ private const val LIVELY_STILL_MS = 1000L
 internal const val IDLE_MS = 1500L
 
 /**
- * Temporal smoothing. One exponential filter over the pixel buffer replaces what used to be three
+ * Temporal smoothing for a lit page, which samples every [LIVELY_CHANGING_MS]. One exponential filter over the pixel buffer replaces what used to be three
  * overlapping Compose animations — `Crossfade(800ms)` on the frame plus `animateColorAsState(700ms)`
  * on base and accent.
  *
@@ -64,12 +64,19 @@ private const val SMOOTH_TICK_MS = 60L
 private const val SMOOTH_TAU_MS = 600f
 
 /**
- * Storyboard frames and thumbnails arrive seconds apart, so they crossfade instead of going through
- * the filter. The fade steps on its own 15 fps clock and only moves an alpha read in draw, so it
+ * Live frames at the standard pace, storyboard frames and thumbnails arrive hundreds of ms or
+ * seconds apart, so they crossfade instead of going through the filter. The fade steps on its own 15 fps clock and only moves an alpha read in draw, so it
  * never drives the display at its refresh rate; at the glow's brightness a step is about one sRGB
  * level. One change per [MIN_STORYBOARD_STEP_MS] stays far under WCAG 2.3.1's three flashes a second.
  */
 private const val FADE_TICK_MS = 66L
+
+/**
+ * A live frame at the standard pace is current when it is read, so it fades in quickly and the
+ * light trails the picture by under a second without ever running ahead of it. Captures are at
+ * least [CAPTURE_MS_ASYNC] apart, so the fades stay far under three flashes a second.
+ */
+private const val LIVE_FADE_MS = 450L
 
 /** A seek, a resume or a paused frame is a deliberate jump, so it settles sooner. */
 private const val JUMP_FADE_MS = 1_000L
@@ -159,9 +166,9 @@ internal class AmbientPipeline(
     }
 
     /**
-     * Feeds the presenter for one video: its [thumbnail] first, then [storyboard] frames, or the
-     * live surface when there is no storyboard, it cannot be loaded, or the page wants to follow
-     * the picture closely. [hot] slows live sampling to the storyboard's pace.
+     * Feeds the presenter for one video: its [thumbnail] first, then the live surface, which keeps
+     * the light on the frame being shown. [storyboard] frames stand in where reading the surface is
+     * impossible, blocks Main, or [hot] asks for less work; see [ambientUsesStoryboard].
      */
     suspend fun runSources(
         playerView: PlayerView,
@@ -177,7 +184,7 @@ internal class AmbientPipeline(
         thumbnail?.invoke()?.let { offerStill(it, SEED_FADE_MS) }
         var jumped = true
         while (currentCoroutineContext().isActive) {
-            val useBoard = board != null && (!supported || hot() || capturePace() == AmbientCadence.STANDARD)
+            val useBoard = ambientUsesStoryboard(board != null, supported, hot(), playerView.videoSurfaceView is TextureView)
             if (!useBoard && !supported) return
             val playing = isPlaying.first()
             if (board != null && useBoard) {
@@ -222,7 +229,9 @@ internal class AmbientPipeline(
                 // Heavy work off Main; withContext joins before anything is published, so the
                 // staging buffers are never read concurrently.
                 val accepted = withContext(pixelDispatcher) { computeTarget() }
-                if (accepted) {
+                if (accepted && capturePace() == AmbientCadence.STANDARD) {
+                    offerStill(stagingGrid, LIVE_FADE_MS)
+                } else if (accepted) {
                     stagingGrid.copyInto(targetGrid)
                     filterPending = true
                     hasLastStill = false
@@ -272,6 +281,7 @@ internal class AmbientPipeline(
 
         decimateToLinear(samplePixels, stagingGrid)
         boxBlurLinear(stagingGrid, scratchGrid, DISPLAY_W, DISPLAY_H, BLUR_RADIUS_PX, BLUR_PASSES)
+        boostChroma(stagingGrid, AMBIENT_CHROMA_BOOST)
         return true
     }
 
@@ -280,6 +290,7 @@ internal class AmbientPipeline(
         withContext(pixelDispatcher) {
             val pixels = IntArray(still.rect.width() * still.rect.height())
             bitmapAreaToGrid(still.bitmap, still.rect, pixels, stillSourceGrid, renderScratch)
+            boostChroma(stillSourceGrid, AMBIENT_CHROMA_BOOST)
             stillSourceGrid
         }
 
@@ -442,6 +453,18 @@ internal class AmbientPipeline(
         return bitmap.asImageBitmap()
     }
 }
+
+/**
+ * Whether storyboard frames light the video instead of the live surface: only when there are
+ * some and the surface cannot be read, its readback blocks Main (a TextureView), or the device is
+ * warm. Elsewhere the live frame is cheap to read and is the one on screen.
+ */
+internal fun ambientUsesStoryboard(
+    hasStoryboard: Boolean,
+    captureSupported: Boolean,
+    hot: Boolean,
+    blockingSurface: Boolean,
+): Boolean = hasStoryboard && (!captureSupported || hot || blockingSurface)
 
 /** A decoded picture and the part of it that is the video. */
 internal class AmbientStill(
