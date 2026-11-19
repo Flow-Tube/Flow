@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
@@ -298,14 +299,23 @@ internal class DraggablePlayerGestureHandler(
                     rawX += delta.x
                     rawY += delta.y
                     snapSignal.trySend(Unit)
+                    armClose(isPastMiniCloseLine(rawY, metrics.maxY, metrics.miniHeight))
                 }
             }
         } finally {
             snapSignal.close()
             snapDriver.cancel()
             state.isDragging = false
+            state.isCloseArmed = false
         }
         return MiniDrag(Offset(rawX, rawY), travel, following, interrupted = false)
+    }
+
+    /** Shows that letting go now closes the player, with one tick as the line is crossed. */
+    private fun armClose(armed: Boolean) {
+        if (armed == state.isCloseArmed) return
+        state.isCloseArmed = armed
+        if (armed) metrics.haptics?.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
     }
 
     private fun onMiniTap(
@@ -349,7 +359,7 @@ internal class DraggablePlayerGestureHandler(
         }
     }
 
-    private fun toggleWideMode() {
+    fun toggleWideMode() {
         if (state.isInlineMode) {
             state.shrinkToCorner(
                 baseMiniWidth = metrics.baseMiniWidth,
@@ -466,6 +476,71 @@ internal class DraggablePlayerGestureHandler(
                 launch { state.offsetY.animateTo(restY, miniSnapSpringSpec) }
             }
         }
+    }
+
+    private var tabFinger = Offset.Zero
+    private var tabPath = Offset.Zero
+    private var tabStartCorner = MiniPlayerCorner.BottomRight
+
+    /** A drag on the tuck tab takes hold of the tucked player where it is. */
+    fun startTabDrag() {
+        state.scope.launch { state.motion.stopOffsets() }
+        tabStartCorner = state.corner
+        tabFinger = Offset(state.offsetX.value, state.offsetY.value)
+        tabPath = Offset.Zero
+        velocityTracker.resetTracking()
+        state.isDragging = true
+    }
+
+    /** The tab is not under the morph's scale, so its deltas are already screen travel. */
+    fun tabDrag(
+        uptimeMillis: Long,
+        delta: Offset,
+    ) {
+        tabPath += delta
+        velocityTracker.addPosition(uptimeMillis, tabPath)
+        tabFinger += delta
+        val x = tabFinger.x
+        val y = miniDragY(tabFinger.y)
+        state.scope.launch {
+            state.offsetX.snapTo(x)
+            state.offsetY.snapTo(y)
+        }
+    }
+
+    /** Lets go of a player pulled out by its tab: it settles by the same rules as any mini drag. */
+    fun endTabDrag(uptimeMillis: Long) {
+        velocityTracker.addPosition(uptimeMillis, tabPath)
+        state.isDragging = false
+        state.tuckedSide = null
+        releaseMini(tabFinger, tabStartCorner)
+    }
+
+    /** Moves the mini player clockwise to the next corner, for accessibility services. */
+    fun moveToNextCorner() {
+        if (state.tuckedSide != null || state.isInlineMode) return
+        val next =
+            when (state.corner) {
+                MiniPlayerCorner.TopLeft -> MiniPlayerCorner.TopRight
+                MiniPlayerCorner.TopRight -> MiniPlayerCorner.BottomRight
+                MiniPlayerCorner.BottomRight -> MiniPlayerCorner.BottomLeft
+                MiniPlayerCorner.BottomLeft -> MiniPlayerCorner.TopLeft
+            }
+        state.corner = next
+        val bounds = metrics.bounds
+        state.scope.launch {
+            state.motion.moveOffsets {
+                launch { state.offsetX.animateTo(cornerTargetX(next, bounds.minX, bounds.maxX), miniSnapSpringSpec) }
+                launch { state.offsetY.animateTo(cornerTargetY(next, bounds.minY, bounds.maxY), miniSnapSpringSpec) }
+            }
+        }
+    }
+
+    /** Tucks the mini player past the edge its corner is on, for accessibility services. */
+    fun tuckToNearestSide() {
+        if (state.tuckedSide != null || state.isInlineMode) return
+        val side = if (state.corner.isLeft) MiniPlayerTuckSide.Left else MiniPlayerTuckSide.Right
+        tuck(side, state.offsetY.value, velocityX = 0f)
     }
 
     /** Brings a tucked mini player back to the corner on the side it was tucked into. */

@@ -1,5 +1,10 @@
 package io.github.aedev.flow.ui.components.videoplayer.motion
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.platform.LocalHapticFeedback
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 
 /**
@@ -30,6 +35,10 @@ internal class DraggablePlayerGestureMetrics {
     var isFullscreen = false
     var tapToExpand = true
     var thresholds = PlayerGestureThresholds(density = 1f)
+
+    /** The smallest size a pinch rests at, as a multiple of the size setting. */
+    var minSizeScale = 1f
+    var haptics: HapticFeedback? = null
     var onFullscreenGesture: (() -> Unit)? = null
     var onCollapseGesture: (() -> Unit)? = null
     var onDismiss: () -> Unit = {}
@@ -53,4 +62,40 @@ internal class DraggablePlayerGestureMetrics {
                 .coerceAtMost(maxWideWidth) / expandedVideoWidth.coerceAtLeast(1f),
             state.expandFraction.value,
         )
+}
+
+/** The metrics the gesture handlers read, kept current from a [SideEffect] on every composition. */
+@Composable
+internal fun rememberDraggablePlayerGestureMetrics(
+    state: PlayerDraggableState,
+    geometry: DraggablePlayerGeometry,
+    isLargeWindow: Boolean,
+    isLandscape: Boolean,
+    isFullscreen: Boolean,
+    tapToExpand: Boolean,
+    thresholds: PlayerGestureThresholds,
+    minSizeScale: Float,
+    onFullscreenGesture: (() -> Unit)?,
+    onCollapseGesture: (() -> Unit)?,
+    onDismiss: () -> Unit,
+): DraggablePlayerGestureMetrics {
+    val metrics = remember(state) { DraggablePlayerGestureMetrics() }
+    val haptics = LocalHapticFeedback.current
+    SideEffect {
+        state.wideMiniScale = (geometry.maxWideWidth / geometry.baseMiniWidth.coerceAtLeast(1f)).coerceAtLeast(1f)
+        metrics.update(
+            geometry = geometry,
+            isLargeWindow = isLargeWindow,
+            isLandscape = isLandscape,
+            isFullscreen = isFullscreen,
+            tapToExpand = tapToExpand,
+            thresholds = thresholds,
+            minSizeScale = minSizeScale,
+            haptics = haptics,
+            onFullscreenGesture = onFullscreenGesture,
+            onCollapseGesture = onCollapseGesture,
+            onDismiss = onDismiss,
+        )
+    }
+    return metrics
 }

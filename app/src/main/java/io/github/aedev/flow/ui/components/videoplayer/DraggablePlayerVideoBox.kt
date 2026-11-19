@@ -83,7 +83,7 @@ internal fun Modifier.draggablePlayerVideoBox(
                 ) + windowH * (1f - drag) / 2f
             shadowElevation =
                 if (origin == null && fraction > 0.95f) {
-                    MiniPlayerShadowElevation.toPx() / geometry.visualMiniScale
+                    MiniPlayerShadowElevation.toPx() / visualScale.coerceAtLeast(0.01f)
                 } else {
                     0f
                 }

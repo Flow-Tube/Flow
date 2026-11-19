@@ -36,15 +36,18 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.videoplayer.motion.BODY_CONTENT_MAX_EXPAND_FRACTION
 import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerGestureHandler
-import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerGestureMetrics
+import io.github.aedev.flow.ui.components.videoplayer.motion.MINI_PLAYER_SMALLEST_SHARE
 import io.github.aedev.flow.ui.components.videoplayer.motion.MiniPlayerPinchGestureHandler
 import io.github.aedev.flow.ui.components.videoplayer.motion.PlayerBodyNestedScrollConnection
 import io.github.aedev.flow.ui.components.videoplayer.motion.computeDraggablePlayerGeometry
 import io.github.aedev.flow.ui.components.videoplayer.motion.draggablePlayerGestures
 import io.github.aedev.flow.ui.components.videoplayer.motion.keyboardSafeMiniY
 import io.github.aedev.flow.ui.components.videoplayer.motion.lerpClamped
+import io.github.aedev.flow.ui.components.videoplayer.motion.liveVisualMiniScale
 import io.github.aedev.flow.ui.components.videoplayer.motion.miniPlayerPinchGesture
 import io.github.aedev.flow.ui.components.videoplayer.motion.morphCornerRadiusPx
+import io.github.aedev.flow.ui.components.videoplayer.motion.rememberDraggablePlayerGestureMetrics
+import io.github.aedev.flow.ui.components.videoplayer.motion.rememberMiniPlayerActions
 import io.github.aedev.flow.ui.components.videoplayer.motion.rememberPlayerGestureThresholds
 import io.github.aedev.flow.ui.components.videoplayer.motion.resnapTargets
 import io.github.aedev.flow.ui.components.videoplayer.motion.resolveOpenOriginRect
@@ -202,7 +205,7 @@ fun DraggablePlayerLayout(
                             Float.MAX_VALUE
                         },
                     videoAspectRatio = videoAspectRatio,
-                    currentSizeScale = state.miniSizeScale.targetValue,
+                    currentSizeScale = state.restingMiniScale,
                     corner = state.corner,
                     isShrinkingToCorner = state.isShrinkingToCorner,
                     cachedTargetX = state.cachedTargetX,
@@ -282,14 +285,14 @@ fun DraggablePlayerLayout(
                     }
                 }
             val cornerRadiusProvider =
-                remember(openRectProvider, expandedVideoWidth, miniCornerRadiusPx, visualMiniScale) {
+                remember(openRectProvider, expandedVideoWidth, miniCornerRadiusPx, geometry) {
                     {
                         morphCornerRadiusPx(
                             fraction = state.expandFraction.value,
                             origin = openRectProvider(),
                             expandedVideoWidth = expandedVideoWidth,
                             miniCornerRadiusPx = miniCornerRadiusPx,
-                            visualMiniScale = visualMiniScale,
+                            visualMiniScale = geometry.liveVisualMiniScale(state.miniSizeScale.value),
                         )
                     }
                 }
@@ -396,31 +399,34 @@ fun DraggablePlayerLayout(
                 )
             }
 
-            val gestureMetrics = remember(state) { DraggablePlayerGestureMetrics() }
-            SideEffect {
-                gestureMetrics.update(
+            val gestureMetrics =
+                rememberDraggablePlayerGestureMetrics(
+                    state = state,
                     geometry = geometry,
                     isLargeWindow = isLargeWindow,
                     isLandscape = isLandscape,
                     isFullscreen = isFullscreen,
                     tapToExpand = tapToExpand,
                     thresholds = gestureThresholds,
+                    minSizeScale = (MINI_PLAYER_SMALLEST_SHARE / miniPlayerScale).coerceAtMost(1f),
                     onFullscreenGesture = onFullscreenGesture,
                     onCollapseGesture = onCollapseGesture,
                     onDismiss = onDismiss,
                 )
-            }
             val gestureHandler =
                 remember(state, gestureMetrics) { DraggablePlayerGestureHandler(state, gestureMetrics) }
             val pinchHandler =
                 remember(state, gestureMetrics) { MiniPlayerPinchGestureHandler(state, gestureMetrics) }
-            MiniPlayerTuckHandle(
+            MiniPlayerEdgeLayers(
                 state = state,
                 miniY = miniRestingY,
+                miniWidth = geometry.miniWidth,
                 miniHeight = geometry.miniHeight,
-                onUntuck = gestureHandler::untuck,
+                screenWidth = geometry.screenWidth,
+                handler = gestureHandler,
             )
 
+            val miniActions = rememberMiniPlayerActions(state, gestureHandler, onDismiss)
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Box(
                     modifier =
@@ -442,6 +448,7 @@ fun DraggablePlayerLayout(
                                 // shape while a finger is down or the drag coroutine is reset.
                                 .miniPlayerPinchGesture(pinchHandler)
                                 .draggablePlayerGestures(gestureHandler)
+                                .then(miniActions)
                         },
                 ) {
                     videoContent(Modifier.fillMaxSize())
