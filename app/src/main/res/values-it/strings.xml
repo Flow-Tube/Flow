@@ -3355,7 +3355,7 @@
     <string name="linked_cancel">Cancellare</string>
     <string name="linked_remove">Rimuovere</string>
     <string name="linked_remove_title">Rimuovere %1$s?</string>
-    <string name="linked_remove_body">Smette immediatamente di ricevere qualcosa di nuovo. Ciò che già ha resta su di esso.</string>
+    <string name="linked_remove_body">Smette immediatamente di ricevere qualsiasi novità. Quello che ha già rimane sul dispositivo. Le modifiche che ha apportato e che questo dispositivo non ha ancora ricevuto potrebbero non arrivare.</string>
     <string name="linked_add_device">Aggiungi un dispositivo</string>
     <string name="linked_scan_this_code">Scansiona questo codice</string>
     <string name="linked_scan_this_code_body">Sull\'altro dispositivo, apri Dispositivi collegati ed esegui la scansione di questo codice. Mantieni entrambi i dispositivi sulla stessa rete se l\'altro non riesce a raggiungere il server.</string>
@@ -3395,7 +3395,7 @@
     <string name="linked_error_local">Qualcosa è andato storto su questo dispositivo. Riprova.</string>
     <string name="linked_error_not_linked">Questo dispositivo non è in un gruppo.</string>
     <string name="linked_error_removed">Questo dispositivo è stato rimosso dal gruppo.</string>
-    <string name="linked_error_declined">I codici di verifica non sono stati confermati.</string>
+    <string name="linked_error_declined">I codici erano diversi, quindi non è stato condiviso nulla. Ricomincia con un nuovo codice. Se succede di nuovo, qualcuno potrebbe interferire: interrompi e controlla il tuo server o la tua rete.</string>
     <string name="linked_error_join_declined">Un dispositivo collegato ha rifiutato la richiesta di adesione.</string>
     <string name="linked_error_timed_out">L\'altro dispositivo non ha risposto in tempo.</string>
     <string name="linked_error_wrong_words">Queste non sono 24 parole di recupero valide.</string>
@@ -3463,7 +3463,7 @@
     <string name="error_rate_limited_hint">Attendi qualche istante e riprova oppure cambia rete.</string>
     <string name="error_bot_wall">YouTube sta bloccando questa rete</string>
     <string name="error_bot_wall_hint">Prova un\'altra rete o disattiva la VPN.</string>
-    <string name="error_bot_wall_network_hint">Prova un\'altra rete, ad esempio dati mobili.</string>
+    <string name="error_bot_wall_network_hint">Prova con i dati mobili o attendi. Di solito si risolve da solo.</string>
     <string name="error_bot_wall_session">YouTube vuole confermare che non sei un bot</string>
     <string name="error_bot_wall_session_hint">Reimposta la sessione YouTube, quindi riprova.</string>
     <string name="error_login_required">È richiesto l\'accesso</string>
@@ -5391,4 +5391,21 @@
         <item quantity="other">%d annunci rimossi dalla cronologia</item>
     </plurals>
     <string name="newpipe_extractor_credit">Dove ha inizio l\'estrazione di YouTube di Flow</string>
+    <string name="error_members_only">Video riservato ai membri</string>
+    <string name="error_members_only_hint">Unisciti a questo canale su YouTube per guardarlo.</string>
+    <string name="error_copyright_removed">Rimosso per motivi di copyright</string>
+    <string name="error_copyright_removed_hint">%1$s ha richiesto a YouTube di rimuovere questo video.</string>
+    <string name="error_copyright_removed_hint_unnamed">Un titolare dei diritti d\'autore ha chiesto a YouTube di rimuovere questo video.</string>
+    <string name="error_removed_by_uploader">Rimosso da chi ha caricato il video</string>
+    <string name="error_removed_by_uploader_hint">L\'utente che ha caricato questo video lo ha rimosso da YouTube.</string>
+    <string name="error_policy_removed">Rimosso da YouTube</string>
+    <string name="error_policy_removed_hint">YouTube ha rimosso questi video per violazione dei termini.</string>
+    <string name="error_recording_unavailable">Registrazione non disponibile</string>
+    <string name="error_recording_unavailable_hint">Questo streaming live è terminato senza una registrazione su YouTube.</string>
+    <string name="error_bot_wall_mobile_data_hint">Prova con il Wi-Fi o attendi. Di solito si risolve da solo.</string>
+    <plurals name="songs_removed_from_queue">
+        <item quantity="one">Rimosso %d brano dalla coda</item>
+        <item quantity="many">Rimossi %d brani dalla coda</item>
+        <item quantity="other">Rimossi %d brani dalla coda</item>
+    </plurals>
 </resources>
