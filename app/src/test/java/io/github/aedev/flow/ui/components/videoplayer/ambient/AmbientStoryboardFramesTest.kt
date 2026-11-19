@@ -147,4 +147,67 @@ class AmbientStoryboardFramesTest {
             }
         }
     }
+
+    private fun sheet(
+        tilesX: Int,
+        tilesY: Int,
+        padTop: Int,
+        padBottom: Int,
+        content: (tx: Int, ty: Int) -> Int,
+    ): IntArray {
+        val w = 48
+        val h = 27
+        val sheet = IntArray(tilesX * w * tilesY * h)
+        for (ty in 0 until tilesY) {
+            for (tx in 0 until tilesX) {
+                for (y in 0 until h) {
+                    val padded = y < padTop || y >= h - padBottom
+                    val grey = if (padded) 20 + (tx * 7 + y) % 30 else content(tx, ty)
+                    val c = (0xFF shl 24) or (grey shl 16) or (grey shl 8) or grey
+                    for (x in 0 until w) sheet[(ty * h + y) * tilesX * w + tx * w + x] = c
+                }
+            }
+        }
+        return sheet
+    }
+
+    @Test
+    fun `padding rows found in every tile are trimmed`() {
+        val pixels = sheet(4, 3, padTop = 1, padBottom = 2) { tx, ty -> 120 + (tx * 31 + ty * 17) % 120 }
+        val out = IntArray(4)
+
+        storyboardPadding(pixels, 4 * 48, 3 * 27, 48, 27, out)
+
+        assertThat(out.toList()).containsExactly(1, 2, 0, 0).inOrder()
+    }
+
+    @Test
+    fun `a sheet without padding keeps every row`() {
+        val pixels = sheet(4, 3, padTop = 0, padBottom = 0) { _, _ -> 200 }
+        val out = IntArray(4)
+
+        storyboardPadding(pixels, 4 * 48, 3 * 27, 48, 27, out)
+
+        assertThat(out.toList()).containsExactly(0, 0, 0, 0).inOrder()
+    }
+
+    @Test
+    fun `a dark scene in some tiles is not mistaken for padding`() {
+        val pixels = sheet(4, 3, padTop = 0, padBottom = 0) { tx, _ -> if (tx == 0) 200 else 8 }
+        val out = IntArray(4)
+
+        storyboardPadding(pixels, 4 * 48, 3 * 27, 48, 27, out)
+
+        assertThat(out.toList()).containsExactly(0, 0, 0, 0).inOrder()
+    }
+
+    @Test
+    fun `an all dark video is not trimmed`() {
+        val pixels = sheet(4, 3, padTop = 0, padBottom = 0) { _, _ -> 30 }
+        val out = IntArray(4)
+
+        storyboardPadding(pixels, 4 * 48, 3 * 27, 48, 27, out)
+
+        assertThat(out.toList()).containsExactly(0, 0, 0, 0).inOrder()
+    }
 }

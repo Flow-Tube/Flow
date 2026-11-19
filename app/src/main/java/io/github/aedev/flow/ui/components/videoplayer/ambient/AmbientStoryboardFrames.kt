@@ -65,6 +65,9 @@ internal class AmbientStoryboardFrames(
     private var sheetUrl: String? = null
     private var sheet: Bitmap? = null
     private var pixels = IntArray(0)
+    private var sheetPixels = IntArray(0)
+    private var paddedSheet: Bitmap? = null
+    private val padding = IntArray(4)
 
     /** The sheet holding the frame at [positionMs], or null when it cannot be loaded. */
     suspend fun sheetAt(positionMs: Long): StoryboardCrop? {
@@ -97,10 +100,88 @@ internal class AmbientStoryboardFrames(
         dst: FloatArray,
         scratch: FloatArray,
     ) {
-        val needed = crop.rect.width() * crop.rect.height()
+        val bitmap = crop.bitmap
+        if (bitmap !== paddedSheet) {
+            val size = bitmap.width * bitmap.height
+            if (sheetPixels.size < size) sheetPixels = IntArray(size)
+            bitmap.getPixels(sheetPixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            storyboardPadding(sheetPixels, bitmap.width, bitmap.height, crop.rect.width(), crop.rect.height(), padding)
+            paddedSheet = bitmap
+        }
+        val rect =
+            Rect(
+                crop.rect.left + padding[2],
+                crop.rect.top + padding[0],
+                crop.rect.right - padding[3],
+                crop.rect.bottom - padding[1],
+            )
+        val needed = rect.width() * rect.height()
         if (pixels.size < needed) pixels = IntArray(needed)
-        bitmapAreaToGrid(crop.bitmap, crop.rect, pixels, dst, scratch)
+        bitmapAreaToGrid(bitmap, rect, pixels, dst, scratch)
     }
+}
+
+/** A row or column is padding when it stays under this share of the tile's middle in every tile. */
+private const val PADDING_SHARE = 0.4f
+
+/** Padding is looked for only this close to a tile's edge, as a share of its size. */
+private const val PADDING_REACH = 5
+
+/**
+ * The dark rows and columns YouTube pads every storyboard frame with, as top, bottom, left and
+ * right counts written into [out]. They sit on the frame's outer rows, exactly the ones the status
+ * bar strip and the page glow read, so left in they turn the light grey. A line counts as padding
+ * only when it is dark in every tile of the sheet, so a dark scene is never cut.
+ */
+internal fun storyboardPadding(
+    sheet: IntArray,
+    sheetWidth: Int,
+    sheetHeight: Int,
+    tileWidth: Int,
+    tileHeight: Int,
+    out: IntArray,
+) {
+    out.fill(0)
+    if (tileWidth <= 0 || tileHeight <= 0) return
+    val tilesX = sheetWidth / tileWidth
+    val tilesY = sheetHeight / tileHeight
+    if (tilesX <= 0 || tilesY <= 0) return
+
+    fun level(
+        along: Int,
+        horizontal: Boolean,
+    ): Float {
+        var brightest = 0f
+        for (ty in 0 until tilesY) {
+            for (tx in 0 until tilesX) {
+                var sum = 0
+                val count = if (horizontal) tileWidth else tileHeight
+                for (i in 0 until count) {
+                    val x = tx * tileWidth + if (horizontal) i else along
+                    val y = ty * tileHeight + if (horizontal) along else i
+                    val c = sheet[y * sheetWidth + x]
+                    sum += maxOf((c shr 16) and 0xFF, (c shr 8) and 0xFF, c and 0xFF)
+                }
+                brightest = maxOf(brightest, sum.toFloat() / count)
+            }
+        }
+        return brightest
+    }
+
+    fun count(
+        size: Int,
+        horizontal: Boolean,
+        fromEnd: Boolean,
+    ): Int {
+        val limit = PADDING_SHARE * level(size / 2, horizontal)
+        var n = 0
+        while (n < size / PADDING_REACH && level(if (fromEnd) size - 1 - n else n, horizontal) < limit) n++
+        return n
+    }
+    out[0] = count(tileHeight, horizontal = true, fromEnd = false)
+    out[1] = count(tileHeight, horizontal = true, fromEnd = true)
+    out[2] = count(tileWidth, horizontal = false, fromEnd = false)
+    out[3] = count(tileWidth, horizontal = false, fromEnd = true)
 }
 
 internal class StoryboardCrop(
