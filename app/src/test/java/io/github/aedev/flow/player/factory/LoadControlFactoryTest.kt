@@ -81,7 +81,9 @@ class LoadControlFactoryTest {
         fun bytes(memoryClassMb: Int) =
             LoadControlFactory.videoBudget(memoryClassMb, isLowRamDevice = false, requestedMaxMs = 50_000).targetBufferBytes
 
-        assertEquals(PlayerConfig.LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES, bytes(256))
+        assertEquals(PlayerConfig.LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES, bytes(128))
+        assertEquals(PlayerConfig.MID_MEMORY_MAIN_TARGET_BUFFER_BYTES, bytes(192))
+        assertEquals(PlayerConfig.MID_MEMORY_MAIN_TARGET_BUFFER_BYTES, bytes(256))
         assertEquals(PlayerConfig.MID_MEMORY_MAIN_TARGET_BUFFER_BYTES, bytes(384))
         assertEquals(PlayerConfig.MAIN_TARGET_BUFFER_BYTES, bytes(512))
     }
@@ -94,7 +96,23 @@ class LoadControlFactoryTest {
         assertEquals(180_000, pixelHeap.maxSafeMaxMs)
         assertEquals(256 * MB / 5, pixelHeap.targetBufferBytes)
         assertEquals(PlayerConfig.MAX_LONG_BUFFER_BYTES, bigHeap.targetBufferBytes)
-        assertEquals(PlayerConfig.LOW_MEMORY_MAX_SAFE_MAIN_MIN_BUFFER_MS, pixelHeap.maxSafeMinMs)
+        assertEquals(PlayerConfig.MAX_SAFE_MAIN_MIN_BUFFER_MS, pixelHeap.maxSafeMinMs)
+    }
+
+    @Test
+    fun `the common 256 MB heap keeps the profile's min buffer and no back buffer`() {
+        val budget = LoadControlFactory.videoBudget(memoryClassMb = 256, isLowRamDevice = false, requestedMaxMs = 50_000)
+
+        assertEquals(PlayerConfig.MAX_SAFE_MAIN_MIN_BUFFER_MS, budget.maxSafeMinMs)
+        assertEquals(PlayerConfig.LOW_MEMORY_BACK_BUFFER_DURATION_MS, budget.backBufferMs)
+    }
+
+    @Test
+    fun `a small heap keeps the smallest buffer`() {
+        val budget = LoadControlFactory.videoBudget(memoryClassMb = 128, isLowRamDevice = false, requestedMaxMs = 50_000)
+
+        assertEquals(PlayerConfig.LOW_MEMORY_MAX_SAFE_MAIN_MIN_BUFFER_MS, budget.maxSafeMinMs)
+        assertEquals(PlayerConfig.LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES, budget.targetBufferBytes)
     }
 
     @Test

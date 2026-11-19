@@ -90,7 +90,7 @@ object LoadControlFactory {
         isLowRamDevice: Boolean,
         requestedMaxMs: Int,
     ): VideoBudget {
-        val isLowMemoryDevice = isLowRamDevice || memoryClassMb <= 256
+        val isLowMemoryDevice = isLowRamDevice || memoryClassMb < PlayerConfig.SMALL_HEAP_MB
         val isConstrainedHeap = isLowMemoryDevice || memoryClassMb <= 384
         val tierBytes =
             when {
