@@ -88,9 +88,6 @@ object PlayerConfig {
     /** Preferred delay from the true live edge. Keeps YouTube live playback stable. */
     const val LIVE_EDGE_GAP_MS = 10_000L
 
-    /** Maximum DVR window requested for live streams where the manifest supports it. */
-    const val LIVE_DVR_MAX_OFFSET_MS = 2 * 60 * 60 * 1000L
-
     // ===== Bandwidth Thresholds =====
 
     /** Initial bandwidth estimate in bits per second (5 Mbps) */
@@ -126,29 +123,6 @@ object PlayerConfig {
     /** Buffering count threshold before quality downgrade */
     const val BUFFERING_COUNT_THRESHOLD = 3
 
-    // ===== Network Configuration =====
-
-    /** Maximum concurrent requests per host for adaptive streaming */
-    const val MAX_REQUESTS_PER_HOST = 20
-
-    /** Maximum total concurrent requests */
-    const val MAX_REQUESTS = 40
-
-    /** Connection pool size */
-    const val CONNECTION_POOL_SIZE = 15
-
-    /** Connection pool keep-alive duration in minutes */
-    const val CONNECTION_POOL_KEEP_ALIVE_MINUTES = 5L
-
-    /** Connect timeout in seconds */
-    const val CONNECT_TIMEOUT_SECONDS = 15L
-
-    /** Read timeout in seconds */
-    const val READ_TIMEOUT_SECONDS = 30L
-
-    /** Write timeout in seconds */
-    const val WRITE_TIMEOUT_SECONDS = 15L
-
     // ===== Position Tracking =====
 
     /** Position tracker polling interval in milliseconds */
@@ -159,11 +133,6 @@ object PlayerConfig {
 
     /** Stuck detection threshold (number of checks with no position change) */
     const val STUCK_DETECTION_THRESHOLD = 2
-
-    // ===== Surface Configuration =====
-
-    /** Default surface ready timeout in milliseconds */
-    const val DEFAULT_SURFACE_TIMEOUT_MS = 500L
 
     // ===== Error Recovery =====
 
