@@ -351,6 +351,8 @@ fun FlowApp(
                 (isMusicSheetShown && musicPlayerSheetState.isExpanded)
         val barOnScreen = navigationBarShown(currentTab, currentEntry?.destination?.route, searchShowsNavBar, innerPagesShowNavBar)
         val showBottomNav = !isInPipMode && barOnScreen && !isPlayerCoveringContent
+        // The video player covers the bar rather than removing it, so the bar can ride the collapse.
+        val barComposed = !isInPipMode && barOnScreen && !(isMusicSheetShown && musicPlayerSheetState.isExpanded)
         val isBottomNavPresent = !usesNavigationRail && showBottomNav
         val isBottomNavShown = isBottomNavPresent && navScrollState.isBarVisible
         // The rail is hidden only where content goes truly full screen; the expanded players cover
@@ -398,7 +400,9 @@ fun FlowApp(
                     navController.tapTab(action, tab, selectedTab, defaultStartRoute)
                 }
             },
-            barVisible = showBottomNav,
+            barVisible = barComposed,
+            barCovered = isPlayerCoveringContent,
+            barCoveredFraction = { if (playerVisible) 1f - playerSheetState.fraction else 0f },
             barScrollState = navScrollState,
             barLook = bottomNavLook,
             railVisible = isNavigationRailVisible,
