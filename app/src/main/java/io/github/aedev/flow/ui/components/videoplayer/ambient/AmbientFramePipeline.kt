@@ -11,14 +11,20 @@ import android.view.TextureView
 import android.view.View
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -182,9 +188,12 @@ internal class AmbientPipeline(
         playerView: PlayerView,
         isPlaying: Flow<Boolean>,
     ) {
+        var first = true
         while (currentCoroutineContext().isActive && supported) {
-            // Suspends while paused instead of polling, so a paused video costs nothing here.
-            isPlaying.first { it }
+            // The first pass lights a video that opens paused; after that a paused video is captured
+            // again only when the player draws a new frame, e.g. after a seek.
+            if (!first) awaitPlayingOrNewFrame(playerView, isPlaying)
+            first = false
             val surface = playerView.videoSurfaceView
             var cadence = IDLE_MS
             if (surface != null && surface.width > 0 && surface.height > 0) {
@@ -224,6 +233,15 @@ internal class AmbientPipeline(
             }
             delay(cadence)
         }
+    }
+
+    private suspend fun awaitPlayingOrNewFrame(
+        playerView: PlayerView,
+        isPlaying: Flow<Boolean>,
+    ) {
+        val playing = isPlaying.filter { it }.map { }
+        val player = playerView.player
+        (if (player == null) playing else merge(playing, player.renderedFrames())).first()
     }
 
     /** Runs on Default. Returns true when the frame differed enough to become a new target. */
@@ -307,6 +325,19 @@ internal class AmbientPipeline(
         return bitmap.asImageBitmap()
     }
 }
+
+/** One emission per frame the player draws after a seek, a new item or a new surface. */
+internal fun Player.renderedFrames(): Flow<Unit> =
+    callbackFlow {
+        val listener =
+            object : Player.Listener {
+                override fun onRenderedFirstFrame() {
+                    trySend(Unit)
+                }
+            }
+        addListener(listener)
+        awaitClose { removeListener(listener) }
+    }
 
 /** Advances [current] toward [target]; returns whether anything moved beyond the epsilon. */
 internal fun step(
