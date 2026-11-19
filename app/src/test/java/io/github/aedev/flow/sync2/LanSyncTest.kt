@@ -10,6 +10,7 @@ import io.github.aedev.flow.sync.transport.SyncConnection
 import io.github.aedev.flow.sync.transport.WsClient
 import io.github.aedev.flow.sync.transport.WsServer
 import io.github.aedev.flow.sync2.crypto.MemberSecrets
+import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.data.LAN_STORE
 import io.github.aedev.flow.sync2.data.LinkedDatabase
@@ -25,6 +26,7 @@ import io.github.aedev.flow.sync2.lan.dialLink
 import io.github.aedev.flow.sync2.lan.portFree
 import io.github.aedev.flow.sync2.linking.DeviceMeta
 import io.github.aedev.flow.sync2.linking.newEpoch
+import io.github.aedev.flow.sync2.linking.removeDevices
 import io.github.aedev.flow.sync2.linking.renameDevice
 import io.github.aedev.flow.sync2.roster.Entry
 import io.github.aedev.flow.sync2.roster.Op
@@ -46,6 +48,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -300,6 +303,52 @@ class LanSyncTest {
                     runCatching { meet(client = outsider, server = b) }.exceptionOrNull()
                 }
             assertTrue("$error", error is ProtocolException || error is LinkedException)
+        }
+
+    /** [g]'s first member, having written an object, removes the second, which hasn't heard of it. */
+    private suspend fun TestScope.bRemoved(g: LinkedGroup): Pair<Member, Member> {
+        val (a, b) = member(g, g.a) to member(g, g.b)
+        a.write("aaaaaaaaaaa")
+        removeDevices(a.session(), g.a, listOf(SyncBytes.toHex(g.b.did)))
+        return a to b
+    }
+
+    @Test
+    fun a_removed_device_is_answered_with_the_roster_and_nothing_else() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = bRemoved(g)
+            val written = StorePaths.log(SyncBytes.toHex(g.a.did), 1)
+            linked(client = b, server = a) { link, _ ->
+                assertEquals(JsonPrimitive(true), ask(link, """{"after":-1,"id":0,"op":"roster"}""")["ok"])
+                val listed = ask(link, """{"id":1,"op":"list","vv":{}}""")
+                assertEquals(JsonArray(emptyList()), listed["paths"])
+                assertEquals(JsonPrimitive("not_found"), ask(link, """{"id":2,"op":"get","path":"$written"}""")["error"])
+            }
+        }
+
+    @Test
+    fun a_removed_device_learns_its_removal_from_a_member_it_dials() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = bRemoved(g)
+
+            dialed(client = b, server = a)
+
+            assertNull(b.local.getObject(StorePaths.log(SyncBytes.toHex(g.a.did), 1)))
+            val refused = runCatching { b.session() }.exceptionOrNull()
+            assertTrue("$refused", refused is LinkedException.Removed)
+        }
+
+    @Test
+    fun a_member_refuses_a_device_it_removed_when_it_dials_it() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = bRemoved(g)
+
+            val refused = runCatching { dialed(client = a, server = b) }.exceptionOrNull()
+
+            assertEquals("$refused", ProtocolError.SENDER, (refused as? ProtocolException)?.error)
         }
 
     @Test

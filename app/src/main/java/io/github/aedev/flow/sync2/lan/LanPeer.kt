@@ -123,6 +123,16 @@ class LanPeer(
         ) = encode(fields + mapOf("ok" to JsonPrimitive(true), "re" to id), bytes)
 
         fun error(code: String) = encode(mapOf("error" to JsonPrimitive(code), "ok" to JsonPrimitive(false), "re" to id), null)
+        if (link.peerRemoved && op != "roster") {
+            // An empty listing rather than an error, so its pull ends and it applies the roster it just took.
+            when (op) {
+                "list" -> ok(mapOf("blobs" to JsonArray(emptyList()), "paths" to JsonArray(emptyList())))
+                "key", "get" -> error("not_found")
+                "live" -> null
+                else -> error("invalid")
+            }?.let { link.send(it) }
+            return
+        }
         val header = request.header
         val reply =
             runCatching {
