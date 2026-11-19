@@ -181,6 +181,10 @@ internal class DraggablePlayerGestureHandler(
                         snapSignal.trySend(Unit)
                     }
                 }
+                currentEvent.changes.firstOrNull { it.id == dragPointerId }?.let { up ->
+                    fingerPath += up.positionChange() * metrics.liveGestureScale(state)
+                    velocityTracker.addLiftOff(up.uptimeMillis, fingerPath)
+                }
             } finally {
                 snapSignal.close()
                 snapDriver.cancel()
@@ -268,7 +272,15 @@ internal class DraggablePlayerGestureHandler(
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
                 val change = event.changes.firstOrNull { it.id == down.id }
-                if (change == null || !change.pressed) break
+                if (change == null || !change.pressed) {
+                    if (change != null) {
+                        velocityTracker.addLiftOff(
+                            change.uptimeMillis,
+                            fingerPath + change.positionChange() * metrics.liveGestureScale(state),
+                        )
+                    }
+                    break
+                }
                 if (change.isConsumed || event.changes.count { it.pressed } > 1) {
                     return MiniDrag(Offset(rawX, rawY), travel, following, interrupted = true)
                 }
@@ -471,6 +483,15 @@ internal class DraggablePlayerGestureHandler(
         }
     }
 }
+
+/**
+ * Records where and when the finger lifted. Without it a finger that stops and then lets go keeps
+ * the speed of its last movement, so a drag that was held still could still release as a fling.
+ */
+private fun VelocityTracker.addLiftOff(
+    uptimeMillis: Long,
+    position: Offset,
+) = addPosition(uptimeMillis, position)
 
 internal fun Modifier.draggablePlayerGestures(handler: DraggablePlayerGestureHandler): Modifier =
     pointerInput(handler) {
