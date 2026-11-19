@@ -379,25 +379,24 @@ fun DraggablePlayerLayout(
                 PortraitFullscreenBackdropFade(state = state, thumbnailUrl = thumbnailUrl)
             }
 
-            // Kept composed behind a portrait fullscreen video, so leaving it has no page to build.
-            if (!showImmersiveFullscreen || !isLandscape) {
-                DraggablePlayerPage(
-                    state = state,
-                    hidden = showImmersiveFullscreen,
-                    isTwoPaneWindow = isTwoPaneWindow,
-                    statusBarHeight = statusBarHeight,
-                    screenWidth = screenWidth,
-                    screenHeight = screenHeight,
-                    videoHeightProvider = currentExpandedVideoHeightProvider,
-                    portraitFsFraction = { state.portraitFsFraction },
-                    portraitFsTravel = portraitFsTravelProvider,
-                    openRect = openRectProvider,
-                    nestedScrollConnection = nestedScrollConnection,
-                    layoutDirection = systemLayoutDirection,
-                    scrollAwayEnabled = scrollAwayActive,
-                    bodyContent = bodyContent,
-                )
-            }
+            // Kept composed behind a fullscreen video in either orientation, so leaving it has no
+            // page to build and the related list keeps its scroll.
+            DraggablePlayerPage(
+                state = state,
+                hidden = showImmersiveFullscreen,
+                isTwoPaneWindow = isTwoPaneWindow,
+                statusBarHeight = statusBarHeight,
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                videoHeightProvider = currentExpandedVideoHeightProvider,
+                portraitFsFraction = { state.portraitFsFraction },
+                portraitFsTravel = portraitFsTravelProvider,
+                openRect = openRectProvider,
+                nestedScrollConnection = nestedScrollConnection,
+                layoutDirection = systemLayoutDirection,
+                scrollAwayEnabled = scrollAwayActive,
+                bodyContent = bodyContent,
+            )
 
             val gestureMetrics =
                 rememberDraggablePlayerGestureMetrics(
