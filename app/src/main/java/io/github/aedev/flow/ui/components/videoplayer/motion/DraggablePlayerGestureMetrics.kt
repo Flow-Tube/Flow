@@ -29,6 +29,7 @@ internal class DraggablePlayerGestureMetrics {
     var isLandscape = false
     var isFullscreen = false
     var tapToExpand = true
+    var thresholds = PlayerGestureThresholds(density = 1f)
     var onFullscreenGesture: (() -> Unit)? = null
     var onCollapseGesture: (() -> Unit)? = null
     var onDismiss: () -> Unit = {}

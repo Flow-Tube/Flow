@@ -24,9 +24,6 @@ import kotlin.math.abs
 private const val DRAG_MODE_FRACTION = 0
 private const val DRAG_MODE_EXPAND_SCALE = 1
 
-/** Screen-space movement under which a mini player press still counts as a tap. */
-private const val MINI_TAP_MOVEMENT_PX = 24f
-
 /**
  * Where a mini player drag left the finger, how far it went, whether the player followed it, and
  * whether a second finger or another handler took the gesture over.
@@ -179,7 +176,7 @@ internal class DraggablePlayerGestureHandler(
                     } else if (isCollapseDrag && detectedDirection == -1) {
                         change.consume()
                         totalUpwardDrag += -delta.y
-                        pendingExpandScale = expandDragZoomFor(totalUpwardDrag)
+                        pendingExpandScale = expandDragZoomFor(totalUpwardDrag, metrics.thresholds)
                         pendingMode = DRAG_MODE_EXPAND_SCALE
                         snapSignal.trySend(Unit)
                     }
@@ -203,7 +200,7 @@ internal class DraggablePlayerGestureHandler(
 
         if (isCollapseDrag && detectedDirection == -1) {
             val velY = velocityTracker.calculateVelocity().y
-            if (shouldEnterFullscreenFromSwipe(totalUpwardDrag, velY)) {
+            if (shouldEnterFullscreenFromSwipe(totalUpwardDrag, velY, metrics.thresholds)) {
                 metrics.onFullscreenGesture?.invoke()
             }
             return
@@ -212,7 +209,7 @@ internal class DraggablePlayerGestureHandler(
         if (isCollapseDrag) {
             val velY = velocityTracker.calculateVelocity().y
             val collapseTravel = metrics.targetMiniY - metrics.statusBarHeight
-            if (shouldCollapseOnRelease(state.expandFraction.value, velY)) {
+            if (shouldCollapseOnRelease(state.expandFraction.value, velY, metrics.thresholds)) {
                 metrics.onCollapseGesture?.invoke()
                 state.collapse(fractionVelocity(velY, collapseTravel))
             } else {
@@ -224,7 +221,7 @@ internal class DraggablePlayerGestureHandler(
 
     /**
      * A press on the mini player. It follows the finger from half the touch slop, and a release that
-     * travelled less than [MINI_TAP_MOVEMENT_PX] is a tap. A second finger hands the gesture to the
+     * travelled less than [PlayerGestureThresholds.miniTapMovement] is a tap. A second finger hands the gesture to the
      * pinch, so the player is never dragged and re-cornered underneath a resize.
      */
     private suspend fun AwaitPointerEventScope.handleMiniGesture(
@@ -241,7 +238,7 @@ internal class DraggablePlayerGestureHandler(
                 awaitAllPointersUp()
             }
 
-            drag.travel < MINI_TAP_MOVEMENT_PX -> {
+            drag.travel < metrics.thresholds.miniTapMovement -> {
                 if (drag.moved) releaseMini(drag.fingerAt, startCorner)
                 onMiniTap(down.uptimeMillis, downConsumedByChild)
             }
@@ -386,7 +383,8 @@ internal class DraggablePlayerGestureHandler(
         val velocity = velocityTracker.calculateVelocity()
         val velY = velocity.y
         val velX = velocity.x
-        if (shouldCloseMiniDownward(fingerAt.y, metrics.maxY, metrics.miniHeight, !startCorner.isTop, velX, velY)) {
+        val startedAtBottom = !startCorner.isTop
+        if (shouldCloseMiniDownward(fingerAt.y, metrics.maxY, metrics.miniHeight, startedAtBottom, velX, velY, metrics.thresholds)) {
             closeDownward(velY)
             return
         }
@@ -401,6 +399,7 @@ internal class DraggablePlayerGestureHandler(
                 bounds = bounds,
                 scaledVelocityX = velX,
                 scaledVelocityY = velY,
+                thresholds = metrics.thresholds,
             )
         val targetX = cornerTargetX(newCorner, bounds.minX, bounds.maxX)
         val targetY = cornerTargetY(newCorner, bounds.minY, bounds.maxY)
@@ -420,7 +419,7 @@ internal class DraggablePlayerGestureHandler(
             return
         }
 
-        val tuckSide = resolveMiniPlayerTuck(fingerAt.x, startCorner.isLeft, bounds, metrics.miniWidth, velX, velY)
+        val tuckSide = resolveMiniPlayerTuck(fingerAt.x, startCorner.isLeft, bounds, metrics.miniWidth, velX, velY, metrics.thresholds)
         if (tuckSide != null) {
             tuck(tuckSide, currentY, velX)
             return

@@ -210,10 +210,12 @@ internal fun DraggablePlayerGestureMetrics.update(
     isLandscape: Boolean,
     isFullscreen: Boolean,
     tapToExpand: Boolean,
+    thresholds: PlayerGestureThresholds,
     onFullscreenGesture: (() -> Unit)?,
     onCollapseGesture: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
+    this.thresholds = thresholds
     minX = geometry.minX
     maxX = geometry.maxX
     minY = geometry.minY

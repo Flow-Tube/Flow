@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.offset
 import io.github.aedev.flow.ui.components.videoplayer.motion.BODY_CONTENT_MAX_EXPAND_FRACTION
-import io.github.aedev.flow.ui.components.videoplayer.motion.BODY_SLIDE_PX
+import io.github.aedev.flow.ui.components.videoplayer.motion.BodySlideDistance
 import io.github.aedev.flow.ui.components.videoplayer.motion.OpenOriginRect
 import io.github.aedev.flow.ui.components.videoplayer.motion.RoundRectClipShape
 import io.github.aedev.flow.ui.components.videoplayer.motion.openBodyAlpha
@@ -97,7 +97,7 @@ internal fun DraggablePlayerPage(
                                 if (hidden || fraction > 0.999f) {
                                     placeable.height.toFloat()
                                 } else {
-                                    fraction * BODY_SLIDE_PX + portraitFsFraction() * portraitFsTravel()
+                                    fraction * BodySlideDistance.toPx() + portraitFsFraction() * portraitFsTravel()
                                 }
                             placeable.place(0, topPad - state.scrollAwayPx.roundToInt() + slide.roundToInt())
                         }
@@ -112,7 +112,7 @@ internal fun DraggablePlayerPage(
                             val fraction = state.expandFraction.value
                             val bodyTop =
                                 bodyPaddingTopProvider().roundToInt() - state.scrollAwayPx.roundToInt() +
-                                    (fraction * BODY_SLIDE_PX).roundToInt()
+                                    (fraction * BodySlideDistance.toPx()).roundToInt()
                             shape =
                                 RoundRectClipShape(
                                     openGroundRect(origin, fraction, screenWidth, screenHeight)

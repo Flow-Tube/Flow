@@ -30,6 +30,7 @@ class PlayerBodyNestedScrollConnectionTest {
                 portraitFsTravel = { 800f },
                 portraitFsEnabled = { true },
                 portraitFsActivationPx = { 50f },
+                thresholds = PlayerGestureThresholds(density = 3f),
                 expandFraction = { 0f },
                 onEnterPortraitFullscreen = { { enteredFullscreen = true } },
                 scrollAwayEnabled = { scrollAwayEnabled },

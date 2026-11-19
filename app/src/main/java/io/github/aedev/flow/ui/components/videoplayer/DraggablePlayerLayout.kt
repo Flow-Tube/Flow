@@ -45,6 +45,7 @@ import io.github.aedev.flow.ui.components.videoplayer.motion.keyboardSafeMiniY
 import io.github.aedev.flow.ui.components.videoplayer.motion.lerpClamped
 import io.github.aedev.flow.ui.components.videoplayer.motion.miniPlayerPinchGesture
 import io.github.aedev.flow.ui.components.videoplayer.motion.morphCornerRadiusPx
+import io.github.aedev.flow.ui.components.videoplayer.motion.rememberPlayerGestureThresholds
 import io.github.aedev.flow.ui.components.videoplayer.motion.resnapTargets
 import io.github.aedev.flow.ui.components.videoplayer.motion.resolveOpenOriginRect
 import io.github.aedev.flow.ui.components.videoplayer.motion.tallVideoMaxHeight
@@ -343,8 +344,9 @@ fun DraggablePlayerLayout(
             val portraitFsActivationState = rememberUpdatedState(portraitFsActivationPx)
             val onEnterPortraitFsState = rememberUpdatedState(onEnterPortraitFullscreen)
             val pagedVideoHeight = geometry.expandedVideoHeight.coerceAtMost(tallVideoCeiling)
+            val gestureThresholds = rememberPlayerGestureThresholds()
             val nestedScrollConnection =
-                remember(pagedVideoHeight, geometry.baseVideoHeight) {
+                remember(pagedVideoHeight, geometry.baseVideoHeight, gestureThresholds) {
                     PlayerBodyNestedScrollConnection(
                         expandedVideoHeight = pagedVideoHeight,
                         baseVideoHeight = geometry.baseVideoHeight,
@@ -356,6 +358,7 @@ fun DraggablePlayerLayout(
                         portraitFsTravel = portraitFsTravelProvider,
                         portraitFsEnabled = { portraitFsEnabledState.value },
                         portraitFsActivationPx = { portraitFsActivationState.value },
+                        thresholds = gestureThresholds,
                         expandFraction = { state.expandFraction.value },
                         onEnterPortraitFullscreen = { onEnterPortraitFsState.value },
                         scrollAwayEnabled = { scrollAwayActiveState.value },
@@ -401,6 +404,7 @@ fun DraggablePlayerLayout(
                     isLandscape = isLandscape,
                     isFullscreen = isFullscreen,
                     tapToExpand = tapToExpand,
+                    thresholds = gestureThresholds,
                     onFullscreenGesture = onFullscreenGesture,
                     onCollapseGesture = onCollapseGesture,
                     onDismiss = onDismiss,
