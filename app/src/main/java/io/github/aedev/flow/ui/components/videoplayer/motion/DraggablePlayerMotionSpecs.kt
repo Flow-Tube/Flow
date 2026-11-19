@@ -36,6 +36,15 @@ internal val BodySlideDistance = 27.dp
 internal const val EXPANDED_SURFACES_MOUNT_FRACTION = 0.05f
 internal const val EXPANDED_SURFACES_UNMOUNT_FRACTION = 0.95f
 
+/** Share of the widest size from which the mini player counts as wide and centres on a phone. */
+internal const val WIDE_SIZE_SHARE = 0.98f
+
+/**
+ * The smallest a pinch leaves the mini player, as a share of the window's short side: the Small
+ * size preset, so the controls always have the room that preset was laid out for.
+ */
+internal const val MINI_PLAYER_SMALLEST_SHARE = 0.35f
+
 /** Delay before an off-target mini player is nudged back to its resting corner. */
 internal const val MINI_RESNAP_DEBOUNCE_MS = 50L
 

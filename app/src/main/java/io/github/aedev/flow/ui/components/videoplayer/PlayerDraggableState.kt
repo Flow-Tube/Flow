@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import coil3.memory.MemoryCache
 import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerMotionController
+import io.github.aedev.flow.ui.components.videoplayer.motion.WIDE_SIZE_SHARE
 import io.github.aedev.flow.ui.components.videoplayer.motion.cornerTargetX
 import io.github.aedev.flow.ui.components.videoplayer.motion.cornerTargetY
 import io.github.aedev.flow.ui.components.videoplayer.motion.miniResizeSpringSpec
@@ -67,6 +68,16 @@ class PlayerDraggableState(
     var cachedTargetY by mutableFloatStateOf(0f)
 
     val miniSizeScale = Animatable(1f)
+
+    /**
+     * The size the mini player is resting at or settling to, as a multiple of the size setting.
+     * The layout's geometry reads this rather than [miniSizeScale]'s target, which a pinch rewrites
+     * on every frame and which would recompose the whole layout per frame of the pinch.
+     */
+    internal var restingMiniScale by mutableFloatStateOf(1f)
+
+    /** The scale at which the mini player is at its widest; published by the layout. */
+    internal var wideMiniScale by mutableFloatStateOf(Float.MAX_VALUE)
     var isShrinkingToCorner by mutableStateOf(false)
 
     /** The video box's corner radius in its own pre-scale px, published by the layout for what it draws inside. */
@@ -141,7 +152,7 @@ class PlayerDraggableState(
         )
 
     /** True while the floating mini player is in wide (enlarged) mode. */
-    val isInlineMode: Boolean get() = miniSizeScale.value > 1.5f
+    val isInlineMode: Boolean get() = miniSizeScale.value >= wideMiniScale * WIDE_SIZE_SHARE
 
     private val currentValueState =
         derivedStateOf {
@@ -166,6 +177,7 @@ class PlayerDraggableState(
         tuckedSide = null
         scope.launch {
             isShrinkingToCorner = false
+            restingMiniScale = 1f
             val anim = playerOpenSpringSpec
             withSteadyFrames {
                 launch { motion.resize { miniSizeScale.animateTo(1f, anim) } }
@@ -253,6 +265,8 @@ class PlayerDraggableState(
                 offsetY.value
             }
 
+        restingMiniScale = targetScale
+        wideMiniScale = targetScale
         scope.launch {
             isShrinkingToCorner = false
             launch { motion.resize { miniSizeScale.animateTo(targetScale, miniResizeSpringSpec) } }
@@ -269,6 +283,7 @@ class PlayerDraggableState(
     fun collapse(velocity: Float? = null) {
         scope.launch {
             isShrinkingToCorner = false
+            restingMiniScale = 1f
             val anim = playerCollapseSpringSpec
             if (cachedTargetX == 0f && cachedTargetY == 0f) {
                 launch { motion.snapFraction(1f) }
@@ -311,6 +326,7 @@ class PlayerDraggableState(
 
         cachedTargetX = targetX
         cachedTargetY = targetY
+        restingMiniScale = 1f
         scope.launch {
             isShrinkingToCorner = true
             val anim = miniResizeSpringSpec

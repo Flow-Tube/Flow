@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.preferredFrameRate
@@ -37,12 +38,14 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.videoplayer.motion.BODY_CONTENT_MAX_EXPAND_FRACTION
 import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerGestureHandler
 import io.github.aedev.flow.ui.components.videoplayer.motion.DraggablePlayerGestureMetrics
+import io.github.aedev.flow.ui.components.videoplayer.motion.MINI_PLAYER_SMALLEST_SHARE
 import io.github.aedev.flow.ui.components.videoplayer.motion.MiniPlayerPinchGestureHandler
 import io.github.aedev.flow.ui.components.videoplayer.motion.PlayerBodyNestedScrollConnection
 import io.github.aedev.flow.ui.components.videoplayer.motion.computeDraggablePlayerGeometry
 import io.github.aedev.flow.ui.components.videoplayer.motion.draggablePlayerGestures
 import io.github.aedev.flow.ui.components.videoplayer.motion.keyboardSafeMiniY
 import io.github.aedev.flow.ui.components.videoplayer.motion.lerpClamped
+import io.github.aedev.flow.ui.components.videoplayer.motion.liveVisualMiniScale
 import io.github.aedev.flow.ui.components.videoplayer.motion.miniPlayerPinchGesture
 import io.github.aedev.flow.ui.components.videoplayer.motion.morphCornerRadiusPx
 import io.github.aedev.flow.ui.components.videoplayer.motion.rememberPlayerGestureThresholds
@@ -202,7 +205,7 @@ fun DraggablePlayerLayout(
                             Float.MAX_VALUE
                         },
                     videoAspectRatio = videoAspectRatio,
-                    currentSizeScale = state.miniSizeScale.targetValue,
+                    currentSizeScale = state.restingMiniScale,
                     corner = state.corner,
                     isShrinkingToCorner = state.isShrinkingToCorner,
                     cachedTargetX = state.cachedTargetX,
@@ -282,14 +285,14 @@ fun DraggablePlayerLayout(
                     }
                 }
             val cornerRadiusProvider =
-                remember(openRectProvider, expandedVideoWidth, miniCornerRadiusPx, visualMiniScale) {
+                remember(openRectProvider, expandedVideoWidth, miniCornerRadiusPx, geometry) {
                     {
                         morphCornerRadiusPx(
                             fraction = state.expandFraction.value,
                             origin = openRectProvider(),
                             expandedVideoWidth = expandedVideoWidth,
                             miniCornerRadiusPx = miniCornerRadiusPx,
-                            visualMiniScale = visualMiniScale,
+                            visualMiniScale = geometry.liveVisualMiniScale(state.miniSizeScale.value),
                         )
                     }
                 }
@@ -305,6 +308,7 @@ fun DraggablePlayerLayout(
                 state.miniVisualScale = visualMiniScale
                 state.cachedTargetX = geometry.normalTargetX
                 state.cachedTargetY = geometry.normalTargetY
+                state.wideMiniScale = (geometry.maxWideWidth / geometry.baseMiniWidth.coerceAtLeast(1f)).coerceAtLeast(1f)
                 state.seedMiniOffsets(geometry.targetMiniX, geometry.targetMiniY)
             }
 
@@ -397,6 +401,7 @@ fun DraggablePlayerLayout(
             }
 
             val gestureMetrics = remember(state) { DraggablePlayerGestureMetrics() }
+            val haptics = LocalHapticFeedback.current
             SideEffect {
                 gestureMetrics.update(
                     geometry = geometry,
@@ -405,6 +410,8 @@ fun DraggablePlayerLayout(
                     isFullscreen = isFullscreen,
                     tapToExpand = tapToExpand,
                     thresholds = gestureThresholds,
+                    minSizeScale = (MINI_PLAYER_SMALLEST_SHARE / miniPlayerScale).coerceAtMost(1f),
+                    haptics = haptics,
                     onFullscreenGesture = onFullscreenGesture,
                     onCollapseGesture = onCollapseGesture,
                     onDismiss = onDismiss,

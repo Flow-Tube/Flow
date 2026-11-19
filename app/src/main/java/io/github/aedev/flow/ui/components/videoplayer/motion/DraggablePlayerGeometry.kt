@@ -1,10 +1,10 @@
 package io.github.aedev.flow.ui.components.videoplayer.motion
 
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import io.github.aedev.flow.player.sanitizeDisplayAspectRatio
 import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerCorner
 import io.github.aedev.flow.ui.components.videoplayer.SheetOpenOrigin
 
-private const val WIDE_MODE_SCALE_THRESHOLD = 1.5f
 private const val SIXTEEN_NINE = 16f / 9f
 
 /** How far taller than 16:9 a video may be and still get the 16:9 box, for renditions like 1920x1088. */
@@ -118,7 +118,7 @@ internal fun computeDraggablePlayerGeometry(
     val clampedAspect = playerBoxAspectRatio(videoAspectRatio)
     val miniWidth = miniBoxWidthFor(baseMiniWidth * currentSizeScale, clampedAspect).coerceAtMost(maxWideWidth)
     val miniHeight = miniWidth / clampedAspect
-    val isWideMode = currentSizeScale > WIDE_MODE_SCALE_THRESHOLD
+    val isWideMode = currentSizeScale >= maxWideWidth / baseMiniWidth.coerceAtLeast(1f) * WIDE_SIZE_SHARE
 
     val expandedVideoWidth = if (isTwoPaneWindow) screenWidth - detailPaneWidth else screenWidth
     val baseVideoHeight = expandedVideoWidth * (9f / 16f)
@@ -132,7 +132,8 @@ internal fun computeDraggablePlayerGeometry(
     val restingBottomNavPad = dockedBottomNavPad ?: bottomNavPad
     val maxY = (screenHeight - miniHeight - restingBottomNavPad - margin).coerceAtLeast(minY)
 
-    val normalMiniWidth = miniBoxWidthFor(baseMiniWidth, clampedAspect)
+    // A pinched size rests in its corner like the size setting does; only the widest size centres.
+    val normalMiniWidth = miniBoxWidthFor(baseMiniWidth * if (isWideMode) 1f else currentSizeScale, clampedAspect)
     val normalMiniHeight = normalMiniWidth / clampedAspect
     val normalMaxX = (screenWidth - normalMiniWidth - margin).coerceAtLeast(margin)
     val normalMaxY = (screenHeight - normalMiniHeight - restingBottomNavPad - margin).coerceAtLeast(minY)
@@ -204,6 +205,11 @@ internal fun tallVideoMaxHeight(
     baseVideoHeight: Float,
 ): Float = (screenHeight - statusBarHeight - navigationBarHeight - minPageHeight).coerceAtLeast(baseVideoHeight)
 
+/** The mini player's on-screen share of the expanded video's width at [sizeScale], read live in the draw phase. */
+internal fun DraggablePlayerGeometry.liveVisualMiniScale(sizeScale: Float): Float =
+    (miniBoxWidth(baseMiniWidth * sizeScale).coerceAtMost(maxWideWidth) / expandedVideoWidth.coerceAtLeast(1f))
+        .coerceIn(0.01f, 1f)
+
 internal fun DraggablePlayerGestureMetrics.update(
     geometry: DraggablePlayerGeometry,
     isLargeWindow: Boolean,
@@ -211,11 +217,15 @@ internal fun DraggablePlayerGestureMetrics.update(
     isFullscreen: Boolean,
     tapToExpand: Boolean,
     thresholds: PlayerGestureThresholds,
+    minSizeScale: Float,
+    haptics: HapticFeedback,
     onFullscreenGesture: (() -> Unit)?,
     onCollapseGesture: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
     this.thresholds = thresholds
+    this.minSizeScale = minSizeScale
+    this.haptics = haptics
     minX = geometry.minX
     maxX = geometry.maxX
     minY = geometry.minY

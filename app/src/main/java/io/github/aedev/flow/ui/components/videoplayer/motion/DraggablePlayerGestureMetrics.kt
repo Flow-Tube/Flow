@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.videoplayer.motion
 
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 
 /**
@@ -30,6 +31,10 @@ internal class DraggablePlayerGestureMetrics {
     var isFullscreen = false
     var tapToExpand = true
     var thresholds = PlayerGestureThresholds(density = 1f)
+
+    /** The smallest size a pinch rests at, as a multiple of the size setting. */
+    var minSizeScale = 1f
+    var haptics: HapticFeedback? = null
     var onFullscreenGesture: (() -> Unit)? = null
     var onCollapseGesture: (() -> Unit)? = null
     var onDismiss: () -> Unit = {}

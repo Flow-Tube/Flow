@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
@@ -12,6 +13,7 @@ import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerCorner
 import io.github.aedev.flow.ui.components.videoplayer.PlayerDraggableState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlin.math.pow
 
 /**
  * Two-finger resize of the floating mini player.
@@ -23,7 +25,8 @@ import kotlinx.coroutines.launch
  * [DraggablePlayerGestureMetrics.liveGestureScale] is what makes the pinch track the fingers.
  *
  * The player stays pinned to its corner while it resizes, so letting go only finishes the size
- * and never sends it across the screen.
+ * and never sends it across the screen. It rests at any size from the Small preset to the widest;
+ * past either limit the fingers' spread is damped to its fourth root and springs back on release.
  */
 internal class MiniPlayerPinchGestureHandler(
     private val state: PlayerDraggableState,
@@ -43,6 +46,8 @@ internal class MiniPlayerPinchGestureHandler(
             ).coerceAtLeast(1f)
         val startScale = state.miniSizeScale.value
         val maxScale = (metrics.maxWideWidth / metrics.baseMiniWidth.coerceAtLeast(1f)).coerceAtLeast(1f)
+        val minScale = metrics.minSizeScale.coerceAtMost(1f)
+        var atLimit = false
         val pin =
             MiniPinchPin(
                 corner = state.corner,
@@ -72,15 +77,20 @@ internal class MiniPlayerPinchGestureHandler(
                 p1.consume()
                 p2.consume()
                 val currentDist = (p1.position - p2.position).getDistance() * metrics.liveGestureScale(state)
-                pScale = (startScale * currentDist / initialDist).coerceIn(1f, maxScale)
-                pOffset = metrics.pinchedMiniOffset(pScale, pin)
+                pScale = rubberBandScale(startScale * currentDist / initialDist, minScale, maxScale)
+                val reachedLimit = pScale >= maxScale || pScale <= minScale
+                if (reachedLimit && !atLimit) {
+                    metrics.haptics?.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                }
+                atLimit = reachedLimit
+                pOffset = metrics.pinchedMiniOffset(pScale.coerceIn(minScale, maxScale), pin)
                 snapSignal.trySend(Unit)
             }
         } finally {
             snapSignal.close()
             pinchDriver.cancel()
             state.isDragging = false
-            settle(pin)
+            settle(pin, pScale.coerceIn(minScale, maxScale))
         }
     }
 
@@ -93,14 +103,18 @@ internal class MiniPlayerPinchGestureHandler(
         }
     }
 
-    private fun settle(pin: MiniPinchPin) {
-        val targetScale = if (state.isInlineMode) pin.maxScale else 1f
+    private fun settle(
+        pin: MiniPinchPin,
+        released: Float,
+    ) {
+        val targetScale = if (released >= pin.maxScale * WIDE_SIZE_SHARE) pin.maxScale else released
         val target =
-            if (targetScale > 1f && metrics.isLargeScreen) {
-                metrics.pinchedMiniOffset(targetScale, pin)
-            } else {
-                metrics.miniPinchAnchor(targetScale, pin.corner, pin.maxScale)
+            when {
+                metrics.isLargeScreen -> metrics.pinchedMiniOffset(targetScale, pin)
+                targetScale >= pin.maxScale -> metrics.miniPinchAnchor(targetScale, pin.corner, pin.maxScale)
+                else -> metrics.miniCornerOffset(targetScale, pin.corner)
             }
+        state.restingMiniScale = targetScale
         state.scope.launch {
             launch { state.motion.resize { state.miniSizeScale.animateTo(targetScale, miniResizeSpringSpec) } }
             launch {
@@ -111,6 +125,35 @@ internal class MiniPlayerPinchGestureHandler(
             }
         }
     }
+}
+
+/**
+ * The pinch's scale for a raw spread of [raw]: the fingers' own inside the limits, and only the
+ * fourth root of the overshoot past them, so the player gives a little and then holds.
+ */
+internal fun rubberBandScale(
+    raw: Float,
+    min: Float,
+    max: Float,
+): Float =
+    when {
+        raw > max -> max * (raw / max).pow(OVERSHOOT_DAMPING_EXPONENT)
+        raw < min -> min * (raw / min).pow(OVERSHOOT_DAMPING_EXPONENT)
+        else -> raw
+    }
+
+private const val OVERSHOOT_DAMPING_EXPONENT = 0.25f
+
+/** Where a mini player of [scale] rests in [corner], without the drift to the centre wide mode has. */
+internal fun DraggablePlayerGestureMetrics.miniCornerOffset(
+    scale: Float,
+    corner: MiniPlayerCorner,
+): Offset {
+    val width = miniBoxWidth(baseMiniWidth * scale).coerceAtMost(maxWideWidth)
+    val height = width / clampedAspect.coerceAtLeast(0.01f)
+    val maxX = (screenWidth - width - margin).coerceAtLeast(minX)
+    val maxY = (screenHeight - height - bottomNavPad - margin).coerceAtLeast(minY)
+    return Offset(if (corner.isLeft) minX else maxX, if (corner.isTop) minY else maxY)
 }
 
 /** What a pinch started from: the corner it is pinned to and where the player was. */
