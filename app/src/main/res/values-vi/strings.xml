@@ -5166,8 +5166,8 @@
     <plurals name="playlists_imported">
         <item quantity="other">Đã nhập %d danh sách phát</item>
     </plurals>
-    <string name="newpipe_extractor_credit">Nơi khởi đầu cho tính năng trích xuất từ YouTube của Flow</string>
-    <string name="error_members_only">Video dành riêng cho hội viên</string>
-    <string name="error_members_only_hint">Hãy tham gia kênh này trên YouTube để xem nội dung đó.</string>
-    <string name="error_copyright_removed">Đã gỡ bỏ do vấn đề bản quyền</string>
+    <string name="newpipe_extractor_credit"></string>
+    <string name="error_members_only"></string>
+    <string name="error_members_only_hint"></string>
+    <string name="error_copyright_removed"></string>
 </resources>
