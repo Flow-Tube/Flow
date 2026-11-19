@@ -46,6 +46,7 @@ import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.effectiveResizeMode
 import kotlinx.coroutines.flow.collectLatest
+import kotlin.math.abs
 
 /**
  * The player's video slot: the surface itself, the gesture and zoom transforms wrapped around it,
@@ -373,8 +374,8 @@ private fun rememberExitDragGive(
     LaunchedEffect(screenState, commitPx) {
         snapshotFlow { if (shown) screenState.exitDragOffsetY else 0f }
             .collectLatest { offset ->
-                if (offset > 0f) {
-                    give.snapTo((offset / commitPx).coerceIn(0f, 1f) * EXIT_DRAG_SHRINK)
+                if (offset != 0f) {
+                    give.snapTo((abs(offset) / commitPx).coerceIn(0f, 1f) * EXIT_DRAG_SHRINK)
                 } else {
                     give.animateTo(0f, settle)
                 }
