@@ -6,6 +6,27 @@ import org.junit.Test
 
 class ThumbnailUrlResolverTest {
     @Test
+    fun `a portrait image keeps a Short's own poster ahead of the 16 by 9 tiers`() {
+        val frame0 = "https://i.ytimg.com/vi/abc123/frame0.jpg"
+        val oar2 = "https://i.ytimg.com/vi/abc123/oar2.jpg?sqp=xyz"
+
+        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailCandidates("abc123", frame0, ThumbnailQuality.HIGH, portrait = true))
+            .containsExactly(frame0, "https://i.ytimg.com/vi/abc123/hq720.jpg", "https://i.ytimg.com/vi/abc123/hqdefault.jpg")
+            .inOrder()
+        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailCandidates("abc123", oar2, ThumbnailQuality.LOW, portrait = true).first())
+            .isEqualTo(oar2)
+    }
+
+    @Test
+    fun `a landscape image still swaps a Short's poster for the tiers`() {
+        val candidates =
+            ThumbnailUrlResolver.resolveVideoThumbnailCandidates("abc123", "https://i.ytimg.com/vi/abc123/oar2.jpg", ThumbnailQuality.HIGH)
+
+        assertThat(candidates.first()).isEqualTo("https://i.ytimg.com/vi/abc123/hq720.jpg")
+        assertThat(ThumbnailUrlResolver.isPortraitReelPoster("https://i.ytimg.com/vi/abc123/hqdefault.jpg")).isFalse()
+    }
+
+    @Test
     fun `normalizes jpg thumbnail variants to hq720`() {
         val result =
             ThumbnailUrlResolver.normalizeVideoThumbnail(
