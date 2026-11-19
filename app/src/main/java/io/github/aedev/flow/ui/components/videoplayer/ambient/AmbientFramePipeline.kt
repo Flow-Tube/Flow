@@ -65,12 +65,12 @@ private const val SMOOTH_TAU_MS = 600f
 
 /**
  * Storyboard frames and thumbnails arrive seconds apart, so they crossfade instead of going through
- * the filter. The fade steps on its own 20 fps clock and only moves an alpha read in draw, so it
- * never drives the display at its refresh rate. One change per [STORYBOARD_UPDATE_MS] stays far
- * under WCAG 2.3.1's three flashes per second.
+ * the filter. The fade steps on its own 15 fps clock and only moves an alpha read in draw, so it
+ * never drives the display at its refresh rate; at the glow's brightness a step is about one sRGB
+ * level. One change per [STORYBOARD_UPDATE_MS] stays far under WCAG 2.3.1's three flashes a second.
  */
-private const val FADE_TICK_MS = 50L
-private const val STORYBOARD_FADE_MS = 3_000L
+private const val FADE_TICK_MS = 66L
+private const val STORYBOARD_FADE_MS = 2_500L
 
 /** A seek, a resume or a paused frame is a deliberate jump, so it settles sooner. */
 private const val JUMP_FADE_MS = 1_000L
