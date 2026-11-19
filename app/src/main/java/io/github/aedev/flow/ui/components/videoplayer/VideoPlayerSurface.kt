@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -400,7 +401,7 @@ private fun Modifier.forwardTouchesTo(
 
 private const val SEEK_FRAME_REDRAW_DELAY_MS = 50L
 
-/** Reads the frame in its own scope, so each new frame recomposes the bars and not the surface. */
+/** Only the first frame recomposes here; every frame after it is read in draw. */
 @Composable
 private fun AmbientBars(
     frames: AmbientFrameHolder,
@@ -410,11 +411,10 @@ private fun AmbientBars(
     // its dark base, which used to black out the backdrop around the video for a moment.
     val ambientAppear = remember { Animatable(0f) }
     val ambientFade = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
-    val frame = frames.state.frame
-    val ambientReady = frame != null
+    val ambientReady by remember(frames) { derivedStateOf { frames.state.frame != null } }
     LaunchedEffect(ambientReady) { if (ambientReady) ambientAppear.animateTo(1f, ambientFade) }
     VideoAmbientBackground(
-        frame = frame,
+        frames = frames,
         videoAspect = videoAspect,
         modifier = Modifier.fillMaxSize().graphicsLayer { alpha = ambientAppear.value },
     )

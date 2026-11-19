@@ -56,12 +56,14 @@ import io.github.aedev.flow.ui.components.shared.MediaSeekBar
 import io.github.aedev.flow.ui.components.shared.sharedSubscriptionBellViewModel
 import io.github.aedev.flow.ui.components.shared.toggleHapticType
 import io.github.aedev.flow.ui.components.videoplayer.ambient.VideoAmbientBackground
+import io.github.aedev.flow.ui.components.videoplayer.ambient.isPlayingFlow
 import io.github.aedev.flow.ui.components.videoplayer.ambient.rememberAmbientFrame
 import io.github.aedev.flow.ui.components.videoplayer.overlay.SpeedBoostOverlay
 import io.github.aedev.flow.ui.screens.shorts.ShortsViewModel
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.utils.formatViewCount
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 private const val PAUSE_INDICATOR_MS = 600L
@@ -132,8 +134,9 @@ internal fun ShortsReelPage(
             }
         }
     val ambientActive = isActive && settings.ambientModeEnabled && !isInPip
-    val ambientFrame = rememberAmbientFrame(playerView, ambientActive) { playerPool.ownedPlayer(pageIndex, short.id)?.isPlaying == true }
     var attachedPlayer by remember { mutableStateOf<Player?>(null) }
+    val ambientPlaying = remember(attachedPlayer) { attachedPlayer?.isPlayingFlow() ?: flowOf(false) }
+    val ambientFrames = rememberAmbientFrame(playerView, ambientActive, ambientPlaying)
     var ambientVideoAspect by remember { mutableStateOf<Float?>(null) }
 
     ShortsReelPlaybackEffects(
@@ -205,7 +208,7 @@ internal fun ShortsReelPage(
     ) {
         if (ambientActive) {
             VideoAmbientBackground(
-                frame = ambientFrame.frame,
+                frames = ambientFrames,
                 videoAspect = ambientVideoAspect,
                 modifier = Modifier.fillMaxSize(),
             )
