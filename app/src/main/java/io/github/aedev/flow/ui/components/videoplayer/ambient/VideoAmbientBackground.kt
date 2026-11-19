@@ -44,6 +44,7 @@ import io.github.aedev.flow.player.DEFAULT_VIDEO_ASPECT_RATIO
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.ui.theme.PlayerScrim
+import io.github.aedev.flow.ui.utils.rememberThermalThrottling
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -121,7 +122,8 @@ fun Player.isPlayingFlow(): Flow<Boolean> =
 /**
  * Runs the light for [playerView] while [active] and publishes it into [holder]. [storyboard] frames
  * are the source when the video has them; otherwise, or when they fail to load, the live surface
- * is sampled. [thumbnailUrl] lights a new video before its first frame. [hot] slows live sampling.
+ * is sampled. [thumbnailUrl] lights a new video before its first frame. Live sampling slows to the
+ * storyboard's pace while the device runs warm.
  */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -132,11 +134,10 @@ fun AmbientFrameCaptureEffect(
     isPlaying: Flow<Boolean> = mainPlayerIsPlaying(),
     storyboard: List<StoryboardLevel> = emptyList(),
     thumbnailUrl: String? = null,
-    hot: Boolean = false,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current.applicationContext
-    val currentHot by rememberUpdatedState(hot)
+    val currentHot by rememberUpdatedState(if (active) rememberThermalThrottling() else false)
 
     LaunchedEffect(active, playerView, lifecycleOwner, holder, isPlaying, storyboard, thumbnailUrl) {
         if (!active) {
