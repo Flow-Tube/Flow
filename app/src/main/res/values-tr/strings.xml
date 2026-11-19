@@ -4943,4 +4943,6 @@
     <string name="mini_button_sleep_timer">Uyku zamanlayıcısı</string>
     <string name="mini_button_back_10">10 saniye geri</string>
     <string name="mini_button_forward_10">10 saniye ileri</string>
+    <string name="ai_list_title">AI içeriği</string>
+    <string name="ai_list_block_title">Yapay zeka kanallarını gizle</string>
 </resources>
