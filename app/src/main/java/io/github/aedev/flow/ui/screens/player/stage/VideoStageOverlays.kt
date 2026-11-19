@@ -68,6 +68,7 @@ internal fun BoxScope.VideoStageOverlays(session: VideoPlayerStageSession) {
         style = prefs.gestureOverlayStyle,
         seekZoneFraction = prefs.doubleTapSeekZone.sideFraction,
         speedSwipeSide = prefs.speedSwipeSide,
+        storyboard = playerUiState.storyboard,
         speedBoostSpeed =
             PlayerSpeedBoost.boostedPlaybackSpeed(
                 currentSpeed = screenState.normalSpeed,
@@ -93,7 +94,12 @@ internal fun BoxScope.VideoStageOverlays(session: VideoPlayerStageSession) {
             shape = CircleShape,
         ) {
             Text(
-                text = String.format(Locale.US, "%.1fx", screenState.zoomScale),
+                text =
+                    if (screenState.isZoomAtFill && screenState.zoomScale > 1.02f) {
+                        stringResource(R.string.player_zoomed_to_fill)
+                    } else {
+                        String.format(Locale.US, "%.1fx", screenState.zoomScale)
+                    },
                 style = MaterialTheme.typography.labelLarge,
                 color = PlayerScrimContent,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

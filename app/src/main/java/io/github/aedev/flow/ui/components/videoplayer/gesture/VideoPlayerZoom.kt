@@ -29,6 +29,33 @@ private const val ZOOM_RESISTANCE = 0.35f
 /** Scale at which releasing settles the video all the way back to unzoomed. */
 private const val ZOOM_RESET_THRESHOLD = 1.02f
 
+/** How close to the fill scale, as a share of it, the pinch locks onto it and a release lands on it. */
+private const val FILL_DETENT = 0.04f
+
+/** Below this fill scale the video already nearly fills the view and there is no detent to offer. */
+private const val FILL_MIN = 1.02f
+
+/**
+ * The scale at which a video of [videoAspectRatio] fills a [width] by [height] view edge to edge,
+ * or null when it already nearly does or the aspect is not known yet.
+ */
+internal fun fillScaleFor(
+    width: Int,
+    height: Int,
+    videoAspectRatio: Float,
+): Float? {
+    if (videoAspectRatio <= 0f || width <= 0 || height <= 0) return null
+    val ratio = (width.toFloat() / height) / videoAspectRatio
+    val fill = maxOf(ratio, 1f / ratio)
+    return fill.takeIf { it >= FILL_MIN }
+}
+
+/** [scale], or exactly [fill] when it is within the detent around it. */
+internal fun snapToFill(
+    scale: Float,
+    fill: Float?,
+): Float = if (fill != null && abs(scale / fill - 1f) <= FILL_DETENT) fill else scale
+
 /**
  * Two-finger pinch-to-zoom with pan, for the fullscreen video surface.
  *
@@ -41,6 +68,10 @@ private const val ZOOM_RESET_THRESHOLD = 1.02f
  * without moving are a two-finger tap instead. Two of those in a row call [onTwoFingerDoubleTap]
  * with the side they landed on; null leaves two-finger taps alone.
  *
+ * The pinch scales about the fingers' focal point. Within a few percent of the scale at which the
+ * video fills the view ([videoAspectRatio] against the view's own shape) it locks onto that scale,
+ * and [onFillDetent] reports entering and leaving the lock; a release inside it lands exactly there.
+ *
  * [scale] and [offsetX]/[offsetY] read back the transform the caller is currently applying;
  * [onTransform] publishes the next one. They are plain values rather than a state object because
  * the transform lives in the player screen state and is read in the draw phase — routing it through
@@ -52,6 +83,8 @@ fun Modifier.videoPlayerZoom(
     offsetX: () -> Float,
     offsetY: () -> Float,
     panEnabled: Boolean = true,
+    videoAspectRatio: () -> Float = { 0f },
+    onFillDetent: (atFill: Boolean) -> Unit = {},
     onTwoFingerDoubleTap: ((forward: Boolean) -> Unit)? = null,
     onTransform: (scale: Float, offsetX: Float, offsetY: Float) -> Unit,
 ): Modifier =
@@ -90,6 +123,8 @@ fun Modifier.videoPlayerZoom(
             var rawScale = scale()
             var transforming = false
             var liftedAtMs = firstDown.uptimeMillis
+            val fill = fillScaleFor(size.width, size.height, videoAspectRatio())
+            var atFill = fill != null && scale() == fill
 
             while (true) {
                 val event = awaitPointerEvent()
@@ -119,13 +154,22 @@ fun Modifier.videoPlayerZoom(
                 rawScale =
                     (rawScale * (span / previousSpan))
                         .coerceIn(ZOOM_OVERSHOOT_MIN, ZOOM_OVERSHOOT_MAX)
-                val appliedScale = resistedZoom(rawScale)
+                val appliedScale = snapToFill(resistedZoom(rawScale), fill)
+                val inDetent = fill != null && appliedScale == fill
+                if (inDetent != atFill) {
+                    atFill = inDetent
+                    onFillDetent(inDetent)
+                }
+                // The point under the fingers stays under them as the scale changes.
+                val ratio = appliedScale / scale().coerceAtLeast(0.01f)
+                val focal = if (panEnabled) centroid - Offset(size.width / 2f, size.height / 2f) else Offset.Zero
                 val panned =
                     clampPan(
-                        Offset(offsetX() + pan.x, offsetY() + pan.y),
+                        Offset(offsetX() * ratio + focal.x * (1f - ratio) + pan.x, offsetY() * ratio + focal.y * (1f - ratio) + pan.y),
                         appliedScale,
                         size.width,
                         size.height,
+                        videoAspectRatio(),
                     )
                 onTransform(appliedScale, panned.x, panned.y)
 
@@ -148,9 +192,11 @@ fun Modifier.videoPlayerZoom(
                 scope.launch {
                     settleZoom(
                         fromScale = scale(),
+                        fill = fill,
                         fromOffset = Offset(offsetX(), offsetY()),
                         width = size.width,
                         height = size.height,
+                        aspect = videoAspectRatio(),
                         onTransform = onTransform,
                     )
                 }
@@ -170,17 +216,22 @@ private fun resistedZoom(rawScale: Float): Float =
     }
 
 /**
- * Keeps the pan inside the area the zoom actually reveals. The bounds collapse to zero below 1x —
- * they must not be allowed to go negative, or the clamp itself throws.
+ * Keeps the pan inside the area the zoom actually reveals. With the video's [aspect] known, the
+ * bounds come from the picture fitted in the box rather than the box itself, so a pan never brings
+ * the letterbox bars back in. The bounds collapse to zero below 1x — they must not be allowed to go
+ * negative, or the clamp itself throws.
  */
 private fun clampPan(
     offset: Offset,
     scale: Float,
     width: Int,
     height: Int,
+    aspect: Float = 0f,
 ): Offset {
-    val maxX = ((scale - 1f) * width / 2f).coerceAtLeast(0f)
-    val maxY = ((scale - 1f) * height / 2f).coerceAtLeast(0f)
+    val fitWidth = if (aspect > 0f) minOf(width.toFloat(), height * aspect) else width.toFloat()
+    val fitHeight = if (aspect > 0f) fitWidth / aspect else height.toFloat()
+    val maxX = ((scale * fitWidth - width) / 2f).coerceAtLeast(0f)
+    val maxY = ((scale * fitHeight - height) / 2f).coerceAtLeast(0f)
     return Offset(offset.x.coerceIn(-maxX, maxX), offset.y.coerceIn(-maxY, maxY))
 }
 
@@ -190,22 +241,24 @@ private fun clampPan(
  */
 private suspend fun settleZoom(
     fromScale: Float,
+    fill: Float?,
     fromOffset: Offset,
     width: Int,
     height: Int,
+    aspect: Float,
     onTransform: (scale: Float, offsetX: Float, offsetY: Float) -> Unit,
 ) {
     val targetScale =
         when {
             fromScale < ZOOM_RESET_THRESHOLD -> ZOOM_MIN
             fromScale > ZOOM_MAX -> ZOOM_MAX
-            else -> fromScale
+            else -> snapToFill(fromScale, fill)
         }
     val targetOffset =
         if (targetScale <= ZOOM_MIN) {
             Offset.Zero
         } else {
-            clampPan(fromOffset, targetScale, width, height)
+            clampPan(fromOffset, targetScale, width, height, aspect)
         }
     if (targetScale == fromScale && targetOffset == fromOffset) return
 

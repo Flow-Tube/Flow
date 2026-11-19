@@ -39,6 +39,7 @@ fun Modifier.videoPlayerControls(
     onShowVolumeChange: (Boolean) -> Unit,
     onSeekDragChange: (Boolean) -> Unit = {},
     onSeekDragUpdate: (targetMs: Long, deltaMs: Long) -> Unit = { _, _ -> },
+    onSeekCancelArmed: (Boolean) -> Unit = {},
     brightnessLevel: () -> Float,
     volumeLevel: () -> Float,
     maxVolume: Int,
@@ -81,6 +82,7 @@ fun Modifier.videoPlayerControls(
     val onShowVolumeChangeState = rememberUpdatedState(onShowVolumeChange)
     val onSeekDragChangeState = rememberUpdatedState(onSeekDragChange)
     val onSeekDragUpdateState = rememberUpdatedState(onSeekDragUpdate)
+    val onSeekCancelArmedState = rememberUpdatedState(onSeekCancelArmed)
     val brightnessLevelState = rememberUpdatedState(brightnessLevel)
     val volumeLevelState = rememberUpdatedState(volumeLevel)
     val maxVolumeState = rememberUpdatedState(maxVolume)
@@ -163,6 +165,7 @@ fun Modifier.videoPlayerControls(
         onShowVolumeChange = onShowVolumeChangeState,
         onSeekDragChange = onSeekDragChangeState,
         onSeekDragUpdate = onSeekDragUpdateState,
+        onSeekCancelArmed = onSeekCancelArmedState,
         brightnessLevel = brightnessLevelState,
         volumeLevel = volumeLevelState,
         maxVolume = maxVolumeState,

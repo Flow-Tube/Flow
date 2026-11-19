@@ -66,6 +66,16 @@ internal fun PlayerControlsOverlay(
             onScrubbingChange = actions.onScrubbingChange,
         )
     val isScrubbing = scrubController.isScrubbing
+    val fineScrub =
+        rememberFineScrubController(
+            storyboard = state.storyboard,
+            durationMs = state.duration,
+            isLive = state.isLive,
+            isPlaying = state.isPlaying,
+            positionProvider = scrubController.displayedPosition,
+            onPlayPause = actions.onPlayPause,
+            onScrubFinished = scrubController.onScrubFinished,
+        )
     val displayedPosition = scrubController.displayedPosition
     val onScrubProgress = scrubController.onScrubProgress
     val onScrubFinished = scrubController.onScrubFinished
@@ -358,10 +368,12 @@ internal fun PlayerControlsOverlay(
                         actions = actions,
                         onScrubProgress = onScrubProgress,
                         onScrubFinished = onScrubFinished,
-                        isScrubbing = scrubController.isScrubbing,
+                        // Fine mode shows its own frames; the bar's scrub read-out would sit behind them.
+                        isScrubbing = scrubController.isScrubbing && fineScrub.session == null,
                         hidePills = isCleared,
                         isLayerVisible = isLayerOnScreen,
                         modifier = Modifier.align(Alignment.BottomCenter),
+                        onFineScrub = fineScrub.open,
                     )
                 }
 
@@ -386,5 +398,7 @@ internal fun PlayerControlsOverlay(
             onScrubFinished = onScrubFinished,
             isScrubbing = scrubController.isScrubbing,
         )
+
+        FineScrubLayer(controller = fineScrub, durationMs = state.duration, onScrubProgress = onScrubProgress)
     }
 }

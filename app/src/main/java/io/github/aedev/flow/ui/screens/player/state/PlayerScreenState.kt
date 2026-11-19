@@ -33,6 +33,7 @@ class PlayerScreenState {
     var isScrubbing by mutableStateOf(false)
 
     var isSeekDragging by mutableStateOf(false)
+    var isSeekCancelArmed by mutableStateOf(false)
     var seekDragTargetMs by mutableLongStateOf(0L)
     var seekDragDeltaMs by mutableLongStateOf(0L)
 
@@ -98,6 +99,9 @@ class PlayerScreenState {
     var zoomIndicatorSequence by mutableIntStateOf(0)
     var exitDragOffsetY by mutableFloatStateOf(0f)
 
+    /** True while a pinch rests on the exact scale at which the video fills the view. */
+    var isZoomAtFill by mutableStateOf(false)
+
     // How far a swipe up has pulled the more videos row in before it commits to opening.
     var moreVideosDragY by mutableFloatStateOf(0f)
 
@@ -114,6 +118,7 @@ class PlayerScreenState {
         showControls = true
         isScrubbing = false
         isSeekDragging = false
+        isSeekCancelArmed = false
         seekDragTargetMs = 0L
         seekDragDeltaMs = 0L
         isFullscreenPortrait = false

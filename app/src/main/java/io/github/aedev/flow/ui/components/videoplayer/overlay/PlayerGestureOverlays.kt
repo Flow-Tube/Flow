@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.SpeedSwipeSide
+import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.ui.components.shared.BrightnessOverlay
 import io.github.aedev.flow.ui.components.shared.SpeedSwipeOverlay
 import io.github.aedev.flow.ui.components.shared.VolumeOverlay
@@ -29,6 +30,7 @@ fun PlayerGestureOverlays(
     seekZoneFraction: Float,
     speedSwipeSide: SpeedSwipeSide,
     modifier: Modifier = Modifier,
+    storyboard: List<StoryboardLevel> = emptyList(),
 ) {
     // Force LTR so CenterStart/CenterEnd always map to physical left/right,
     // regardless of the device's system language direction.
@@ -110,6 +112,8 @@ fun PlayerGestureOverlays(
                 isVisible = screenState.isSeekDragging,
                 targetMs = { screenState.seekDragTargetMs },
                 deltaMs = { screenState.seekDragDeltaMs },
+                cancelArmed = screenState.isSeekCancelArmed,
+                storyboard = storyboard,
                 modifier = Modifier.align(Alignment.Center),
             )
 

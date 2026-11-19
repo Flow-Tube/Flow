@@ -42,6 +42,7 @@ import io.github.aedev.flow.ui.components.videoplayer.motion.rememberPlayerGestu
 import io.github.aedev.flow.ui.components.videoplayer.overlay.ChapterSkipFeedback
 import io.github.aedev.flow.ui.components.videoplayer.subtitle.Media3SubtitleOverlay
 import io.github.aedev.flow.ui.screens.player.saveChosenPlaybackSpeed
+import io.github.aedev.flow.ui.screens.player.state.PlayerResizeMode
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.effectiveResizeMode
@@ -157,6 +158,7 @@ internal fun VideoStage(
                         screenState.isSeekDragging = dragging
                         screenState.onInteraction()
                     },
+                    onSeekCancelArmed = { screenState.isSeekCancelArmed = it },
                     onSeekDragUpdate = { targetMs, deltaMs ->
                         screenState.seekDragTargetMs = targetMs
                         screenState.seekDragDeltaMs = deltaMs
@@ -217,6 +219,20 @@ internal fun VideoStage(
                     offsetY = { screenState.zoomOffsetY },
                     // A 360 video is moved by looking around, so a pinch only zooms it.
                     panEnabled = !spherical,
+                    // Only a fitted picture has bars to fill; a zoomed or stretched one already fills the box.
+                    videoAspectRatio = {
+                        if (spherical || !(screenState.isFullscreen || isLandscapeWindow) ||
+                            resizeMode != PlayerResizeMode.FIT
+                        ) {
+                            0f
+                        } else {
+                            videoAspectRatio
+                        }
+                    },
+                    onFillDetent = { atFill ->
+                        screenState.isZoomAtFill = atFill
+                        if (atFill) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    },
                     onTwoFingerDoubleTap = if (canSkipChapters) { forward -> skipChapter(forward) } else null,
                     onTransform = { newScale, newOffsetX, newOffsetY ->
                         screenState.zoomScale = newScale
