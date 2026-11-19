@@ -294,8 +294,6 @@
     <string name="share_song">曲をシェアする</string>
     <string name="song">歌</string>
     <string name="download_all">すべてダウンロード</string>
-    <plurals name="download_all_confirmation">
-    </plurals>
     <string name="playlist_filter_owned">所有</string>
     <string name="playlist_creation_menu_close">再生リスト作成メニューを閉じる</string>
     <string name="add_to_library">ライブラリに追加</string>
@@ -482,8 +480,6 @@
     <string name="comment_time_edited_template">%1$s (%2$s)</string>
     <string name="reply">返事</string>
     <string name="hide_replies">返信を非表示にする</string>
-    <plurals name="view_replies_template">
-    </plurals>
     <string name="load_more_replies">さらに返信を読み込む</string>
     <string name="select_text">テキストの選択</string>
     <string name="pinned_comment">固定コメント</string>
@@ -539,8 +535,6 @@
     <string name="app_name_uppercase">FLOW</string>
     <string name="notification_badge_9_plus">9+</string>
     <string name="personalized_feed">あなたのパーソナライズされたフィード</string>
-    <plurals name="videos_curated_template">
-    </plurals>
     <string name="import_newpipe_backup">NewPipe バックアップのインポート</string>
     <string name="importing_from_backup">NewPipe バックアップから登録チャンネルをインポートしています...</string>
     <string name="search_subscriptions">登録チャンネルの検索</string>
@@ -556,18 +550,8 @@
     <string name="unsubscribed_from_template">%1$s の登録を解除しました</string>
     <string name="hide_channel_shorts">このチャンネルからのショート動画を非表示</string>
     <string name="show_channel_shorts">このチャンネルからのショート動画を表示</string>
-    <plurals name="course_lessons_count">
-    </plurals>
-    <plurals name="videos_count_template">
-    </plurals>
-    <plurals name="songs_count_template">
-    </plurals>
     <plurals name="playlists_count_template">
         <item quantity="other">%1$d 個の再生リスト</item>
-    </plurals>
-    <plurals name="shorts_count_template">
-    </plurals>
-    <plurals name="library_items_count">
     </plurals>
     <string name="metadata_separator">·</string>
     <string name="list_separator_dot">" 「・」 "</string>
@@ -578,8 +562,6 @@
     <string name="downloads_recover_body">Flow は、Download/Flow および Music/Flow にダウンロードを保存します。以前のインストールでそこに保存されたファイルを一覧表示するには、ビデオとオーディオへのアクセスを許可します。</string>
     <string name="downloads_recover_allow">アクセスを許可する</string>
     <string name="downloads_recover_dismiss">今はしない</string>
-    <plurals name="downloads_recovered_count">
-    </plurals>
     <string name="downloads_recovered_none">以前のインストールからのダウンロードが見つかりませんでした</string>
     <string name="downloads_find_earlier_title">以前のダウンロードを見つける</string>
     <string name="downloads_find_earlier_running">検索中…</string>
@@ -668,8 +650,6 @@
     <string name="note_at_time">%1$s のメモ</string>
     <string name="notes_title">注意事項</string>
     <string name="notes_library_subtitle">動画やチャンネルに関するメモ</string>
-    <plurals name="notes_count">
-    </plurals>
     <string name="notes_search_placeholder">メモを検索</string>
     <string name="notes_filter_all">全て</string>
     <string name="notes_filter_videos">動画</string>
@@ -682,8 +662,6 @@
     <string name="notes_select">メモを選択する</string>
     <string name="notes_reorder">再注文</string>
     <string name="notes_reorder_title">メモを並べ替える</string>
-    <plurals name="notes_deleted">
-    </plurals>
     <string name="notes_empty_title">まだメモはありません</string>
     <string name="notes_empty_body">動画のメモ ボタンまたはチャンネルの登録メニューから追加します。 12:34 のような時間はリンクになります。</string>
     <string name="notes_no_match_title">一致するノートはありません</string>
@@ -738,8 +716,6 @@
     <string name="notifications_save_to_watch_later">保存して後で見る</string>
     <string name="notifications_open_settings">通知設定</string>
     <string name="notifications_clear_title">すべての通知をクリアしますか?</string>
-    <plurals name="notifications_clear_body">
-    </plurals>
     <string name="notifications_clear_confirm">すべてクリア</string>
     <string name="clear_all_notifications">すべての通知をクリアする</string>
     <string name="delete">削除</string>
@@ -774,8 +750,6 @@
     <string name="deep_flow_expired_message">Deep Flow タイマーが終了しました</string>
     <string name="deep_flow_active_until_disabled">Deep Flow はオフにするまでアクティブのままです</string>
     <string name="deep_flow_duration_never">一度もない</string>
-    <plurals name="deep_flow_duration_hours">
-    </plurals>
     <string name="settings_header_appearance">外観</string>
     <string name="settings_header_content_playback">コンテンツと再生</string>
     <string name="settings_header_data_management">データ管理</string>
@@ -857,8 +831,6 @@
     <string name="appearance_category_dark">暗い</string>
     <string name="appearance_category_custom">カスタム</string>
     <string name="appearance_category_special">特別</string>
-    <plurals name="appearance_themes_count_all">
-    </plurals>
     <string name="appearance_applied_toast">適用済み: %1$s</string>
     <string name="appearance_customize_theme">テーマのカスタマイズ</string>
     <string name="appearance_customizer_title">カスタムテーマエディター</string>
@@ -1037,8 +1009,6 @@
     <string name="player_appearance_frame_step_subtitle">一時停止中に戻る矢印と進む矢印を表示する</string>
     <string name="lyrics_provider_title">歌詞プロバイダー</string>
     <string name="lyrics_provider_subtitle">好みの歌詞ソースを選択してください</string>
-    <plurals name="lyrics_providers_enabled">
-    </plurals>
     <string name="lyrics_provider_lrclib">LrcLib</string>
     <string name="lyrics_provider_better_lyrics">より良い歌詞</string>
     <string name="lyrics_provider_simpmusic">シンプミュージック</string>
@@ -1320,12 +1290,8 @@
     <string name="player_settings_shorts_playback_mode_loop">ループ（繰り返し電流ショート）</string>
     <string name="player_settings_shorts_playback_mode_auto_next">自動再生 (次のショート動画に進みます)</string>
     <string name="player_settings_shorts_playback_mode_auto_interval">カスタム時間の後に自動スクロール</string>
-    <plurals name="player_settings_shorts_playback_mode_auto_interval_summary">
-    </plurals>
     <string name="player_settings_shorts_playback_mode_dialog_title">Shorts 再生モード</string>
     <string name="player_settings_shorts_playback_mode_dialog_body">ショートが終了するとどうなるか:</string>
-    <plurals name="player_settings_shorts_auto_scroll_seconds_template">
-    </plurals>
     <string name="player_settings_start_paused">ビデオを一時停止して開始</string>
     <string name="player_settings_start_paused_subtitle">再生を押すまでビデオを再生せずに開きます</string>
     <string name="player_settings_open_fullscreen">動画を全画面で開く</string>
@@ -1338,8 +1304,6 @@
     <string name="player_settings_queue_autoplay_subtitle">再生リスト内の次の動画を再生するか、後で見る</string>
     <string name="player_settings_autoplay_countdown_title">自動再生の遅延</string>
     <string name="player_settings_autoplay_countdown_none">なし（すぐに切り替えます）</string>
-    <plurals name="player_settings_autoplay_countdown_seconds_template">
-    </plurals>
     <string name="player_settings_autoplay_countdown_dialog_body">次のビデオが始まる前にカウントダウンします。実行中に再生、キャンセル、スキップを行うことができます。</string>
     <string name="autoplay_countdown_up_next">次へ</string>
     <string name="autoplay_countdown_next_video">次の動画</string>
@@ -1451,8 +1415,6 @@
     <string name="player_settings_video_codec_fallback_auto_desc">アプリに選択させます (H.264 を優先します)</string>
     <string name="player_settings_header_gestures">ジェスチャー</string>
     <string name="player_settings_double_tap_seek">ダブルタップのシーク時間</string>
-    <plurals name="player_settings_double_tap_seek_subtitle">
-    </plurals>
     <string name="player_settings_double_tap_seek_dialog_title">ダブルタップのシーク時間</string>
     <string name="player_settings_double_tap_seek_dialog_body">どちらかの側をダブルタップするとどのくらいの距離までジャンプしますか。</string>
     <string name="player_settings_double_tap_seek_off">オフ</string>
@@ -1555,8 +1517,6 @@
     <string name="content_preferences_subtitle">表示されるものをカスタマイズする</string>
     <string name="interests_tab">興味がある</string>
     <string name="blocked_tab">ブロック</string>
-    <plurals name="topics_count_template">
-    </plurals>
     <string name="your_interests_title">あなたの興味</string>
     <string name="your_interests_desc">トピックを選択しておすすめをカスタマイズしましょう。</string>
     <string name="currently_following">現在フォロー中</string>
@@ -1572,8 +1532,6 @@
     <string name="quick_add">クイック追加</string>
     <string name="common_topics_to_block">ブロックする一般的なトピック</string>
     <string name="currently_blocked">現在ブロックされています</string>
-    <plurals name="topics_blocked_count_plural">
-    </plurals>
     <string name="desc_remove_topic">%1$s を削除します</string>
     <string name="desc_unblock_topic">%1$s のブロックを解除する</string>
     <plurals name="selected_count_template">
@@ -1618,8 +1576,6 @@
     <string name="confirm">確認する</string>
     <string name="sleep_timer">スリープタイマー</string>
     <string name="sleep_timer_duration">長さ</string>
-    <plurals name="sleep_timer_minutes">
-    </plurals>
     <string name="sleep_timer_min_label">5分</string>
     <string name="sleep_timer_max_label">120分</string>
     <string name="sleep_timer_custom_label">カスタム時間</string>
@@ -1641,8 +1597,6 @@
     <string name="search_suggestions_title">検索候補</string>
     <string name="show_suggestions_subtitle">入力中に候補を表示する</string>
     <string name="max_history_size_title">最大履歴サイズ</string>
-    <plurals name="currently_searches_template">
-    </plurals>
     <string name="auto_delete_history_title">履歴の自動削除</string>
     <plurals name="delete_after_days_template">
         <item quantity="other">%1$d 日後に削除</item>
@@ -1657,8 +1611,6 @@
     <string name="clear_history_dialog_title">検索履歴を消去しますか?</string>
     <string name="clear_history_dialog_text">すべての検索履歴を完全に削除します。</string>
     <string name="choose_history_size">保持する検索の数を選択します。</string>
-    <plurals name="searches_count_template">
-    </plurals>
     <string name="delete_searches_older_than">以下より古い検索を削除します:</string>
     <string name="period_one_week">1週間</string>
     <string name="period_one_month">1ヶ月</string>
@@ -1723,19 +1675,13 @@
     <plurals name="import_takeout_part_subscriptions">
         <item quantity="other">%d 件の登録チャンネル</item>
     </plurals>
-    <plurals name="import_takeout_part_history">
-    </plurals>
     <plurals name="import_takeout_part_playlists">
         <item quantity="other">%1$d 個の再生リスト (%2$d 本の動画)</item>
     </plurals>
     <plurals name="import_takeout_part_music_playlists">
         <item quantity="other">音楽 内の %d 個の再生リスト</item>
     </plurals>
-    <plurals name="import_takeout_part_music_library">
-    </plurals>
     <string name="import_takeout_music_library_name">YouTube Music ライブラリ</string>
-    <plurals name="import_takeout_part_searches">
-    </plurals>
     <string name="import_yt_playlist">YouTube 再生リストをインポート</string>
     <string name="import_yt_playlist_desc">YouTube Takeout CSV (Playlist-&lt;name&gt;.csv) から再生リストをインポートします。</string>
     <string name="import_yt_watch_later">インポートして後で見る</string>
@@ -1780,8 +1726,6 @@
     <string name="concurrent_threads_title">ファイルごとの接続数</string>
     <string name="concurrent_downloads_title">一度にダウンロード</string>
     <string name="concurrent_downloads_summary">同時にダウンロードできるファイルの数</string>
-    <plurals name="threads_per_download_template">
-    </plurals>
     <string name="performance_optimization_note">一度に多くの場合は高速になりますが、バッテリーと熱の消費量が多くなります。</string>
     <string name="location_dialog_subtitle">ダウンロードしたファイルをデバイスに保存する場所を選択します。</string>
     <string name="location_preset_header">プリセットの場所</string>
@@ -1875,8 +1819,6 @@
     <string name="delete_playlist_dialog_title">再生リストを削除しますか？</string>
     <string name="delete_playlist_dialog_text">これにより、「%1$s」とそのすべてのビデオが完全に削除されます。</string>
     <string name="playlist_sort_options">再生リストの並べ替えオプション</string>
-    <plurals name="remove_selected_videos_title">
-    </plurals>
     <string name="remove_selected_playlist_text">それらはこの再生リストから削除されます。</string>
     <string name="remove_selected_watch_later_text">これらは後で Watch から削除されます。</string>
     <string name="welcome_to_flow">Flow へようこそ</string>
@@ -1885,8 +1827,6 @@
     <string name="onboarding_channels_subtitle">すでにフォローしているチャンネルを検索し、ワンタップで登録します。</string>
     <string name="onboarding_channels_empty_prompt">チャンネル名を入力して検索します</string>
     <string name="onboarding_channels_no_results">「%1$s」のチャンネルが見つかりませんでした</string>
-    <plurals name="onboarding_channels_added_count">
-    </plurals>
     <string name="onboarding_channels_results_header">チャンネル</string>
     <string name="onboarding_import_subtitle_profile">他のアプリから登録チャンネルや履歴を %1$s に取り込みます。すべてはオプションです。</string>
     <string name="onboarding_import_master_profile">バックアップ内のすべてのプロファイルを復元します</string>
@@ -1894,8 +1834,6 @@
     <string name="auto_backup_type_all_profiles">複数のプロファイルの場合、自動バックアップはマスター バックアップとなるため、すべてのプロファイルが含まれます</string>
     <string name="master_restore_confirm">復元する</string>
     <string name="master_restore_old_into">このバックアップはプロファイルの前のものであるため、1 つのプロファイルが保持されます。 %1$s に復元されます。</string>
-    <plurals name="master_restore_waiting">
-    </plurals>
     <string name="master_restore_too_many">このバックアップにより、%1$d を超えるプロファイルが作成されます。プロファイルを削除してから、再試行してください。</string>
     <string name="onboarding_backup_restore_section">バックアップと復元</string>
     <string name="onboarding_topic_selected">選択済み</string>
@@ -1905,26 +1843,18 @@
     <string name="onboarding_step_channels">チャンネル</string>
     <string name="onboarding_step_import">インポート</string>
     <string name="onboarding_import_done">インポートされました</string>
-    <plurals name="onboarding_import_count">
-    </plurals>
     <string name="onboarding_imported_count">インポート済み %1$d %2$s</string>
     <string name="onboarding_imported">%1$s がインポートされました</string>
     <string name="onboarding_btn_finish">仕上げる</string>
     <string name="btn_skip_for_now">今のところスキップしてください</string>
     <string name="onboarding_step_alerts">アラート</string>
     <string name="onboarding_progress">ステップ %1$d/%2$d</string>
-    <plurals name="onboarding_pick_more">
-    </plurals>
     <string name="onboarding_welcome_title">Flow を自分のものにしましょう</string>
     <string name="onboarding_welcome_subtitle">好きなものに関するビデオや音楽。セットアップには 1 分かかります。</string>
     <string name="onboarding_alerts_allow_summary">Android が一度尋ねます</string>
     <string name="onboarding_alerts_background_summary">アラートを時間どおりに受信できるようにする</string>
-    <plurals name="onboarding_ready_interests">
-    </plurals>
     <plurals name="onboarding_ready_channels">
         <item quantity="other">%d チャンネル</item>
-    </plurals>
-    <plurals name="onboarding_ready_imports">
     </plurals>
     <string name="cd_collapse_category">崩壊</string>
     <string name="cd_expand_category">拡大する</string>
@@ -2261,8 +2191,6 @@
     <string name="eq_imported">インポートされたプリセット</string>
     <string name="eq_paste_hint">AutoEQ または EqualizerAPO プリセットを貼り付けます</string>
     <string name="eq_imported_badge">インポート済み</string>
-    <plurals name="eq_band_total">
-    </plurals>
     <string name="eq_settings_section">音</string>
     <string name="eq_settings_summary">プリセット、バンド、AutoEQ インポート</string>
     <string name="eq_settings_keywords">イコライザー、eq、ベースブースト、トレブル、autoeq、プリアンプ、サウンド</string>
@@ -2301,8 +2229,6 @@
     <string name="empty_playlists_subtitle">最初の再生リストを作成してお気に入りのトラックを整理します</string>
     <string name="empty_favorites_title">お気に入りはまだありません</string>
     <string name="empty_favorites_subtitle">トラック上のハートアイコンをタップしてお気に入りに追加します</string>
-    <plurals name="favorites_count_template">
-    </plurals>
     <string name="empty_history_title">まだ履歴がありません</string>
     <string name="empty_history_subtitle">ここで音楽を聴き始めて履歴を確認してください</string>
     <string name="empty_downloads_title">まだダウンロードはありません</string>
@@ -2396,8 +2322,6 @@
     <string name="content_settings_library_previews_title">ライブラリのプレビュー</string>
     <string name="content_settings_library_previews_subtitle">各ライブラリセクションの下にアイテムの行を表示します</string>
     <string name="remove_incomplete_downloads">不完全なダウンロードを削除する</string>
-    <plurals name="remove_incomplete_downloads_message">
-    </plurals>
     <string name="audio_track_number_template">%1$s %2$d</string>
     <string name="subtitle_auto_generated_template">%1$s (%2$s)</string>
     <string name="subtitle_translated">翻訳された</string>
@@ -2554,8 +2478,6 @@
     <string name="linked_sync_now">今すぐ同期する</string>
     <string name="linked_syncing">同期中…</string>
     <string name="linked_syncing_notification">リンクされたデバイスと同期しています…</string>
-    <plurals name="linked_received">
-    </plurals>
     <string name="linked_devices">デバイス</string>
     <string name="linked_device_nearby">%1$s、このネットワーク上で %2$s を同期しました</string>
     <string name="linked_device_synced">%1$s、同期済み %2$s</string>
@@ -2745,8 +2667,6 @@
     <string name="sync_receive_option_body">別のデバイスのライブラリをこのライブラリにマージします。</string>
     <string name="sync_select_all">すべて選択</string>
     <string name="sync_select_none">クリア</string>
-    <plurals name="sync_selected_count">
-    </plurals>
     <string name="sync_collection_playlists_body">再生リスト、アルバム、後で見る。</string>
     <string name="sync_collection_watch_history_body">何を見て、どこまで到達したか。</string>
     <string name="sync_collection_likes_body">ビデオや音楽の好き嫌い。</string>
@@ -2992,8 +2912,6 @@
     <string name="diagnostics_copied">レポートをクリップボードにコピーしました</string>
     <string name="add_all_to_playlist">再生リストに追加する</string>
     <string name="merge_playlist_dialog_title">すべての曲を…に追加します</string>
-    <plurals name="merge_playlist_success">
-    </plurals>
     <string name="merge_playlist_no_playlists">再生リストはまだありません。まず作成してください。</string>
     <string name="profile_export_success">プロファイルは正常にエクスポートされました</string>
     <string name="profile_export_failed">エクスポートに失敗しました</string>
@@ -3029,8 +2947,6 @@
     <string name="taste_live_affinity">ライブアフィニティ</string>
     <string name="taste_live_affinity_detail">プロファイルに適合するライブ コンテンツの量</string>
     <string name="taste_topic_breadth">トピックの幅広さ</string>
-    <plurals name="taste_topic_breadth_detail">
-    </plurals>
     <string name="interest_weights_title">金利の重み付け</string>
     <string name="interest_weights_subtitle">保護観察と証拠のチェック後に最も重要視されたトピック</string>
     <string name="interest_weights_empty">トピックの重みはまだありません。</string>
@@ -3256,10 +3172,6 @@
     <string name="widget_unlike">いいねから削除</string>
     <string name="widget_open_player">プレーヤーを開く</string>
     <string name="widget_short_badge">短い</string>
-    <plurals name="widget_minutes_left">
-    </plurals>
-    <plurals name="widget_downloads_in_progress">
-    </plurals>
     <string name="widget_browse_downloads">ダウンロードを参照する</string>
     <string name="widget_shuffle">シャッフル</string>
     <string name="widget_identify_song">曲を特定する</string>
@@ -3272,10 +3184,6 @@
     <string name="widget_config_playlist">あなたの再生リスト</string>
     <string name="widget_playlist_empty">ここにはまだ何もありません</string>
     <string name="widget_refresh">更新</string>
-    <plurals name="widget_playlist_songs">
-    </plurals>
-    <plurals name="widget_playlist_videos">
-    </plurals>
     <string name="widget_week_label">あなたの週</string>
     <string name="widget_week_description">過去 7 日間の視聴内容</string>
     <string name="widget_week_title">過去 7 日間</string>
@@ -3358,8 +3266,6 @@
     <string name="sb_segment_notice">%1$s セグメント</string>
     <string name="sb_off_for_video">このビデオでは SponsorBlock がオフになっています</string>
     <string name="sb_on_for_video">このビデオでは SponsorBlock がオンになっています</string>
-    <plurals name="sb_video_segments">
-    </plurals>
     <string name="ui_started_download">ダウンロードを開始しました: %1$s</string>
     <string name="ui_download_start_failed">ダウンロードを開始できませんでした: %1$s</string>
     <string name="toast_unsubscribed_from">%1$s の登録を解除しました</string>
@@ -3382,8 +3288,6 @@
     </plurals>
     <string name="toast_failed_to_download_playlist">再生リストのダウンロードに失敗しました</string>
     <string name="toast_error_downloading_playlist">再生リストのダウンロード中にエラーが発生しました</string>
-    <plurals name="toast_downloaded_tracks">
-    </plurals>
     <string name="toast_added_to_playlist">再生リストに追加されました</string>
     <string name="toast_failed_to_add_track">トラックの追加に失敗しました</string>
     <string name="toast_removed_from_playlist">再生リストから削除されました</string>
@@ -3406,10 +3310,6 @@
     <string name="notification_download_paused">一時停止中 — %1$s</string>
     <string name="notification_download_paused_hint">タップして再開</string>
     <string name="notification_download_progress">%1$d%% • %2$s / %3$s</string>
-    <plurals name="notification_downloads_active">
-    </plurals>
-    <plurals name="notification_downloads_paused">
-    </plurals>
     <string name="notification_more">+%1$d 詳細</string>
     <string name="notification_new_videos">新しい動画</string>
     <plurals name="notification_new_videos_from_subscriptions">
@@ -3506,25 +3406,15 @@
     <string name="local_new_badge">新しい</string>
     <string name="local_grid_view">グリッドとして表示</string>
     <string name="local_list_view">リストとして表示</string>
-    <plurals name="local_hidden_count">
-    </plurals>
     <string name="local_manage">管理</string>
     <string name="local_partial_access_title">Flow では選択した動画のみが表示されます</string>
     <string name="local_partial_access_body">残りを表示するには、すべてのビデオへのアクセスを許可します。</string>
     <string name="local_open_settings">設定を開く</string>
     <string name="local_permission_denied_body">ここで表示するには、アプリの設定でビデオや音楽へのアクセスを許可します。</string>
     <string name="local_load_failed">このデバイス上のファイルを読み取れませんでした</string>
-    <plurals name="local_videos_count">
-    </plurals>
-    <plurals name="local_songs_count">
-    </plurals>
     <string name="local_menu_hide_folder">このフォルダを非表示にする</string>
     <string name="local_menu_delete_trash">30日間ゴミ箱に移動します</string>
     <string name="local_menu_delete_permanent">このデバイスから削除します</string>
-    <plurals name="local_files_trashed">
-    </plurals>
-    <plurals name="local_files_deleted">
-    </plurals>
     <string name="local_delete_failed">そのファイルを削除できませんでした</string>
     <string name="local_folder_hidden">%1$s を非表示にしました</string>
     <string name="local_detail_folder">フォルダ</string>
@@ -3540,17 +3430,11 @@
     <string name="local_setting_hide_app_audio_desc">チャットアプリ、レコーダー、着信音フォルダー</string>
     <string name="local_setting_min_audio">より短い音声を非表示にする</string>
     <string name="local_setting_min_audio_off">すべての長さを表示</string>
-    <plurals name="local_setting_seconds">
-    </plurals>
     <string name="local_setting_hidden_folders">隠しフォルダー</string>
     <string name="local_setting_no_hidden_folders">隠しフォルダーはありません</string>
     <string name="local_setting_show_folder">見せる</string>
     <string name="local_section_library">ライブラリ</string>
     <string name="downloads_search_hint">ダウンロードの検索</string>
-    <plurals name="delete_downloads_dialog_text">
-    </plurals>
-    <plurals name="downloads_deleted">
-    </plurals>
     <string name="downloads_sort_newest">最新</string>
     <string name="downloads_sort_oldest">最古の</string>
     <string name="downloads_sort_largest">最大</string>
@@ -3566,8 +3450,6 @@
     <string name="playlist_type_builtin">内蔵の再生リスト</string>
     <string name="playlist_type_yours">あなたの再生リスト</string>
     <string name="playlist_type_saved">保存元： YouTube</string>
-    <plurals name="playlist_videos_removed">
-    </plurals>
     <string name="error_insecure_stream_blocked">安全でないストリームがデバイス ポリシーによってブロックされました。</string>
     <string name="error_expiring_stream_urls">再生できません - ストリーム URL の有効期限が切れ続けます。</string>
     <string name="error_playback_device">再生デバイスエラー: %1$s</string>
@@ -3627,8 +3509,6 @@
     <string name="import_no_content">このバックアップにはインポート可能なコンテンツが見つかりません</string>
     <string name="import_invalid_format">認識できないバックアップ形式 - 正しいファイルを選択していることを確認してください</string>
     <string name="import_failed_template">インポートに失敗しました: %1$s</string>
-    <plurals name="duration_minutes">
-    </plurals>
     <string name="duration_hours_minutes_short">%1$dh %2$dm</string>
     <string name="storage_size_gb">%1$.1f GB</string>
     <string name="duration_hours_decimal">%1$.1fh</string>
@@ -3958,8 +3838,6 @@
     <string name="settings_theme_role_error">エラー</string>
     <string name="settings_theme_color_with_opacity">%1$s · %2$d%% 不透明度</string>
     <string name="settings_keywords_custom_themes">カスタム テーマ、パレット、色、色、インポート、エクスポート、共有、デスクトップ</string>
-    <plurals name="settings_custom_theme_imported">
-    </plurals>
     <string name="settings_custom_theme_in_use">使用中</string>
     <string name="settings_custom_theme_export_failed">テーマを保存できませんでした</string>
     <string name="taste_title">あなたの好み</string>
@@ -3989,8 +3867,6 @@
     <string name="taste_music_stage">学習段階</string>
     <string name="taste_hidden_title">あなたから隠された</string>
     <string name="taste_hidden_summary">ブロックされたトピック、チャンネル、アーティスト</string>
-    <plurals name="taste_hidden_count">
-    </plurals>
     <string name="taste_hidden_none">何も隠されていません</string>
     <string name="taste_hidden_empty_title">何も隠されていません</string>
     <string name="taste_hidden_empty_body">ブロックしたトピック、チャンネル、アーティストがここに表示されます。</string>
@@ -4052,10 +3928,6 @@
     <plurals name="recap_views_count">
         <item quantity="other">%d 回視聴</item>
     </plurals>
-    <plurals name="recap_plays_count">
-    </plurals>
-    <plurals name="recap_times_count">
-    </plurals>
     <string name="recap_topics_title">あなたが調べたトピック</string>
     <string name="recap_topics_new">新しいコンテンツの発見: %1$s</string>
     <string name="recap_formats_title">視聴したコンテンツ</string>
@@ -4065,10 +3937,6 @@
     <string name="recap_format_music">音楽</string>
     <string name="recap_format_share">%1$s · %2$s</string>
     <string name="recap_discoveries_title">新しいコンテンツの発見</string>
-    <plurals name="recap_new_channels">
-    </plurals>
-    <plurals name="recap_new_artists">
-    </plurals>
     <string name="recap_passed_title">あなたが伝えたもの</string>
     <string name="recap_passed_subtitle">早くスキップされた、嫌われた、または非表示になった</string>
     <string name="recap_skipped_videos">スキップしたビデオ</string>
@@ -4087,8 +3955,6 @@
     <string name="recap_unnamed_item">再生したもの</string>
     <string name="recap_history_title">視聴履歴から</string>
     <string name="recap_history_subtitle">概算: ハイライトがカウントされる前からの履歴内のチャンネルごとの動画数</string>
-    <plurals name="recap_videos_count">
-    </plurals>
     <string name="recap_empty_title">あなたのハイライトが始まります</string>
     <string name="recap_empty_body">Flow は、これらの統計をこのデバイス上でのみ保持します。しばらく見たり聞いたりすると、さらに表示されます。</string>
     <string name="recap_period_empty">この期間には何も記録されていません</string>
@@ -4157,27 +4023,17 @@
     <string name="playlist_import_too_new">この再生リストには新しいバージョンの Flow が必要です</string>
     <string name="playlist_import_empty">この再生リストにはインポートする動画がありません</string>
     <string name="playlist_import_unreadable">このファイルを読み取れませんでした</string>
-    <plurals name="playlist_imported">
-    </plurals>
     <string name="content_settings_remove_watched_watch_later_title">視聴した動画を削除する</string>
     <string name="content_settings_remove_watched_watch_later_subtitle">終了したら「後で見る」からビデオを取り出します</string>
-    <plurals name="watch_later_watched_removed">
-    </plurals>
     <string name="liked_videos_empty_body">お気に入りの動画がここに表示されます</string>
     <string name="remove_selected_likes_text">彼らは嫌われるでしょう。</string>
     <string name="removed_from_liked_music">お気に入りの音楽から削除されました</string>
     <string name="liked_video_template">%1$s が好きでした</string>
     <string name="liked_music_empty_body">音楽プレーヤーで気に入った曲がここに表示されます</string>
-    <plurals name="liked_videos_removed">
-    </plurals>
     <string name="music_kind_album">アルバム</string>
     <string name="music_kind_saved">ライブラリに保存されました</string>
     <string name="music_playlist_empty_title">このプレイリストは空です</string>
     <string name="music_playlist_empty_body">上部のメニューから曲を追加します</string>
-    <plurals name="songs_removed_from_playlist">
-    </plurals>
-    <plurals name="songs_unliked">
-    </plurals>
     <string name="music_sort_collection">プレイリストの順序</string>
     <string name="music_sort_album_order">アルバムの注文</string>
     <string name="music_sort_recently_liked">最近気に入った</string>
@@ -4188,12 +4044,6 @@
     <string name="music_sort_shortest">短い順</string>
     <string name="music_collection_no_matches">「%1$s」に一致する曲はありません</string>
     <string name="select_songs">曲を選択する</string>
-    <plurals name="music_playlist_imported">
-    </plurals>
-    <plurals name="songs_downloading">
-    </plurals>
-    <plurals name="songs_download_queued">
-    </plurals>
     <string name="songs_download_nothing_new">ここにあるものはすべてすでにダウンロードされているか、利用できません</string>
     <string name="save_as_playlist">再生リストとして保存</string>
     <string name="daily_mix_saved_as_playlist">%1$s をプレイリストに保存しました</string>
@@ -4282,8 +4132,6 @@
     <string name="settings_music_home_sections">セクション</string>
     <string name="settings_library_summary">ライブラリが表示するセクションを選択してください</string>
     <string name="onboarding_step_artists">アーティスト</string>
-    <plurals name="onboarding_ready_artists">
-    </plurals>
     <string name="scrobbling_title">スクロブル</string>
     <string name="scrobbling_summary">聞いたものを Last.fm、Libre.fm、または ListenBrainz に送信します</string>
     <string name="settings_keywords_scrobbling">スクロブル スクロブリング last.fm lastfm libre.fm librefm listenbrainz</string>
@@ -4305,8 +4153,6 @@
     <string name="scrobbling_local">このデバイス上のファイルをスクロブルする</string>
     <string name="scrobbling_local_summary">各ファイルのアーティストタグとタイトルタグを使用します</string>
     <string name="scrobbling_send_now">待機中のリッスンを送信する</string>
-    <plurals name="scrobbling_waiting">
-    </plurals>
     <string name="scrobbling_sign_in_title">%1$s にサインインします</string>
     <string name="scrobbling_user_name">ユーザー名</string>
     <string name="scrobbling_password">パスワード</string>
@@ -4332,8 +4178,6 @@
     <string name="scrobbling_import_offer_body">Flow は、過去 1 年間で最も再生されたアーティスト 20 人をお気に入りのアーティストに追加します。後でどれでも削除できます。</string>
     <string name="scrobbling_import_action">インポート</string>
     <string name="scrobbling_import_later">今はしない</string>
-    <plurals name="scrobbling_import_done">
-    </plurals>
     <string name="scrobbling_import_none">追加する新しいアーティストはありません</string>
     <string name="scrobbling_import_failed">トップアーティストを読み取れませんでした</string>
     <string name="music_home_lastfm_discover">Last.fm で発見する</string>
@@ -4351,645 +4195,4 @@
     <string name="settings_security_summary">アプリのロック</string>
     <string name="settings_keywords_security">アプリのロック、プライバシー、パスワード、PIN、パターン、指紋認証、顔認証、最近のアプリ</string>
     <string name="subscriptions_sort_most_watched">最も多く視聴</string>
-    <string name="subscriptions_pin_channel"></string>
-    <string name="subscriptions_unpin_channel"></string>
-    <string name="subscriptions_open_channel"></string>
-    <string name="subscriptions_pinned_section"></string>
-    <string name="auto_group_music_playlists"></string>
-    <string name="auto_group_video_playlists"></string>
-    <string name="lyrics_repeat_count"></string>
-    <string name="lyrics_romanization_only"></string>
-    <string name="lyrics_romanization_only_summary"></string>
-    <string name="lyrics_background"></string>
-    <string name="lyrics_background_solid"></string>
-    <string name="lyrics_background_solid_detail"></string>
-    <string name="lyrics_background_colorful"></string>
-    <string name="lyrics_background_colorful_detail"></string>
-    <string name="lyrics_background_moving"></string>
-    <string name="lyrics_background_moving_detail"></string>
-    <string name="lyrics_blur_other_lines"></string>
-    <string name="lyrics_blur_other_lines_summary"></string>
-    <string name="lyrics_animation"></string>
-    <string name="lyrics_animation_summary"></string>
-    <string name="lyrics_animation_cadence"></string>
-    <string name="lyrics_animation_cadence_detail"></string>
-    <string name="lyrics_animation_classic"></string>
-    <string name="lyrics_animation_classic_detail"></string>
-    <string name="lyrics_animation_calm"></string>
-    <string name="lyrics_animation_calm_detail"></string>
-    <string name="lyrics_glow"></string>
-    <string name="lyrics_glow_summary"></string>
-    <string name="lyrics_glow_off"></string>
-    <string name="lyrics_glow_soft"></string>
-    <string name="lyrics_glow_normal"></string>
-    <string name="lyrics_glow_bright"></string>
-    <string name="lyrics_on_lock_screen"></string>
-    <string name="lyrics_on_lock_screen_summary"></string>
-    <string name="lyrics_on_lock_screen_timing"></string>
-    <string name="lyrics_on_lock_screen_timing_summary"></string>
-    <string name="lyrics_in_mini_player"></string>
-    <string name="player_appearance_lyrics_on_cover_title"></string>
-    <string name="player_appearance_lyrics_on_cover_subtitle"></string>
-    <string name="lyrics_in_mini_player_summary"></string>
-    <string name="lyrics_sponsorblock_timing"></string>
-    <string name="lyrics_sponsorblock_timing_summary"></string>
-    <string name="lyrics_on_demand"></string>
-    <string name="lyrics_on_demand_summary"></string>
-    <string name="settings_keywords_lyrics_on_demand"></string>
-    <string name="lyrics_timing_on_time"></string>
-    <string name="lyrics_timing_earlier"></string>
-    <string name="lyrics_timing_later"></string>
-    <string name="player_appearance_video_artwork_colors_title"></string>
-    <string name="player_appearance_video_artwork_colors_subtitle"></string>
-    <string name="player_appearance_split_transport_title"></string>
-    <string name="player_appearance_split_transport_subtitle"></string>
-    <string name="settings_section_music_mini_player"></string>
-    <string name="player_appearance_mini_cover_title"></string>
-    <string name="player_appearance_mini_cover_subtitle"></string>
-    <string name="player_appearance_mini_cover_morphing"></string>
-    <string name="player_appearance_mini_cover_circle"></string>
-    <string name="player_appearance_mini_cover_motion_title"></string>
-    <string name="player_appearance_mini_cover_motion_on_play"></string>
-    <string name="player_appearance_mini_cover_motion_always"></string>
-    <string name="player_appearance_mini_cover_motion_still"></string>
-    <string name="cover_shape_circle"></string>
-    <string name="cover_shape_square"></string>
-    <string name="cover_shape_slanted"></string>
-    <string name="cover_shape_arch"></string>
-    <string name="cover_shape_fan"></string>
-    <string name="cover_shape_arrow"></string>
-    <string name="cover_shape_semi_circle"></string>
-    <string name="cover_shape_oval"></string>
-    <string name="cover_shape_pill"></string>
-    <string name="cover_shape_triangle"></string>
-    <string name="cover_shape_diamond"></string>
-    <string name="cover_shape_clam_shell"></string>
-    <string name="cover_shape_pentagon"></string>
-    <string name="cover_shape_gem"></string>
-    <string name="cover_shape_sunny"></string>
-    <string name="cover_shape_very_sunny"></string>
-    <string name="cover_shape_cookie_4"></string>
-    <string name="cover_shape_cookie_6"></string>
-    <string name="cover_shape_cookie_7"></string>
-    <string name="cover_shape_cookie_9"></string>
-    <string name="cover_shape_cookie_12"></string>
-    <string name="cover_shape_ghostish"></string>
-    <string name="cover_shape_clover_4"></string>
-    <string name="cover_shape_clover_8"></string>
-    <string name="cover_shape_burst"></string>
-    <string name="cover_shape_soft_burst"></string>
-    <string name="cover_shape_boom"></string>
-    <string name="cover_shape_soft_boom"></string>
-    <string name="cover_shape_flower"></string>
-    <string name="cover_shape_puffy"></string>
-    <string name="cover_shape_puffy_diamond"></string>
-    <string name="cover_shape_pixel_circle"></string>
-    <string name="cover_shape_pixel_triangle"></string>
-    <string name="cover_shape_bun"></string>
-    <string name="cover_shape_heart"></string>
-    <string name="player_appearance_cover_shapes_title"></string>
-    <string name="player_appearance_cover_shapes_subtitle"></string>
-    <plurals name="player_appearance_cover_shapes_count">
-    </plurals>
-    <string name="player_appearance_bar_progress_title"></string>
-    <string name="player_appearance_bar_progress_subtitle"></string>
-    <string name="player_appearance_bar_progress_none"></string>
-    <string name="player_appearance_bar_progress_fill"></string>
-    <string name="player_appearance_bar_progress_edge"></string>
-    <string name="player_appearance_bar_progress_line"></string>
-    <string name="player_appearance_bar_progress_wavy"></string>
-    <string name="player_appearance_cover_ring_title"></string>
-    <string name="player_appearance_cover_ring_subtitle"></string>
-    <string name="player_background_style_color"></string>
-    <string name="player_background_style_cover_colours"></string>
-    <string name="player_background_style_moving_colours"></string>
-    <string name="player_background_style_shapes"></string>
-    <string name="player_background_style_black"></string>
-    <string name="player_appearance_mini_background_title"></string>
-    <string name="player_appearance_mini_background_subtitle"></string>
-    <string name="mini_background_tinted"></string>
-    <string name="mini_background_vivid"></string>
-    <string name="mini_background_app_theme"></string>
-    <string name="mini_background_cover_colours"></string>
-    <string name="mini_background_black"></string>
-    <string name="mini_background_outlined"></string>
-    <string name="mini_button_play_pause"></string>
-    <string name="mini_button_queue"></string>
-    <string name="mini_button_lyrics"></string>
-    <string name="mini_button_sleep_timer"></string>
-    <string name="mini_button_back_10"></string>
-    <string name="mini_button_forward_10"></string>
-    <string name="mini_button_close"></string>
-    <string name="player_appearance_mini_buttons_title"></string>
-    <string name="player_appearance_mini_buttons_subtitle"></string>
-    <string name="player_appearance_mini_buttons_none"></string>
-    <string name="player_appearance_mini_cover_tap_title"></string>
-    <string name="player_appearance_mini_cover_tap_open"></string>
-    <string name="player_appearance_mini_cover_tap_play"></string>
-    <string name="player_appearance_mini_long_press_title"></string>
-    <string name="player_appearance_mini_long_press_nothing"></string>
-    <string name="player_appearance_mini_long_press_options"></string>
-    <string name="player_appearance_mini_long_press_like"></string>
-    <string name="player_appearance_mini_long_press_queue"></string>
-    <string name="player_appearance_cover_paused_title"></string>
-    <string name="player_appearance_cover_paused_subtitle"></string>
-    <string name="player_appearance_cover_paused_keep"></string>
-    <string name="lyrics_share"></string>
-    <string name="lyrics_share_selected"></string>
-    <string name="lyrics_share_align_left"></string>
-    <string name="lyrics_share_align_center"></string>
-    <string name="lyrics_share_align_right"></string>
-    <string name="lyrics_share_frame_square"></string>
-    <string name="lyrics_share_frame_backdrop"></string>
-    <string name="lyrics_share_frame_clear"></string>
-    <string name="lyrics_share_size_fit"></string>
-    <string name="lyrics_share_size_square"></string>
-    <string name="lyrics_share_size_story"></string>
-    <string name="lyrics_share_layout_classic"></string>
-    <string name="lyrics_share_layout_poster"></string>
-    <string name="lyrics_share_layout_shape"></string>
-    <string name="lyrics_share_save_image"></string>
-    <string name="lyrics_share_image_saved"></string>
-    <string name="lyrics_share_image_failed"></string>
-    <string name="lyrics_align_short_left"></string>
-    <string name="lyrics_align_short_center"></string>
-    <string name="lyrics_align_short_right"></string>
-    <string name="settings_section_lyrics"></string>
-    <string name="quality_auto_with_resolution"></string>
-    <string name="chat_replay"></string>
-    <string name="comments_load_more"></string>
-    <string name="comments_timed_follow"></string>
-    <string name="comments_timed_waiting"></string>
-    <string name="comments_timed_next"></string>
-    <string name="comments_timed_end"></string>
-    <string name="comments_turned_off"></string>
-    <string name="translate"></string>
-    <string name="translate_with"></string>
-    <string name="translate_no_app"></string>
-    <string name="translation_in_progress"></string>
-    <string name="translation_show_original"></string>
-    <string name="translation_by_host"></string>
-    <string name="translation_failed"></string>
-    <string name="translate_description"></string>
-    <string name="download_already_running"></string>
-    <string name="download_replaces_existing"></string>
-    <string name="notification_download_other_audio_track"></string>
-    <string name="transcript_actions"></string>
-    <string name="transcript_copy"></string>
-    <string name="transcript_copy_with_timestamps"></string>
-    <string name="transcript_save_file"></string>
-    <string name="transcript_copied"></string>
-    <string name="transcript_too_long_to_copy"></string>
-    <string name="transcript_saved"></string>
-    <string name="transcript_save_failed"></string>
-    <string name="group_ungrouped"></string>
-    <string name="group_hide"></string>
-    <string name="group_unhide"></string>
-    <string name="group_show_in_all"></string>
-    <string name="group_show_in_all_hidden"></string>
-    <string name="downloads_folder_lost_title"></string>
-    <string name="downloads_folder_lost_body"></string>
-    <string name="downloads_folder_lost_choose"></string>
-    <string name="recent_searches_show_all"></string>
-    <string name="subscription_posts_empty"></string>
-    <string name="settings_haptics_ignore_system_title"></string>
-    <string name="settings_haptics_ignore_system_summary"></string>
-    <string name="player_appearance_paid_promotion_title"></string>
-    <string name="player_appearance_paid_promotion_subtitle"></string>
-    <string name="paid_promotion_label"></string>
-    <string name="stats_for_nerds"></string>
-    <string name="stats_copy"></string>
-    <string name="stats_line"></string>
-    <string name="stats_device"></string>
-    <string name="stats_video_id"></string>
-    <string name="stats_video"></string>
-    <string name="stats_decoder"></string>
-    <string name="stats_audio"></string>
-    <string name="stats_volume"></string>
-    <string name="stats_bandwidth"></string>
-    <string name="stats_buffered"></string>
-    <string name="stats_viewport"></string>
-    <string name="stats_dropped_frames"></string>
-    <string name="stats_speed"></string>
-    <string name="stats_skip_silence"></string>
-    <string name="player_appearance_more_videos_gesture_title"></string>
-    <string name="player_appearance_more_videos_gesture_subtitle"></string>
-    <string name="player_appearance_chapter_skip_gesture_title"></string>
-    <string name="player_appearance_chapter_skip_gesture_subtitle"></string>
-    <string name="playlist_swipe_left"></string>
-    <string name="playlist_swipe_right"></string>
-    <string name="playlist_swipe_subtitle"></string>
-    <string name="playlist_move_to_top"></string>
-    <string name="playlist_move_to_bottom"></string>
-    <string name="player_fullscreen_zoom_to_fill_title"></string>
-    <string name="player_fullscreen_zoom_to_fill_subtitle"></string>
-    <string name="player_scroll_away_title"></string>
-    <string name="player_scroll_away_subtitle"></string>
-    <string name="player_side_panel_width_title"></string>
-    <string name="player_side_panel_width_summary"></string>
-    <string name="player_side_panel_width_narrow"></string>
-    <string name="player_side_panel_width_small"></string>
-    <string name="player_side_panel_width_default"></string>
-    <string name="player_side_panel_width_wide"></string>
-    <string name="lyrics_provider_netease"></string>
-    <string name="lyrics_provider_amll"></string>
-    <string name="lyrics_provider_netease_desc"></string>
-    <string name="lyrics_provider_amll_desc"></string>
-    <string name="content_settings_home_chips_title"></string>
-    <string name="content_settings_home_chips_subtitle"></string>
-    <string name="content_settings_home_new_videos_title"></string>
-    <string name="content_settings_home_new_videos_subtitle"></string>
-    <string name="settings_top_bar_profile_title"></string>
-    <string name="settings_top_bar_profile_summary"></string>
-    <string name="settings_profile_menu_settings_title"></string>
-    <string name="settings_profile_menu_settings_summary"></string>
-    <string name="settings_top_bar_profile_keywords"></string>
-    <string name="content_settings_hide_watched_suggestions_title"></string>
-    <string name="content_settings_hide_watched_suggestions_subtitle"></string>
-    <string name="content_settings_count_imported_watched_title"></string>
-    <string name="content_settings_count_imported_watched_subtitle"></string>
-    <string name="settings_keywords_count_imported_watched"></string>
-    <string name="content_settings_navbar_show_on_search_title"></string>
-    <string name="content_settings_navbar_show_on_search_subtitle"></string>
-    <string name="content_settings_navbar_show_on_other_pages_title"></string>
-    <string name="content_settings_navbar_show_on_other_pages_subtitle"></string>
-    <string name="content_settings_comment_gifs_title"></string>
-    <string name="content_settings_comment_gifs_subtitle"></string>
-    <string name="content_settings_comment_gifs_wifi_title"></string>
-    <string name="content_settings_comment_gifs_wifi_subtitle"></string>
-    <string name="comment_gif_description"></string>
-    <string name="comment_gif_show"></string>
-    <string name="content_settings_subs_show_upcoming_title"></string>
-    <string name="content_settings_subs_show_upcoming_subtitle"></string>
-    <string name="content_settings_subs_posts_chip_title"></string>
-    <string name="content_settings_subs_posts_chip_subtitle"></string>
-    <string name="content_settings_subs_all_chip_title"></string>
-    <string name="content_settings_subs_all_chip_subtitle"></string>
-    <string name="content_settings_subs_ungrouped_title"></string>
-    <string name="content_settings_subs_ungrouped_subtitle"></string>
-    <string name="player_settings_minimize_to_audio_bar_title"></string>
-    <string name="player_settings_minimize_to_audio_bar_subtitle"></string>
-    <string name="autoplay_countdown_mini_label"></string>
-    <string name="player_settings_spherical_view"></string>
-    <string name="player_settings_spherical_view_summary"></string>
-    <string name="player_settings_spherical_motion"></string>
-    <string name="player_settings_spherical_motion_summary"></string>
-    <string name="player_settings_spherical_drag_speed"></string>
-    <string name="player_settings_ambient_glow"></string>
-    <string name="player_settings_ambient_glow_subtitle"></string>
-    <string name="player_settings_immersive_glow"></string>
-    <string name="player_settings_immersive_glow_subtitle"></string>
-    <string name="player_settings_immersive_scroll_dim"></string>
-    <string name="player_settings_immersive_scroll_dim_subtitle"></string>
-    <string name="player_settings_glow_battery_saver"></string>
-    <string name="player_settings_glow_battery_saver_subtitle"></string>
-    <string name="dearrow_thumbnails_only"></string>
-    <string name="dearrow_thumbnails_only_subtitle"></string>
-    <string name="sb_category_hook"></string>
-    <string name="sb_category_highlight"></string>
-    <string name="sb_action_skip_automatically"></string>
-    <string name="sb_action_skip_once"></string>
-    <string name="sb_action_skip_once_detail"></string>
-    <string name="sb_action_skip_button"></string>
-    <string name="sb_action_notify"></string>
-    <string name="sb_action_with_button_detail"></string>
-    <string name="sb_action_seek_bar_only"></string>
-    <string name="sb_action_disable"></string>
-    <string name="sb_action_jump_button"></string>
-    <string name="sb_action_jump_button_detail"></string>
-    <string name="sb_jump_to_highlight"></string>
-    <string name="sb_jump"></string>
-    <string name="sb_skip_notice_title"></string>
-    <string name="sb_skip_notice_summary"></string>
-    <string name="sb_skip_style_title"></string>
-    <string name="sb_skip_style_full"></string>
-    <string name="sb_skip_style_full_detail"></string>
-    <string name="sb_skip_style_compact"></string>
-    <string name="sb_skip_style_compact_detail"></string>
-    <string name="sb_skip_style_icon"></string>
-    <string name="sb_skip_style_icon_detail"></string>
-    <string name="sb_color_custom"></string>
-    <string name="sb_color_custom_value"></string>
-    <string name="disk_read_ahead_title"></string>
-    <string name="disk_read_ahead_summary"></string>
-    <string name="disk_read_ahead_footer"></string>
-    <plurals name="disk_read_ahead_minutes">
-    </plurals>
-    <string name="disk_read_ahead_whole_video"></string>
-    <string name="disk_read_ahead_unmetered_only"></string>
-    <string name="disk_read_ahead_unmetered_only_summary"></string>
-    <string name="cache_size_custom"></string>
-    <string name="cache_size_custom_field"></string>
-    <string name="cache_size_custom_range"></string>
-    <string name="cache_size_unit_mb"></string>
-    <string name="cache_size_unit_gb"></string>
-    <string name="cache_size_mb_value"></string>
-    <string name="cache_size_gb_value"></string>
-    <string name="buffer_cache_size_link"></string>
-    <string name="buffer_cache_size_link_summary"></string>
-    <string name="daily_limit_title"></string>
-    <string name="daily_limit_subtitle"></string>
-    <string name="daily_limit_time_title"></string>
-    <string name="daily_limit_time_description"></string>
-    <string name="daily_limit_music_title"></string>
-    <string name="daily_limit_music_subtitle"></string>
-    <string name="daily_limit_footer"></string>
-    <string name="daily_limit_warning_title"></string>
-    <string name="daily_limit_warning_body"></string>
-    <string name="daily_limit_reached_title"></string>
-    <string name="daily_limit_reached_body"></string>
-    <string name="daily_limit_wait_title"></string>
-    <string name="daily_limit_wait_body"></string>
-    <string name="daily_limit_wait_confirm"></string>
-    <string name="daily_limit_wait_countdown"></string>
-    <string name="times_up_body"></string>
-    <string name="times_up_keep_watching"></string>
-    <string name="times_up_keep_watching_wait"></string>
-    <string name="times_up_keep_watching_note"></string>
-    <plurals name="import_takeout_part_ads_removed">
-    </plurals>
-    <string name="settings_lock_screen_player_title"></string>
-    <string name="settings_lock_screen_player_summary"></string>
-    <string name="settings_lock_screen_player_permission"></string>
-    <string name="settings_keywords_lock_screen_player"></string>
-    <string name="lock_screen_player_unlock"></string>
-    <string name="settings_pause_video_muted_title"></string>
-    <string name="eq_spatial_sound"></string>
-    <string name="eq_spatial_sound_summary"></string>
-    <string name="eq_spatial_sound_keywords"></string>
-    <string name="eq_spatial_low"></string>
-    <string name="eq_spatial_medium"></string>
-    <string name="eq_spatial_high"></string>
-    <string name="dlna_google_cast_unsupported"></string>
-    <string name="dlna_cast_no_stream"></string>
-    <string name="cast_to_tv_desc"></string>
-    <string name="cast_song_unavailable"></string>
-    <string name="cast_connection_lost"></string>
-    <string name="play_on_paused_on"></string>
-    <string name="play_on_playing_here"></string>
-    <string name="play_on_paused_here"></string>
-    <string name="play_on_status_playing_short"></string>
-    <string name="play_on_status_paused_short"></string>
-    <string name="play_on_play_here"></string>
-    <string name="play_on_control_device"></string>
-    <string name="linked_login_change_title"></string>
-    <string name="linked_login_change_due"></string>
-    <string name="linked_login_change_first"></string>
-    <string name="linked_login_change_send"></string>
-    <string name="linked_login_change_waiting"></string>
-    <string name="linked_login_change_everyone"></string>
-    <string name="linked_login_change_now"></string>
-    <string name="linked_login_change_done"></string>
-    <string name="linked_restore_choose_title"></string>
-    <string name="linked_restore_choose_body"></string>
-    <string name="linked_restore_unknown_device"></string>
-    <string name="linked_device_online"></string>
-    <string name="linked_recovery_notice_title"></string>
-    <string name="linked_recovery_notice_body"></string>
-    <string name="linked_recovery_notice_unknown"></string>
-    <string name="linked_recovery_notice_mine"></string>
-    <string name="linked_recovery_notice_not_mine"></string>
-    <string name="linked_recovery_due_title"></string>
-    <string name="linked_recovery_due_body"></string>
-    <string name="linked_error_restore_unfinished"></string>
-    <string name="linked_error_recovery_due"></string>
-    <string name="linked_leave_stops_others"></string>
-    <string name="linked_remove_also"></string>
-    <string name="linked_intro_title"></string>
-    <string name="linked_intro_body"></string>
-    <string name="linked_other_ways"></string>
-    <string name="linked_store_server"></string>
-    <string name="linked_store_webdav"></string>
-    <string name="linked_store_lan"></string>
-    <string name="linked_synced_at"></string>
-    <string name="linked_group"></string>
-    <string name="linked_where_it_syncs"></string>
-    <string name="linked_recovery_words"></string>
-    <string name="linked_add_device_hint"></string>
-    <string name="linked_add_device_show_hint"></string>
-    <string name="linked_add_show_code"></string>
-    <string name="linked_add_show_code_hint"></string>
-    <string name="linked_add_scan_code"></string>
-    <string name="linked_add_scan_code_hint"></string>
-    <string name="linked_join_request_hint"></string>
-    <string name="linked_remove_from_group"></string>
-    <string name="linked_auto_sync"></string>
-    <string name="linked_auto_sync_on"></string>
-    <string name="linked_auto_sync_off"></string>
-    <string name="linked_sync_choice"></string>
-    <string name="linked_sync_choice_body"></string>
-    <string name="linked_sync_choice_all"></string>
-    <string name="linked_sync_choice_except"></string>
-    <string name="linked_sync_choice_count"></string>
-    <string name="linked_replace_words"></string>
-    <string name="linked_replace_words_hint"></string>
-    <string name="linked_replace_words_title"></string>
-    <string name="linked_replace_words_body"></string>
-    <string name="linked_replace"></string>
-    <string name="linked_error_removal_unconfirmed"></string>
-    <string name="linked_error_contested"></string>
-    <string name="linked_error_rolled_back"></string>
-    <string name="linked_error_roster_changed"></string>
-    <string name="linked_error_group_outdated"></string>
-    <string name="linked_unconfirmed_title"></string>
-    <string name="linked_unconfirmed_body"></string>
-    <string name="linked_contest_title"></string>
-    <string name="linked_contest_body"></string>
-    <string name="linked_contest_keep"></string>
-    <string name="linked_contest_removes"></string>
-    <string name="sync_devices_summary"></string>
-    <string name="sync_one_time_title"></string>
-    <string name="player_chapter_number"></string>
-    <string name="profiles_action_settings_description"></string>
-    <string name="export_playlists_title"></string>
-    <string name="export_playlists_desc"></string>
-    <string name="more_videos"></string>
-    <string name="close_more_videos"></string>
-    <string name="tv_rail_now_playing"></string>
-    <string name="tv_rail_now_playing_description"></string>
-    <string name="tv_rail_playing_on_description"></string>
-    <string name="notification_new_video_live"></string>
-    <string name="notification_new_video_scheduled"></string>
-    <string name="notification_new_video_premiere"></string>
-    <string name="notification_channel_new_version"></string>
-    <string name="notification_channel_new_version_description"></string>
-    <plurals name="songs_removed_from_queue">
-    </plurals>
-    <string name="queue_row_selected"></string>
-    <plurals name="add_songs_to_playlist_title">
-    </plurals>
-    <string name="music_chip_load_failed"></string>
-    <string name="music_chip_empty"></string>
-    <string name="settings_skeleton_gradient_title"></string>
-    <string name="settings_skeleton_gradient_summary"></string>
-    <string name="settings_skeleton_gradient_keywords"></string>
-    <string name="settings_marquee_title"></string>
-    <string name="settings_marquee_summary"></string>
-    <string name="settings_marquee_keywords"></string>
-    <string name="settings_classic_loader_title"></string>
-    <string name="settings_classic_loader_summary"></string>
-    <string name="settings_classic_loader_keywords"></string>
-    <string name="settings_highlight_new_title"></string>
-    <string name="settings_highlight_new_summary"></string>
-    <string name="settings_highlight_new_days_title"></string>
-    <plurals name="settings_highlight_new_days">
-    </plurals>
-    <string name="new_badge_label"></string>
-    <string name="settings_keywords_nav_labels"></string>
-    <string name="settings_nav_labels_title"></string>
-    <string name="settings_nav_labels_summary"></string>
-    <string name="settings_nav_labels_always"></string>
-    <string name="settings_nav_labels_selected"></string>
-    <string name="settings_nav_labels_never"></string>
-    <string name="settings_keywords_nav_style"></string>
-    <string name="settings_nav_style_title"></string>
-    <string name="settings_nav_style_summary"></string>
-    <string name="settings_nav_style_standard"></string>
-    <string name="settings_nav_style_floating"></string>
-    <string name="settings_nav_scroll_title"></string>
-    <string name="settings_nav_scroll_summary"></string>
-    <string name="settings_nav_scroll_hide"></string>
-    <string name="settings_nav_scroll_shrink"></string>
-    <string name="settings_nav_mini_beside_title"></string>
-    <string name="settings_nav_mini_beside_summary"></string>
-    <string name="settings_nav_scrub_title"></string>
-    <string name="settings_nav_scrub_summary"></string>
-    <string name="settings_nav_icon_pop_title"></string>
-    <string name="settings_nav_icon_pop_summary"></string>
-    <string name="settings_translation_header"></string>
-    <string name="settings_translate_with"></string>
-    <string name="translate_with_app"></string>
-    <string name="translate_with_app_summary"></string>
-    <string name="translate_with_server"></string>
-    <string name="translate_with_server_summary"></string>
-    <string name="translation_server_title"></string>
-    <string name="settings_translation_server_summary"></string>
-    <string name="translation_server_value"></string>
-    <string name="translation_server_dialog_body"></string>
-    <string name="translation_server_libretranslate"></string>
-    <string name="translation_server_lingva"></string>
-    <string name="translation_server_url_hint"></string>
-    <string name="translation_server_url_placeholder"></string>
-    <string name="translation_server_url_help"></string>
-    <string name="translation_server_invalid"></string>
-    <string name="translation_server_key_hint"></string>
-    <string name="settings_translate_to"></string>
-    <string name="translate_to_content_language"></string>
-    <string name="settings_keywords_translation"></string>
-    <string name="settings_keywords_haptics"></string>
-    <string name="settings_crossfade_title"></string>
-    <string name="settings_crossfade_summary"></string>
-    <string name="settings_crossfade_albums_title"></string>
-    <string name="settings_crossfade_albums_summary"></string>
-    <string name="settings_crossfade_auto_title"></string>
-    <string name="settings_crossfade_auto_summary"></string>
-    <string name="settings_crossfade_skip_title"></string>
-    <string name="settings_crossfade_skip_summary"></string>
-    <string name="settings_crossfade_curve_title"></string>
-    <string name="crossfade_curve_equal_power"></string>
-    <string name="crossfade_curve_equal_power_detail"></string>
-    <string name="crossfade_curve_s_curve"></string>
-    <string name="crossfade_curve_s_curve_detail"></string>
-    <string name="crossfade_curve_hold"></string>
-    <string name="crossfade_curve_hold_detail"></string>
-    <string name="crossfade_curve_gentle"></string>
-    <string name="crossfade_curve_gentle_detail"></string>
-    <string name="settings_keywords_crossfade"></string>
-    <string name="settings_crossfade_duration_title"></string>
-    <string name="settings_keywords_crossfade_duration"></string>
-    <string name="settings_milliseconds_value"></string>
-    <string name="crossfade_chart_outgoing"></string>
-    <string name="crossfade_chart_incoming"></string>
-    <string name="crossfade_pause"></string>
-    <string name="crossfade_pause_desc"></string>
-    <string name="crossfade_resume"></string>
-    <string name="settings_keywords_cache"></string>
-    <string name="settings_watch_time_average_and_week"></string>
-    <string name="playlist_export_all_action"></string>
-    <string name="playlists_export_failed"></string>
-    <plurals name="playlists_exported">
-    </plurals>
-    <plurals name="playlists_imported">
-    </plurals>
-    <string name="keyboard_shortcut_related_videos"></string>
-    <string name="keyboard_shortcut_back_to_player"></string>
-    <string name="session_lyric_repeated"></string>
-    <string name="app_lock_title"></string>
-    <string name="app_lock_summary"></string>
-    <string name="app_lock_needs_screen_lock"></string>
-    <string name="app_lock_footer"></string>
-    <string name="app_lock_after_title"></string>
-    <string name="app_lock_after_description"></string>
-    <string name="app_lock_after_immediately"></string>
-    <plurals name="app_lock_after_minutes">
-    </plurals>
-    <string name="app_lock_hide_in_recents_title"></string>
-    <string name="app_lock_hide_in_recents_summary"></string>
-    <string name="app_lock_hide_in_recents_summary_secure"></string>
-    <string name="app_lock_prompt_title"></string>
-    <string name="app_lock_screen_title"></string>
-    <string name="app_lock_screen_body"></string>
-    <string name="app_lock_unlock"></string>
-    <string name="ai_list_title"></string>
-    <string name="ai_list_block_title"></string>
-    <string name="ai_list_block_summary"></string>
-    <string name="ai_list_warn_title"></string>
-    <string name="ai_list_warn_summary"></string>
-    <string name="ai_list_status_title"></string>
-    <string name="ai_list_status_count"></string>
-    <string name="ai_list_status_pending"></string>
-    <string name="ai_list_attribution_title"></string>
-    <string name="ai_list_attribution_summary"></string>
-    <string name="ai_list_footer"></string>
-    <string name="ai_list_label"></string>
-    <string name="ai_list_channel_blocked"></string>
-    <string name="ai_list_channel_warned"></string>
-    <string name="ai_list_channel_show"></string>
-    <string name="ai_list_allowed_header"></string>
-    <string name="ai_list_hide_again"></string>
-    <string name="ai_list_hide_again_item"></string>
-    <string name="settings_keywords_ai_list"></string>
-    <string name="ai_list_status_count_now"></string>
-    <string name="ai_music_block_title"></string>
-    <string name="ai_music_artist_listed"></string>
-    <string name="ai_music_artist_show"></string>
-    <string name="ai_music_block_summary"></string>
-    <string name="ai_music_status_count"></string>
-    <string name="ai_music_status_count_now"></string>
-    <string name="ai_lists_status_count"></string>
-    <string name="ai_lists_status_count_now"></string>
-    <string name="ai_music_attribution_soul_title"></string>
-    <string name="ai_music_attribution_soul_summary"></string>
-    <string name="ai_music_attribution_blocker_title"></string>
-    <string name="ai_music_attribution_blocker_summary"></string>
-    <string name="ai_list_source_title"></string>
-    <string name="ai_list_source_default"></string>
-    <string name="ai_list_source_dialog_body"></string>
-    <string name="ai_list_source_url_hint"></string>
-    <string name="ai_list_source_key_hint"></string>
-    <string name="ai_list_source_key_help"></string>
-    <string name="ai_list_source_invalid"></string>
-    <string name="ai_list_source_reset"></string>
-    <string name="ai_report_header"></string>
-    <string name="ai_report_enabled_title"></string>
-    <string name="ai_report_enabled_summary"></string>
-    <string name="ai_report_name_title"></string>
-    <string name="ai_report_name_unset"></string>
-    <string name="ai_report_name_dialog_body"></string>
-    <string name="ai_report_name_hint"></string>
-    <string name="ai_report_footer"></string>
-    <string name="ai_report_action"></string>
-    <string name="ai_report_looking_up"></string>
-    <string name="ai_report_confirm"></string>
-    <string name="ai_report_confirm_note"></string>
-    <string name="ai_report_send"></string>
-    <string name="ai_report_already_blocked"></string>
-    <string name="ai_report_already_warned"></string>
-    <string name="ai_report_no_name"></string>
-    <string name="ai_report_no_handle"></string>
-    <string name="ai_report_sent"></string>
-    <string name="ai_report_busy"></string>
-    <string name="ai_report_rate_limited"></string>
-    <string name="ai_report_rejected"></string>
-    <string name="ai_report_failed"></string>
 </resources>
