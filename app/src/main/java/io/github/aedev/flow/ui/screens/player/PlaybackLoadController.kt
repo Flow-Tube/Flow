@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.video.AutoDownloadResolution
 import io.github.aedev.flow.data.video.AutoDownloadTrigger
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
+import io.github.aedev.flow.player.analytics.VideoStartupTrace
 import io.github.aedev.flow.player.stream.PlaybackLoadResolver
 import io.github.aedev.flow.player.stream.PlaybackResolutionRequest
 import io.github.aedev.flow.player.stream.ResolvedPlayback
@@ -169,6 +170,7 @@ internal class PlaybackLoadController(
             return
         }
 
+        VideoStartupTrace.onRequested(videoId)
         refreshFeedExclusions()
         navigationHistory.push(videoId)
         _canGoPrevious.value = navigationHistory.canGoPrevious
@@ -207,6 +209,7 @@ internal class PlaybackLoadController(
                         isCurrent = { isCurrent(loadToken) },
                         resolveUpcoming = collaborators.upcomingPremiere::resolve,
                         onStep = { step ->
+                            VideoStartupTrace.onResolved(videoId)
                             sessionApplier.apply(step, load)
                             if (step is ResolvedPlayback.VodFromInnerTube && isCurrent(loadToken)) {
                                 withContext(Dispatchers.Main) { collaborators.liveChat.startReplay(videoId) }

@@ -20,8 +20,10 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
+import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.player.MediaButtonSessionCallback
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
+import io.github.aedev.flow.player.analytics.PlaybackSessionStats
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
@@ -33,6 +35,7 @@ import io.github.aedev.flow.player.factory.LoadControlFactory
 internal object ShortsPlayerFactory {
     private const val SESSION_ID = "flow_shorts_session"
     private const val TAG = "ShortsPlayerPool"
+    private const val STATS_TAG = "FlowPlaybackStats"
 
     fun cachedDataSourceFactory(
         appContext: Context,
@@ -64,7 +67,7 @@ internal object ShortsPlayerFactory {
         equalizer: EqualizerAudioProcessor,
         dataSourceFactory: DataSource.Factory,
         preferredAudioLanguage: String,
-        currentVideoId: () -> String?,
+        slotVideoId: () -> String?,
     ): ExoPlayer {
         // The device cap is landscape; a Short is portrait, so its axes swap.
         val (maxVideoWidth, maxVideoHeight) = VideoSizeCap.forDevice(context).let { it.maxHeight to it.maxWidth }
@@ -126,16 +129,26 @@ internal object ShortsPlayerFactory {
                 repeatMode = Player.REPEAT_MODE_ONE
                 playWhenReady = false
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
-                addAnalyticsListener(PlaybackAnalyticsLogger(TAG) { currentVideoId() })
+                addAnalyticsListener(PlaybackAnalyticsLogger(TAG) { slotVideoId() })
+                if (BuildConfig.DEBUG) {
+                    val player = this
+                    addAnalyticsListener(
+                        PlaybackSessionStats(
+                            STATS_TAG,
+                            { (player.bufferedPosition - player.currentPosition).coerceAtLeast(0) },
+                            slotVideoId,
+                        ),
+                    )
+                }
                 addListener(
                     object : Player.Listener {
                         override fun onRenderedFirstFrame() {
-                            ShortsStartupTrace.onFirstFrame(currentVideoId())
+                            ShortsStartupTrace.onFirstFrame(slotVideoId())
                         }
 
                         override fun onPlaybackStateChanged(playbackState: Int) {
                             ShortsStartupTrace.onState(
-                                currentVideoId(),
+                                slotVideoId(),
                                 when (playbackState) {
                                     Player.STATE_IDLE -> "IDLE"
                                     Player.STATE_BUFFERING -> "BUFFERING"
@@ -146,7 +159,7 @@ internal object ShortsPlayerFactory {
                         }
 
                         override fun onPlayerError(error: PlaybackException) {
-                            ShortsStartupTrace.onState(currentVideoId(), "ERROR ${error.errorCodeName}: ${error.message}")
+                            ShortsStartupTrace.onState(slotVideoId(), "ERROR ${error.errorCodeName}: ${error.message}")
                         }
                     },
                 )

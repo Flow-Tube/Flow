@@ -143,6 +143,7 @@ class ShortsPlayerPool private constructor() {
         object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _anyPlaying.value = players.any { it?.isPlaying == true }
+                if (isPlaying) ShortsStartupTrace.onPlaying(_currentVideoId.value)
             }
         }
 
@@ -220,7 +221,7 @@ class ShortsPlayerPool private constructor() {
                             equalizer,
                             dataSourceFactory!!,
                             preferredAudioLanguage,
-                        ) { _currentVideoId.value }
+                        ) { slots.videoIds[i] }
                         .also {
                             it.addListener(playingListener)
                             audioSessionAnnouncers[i] =
@@ -387,6 +388,7 @@ class ShortsPlayerPool private constructor() {
 
         activeIndex = index
         activeVideoId = videoId
+        ShortsStartupTrace.onActivated(videoId)
 
         for (i in 0 until POOL_SIZE) {
             val player = players[i] ?: continue
