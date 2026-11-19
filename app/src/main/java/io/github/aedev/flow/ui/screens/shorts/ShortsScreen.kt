@@ -63,6 +63,7 @@ import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.ui.utils.rememberIsOnWifi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 private val SnackbarBottomPadding = 80.dp
 
@@ -177,10 +178,12 @@ fun ShortsScreen(
                     if (settingsSheet.isOpen && settingsSheet.targetIndex != pagerState.settledPage) settingsSheet.close()
                 }
 
+                val playPage by rememberShortsPlayPage(pagerState)
                 ShortsPagerPlaybackEffects(
-                    pagerState = pagerState,
+                    playPage = playPage,
                     shorts = uiState.shorts,
                     targetHeight = shortsTargetHeight,
+                    isWifi = isWifi,
                     playerPreferences = playerPreferences,
                     viewModel = viewModel,
                 )
@@ -200,7 +203,8 @@ fun ShortsScreen(
                     val short = uiState.shorts[page]
                     ShortsReelPage(
                         short = short,
-                        isActive = page == pagerState.currentPage,
+                        isActive = page == playPage,
+                        attachSurface = abs(page - playPage) <= 1,
                         pageIndex = page,
                         viewModel = viewModel,
                         settings = reelSettings,

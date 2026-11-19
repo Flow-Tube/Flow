@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,7 @@ private val AutoScrollBadgeEndPadding = 16.dp
 internal fun ShortsReelPage(
     short: ShortVideo,
     isActive: Boolean,
+    attachSurface: Boolean,
     pageIndex: Int,
     viewModel: ShortsViewModel,
     settings: ShortsReelSettings,
@@ -100,6 +102,8 @@ internal fun ShortsReelPage(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val playerPool = remember { ShortsPlayerPool.getInstance() }
+    val renderedVideoIds = playerPool.renderedVideoIds.collectAsState()
+    val firstFrameShown by remember(short.id) { derivedStateOf { short.id in renderedVideoIds.value } }
     val video = remember(short) { short.toVideo() }
 
     val isLiked by remember(short.id) { viewModel.isVideoLikedState(short.id) }.collectAsState()
@@ -145,6 +149,7 @@ internal fun ShortsReelPage(
         short = short,
         pageIndex = pageIndex,
         isActive = isActive,
+        attachSurface = attachSurface,
         settings = settings,
         pageState = pageState,
         sessionState = sessionState,
@@ -217,7 +222,7 @@ internal fun ShortsReelPage(
         AndroidView(factory = { playerView }, modifier = Modifier.fillMaxSize())
 
         ShortsReelPoster(
-            visible = !pageState.hasStartedPlaying && !pageState.isBuffering,
+            visible = !firstFrameShown,
             videoId = short.id,
             thumbnailUrl = short.thumbnailUrl,
         )

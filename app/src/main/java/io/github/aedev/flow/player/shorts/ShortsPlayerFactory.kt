@@ -70,6 +70,7 @@ internal object ShortsPlayerFactory {
         dataSourceFactory: DataSource.Factory,
         preferredAudioLanguage: String,
         slotVideoId: () -> String?,
+        onFirstFrame: () -> Unit,
     ): ExoPlayer {
         // The device cap is landscape; a Short is portrait, so its axes swap.
         val (maxVideoWidth, maxVideoHeight) = VideoSizeCap.forDevice(context).let { it.maxHeight to it.maxWidth }
@@ -146,6 +147,7 @@ internal object ShortsPlayerFactory {
                     object : Player.Listener {
                         override fun onRenderedFirstFrame() {
                             ShortsStartupTrace.onFirstFrame(slotVideoId())
+                            onFirstFrame()
                         }
 
                         // Per slot: the pool's own current id is set after playWhenReady, and this fires inside it.
