@@ -31,6 +31,7 @@ import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
 import io.github.aedev.flow.ui.screens.player.state.SubtitleSelection
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+import io.github.aedev.flow.utils.NetworkState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -87,6 +88,7 @@ internal fun PlayerSettingsSheetHost(
         onDismiss = onDismiss,
         onQualitySelected = { option ->
             EnhancedPlayerManager.getInstance().switchQuality(option)
+            scope.launch { playerPreferences.rememberPickedQuality(option.height, NetworkState.isOnWifi(context)) }
         },
         onAudioTrackSelected = { index ->
             EnhancedPlayerManager.getInstance().switchAudioTrack(index)

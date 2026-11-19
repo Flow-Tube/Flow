@@ -4631,6 +4631,8 @@
     <string name="settings_keywords_quality">resolution, 1080p, 4k, hd, data usage</string>
     <string name="settings_keywords_codec">h264, avc, vp9, av1, hardware decoding</string>
     <string name="settings_quality_preferred_codec">Preferred codec</string>
+    <string name="settings_quality_remember">Remember video quality</string>
+    <string name="settings_quality_remember_summary">A quality picked in the player becomes the default</string>
     <string name="settings_section_home">Home</string>
     <string name="settings_section_subscriptions">Subscriptions</string>
     <string name="settings_section_watched">Watched videos</string>
