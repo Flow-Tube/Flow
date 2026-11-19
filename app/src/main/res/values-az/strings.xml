@@ -3323,7 +3323,7 @@
     <string name="error_rate_limited_hint">Bir müddət gözləyin və yenidən cəhd edin və ya şəbəkəni dəyişdirin.</string>
     <string name="error_bot_wall">YouTube bu şəbəkəni bloklayır</string>
     <string name="error_bot_wall_hint">Başqa şəbəkəni sınayın və ya VPN-i söndürün.</string>
-    <string name="error_bot_wall_network_hint">Mobil data kimi başqa bir şəbəkəni sınayın.</string>
+    <string name="error_bot_wall_network_hint">Mobil datanı sına və ya bir müddət gözlə. Bu, adətən öz-özünə keçir.</string>
     <string name="error_bot_wall_session">YouTube bot olmadığınıza əmin olmaq istəyir</string>
     <string name="error_bot_wall_session_hint">YouTube sessiyasını sıfırlayın, sonra yenidən cəhd edin.</string>
     <string name="error_login_required">Daxil olmaq tələb olunur</string>
@@ -5216,4 +5216,12 @@
     <string name="error_members_only_hint">İzləmək üçün YouTube-da bu kanala qoşul.</string>
     <string name="error_copyright_removed">Müəllif hüquqları üçün silindi</string>
     <string name="error_copyright_removed_hint">%1$s YouTube-un bu videonu silməsini istədi.</string>
+    <string name="error_copyright_removed_hint_unnamed">Müəllif hüquqları sahibi YouTube-un bu videonu silməsini istədi.</string>
+    <string name="error_removed_by_uploader">Yükləyici tərəfindən silindi</string>
+    <string name="error_removed_by_uploader_hint">Yükləyən bu videonu YouTube-dan sildi.</string>
+    <string name="error_policy_removed">YouTube tərəfindən silindi</string>
+    <string name="error_policy_removed_hint">YouTube qaydalarını pozduğu üçün bu videonu sildi.</string>
+    <string name="error_recording_unavailable">Qeydəalma mövcud deyil</string>
+    <string name="error_recording_unavailable_hint">Bu canlı yayım YouTube-da qeydə alınmadan bitdi.</string>
+    <string name="error_bot_wall_mobile_data_hint">Wi-Fi-ı sına və ya bir müddət gözlə. Bu, adətən öz-özünə keçir.</string>
 </resources>
