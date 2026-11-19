@@ -26,6 +26,7 @@ import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
 import io.github.aedev.flow.player.renderer.CustomRenderersFactory
 import io.github.aedev.flow.player.subtitle.SubtitleDelay
+import io.github.aedev.flow.utils.NetworkState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -171,6 +172,8 @@ class PlayerFactory {
             .also {
                 it.setSeekParameters(SeekParameters.CLOSEST_SYNC)
                 it.setWakeMode(C.WAKE_MODE_LOCAL)
+                val preloadUs = LoadControlFactory.nextVideoPreloadUs(prefs.bufferForPlaybackMs, NetworkState.isDataSaverOn(context))
+                if (preloadUs > 0) it.preloadConfiguration = ExoPlayer.PreloadConfiguration(preloadUs)
                 // Renderer, decoder, surface and stall events under one tag, so a stall can be
                 // timed from logcat instead of argued about (#1298).
                 if (BuildConfig.DEBUG) {

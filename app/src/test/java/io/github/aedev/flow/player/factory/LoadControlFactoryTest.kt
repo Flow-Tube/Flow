@@ -123,6 +123,13 @@ class LoadControlFactoryTest {
         assertEquals(PlayerConfig.LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES, budget.targetBufferBytes)
     }
 
+    @Test
+    fun `the next video is buffered past its start gate, and not at all while saving data`() {
+        assertEquals(3_000_000L, LoadControlFactory.nextVideoPreloadUs(bufferForPlaybackMs = 2_500, savingData = false))
+        assertEquals(2_000_000L, LoadControlFactory.nextVideoPreloadUs(bufferForPlaybackMs = 500, savingData = false))
+        assertEquals(0L, LoadControlFactory.nextVideoPreloadUs(bufferForPlaybackMs = 2_500, savingData = true))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `the load control still rejects a profile that inverts min and rebuffer`() {
         // Keeps the checks above from passing vacuously.

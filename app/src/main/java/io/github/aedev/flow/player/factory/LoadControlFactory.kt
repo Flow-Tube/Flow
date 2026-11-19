@@ -25,6 +25,8 @@ object LoadControlFactory {
     private const val BYTES_PER_MB = 1024L * 1024L
     private const val SKIP_TAIL_START_MS = 250
     private const val SKIP_TAIL_SPARE_MS = 3_000
+    private const val MIN_NEXT_VIDEO_PRELOAD_MS = 2_000L
+    private const val NEXT_VIDEO_PRELOAD_MARGIN_MS = 500L
     private val StockMaxBufferMs = BufferProfile.entries.maxOf { it.maxBuffer }
 
     /**
@@ -70,6 +72,16 @@ object LoadControlFactory {
             targetBufferBytes = budget.targetBufferBytes,
         )
     }
+
+    /**
+     * How much of the next queued video to buffer while the current one plays: enough to start it
+     * without waiting, i.e. its start gate plus a margin, and never less than YouTube's 2 s. None while
+     * Android's Data Saver is on.
+     */
+    fun nextVideoPreloadUs(
+        bufferForPlaybackMs: Int,
+        savingData: Boolean,
+    ): Long = if (savingData) 0L else maxOf(MIN_NEXT_VIDEO_PRELOAD_MS, bufferForPlaybackMs + NEXT_VIDEO_PRELOAD_MARGIN_MS) * 1_000L
 
     /** What the main video player may buffer on this device, before the user's durations are applied. */
     internal data class VideoBudget(
