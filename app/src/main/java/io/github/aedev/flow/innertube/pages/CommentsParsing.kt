@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.RichTextEmoji
 import io.github.aedev.flow.data.model.RichTextHighlight
 import io.github.aedev.flow.data.model.RichTextSpan
+import io.github.aedev.flow.data.model.RichTextStyle
 import io.github.aedev.flow.data.model.RichTextTarget
 import io.github.aedev.flow.utils.YouTubeLink
 import io.github.aedev.flow.utils.youTubeBrowseLink
@@ -197,7 +198,36 @@ internal fun JsonElement?.toRichText(ownVideoId: String?): RichText? {
             .arrayOrNull()
             .orEmpty()
             .mapNotNull { run -> run.objectOrNull()?.toRichTextHighlight(text.length) }
-    return RichText(text = text, spans = spans, emojis = emojis, highlights = highlights)
+    val styles =
+        value["styleRuns"]
+            .arrayOrNull()
+            .orEmpty()
+            .mapNotNull { run -> run.objectOrNull()?.toRichTextStyle(text.length) }
+    return RichText(text = text, spans = spans, emojis = emojis, highlights = highlights, styles = styles)
+}
+
+private val HEAVY_WEIGHT_LABELS =
+    setOf("FONT_WEIGHT_MEDIUM", "FONT_WEIGHT_SEMIBOLD", "FONT_WEIGHT_BOLD", "FONT_WEIGHT_EXTRA_BOLD", "FONT_WEIGHT_BLACK")
+
+/**
+ * A run with no range covers the whole text, which is how a list title is made bold. Every link
+ * also carries a run, at `FONT_WEIGHT_NORMAL`, so only runs that change the face are kept.
+ */
+private fun JsonObject.toRichTextStyle(textLength: Int): RichTextStyle? {
+    val start = this["startIndex"].intOrNull() ?: 0
+    val length = this["length"].intOrNull() ?: (textLength - start)
+    if (start < 0 || length <= 0 || start + length > textLength) return null
+    val bold = this["weightLabel"].stringOrNull() in HEAVY_WEIGHT_LABELS
+    val italic = this["italic"].isOn()
+    val strikethrough = this["strikethrough"].isOn()
+    if (!bold && !italic && !strikethrough) return null
+    return RichTextStyle(start = start, length = length, bold = bold, italic = italic, strikethrough = strikethrough)
+}
+
+/** `true`, or a line style other than none: strike-through arrives as `LINE_STYLE_SINGLE`. */
+private fun JsonElement?.isOn(): Boolean {
+    val value = stringOrNull() ?: return false
+    return value == "true" || (value.startsWith("LINE_STYLE_") && value != "LINE_STYLE_NONE")
 }
 
 private fun JsonObject.toRichTextSpan(

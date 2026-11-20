@@ -62,6 +62,20 @@ data class RichTextHighlight(
 }
 
 /**
+ * A range the writer set in another face: YouTube turns `*bold*`, `_italic_` and `-strike-` in a
+ * comment into these. Server colours and fonts are left out on purpose; the theme owns those.
+ */
+data class RichTextStyle(
+    val start: Int,
+    val length: Int,
+    val bold: Boolean = false,
+    val italic: Boolean = false,
+    val strikethrough: Boolean = false,
+) {
+    val end: Int get() = start + length
+}
+
+/**
  * Text plus the spans and emoji the server described for it.
  *
  * Null on any surface still fed by the extractor, which hands over HTML and leaves the caller to
@@ -72,6 +86,7 @@ data class RichText(
     val spans: List<RichTextSpan> = emptyList(),
     val emojis: List<RichTextEmoji> = emptyList(),
     val highlights: List<RichTextHighlight> = emptyList(),
+    val styles: List<RichTextStyle> = emptyList(),
 ) {
     val hasTimestamp: Boolean get() = spans.any { it.target is RichTextTarget.Timestamp }
 }

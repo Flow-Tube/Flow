@@ -5,9 +5,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import io.github.aedev.flow.data.model.RichText
+import io.github.aedev.flow.data.model.RichTextStyle
 import io.github.aedev.flow.data.model.RichTextTarget
 
 const val RICH_TEXT_SEEK = "SEEK_SECONDS"
@@ -74,6 +76,12 @@ fun RichText.toAnnotatedString(
         append(rendered)
         if (length > 0) addStyle(SpanStyle(color = textColor), 0, length)
 
+        styles.forEach { style ->
+            val start = map(style.start)
+            val end = map(style.end.coerceAtMost(text.length))
+            if (start < end) addStyle(style.toSpanStyle(), start, end)
+        }
+
         highlightRanges.forEach { range ->
             if (!range.isEmpty()) addStringAnnotation(RICH_TEXT_HIGHLIGHT, "", range.first, range.last + 1)
         }
@@ -125,3 +133,10 @@ private fun linkStyle(
     textDecoration = if (highlighted) TextDecoration.None else TextDecoration.Underline,
     fontWeight = FontWeight.Medium,
 )
+
+private fun RichTextStyle.toSpanStyle() =
+    SpanStyle(
+        fontWeight = if (bold) FontWeight.Bold else null,
+        fontStyle = if (italic) FontStyle.Italic else null,
+        textDecoration = if (strikethrough) TextDecoration.LineThrough else null,
+    )
