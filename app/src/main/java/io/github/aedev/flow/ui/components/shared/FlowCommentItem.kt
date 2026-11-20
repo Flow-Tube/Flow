@@ -4,7 +4,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,12 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.ThumbUp
-import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -246,78 +242,6 @@ fun FlowCommentItem(
             )
         }
     }
-}
-
-@Composable
-internal fun CommentAuthorRow(
-    comment: Comment,
-    onAuthorClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        CommentAuthorName(
-            comment = comment,
-            onAuthorClick = onAuthorClick,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        if (comment.isVerified || comment.isArtist) {
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Rounded.Verified,
-                contentDescription = stringResource(R.string.verified),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(13.dp),
-            )
-        }
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = localizedCommentPublishedTime(comment.publishedTime),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun CommentAuthorName(
-    comment: Comment,
-    onAuthorClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val name = formatAuthorName(comment.author)
-    val clickable =
-        modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = ripple(),
-            onClick = { onAuthorClick(commentAuthorChannelRef(comment)) },
-        )
-    if (comment.isCreator) {
-        Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            shape = CircleShape,
-            modifier = clickable,
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            )
-        }
-        return
-    }
-    Text(
-        text = name,
-        style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = clickable,
-    )
 }
 
 /**
