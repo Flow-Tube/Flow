@@ -317,6 +317,17 @@ object InnerTubeVideoStreamExtractor {
     /** What YouTube said about [videoId] when its last extraction failed, in its own terms. */
     fun refusalOf(videoId: String): YouTubeRefusal? = refusals[videoId]
 
+    private val promotedHandoff = ExtractionHandoff { System.nanoTime() / 1_000_000 }
+
+    /** Offers the extraction behind a preloaded window the player just advanced into. */
+    internal fun handOffPromoted(
+        videoId: String,
+        result: VideoExtractionResult,
+    ) = promotedHandoff.offer(videoId, result)
+
+    /** The promoted window's extraction, once, when [videoId] is the video that was promoted. */
+    internal fun takePromoted(videoId: String): VideoExtractionResult? = promotedHandoff.take(videoId)
+
     private fun recordBlock(
         videoId: String,
         failureReasons: List<String>,
