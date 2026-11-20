@@ -17,9 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
-import io.github.aedev.flow.utils.formatLikeCount
 
 @Composable
 fun FlowCommentItem(
@@ -225,12 +222,22 @@ fun FlowCommentItem(
         }
 
         if (threadOpen) {
+            val creatorAvatar =
+                remember(comment) {
+                    comment.creatorHeartThumbnail
+                        ?: comment.creatorReplyThumbnail
+                        ?: comment.replies
+                            .firstOrNull { it.isCreator }
+                            ?.authorThumbnail
+                            ?.takeIf(String::isNotBlank)
+                }
             ReplyThread(
                 replies = comment.replies,
                 hasMore = comment.continuationToken != null,
                 loadingMore = isLoadingReplies,
                 isUnfolded = isUnfolded,
                 onUnfold = onUnfold,
+                creatorAvatar = creatorAvatar,
                 tint = tint,
                 onSeekMs = onSeekMs,
                 onAuthorClick = onAuthorClick,
@@ -239,45 +246,6 @@ fun FlowCommentItem(
                     isLoadingReplies = true
                     onLoadMoreReplies(comment)
                 },
-            )
-        }
-    }
-}
-
-/**
- * The like count, and the heart the creator left on this comment.
- *
- * The thumbs-down and reply icons that used to sit here were decoration: neither was clickable,
- * and neither has an action this app can perform without a signed-in session.
- */
-@Composable
-internal fun CommentEngagementRow(
-    comment: Comment,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = Icons.Outlined.ThumbUp,
-            contentDescription = stringResource(R.string.like),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(14.dp),
-        )
-        val likeText = comment.likeCountText.takeIf { it.isNotBlank() } ?: comment.likeCount.takeIf { it > 0 }?.let(::formatLikeCount)
-        if (likeText != null) {
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = likeText,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (comment.isHearted) {
-            Spacer(modifier = Modifier.width(14.dp))
-            Icon(
-                imageVector = Icons.Filled.Favorite,
-                contentDescription = comment.heartedByText ?: stringResource(R.string.comment_hearted_by_creator),
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(14.dp),
             )
         }
     }

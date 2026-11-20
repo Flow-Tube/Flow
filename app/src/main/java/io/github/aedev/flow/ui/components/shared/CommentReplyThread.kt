@@ -52,6 +52,7 @@ internal fun ReplyThread(
     loadingMore: Boolean,
     isUnfolded: (String) -> Boolean,
     onUnfold: (String) -> Unit,
+    creatorAvatar: String?,
     tint: MediaArtworkTint?,
     onSeekMs: (Long) -> Unit,
     onAuthorClick: (String) -> Unit,
@@ -74,6 +75,7 @@ internal fun ReplyThread(
                             onAuthorClick = onAuthorClick,
                             onAvatarClick = onAvatarClick,
                             tint = tint,
+                            creatorAvatar = creatorAvatar,
                             modifier =
                                 Modifier
                                     .commentThreadLines(lines, lineColor)

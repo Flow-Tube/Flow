@@ -34,6 +34,7 @@ fun FlowReplyItem(
     onAuthorClick: (String) -> Unit = {},
     onAvatarClick: (String) -> Unit = {},
     tint: MediaArtworkTint? = null,
+    creatorAvatar: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -113,7 +114,7 @@ fun FlowReplyItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            CommentEngagementRow(comment = reply)
+            CommentEngagementRow(comment = reply, creatorAvatar = creatorAvatar)
         }
     }
 }
