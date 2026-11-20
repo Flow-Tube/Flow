@@ -15,9 +15,11 @@ internal object QualityIndex {
         section: Int,
         keywords: Int = R.string.settings_keywords_quality,
         revealVia: String? = null,
+        summary: Int? = null,
     ) = SettingEntry(
         key = "quality.$key",
         title = title,
+        summary = summary,
         tab = tab,
         section = section,
         keywords = keywords,
@@ -28,6 +30,14 @@ internal object QualityIndex {
     val videoWifi = entry("video.wifi", R.string.settings_quality_wifi, SettingsTabs.QUALITY_VIDEO, R.string.settings_quality_tab_video)
     val videoMobile =
         entry("video.mobile", R.string.settings_quality_mobile, SettingsTabs.QUALITY_VIDEO, R.string.settings_quality_tab_video)
+    val rememberVideo =
+        entry(
+            "video.remember",
+            R.string.settings_quality_remember,
+            SettingsTabs.QUALITY_VIDEO,
+            R.string.settings_quality_tab_video,
+            summary = R.string.settings_quality_remember_summary,
+        )
     val codec =
         entry(
             "video.codec",
@@ -66,5 +76,17 @@ internal object QualityIndex {
         )
     val music = entry("music", R.string.music_quality_header, SettingsTabs.QUALITY_MUSIC, R.string.settings_quality_tab_music)
 
-    val all = listOf(videoWifi, videoMobile, codec, fallbackCodec, thumbnailsWifi, thumbnailsMobile, shortsWifi, shortsMobile, music)
+    val all =
+        listOf(
+            videoWifi,
+            videoMobile,
+            rememberVideo,
+            codec,
+            fallbackCodec,
+            thumbnailsWifi,
+            thumbnailsMobile,
+            shortsWifi,
+            shortsMobile,
+            music,
+        )
 }

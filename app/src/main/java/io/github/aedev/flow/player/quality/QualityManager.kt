@@ -47,8 +47,15 @@ class QualityManager(
 
     var isDashSource = false
 
+    private var activeLadderKeys: Set<String> = emptySet()
+
     /** Media3 is adapting over a ladder source, so Auto's own bandwidth checks stand down. */
-    var isAdaptiveLadderActive = false
+    val isAdaptiveLadderActive: Boolean get() = activeLadderKeys.isNotEmpty()
+
+    /** The rungs of the source now loaded; empty when it is a single stream. */
+    fun setActiveLadder(ladder: List<VideoStream>) {
+        activeLadderKeys = ladder.mapTo(HashSet(), ::streamKey)
+    }
 
     // Available streams
     private var availableVideoStreams: List<VideoStream> = emptyList()
@@ -95,7 +102,7 @@ class QualityManager(
         manualQualityHeight = null
         consecutiveBufferingCount = 0
         lastQualitySwitchTime = 0L
-        isAdaptiveLadderActive = false
+        activeLadderKeys = emptySet()
         applyAdaptiveTrackSelectorDefaults()
     }
 
@@ -148,6 +155,9 @@ class QualityManager(
                 !failedStreamVariants.contains(failureVariantKey(it))
         }
 
+    /** What Auto may climb to: working streams this device decodes well, within its size cap. */
+    private fun autoStreams(): List<VideoStream> = VideoDecoderSupport.forAuto(getWorkingStreams()).filter(videoSizeCap::fits)
+
     private fun qualityHeight(stream: VideoStream): Int = normalizeQualityHeight(VideoCodecUtils.qualityHeightFromStream(stream))
 
     /**
@@ -155,7 +165,7 @@ class QualityManager(
      */
     fun selectSmartInitialQuality(): VideoStream? {
         val estimatedBandwidth = bandwidthMeter?.bitrateEstimate ?: PlayerConfig.INITIAL_BANDWIDTH_ESTIMATE
-        val smartStream = AutoQualityPolicy.initialPick(getWorkingStreams(), estimatedBandwidth, preferredCodecKey)
+        val smartStream = AutoQualityPolicy.initialPick(autoStreams(), estimatedBandwidth, preferredCodecKey)
         Log.d(
             TAG,
             "Smart quality selection: bandwidth=${estimatedBandwidth / 1_000_000}Mbps, selected=${smartStream?.let(::qualityHeight)}p",
@@ -165,7 +175,7 @@ class QualityManager(
 
     /** The qualities Auto hands to Media3 around [anchor], or none while a quality is pinned. */
     fun adaptiveLadder(anchor: VideoStream?): List<VideoStream> =
-        if (isAdaptiveQualityEnabled) AdaptiveLadder.rungs(anchor, getWorkingStreams()) else emptyList()
+        if (isAdaptiveQualityEnabled) AdaptiveLadder.rungs(anchor, autoStreams()) else emptyList()
 
     /**
      * Build quality options list for UI.
@@ -222,12 +232,13 @@ class QualityManager(
 
         Log.d(TAG, "Switching to FIXED quality: ${height}p")
 
-        // Find the stream matching this height
+        // Find the stream matching this height, a rung of the loaded ladder first
         val targetStream =
             getWorkingStreams()
                 .filter { qualityHeight(it) == height }
                 .minWithOrNull(
-                    compareBy<VideoStream> { VideoCodecUtils.codecRankWithPreference(it, preferredCodecKey) }
+                    compareBy<VideoStream> { streamKey(it) !in activeLadderKeys }
+                        .thenBy { VideoCodecUtils.codecRankWithPreference(it, preferredCodecKey) }
                         .thenByDescending { it.bitrate },
                 )
         if (targetStream == null) {
@@ -237,7 +248,7 @@ class QualityManager(
 
         val targetHeight = qualityHeight(targetStream)
         currentVideoStream = targetStream
-        onQualitySwitch(targetStream, currentPosition)
+        if (!pinWithinLadder(targetStream)) onQualitySwitch(targetStream, currentPosition)
 
         stateFlow.value =
             stateFlow.value.copy(
@@ -275,7 +286,7 @@ class QualityManager(
 
         if (isDashSource) {
             switchDashQualitySeamlessly(targetStream.height, targetHeight)
-        } else {
+        } else if (!pinWithinLadder(targetStream)) {
             onQualitySwitch(targetStream, currentPosition)
         }
 
@@ -293,7 +304,8 @@ class QualityManager(
      * whenever a ladder can take over from it, not only when the starting quality differs.
      */
     private fun enableAdaptiveQuality(currentPosition: Long) {
-        val alreadyAdapting = isAdaptiveQualityEnabled && isAdaptiveLadderActive
+        // A pick inside the ladder only constrained it, so lifting the constraint is all Auto needs.
+        val alreadyAdapting = isAdaptiveLadderActive
         isAdaptiveQualityEnabled = true
         manualQualityHeight = null
 
@@ -305,7 +317,7 @@ class QualityManager(
         }
 
         val estimatedBandwidth = bandwidthMeter?.bitrateEstimate ?: PlayerConfig.INITIAL_BANDWIDTH_ESTIMATE
-        val targetStream = AutoQualityPolicy.initialPick(getWorkingStreams(), estimatedBandwidth, preferredCodecKey)
+        val targetStream = AutoQualityPolicy.initialPick(autoStreams(), estimatedBandwidth, preferredCodecKey)
         Log.d(TAG, "Auto quality: estimated bandwidth ${estimatedBandwidth / 1_000_000}Mbps -> ${targetStream?.let(::qualityHeight)}p")
 
         val heightChanges = targetStream != null && qualityHeight(targetStream) != currentVideoStream?.let(::qualityHeight)
@@ -335,7 +347,7 @@ class QualityManager(
         if (!isAdaptiveQualityEnabled || isAdaptiveLadderActive) return
         val current = currentVideoStream ?: return
         val estimatedBandwidth = bandwidthMeter?.bitrateEstimate ?: return
-        val next = AutoQualityPolicy.stepUp(current, getWorkingStreams(), estimatedBandwidth, preferredCodecKey) ?: return
+        val next = AutoQualityPolicy.stepUp(current, autoStreams(), estimatedBandwidth, preferredCodecKey) ?: return
         Log.d(
             TAG,
             "Adaptive UPGRADE: ${qualityHeight(current)}p -> ${qualityHeight(next)}p (bandwidth: ${estimatedBandwidth / 1_000_000}Mbps)",
@@ -409,6 +421,16 @@ class QualityManager(
                 effectiveQuality = targetHeight,
                 currentQualityKey = null,
             )
+    }
+
+    /**
+     * A pick that is already a rung of the loaded ladder holds Media3 on that rung, so the buffer
+     * switches in place instead of the whole source being rebuilt.
+     */
+    private fun pinWithinLadder(target: VideoStream): Boolean {
+        if (streamKey(target) !in activeLadderKeys) return false
+        switchDashQualitySeamlessly(target.height, qualityHeight(target))
+        return true
     }
 
     /**

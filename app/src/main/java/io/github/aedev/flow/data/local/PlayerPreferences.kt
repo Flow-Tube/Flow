@@ -455,6 +455,7 @@ class PlayerPreferences(
         val LINKED_LEFT_OUT = device(stringSetPreferencesKey("linked_left_out"))
         val LINKED_TAKEN_BACK = device(stringSetPreferencesKey("linked_taken_back"))
         val DEFAULT_QUALITY_CELLULAR = device(stringPreferencesKey("default_quality_cellular"))
+        val REMEMBER_VIDEO_QUALITY = device(booleanPreferencesKey("remember_video_quality"))
         val DEFAULT_VIDEO_CODEC = device(stringPreferencesKey("default_video_codec"))
         val FALLBACK_VIDEO_CODEC = device(stringPreferencesKey("fallback_video_codec"))
         val TILT_FULLSCREEN_ROTATION_LOCKED = device(booleanPreferencesKey("tilt_fullscreen_rotation_locked"))
@@ -2084,13 +2085,13 @@ class PlayerPreferences(
     val defaultQualityWifi: Flow<VideoQuality> =
         context.devicePreferencesDataStore.data
             .map { preferences ->
-                VideoQuality.fromString(preferences[DeviceKeys.DEFAULT_QUALITY_WIFI] ?: "1080p")
+                VideoQuality.fromString(preferences[DeviceKeys.DEFAULT_QUALITY_WIFI] ?: VideoQuality.AUTO.label)
             }
 
     val defaultQualityCellular: Flow<VideoQuality> =
         context.devicePreferencesDataStore.data
             .map { preferences ->
-                VideoQuality.fromString(preferences[DeviceKeys.DEFAULT_QUALITY_CELLULAR] ?: "480p")
+                VideoQuality.fromString(preferences[DeviceKeys.DEFAULT_QUALITY_CELLULAR] ?: VideoQuality.AUTO.label)
             }
 
     suspend fun setDefaultQualityWifi(quality: VideoQuality) {
@@ -2103,6 +2104,24 @@ class PlayerPreferences(
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.DEFAULT_QUALITY_CELLULAR] = quality.label
         }
+    }
+
+    /** Whether a quality picked in the player becomes the default for the network it was picked on (#2178). */
+    val rememberVideoQuality: Flow<Boolean> =
+        context.devicePreferencesDataStore.data.map { it[DeviceKeys.REMEMBER_VIDEO_QUALITY] ?: false }
+
+    suspend fun setRememberVideoQuality(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { it[DeviceKeys.REMEMBER_VIDEO_QUALITY] = enabled }
+    }
+
+    /** Saves an in-player pick ([height] 0 is Auto) as this network's default, when [rememberVideoQuality] is on. */
+    suspend fun rememberPickedQuality(
+        height: Int,
+        onWifi: Boolean,
+    ) {
+        if (!rememberVideoQuality.first()) return
+        val quality = if (height <= 0) VideoQuality.AUTO else VideoQuality.fromHeight(height)
+        if (onWifi) setDefaultQualityWifi(quality) else setDefaultQualityCellular(quality)
     }
 
     val defaultVideoCodec: Flow<VideoCodec> =

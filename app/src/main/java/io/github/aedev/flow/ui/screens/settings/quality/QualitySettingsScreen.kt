@@ -26,6 +26,7 @@ import io.github.aedev.flow.ui.components.settings.SettingsTabs
 import io.github.aedev.flow.ui.components.settings.nav
 import io.github.aedev.flow.ui.components.settings.notice
 import io.github.aedev.flow.ui.components.settings.option
+import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.shared.FlowChoice
 import io.github.aedev.flow.ui.components.shared.FlowChoiceDialog
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
@@ -136,6 +137,7 @@ internal fun QualitySettingsScreen(
                         picker =
                             QualityPicker.VIDEO_MOBILE
                     })
+                    switch(QualityIndex.rememberVideo, viewModel.rememberVideo, viewModel::setRememberVideo)
                 }
                 group(key = "quality.video.codec", header = R.string.settings_section_codec) {
                     nav(QualityIndex.codec, value = codecLabel, showChevron = false, onClick = { picker = QualityPicker.CODEC })
