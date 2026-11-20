@@ -96,6 +96,7 @@ class PlaybackSettingsViewModel
         val autoCaptions = preferences.autoEnableSubtitles.asState(false)
 
         val relatedVideos = preferences.showRelatedVideos.asState(true)
+        val relatedCollections = preferences.showRelatedCollections.asState(true)
         val relatedCardStyle = preferences.playerRelatedCardStyle.asState(PlayerRelatedCardStyle.FULL_WIDTH)
         val titleLines = preferences.videoTitleMaxLines.asState(1)
         val comments = preferences.commentsEnabled.asState(true)
@@ -266,6 +267,8 @@ class PlaybackSettingsViewModel
         fun setAutoCaptions(value: Boolean) = write { preferences.setAutoEnableSubtitles(value) }
 
         fun setRelatedVideos(value: Boolean) = write { preferences.setShowRelatedVideos(value) }
+
+        fun setRelatedCollections(value: Boolean) = write { preferences.setShowRelatedCollections(value) }
 
         fun setRelatedCardStyle(value: PlayerRelatedCardStyle) = write { preferences.setPlayerRelatedCardStyle(value) }
 

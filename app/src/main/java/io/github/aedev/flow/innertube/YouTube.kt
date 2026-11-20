@@ -58,6 +58,7 @@ import io.github.aedev.flow.innertube.pages.HistoryPage
 import io.github.aedev.flow.innertube.pages.HomePage
 import io.github.aedev.flow.innertube.pages.LibraryContinuationPage
 import io.github.aedev.flow.innertube.pages.LibraryPage
+import io.github.aedev.flow.innertube.pages.LiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
 import io.github.aedev.flow.innertube.pages.NewReleaseAlbumPage
 import io.github.aedev.flow.innertube.pages.NextPage
@@ -122,6 +123,7 @@ import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
 import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
+import io.github.aedev.flow.innertube.pages.toLiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
 import io.github.aedev.flow.innertube.pages.toTimedComments
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
@@ -351,7 +353,8 @@ object YouTube {
             )
         }
 
-    suspend fun videoAvatarStack(videoId: String): Result<List<String>> =
+    /** A collaboration's channels and its avatar stack, read from one watch request. */
+    suspend fun videoOwnerCredits(videoId: String): Result<Pair<List<VideoCollaborator>, List<String>>> =
         runCatching {
             val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
             val root =
@@ -359,19 +362,10 @@ object YouTube {
                     ignoreUnknownKeys = true
                     explicitNulls = false
                 }.parseToJsonElement(rawBody)
-            root.findVideoOwnerAvatarStackUrls()
+            root.findVideoOwnerCollaborators() to root.findVideoOwnerAvatarStackUrls()
         }
 
-    suspend fun videoCollaborators(videoId: String): Result<List<VideoCollaborator>> =
-        runCatching {
-            val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
-            val root =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }.parseToJsonElement(rawBody)
-            root.findVideoOwnerCollaborators()
-        }
+    suspend fun videoCollaborators(videoId: String): Result<List<VideoCollaborator>> = videoOwnerCredits(videoId).map { it.first }
 
     private fun JsonElement.collectAvatarImageUrls(): List<String> {
         val urls = mutableListOf<String>()
@@ -2210,6 +2204,22 @@ object YouTube {
     suspend fun watchNextJson(videoId: String): Result<JsonElement> =
         runCatching {
             Json.parseToJsonElement(innerTube.nextWatch(videoId = videoId).bodyAsText())
+        }
+
+    /** The next page of a watch page's related lane, from the same host and client as the first. */
+    suspend fun relatedContinuationJson(continuation: String): Result<JsonElement> =
+        runCatching {
+            Json.parseToJsonElement(innerTube.nextWatch(continuation = continuation).bodyAsText())
+        }
+
+    /** The live counts [videoId]'s watch page asks for, or the next round of them through [continuation]. */
+    suspend fun updatedMetadata(
+        videoId: String,
+        continuation: String?,
+    ): Result<LiveMetadataUpdate> =
+        runCatching {
+            val response = innerTube.updatedMetadata(videoId = videoId.takeIf { continuation == null }, continuation = continuation)
+            Json.parseToJsonElement(response.bodyAsText()).toLiveMetadataUpdate(locale.hl)
         }
 
     /** The description, its typed spans and the figures beside it, from an already-fetched watch response. */

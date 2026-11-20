@@ -150,6 +150,8 @@ fun FlowCommentsList(
                         onToggleReplies = { threads.toggleReplies(comment.id) },
                         isExpanded = threads.isTextExpanded(comment.id),
                         onExpand = { threads.expandText(comment.id) },
+                        isUnfolded = { threads.isUnfolded(it) },
+                        onUnfold = { threads.unfold(it) },
                     )
                 }
             }

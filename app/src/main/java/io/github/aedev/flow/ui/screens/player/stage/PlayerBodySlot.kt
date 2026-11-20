@@ -23,6 +23,7 @@ internal fun PlayerBodySlot(
     onClose: () -> Unit,
     onNavigateToChannel: (String) -> Unit,
     onNavigateToShorts: (String) -> Unit,
+    onNavigateToPlaylist: (String) -> Unit,
 ) {
     val video = session.video
     val screenState = session.screenState
@@ -52,6 +53,7 @@ internal fun PlayerBodySlot(
             onChannelClick = { channelId ->
                 onNavigateToChannel(channelId)
             },
+            onPlaylistClick = onNavigateToPlaylist,
         )
 
         if (screenState.isTouchLocked && !screenState.isFullscreen && !localIsInPipMode && !isLandscape) {

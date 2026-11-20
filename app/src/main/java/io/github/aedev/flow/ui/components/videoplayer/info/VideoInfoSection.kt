@@ -8,6 +8,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,11 +21,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
-import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
+import io.github.aedev.flow.innertube.pages.ChannelBadge
+import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
 import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.CollaboratorsBottomSheet
@@ -31,22 +35,27 @@ import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChannelDisplayName
 import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
+import io.github.aedev.flow.ui.components.shared.rememberRichTextLinkActions
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.DateContext
 import io.github.aedev.flow.utils.avatarImageIdentityKey
 import io.github.aedev.flow.utils.formatSubscriberCount
 import io.github.aedev.flow.utils.formatViewCount
+import io.github.aedev.flow.utils.toAnnotatedString
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun VideoInfoSection(
     video: Video,
     title: String,
+    titleMaxLines: Int,
+    superTitle: RichText? = null,
     viewCount: Long,
     uploadDate: String?,
     description: String?,
     isUpcoming: Boolean = false,
     channelName: String,
+    channelBadge: ChannelBadge? = null,
     channelAvatarUrl: String,
     channelAvatarUrls: List<String> = emptyList(),
     collaborators: List<VideoCollaborator> = emptyList(),
@@ -109,9 +118,6 @@ internal fun VideoInfoSection(
     ) {
         // ============ TITLE SECTION ============
         val context = LocalContext.current
-        val prefs = remember { PlayerPreferences(context) }
-        val titleMaxLinesPref by prefs.videoTitleMaxLines.collectAsState(initial = 1)
-        val titleMaxLines = if (titleMaxLinesPref <= 0) Int.MAX_VALUE else titleMaxLinesPref
         val dateSettings = rememberDateDisplaySettings()
         // Title, counts and "…more" are one target: tapping any of them opens the description,
         // which is what the "…more" affordance was already promising.
@@ -123,17 +129,14 @@ internal fun VideoInfoSection(
                     .clip(MaterialTheme.shapes.small)
                     .clickable(onClick = onDescriptionClick),
         ) {
+            superTitle?.let { VideoSuperTitle(it) }
+
             Text(
                 text = title,
-                style =
-                    MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        lineHeight = 28.sp,
-                    ),
+                style = MaterialTheme.typography.headlineMediumEmphasized,
                 color = MaterialTheme.colorScheme.onBackground,
-                maxLines = titleMaxLines,
-                overflow = if (titleMaxLinesPref <= 0) TextOverflow.Clip else TextOverflow.Ellipsis,
+                maxLines = if (titleMaxLines <= 0) Int.MAX_VALUE else titleMaxLines,
+                overflow = if (titleMaxLines <= 0) TextOverflow.Clip else TextOverflow.Ellipsis,
                 modifier =
                     Modifier.combinedClickable(
                         onClick = onDescriptionClick,
@@ -215,17 +218,21 @@ internal fun VideoInfoSection(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = displayChannelName,
-                        style =
-                            MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                            ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = displayChannelName,
+                            style =
+                                MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        // A collaboration names several channels, and the badge belongs to one of them.
+                        if (channelBadge != null && collaborators.size <= 1) ChannelBadgeIcon(channelBadge)
+                    }
 
                     val subText = subscriberCount?.let { formatSubscriberCount(it) } ?: ""
                     if (subText.isNotEmpty()) {
@@ -308,4 +315,33 @@ internal fun VideoInfoSection(
     }
 }
 
+/** The hashtags or the place above the title; a hashtag searches for itself, as Flow has no hashtag page. */
+@Composable
+private fun VideoSuperTitle(line: RichText) {
+    val navigator = LocalMediaNavigator.current
+    val color = MaterialTheme.colorScheme.primary
+    val actions = rememberRichTextLinkActions(onHashtag = { tag -> navigator.openSearch("#$tag") })
+    val text = remember(line, color, actions) { line.toAnnotatedString(linkColor = color, textColor = color, actions = actions) }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun ChannelBadgeIcon(badge: ChannelBadge) {
+    Icon(
+        imageVector = if (badge == ChannelBadge.ARTIST) Icons.Rounded.MusicNote else Icons.Rounded.CheckCircle,
+        contentDescription = stringResource(if (badge == ChannelBadge.ARTIST) R.string.channel_badge_artist else R.string.verified),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier =
+            Modifier
+                .padding(start = 4.dp)
+                .size(BadgeSize),
+    )
+}
+
 private val InfoPadding = 12.dp
+private val BadgeSize = 14.dp
