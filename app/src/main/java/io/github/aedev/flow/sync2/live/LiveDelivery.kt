@@ -22,3 +22,23 @@ internal suspend fun deliverLive(
         }
     }
 }
+
+/**
+ * Starts live traffic on a session over [transport] that was opened to carry [waiting]. [attach]
+ * joins the session to the live channel, or is null when this device only serves it. Returns how
+ * to leave the channel again.
+ */
+internal suspend fun startSessionLive(
+    transport: LiveTransport,
+    waiting: ByteArray?,
+    attach: (suspend (LiveTransport) -> () -> Unit)?,
+): (() -> Unit)? {
+    val detach = attach?.invoke(transport)
+    try {
+        waiting?.let { transport.send(it) }
+    } catch (e: Throwable) {
+        detach?.invoke()
+        throw e
+    }
+    return detach
+}
