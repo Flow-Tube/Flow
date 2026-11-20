@@ -41,9 +41,12 @@ object PlayerConfig {
     /** Min buffer cap when Android reports a small app heap. */
     const val LOW_MEMORY_MAX_SAFE_MAIN_MIN_BUFFER_MS = 8_000
 
+    /** App heaps below this get the smallest video buffer; 256 MB is what most phones report. */
+    const val SMALL_HEAP_MB = 192
+
     const val MAIN_TARGET_BUFFER_BYTES = 32 * 1024 * 1024
 
-    /** Smaller target buffer budgets for devices with 256-384 MB app heaps. */
+    /** Target buffer budgets for heaps under 192 MB (or low-RAM devices) and for 192-384 MB heaps. */
     const val LOW_MEMORY_MAIN_TARGET_BUFFER_BYTES = 4 * 1024 * 1024
     const val MID_MEMORY_MAIN_TARGET_BUFFER_BYTES = 12 * 1024 * 1024
 
