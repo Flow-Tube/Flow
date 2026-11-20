@@ -7,18 +7,21 @@ import io.github.aedev.flow.data.engagement.VideoEngagementUseCase
 import io.github.aedev.flow.data.local.HomeFeedCacheRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ViewHistory
+import io.github.aedev.flow.data.localmedia.LocalMediaDetails
 import io.github.aedev.flow.data.localmedia.LocalSubtitles
 import io.github.aedev.flow.data.model.Video
-import io.github.aedev.flow.data.recommendation.FeedExclusions
 import io.github.aedev.flow.data.repository.LiveChatRepository
 import io.github.aedev.flow.data.repository.SponsorBlockRepository
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.data.transcript.TranscriptRepository
+import io.github.aedev.flow.data.video.AutoDownloadTrigger
 import io.github.aedev.flow.data.video.OfflineSubtitleStore
+import io.github.aedev.flow.data.video.SavedVideoQueue
 import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.innertube.models.response.ChatReplaySeed
 import io.github.aedev.flow.player.EnhancedPlayerManager
+import io.github.aedev.flow.player.stream.PlaybackLoadResolver
 import io.github.aedev.flow.player.stream.UpcomingPremiereProbe
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.ui.screens.player.state.richVideoFor
@@ -59,12 +62,16 @@ internal class PlayerCollaborators(
     scope: CoroutineScope,
     networkDispatcher: CoroutineDispatcher,
     ioDispatcher: CoroutineDispatcher,
-    isLoadCurrent: (Long) -> Boolean,
-    currentLoadToken: () -> Long,
-    shortsEnabled: () -> Boolean,
-    originalTitles: () -> Boolean,
-    exclusions: () -> FeedExclusions,
+    playbackResolver: PlaybackLoadResolver,
+    localMediaDetails: LocalMediaDetails,
+    notes: PlayerNotes,
+    autoDownload: AutoDownloadTrigger,
+    resumePlayback: (Video) -> Unit,
+    savedQueue: suspend () -> SavedVideoQueue?,
+    resumeQueue: (videos: List<Video>, index: Int, title: String?) -> Unit,
 ) {
+    private val isLoadCurrent: (Long) -> Boolean = { loads.isCurrent(it) }
+
     val comments =
         CommentsPager(
             repository = repository,
@@ -110,8 +117,8 @@ internal class PlayerCollaborators(
             networkDispatcher = networkDispatcher,
             currentState = { uiState.value },
             relatedVideosFor = ::relatedVideosFor,
-            shortsEnabled = shortsEnabled,
-            exclusions = exclusions,
+            shortsEnabled = { loads.shortsEnabled },
+            exclusions = { loads.exclusions },
             isPlaybackCurrent = isLoadCurrent,
             onResult = { result -> sessionApplier.applySecondary(result) },
         )
@@ -125,7 +132,7 @@ internal class PlayerCollaborators(
             videoStats = videoStats,
             scope = scope,
             networkDispatcher = networkDispatcher,
-            shortsEnabled = shortsEnabled,
+            shortsEnabled = { loads.shortsEnabled },
             relatedVideosFor = ::relatedVideosFor,
             richVideoFor = { videoId -> uiState.value.richVideoFor(videoId) },
         )
@@ -169,7 +176,7 @@ internal class PlayerCollaborators(
             isLoadCurrent = isLoadCurrent,
             // A countdown the video's own metadata enters skips the load, so it arms what a load would.
             armMetadata = { videoId ->
-                sessionApplier.armCountdownMetadata(LoadContext(videoId, currentLoadToken()), emptyList())
+                sessionApplier.armCountdownMetadata(LoadContext(videoId, loads.token), emptyList())
             },
         )
 
@@ -179,7 +186,7 @@ internal class PlayerCollaborators(
             uiState = uiState,
             isLoadCurrent = isLoadCurrent,
             playbackPreparer = playbackPreparer,
-            streamPreparer = PlaybackStreamPreparer(originalText = originalTitles),
+            streamPreparer = PlaybackStreamPreparer(originalText = { loads.originalTitles }),
             secondaryMetadata = secondaryMetadata,
             liveChat = liveChat,
             repository = repository,
@@ -195,6 +202,56 @@ internal class PlayerCollaborators(
             ioDispatcher = ioDispatcher,
             enterUpcoming = upcomingPremiere::enterCountdown,
             tryEnterUpcoming = upcomingPremiere::tryEnterCountdown,
+        )
+
+    val recovery =
+        PlaybackRecoveryController(
+            context = context,
+            uiState = uiState,
+            playerManager = playerManager,
+            playerPreferences = playerPreferences,
+            scope = scope,
+            cancelLoad = { loads.cancel(invalidateToken = true) },
+        )
+
+    val settings =
+        PlaybackSettingsController(
+            uiState = uiState,
+            playerManager = playerManager,
+            playerPreferences = playerPreferences,
+            scope = scope,
+        )
+
+    val presence =
+        PlaybackPresenceController(
+            uiState = uiState,
+            playerManager = playerManager,
+            playerPreferences = playerPreferences,
+            viewHistory = viewHistory,
+            scope = scope,
+            ioDispatcher = ioDispatcher,
+            resumePlayback = resumePlayback,
+            savedQueue = savedQueue,
+            resumeQueue = resumeQueue,
+        )
+
+    val loads: PlaybackLoadController =
+        PlaybackLoadController(
+            context = context,
+            uiState = uiState,
+            resolver = playbackResolver,
+            playerManager = playerManager,
+            playerPreferences = playerPreferences,
+            viewHistory = viewHistory,
+            localMediaDetails = localMediaDetails,
+            collaborators = this,
+            notes = notes,
+            recovery = recovery,
+            presence = presence,
+            autoDownload = autoDownload,
+            scope = scope,
+            networkDispatcher = networkDispatcher,
+            ioDispatcher = ioDispatcher,
         )
 
     private fun relatedVideosFor(videoId: String): List<Video> =

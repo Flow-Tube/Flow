@@ -1,11 +1,9 @@
 package io.github.aedev.flow.ui.screens.player
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ViewHistory
-import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.localmedia.LocalSubtitles
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
@@ -22,7 +20,6 @@ import io.github.aedev.flow.player.error.VideoErrorMapper
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.PlayabilityVerdict
 import io.github.aedev.flow.player.stream.PlaybackFailure
-import io.github.aedev.flow.player.stream.ResolvedCaption
 import io.github.aedev.flow.player.stream.ResolvedPlayback
 import io.github.aedev.flow.player.stream.StoryboardSpec
 import io.github.aedev.flow.player.stream.UpcomingDetails
@@ -37,7 +34,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 
 /** The load a step belongs to: the video it resolved for, and the token saying it is still current. */
 internal data class LoadContext(
@@ -49,14 +45,14 @@ internal data class LoadContext(
  * Applies what one load resolved: the screen state each step lands on, the hand-off to the player,
  * and the metadata fetches that follow it — in the order the load produced them.
  *
- * This is the second writer of the player screen's state, alongside [VideoPlayerViewModel]: the
- * ViewModel owns the session entry points and the player-state mirror, this class owns everything a
- * resolved step and its secondary metadata land on. Both write the one [MutableStateFlow] the
+ * This is the second writer of the player screen's state, alongside [PlaybackRequestController]:
+ * that one owns the session entry points and the player-state mirror, this class owns everything a
+ * resolved step and its secondary metadata ([SecondaryMetadataApplier]) land on. Both write the one [MutableStateFlow] the
  * ViewModel constructs and passes in, and both gate on the same load token, so a superseded load
  * stops writing at exactly the points it used to.
  *
  * Every collaborator here — the player manager included — is the instance the ViewModel already
- * holds; this class creates, looks up and releases none of them.
+ * holds; this class creates, looks up and releases none of them, only its own parts.
  */
 internal class PlaybackSessionApplier(
     private val context: Context,
@@ -119,18 +115,27 @@ internal class PlaybackSessionApplier(
         }
     }
 
-    fun applySecondary(result: SecondaryMetadata) {
-        when (result) {
-            is SecondaryMetadata.Channel -> applyChannelMetadata(result)
-            is SecondaryMetadata.PaidPromotion -> applyPaidPromotion(result)
-            is SecondaryMetadata.Related -> publishRelatedVideos(result.videoId, result.videos, result.loadToken)
-            is SecondaryMetadata.LiveWatch -> applyLiveWatchMetadata(result)
-            is SecondaryMetadata.Category -> applyCategory(result)
-            is SecondaryMetadata.Heatmap -> applyHeatmap(result)
-            is SecondaryMetadata.Chapters -> applyChapters(result)
-            is SecondaryMetadata.WatchInfo -> applyWatchInfo(result)
-        }
-    }
+    private val secondaryApplier =
+        SecondaryMetadataApplier(
+            context = context,
+            uiState = uiState,
+            isLoadCurrent = isLoadCurrent,
+            playbackPreparer = playbackPreparer,
+            secondaryMetadata = secondaryMetadata,
+            playerPreferences = playerPreferences,
+            playerManager = playerManager,
+            scope = scope,
+            ioDispatcher = ioDispatcher,
+        )
+
+    fun applySecondary(result: SecondaryMetadata) = secondaryApplier.apply(result)
+
+    fun armCountdownMetadata(
+        load: LoadContext,
+        relatedVideos: List<Video>,
+    ) = secondaryApplier.armCountdownMetadata(load, relatedVideos)
+
+    val subtitleFiles = PlayerSubtitleFiles(context, uiState, playerManager, localSubtitles, offlineSubtitleStore, scope, networkDispatcher)
 
     private val dislikeCounts = DislikeCountLoader(uiState, isLoadCurrent, repository, playerPreferences, scope, networkDispatcher)
 
@@ -152,24 +157,10 @@ internal class PlaybackSessionApplier(
                     ?.takeIf { it.id == load.videoId }
                     ?.duration
                     ?.times(1000L) ?: 0L,
-            subtitles = subtitlesFor(load.videoId, localFilePath),
+            subtitles = subtitleFiles.forFile(load.videoId, localFilePath),
             isCurrent = { isLoadCurrent(load.token) },
             subtitleOffsetMs = localSubtitles.offsetMs(load.videoId),
-            speedContext = speedContextFor(load.videoId),
-        )
-    }
-
-    private fun speedContextFor(
-        videoId: String,
-        musicVideoType: String? = null,
-        channelId: String? = null,
-    ): PlaybackSpeedContext {
-        val cached = uiState.value.cachedVideo?.takeIf { it.id == videoId }
-        return PlaybackSpeedContext(
-            videoId = videoId,
-            channelId = channelId ?: cached?.channelId,
-            musicVideoType = musicVideoType,
-            knownMusic = cached?.isMusic == true,
+            speedContext = uiState.value.speedContextFor(load.videoId),
         )
     }
 
@@ -429,7 +420,7 @@ internal class PlaybackSessionApplier(
             step = step,
             savedPositionMs = savedPositionMs,
             speedContext =
-                speedContextFor(
+                uiState.value.speedContextFor(
                     videoId = videoId,
                     musicVideoType = result.playerResponse.videoDetails?.musicVideoType,
                     channelId = identity.channelId,
@@ -437,178 +428,6 @@ internal class PlaybackSessionApplier(
             isCurrent = { isLoadCurrent(load.token) },
         )
     }
-
-    /**
-     * A countdown never starts playback, so the channel row and the related lane cannot wait for
-     * the first frame the way a playing video's do.
-     */
-    fun armCountdownMetadata(
-        load: LoadContext,
-        relatedVideos: List<Video>,
-    ) {
-        if (!isLoadCurrent(load.token)) return
-        secondaryMetadata.loadChannelMetadata(
-            videoId = load.videoId,
-            embeddedAvatarUrls = emptyList(),
-            loadToken = load.token,
-            awaitPlayback = false,
-        )
-        secondaryMetadata.loadRelatedVideos(load.videoId, relatedVideos, load.token, awaitPlayback = false)
-    }
-
-    private fun applyPaidPromotion(result: SecondaryMetadata.PaidPromotion) {
-        if (!isLoadCurrent(result.loadToken)) return
-        uiState.update { it.copy(paidPromotion = result.label) }
-    }
-
-    private fun applyHeatmap(result: SecondaryMetadata.Heatmap) {
-        if (!isLoadCurrent(result.loadToken)) return
-        uiState.update { it.copy(heatmap = result.heatmap) }
-    }
-
-    private fun applyChapters(result: SecondaryMetadata.Chapters) {
-        if (!isLoadCurrent(result.loadToken)) return
-        uiState.update { it.applyChapters(result.chapters) }
-    }
-
-    private fun applyWatchInfo(result: SecondaryMetadata.WatchInfo) {
-        if (!isLoadCurrent(result.loadToken) || uiState.value.cachedVideo?.id != result.videoId) return
-        GlobalPlayerState.setCurrentVideo(result.video)
-        uiState.update { it.applyWatchInfo(result.video) }
-        // A downloaded copy learns its channel only here, so the channel row follows the watch page.
-        if (uiState.value.localFileVideoId == result.videoId) {
-            secondaryMetadata.loadChannelMetadata(
-                videoId = result.videoId,
-                embeddedAvatarUrls = listOf(result.video.channelThumbnailUrl).filter { it.isNotBlank() },
-                loadToken = result.loadToken,
-                awaitPlayback = false,
-            )
-        }
-    }
-
-    /** Kept on the video, so the watch signal carries it. */
-    private fun applyCategory(result: SecondaryMetadata.Category) {
-        if (!isLoadCurrent(result.loadToken)) return
-        if (PlaybackSpeedPolicy.isMusic(musicVideoType = null, category = result.category, openedAsMusic = false)) {
-            scope.launch { playbackPreparer.applyLateMusicSignal(speedContextFor(result.videoId)) }
-        }
-
-        uiState.update { state ->
-            val cached = state.cachedVideo?.takeIf { it.id == result.videoId } ?: return@update state
-            if (cached.category == result.category) return@update state
-            state.copy(cachedVideo = cached.copy(category = result.category))
-        }
-
-        uiState.value.cachedVideo
-            ?.takeIf { it.id == result.videoId }
-            ?.let(GlobalPlayerState::setCurrentVideo)
-    }
-
-    private fun applyChannelMetadata(result: SecondaryMetadata.Channel) {
-        if (!isLoadCurrent(result.loadToken)) return
-
-        uiState.update { it.applyChannelMetadata(result) }
-
-        uiState.value.cachedVideo
-            ?.takeIf { it.id == result.videoId }
-            ?.let(GlobalPlayerState::setCurrentVideo)
-    }
-
-    /** The one place related items reach the player: the autoplay queue and the lane together. */
-    private fun publishRelatedVideos(
-        videoId: String,
-        videos: List<Video>,
-        loadToken: Long,
-    ) {
-        if (!isLoadCurrent(loadToken) || videos.isEmpty()) return
-        val state = uiState.value
-        if (state.cachedVideo?.id != videoId) return
-
-        scope.launch {
-            if (!isLoadCurrent(loadToken)) return@launch
-            val autoplay = playerPreferences.autoplayEnabled.first()
-            if (!isLoadCurrent(loadToken)) return@launch
-            playerManager.setAutoplayCandidates(
-                sourceVideoId = videoId,
-                videos = videos,
-                enabled = autoplay,
-            )
-            uiState.update { it.applyRelatedVideos(videoId, videos) }
-        }
-        noteRelatedForLearning(videoId, videos)
-    }
-
-    /** Hands the related list to the engine, which keeps it only if this video is then watched or liked. */
-    private fun noteRelatedForLearning(
-        videoId: String,
-        videos: List<Video>,
-    ) {
-        scope.launch(ioDispatcher) {
-            try {
-                FlowNeuroEngine.noteRelated(context, videoId, videos)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to note related videos", e)
-            }
-        }
-    }
-
-    private fun applyLiveWatchMetadata(result: SecondaryMetadata.LiveWatch) {
-        if (!isLoadCurrent(result.loadToken)) return
-
-        GlobalPlayerState.setCurrentVideo(result.video)
-        uiState.update { it.applyLiveWatchMetadata(result) }
-        publishRelatedVideos(result.videoId, result.relatedVideos, result.loadToken)
-    }
-
-    /**
-     * Adds the subtitle file at [uri] to the device file or download that is playing and remembers
-     * it for that video; false when it is not a subtitle file Flow can read.
-     */
-    suspend fun addSubtitleFile(uri: Uri): Boolean {
-        val videoId = playerManager.playerState.value.currentVideoId ?: return false
-        val caption = localSubtitles.pick(videoId, uri) ?: return false
-        return withContext(Dispatchers.Main) { playerManager.addLocalCaption(caption) }
-    }
-
-    /** The folder of the device file or download that is playing, for the subtitle file picker. */
-    suspend fun subtitleFolder(): Uri? = uiState.value.localFilePath?.let { localSubtitles.folderDocument(it) }
-
-    /**
-     * Shifts the captions of what is playing; a device file or download remembers it for next time.
-     */
-    suspend fun setSubtitleOffset(offsetMs: Long) {
-        val videoId = playerManager.playerState.value.currentVideoId ?: return
-        withContext(Dispatchers.Main) { playerManager.setSubtitleOffset(offsetMs) }
-        if (uiState.value.localFilePath != null) localSubtitles.setOffsetMs(videoId, offsetMs)
-    }
-
-    /**
-     * A device video's subtitle files beside it, or a download's stored caption tracks, and in
-     * both cases the files picked for it.
-     */
-    private suspend fun subtitlesFor(
-        videoId: String,
-        localFilePath: String,
-    ): List<ResolvedCaption> {
-        val picked = localSubtitles.picked(videoId)
-        if (LocalMediaIds.isLocal(videoId)) return localSubtitles.beside(localFilePath) + picked
-        return offlineSubtitlesFor(videoId) + picked
-    }
-
-    private suspend fun offlineSubtitlesFor(videoId: String): List<ResolvedCaption> {
-        val stored = offlineSubtitleStore.load(videoId)
-        if (stored.isEmpty() && !offlineSubtitleStore.isResolved(videoId) && NetworkState.isOnline(context)) {
-            scope.launch(networkDispatcher) {
-                offlineSubtitleStore.saveForVideo(videoId)
-            }
-        }
-        return stored
-    }
-
-    private fun cachedDurationSeconds(): Long =
-        uiState.value.cachedVideo
-            ?.duration
-            ?.toLong() ?: 0L
 
     private companion object {
         const val TAG = "PlaybackSessionApplier"
