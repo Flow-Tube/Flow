@@ -142,7 +142,6 @@ androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomato
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-conscrypt-android = { group = "org.conscrypt", name = "conscrypt-android", version.ref = "conscrypt" }
 conscrypt-openjdk-uber = { group = "org.conscrypt", name = "conscrypt-openjdk-uber", version.ref = "conscrypt" }
 bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 kotlin-bip39 = { group = "cash.z.ecc.android", name = "kotlin-bip39", version.ref = "kotlinBip39" }

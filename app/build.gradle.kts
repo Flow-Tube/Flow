@@ -228,11 +228,6 @@ android {
     }
 }
 
-// JVM tests load Conscrypt's desktop build, which has the same API but native code for the host.
-configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
-    exclude(group = "org.conscrypt", module = "conscrypt-android")
-}
-
 tasks.withType<Test>().configureEach {
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     // `-Dflow.fuzz.cases=N` and `-Dflow.fuzz.seed=S` reach the property tests.
@@ -366,9 +361,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.gson)
 
-    // conscrypt for OkHttp TLS support on older Android versions, and HPKE for linked devices
-    implementation(libs.conscrypt.android)
-    // Linked devices: Ed25519 and X25519 (Conscrypt can't derive a public key from a seed), recovery words
+    // Linked devices: Ed25519, X25519 and HPKE, recovery words
     implementation(libs.bouncycastle.bcprov)
     implementation(libs.kotlin.bip39)
 
@@ -422,6 +415,7 @@ dependencies {
 
     // --- Testing ---
     testImplementation(libs.junit)
+    // A second HPKE implementation the epoch-key wrap is checked against
     testImplementation(libs.conscrypt.openjdk.uber)
     testImplementation(libs.kxml2)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -61,8 +61,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
-import org.conscrypt.Conscrypt
-import java.security.Security
 import java.util.Locale
 import javax.inject.Inject
 
@@ -145,11 +143,6 @@ class FlowApplication :
         DiscordPresenceRuntime.initialize(this, okHttpClient)
 
         val playerPreferences = PlayerPreferences(this)
-
-        // Injects modern TLS/SSL certificates so OkHttp and Ktor don't crash
-        if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.N_MR1) {
-            Security.insertProviderAt(Conscrypt.newProvider(), 1)
-        }
 
         // Install crash handler for real-time monitoring
         FlowCrashHandler.install(this)

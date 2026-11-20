@@ -98,7 +98,7 @@ class VectorsTest {
         assertEquals(code, error)
     }
 
-    /** RFC 9180 DeriveKeyPair for DHKEM(X25519, HKDF-SHA256): the vectors give `ikmE`, Conscrypt takes the key. */
+    /** RFC 9180 DeriveKeyPair for DHKEM(X25519, HKDF-SHA256): the vectors give `ikmE`, the wrap takes the key. */
     private fun deriveKemSecret(ikm: ByteArray): ByteArray {
         val prefix = "HPKE-v1".toByteArray() + "KEM".toByteArray() + byteArrayOf(0, 0x20)
         val prk = SyncCrypto.hkdfExtract(ByteArray(32), prefix + "dkp_prk".toByteArray() + ikm)
