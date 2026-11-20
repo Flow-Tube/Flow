@@ -4154,7 +4154,7 @@
         <item quantity="other">%d 個 YouTube Music 播放清單</item>
     </plurals>
     <string name="playlist_unavailable_hidden">已隱藏無法播放的影片</string>
-    <string name="error_bot_wall_network_hint">請改用其他網路，例如行動數據。</string>
+    <string name="error_bot_wall_network_hint">請改用行動數據，或稍後再試。這種情況通常會自行排除。</string>
     <string name="error_bot_wall_session">YouTube 要求確認你不是機器人</string>
     <string name="error_bot_wall_session_hint">請重設 YouTube 工作階段後再試一次。</string>
     <string name="playlist_move_to_music">移到音樂</string>
@@ -5164,4 +5164,19 @@
     <plurals name="playlists_imported">
         <item quantity="other">已匯入 %d 個播放清單</item>
     </plurals>
+    <string name="newpipe_extractor_credit">Flow 的影片擷取功能起源於此</string>
+    <string name="error_members_only">會員專屬影片</string>
+    <string name="error_members_only_hint">加入這個頻道即可觀看。</string>
+    <string name="error_copyright_removed">因著作權問題遭到移除</string>
+    <string name="error_copyright_removed_hint">%1$s 已要求平台移除這部影片。</string>
+    <string name="error_copyright_removed_hint_unnamed">著作權擁有者已要求平台移除這部影片。</string>
+    <string name="error_removed_by_uploader">已由上傳者移除</string>
+    <string name="error_removed_by_uploader_hint">上傳者已刪除這部影片。</string>
+    <string name="error_policy_removed">已遭平台移除</string>
+    <string name="error_policy_removed_hint">這部影片違反平台規範，因此已遭移除。</string>
+    <string name="error_recording_unavailable">無法觀看錄影內容</string>
+    <string name="error_recording_unavailable_hint">這場直播結束後，平台上沒有留下錄影內容。</string>
+    <string name="error_bot_wall_mobile_data_hint">請改用 Wi-Fi，或稍後再試。這種情況通常會自行排除。</string>
+    <string name="mini_player_action_open">開啟播放器</string>
+    <string name="mini_player_action_larger">放大</string>
 </resources>
