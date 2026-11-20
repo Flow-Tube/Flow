@@ -145,12 +145,17 @@ private fun ThreadLabelRow(
     }
 }
 
-/** "12 replies" with the chevron that says it opens. */
+/**
+ * "12 replies" with the chevron that says it opens, and the creator's avatar when the creator is
+ * among the people who answered.
+ */
 @Composable
 internal fun RepliesToggle(
     replyCount: Int,
     expanded: Boolean,
     loading: Boolean,
+    creatorAvatar: String?,
+    creatorName: String?,
     onClick: () -> Unit,
 ) {
     Row(
@@ -168,6 +173,16 @@ internal fun RepliesToggle(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(18.dp),
         )
+        if (!expanded && creatorAvatar != null) {
+            Spacer(modifier = Modifier.width(6.dp))
+            ChannelAvatarImage(
+                url = creatorAvatar,
+                contentDescription =
+                    creatorName?.let { stringResource(R.string.comment_creator_replied, it) }
+                        ?: stringResource(R.string.comment_creator_replied_unnamed),
+                modifier = Modifier.size(18.dp).clip(CircleShape),
+            )
+        }
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text =

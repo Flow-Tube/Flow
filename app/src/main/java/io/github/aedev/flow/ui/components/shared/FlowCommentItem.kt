@@ -209,6 +209,8 @@ fun FlowCommentItem(
                         replyCount = comment.replyCount,
                         expanded = isRepliesVisible,
                         loading = isLoadingReplies,
+                        creatorAvatar = comment.creatorReplyThumbnail,
+                        creatorName = comment.creatorReplyName,
                         onClick = {
                             if (!isRepliesVisible && comment.replies.isEmpty()) {
                                 isLoadingReplies = true

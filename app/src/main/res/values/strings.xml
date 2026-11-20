@@ -538,6 +538,9 @@
         <item quantity="one">%1$d reply</item>
         <item quantity="other">%1$d replies</item>
     </plurals>
+    <!-- Spoken for the creator's avatar on a thread's replies button, e.g. "MKBHD replied" -->
+    <string name="comment_creator_replied">%1$s replied</string>
+    <string name="comment_creator_replied_unnamed">The creator replied</string>
     <string name="select_text">Select Text</string>
     <string name="pinned_comment">Pinned comment</string>
     <string name="pinned_by_creator">Pinned by creator</string>
