@@ -102,6 +102,11 @@ data class Comment(
     val image: CommentImage? = null,
     /** Where YouTube's Timed list shows this comment, when it came from that list. */
     val timedAtMs: Long? = null,
+    /** The video creator's avatar YouTube sends with a heart. */
+    val creatorHeartThumbnail: String? = null,
+    /** Set when the creator answered somewhere in this comment's replies. */
+    val creatorReplyThumbnail: String? = null,
+    val creatorReplyName: String? = null,
 )
 
 /** A GIF or picture attached to a comment, with the size YouTube gives for it. */

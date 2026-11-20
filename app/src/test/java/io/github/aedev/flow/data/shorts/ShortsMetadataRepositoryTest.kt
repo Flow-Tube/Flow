@@ -1,5 +1,9 @@
 package io.github.aedev.flow.data.shorts
 
+import io.github.aedev.flow.innertube.pages.ReelCommentsPanel
+import io.github.aedev.flow.innertube.pages.VideoCommentsSection
+import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
+import io.github.aedev.flow.innertube.pages.reel.ReelItem
 import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -9,11 +13,11 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class ShortsMetadataRepositoryTest {
     private val fetches = AtomicInteger()
-    private var overlay: ReelOverlay? = ReelOverlay(title = "A reel", likeCount = 2_772L, commentCount = 62L)
+    private var item: ReelItem? = ReelItem(overlay = ReelOverlay(title = "A reel", likeCount = 2_772L, commentCount = 62L))
     private val repository =
         ShortsMetadataRepository {
             fetches.incrementAndGet()
-            overlay
+            item
         }
 
     @Test
@@ -30,9 +34,25 @@ class ShortsMetadataRepositoryTest {
     @Test
     fun `an unreadable overlay is not remembered`() =
         runBlocking {
-            overlay = null
+            item = null
             assertNull(repository.overlayFor("reel1234567", nowMillis = 0L))
             assertNull(repository.overlayFor("reel1234567", nowMillis = 1L))
             assertEquals(2, fetches.get())
+        }
+
+    @Test
+    fun `the overlay, the comment panel and the description share one request`() =
+        runBlocking {
+            item =
+                ReelItem(
+                    overlay = ReelOverlay(title = "A reel"),
+                    comments = ReelCommentsPanel(VideoCommentsSection.Open("first"), header = null),
+                    description = VideoDescriptionPage(viewCount = 496_093L),
+                )
+
+            assertEquals("A reel", repository.overlayFor("reel1234567", nowMillis = 0L)?.title)
+            assertEquals(VideoCommentsSection.Open("first"), repository.commentsPanelFor("reel1234567", nowMillis = 1L)?.section)
+            assertEquals(496_093L, repository.descriptionFor("reel1234567", nowMillis = 2L)?.viewCount)
+            assertEquals(1, fetches.get())
         }
 }

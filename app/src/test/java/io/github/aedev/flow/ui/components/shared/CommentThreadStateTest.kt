@@ -48,6 +48,7 @@ class CommentThreadStateTest {
                 toggleReplies("a")
                 toggleReplies("b")
                 expandText("c")
+                unfold("d")
             }
 
         val saved = with(CommentThreadState.Saver) { saverScope.save(state) }
@@ -58,5 +59,20 @@ class CommentThreadStateTest {
         assertThat(restored.isRepliesOpen("b")).isTrue()
         assertThat(restored.isTextExpanded("c")).isTrue()
         assertThat(restored.isTextExpanded("a")).isFalse()
+        assertThat(restored.isUnfolded("d")).isTrue()
+        assertThat(restored.isUnfolded("a")).isFalse()
+    }
+
+    @Test
+    fun `an unfolded sub-thread stays open and clear folds it again`() {
+        val state = CommentThreadState()
+
+        state.unfold("r1")
+        state.unfold("r1")
+        assertThat(state.isUnfolded("r1")).isTrue()
+        assertThat(state.isUnfolded("r2")).isFalse()
+
+        state.clear()
+        assertThat(state.isUnfolded("r1")).isFalse()
     }
 }

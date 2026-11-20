@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
  * @param onClose Called when the player is closed
  * @param onNavigateToChannel Called when navigating to a channel
  * @param onNavigateToShorts Called when navigating to shorts
+ * @param onNavigateToPlaylist Called with a playlist or Mix id tapped in the related lane
  */
 @UnstableApi
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -66,6 +67,7 @@ fun VideoPlayerHost(
     onMinimize: () -> Unit,
     onNavigateToChannel: (String) -> Unit,
     onNavigateToShorts: (String) -> Unit,
+    onNavigateToPlaylist: (String) -> Unit,
 ) {
     if (video == null || !isVisible) return
 
@@ -436,6 +438,7 @@ fun VideoPlayerHost(
                     onClose = onClose,
                     onNavigateToChannel = onNavigateToChannel,
                     onNavigateToShorts = onNavigateToShorts,
+                    onNavigateToPlaylist = onNavigateToPlaylist,
                 )
             },
             miniControls = { _ ->

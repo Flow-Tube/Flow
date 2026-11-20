@@ -16,6 +16,10 @@ enum class CommentSortFilter(
     NEWEST(R.string.filter_newest),
     OLDEST(R.string.filter_oldest),
     TIMED(R.string.filter_timed),
+    ;
+
+    /** Oldest reverses what has loaded, so it reads a few pages ahead instead of only on scroll. */
+    val readsAhead: Boolean get() = this == OLDEST
 }
 
 /**

@@ -1,6 +1,7 @@
 package io.github.aedev.flow.player
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 import kotlinx.coroutines.test.runTest
@@ -225,6 +226,46 @@ class PlayerRelatedVideosPolicyTest {
             assertThat(PlayerRelatedVideosPolicy.withoutWatched(videos, WatchedSuggestionsSource { emptySet() })).isEqualTo(videos)
             assertThat(PlayerRelatedVideosPolicy.withoutWatched(videos, null as WatchedSuggestionsSource?)).isEqualTo(videos)
         }
+
+    @Test
+    fun `finished Shorts leave the related shelf and an emptied shelf goes`() =
+        runTest {
+            val shelf = RelatedCollection.ShortsShelf(0, "Shorts", listOf(video("s1"), video("s2")))
+            val solo = RelatedCollection.ShortsShelf(1, "More", listOf(video("s3")))
+            val asked = mutableListOf<Video>()
+            val source =
+                WatchedSuggestionsSource { videos ->
+                    asked += videos
+                    setOf("s1", "s3")
+                }
+
+            val kept = PlayerRelatedVideosPolicy.withoutWatchedShorts(listOf(shelf, solo), source)
+
+            assertThat(kept.map { (it as RelatedCollection.ShortsShelf).shorts.map { short -> short.id } }).containsExactly(listOf("s2"))
+            assertThat(asked.all { it.isShort }).isTrue()
+        }
+
+    @Test
+    fun `YouTube's pick heads the list and the rest keep their order`() {
+        val videos = listOf(video("a"), video("b"), video("pick"), video("c"))
+
+        val ordered = PlayerRelatedVideosPolicy.upNextFirst(videos, "pick")
+
+        assertThat(ordered.map { it.id }).containsExactly("pick", "a", "b", "c").inOrder()
+    }
+
+    @Test
+    fun `a pick the filters removed leaves the order as it was`() {
+        val kept =
+            PlayerRelatedVideosPolicy.sanitize(
+                videoId = "playing",
+                candidates = listOf(video("a"), video("pick", channelId = "blocked"), video("b")),
+                exclusions = FeedExclusions(blockedChannelIds = setOf("blocked")),
+            )
+
+        assertThat(PlayerRelatedVideosPolicy.upNextFirst(kept, "pick").map { it.id }).containsExactly("a", "b").inOrder()
+        assertThat(PlayerRelatedVideosPolicy.upNextFirst(kept, null)).isEqualTo(kept)
+    }
 
     private fun video(
         id: String,

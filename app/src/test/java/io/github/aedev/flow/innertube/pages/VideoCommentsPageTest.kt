@@ -172,6 +172,20 @@ class VideoCommentsPageTest {
         assertFalse(comment.isArtist)
         assertTrue(comment.isHearted)
         assertEquals("❤ by @Queen", comment.heartedByText)
+        assertEquals("https://yt3.ggpht.com/queen=s88", comment.creatorHeartThumbnail)
+    }
+
+    @Test
+    fun `reads the creator avatar on the replies button of a thread the creator answered`() {
+        val comment =
+            Json
+                .parseToJsonElement(FIRST_PAGE)
+                .toVideoCommentsPage(ownVideoId = "fJ9rUzIMcZQ")
+                .comments
+                .single()
+
+        assertEquals("https://yt3.ggpht.com/queen=s88", comment.creatorReplyThumbnail)
+        assertEquals("Queen Official", comment.creatorReplyName)
     }
 
     @Test
@@ -266,6 +280,8 @@ class VideoCommentsPageTest {
         assertEquals("more-replies", page.continuation)
         assertEquals(listOf("reply-1"), page.comments.map { it.id })
         assertEquals("Agreed", page.comments.single().text)
+        assertNull(page.comments.single().creatorHeartThumbnail)
+        assertNull(page.comments.single().creatorReplyThumbnail)
         assertTrue(page.sortOptions.isEmpty())
     }
 
@@ -388,11 +404,20 @@ class VideoCommentsPageTest {
                       "commentId": "comment-1",
                       "pinnedText": "Pinned by @Queen"
                     }},
-                    "replies": {"commentRepliesRenderer": {"contents": [
-                      {"continuationItemRenderer": {"continuationEndpoint": {
-                        "continuationCommand": {"token": "replies-token"}
-                      }}}
-                    ]}}
+                    "replies": {"commentRepliesRenderer": {
+                      "contents": [
+                        {"continuationItemRenderer": {"continuationEndpoint": {
+                          "continuationCommand": {"token": "replies-token"}
+                        }}}
+                      ],
+                      "viewRepliesCreatorThumbnail": {
+                        "thumbnails": [
+                          {"url": "https://yt3.ggpht.com/queen=s48", "width": 48, "height": 48},
+                          {"url": "https://yt3.ggpht.com/queen=s88", "width": 88, "height": 88}
+                        ],
+                        "accessibility": {"accessibilityData": {"label": "Queen Official"}}
+                      }
+                    }}
                   }},
                   {"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "page-2"}}}}
                 ]}}
@@ -438,7 +463,8 @@ class VideoCommentsPageTest {
                     "likeCountNotliked": "529K",
                     "likeCountLiked": "529K",
                     "replyCount": "936",
-                    "heartActiveTooltip": "❤ by @Queen"
+                    "heartActiveTooltip": "❤ by @Queen",
+                    "creatorThumbnailUrl": "//yt3.ggpht.com/queen=s88"
                   }
                 }}},
                 {"entityKey": "toolbar-key", "payload": {"engagementToolbarStateEntityPayload": {

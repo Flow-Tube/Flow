@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.player
 import android.content.Context
 import io.github.aedev.flow.data.comments.CommentsPager
 import io.github.aedev.flow.data.comments.CommentsPlaybackState
+import io.github.aedev.flow.data.comments.VideoCommentsSource
 import io.github.aedev.flow.data.engagement.VideoEngagementUseCase
 import io.github.aedev.flow.data.local.HomeFeedCacheRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
@@ -12,6 +13,7 @@ import io.github.aedev.flow.data.localmedia.LocalSubtitles
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.repository.LiveChatRepository
 import io.github.aedev.flow.data.repository.SponsorBlockRepository
+import io.github.aedev.flow.data.repository.WatchRelatedPages
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.data.transcript.TranscriptRepository
@@ -74,7 +76,7 @@ internal class PlayerCollaborators(
 
     val comments =
         CommentsPager(
-            repository = repository,
+            source = VideoCommentsSource(repository),
             scope = scope,
             playbackState =
                 uiState.map {
@@ -100,6 +102,13 @@ internal class PlayerCollaborators(
             networkDispatcher = networkDispatcher,
         )
 
+    val liveCounts =
+        LiveCountsRefresher(
+            repository = repository,
+            uiState = uiState,
+            networkDispatcher = networkDispatcher,
+        )
+
     private val playbackPreparer =
         PlaybackPreparer(
             context = context,
@@ -108,9 +117,12 @@ internal class PlayerCollaborators(
             cachedCategory = repository::cachedVideoCategory,
         )
 
+    private val watchRelatedPages = WatchRelatedPages(repository, networkDispatcher)
+
     val secondaryMetadata =
         PlayerSecondaryMetadataLoader(
             repository = repository,
+            relatedPages = watchRelatedPages,
             playerManager = playerManager,
             playerPreferences = playerPreferences,
             scope = scope,
@@ -121,6 +133,18 @@ internal class PlayerCollaborators(
             exclusions = { loads.exclusions },
             isPlaybackCurrent = isLoadCurrent,
             onResult = { result -> sessionApplier.applySecondary(result) },
+        )
+
+    val relatedPages =
+        RelatedPagesLoader(
+            pages = watchRelatedPages,
+            uiState = uiState,
+            playerManager = playerManager,
+            playerPreferences = playerPreferences,
+            scope = scope,
+            networkDispatcher = networkDispatcher,
+            shortsEnabled = { loads.shortsEnabled },
+            exclusions = { loads.exclusions },
         )
 
     val watchSessions =

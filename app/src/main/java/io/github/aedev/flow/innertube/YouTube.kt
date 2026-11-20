@@ -58,6 +58,7 @@ import io.github.aedev.flow.innertube.pages.HistoryPage
 import io.github.aedev.flow.innertube.pages.HomePage
 import io.github.aedev.flow.innertube.pages.LibraryContinuationPage
 import io.github.aedev.flow.innertube.pages.LibraryPage
+import io.github.aedev.flow.innertube.pages.LiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
 import io.github.aedev.flow.innertube.pages.NewReleaseAlbumPage
 import io.github.aedev.flow.innertube.pages.NextPage
@@ -101,12 +102,12 @@ import io.github.aedev.flow.innertube.pages.explore.toExploreDestinationShell
 import io.github.aedev.flow.innertube.pages.explore.trendingVideoChart
 import io.github.aedev.flow.innertube.pages.mixSeedVideoId
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
+import io.github.aedev.flow.innertube.pages.reel.ReelItem
 import io.github.aedev.flow.innertube.pages.reel.ReelLockup
-import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
 import io.github.aedev.flow.innertube.pages.reel.ReelParams
 import io.github.aedev.flow.innertube.pages.reel.ReelSequencePage
+import io.github.aedev.flow.innertube.pages.reel.toReelItem
 import io.github.aedev.flow.innertube.pages.reel.toReelLockups
-import io.github.aedev.flow.innertube.pages.reel.toReelOverlay
 import io.github.aedev.flow.innertube.pages.reel.toReelSequencePage
 import io.github.aedev.flow.innertube.pages.renderer.CommunityCommentsPage
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPostsPage
@@ -122,6 +123,7 @@ import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
 import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
+import io.github.aedev.flow.innertube.pages.toLiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
 import io.github.aedev.flow.innertube.pages.toTimedComments
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
@@ -351,7 +353,8 @@ object YouTube {
             )
         }
 
-    suspend fun videoAvatarStack(videoId: String): Result<List<String>> =
+    /** A collaboration's channels and its avatar stack, read from one watch request. */
+    suspend fun videoOwnerCredits(videoId: String): Result<Pair<List<VideoCollaborator>, List<String>>> =
         runCatching {
             val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
             val root =
@@ -359,19 +362,10 @@ object YouTube {
                     ignoreUnknownKeys = true
                     explicitNulls = false
                 }.parseToJsonElement(rawBody)
-            root.findVideoOwnerAvatarStackUrls()
+            root.findVideoOwnerCollaborators() to root.findVideoOwnerAvatarStackUrls()
         }
 
-    suspend fun videoCollaborators(videoId: String): Result<List<VideoCollaborator>> =
-        runCatching {
-            val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
-            val root =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }.parseToJsonElement(rawBody)
-            root.findVideoOwnerCollaborators()
-        }
+    suspend fun videoCollaborators(videoId: String): Result<List<VideoCollaborator>> = videoOwnerCredits(videoId).map { it.first }
 
     private fun JsonElement.collectAvatarImageUrls(): List<String> {
         val urls = mutableListOf<String>()
@@ -2212,6 +2206,22 @@ object YouTube {
             Json.parseToJsonElement(innerTube.nextWatch(videoId = videoId).bodyAsText())
         }
 
+    /** The next page of a watch page's related lane, from the same host and client as the first. */
+    suspend fun relatedContinuationJson(continuation: String): Result<JsonElement> =
+        runCatching {
+            Json.parseToJsonElement(innerTube.nextWatch(continuation = continuation).bodyAsText())
+        }
+
+    /** The live counts [videoId]'s watch page asks for, or the next round of them through [continuation]. */
+    suspend fun updatedMetadata(
+        videoId: String,
+        continuation: String?,
+    ): Result<LiveMetadataUpdate> =
+        runCatching {
+            val response = innerTube.updatedMetadata(videoId = videoId.takeIf { continuation == null }, continuation = continuation)
+            Json.parseToJsonElement(response.bodyAsText()).toLiveMetadataUpdate(locale.hl)
+        }
+
     /** The description, its typed spans and the figures beside it, from an already-fetched watch response. */
     fun videoDescription(
         watchNext: JsonElement,
@@ -2255,14 +2265,6 @@ object YouTube {
                 .toCommentRepliesPage(ownVideoId)
         }
 
-    suspend fun liveChatContinuation(videoId: String): Result<String?> =
-        runCatching {
-            innerTube
-                .nextForLiveChat(videoId)
-                .body<io.github.aedev.flow.innertube.models.response.LiveChatSeedResponse>()
-                .seedContinuation()
-        }
-
     suspend fun liveChat(
         continuation: String,
         offsetMs: Long? = null,
@@ -2272,36 +2274,6 @@ object YouTube {
             innerTube
                 .getLiveChat(continuation, offsetMs, replay)
                 .body<io.github.aedev.flow.innertube.models.response.GetLiveChatResponse>()
-        }
-
-    suspend fun watchMetadata(videoId: String): Result<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse> =
-        runCatching {
-            val primary =
-                innerTube
-                    .next(WEB, videoId, null, null, null, null, null)
-                    .body<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse>()
-            if (primary.relatedVideos().isNotEmpty()) {
-                primary
-            } else {
-                val webWatch =
-                    runCatching {
-                        innerTube
-                            .nextForLiveChat(videoId)
-                            .body<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse>()
-                    }.getOrNull()
-                if (webWatch != null && webWatch.relatedVideos().size > primary.relatedVideos().size) {
-                    webWatch
-                } else {
-                    primary
-                }
-            }
-        }
-
-    suspend fun watchMetadataLite(videoId: String): Result<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse> =
-        runCatching {
-            innerTube
-                .next(WEB, videoId, null, null, null, null, null)
-                .body<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse>()
         }
 
     suspend fun registerPlayback(
@@ -2517,19 +2489,33 @@ object YouTube {
                 }!!
         }
 
-    suspend fun visitorData(): Result<String> =
-        runCatching {
-            Json
-                .parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
-                .jsonArray[0]
-                .jsonArray[2]
-                .jsonArray
-                .first {
-                    (it as? JsonPrimitive)?.contentOrNull?.let { candidate ->
-                        VISITOR_DATA_REGEX.containsMatchIn(candidate)
-                    } ?: false
-                }.jsonPrimitive.content
-        }
+    private val visitorDataMint =
+        VisitorDataMint(
+            visitorId = {
+                innerTube
+                    .visitorId(WEB)
+                    .body<JsonObject>()["responseContext"]
+                    ?.jsonObject
+                    ?.get("visitorData")
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+            },
+            swJsData = {
+                Json
+                    .parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
+                    .jsonArray[0]
+                    .jsonArray[2]
+                    .jsonArray
+                    .first {
+                        (it as? JsonPrimitive)?.contentOrNull?.let { candidate ->
+                            VisitorDataMint.VISITOR_DATA.containsMatchIn(candidate)
+                        } ?: false
+                    }.jsonPrimitive.content
+            },
+        )
+
+    /** A fresh visitorData, unrelated to the one in use; see [VisitorDataMint] for where it comes from. */
+    suspend fun visitorData(): Result<String> = runCatching { visitorDataMint.mint() }
 
     suspend fun accountInfo(): Result<AccountInfo> =
         runCatching {
@@ -2586,7 +2572,7 @@ object YouTube {
 
     /**
      * One page of the reel feed: the seedless first page for a null token, else the page a
-     * previous response's continuation names. Entries carry ids and tokens only; see [reelOverlay].
+     * previous response's continuation names. Entries carry ids and tokens only; see [reelItem].
      *
      * IOS first because its page is a few kilobytes per entry; ANDROID's carries a serialized
      * prefetch of every reel's player response and runs to several megabytes for the same ids.
@@ -2609,11 +2595,30 @@ object YouTube {
     /** The reels that follow [videoId]. The response never contains the seed itself. */
     suspend fun shortsFromVideo(videoId: String): Result<ReelSequencePage> = shorts(ReelParams.seedSequenceParams(videoId))
 
-    /** Title, channel, counts and sound for one reel — everything the sequence leaves out. */
-    suspend fun reelOverlay(videoId: String): Result<ReelOverlay?> =
+    /** Title, channel, counts, sound, comment panel and description for one reel: everything the sequence leaves out. */
+    suspend fun reelItem(videoId: String): Result<ReelItem?> =
         runCatching {
-            innerTube.reelItemWatch(client = WEB, videoId = videoId).body<JsonObject>().toReelOverlay()
+            innerTube.reelItemWatch(client = WEB, videoId = videoId).body<JsonObject>().toReelItem(videoId)
         }
 
-    private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
+    /** A page of a reel's comments: its panel serves them through `/browse`, which `/next` answers with nothing. */
+    suspend fun reelComments(
+        continuation: String,
+        ownVideoId: String?,
+    ): Result<VideoCommentsPage> =
+        runCatching {
+            Json
+                .parseToJsonElement(innerTube.webBrowseContinuation(WEB, continuation).bodyAsText())
+                .toVideoCommentsPage(ownVideoId)
+        }
+
+    suspend fun reelCommentReplies(
+        continuation: String,
+        ownVideoId: String?,
+    ): Result<VideoCommentsPage> =
+        runCatching {
+            Json
+                .parseToJsonElement(innerTube.webBrowseContinuation(WEB, continuation).bodyAsText())
+                .toCommentRepliesPage(ownVideoId)
+        }
 }
