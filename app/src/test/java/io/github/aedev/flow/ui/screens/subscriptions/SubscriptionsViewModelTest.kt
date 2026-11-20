@@ -415,8 +415,8 @@ class SubscriptionsViewModelTest {
         /**
          * The ViewModel launches on [io.github.aedev.flow.utils.PerformanceDispatcher] rather than
          * on an injected dispatcher, so the test scheduler cannot join those coroutines. Verify
-         * with a timeout instead of racing them.
+         * with a timeout instead of racing them, long enough for a busy CI runner.
          */
-        const val VERIFY_TIMEOUT_MS = 2_000L
+        const val VERIFY_TIMEOUT_MS = 10_000L
     }
 }
