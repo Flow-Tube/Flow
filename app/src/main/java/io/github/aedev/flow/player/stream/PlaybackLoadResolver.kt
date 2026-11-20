@@ -231,9 +231,10 @@ class PlaybackLoadResolver
                 if (forceSabr) {
                     InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = true)
                 } else {
-                    withTimeoutOrNull(INNERTUBE_TIMEOUT_MS) {
-                        InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = false)
-                    }
+                    InnerTubeVideoStreamExtractor.takePromoted(videoId)
+                        ?: withTimeoutOrNull(INNERTUBE_TIMEOUT_MS) {
+                            InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = false)
+                        }
                 }
             } catch (e: CancellationException) {
                 throw e

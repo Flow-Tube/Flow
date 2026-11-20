@@ -2358,6 +2358,7 @@ class EnhancedPlayerManager private constructor() {
                 preferredCodec = preferredCodecKey,
                 itVideoFormats = extraction.videoFormats,
                 itAudioFormats = extraction.audioFormats,
+                extraction = extraction,
             )
         }
 
@@ -2378,6 +2379,8 @@ class EnhancedPlayerManager private constructor() {
         val pre = preload.consume() ?: return
         autoNextLog("promotePreloadedItem ${pre.data.enrichedVideo.id} fromQueue=${pre.fromQueue}")
         val data = pre.data
+        // Before the id changes: the watch page's load for it starts from that change.
+        data.extraction?.let { InnerTubeVideoStreamExtractor.handOffPromoted(data.enrichedVideo.id, it) }
         Log.d(TAG, "Gapless: promoting auto-advanced item ${data.enrichedVideo.id} (fromQueue=${pre.fromQueue})")
 
         mediaLoader?.releaseSabr()
