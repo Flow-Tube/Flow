@@ -41,8 +41,23 @@ class SponsorBlockSegmentsUrlTest {
     }
 
     @Test
-    fun `the video id is sent as is`() {
-        assertThat(url.queryParameter("videoID")).isEqualTo("dQw4w9WgXcQ")
+    fun `only a hash prefix of the video id is sent`() {
+        assertThat(url.queryParameter("videoID")).isNull()
+        assertThat(url.toString()).doesNotContain("dQw4w9WgXcQ")
+        assertThat(url.pathSegments.last()).hasLength(4)
+        assertThat(url.pathSegments.last()).isEqualTo(SponsorBlockRepository.nonMusicSegmentsUrl("dQw4w9WgXcQ").pathSegments.last())
+    }
+
+    @Test
+    fun `the lookup keeps only the segments of the video asked for`() {
+        val json =
+            """[{"videoID":"other","segments":[{"category":"sponsor","segment":[1.0,2.0],"UUID":"a","actionType":"skip"}]},
+               {"videoID":"dQw4w9WgXcQ","hash":"x","segments":[{"category":"intro","segment":[0.0,5.5],"UUID":"b","actionType":"skip","votes":3}]}]"""
+
+        val segments = SponsorBlockRepository.parseHashedVideoSegments(json, "dQw4w9WgXcQ")
+
+        assertThat(segments.map { it.uuid }).containsExactly("b")
+        assertThat(segments.single().endTime).isEqualTo(5.5f)
     }
 
     @Test

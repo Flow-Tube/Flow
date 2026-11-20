@@ -353,7 +353,8 @@ object YouTube {
             )
         }
 
-    suspend fun videoAvatarStack(videoId: String): Result<List<String>> =
+    /** A collaboration's channels and its avatar stack, read from one watch request. */
+    suspend fun videoOwnerCredits(videoId: String): Result<Pair<List<VideoCollaborator>, List<String>>> =
         runCatching {
             val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
             val root =
@@ -361,19 +362,10 @@ object YouTube {
                     ignoreUnknownKeys = true
                     explicitNulls = false
                 }.parseToJsonElement(rawBody)
-            root.findVideoOwnerAvatarStackUrls()
+            root.findVideoOwnerCollaborators() to root.findVideoOwnerAvatarStackUrls()
         }
 
-    suspend fun videoCollaborators(videoId: String): Result<List<VideoCollaborator>> =
-        runCatching {
-            val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
-            val root =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }.parseToJsonElement(rawBody)
-            root.findVideoOwnerCollaborators()
-        }
+    suspend fun videoCollaborators(videoId: String): Result<List<VideoCollaborator>> = videoOwnerCredits(videoId).map { it.first }
 
     private fun JsonElement.collectAvatarImageUrls(): List<String> {
         val urls = mutableListOf<String>()

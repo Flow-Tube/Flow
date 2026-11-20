@@ -99,6 +99,20 @@ class CommentReplyTreeTest {
     }
 
     @Test
+    fun `a mention behind a zero-width space still nests the reply`() {
+        val tree =
+            buildCommentReplyTree(
+                listOf(
+                    reply("r1", "@Kylek1986", "first"),
+                    reply("r2", "@GuruOfTheMoon", "\u200B @Kylek1986 same"),
+                ),
+            )
+
+        assertThat(tree.map { it.comment.id }).containsExactly("r1")
+        assertThat(tree.single().children.map { it.comment.id }).containsExactly("r2")
+    }
+
+    @Test
     fun `a single reply needs no tree`() {
         val tree = buildCommentReplyTree(listOf(reply("r1", "@a", "@a hello")))
 

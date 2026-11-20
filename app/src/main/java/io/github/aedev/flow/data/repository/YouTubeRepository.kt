@@ -320,27 +320,24 @@ class YouTubeRepository
                             batch
                                 .map { video ->
                                     async(Dispatchers.IO) {
-                                        val collaborators =
-                                            videoCollaboratorCache[video.id]
-                                                ?: withTimeoutOrNull(4_000L) {
-                                                    YouTube.videoCollaborators(video.id).getOrNull()
-                                                }.orEmpty().also { items ->
-                                                    if (items.isNotEmpty()) {
-                                                        videoCollaboratorCache.put(video.id, items)
-                                                    }
-                                                }
+                                        val cachedCollaborators = videoCollaboratorCache[video.id]
+                                        val cachedStack = videoAvatarStackCache[video.id]
+                                        val (collaborators, fetchedStack) =
+                                            if (cachedCollaborators != null || cachedStack != null) {
+                                                cachedCollaborators.orEmpty() to cachedStack.orEmpty()
+                                            } else {
+                                                withTimeoutOrNull(4_000L) {
+                                                    YouTube.videoOwnerCredits(video.id).getOrNull()
+                                                }?.also { (items, urls) ->
+                                                    if (items.isNotEmpty()) videoCollaboratorCache.put(video.id, items)
+                                                    videoAvatarStackCache.put(video.id, urls)
+                                                } ?: (emptyList<VideoCollaborator>() to emptyList())
+                                            }
                                         val stack =
                                             collaborators
                                                 .map { it.thumbnailUrl }
                                                 .filter { it.isNotBlank() }
-                                                .ifEmpty {
-                                                    videoAvatarStackCache[video.id]
-                                                        ?: withTimeoutOrNull(4_000L) {
-                                                            YouTube.videoAvatarStack(video.id).getOrNull()
-                                                        }.orEmpty().also { urls ->
-                                                            videoAvatarStackCache.put(video.id, urls)
-                                                        }
-                                                }
+                                                .ifEmpty { fetchedStack }
                                         video.id to (collaborators to stack)
                                     }
                                 }.awaitAll()

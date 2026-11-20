@@ -21,9 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
-import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
@@ -45,11 +43,12 @@ import io.github.aedev.flow.utils.formatSubscriberCount
 import io.github.aedev.flow.utils.formatViewCount
 import io.github.aedev.flow.utils.toAnnotatedString
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun VideoInfoSection(
     video: Video,
     title: String,
+    titleMaxLines: Int,
     superTitle: RichText? = null,
     viewCount: Long,
     uploadDate: String?,
@@ -119,9 +118,6 @@ internal fun VideoInfoSection(
     ) {
         // ============ TITLE SECTION ============
         val context = LocalContext.current
-        val prefs = remember { PlayerPreferences(context) }
-        val titleMaxLinesPref by prefs.videoTitleMaxLines.collectAsState(initial = 1)
-        val titleMaxLines = if (titleMaxLinesPref <= 0) Int.MAX_VALUE else titleMaxLinesPref
         val dateSettings = rememberDateDisplaySettings()
         // Title, counts and "…more" are one target: tapping any of them opens the description,
         // which is what the "…more" affordance was already promising.
@@ -137,15 +133,10 @@ internal fun VideoInfoSection(
 
             Text(
                 text = title,
-                style =
-                    MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        lineHeight = 28.sp,
-                    ),
+                style = MaterialTheme.typography.headlineMediumEmphasized,
                 color = MaterialTheme.colorScheme.onBackground,
-                maxLines = titleMaxLines,
-                overflow = if (titleMaxLinesPref <= 0) TextOverflow.Clip else TextOverflow.Ellipsis,
+                maxLines = if (titleMaxLines <= 0) Int.MAX_VALUE else titleMaxLines,
+                overflow = if (titleMaxLines <= 0) TextOverflow.Clip else TextOverflow.Ellipsis,
                 modifier =
                     Modifier.combinedClickable(
                         onClick = onDescriptionClick,
@@ -233,7 +224,6 @@ internal fun VideoInfoSection(
                             style =
                                 MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp,
                                 ),
                             color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1,
