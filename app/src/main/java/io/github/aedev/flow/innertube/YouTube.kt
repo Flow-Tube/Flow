@@ -2609,10 +2609,10 @@ object YouTube {
     /** The reels that follow [videoId]. The response never contains the seed itself. */
     suspend fun shortsFromVideo(videoId: String): Result<ReelSequencePage> = shorts(ReelParams.seedSequenceParams(videoId))
 
-    /** Title, channel, counts, sound and comment panel for one reel: everything the sequence leaves out. */
+    /** Title, channel, counts, sound, comment panel and description for one reel: everything the sequence leaves out. */
     suspend fun reelItem(videoId: String): Result<ReelItem?> =
         runCatching {
-            innerTube.reelItemWatch(client = WEB, videoId = videoId).body<JsonObject>().toReelItem()
+            innerTube.reelItemWatch(client = WEB, videoId = videoId).body<JsonObject>().toReelItem(videoId)
         }
 
     /** A page of a reel's comments: its panel serves them through `/browse`, which `/next` answers with nothing. */

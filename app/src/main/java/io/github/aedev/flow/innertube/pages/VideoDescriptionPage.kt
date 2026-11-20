@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube.pages
 
 import io.github.aedev.flow.data.model.RichText
+import io.github.aedev.flow.data.model.plainRichText
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
@@ -29,6 +30,13 @@ data class VideoDescriptionChannel(
     val links: List<VideoDescriptionLink> = emptyList(),
 )
 
+/** The "How this was made" note: altered or synthetic content, auto-dubbed audio and the like. */
+data class VideoDescriptionDisclosure(
+    val title: String,
+    val header: String?,
+    val body: RichText?,
+)
+
 /**
  * The watch page's own description: the text with its typed spans, and the figures beside it.
  *
@@ -42,6 +50,7 @@ data class VideoDescriptionPage(
     val publishedDateText: String? = null,
     val factoids: List<VideoDescriptionFactoid> = emptyList(),
     val channel: VideoDescriptionChannel? = null,
+    val howThisWasMade: VideoDescriptionDisclosure? = null,
 ) {
     val isEmpty: Boolean
         get() = description == null && viewCount == null && factoids.isEmpty() && channel == null
@@ -90,6 +99,39 @@ internal fun JsonElement.toVideoDescriptionPage(ownVideoId: String?): VideoDescr
         publishedDateText = primary?.get("dateText").youtubeText(),
         factoids = structuredDescriptionItems().flatMap { it.toFactoids() },
         channel = structuredDescriptionItems().firstNotNullOfOrNull { it.toChannel() },
+        howThisWasMade = structuredDescriptionItems().firstNotNullOfOrNull { it.toDisclosure(ownVideoId) },
+    )
+}
+
+/**
+ * The description panel of a `reel_item_watch` response, which carries everything the watch page
+ * would: the header's exact figures, the body and the disclosure. Null when the panel is missing.
+ */
+internal fun JsonElement.toReelDescriptionPage(ownVideoId: String?): VideoDescriptionPage? {
+    val items = structuredDescriptionItems()
+    val header =
+        items.firstNotNullOfOrNull { it["videoDescriptionHeaderRenderer"].objectOrNull() }
+    val viewCountText = header?.get("views").youtubeText()
+    val page =
+        VideoDescriptionPage(
+            description = structuredDescription(ownVideoId),
+            viewCountText = viewCountText,
+            viewCount = viewCountText?.let(::parseYouTubeViewCount)?.takeIf { it > 0L },
+            publishedDateText = header?.get("publishDate").youtubeText(),
+            factoids = items.flatMap { it.toFactoids() },
+            channel = items.firstNotNullOfOrNull { it.toChannel() },
+            howThisWasMade = items.firstNotNullOfOrNull { it.toDisclosure(ownVideoId) },
+        )
+    return page.takeUnless { it.isEmpty }
+}
+
+private fun JsonObject.toDisclosure(ownVideoId: String?): VideoDescriptionDisclosure? {
+    val section = this["howThisWasMadeSectionViewModel"].objectOrNull() ?: return null
+    val title = section["sectionTitle"].youtubeText()?.takeIf { it.isNotBlank() } ?: return null
+    return VideoDescriptionDisclosure(
+        title = title,
+        header = section["bodyHeader"].youtubeText(),
+        body = section["bodyText"].toRichText(ownVideoId),
     )
 }
 
@@ -147,14 +189,17 @@ private fun JsonObject.toChannel(): VideoDescriptionChannel? {
     )
 }
 
-/** The body the structured-description panel carries, for a response whose secondary info has none. */
+/**
+ * The body the structured-description panel carries, for a response whose secondary info has none.
+ * A reel's panel sends plain runs instead of attributed text, so links and timestamps are found in
+ * the text the way they are for the original description.
+ */
 private fun JsonElement.structuredDescription(ownVideoId: String?): RichText? =
     structuredDescriptionItems()
         .firstNotNullOfOrNull { item ->
-            item["expandableVideoDescriptionBodyRenderer"]
-                .objectOrNull()
-                ?.get("attributedDescriptionBodyText")
-                .toRichText(ownVideoId)
+            val body = item["expandableVideoDescriptionBodyRenderer"].objectOrNull() ?: return@firstNotNullOfOrNull null
+            body["attributedDescriptionBodyText"].toRichText(ownVideoId)
+                ?: body["descriptionBodyText"].youtubeText()?.let(::plainRichText)
         }
 
 private fun JsonElement.structuredDescriptionItems(): List<JsonObject> =
@@ -164,7 +209,11 @@ private fun JsonElement.structuredDescriptionItems(): List<JsonObject> =
         .orEmpty()
         .mapNotNull { panel ->
             val section = panel.objectOrNull()?.get("engagementPanelSectionListRenderer").objectOrNull()
-            section?.takeIf { it["panelIdentifier"].stringOrNull() == STRUCTURED_DESCRIPTION_PANEL }
+            // A watch response names the panel by panelIdentifier, a reel response by targetId.
+            section?.takeIf {
+                it["panelIdentifier"].stringOrNull() == STRUCTURED_DESCRIPTION_PANEL ||
+                    it["targetId"].stringOrNull() == STRUCTURED_DESCRIPTION_PANEL
+            }
         }.flatMap { section ->
             section["content"]
                 .objectOrNull()

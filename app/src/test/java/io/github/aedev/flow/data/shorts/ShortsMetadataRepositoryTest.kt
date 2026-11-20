@@ -1,5 +1,8 @@
 package io.github.aedev.flow.data.shorts
 
+import io.github.aedev.flow.innertube.pages.ReelCommentsPanel
+import io.github.aedev.flow.innertube.pages.VideoCommentsSection
+import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.reel.ReelItem
 import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
 import kotlinx.coroutines.runBlocking
@@ -35,5 +38,21 @@ class ShortsMetadataRepositoryTest {
             assertNull(repository.overlayFor("reel1234567", nowMillis = 0L))
             assertNull(repository.overlayFor("reel1234567", nowMillis = 1L))
             assertEquals(2, fetches.get())
+        }
+
+    @Test
+    fun `the overlay, the comment panel and the description share one request`() =
+        runBlocking {
+            item =
+                ReelItem(
+                    overlay = ReelOverlay(title = "A reel"),
+                    comments = ReelCommentsPanel(VideoCommentsSection.Open("first"), header = null),
+                    description = VideoDescriptionPage(viewCount = 496_093L),
+                )
+
+            assertEquals("A reel", repository.overlayFor("reel1234567", nowMillis = 0L)?.title)
+            assertEquals(VideoCommentsSection.Open("first"), repository.commentsPanelFor("reel1234567", nowMillis = 1L)?.section)
+            assertEquals(496_093L, repository.descriptionFor("reel1234567", nowMillis = 2L)?.viewCount)
+            assertEquals(1, fetches.get())
         }
 }

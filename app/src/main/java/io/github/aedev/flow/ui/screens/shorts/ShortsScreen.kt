@@ -118,6 +118,7 @@ fun ShortsScreen(
     val hasMoreComments by viewModel.hasMoreComments.collectAsState()
     val commentTotalText by viewModel.commentTotalText.collectAsState()
     val commentsDisabled by viewModel.commentsDisabled.collectAsState()
+    val descriptionPages by viewModel.shortDescriptionPages.collectAsState()
     val visibleComments =
         remember(comments, commentSortFilter) {
             applyVideoCommentFilters(comments, commentSortFilter)
@@ -289,8 +290,10 @@ fun ShortsScreen(
         if (showDescriptionSheet && uiState.shorts.isNotEmpty()) {
             DisposableEffect(Unit) { onDispose { sheetInsets.release() } }
             val safeIndex = uiState.currentIndex.coerceIn(0, uiState.shorts.size - 1)
+            val short = uiState.shorts[safeIndex]
             FlowDescriptionBottomSheet(
-                video = uiState.shorts[safeIndex].toVideo(),
+                video = short.toVideo(),
+                descriptionPage = descriptionPages[short.id],
                 expandedHeight = sheetExpandedHeight,
                 onSheetProgressChange = { progress -> sheetInsets.follow(sheetExpandedHeightPx * progress) },
                 dismissOnOutsideTap = true,

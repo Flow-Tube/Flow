@@ -38,6 +38,7 @@ import io.github.aedev.flow.data.stats.LedgerAction
 import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
+import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.player.stream.StreamSizeEstimator
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
@@ -284,6 +285,8 @@ class ShortsViewModel
         fun loadShortDetails(videoId: String) = enricher.loadDetails(videoId)
 
         fun loadShortDescription(videoId: String) = enricher.loadDescription(videoId)
+
+        val shortDescriptionPages: StateFlow<Map<String, VideoDescriptionPage>> = enricher.descriptionPages
 
         suspend fun toggleLike(short: ShortVideo) = engagementState.toggleLike(short)
 

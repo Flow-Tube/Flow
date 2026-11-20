@@ -61,7 +61,7 @@ class ReelCommentsPanelTest {
         val item =
             reel("""{"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "first"}}}}""")
                 .jsonObject
-                .toReelItem()
+                .toReelItem("reel")
 
         assertNull(item?.overlay)
         assertEquals(VideoCommentsSection.Open("first"), item?.comments?.section)

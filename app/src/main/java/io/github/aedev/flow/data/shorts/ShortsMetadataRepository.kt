@@ -2,6 +2,7 @@ package io.github.aedev.flow.data.shorts
 
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.ReelCommentsPanel
+import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.reel.ReelItem
 import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
 import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
@@ -12,8 +13,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The counts, channel, sound and comment panel of a reel, from one `reel_item_watch` per reel per
- * half hour.
+ * The counts, channel, sound, comment panel and description of a reel, from one `reel_item_watch`
+ * per reel per half hour.
  *
  * The sequence never carries these, so the pager asks here for the reel on screen only; a swipe
  * back is a cache hit and two pages asking at once share one request.
@@ -48,6 +49,11 @@ class ShortsMetadataRepository internal constructor(
         videoId: String,
         nowMillis: Long = System.currentTimeMillis(),
     ): ReelCommentsPanel? = itemFor(videoId, nowMillis)?.comments
+
+    suspend fun descriptionFor(
+        videoId: String,
+        nowMillis: Long = System.currentTimeMillis(),
+    ): VideoDescriptionPage? = itemFor(videoId, nowMillis)?.description
 
     private suspend fun itemFor(
         videoId: String,
