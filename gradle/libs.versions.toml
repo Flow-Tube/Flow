@@ -11,7 +11,6 @@ composeBom = "2026.11.00"
 navigationCompose = "2.10.0"
 lifecycle = "2.11.0"
 androidxWindow = "1.5.0"
-constraintlayoutCompose = "1.1.2"
 coil = "3.5.0"
 composeReorderable = "3.1.0"
 hilt = "2.60.1"
@@ -35,7 +34,6 @@ espressoCore = "3.7.0"
 ksp = "2.3.11"
 media = "1.8.0"
 brotli = "0.1.2"
-re2j = "1.7"
 desugarJdkLibs = "2.1.5"
 mockk = "1.14.11"
 truth = "1.4.5"
@@ -76,7 +74,6 @@ androidx-biometric = { group = "androidx.biometric", name = "biometric", version
 androidx-biometric-compose = { group = "androidx.biometric", name = "biometric-compose", version.ref = "biometric" }
 androidx-window = { group = "androidx.window", name = "window", version.ref = "androidxWindow" }
 androidx-window-core = { group = "androidx.window", name = "window-core", version.ref = "androidxWindow" }
-androidx-constraintlayout-compose = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version.ref = "constraintlayoutCompose" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 compose-reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "composeReorderable" }
 coil-video = { group = "io.coil-kt.coil3", name = "coil-video", version.ref = "coil" }
@@ -121,7 +118,6 @@ androidx-paging-runtime-ktx = { group = "androidx.paging", name = "paging-runtim
 androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 brotli = { group = "org.brotli", name = "dec", version.ref = "brotli" }
-re2j = { group = "com.google.re2j", name = "re2j", version.ref = "re2j" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kxml2 = { group = "net.sf.kxml", name = "kxml2", version.ref = "kxml2" }
 desugar-jdk-libs-nio = { group = "com.android.tools", name = "desugar_jdk_libs_nio", version.ref = "desugarJdkLibs" }

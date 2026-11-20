@@ -31,21 +31,22 @@ fun secretValue(
         ?: System.getenv(environment)
         ?: ""
 
-// The in-app picker lists the same languages AGP writes into the generated locale config: every
-// values folder that carries a strings.xml, so a new Weblate language shows up in both at once.
-fun translatedLocaleTags(): List<String> =
+// Every values folder that carries a strings.xml, as its resource qualifier (pt-rBR, b+yue+Hant).
+// The in-app picker, the generated locale config and the APK's resources all follow this list, so a
+// new Weblate language shows up in all three at once.
+fun translatedLocaleQualifiers(): List<String> =
     file("src/main/res")
         .listFiles()
         .orEmpty()
-        .filter { it.isDirectory && it.resolve("strings.xml").exists() }
-        .mapNotNull { dir ->
-            val qualifier = dir.name.removePrefix("values-")
-            when {
-                qualifier == dir.name -> null
-                qualifier.startsWith("b+") -> qualifier.removePrefix("b+").replace('+', '-')
-                Regex("[a-z]{2,3}(-r[A-Z]{2})?").matches(qualifier) -> qualifier.replace("-r", "-")
-                else -> null
-            }
+        .filter { it.isDirectory && it.resolve("strings.xml").exists() && it.name.startsWith("values-") }
+        .map { it.name.removePrefix("values-") }
+        .filter { it.startsWith("b+") || Regex("[a-z]{2,3}(-r[A-Z]{2})?").matches(it) }
+        .sorted()
+
+fun translatedLocaleTags(): List<String> =
+    translatedLocaleQualifiers()
+        .map { qualifier ->
+            if (qualifier.startsWith("b+")) qualifier.removePrefix("b+").replace('+', '-') else qualifier.replace("-r", "-")
         }.map { if (it == "in" || it.startsWith("in-")) "id" + it.removePrefix("in") else it }
         .sorted()
 
@@ -116,6 +117,8 @@ android {
 
     androidResources {
         generateLocaleConfig = true
+        // Libraries bring their own strings in about 90 languages; the app ships only the ones it is translated into.
+        localeFilters += listOf("en") + translatedLocaleQualifiers()
     }
 
     signingConfigs {
@@ -211,6 +214,8 @@ android {
                     "/META-INF/INDEX.LIST",
                     "/META-INF/DEPENDENCIES",
                     "/META-INF/*.version",
+                    "org/bouncycastle/**/*.properties",
+                    "DebugProbesKt.bin",
                 )
         }
     }
@@ -239,6 +244,12 @@ tasks.withType<Test>().configureEach {
     for (name in listOf("flow.fuzz.cases", "flow.fuzz.seed")) providers.systemProperty(name).orNull?.let { systemProperty(name, it) }
     // A failure's cause, e.g. what an earlier test leaked into runTest, otherwise only reaches the HTML report.
     testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+}
+
+// kotlin-reflect comes in through ktor-server-core, which only reaches it in development mode, and
+// stdlib routes every ::class through it once it is on the classpath. MockK needs it, so tests keep it.
+configurations.matching { it.name.endsWith("ReleaseRuntimeClasspath") || it.name.endsWith("NightlyRuntimeClasspath") }.configureEach {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-reflect")
 }
 
 // One profile for every shipped variant: foss, nightly and github run the same startup code, and
@@ -322,9 +333,6 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.biometric.compose)
 
-    // --- Layouts ---
-    implementation(libs.androidx.constraintlayout.compose)
-
     // --- Image Loading ---
     implementation(libs.coil.compose)
     implementation(libs.compose.reorderable)
@@ -406,7 +414,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.brotli)
-    implementation(libs.re2j)
 
     // --- Baseline profiles ---
     // Runtime installer for the merged baseline profile. AGP merges profiles shipped inside

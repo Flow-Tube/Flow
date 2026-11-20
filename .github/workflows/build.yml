@@ -331,6 +331,20 @@ jobs:
           cp "$src" "dist-nightly/flow-nightly-${GITHUB_RUN_NUMBER}.apk"
           (cd dist-nightly && sha256sum flow-nightly-*.apk | tee checksums.txt)
 
+      # Unit tests run before R8; this reads the shrunk dex for Gson models and generic
+      # signatures R8 could have dropped (#996, #964).
+      - name: Check R8 output
+        shell: bash
+        run: |
+          shopt -s nullglob
+          apks=(
+            app/build/outputs/apk/foss/release/app-foss-arm64-v8a-release*.apk
+            app/build/outputs/apk/github/nightly/app-github-arm64-v8a-nightly*.apk
+            app/build/outputs/apk/github/release/app-github-arm64-v8a-release*.apk
+          )
+          test ${#apks[@]} -gt 0
+          python3 .github/scripts/release_apk_guard.py "${apks[@]}"
+
       - name: Report individual APK sizes
         shell: bash
         run: |
