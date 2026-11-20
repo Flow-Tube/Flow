@@ -5,7 +5,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.model.SponsorBlockSegment
-import io.github.aedev.flow.network.AppProxyManager
+import io.github.aedev.flow.network.ProxyAwareClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -64,8 +64,9 @@ private class HashedFullSegment(
 class SponsorBlockRepository
     @Inject
     constructor() {
+        private val http = ProxyAwareClient()
         private val client: OkHttpClient
-            get() = AppProxyManager.applyTo(OkHttpClient.Builder()).build()
+            get() = http.get()
         private val gson = Gson()
         private val segmentListType = object : TypeToken<List<SponsorBlockSegment>>() {}.type
 

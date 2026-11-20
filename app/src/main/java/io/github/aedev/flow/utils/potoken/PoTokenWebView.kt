@@ -10,7 +10,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.annotation.MainThread
 import io.github.aedev.flow.BuildConfig
-import io.github.aedev.flow.network.AppProxyManager
+import io.github.aedev.flow.network.ProxyAwareClient
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -436,8 +436,9 @@ class PoTokenWebView private constructor(
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.3"
         private const val JS_INTERFACE = "PoTokenWebView"
 
+        private val http = ProxyAwareClient()
         private val httpClient: OkHttpClient
-            get() = AppProxyManager.applyTo(OkHttpClient.Builder()).build()
+            get() = http.get()
 
         /**
          * Builds a WebView and runs its first attestation. Callers should hold on to the result
