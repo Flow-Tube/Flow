@@ -34,23 +34,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * ShortsPlayerPool — 3-player pool for instant swipe transitions.
- *
- * Architecture:
- * - 3 ExoPlayer instances with roles: PREVIOUS, CURRENT, NEXT
- * - Aggressive buffer settings (2.5s min / 15s max / 500ms playback / 1.5s rebuffer)
- * - REPEAT_MODE_ONE for looping shorts
- * - RESIZE_MODE_ZOOM for full-screen display
- * - Role rotation on swipe: no player creation/destruction, just role reassignment
- * - Pre-loading: NEXT player starts buffering before user swipes
- *
- * Lifecycle:
- * 1. initialize(context) — creates 3 players
- * 2. prepareCurrent(videoUrl, audioUrl) — loads media into CURRENT player
- * 3. prepareNext(videoUrl, audioUrl) — pre-loads NEXT player
- * 4. swipeForward() — rotates: CURRENT→PREVIOUS, NEXT→CURRENT, PREVIOUS→NEXT
- * 5. swipeBackward() — rotates: CURRENT→NEXT, PREVIOUS→CURRENT, NEXT→PREVIOUS
- * 6. release() — destroys all players
+ * Three pooled ExoPlayers for the Shorts pager. A page maps to slot `index % 3`, so the reel on
+ * screen and both neighbours are prepared at once and a swipe only starts or pauses a player.
+ * Buffer limits come from [io.github.aedev.flow.player.factory.LoadControlFactory.forShorts].
  */
 @OptIn(UnstableApi::class)
 class ShortsPlayerPool private constructor() {
@@ -130,6 +116,10 @@ class ShortsPlayerPool private constructor() {
     private var volumeNormalization: Boolean = DEFAULT_VIDEO_VOLUME_NORMALIZATION
 
     private val preferenceObservers = ShortsPreferenceObservers()
+    private val firstFrames = ShortsFirstFrames()
+
+    /** Reels whose first frame is on a surface; see [ShortsFirstFrames]. */
+    val renderedVideoIds: StateFlow<Set<String>> = firstFrames.renderedVideoIds
 
     private val _currentVideoId = MutableStateFlow<String?>(null)
     val currentVideoId: StateFlow<String?> = _currentVideoId.asStateFlow()
@@ -220,8 +210,9 @@ class ShortsPlayerPool private constructor() {
                             equalizer,
                             dataSourceFactory!!,
                             preferredAudioLanguage,
-                        ) { slots.videoIds[i] }
-                        .also {
+                            slotVideoId = { slots.videoIds[i] },
+                            onFirstFrame = { firstFrames.onRendered(slots.videoIds[i]) },
+                        ).also {
                             it.addListener(playingListener)
                             audioSessionAnnouncers[i] =
                                 AudioSessionAnnouncer(effects.audioSessionRegistry(), AudioEffect.CONTENT_TYPE_MOVIE)
@@ -354,6 +345,8 @@ class ShortsPlayerPool private constructor() {
         // Stop any previous playback in this slot
         player.stop()
         player.clearMediaItems()
+        firstFrames.forget(slots.videoIds[slot])
+        firstFrames.forget(videoId)
 
         slots.assign(slot, index, videoId, videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb)
         applyVolume(slot)
@@ -424,6 +417,7 @@ class ShortsPlayerPool private constructor() {
                 players[i]?.stop()
                 players[i]?.clearMediaItems()
                 slots.videoIds[i]?.let { ShortsStartupTrace.forget(it) }
+                firstFrames.forget(slots.videoIds[i])
                 slots.clear(i)
                 released = true
             }
@@ -590,6 +584,7 @@ class ShortsPlayerPool private constructor() {
         _currentVideoId.value = null
         _currentVideo.value = null
         _anyPlaying.value = false
+        firstFrames.clear()
         bumpOwnership()
     }
 

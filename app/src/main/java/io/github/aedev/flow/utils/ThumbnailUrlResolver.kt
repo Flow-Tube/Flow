@@ -7,6 +7,7 @@ object ThumbnailUrlResolver {
     private val youtubeVideoThumbnailPattern =
         Regex("""(?:https?:)?//(?:i\d*\.ytimg\.com|img\.youtube\.com)/(?:vi|vi_webp)/([^/?#]+)/[^/?#]+""")
     private val googleCdnSizePattern = Regex("""w\d+-h\d+""")
+    private val reelPosterNamePattern = Regex("""/(?:frame\d+|oar\d+)\.(?:jpg|webp)(?:[?#]|$)""")
     private val youtubePagePattern = Regex("""^(?:https?:)?//(?:www\.|m\.)?youtube\.com/""", RegexOption.IGNORE_CASE)
     private val googleCdnParamStartPattern = Regex("""=(?:w|s|h)""")
 
@@ -79,6 +80,12 @@ object ThumbnailUrlResolver {
         return tiers.map { tier -> "https://i.ytimg.com/vi/$id/$tier.jpg" }
     }
 
+    /**
+     * A Short's own portrait image on i.ytimg: `frame0` (its first frame, from the reel sequence) or `oar2`
+     * (original aspect ratio). The 16:9 tiers would crop a vertical clip to its middle third.
+     */
+    fun isPortraitReelPoster(url: String): Boolean = isYoutubeVideoThumbnail(url) && reelPosterNamePattern.containsMatchIn(url)
+
     /** A cover stored on the device: a download's saved thumbnail, or a MediaStore item. */
     fun isDeviceUri(url: String): Boolean = url.startsWith("file:") || url.startsWith("content:") || url.startsWith("/")
 
@@ -103,6 +110,7 @@ object ThumbnailUrlResolver {
         val candidates =
             when {
                 raw.isEmpty() -> youtubeCandidates
+                portrait && isPortraitReelPoster(raw) -> listOf(raw) + youtubeCandidates
                 isYoutubeVideoThumbnail(raw) -> youtubeCandidates
                 quality == ThumbnailQuality.OFF && !isDeviceUri(raw) -> youtubeCandidates
                 else -> listOf(raw) + youtubeCandidates

@@ -40,6 +40,7 @@ internal fun ShortsReelPlaybackEffects(
     short: ShortVideo,
     pageIndex: Int,
     isActive: Boolean,
+    attachSurface: Boolean,
     settings: ShortsReelSettings,
     pageState: ShortsReelPageState,
     sessionState: ShortsReelSessionState,
@@ -57,18 +58,20 @@ internal fun ShortsReelPlaybackEffects(
         if (isActive) playerPool.setBasePlaybackSpeed(settings.playbackSpeed)
     }
 
-    LaunchedEffect(isActive, short.id, ownershipGeneration) {
+    LaunchedEffect(isActive) {
         if (isActive) {
             playerPool.initialize(context)
             EnhancedMusicPlayerManager.pause()
-            val player = playerPool.playerForAttach(pageIndex, short.id)
-            playerView.player = player
-            onAttachedPlayerChange(player)
-            if (player?.isPlaying == true) pageState.hasStartedPlaying = true
-        } else {
-            playerView.player = null
-            onAttachedPlayerChange(null)
         }
+    }
+
+    // Every page next to the playing one keeps its own player on its surface: the page leaving holds its
+    // last frame, and a prepared neighbour has its first frame up before it slides in.
+    LaunchedEffect(attachSurface, short.id, ownershipGeneration) {
+        val player = if (attachSurface) playerPool.playerForAttach(pageIndex, short.id) else null
+        playerView.player = player
+        onAttachedPlayerChange(player)
+        if (isActive && player?.isPlaying == true) pageState.hasStartedPlaying = true
     }
 
     LaunchedEffect(isActive, short.id) {

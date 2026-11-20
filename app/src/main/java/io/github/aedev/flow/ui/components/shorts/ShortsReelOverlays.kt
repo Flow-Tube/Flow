@@ -37,12 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.ThumbnailQuality
+import io.github.aedev.flow.innertube.pages.reel.reelPosterUrl
 import io.github.aedev.flow.ui.components.shared.LocalThumbnailQuality
 import io.github.aedev.flow.ui.components.shared.VideoThumbnailImage
 import io.github.aedev.flow.ui.theme.PlayerScrim
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
 import io.github.aedev.flow.ui.theme.PlayerScrimImmersiveBackdrop
 import io.github.aedev.flow.ui.theme.PlayerScrimPanel
+import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.coroutines.delay
 
 private const val LIKE_BURST_MS = 800L
@@ -85,7 +87,7 @@ internal fun ShortsReelPoster(
         ) {
             VideoThumbnailImage(
                 videoId = videoId,
-                model = thumbnailUrl,
+                model = thumbnailUrl.takeIf(ThumbnailUrlResolver::isPortraitReelPoster) ?: reelPosterUrl(videoId),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
