@@ -295,6 +295,25 @@ class PlayerSecondaryMetadataLoaderTest {
         }
 
     @Test
+    fun `a video autoplay rolled into keeps the page's label and next-page token`() =
+        runTest(testDispatcher) {
+            stubWatchPage(listOf("a", "b", "pick"), upNext = "pick", continuation = "next")
+            every { playerManager.relatedCandidatesFor("v1") } returns listOf(video("pick"), video("a"), video("b"))
+            val loader = loader()
+
+            playing("v1")
+            loader.loadRelatedVideos("v1", primaryCandidates = emptyList(), loadToken = TOKEN_A)
+            advanceUntilIdle()
+
+            val related = relatedResults().last()
+            assertThat(related.videos.map { it.id }).containsExactly("pick", "a", "b").inOrder()
+            assertThat(related.upNextVideoId).isEqualTo("pick")
+            assertThat(related.continuation).isEqualTo("next")
+            coVerify(exactly = 1) { repository.watchNextResponse("v1") }
+            coVerify(exactly = 0) { repository.getRelatedCandidates(any()) }
+        }
+
+    @Test
     fun `a pick the viewer hid leaves today's order and no label`() =
         runTest(testDispatcher) {
             stubWatchPage(listOf("a", "b", "pick"), upNext = "pick")

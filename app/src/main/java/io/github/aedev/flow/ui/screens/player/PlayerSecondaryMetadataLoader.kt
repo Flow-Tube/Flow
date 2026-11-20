@@ -359,6 +359,7 @@ internal class PlayerSecondaryMetadataLoader(
         if (selected.isNotEmpty()) {
             relatedLoad.takeOver(videoId, loadToken)
             publish(videoId, selected, loadToken)
+            relatedLoad.job = scope.launch(networkDispatcher) { attachPage(videoId, selected, loadToken, awaitPlayback) }
             return
         }
 
@@ -380,6 +381,7 @@ internal class PlayerSecondaryMetadataLoader(
                     )
                 if (managerCandidates.isNotEmpty()) {
                     publish(videoId, managerCandidates, loadToken)
+                    attachPage(videoId, managerCandidates, loadToken, awaitPlayback = false)
                     return@launch
                 }
 
@@ -477,6 +479,23 @@ internal class PlayerSecondaryMetadataLoader(
                     )
                 }
             }
+    }
+
+    /**
+     * The player's own candidates come without their page, which loses the up-next label, the
+     * playlists and the next-page token. The page comes from the watch response this screen loads
+     * for the video anyway, so it costs no request.
+     */
+    private suspend fun attachPage(
+        videoId: String,
+        videos: List<Video>,
+        loadToken: Long,
+        awaitPlayback: Boolean,
+    ) {
+        if (awaitPlayback) awaitPlaybackStarted(videoId)
+        val page = relatedPages.firstPage(videoId) ?: return
+        if (!isPlaybackCurrent(loadToken) || !relatedLoad.holds(videoId, loadToken)) return
+        publish(videoId, videos, loadToken, page)
     }
 
     private fun publish(
