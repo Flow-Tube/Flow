@@ -5447,4 +5447,10 @@
     <string name="mini_player_action_tuck">Minimizar</string>
     <string name="player_zoomed_to_fill">Ajustado para llenar la pantalla</string>
     <string name="player_seek_release_to_cancel">Suelta para cancelar</string>
+    <string name="player_settings_ambient_motion">Movimiento ambiental</string>
+    <string name="player_settings_ambient_motion_subtitle">La rapidez con la que los colores se adaptan al vídeo</string>
+    <string name="player_settings_ambient_motion_smooth">Suave</string>
+    <string name="player_settings_ambient_motion_responsive">Reactivo</string>
+    <string name="settings_quality_remember">Recordar calidad de vídeo</string>
+    <string name="settings_quality_remember_summary">La calidad que elijas en el reproductor pasará a ser la predeterminada</string>
 </resources>
