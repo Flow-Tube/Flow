@@ -196,6 +196,9 @@ class VideoPlayerViewModel
                 .map { list -> list.map { it.video.id }.toSet() }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+        val videoTitleMaxLines: StateFlow<Int> =
+            playerPreferences.videoTitleMaxLines.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1)
+
         fun isVideoSavedToAnyPlaylist(videoId: String): Flow<Boolean> = playlistRepository.isVideoSavedToAnyPlaylistFlow(videoId)
 
         init {

@@ -27,7 +27,6 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.innertube.pages.VideoDescriptionChannel
@@ -161,11 +160,7 @@ private fun DescriptionTextBlock(
             text = text,
             inlineContent = inlineContent,
             style =
-                MaterialTheme.typography.bodyMedium.copy(
-                    color = color,
-                    lineHeight = 24.sp,
-                    fontSize = 15.sp,
-                ),
+                MaterialTheme.typography.bodyLarge.copy(color = color),
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { result ->
