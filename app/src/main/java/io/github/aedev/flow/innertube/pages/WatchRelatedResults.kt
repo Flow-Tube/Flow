@@ -13,6 +13,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /** One entry of a watch page's related lane, in the order YouTube lists it. */
 sealed interface WatchRelatedEntry {
@@ -94,6 +96,46 @@ fun JsonElement.watchUpNextVideoId(): String? =
         ?.get("videoId")
         .stringOrNull()
         ?.takeIf { it.isNotBlank() }
+
+/**
+ * The countdown's own card for the video YouTube plays next. The pick is often missing from the
+ * related list, and this card is the only place the response describes it then.
+ */
+fun JsonElement.watchUpNextCard(): WatchMetadataResponse.CompactVideo? {
+    val overlay =
+        objectOrNull()
+            ?.get("playerOverlays")
+            .objectOrNull()
+            ?.get("playerOverlayRenderer")
+            .objectOrNull()
+            ?.get("autoplay")
+            .objectOrNull()
+            ?.get("playerOverlayAutoplayRenderer")
+            .objectOrNull()
+            ?: return null
+    val videoId = overlay["videoId"].stringOrNull()?.takeIf { it.isNotBlank() } ?: return null
+    val length =
+        overlay["thumbnailOverlays"].arrayOrNull().orEmpty().firstNotNullOfOrNull {
+            it
+                .objectOrNull()
+                ?.get("thumbnailOverlayTimeStatusRenderer")
+                .objectOrNull()
+                ?.get("text")
+        }
+    val card =
+        buildJsonObject {
+            put("videoId", videoId)
+            overlay["videoTitle"]?.let { put("title", it) }
+            overlay["byline"]?.let { put("longBylineText", it) }
+            overlay["background"]?.let { put("thumbnail", it) }
+            overlay["shortViewCountText"]?.let { put("viewCountText", it) }
+            overlay["publishedTimeText"]?.let { put("publishedTimeText", it) }
+            length?.let { put("lengthText", it) }
+        }
+    return runCatching { relatedJson.decodeFromJsonElement(WatchMetadataResponse.CompactVideo.serializer(), card) }
+        .getOrNull()
+        ?.takeIf { it.title?.text() != null }
+}
 
 private fun JsonArray?.toWatchRelatedResults(hl: String?): WatchRelatedResults {
     val entries = mutableListOf<WatchRelatedEntry>()

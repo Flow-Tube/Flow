@@ -8,6 +8,7 @@ import io.github.aedev.flow.innertube.pages.WatchRelatedEntry
 import io.github.aedev.flow.innertube.pages.WatchRelatedResults
 import io.github.aedev.flow.innertube.pages.relatedContinuationResults
 import io.github.aedev.flow.innertube.pages.watchRelatedResults
+import io.github.aedev.flow.innertube.pages.watchUpNextCard
 import io.github.aedev.flow.innertube.pages.watchUpNextVideoId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,9 @@ internal class WatchRelatedPages(
     suspend fun firstPage(videoId: String): WatchRelatedPage? =
         withContext(dispatcher) {
             val watch = repository.watchNextResponse(videoId) ?: return@withContext null
-            toPage(watch.watchRelatedResults(YouTube.locale.hl), watch.watchUpNextVideoId()).takeIf { it.videos.isNotEmpty() }
+            val upNextVideoId = watch.watchUpNextVideoId()
+            val upNextCard = watch.watchUpNextCard()?.takeIf { it.videoId == upNextVideoId }
+            toPage(watch.watchRelatedResults(YouTube.locale.hl), upNextVideoId, upNextCard).takeIf { it.videos.isNotEmpty() }
         }
 
     /** The page [continuation] opens, or null when the request failed. */
@@ -37,12 +40,20 @@ internal class WatchRelatedPages(
                 ?.let { toPage(it.relatedContinuationResults(YouTube.locale.hl), upNextVideoId = null) }
         }
 
+    /** [upNextCard] heads the page when YouTube's pick is not among the videos it lists. */
     private suspend fun toPage(
         results: WatchRelatedResults,
         upNextVideoId: String?,
+        upNextCard: WatchMetadataResponse.CompactVideo? = null,
     ): WatchRelatedPage {
         val seen = mutableSetOf<String>()
         val compact = mutableListOf<WatchMetadataResponse.CompactVideo>()
+        val listed =
+            results.entries
+                .filterIsInstance<WatchRelatedEntry.Videos>()
+                .flatMap { it.videos }
+                .mapNotNull { it.videoId }
+        if (upNextCard != null && upNextVideoId !in listed && seen.add(upNextVideoId.orEmpty())) compact += upNextCard
         val collections = mutableListOf<RelatedCollection>()
         results.entries.forEach { entry ->
             when (entry) {

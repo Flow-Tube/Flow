@@ -7,6 +7,9 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import org.junit.Test
 
 class WatchRelatedPagesTest {
@@ -54,4 +57,62 @@ class WatchRelatedPagesTest {
 
             assertThat(pages.firstPage("v")).isNull()
         }
+
+    @Test
+    fun `a pick the related list leaves out is built from the countdown card and heads the page`() =
+        runTest(dispatcher) {
+            coEvery { repository.enrichLikelyCollabAvatarStacks(any(), any()) } answers { firstArg() }
+            val related =
+                WatchRelatedResultsTest
+                    .watch(
+                        results =
+                            listOf(
+                                WatchRelatedResultsTest.videoLockup("a"),
+                                WatchRelatedResultsTest.mixLockup("RDa"),
+                                WatchRelatedResultsTest.videoLockup("b"),
+                            ),
+                        autoplay = "[${WatchRelatedResultsTest.autoplaySet("pick")}]",
+                    ).jsonObject
+            coEvery { repository.watchNextResponse("v") } returns
+                JsonObject(related + ("playerOverlays" to Json.parseToJsonElement(OVERLAY)))
+
+            val page = pages.firstPage("v")!!
+
+            assertThat(page.videos.map { it.id }).containsExactly("pick", "a", "b").inOrder()
+            assertThat(page.videos.first().title).isEqualTo("Together Forever")
+            assertThat(page.videos.first().channelName).isEqualTo("Rick Astley")
+            assertThat(page.upNextVideoId).isEqualTo("pick")
+            assertThat(page.collections.single().position).isEqualTo(2)
+        }
+
+    @Test
+    fun `a listed pick keeps its own card`() =
+        runTest(dispatcher) {
+            coEvery { repository.enrichLikelyCollabAvatarStacks(any(), any()) } answers { firstArg() }
+            val related =
+                WatchRelatedResultsTest
+                    .watch(
+                        results = listOf(WatchRelatedResultsTest.videoLockup("a"), WatchRelatedResultsTest.videoLockup("pick")),
+                        autoplay = "[${WatchRelatedResultsTest.autoplaySet("pick")}]",
+                    ).jsonObject
+            coEvery { repository.watchNextResponse("v") } returns
+                JsonObject(related + ("playerOverlays" to Json.parseToJsonElement(OVERLAY)))
+
+            assertThat(pages.firstPage("v")!!.videos.map { it.id }).containsExactly("a", "pick").inOrder()
+        }
+
+    private companion object {
+        val OVERLAY =
+            """
+            {"playerOverlayRenderer":{"autoplay":{"playerOverlayAutoplayRenderer":{
+              "videoId":"pick",
+              "videoTitle":{"simpleText":"Together Forever"},
+              "byline":{"runs":[{"text":"Rick Astley","navigationEndpoint":{"browseEndpoint":{"browseId":"UCuAXFkgsw1L7xaCfnd5JJOw"}}}]},
+              "background":{"thumbnails":[{"url":"https://i.ytimg.com/vi/pick/hqdefault.jpg","width":168,"height":94}]},
+              "shortViewCountText":{"simpleText":"29M views"},
+              "publishedTimeText":{"simpleText":"6 years ago"},
+              "thumbnailOverlays":[{"thumbnailOverlayTimeStatusRenderer":{"text":{"simpleText":"3:24"}}}]
+            }}}}
+            """.trimIndent()
+    }
 }
