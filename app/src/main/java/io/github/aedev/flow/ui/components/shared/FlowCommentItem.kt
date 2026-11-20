@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,7 +80,14 @@ fun FlowCommentItem(
     val accent = tint?.accent ?: MaterialTheme.colorScheme.primary
     val chipColor = tint?.container ?: MaterialTheme.colorScheme.surfaceContainerHighest
     val translation = rememberCommentTranslation(comment)
-    val commentText = translation.shown(rememberCommentText(comment, accent))
+    val linkActions =
+        rememberRichTextLinkActions(
+            onSeekMs = onSeekMs,
+            onOpenUrl = { url -> runCatching { uriHandler.openUri(url) } },
+            onChannel = onAuthorClick,
+        )
+    val commentText = translation.shown(rememberCommentText(comment, linkActions, accent))
+    val expand by rememberUpdatedState(onExpand)
 
     if (showFullSizeImage) {
         FullSizeImageDialog(
@@ -163,24 +171,17 @@ fun FlowCommentItem(
                                         text = commentText.annotated,
                                         layoutResult = { commentTextLayoutResult },
                                         color = chipColor,
-                                    ).pointerInput(commentText.annotated) {
-                                        detectTapGestures(
-                                            onTap = { tapOffset ->
-                                                val result = commentTextLayoutResult ?: return@detectTapGestures
-                                                val offset = result.getOffsetForPosition(tapOffset)
-                                                val handled =
-                                                    commentText.handleTap(
-                                                        offset = offset,
-                                                        onSeekMs = onSeekMs,
-                                                        onOpenUrl = { url ->
-                                                            runCatching { uriHandler.openUri(url) }
-                                                        },
-                                                        onAuthorClick = onAuthorClick,
-                                                    )
-                                                if (!handled && !isExpanded && isOverflowing) onExpand()
-                                            },
-                                        )
-                                    },
+                                    ).then(
+                                        // Links are child nodes and consume their own taps, so this
+                                        // only sees a tap on plain text.
+                                        if (isExpanded) {
+                                            Modifier
+                                        } else {
+                                            Modifier.pointerInput(Unit) {
+                                                detectTapGestures(onTap = { if (isOverflowing) expand() })
+                                            }
+                                        },
+                                    ),
                         )
                     }
                 }

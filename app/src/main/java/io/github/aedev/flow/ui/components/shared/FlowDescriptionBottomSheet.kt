@@ -88,10 +88,17 @@ fun FlowDescriptionBottomSheet(
     val richDescription =
         if (showOriginal) remember(video.description) { plainRichText(video.description) } else descriptionPage?.description
     val descriptionEmoji = rememberRichTextInlineContent(richDescription)
+    val linkActions =
+        rememberRichTextLinkActions(
+            onSeekMs = onSeekMs,
+            onOpenUrl = openLink,
+            onChannel = onChannelClick ?: navigator::openChannel,
+            onHashtag = onHashtagClick,
+        )
     val descriptionText =
-        remember(richDescription, video.description, linkColor, textColor) {
-            richDescription?.toAnnotatedString(linkColor = linkColor, textColor = textColor)
-                ?: parseHtmlDescription(video.description, linkColor)
+        remember(richDescription, video.description, linkColor, textColor, linkActions) {
+            richDescription?.toAnnotatedString(linkColor = linkColor, textColor = textColor, actions = linkActions)
+                ?: parseHtmlDescription(video.description, linkColor, linkActions)
         }
     var descLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     val translateAction = rememberTranslateAction()
@@ -238,15 +245,6 @@ fun FlowDescriptionBottomSheet(
                 inlineContent = descriptionEmoji,
                 tint = tint,
                 onLayout = { descLayoutResult = it },
-                onTap = { offset ->
-                    shownDescription.handleDescriptionTap(
-                        offset = offset,
-                        onSeekMs = onSeekMs,
-                        onHashtagClick = onHashtagClick,
-                        onChannelClick = onChannelClick ?: navigator::openChannel,
-                        onOpenUrl = openLink,
-                    )
-                },
                 layoutResult = descLayoutResult,
             )
 

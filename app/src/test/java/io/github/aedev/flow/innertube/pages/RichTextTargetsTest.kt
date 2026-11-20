@@ -1,11 +1,6 @@
 package io.github.aedev.flow.innertube.pages
 
-import androidx.compose.ui.graphics.Color
-import io.github.aedev.flow.data.model.RichText
-import io.github.aedev.flow.data.model.RichTextSpan
 import io.github.aedev.flow.data.model.RichTextTarget
-import io.github.aedev.flow.utils.RICH_TEXT_VIDEO
-import io.github.aedev.flow.utils.toAnnotatedString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -41,20 +36,6 @@ class RichTextTargetsTest {
         assertEquals(
             listOf(RichTextTarget.Hashtag("queen")),
             targetsOf("""{"browseEndpoint": {"browseId": "FEhashtag", "canonicalBaseUrl": "/hashtag/queen"}}"""),
-        )
-    }
-
-    @Test
-    fun `a link to another video carries its watch link`() {
-        val text =
-            RichText(
-                text = "watch",
-                spans = listOf(RichTextSpan(0, 5, RichTextTarget.Video("dQw4w9WgXcQ", startSeconds = 42))),
-            ).toAnnotatedString(linkColor = Color.Blue, textColor = Color.Black)
-
-        assertEquals(
-            listOf("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s"),
-            text.getStringAnnotations(RICH_TEXT_VIDEO, 0, 5).map { it.item },
         )
     }
 }

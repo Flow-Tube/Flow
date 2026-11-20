@@ -3,7 +3,6 @@ package io.github.aedev.flow.ui.components.shared
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -22,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
@@ -82,7 +80,6 @@ internal fun DescriptionBody(
     tint: MediaArtworkTint,
     layoutResult: TextLayoutResult?,
     onLayout: (TextLayoutResult) -> Unit,
-    onTap: (Int) -> Unit,
 ) {
     val highlightColor = tint.onContainer.copy(alpha = HIGHLIGHT_ALPHA)
     var expanded by rememberSaveable(text.text) { mutableStateOf(false) }
@@ -122,14 +119,7 @@ internal fun DescriptionBody(
                                 text = text,
                                 layoutResult = { layoutResult },
                                 color = highlightColor,
-                            ).pointerInput(text) {
-                                detectTapGestures(
-                                    onTap = { tapOffset ->
-                                        val result = layoutResult ?: return@detectTapGestures
-                                        onTap(result.getOffsetForPosition(tapOffset))
-                                    },
-                                )
-                            },
+                            ),
                 )
             }
 
