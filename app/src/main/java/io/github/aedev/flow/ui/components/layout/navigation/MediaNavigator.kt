@@ -31,6 +31,9 @@ interface MediaNavigator {
 
     /** Opens what [link] points at. False when Flow has no page for it, so the caller can say so. */
     fun openLink(link: YouTubeLink): Boolean
+
+    /** Searches for [query], which is how a hashtag opens: Flow has no hashtag page of its own. */
+    fun openSearch(query: String) = Unit
 }
 
 private object NoOpMediaNavigator : MediaNavigator {

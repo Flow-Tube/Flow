@@ -69,6 +69,10 @@ internal class SecondaryMetadataApplier(
             is SecondaryMetadata.WatchInfo -> {
                 applyWatchInfo(result)
             }
+
+            is SecondaryMetadata.WatchHeader -> {
+                applyWatchHeader(result)
+            }
         }
     }
 
@@ -118,6 +122,11 @@ internal class SecondaryMetadataApplier(
                 awaitPlayback = false,
             )
         }
+    }
+
+    private fun applyWatchHeader(result: SecondaryMetadata.WatchHeader) {
+        if (!isLoadCurrent(result.loadToken) || uiState.value.cachedVideo?.id != result.videoId) return
+        uiState.update { it.copy(watchHeader = result.header) }
     }
 
     /** Kept on the video, so the watch signal carries it. */

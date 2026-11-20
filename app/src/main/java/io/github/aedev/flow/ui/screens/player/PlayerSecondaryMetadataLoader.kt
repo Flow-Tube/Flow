@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
+import io.github.aedev.flow.innertube.pages.WatchPageHeader
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PlayerRelatedVideosPolicy
 import io.github.aedev.flow.ui.screens.player.state.RelatedLanePlacement
@@ -73,6 +74,12 @@ internal sealed interface SecondaryMetadata {
         override val videoId: String,
         override val loadToken: Long,
         val chapters: List<VideoChapter>,
+    ) : SecondaryMetadata
+
+    class WatchHeader(
+        override val videoId: String,
+        override val loadToken: Long,
+        val header: WatchPageHeader,
     ) : SecondaryMetadata
 
     class WatchInfo(
@@ -163,6 +170,7 @@ internal class PlayerSecondaryMetadataLoader(
     private val chaptersLoad = ConcurrentLoad()
     private val paidPromotionLoad = ConcurrentLoad()
     private val watchInfoLoad = ConcurrentLoad()
+    private val watchHeaderLoad = ConcurrentLoad()
 
     /** Drops every fetch in flight; the next load re-arms the ones it needs. */
     fun cancel() {
@@ -173,6 +181,7 @@ internal class PlayerSecondaryMetadataLoader(
         chaptersLoad.cancel()
         paidPromotionLoad.cancel()
         watchInfoLoad.cancel()
+        watchHeaderLoad.cancel()
     }
 
     /**
@@ -214,6 +223,25 @@ internal class PlayerSecondaryMetadataLoader(
                         ?.takeIf { !it.isEmpty } ?: return@launch
                 if (!isPlaybackCurrent(loadToken) || !heatmapLoad.holds(videoId, loadToken)) return@launch
                 onResult(SecondaryMetadata.Heatmap(videoId, loadToken, heatmap))
+            }
+    }
+
+    /** The hashtags above the title and the rest of the title row, off the same watch response. */
+    fun loadWatchHeader(
+        videoId: String,
+        loadToken: Long,
+    ) {
+        if (!watchHeaderLoad.claim(videoId, loadToken)) return
+
+        watchHeaderLoad.job =
+            scope.launch(networkDispatcher) {
+                awaitPlaybackStarted(videoId)
+                if (!isPlaybackCurrent(loadToken)) return@launch
+                val header =
+                    withTimeoutOrNull(WATCH_HEADER_TIMEOUT_MS) { repository.watchPageHeader(videoId) }
+                        ?: return@launch
+                if (!isPlaybackCurrent(loadToken) || !watchHeaderLoad.holds(videoId, loadToken)) return@launch
+                onResult(SecondaryMetadata.WatchHeader(videoId, loadToken, header))
             }
     }
 
@@ -533,5 +561,6 @@ internal class PlayerSecondaryMetadataLoader(
         const val CHAPTERS_TIMEOUT_MS = 8_000L
         const val PAID_PROMOTION_TIMEOUT_MS = 8_000L
         const val WATCH_INFO_TIMEOUT_MS = 8_000L
+        const val WATCH_HEADER_TIMEOUT_MS = 8_000L
     }
 }

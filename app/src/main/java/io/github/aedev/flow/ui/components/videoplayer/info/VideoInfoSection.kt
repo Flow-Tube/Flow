@@ -21,8 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
+import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
 import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.CollaboratorsBottomSheet
@@ -31,17 +33,20 @@ import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChannelDisplayName
 import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
+import io.github.aedev.flow.ui.components.shared.rememberRichTextLinkActions
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.DateContext
 import io.github.aedev.flow.utils.avatarImageIdentityKey
 import io.github.aedev.flow.utils.formatSubscriberCount
 import io.github.aedev.flow.utils.formatViewCount
+import io.github.aedev.flow.utils.toAnnotatedString
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun VideoInfoSection(
     video: Video,
     title: String,
+    superTitle: RichText? = null,
     viewCount: Long,
     uploadDate: String?,
     description: String?,
@@ -123,6 +128,8 @@ internal fun VideoInfoSection(
                     .clip(MaterialTheme.shapes.small)
                     .clickable(onClick = onDescriptionClick),
         ) {
+            superTitle?.let { VideoSuperTitle(it) }
+
             Text(
                 text = title,
                 style =
@@ -306,6 +313,21 @@ internal fun VideoInfoSection(
             onDismiss = { showCollaborators = false },
         )
     }
+}
+
+/** The hashtags or the place above the title; a hashtag searches for itself, as Flow has no hashtag page. */
+@Composable
+private fun VideoSuperTitle(line: RichText) {
+    val navigator = LocalMediaNavigator.current
+    val color = MaterialTheme.colorScheme.primary
+    val actions = rememberRichTextLinkActions(onHashtag = { tag -> navigator.openSearch("#$tag") })
+    val text = remember(line, color, actions) { line.toAnnotatedString(linkColor = color, textColor = color, actions = actions) }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 private val InfoPadding = 12.dp

@@ -57,23 +57,8 @@ data class VideoDescriptionPage(
 }
 
 internal fun JsonElement.toVideoDescriptionPage(ownVideoId: String?): VideoDescriptionPage {
-    val results =
-        objectOrNull()
-            ?.get("contents")
-            .objectOrNull()
-            ?.get("twoColumnWatchNextResults")
-            .objectOrNull()
-            ?.get("results")
-            .objectOrNull()
-            ?.get("results")
-            .objectOrNull()
-            ?.get("contents")
-            .arrayOrNull()
-            .orEmpty()
-    val primary =
-        results.firstNotNullOfOrNull { it.objectOrNull()?.get("videoPrimaryInfoRenderer").objectOrNull() }
-    val secondary =
-        results.firstNotNullOfOrNull { it.objectOrNull()?.get("videoSecondaryInfoRenderer").objectOrNull() }
+    val primary = watchInfoRenderer("videoPrimaryInfoRenderer")
+    val secondary = watchInfoRenderer("videoSecondaryInfoRenderer")
     val viewCountRenderer =
         primary
             ?.get("viewCount")

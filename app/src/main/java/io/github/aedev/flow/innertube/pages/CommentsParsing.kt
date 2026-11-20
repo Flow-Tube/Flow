@@ -247,7 +247,7 @@ private fun JsonObject.toRichTextSpan(
     return RichTextSpan(start = start, length = length, target = target)
 }
 
-private fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
+internal fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
     this["watchEndpoint"].objectOrNull()?.let { watch ->
         val videoId = watch["videoId"].stringOrNull() ?: return@let
         // The "0:00" chapter link carries no start time, only continuePlayback.
@@ -262,7 +262,8 @@ private fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
     }
     this["browseEndpoint"].objectOrNull()?.let { browse ->
         val browseId = browse["browseId"].stringOrNull() ?: return@let
-        val canonical = browse["canonicalBaseUrl"].stringOrNull()
+        // A hashtag above the title names its page only in the command metadata, beside FEhashtag.
+        val canonical = browse["canonicalBaseUrl"].stringOrNull() ?: webCommandUrl()
         if (canonical != null && canonical.startsWith("/hashtag/")) {
             return RichTextTarget.Hashtag(canonical.removePrefix("/hashtag/"))
         }
@@ -275,16 +276,17 @@ private fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
         val raw = url["url"].stringOrNull() ?: return@let
         return RichTextTarget.Url(unwrapRedirectUrl(raw))
     }
-    val webUrl =
-        this["commandMetadata"]
-            .objectOrNull()
-            ?.get("webCommandMetadata")
-            .objectOrNull()
-            ?.get("url")
-            .stringOrNull()
-            ?: return null
+    val webUrl = webCommandUrl() ?: return null
     return RichTextTarget.Url(unwrapRedirectUrl(webUrl))
 }
+
+private fun JsonObject.webCommandUrl(): String? =
+    this["commandMetadata"]
+        .objectOrNull()
+        ?.get("webCommandMetadata")
+        .objectOrNull()
+        ?.get("url")
+        .stringOrNull()
 
 private fun JsonObject.toRichTextHighlight(textLength: Int): RichTextHighlight? {
     val highlight =

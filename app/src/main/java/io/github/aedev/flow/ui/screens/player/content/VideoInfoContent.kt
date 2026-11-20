@@ -94,6 +94,7 @@ internal fun VideoInfoContent(
     VideoInfoSection(
         video = video,
         title = resolvedVideoTitle,
+        superTitle = uiState.watchHeader?.superTitle,
         viewCount = video.viewCount,
         uploadDate = streamUploadDate ?: video.uploadDate,
         description = video.description,

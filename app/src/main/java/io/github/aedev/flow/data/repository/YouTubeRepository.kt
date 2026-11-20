@@ -17,10 +17,12 @@ import io.github.aedev.flow.innertube.models.response.VideoHeatmapParser
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
 import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
+import io.github.aedev.flow.innertube.pages.WatchPageHeader
 import io.github.aedev.flow.innertube.pages.YouTubeCountParser
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.search.resultVideos
+import io.github.aedev.flow.innertube.pages.toWatchPageHeader
 import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -535,6 +537,12 @@ class YouTubeRepository
             withContext(Dispatchers.IO) {
                 val response = watchNextResponse(videoId) ?: return@withContext null
                 YouTube.videoDescription(response, videoId).takeIf { !it.isEmpty }
+            }
+
+        /** The hashtags above the title and the rest of the title row, off the shared watch response. */
+        suspend fun watchPageHeader(videoId: String): WatchPageHeader? =
+            withContext(Dispatchers.IO) {
+                watchNextResponse(videoId)?.toWatchPageHeader(videoId)
             }
 
         /**
