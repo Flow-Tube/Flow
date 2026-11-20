@@ -5179,4 +5179,9 @@
     <string name="error_bot_wall_mobile_data_hint">請改用 Wi-Fi，或稍後再試。這種情況通常會自行排除。</string>
     <string name="mini_player_action_open">開啟播放器</string>
     <string name="mini_player_action_larger">放大</string>
+    <string name="mini_player_action_smaller">縮小</string>
+    <string name="mini_player_action_next_corner">移至下一個角落</string>
+    <string name="mini_player_action_tuck">收起</string>
+    <string name="player_zoomed_to_fill">已縮放至填滿畫面</string>
+    <string name="player_seek_release_to_cancel">放開即可取消</string>
 </resources>
