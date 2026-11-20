@@ -91,6 +91,7 @@ internal fun JsonObject.toModernComment(
             ?: this["pinnedText"].youtubeText()?.takeIf(String::isNotBlank)
             ?: properties["pinnedText"].youtubeText()?.takeIf(String::isNotBlank)
     val likeCountText = toolbar?.get("likeCountNotliked").youtubeText().orEmpty()
+    val creatorReply = repliesRenderer?.creatorReplyAvatar()
     return Comment(
         id = id,
         author = author?.get("displayName").stringOrNull().orEmpty(),
@@ -116,6 +117,14 @@ internal fun JsonObject.toModernComment(
         pinnedByText = resolvedPinnedText,
         isHearted = toolbarState?.get("heartState").stringOrNull() == HEART_STATE_HEARTED,
         heartedByText = toolbar?.get("heartActiveTooltip").stringOrNull(),
+        creatorHeartThumbnail =
+            toolbar
+                ?.get("creatorThumbnailUrl")
+                .stringOrNull()
+                ?.takeIf(String::isNotBlank)
+                ?.let(::normalizeImageUrl),
+        creatorReplyThumbnail = creatorReply?.avatarUrl,
+        creatorReplyName = creatorReply?.name,
         isVerified = author?.get("isVerified").booleanOrFalse(),
         isCreator = author?.get("isCreator").booleanOrFalse(),
         isArtist = author?.get("isArtist").booleanOrFalse(),
@@ -148,8 +157,29 @@ internal fun JsonElement?.toCommentImage(): CommentImage? {
 
 private fun JsonElement?.intOrZero(): Int = (this as? JsonPrimitive)?.intOrNull ?: 0
 
+/** The avatar and channel name on the replies button of a thread the creator answered. */
+private data class CreatorReply(
+    val avatarUrl: String,
+    val name: String?,
+)
+
+private fun JsonObject.creatorReplyAvatar(): CreatorReply? {
+    val thumbnail = this["viewRepliesCreatorThumbnail"].objectOrNull() ?: return null
+    val url = thumbnail.bestThumbnailUrl()?.takeIf(String::isNotBlank) ?: return null
+    val name =
+        thumbnail["accessibility"]
+            .objectOrNull()
+            ?.get("accessibilityData")
+            .objectOrNull()
+            ?.get("label")
+            .stringOrNull()
+            ?.takeIf(String::isNotBlank)
+    return CreatorReply(avatarUrl = normalizeImageUrl(url), name = name)
+}
+
 internal fun JsonObject.toLegacyComment(repliesRenderer: JsonObject?): Comment? {
     val id = this["commentId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
+    val creatorReply = repliesRenderer?.creatorReplyAvatar()
     return Comment(
         id = id,
         author = this["authorText"].youtubeText().orEmpty(),
@@ -171,6 +201,8 @@ internal fun JsonObject.toLegacyComment(repliesRenderer: JsonObject?): Comment? 
         likeCountText = this["voteCount"].youtubeText().orEmpty(),
         isVerified = this["authorCommentBadge"] != null,
         image = this["imageAttachmentViewModel"].toCommentImage(),
+        creatorReplyThumbnail = creatorReply?.avatarUrl,
+        creatorReplyName = creatorReply?.name,
     )
 }
 
