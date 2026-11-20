@@ -9,7 +9,8 @@ signature it stripped (#996, #964). This reads the shrunk dex instead and compar
 - typeTokens: the anonymous TypeToken subclasses, each of which must keep its generic signature;
 - modelFieldSignatures: the generic fields of the data models, which must keep their signature;
 - reflectCallers, when listed: the only methods outside kotlin.reflect that may call kotlin-reflect's full API;
-- absentPackages: libraries that must not ship.
+- absentPackages: libraries that must not ship;
+- every language the app is translated into (values-*/strings.xml) must be in resources.arsc.
 
 Usage: release_apk_guard.py APK [APK ...]          check
        release_apk_guard.py --print APK            print the facts of one APK as JSON
@@ -25,7 +26,8 @@ import sys
 import tempfile
 import zipfile
 
-EXPECTED = pathlib.Path(__file__).resolve().parents[1] / "release-apk-guard.json"
+REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
+EXPECTED = REPOSITORY / ".github" / "release-apk-guard.json"
 TYPE_TOKEN = "Lcom/google/gson/reflect/TypeToken;"
 GSON_FROM_JSON = "Lcom/google/gson/Gson;.fromJson:"
 REFLECT_FULL = ("Lkotlin/reflect/full/", "Lkotlin/reflect/jvm/")
@@ -33,12 +35,14 @@ REFLECT_FULL = ("Lkotlin/reflect/full/", "Lkotlin/reflect/jvm/")
 FROM_JSON_REACH = 24
 CLASS_HEADER = re.compile(r"^Class #(\d+)\s+-\s*$")
 CLASS_ANNOTATIONS = re.compile(r"^Class #(\d+) annotations:\s*$")
+LANGUAGE = re.compile(r"[a-z]{2,3}|b\+[A-Za-z0-9+]+")
+REGION = re.compile(r"r[A-Z]{2}")
 FIELD_ANNOTATIONS = re.compile(r"^Annotations on field #\d+ '([^']+)'")
 # Gson models live here; a field there that loses its generic signature deserializes raw (#996).
 MODEL_PACKAGE = "Lio/github/aedev/flow/data/"
 
 
-def dexdump() -> str:
+def build_tool(name: str) -> str:
     sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
     if not sdk:
         properties = pathlib.Path("local.properties")
@@ -47,13 +51,13 @@ def dexdump() -> str:
                 if line.startswith("sdk.dir="):
                     sdk = line.split("=", 1)[1].strip()
     if not sdk:
-        sys.exit("release_apk_guard: set ANDROID_HOME so dexdump can be found")
+        sys.exit(f"release_apk_guard: set ANDROID_HOME so {name} can be found")
     tools = sorted(
-        (path for path in pathlib.Path(sdk, "build-tools").glob("*/dexdump")),
+        (path for path in pathlib.Path(sdk, "build-tools").glob(f"*/{name}")),
         key=lambda path: [int(part) if part.isdigit() else 0 for part in re.split(r"[.-]", path.parent.name)],
     )
     if not tools:
-        sys.exit(f"release_apk_guard: no dexdump under {sdk}/build-tools")
+        sys.exit(f"release_apk_guard: no {name} under {sdk}/build-tools")
     return str(tools[-1])
 
 
@@ -68,8 +72,26 @@ def lines(command: list, pattern: str):
         sys.exit(f"release_apk_guard: {' '.join(command)} failed")
 
 
+def apk_locales(apk: pathlib.Path) -> set:
+    """The locales resources.arsc carries resources for, as resource qualifiers (pt-rBR, b+yue+Hant)."""
+    output = subprocess.run([build_tool("aapt2"), "dump", "configurations", str(apk)], capture_output=True, text=True, check=True).stdout
+    found = set()
+    for config in output.split():
+        parts = config.split("-")
+        if not LANGUAGE.fullmatch(parts[0]):
+            continue
+        found.add("-".join(parts[:2]) if len(parts) > 1 and REGION.fullmatch(parts[1]) else parts[0])
+    return found
+
+
+def app_locales() -> set:
+    """The languages the app is translated into: every values-* folder Weblate writes a strings.xml to."""
+    folders = (REPOSITORY / "app" / "src" / "main" / "res").glob("values-*/strings.xml")
+    return {path.parent.name.removeprefix("values-") for path in folders}
+
+
 def facts(apk: pathlib.Path) -> dict:
-    tool = dexdump()
+    tool = build_tool("dexdump")
     superclass = {}
     signatures = {}
     field_signatures = set()
@@ -145,6 +167,7 @@ def facts(apk: pathlib.Path) -> dict:
             name for name in type_tokens if "Lcom/google/gson/reflect/TypeToken<" not in signatures.get(name, "")
         ],
         "modelFieldSignatures": sorted(field_signatures),
+        "locales": sorted(apk_locales(apk)),
         "reflectCallers": sorted(reflect_callers),
         "classes": classes,
     }
@@ -177,6 +200,10 @@ def check(apk: pathlib.Path, expected: dict) -> list:
     unexpected = sorted(set(found["reflectCallers"]) - set(expected.get("reflectCallers", found["reflectCallers"])))
     if unexpected:
         problems.append(f"New callers of kotlin-reflect's full API, which release builds do not ship: {unexpected}")
+    translated = app_locales()
+    missing = sorted(translated - set(found["locales"]))
+    if missing:
+        problems.append(f"Translations missing from the APK: {missing}")
     for package in expected.get("absentPackages", []):
         shipped = [name for name in found["classes"] if name.startswith(package)]
         if shipped:
