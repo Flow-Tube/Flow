@@ -1,6 +1,9 @@
 package io.github.aedev.flow.ui.screens.player.content
 
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.MediaShortsShelf
@@ -57,11 +60,14 @@ internal fun LazyListScope.relatedCollectionItem(
 
         is RelatedCollection.ShortsShelf -> {
             item(key = collection.key, contentType = "related_shorts") {
-                MediaShortsShelf(
-                    shorts = collection.shorts,
-                    onShortClick = { _, tapped -> onShortClick(tapped) },
-                    title = collection.title,
-                )
+                // The shelf's titles take the content colour, which no surface sets inside the player body.
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+                    MediaShortsShelf(
+                        shorts = collection.shorts,
+                        onShortClick = { _, tapped -> onShortClick(tapped) },
+                        title = collection.title,
+                    )
+                }
             }
         }
     }
