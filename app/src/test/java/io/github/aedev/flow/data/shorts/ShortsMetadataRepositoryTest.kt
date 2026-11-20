@@ -1,5 +1,6 @@
 package io.github.aedev.flow.data.shorts
 
+import io.github.aedev.flow.innertube.pages.reel.ReelItem
 import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -9,11 +10,11 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class ShortsMetadataRepositoryTest {
     private val fetches = AtomicInteger()
-    private var overlay: ReelOverlay? = ReelOverlay(title = "A reel", likeCount = 2_772L, commentCount = 62L)
+    private var item: ReelItem? = ReelItem(overlay = ReelOverlay(title = "A reel", likeCount = 2_772L, commentCount = 62L))
     private val repository =
         ShortsMetadataRepository {
             fetches.incrementAndGet()
-            overlay
+            item
         }
 
     @Test
@@ -30,7 +31,7 @@ class ShortsMetadataRepositoryTest {
     @Test
     fun `an unreadable overlay is not remembered`() =
         runBlocking {
-            overlay = null
+            item = null
             assertNull(repository.overlayFor("reel1234567", nowMillis = 0L))
             assertNull(repository.overlayFor("reel1234567", nowMillis = 1L))
             assertEquals(2, fetches.get())

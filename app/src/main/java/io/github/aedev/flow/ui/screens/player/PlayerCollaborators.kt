@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.player
 import android.content.Context
 import io.github.aedev.flow.data.comments.CommentsPager
 import io.github.aedev.flow.data.comments.CommentsPlaybackState
+import io.github.aedev.flow.data.comments.VideoCommentsSource
 import io.github.aedev.flow.data.engagement.VideoEngagementUseCase
 import io.github.aedev.flow.data.local.HomeFeedCacheRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
@@ -74,7 +75,7 @@ internal class PlayerCollaborators(
 
     val comments =
         CommentsPager(
-            repository = repository,
+            source = VideoCommentsSource(repository),
             scope = scope,
             playbackState =
                 uiState.map {

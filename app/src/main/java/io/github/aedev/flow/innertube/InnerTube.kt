@@ -465,6 +465,19 @@ class InnerTube {
         }
     }
 
+    /** The next page of a main-site panel whose continuation service is `/browse`. */
+    suspend fun webBrowseContinuation(
+        client: YouTubeClient,
+        continuation: String,
+    ) = webBrowse(client) { requestVisitorData ->
+        BrowseBody(
+            context = client.toContext(locale, requestVisitorData, null),
+            browseId = null,
+            params = null,
+            continuation = continuation,
+        )
+    }
+
     suspend fun postCommentsBrowse(
         client: YouTubeClient,
         postId: String? = null,

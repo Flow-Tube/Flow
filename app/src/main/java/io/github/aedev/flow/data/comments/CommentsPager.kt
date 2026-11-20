@@ -4,7 +4,6 @@ import android.util.Log
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.distinctByNonBlankKey
 import io.github.aedev.flow.data.model.mergeDistinctByNonBlankKey
-import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.player.PlaybackStartupPolicy
 import kotlinx.coroutines.CancellationException
@@ -65,7 +64,7 @@ internal data class CommentsPlaybackState(
  * video. [fetchTimeoutMs] bounds the fetch itself for a surface that wants one.
  */
 internal class CommentsPager(
-    private val repository: YouTubeRepository,
+    private val source: CommentsSource,
     private val scope: CoroutineScope,
     private val playbackState: Flow<CommentsPlaybackState> = flowOf(CommentsPlaybackState.READY),
     private val isCurrentVideo: (String) -> Boolean = { true },
@@ -213,7 +212,7 @@ internal class CommentsPager(
         sectionToken: String,
     ): Boolean {
         if (!isCurrentVideo(videoId)) return false
-        val timed = fetch { repository.getTimedComments(videoId, sectionToken) }?.comments.orEmpty()
+        val timed = fetch { source.timed(videoId, sectionToken) }?.comments.orEmpty()
         if (timed.isEmpty() || !isCurrentVideo(videoId)) return false
         timedCursors = mutableListOf()
         timedFromYouTube = true
@@ -233,7 +232,7 @@ internal class CommentsPager(
                 try {
                     awaitPlaybackGate(videoId)
                     if (!isCurrentVideo(videoId)) return@launch
-                    val page = fetch { repository.getVideoComments(videoId, sortToken) } ?: return@launch
+                    val page = fetch { source.firstPage(videoId, sortToken) } ?: return@launch
                     if (!isCurrentVideo(videoId)) return@launch
                     _comments.value = page.comments.distinctByNonBlankKey(Comment::id)
                     next = page
@@ -340,7 +339,7 @@ internal class CommentsPager(
     private suspend fun fetchNextPage(
         videoId: String,
         cursor: CommentsPageResult,
-    ): CommentsPageResult? = cursor.continuation?.let { repository.getMoreVideoComments(videoId, it) }
+    ): CommentsPageResult? = cursor.continuation?.let { source.nextPage(videoId, it) }
 
     private suspend fun appendNextPage(videoId: String) {
         val page = fetchNextPage(videoId, next) ?: return
@@ -369,7 +368,7 @@ internal class CommentsPager(
         if (!repliesInFlight.add(comment.id)) return
         scope.launch {
             try {
-                val page = repository.getVideoCommentReplies(videoId, continuation)
+                val page = source.replies(videoId, continuation)
                 val replies = page.comments
                 _comments.value =
                     _comments.value.map { current ->

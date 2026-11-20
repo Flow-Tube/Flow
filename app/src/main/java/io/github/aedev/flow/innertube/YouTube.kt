@@ -101,12 +101,12 @@ import io.github.aedev.flow.innertube.pages.explore.toExploreDestinationShell
 import io.github.aedev.flow.innertube.pages.explore.trendingVideoChart
 import io.github.aedev.flow.innertube.pages.mixSeedVideoId
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
+import io.github.aedev.flow.innertube.pages.reel.ReelItem
 import io.github.aedev.flow.innertube.pages.reel.ReelLockup
-import io.github.aedev.flow.innertube.pages.reel.ReelOverlay
 import io.github.aedev.flow.innertube.pages.reel.ReelParams
 import io.github.aedev.flow.innertube.pages.reel.ReelSequencePage
+import io.github.aedev.flow.innertube.pages.reel.toReelItem
 import io.github.aedev.flow.innertube.pages.reel.toReelLockups
-import io.github.aedev.flow.innertube.pages.reel.toReelOverlay
 import io.github.aedev.flow.innertube.pages.reel.toReelSequencePage
 import io.github.aedev.flow.innertube.pages.renderer.CommunityCommentsPage
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPostsPage
@@ -2586,7 +2586,7 @@ object YouTube {
 
     /**
      * One page of the reel feed: the seedless first page for a null token, else the page a
-     * previous response's continuation names. Entries carry ids and tokens only; see [reelOverlay].
+     * previous response's continuation names. Entries carry ids and tokens only; see [reelItem].
      *
      * IOS first because its page is a few kilobytes per entry; ANDROID's carries a serialized
      * prefetch of every reel's player response and runs to several megabytes for the same ids.
@@ -2609,10 +2609,31 @@ object YouTube {
     /** The reels that follow [videoId]. The response never contains the seed itself. */
     suspend fun shortsFromVideo(videoId: String): Result<ReelSequencePage> = shorts(ReelParams.seedSequenceParams(videoId))
 
-    /** Title, channel, counts and sound for one reel — everything the sequence leaves out. */
-    suspend fun reelOverlay(videoId: String): Result<ReelOverlay?> =
+    /** Title, channel, counts, sound and comment panel for one reel: everything the sequence leaves out. */
+    suspend fun reelItem(videoId: String): Result<ReelItem?> =
         runCatching {
-            innerTube.reelItemWatch(client = WEB, videoId = videoId).body<JsonObject>().toReelOverlay()
+            innerTube.reelItemWatch(client = WEB, videoId = videoId).body<JsonObject>().toReelItem()
+        }
+
+    /** A page of a reel's comments: its panel serves them through `/browse`, which `/next` answers with nothing. */
+    suspend fun reelComments(
+        continuation: String,
+        ownVideoId: String?,
+    ): Result<VideoCommentsPage> =
+        runCatching {
+            Json
+                .parseToJsonElement(innerTube.webBrowseContinuation(WEB, continuation).bodyAsText())
+                .toVideoCommentsPage(ownVideoId)
+        }
+
+    suspend fun reelCommentReplies(
+        continuation: String,
+        ownVideoId: String?,
+    ): Result<VideoCommentsPage> =
+        runCatching {
+            Json
+                .parseToJsonElement(innerTube.webBrowseContinuation(WEB, continuation).bodyAsText())
+                .toCommentRepliesPage(ownVideoId)
         }
 
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
