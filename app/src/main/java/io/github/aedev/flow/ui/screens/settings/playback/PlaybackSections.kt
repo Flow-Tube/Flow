@@ -228,6 +228,7 @@ private fun SettingsListScope.watchPageSection(
     state: PlaybackStructure,
 ) = group(key = "playback.watch_page", header = R.string.settings_section_watch_page) {
     switch(PlaybackIndex.relatedVideos, viewModel.relatedVideos, viewModel::setRelatedVideos)
+    switch(PlaybackIndex.relatedCollections, viewModel.relatedCollections, viewModel::setRelatedCollections)
     row(PlaybackIndex.relatedCardStyle.key) { shape ->
         val selected by viewModel.relatedCardStyle.collectAsStateWithLifecycle()
         SettingsToggleGroupRow(

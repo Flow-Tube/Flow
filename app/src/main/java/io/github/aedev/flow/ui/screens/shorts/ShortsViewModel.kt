@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.comments.CommentsPager
+import io.github.aedev.flow.data.comments.VideoCommentsSource
 import io.github.aedev.flow.data.engagement.FeedInvalidationBus
 import io.github.aedev.flow.data.engagement.VideoEngagementUseCase
 import io.github.aedev.flow.data.feed.FeedPrefetchQueue
@@ -23,6 +24,7 @@ import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.shorts.ShortAudioTrack
 import io.github.aedev.flow.data.shorts.ShortPlaybackStreams
 import io.github.aedev.flow.data.shorts.ShortVideoQuality
+import io.github.aedev.flow.data.shorts.ShortsCommentsSource
 import io.github.aedev.flow.data.shorts.ShortsFeedRepository
 import io.github.aedev.flow.data.shorts.ShortsMetadataRepository
 import io.github.aedev.flow.data.shorts.ShortsStreamResolver
@@ -36,6 +38,7 @@ import io.github.aedev.flow.data.stats.LedgerAction
 import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
+import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.player.stream.StreamSizeEstimator
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
@@ -79,7 +82,7 @@ class ShortsViewModel
 
         private val comments =
             CommentsPager(
-                repository = repository,
+                source = ShortsCommentsSource(metadata, fallback = VideoCommentsSource(repository)),
                 scope = viewModelScope,
                 fetchTimeoutMs = COMMENTS_FETCH_TIMEOUT_MS,
             )
@@ -283,6 +286,8 @@ class ShortsViewModel
 
         fun loadShortDescription(videoId: String) = enricher.loadDescription(videoId)
 
+        val shortDescriptionPages: StateFlow<Map<String, VideoDescriptionPage>> = enricher.descriptionPages
+
         suspend fun toggleLike(short: ShortVideo) = engagementState.toggleLike(short)
 
         suspend fun toggleSubscription(
@@ -316,7 +321,8 @@ class ShortsViewModel
         fun selectCommentSort(
             videoId: String,
             sort: VideoCommentSort,
-        ) = comments.selectSort(videoId, sort)
+            readAhead: Boolean,
+        ) = comments.selectSort(videoId, sort, readAhead)
 
         fun selectTimedComments(
             videoId: String,

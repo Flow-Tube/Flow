@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.RichTextEmoji
 import io.github.aedev.flow.data.model.RichTextHighlight
 import io.github.aedev.flow.data.model.RichTextSpan
+import io.github.aedev.flow.data.model.RichTextStyle
 import io.github.aedev.flow.data.model.RichTextTarget
 import io.github.aedev.flow.utils.YouTubeLink
 import io.github.aedev.flow.utils.youTubeBrowseLink
@@ -90,6 +91,7 @@ internal fun JsonObject.toModernComment(
             ?: this["pinnedText"].youtubeText()?.takeIf(String::isNotBlank)
             ?: properties["pinnedText"].youtubeText()?.takeIf(String::isNotBlank)
     val likeCountText = toolbar?.get("likeCountNotliked").youtubeText().orEmpty()
+    val creatorReply = repliesRenderer?.creatorReplyAvatar()
     return Comment(
         id = id,
         author = author?.get("displayName").stringOrNull().orEmpty(),
@@ -115,6 +117,14 @@ internal fun JsonObject.toModernComment(
         pinnedByText = resolvedPinnedText,
         isHearted = toolbarState?.get("heartState").stringOrNull() == HEART_STATE_HEARTED,
         heartedByText = toolbar?.get("heartActiveTooltip").stringOrNull(),
+        creatorHeartThumbnail =
+            toolbar
+                ?.get("creatorThumbnailUrl")
+                .stringOrNull()
+                ?.takeIf(String::isNotBlank)
+                ?.let(::normalizeImageUrl),
+        creatorReplyThumbnail = creatorReply?.avatarUrl,
+        creatorReplyName = creatorReply?.name,
         isVerified = author?.get("isVerified").booleanOrFalse(),
         isCreator = author?.get("isCreator").booleanOrFalse(),
         isArtist = author?.get("isArtist").booleanOrFalse(),
@@ -147,8 +157,29 @@ internal fun JsonElement?.toCommentImage(): CommentImage? {
 
 private fun JsonElement?.intOrZero(): Int = (this as? JsonPrimitive)?.intOrNull ?: 0
 
+/** The avatar and channel name on the replies button of a thread the creator answered. */
+private data class CreatorReply(
+    val avatarUrl: String,
+    val name: String?,
+)
+
+private fun JsonObject.creatorReplyAvatar(): CreatorReply? {
+    val thumbnail = this["viewRepliesCreatorThumbnail"].objectOrNull() ?: return null
+    val url = thumbnail.bestThumbnailUrl()?.takeIf(String::isNotBlank) ?: return null
+    val name =
+        thumbnail["accessibility"]
+            .objectOrNull()
+            ?.get("accessibilityData")
+            .objectOrNull()
+            ?.get("label")
+            .stringOrNull()
+            ?.takeIf(String::isNotBlank)
+    return CreatorReply(avatarUrl = normalizeImageUrl(url), name = name)
+}
+
 internal fun JsonObject.toLegacyComment(repliesRenderer: JsonObject?): Comment? {
     val id = this["commentId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
+    val creatorReply = repliesRenderer?.creatorReplyAvatar()
     return Comment(
         id = id,
         author = this["authorText"].youtubeText().orEmpty(),
@@ -170,6 +201,8 @@ internal fun JsonObject.toLegacyComment(repliesRenderer: JsonObject?): Comment? 
         likeCountText = this["voteCount"].youtubeText().orEmpty(),
         isVerified = this["authorCommentBadge"] != null,
         image = this["imageAttachmentViewModel"].toCommentImage(),
+        creatorReplyThumbnail = creatorReply?.avatarUrl,
+        creatorReplyName = creatorReply?.name,
     )
 }
 
@@ -197,7 +230,36 @@ internal fun JsonElement?.toRichText(ownVideoId: String?): RichText? {
             .arrayOrNull()
             .orEmpty()
             .mapNotNull { run -> run.objectOrNull()?.toRichTextHighlight(text.length) }
-    return RichText(text = text, spans = spans, emojis = emojis, highlights = highlights)
+    val styles =
+        value["styleRuns"]
+            .arrayOrNull()
+            .orEmpty()
+            .mapNotNull { run -> run.objectOrNull()?.toRichTextStyle(text.length) }
+    return RichText(text = text, spans = spans, emojis = emojis, highlights = highlights, styles = styles)
+}
+
+private val HEAVY_WEIGHT_LABELS =
+    setOf("FONT_WEIGHT_MEDIUM", "FONT_WEIGHT_SEMIBOLD", "FONT_WEIGHT_BOLD", "FONT_WEIGHT_EXTRA_BOLD", "FONT_WEIGHT_BLACK")
+
+/**
+ * A run with no range covers the whole text, which is how a list title is made bold. Every link
+ * also carries a run, at `FONT_WEIGHT_NORMAL`, so only runs that change the face are kept.
+ */
+private fun JsonObject.toRichTextStyle(textLength: Int): RichTextStyle? {
+    val start = this["startIndex"].intOrNull() ?: 0
+    val length = this["length"].intOrNull() ?: (textLength - start)
+    if (start < 0 || length <= 0 || start + length > textLength) return null
+    val bold = this["weightLabel"].stringOrNull() in HEAVY_WEIGHT_LABELS
+    val italic = this["italic"].isOn()
+    val strikethrough = this["strikethrough"].isOn()
+    if (!bold && !italic && !strikethrough) return null
+    return RichTextStyle(start = start, length = length, bold = bold, italic = italic, strikethrough = strikethrough)
+}
+
+/** `true`, or a line style other than none: strike-through arrives as `LINE_STYLE_SINGLE`. */
+private fun JsonElement?.isOn(): Boolean {
+    val value = stringOrNull() ?: return false
+    return value == "true" || (value.startsWith("LINE_STYLE_") && value != "LINE_STYLE_NONE")
 }
 
 private fun JsonObject.toRichTextSpan(
@@ -217,10 +279,13 @@ private fun JsonObject.toRichTextSpan(
     return RichTextSpan(start = start, length = length, target = target)
 }
 
-private fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
+internal fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
     this["watchEndpoint"].objectOrNull()?.let { watch ->
         val videoId = watch["videoId"].stringOrNull() ?: return@let
-        val startSeconds = watch["startTimeSeconds"].longOrNull()
+        // The "0:00" chapter link carries no start time, only continuePlayback.
+        val startSeconds =
+            watch["startTimeSeconds"].longOrNull()
+                ?: 0L.takeIf { videoId == ownVideoId && watch["continuePlayback"].booleanOrFalse() }
         return if (videoId == ownVideoId && startSeconds != null) {
             RichTextTarget.Timestamp(startSeconds)
         } else {
@@ -229,7 +294,8 @@ private fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
     }
     this["browseEndpoint"].objectOrNull()?.let { browse ->
         val browseId = browse["browseId"].stringOrNull() ?: return@let
-        val canonical = browse["canonicalBaseUrl"].stringOrNull()
+        // A hashtag above the title names its page only in the command metadata, beside FEhashtag.
+        val canonical = browse["canonicalBaseUrl"].stringOrNull() ?: webCommandUrl()
         if (canonical != null && canonical.startsWith("/hashtag/")) {
             return RichTextTarget.Hashtag(canonical.removePrefix("/hashtag/"))
         }
@@ -242,16 +308,17 @@ private fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
         val raw = url["url"].stringOrNull() ?: return@let
         return RichTextTarget.Url(unwrapRedirectUrl(raw))
     }
-    val webUrl =
-        this["commandMetadata"]
-            .objectOrNull()
-            ?.get("webCommandMetadata")
-            .objectOrNull()
-            ?.get("url")
-            .stringOrNull()
-            ?: return null
+    val webUrl = webCommandUrl() ?: return null
     return RichTextTarget.Url(unwrapRedirectUrl(webUrl))
 }
+
+private fun JsonObject.webCommandUrl(): String? =
+    this["commandMetadata"]
+        .objectOrNull()
+        ?.get("webCommandMetadata")
+        .objectOrNull()
+        ?.get("url")
+        .stringOrNull()
 
 private fun JsonObject.toRichTextHighlight(textLength: Int): RichTextHighlight? {
     val highlight =
@@ -300,7 +367,9 @@ private fun JsonObject.toRichTextEmoji(textLength: Int): RichTextEmoji? {
  * YouTube prints outbound links as `youtube.com/redirect?...&q=<encoded target>`. The wrapper is
  * what the user would otherwise see and copy, so the real destination is recovered here.
  */
-internal fun unwrapRedirectUrl(url: String): String {
+internal fun unwrapRedirectUrl(link: String): String {
+    // A help link ("Learn more") comes protocol-relative, which no browser intent can open.
+    val url = if (link.startsWith("//")) "https:$link" else link
     if (!url.contains("/redirect?")) return url
     val query = url.substringAfter('?', "").split('&')
     val target = query.firstOrNull { it.startsWith("q=") }?.removePrefix("q=") ?: return url

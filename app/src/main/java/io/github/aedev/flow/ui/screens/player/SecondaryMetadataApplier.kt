@@ -38,14 +38,41 @@ internal class SecondaryMetadataApplier(
 ) {
     fun apply(result: SecondaryMetadata) {
         when (result) {
-            is SecondaryMetadata.Channel -> applyChannelMetadata(result)
-            is SecondaryMetadata.PaidPromotion -> applyPaidPromotion(result)
-            is SecondaryMetadata.Related -> publishRelatedVideos(result.videoId, result.videos, result.loadToken)
-            is SecondaryMetadata.LiveWatch -> applyLiveWatchMetadata(result)
-            is SecondaryMetadata.Category -> applyCategory(result)
-            is SecondaryMetadata.Heatmap -> applyHeatmap(result)
-            is SecondaryMetadata.Chapters -> applyChapters(result)
-            is SecondaryMetadata.WatchInfo -> applyWatchInfo(result)
+            is SecondaryMetadata.Channel -> {
+                applyChannelMetadata(result)
+            }
+
+            is SecondaryMetadata.PaidPromotion -> {
+                applyPaidPromotion(result)
+            }
+
+            is SecondaryMetadata.Related -> {
+                publishRelatedVideos(result.videoId, result.videos, result.loadToken, lane = result)
+            }
+
+            is SecondaryMetadata.LiveWatch -> {
+                applyLiveWatchMetadata(result)
+            }
+
+            is SecondaryMetadata.Category -> {
+                applyCategory(result)
+            }
+
+            is SecondaryMetadata.Heatmap -> {
+                applyHeatmap(result)
+            }
+
+            is SecondaryMetadata.Chapters -> {
+                applyChapters(result)
+            }
+
+            is SecondaryMetadata.WatchInfo -> {
+                applyWatchInfo(result)
+            }
+
+            is SecondaryMetadata.WatchHeader -> {
+                applyWatchHeader(result)
+            }
         }
     }
 
@@ -97,6 +124,11 @@ internal class SecondaryMetadataApplier(
         }
     }
 
+    private fun applyWatchHeader(result: SecondaryMetadata.WatchHeader) {
+        if (!isLoadCurrent(result.loadToken) || uiState.value.cachedVideo?.id != result.videoId) return
+        uiState.update { it.copy(watchHeader = result.header) }
+    }
+
     /** Kept on the video, so the watch signal carries it. */
     private fun applyCategory(result: SecondaryMetadata.Category) {
         if (!isLoadCurrent(result.loadToken)) return
@@ -130,6 +162,7 @@ internal class SecondaryMetadataApplier(
         videoId: String,
         videos: List<Video>,
         loadToken: Long,
+        lane: SecondaryMetadata.Related? = null,
     ) {
         if (!isLoadCurrent(loadToken) || videos.isEmpty()) return
         val state = uiState.value
@@ -144,7 +177,7 @@ internal class SecondaryMetadataApplier(
                 videos = videos,
                 enabled = autoplay,
             )
-            uiState.update { it.applyRelatedVideos(videoId, videos) }
+            uiState.update { it.applyRelatedVideos(videoId, videos, lane?.upNextVideoId, lane?.continuation, lane?.collections.orEmpty()) }
         }
         noteRelatedForLearning(videoId, videos)
     }

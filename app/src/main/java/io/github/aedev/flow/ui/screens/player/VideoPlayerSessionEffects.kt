@@ -152,6 +152,13 @@ internal fun VideoPlayerSessionEffects(
         viewModel = playerViewModel,
     )
 
+    LiveCountsRefreshEffect(
+        videoId = video.id,
+        refreshable = playerUiState.isLive && playerUiState.watchHeader?.updatedMetadata != null,
+        onScreen = screenState.isPlayerExpanded && !screenState.isFullscreen && !fullscreenShown && !localIsInPipMode,
+        viewModel = playerViewModel,
+    )
+
     PlayerEndAndPipEffects(
         playerState = playerState,
         playerSheetState = playerSheetState,

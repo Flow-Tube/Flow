@@ -118,6 +118,6 @@ fun PlayerCommentsUiState.selectCommentSort(
         return
     }
     videoCommentSortFor(sortOptions, filter)?.let { sort ->
-        viewModel.selectCommentSort(videoId, sort)
+        viewModel.selectCommentSort(videoId, sort, filter.readsAhead)
     }
 }

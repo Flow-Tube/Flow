@@ -20,7 +20,7 @@ const val RICH_TEXT_HIGHLIGHT_ALPHA = 0.12f
 
 private const val HIGHLIGHT_INSET_PX = 1f
 
-/** Room either side of the marked text, so a two-digit timestamp is not painted edge to edge. */
+/** Room either side of marked text that has none, so a two-digit timestamp is not painted edge to edge. */
 private val HighlightHorizontalPadding = 5.dp
 
 /**
@@ -69,8 +69,13 @@ private fun DrawScope.drawHighlight(
         if (right <= left) continue
         val top = layout.getLineTop(line)
         val bottom = layout.getLineBottom(line)
-        val boxLeft = (left - horizontalPadding).coerceAtLeast(0f)
-        val boxRight = (right + horizontalPadding).coerceAtMost(size.width)
+        // The server pads a social link's chip with its own spaces; padding those again draws the
+        // chip a space wider than YouTube's on each side.
+        val chars = layout.layoutInput.text
+        val padLeft = if (chars[from].isWhitespace()) 0f else horizontalPadding
+        val padRight = if (chars[to - 1].isWhitespace()) 0f else horizontalPadding
+        val boxLeft = (left - padLeft).coerceAtLeast(0f)
+        val boxRight = (right + padRight).coerceAtMost(size.width)
         val height = (bottom - top) - HIGHLIGHT_INSET_PX * 2
         drawRoundRect(
             color = color,

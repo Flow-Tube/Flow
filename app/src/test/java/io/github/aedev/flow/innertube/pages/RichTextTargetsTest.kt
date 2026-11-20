@@ -1,11 +1,6 @@
 package io.github.aedev.flow.innertube.pages
 
-import androidx.compose.ui.graphics.Color
-import io.github.aedev.flow.data.model.RichText
-import io.github.aedev.flow.data.model.RichTextSpan
 import io.github.aedev.flow.data.model.RichTextTarget
-import io.github.aedev.flow.utils.RICH_TEXT_VIDEO
-import io.github.aedev.flow.utils.toAnnotatedString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -45,16 +40,20 @@ class RichTextTargetsTest {
     }
 
     @Test
-    fun `a link to another video carries its watch link`() {
-        val text =
-            RichText(
-                text = "watch",
-                spans = listOf(RichTextSpan(0, 5, RichTextTarget.Video("dQw4w9WgXcQ", startSeconds = 42))),
-            ).toAnnotatedString(linkColor = Color.Blue, textColor = Color.Black)
-
+    fun `the 0 colon 00 chapter link seeks to the start instead of reopening the video`() {
         assertEquals(
-            listOf("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s"),
-            text.getStringAnnotations(RICH_TEXT_VIDEO, 0, 5).map { it.item },
+            listOf(
+                RichTextTarget.Timestamp(0),
+                RichTextTarget.Timestamp(116),
+                RichTextTarget.Video("ownVideo123"),
+                RichTextTarget.Video("otherVideo1"),
+            ),
+            targetsOf(
+                """{"watchEndpoint": {"videoId": "ownVideo123", "continuePlayback": true}}""",
+                """{"watchEndpoint": {"videoId": "ownVideo123", "continuePlayback": true, "startTimeSeconds": 116}}""",
+                """{"watchEndpoint": {"videoId": "ownVideo123"}}""",
+                """{"watchEndpoint": {"videoId": "otherVideo1", "continuePlayback": true}}""",
+            ),
         )
     }
 }

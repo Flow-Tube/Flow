@@ -140,6 +140,7 @@ data class ExtendedColors(
     val border: Color,
     val success: Color,
     val shortsAccent: Color,
+    val creatorHeart: Color,
 )
 
 val LocalExtendedColors =
@@ -149,6 +150,7 @@ val LocalExtendedColors =
             border = Color.Unspecified,
             success = Color.Unspecified,
             shortsAccent = Color.Unspecified,
+            creatorHeart = Color.Unspecified,
         )
     }
 
@@ -183,6 +185,8 @@ fun FlowTheme(
             success = colorScheme.tertiary,
             // Brand mark, not a scheme role: the Shorts glyph is red in every theme.
             shortsAccent = YouTubeRed,
+            // The creator's like reads as YouTube's own mark, so it keeps the full red in every theme.
+            creatorHeart = YouTubeRed,
         )
 
     CompositionLocalProvider(LocalExtendedColors provides extendedColors) {

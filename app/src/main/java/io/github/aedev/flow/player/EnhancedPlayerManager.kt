@@ -32,6 +32,7 @@ import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.repository.WatchRelatedPages
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
@@ -2286,9 +2287,14 @@ class EnhancedPlayerManager private constructor() {
     )
 
     private suspend fun visibleRelatedCandidates(videoId: String): List<Video> {
-        val candidates = YouTubeRepository.getInstance().getRelatedCandidates(videoId)
+        val repository = YouTubeRepository.getInstance()
+        val page = WatchRelatedPages(repository).firstPage(videoId)
+        val candidates = page?.videos ?: repository.getRelatedCandidates(videoId)
         return withContext(Dispatchers.Default) {
-            PlayerRelatedVideosPolicy.sanitizeHidden(videoId, candidates, feedExclusionsSource, watchedSuggestionsSource)
+            PlayerRelatedVideosPolicy.upNextFirst(
+                PlayerRelatedVideosPolicy.sanitizeHidden(videoId, candidates, feedExclusionsSource, watchedSuggestionsSource),
+                page?.upNextVideoId,
+            )
         }
     }
 

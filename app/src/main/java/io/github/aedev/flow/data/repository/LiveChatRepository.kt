@@ -5,6 +5,7 @@ import io.github.aedev.flow.data.model.LiveChatMessage
 import io.github.aedev.flow.data.model.LiveChatMessageType
 import io.github.aedev.flow.data.model.LiveChatSegment
 import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.innertube.models.response.ChatReplaySeed
 import io.github.aedev.flow.innertube.models.response.GetLiveChatResponse
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,9 @@ import javax.inject.Singleton
 @Singleton
 class LiveChatRepository
     @Inject
-    constructor() {
+    constructor(
+        private val youTubeRepository: YouTubeRepository,
+    ) {
         data class LiveChatPage(
             val messages: List<LiveChatMessage>,
             val nextContinuation: String?,
@@ -29,7 +32,7 @@ class LiveChatRepository
         suspend fun initialContinuation(videoId: String): String? =
             withContext(Dispatchers.IO) {
                 try {
-                    YouTube.liveChatContinuation(videoId).getOrNull()
+                    ChatReplaySeed.liveToken(youTubeRepository.watchNextResponse(videoId))
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {

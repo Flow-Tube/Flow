@@ -62,6 +62,20 @@ data class RichTextHighlight(
 }
 
 /**
+ * A range the writer set in another face: YouTube turns `*bold*`, `_italic_` and `-strike-` in a
+ * comment into these. Server colours and fonts are left out on purpose; the theme owns those.
+ */
+data class RichTextStyle(
+    val start: Int,
+    val length: Int,
+    val bold: Boolean = false,
+    val italic: Boolean = false,
+    val strikethrough: Boolean = false,
+) {
+    val end: Int get() = start + length
+}
+
+/**
  * Text plus the spans and emoji the server described for it.
  *
  * Null on any surface still fed by the extractor, which hands over HTML and leaves the caller to
@@ -72,8 +86,41 @@ data class RichText(
     val spans: List<RichTextSpan> = emptyList(),
     val emojis: List<RichTextEmoji> = emptyList(),
     val highlights: List<RichTextHighlight> = emptyList(),
+    val styles: List<RichTextStyle> = emptyList(),
 ) {
     val hasTimestamp: Boolean get() = spans.any { it.target is RichTextTarget.Timestamp }
+}
+
+/**
+ * The part of this text between [from] and [to], with every range clipped to it and moved to its
+ * start. An emoji that replaces text is kept only whole; an inserted one belongs to the text after it.
+ */
+fun RichText.slice(
+    from: Int,
+    to: Int,
+): RichText {
+    val start = from.coerceIn(0, text.length)
+    val end = to.coerceIn(start, text.length)
+
+    fun <T> clip(
+        rangeStart: Int,
+        rangeEnd: Int,
+        make: (Int, Int) -> T,
+    ): T? {
+        val clippedStart = maxOf(rangeStart, start)
+        val clippedEnd = minOf(rangeEnd, end)
+        return if (clippedStart < clippedEnd) make(clippedStart - start, clippedEnd - clippedStart) else null
+    }
+    return RichText(
+        text = text.substring(start, end),
+        spans = spans.mapNotNull { span -> clip(span.start, span.end) { at, length -> span.copy(start = at, length = length) } },
+        emojis =
+            emojis
+                .filter { it.start >= start && it.start + it.length <= end && (it.length > 0 || it.start < end) }
+                .map { it.copy(start = it.start - start) },
+        highlights = highlights.mapNotNull { clip(it.start, it.end) { at, length -> RichTextHighlight(at, length) } },
+        styles = styles.mapNotNull { style -> clip(style.start, style.end) { at, length -> style.copy(start = at, length = length) } },
+    )
 }
 
 private val PLAIN_URL = Regex("""https?://\S+""")

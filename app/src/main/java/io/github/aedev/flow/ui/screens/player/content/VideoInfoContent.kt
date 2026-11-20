@@ -79,6 +79,7 @@ internal fun VideoInfoContent(
     val downloadedVideoIds by viewModel.downloadedVideoIds.collectAsStateWithLifecycle()
     val videoNote by viewModel.videoNote.collectAsStateWithLifecycle()
     val videoNotesEnabled by viewModel.videoNotesEnabled.collectAsStateWithLifecycle()
+    val titleMaxLines by viewModel.videoTitleMaxLines.collectAsStateWithLifecycle()
     var showNoteEditor by rememberSaveable(video.id) { mutableStateOf(false) }
     val isVideoDownloaded = remember(downloadedVideoIds, video.id) { downloadedVideoIds.contains(video.id) }
     val isVideoSaved by remember(video.id) { viewModel.isVideoSavedToAnyPlaylist(video.id) }
@@ -94,11 +95,14 @@ internal fun VideoInfoContent(
     VideoInfoSection(
         video = video,
         title = resolvedVideoTitle,
+        titleMaxLines = titleMaxLines,
+        superTitle = uiState.watchHeader?.superTitle,
         viewCount = video.viewCount,
         uploadDate = streamUploadDate ?: video.uploadDate,
         description = video.description,
         isUpcoming = uiState.isUpcoming,
         channelName = resolvedChannelName,
+        channelBadge = uiState.watchHeader?.ownerBadge,
         channelAvatarUrl = uiState.channelAvatarUrl ?: video.channelThumbnailUrl,
         channelAvatarUrls = video.channelThumbnailUrls,
         collaborators = resolvedCollaborators,
@@ -215,7 +219,7 @@ internal fun VideoInfoContent(
 
     if (commentsEnabled) {
         CommentsPreview(
-            latestComment = if (showCommentsPreview) commentsUiState.comments.firstOrNull()?.text else null,
+            latestComment = if (showCommentsPreview) commentsUiState.comments.firstOrNull() else null,
             authorAvatar = if (showCommentsPreview) commentsUiState.comments.firstOrNull()?.authorThumbnail else null,
             totalText = commentsUiState.totalText,
             showPreviewText = showCommentsPreview,

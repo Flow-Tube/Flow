@@ -89,7 +89,6 @@ internal class InnerTubeMetadataSource {
             watchRequests += id
             pages[id]?.let { Result.success(watchPage(it)) } ?: Result.failure(java.io.IOException("missing $id"))
         }
-        coEvery { YouTube.watchMetadata(any()) } answers { Result.failure(java.io.IOException("only /next is served")) }
         coEvery { YouTube.channelLanding(any()) } answers {
             val id = firstArg<String>()
             channelRequests += id

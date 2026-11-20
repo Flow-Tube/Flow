@@ -7,14 +7,19 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 
-/** Which comments have their replies open and their long text expanded, by comment id. */
+/**
+ * Which comments have their replies open, their long text expanded and their folded sub-threads
+ * unfolded, by comment id.
+ */
 @Stable
 class CommentThreadState(
     openReplies: Collection<String> = emptyList(),
     expandedText: Collection<String> = emptyList(),
+    unfolded: Collection<String> = emptyList(),
 ) {
     private val openReplies = mutableStateSetOf<String>().apply { addAll(openReplies) }
     private val expandedText = mutableStateSetOf<String>().apply { addAll(expandedText) }
+    private val unfolded = mutableStateSetOf<String>().apply { addAll(unfolded) }
 
     fun isRepliesOpen(commentId: String): Boolean = commentId in openReplies
 
@@ -28,16 +33,23 @@ class CommentThreadState(
         expandedText.add(commentId)
     }
 
+    fun isUnfolded(replyId: String): Boolean = replyId in unfolded
+
+    fun unfold(replyId: String) {
+        unfolded.add(replyId)
+    }
+
     fun clear() {
         openReplies.clear()
         expandedText.clear()
+        unfolded.clear()
     }
 
     companion object {
         val Saver: Saver<CommentThreadState, Any> =
             listSaver(
-                save = { listOf(ArrayList(it.openReplies), ArrayList(it.expandedText)) },
-                restore = { CommentThreadState(openReplies = it[0], expandedText = it[1]) },
+                save = { listOf(ArrayList(it.openReplies), ArrayList(it.expandedText), ArrayList(it.unfolded)) },
+                restore = { CommentThreadState(openReplies = it[0], expandedText = it[1], unfolded = it[2]) },
             )
     }
 }
