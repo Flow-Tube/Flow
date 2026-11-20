@@ -211,6 +211,8 @@ android {
                     "/META-INF/INDEX.LIST",
                     "/META-INF/DEPENDENCIES",
                     "/META-INF/*.version",
+                    "org/bouncycastle/**/*.properties",
+                    "DebugProbesKt.bin",
                 )
         }
     }
@@ -239,6 +241,12 @@ tasks.withType<Test>().configureEach {
     for (name in listOf("flow.fuzz.cases", "flow.fuzz.seed")) providers.systemProperty(name).orNull?.let { systemProperty(name, it) }
     // A failure's cause, e.g. what an earlier test leaked into runTest, otherwise only reaches the HTML report.
     testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+}
+
+// kotlin-reflect comes in through ktor-server-core, which only reaches it in development mode, and
+// stdlib routes every ::class through it once it is on the classpath. MockK needs it, so tests keep it.
+configurations.matching { it.name.endsWith("ReleaseRuntimeClasspath") || it.name.endsWith("NightlyRuntimeClasspath") }.configureEach {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-reflect")
 }
 
 // One profile for every shipped variant: foss, nightly and github run the same startup code, and
@@ -322,9 +330,6 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.biometric.compose)
 
-    // --- Layouts ---
-    implementation(libs.androidx.constraintlayout.compose)
-
     // --- Image Loading ---
     implementation(libs.coil.compose)
     implementation(libs.compose.reorderable)
@@ -406,7 +411,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.brotli)
-    implementation(libs.re2j)
 
     // --- Baseline profiles ---
     // Runtime installer for the merged baseline profile. AGP merges profiles shipped inside

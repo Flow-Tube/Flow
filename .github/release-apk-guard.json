@@ -30,12 +30,6 @@
     "Lio/github/aedev/flow/data/music/PlaylistRepository$playlists$1$type$1;",
     "Lio/github/aedev/flow/data/repository/SponsorBlockRepository$segmentListType$1;"
   ],
-  "absentPackages": [
-    "Lorg/schabi/",
-    "Lorg/mozilla/javascript/",
-    "Lorg/jsoup/",
-    "Lcom/grack/nanojson/"
-  ],
   "modelFieldSignatures": [
     "Lio/github/aedev/flow/data/local/AppDatabase_Impl;._cacheDao",
     "Lio/github/aedev/flow/data/local/AppDatabase_Impl;._downloadCollectionDao",
@@ -1270,5 +1264,20 @@
     "Lio/github/aedev/flow/data/music/Playlist;.tracks",
     "Lio/github/aedev/flow/data/music/model/MusicTrack;.$childSerializers",
     "Lio/github/aedev/flow/data/music/model/MusicTrack;.artists"
+  ],
+  "reflectCallers": [
+    "callFunctionWithInjection",
+    "executeModuleFunction",
+    "isApplicableFunction",
+    "methodName"
+  ],
+  "absentPackages": [
+    "Lorg/schabi/",
+    "Lorg/mozilla/javascript/",
+    "Lorg/jsoup/",
+    "Lcom/grack/nanojson/",
+    "Lkotlin/reflect/jvm/internal/",
+    "Lcom/google/re2j/",
+    "Landroidx/constraintlayout/"
   ]
 }
