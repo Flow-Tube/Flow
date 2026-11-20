@@ -84,10 +84,14 @@ class AmbientFrameHolder {
 
     internal var seededUrl: String? = null
 
+    /** Follow the picture quickly instead of gliding; read by the pipeline on every sample. */
+    var responsive: Boolean = false
+
     internal val pipeline by lazy {
         AmbientPipeline(
             pageStyle = { pageStyle },
             capturePace = { if (pageStyle is AmbientPageStyle.Immersive) AmbientCadence.LIVELY else AmbientCadence.STANDARD },
+            responsive = { responsive },
         )
     }
 }
