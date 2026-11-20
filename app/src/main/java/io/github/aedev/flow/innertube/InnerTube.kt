@@ -891,6 +891,15 @@ class InnerTube {
 
     suspend fun getSwJsData() = httpClient.get("https://music.youtube.com/sw.js_data")
 
+    /** Mints a new visitor: no visitorData goes out, so the answer is not the one in use. */
+    suspend fun visitorId(client: YouTubeClient) =
+        withRetry {
+            httpClient.post("https://www.youtube.com/youtubei/v1/visitor_id") {
+                webYouTubeHeaders(client, visitor = null)
+                setBody(VisitorIdBody(context = client.toContext(locale, null, null)))
+            }
+        }
+
     suspend fun getWebServiceWorker(): String =
         httpClient
             .get("https://www.youtube.com/sw.js") {

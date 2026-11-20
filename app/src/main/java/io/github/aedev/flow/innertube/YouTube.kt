@@ -2479,19 +2479,33 @@ object YouTube {
                 }!!
         }
 
-    suspend fun visitorData(): Result<String> =
-        runCatching {
-            Json
-                .parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
-                .jsonArray[0]
-                .jsonArray[2]
-                .jsonArray
-                .first {
-                    (it as? JsonPrimitive)?.contentOrNull?.let { candidate ->
-                        VISITOR_DATA_REGEX.containsMatchIn(candidate)
-                    } ?: false
-                }.jsonPrimitive.content
-        }
+    private val visitorDataMint =
+        VisitorDataMint(
+            visitorId = {
+                innerTube
+                    .visitorId(WEB)
+                    .body<JsonObject>()["responseContext"]
+                    ?.jsonObject
+                    ?.get("visitorData")
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+            },
+            swJsData = {
+                Json
+                    .parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
+                    .jsonArray[0]
+                    .jsonArray[2]
+                    .jsonArray
+                    .first {
+                        (it as? JsonPrimitive)?.contentOrNull?.let { candidate ->
+                            VisitorDataMint.VISITOR_DATA.containsMatchIn(candidate)
+                        } ?: false
+                    }.jsonPrimitive.content
+            },
+        )
+
+    /** A fresh visitorData, unrelated to the one in use; see [VisitorDataMint] for where it comes from. */
+    suspend fun visitorData(): Result<String> = runCatching { visitorDataMint.mint() }
 
     suspend fun accountInfo(): Result<AccountInfo> =
         runCatching {
@@ -2597,6 +2611,4 @@ object YouTube {
                 .parseToJsonElement(innerTube.webBrowseContinuation(WEB, continuation).bodyAsText())
                 .toCommentRepliesPage(ownVideoId)
         }
-
-    private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
