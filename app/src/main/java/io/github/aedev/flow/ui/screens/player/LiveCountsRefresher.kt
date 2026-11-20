@@ -7,6 +7,7 @@ import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
@@ -26,9 +27,10 @@ internal class LiveCountsRefresher(
     private var cursor: LiveCountsCursor? = null
 
     suspend fun run(videoId: String) {
-        val state = uiState.value
+        // The live flag can land before the page's own video does; wait for it instead of giving up.
+        val state = uiState.first { it.cachedVideo?.id == videoId }
         val endpoint = state.watchHeader?.updatedMetadata ?: return
-        if (!state.isLive || state.cachedVideo?.id != videoId) return
+        if (!state.isLive) return
 
         var current = cursor?.takeIf { it.videoId == videoId } ?: LiveCountsPolicy.start(videoId, endpoint.initialDelayMs, clock())
         cursor = current
