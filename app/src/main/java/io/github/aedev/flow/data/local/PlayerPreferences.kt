@@ -230,6 +230,7 @@ class PlayerPreferences(
         val LYRICS_PROVIDER_ENABLED_AMLL = booleanPreferencesKey("lyrics_provider_enabled_amll")
         val CONTINUE_WATCHING_ENABLED = booleanPreferencesKey("continue_watching_enabled")
         val SHOW_RELATED_VIDEOS = booleanPreferencesKey("show_related_videos")
+        val SHOW_RELATED_COLLECTIONS = booleanPreferencesKey("show_related_collections")
         val HOME_VIEW_MODE = stringPreferencesKey("home_view_mode")
         val HOME_FEED_COLUMNS = stringPreferencesKey("home_feed_columns")
         val HOME_FEED_ENABLED = booleanPreferencesKey("home_feed_enabled")
@@ -1880,6 +1881,17 @@ class PlayerPreferences(
     suspend fun setShowRelatedVideos(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.SHOW_RELATED_VIDEOS] = enabled
+        }
+    }
+
+    /** Playlists, Mixes and the Shorts shelf among related videos. */
+    val showRelatedCollections: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SHOW_RELATED_COLLECTIONS] ?: true }
+
+    suspend fun setShowRelatedCollections(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SHOW_RELATED_COLLECTIONS] = enabled
         }
     }
 

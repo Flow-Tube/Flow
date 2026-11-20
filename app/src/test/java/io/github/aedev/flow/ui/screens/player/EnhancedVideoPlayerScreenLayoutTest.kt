@@ -70,6 +70,7 @@ class EnhancedVideoPlayerScreenLayoutTest {
                         prefs = rememberVideoPlayerPreferences(LocalContext.current),
                         onVideoClick = {},
                         onChannelClick = {},
+                        onPlaylistClick = {},
                     )
                 }
             }

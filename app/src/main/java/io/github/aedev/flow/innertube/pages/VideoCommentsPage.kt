@@ -31,6 +31,12 @@ data class VideoCommentsPanelHeader(
     val totalCount: Long?,
 )
 
+/** A reel's comment panel: where its first page loads from, and the header beside it. */
+data class ReelCommentsPanel(
+    val section: VideoCommentsSection,
+    val header: VideoCommentsPanelHeader?,
+)
+
 /** What a `next` response says about a video's comment section. */
 sealed interface VideoCommentsSection {
     /** The section loads from [token]. */
@@ -62,18 +68,23 @@ internal fun JsonElement.videoCommentsSection(): VideoCommentsSection? {
             ?.get("contents")
             .arrayOrNull()
             .orEmpty()
-    val items =
-        contents.firstNotNullOfOrNull { entry ->
-            entry
-                .objectOrNull()
-                ?.get("itemSectionRenderer")
-                .objectOrNull()
-                ?.takeIf { it["sectionIdentifier"].stringOrNull() == COMMENT_SECTION_IDENTIFIER }
-                ?.get("contents")
-                .arrayOrNull()
-        } ?: return null
+    return contents.commentItemSection()?.toCommentsSection()
+}
+
+private fun List<JsonElement>.commentItemSection(): JsonArray? =
+    firstNotNullOfOrNull { entry ->
+        entry
+            .objectOrNull()
+            ?.get("itemSectionRenderer")
+            .objectOrNull()
+            ?.takeIf { it["sectionIdentifier"].stringOrNull() == COMMENT_SECTION_IDENTIFIER }
+            ?.get("contents")
+            .arrayOrNull()
+    }
+
+private fun JsonArray.toCommentsSection(): VideoCommentsSection? {
     val token =
-        items.firstNotNullOfOrNull { item ->
+        firstNotNullOfOrNull { item ->
             item
                 .objectOrNull()
                 ?.get("continuationItemRenderer")
@@ -82,7 +93,7 @@ internal fun JsonElement.videoCommentsSection(): VideoCommentsSection? {
         }
     return when {
         token != null -> VideoCommentsSection.Open(token)
-        items.any { it.objectOrNull()?.containsKey("messageRenderer") == true } -> VideoCommentsSection.TurnedOff
+        any { it.objectOrNull()?.containsKey("messageRenderer") == true } -> VideoCommentsSection.TurnedOff
         else -> null
     }
 }
@@ -91,19 +102,44 @@ internal fun JsonElement.videoCommentsSection(): VideoCommentsSection? {
  * The comments panel's header, for a first page whose own header leaves out the menu and the count,
  * which YouTube does for some visitors.
  */
-internal fun JsonElement.videoCommentsPanelHeader(): VideoCommentsPanelHeader? {
-    val header =
-        objectOrNull()
-            ?.get("engagementPanels")
+internal fun JsonElement.videoCommentsPanelHeader(): VideoCommentsPanelHeader? =
+    commentsPanel { it["panelIdentifier"].stringOrNull() == COMMENTS_PANEL_IDENTIFIER }?.toPanelHeader()
+
+/**
+ * The comment panel of a `reel_item_watch` response, which a reel serves through `/browse` rather
+ * than `/next`: the first page's token (or that comments are off) and the header's menu and count.
+ */
+internal fun JsonElement.reelCommentsPanel(): ReelCommentsPanel? {
+    val panel = commentsPanel { it["targetId"].stringOrNull() == COMMENTS_PANEL_IDENTIFIER } ?: return null
+    val section =
+        panel["content"]
+            .objectOrNull()
+            ?.get("sectionListRenderer")
+            .objectOrNull()
+            ?.get("contents")
             .arrayOrNull()
-            .orEmpty()
-            .firstNotNullOfOrNull { entry ->
-                entry
-                    .objectOrNull()
-                    ?.get("engagementPanelSectionListRenderer")
-                    .objectOrNull()
-                    ?.takeIf { it["panelIdentifier"].stringOrNull() == COMMENTS_PANEL_IDENTIFIER }
-            }?.get("header")
+            ?.commentItemSection()
+            ?.toCommentsSection()
+            ?: return null
+    return ReelCommentsPanel(section = section, header = panel.toPanelHeader())
+}
+
+private fun JsonElement.commentsPanel(matches: (JsonObject) -> Boolean): JsonObject? =
+    objectOrNull()
+        ?.get("engagementPanels")
+        .arrayOrNull()
+        .orEmpty()
+        .firstNotNullOfOrNull { entry ->
+            entry
+                .objectOrNull()
+                ?.get("engagementPanelSectionListRenderer")
+                .objectOrNull()
+                ?.takeIf(matches)
+        }
+
+private fun JsonObject.toPanelHeader(): VideoCommentsPanelHeader? {
+    val header =
+        this["header"]
             .objectOrNull()
             ?.get("engagementPanelTitleHeaderRenderer")
             .objectOrNull()

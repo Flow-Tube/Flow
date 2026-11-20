@@ -189,7 +189,7 @@ class HomeFeedSources
             return (
                 relatedSemaphore.withPermit {
                     withTimeoutOrNull(RELATED_FETCH_TIMEOUT_MS) {
-                        repository.getRelatedCandidates(seedId)
+                        repository.getRelatedCandidates(seedId, forFeed = true)
                     } ?: emptyList()
                 }
             ).also {

@@ -8,19 +8,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.partialRowIndices
+import io.github.aedev.flow.ui.components.shared.FeedPagingFooter
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.LocalHardwareKeyboard
 import io.github.aedev.flow.ui.components.shared.LocalSkeletonGradientEnabled
@@ -28,51 +37,107 @@ import io.github.aedev.flow.ui.components.shared.ThumbnailSkeletonGradient
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.card.VideoCardSkeleton
+import io.github.aedev.flow.ui.components.shared.card.inset
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
+import io.github.aedev.flow.ui.screens.player.state.RelatedAppend
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import kotlinx.coroutines.delay
 
 /**
- * Related videos content for LazyListScope.
+ * Related videos content for LazyListScope, with [collections] between the videos where YouTube
+ * listed them.
  */
 internal fun LazyListScope.relatedVideosContent(
     relatedVideos: List<Video>,
     onVideoClick: (Video) -> Unit,
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
     firstCardModifier: Modifier = Modifier,
+    upNextVideoId: String? = null,
+    collections: List<RelatedCollection> = emptyList(),
+    onPlaylistClick: (String) -> Unit = {},
+) {
+    relatedLaneSegments(relatedVideos.size, collections).forEach { segment ->
+        when (segment) {
+            is RelatedLaneSegment.Videos -> {
+                relatedVideoItems(relatedVideos, segment, onVideoClick, cardStyle, firstCardModifier, upNextVideoId)
+            }
+
+            is RelatedLaneSegment.Collection -> {
+                val metrics =
+                    RelatedPlaylistMetrics(
+                        layout = if (cardStyle == PlayerRelatedCardStyle.COMPACT) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                    )
+                relatedCollectionItem(segment.collection, metrics, onPlaylistClick, onVideoClick)
+            }
+        }
+    }
+}
+
+private fun LazyListScope.relatedVideoItems(
+    relatedVideos: List<Video>,
+    segment: RelatedLaneSegment.Videos,
+    onVideoClick: (Video) -> Unit,
+    cardStyle: PlayerRelatedCardStyle,
+    firstCardModifier: Modifier,
+    upNextVideoId: String?,
 ) {
     items(
-        count = relatedVideos.size,
-        key = { index -> relatedVideos[index].id },
-    ) { index ->
+        count = segment.count,
+        key = { offset -> relatedVideos[segment.start + offset].id },
+    ) { offset ->
+        val index = segment.start + offset
         val relatedVideo = relatedVideos[index]
         val cardModifier = if (index == 0) firstCardModifier else Modifier
-        KeyboardCardFocus {
-            when (cardStyle) {
-                PlayerRelatedCardStyle.COMPACT -> {
-                    MediaVideoCard(
-                        video = relatedVideo,
-                        layout = VideoCardLayout.Row,
-                        onClick = { onVideoClick(relatedVideo) },
-                        modifier = cardModifier,
-                    )
-                }
+        UpNextLabelled(labelled = index == 0 && relatedVideo.id == upNextVideoId) {
+            KeyboardCardFocus {
+                when (cardStyle) {
+                    PlayerRelatedCardStyle.COMPACT -> {
+                        MediaVideoCard(
+                            video = relatedVideo,
+                            layout = VideoCardLayout.Row,
+                            onClick = { onVideoClick(relatedVideo) },
+                            modifier = cardModifier,
+                        )
+                    }
 
-                PlayerRelatedCardStyle.FULL_WIDTH -> {
-                    MediaVideoCard(
-                        video = relatedVideo,
-                        onClick = { onVideoClick(relatedVideo) },
-                        modifier = cardModifier,
-                    )
+                    PlayerRelatedCardStyle.FULL_WIDTH -> {
+                        MediaVideoCard(
+                            video = relatedVideo,
+                            onClick = { onVideoClick(relatedVideo) },
+                            modifier = cardModifier,
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+/** YouTube's next pick, named above its card the way the countdown names it. */
+@Composable
+private fun UpNextLabelled(
+    labelled: Boolean,
+    horizontalPadding: Dp = UpNextLabelHorizontalPadding,
+    content: @Composable () -> Unit,
+) {
+    if (!labelled) {
+        content()
+        return
+    }
+    Column {
+        Text(
+            text = stringResource(R.string.autoplay_countdown_up_next),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = UpNextLabelVerticalPadding),
+        )
+        content()
+    }
+}
+
 /** Once a keyboard is typing, related cards act as on a TV: one focus stop each, lifted while focused. */
 @Composable
-private fun KeyboardCardFocus(content: @Composable () -> Unit) {
+internal fun KeyboardCardFocus(content: @Composable () -> Unit) {
     if (LocalHardwareKeyboard.current.inUse && !LocalDpadNavigation.current) {
         CompositionLocalProvider(LocalDpadNavigation provides true, content)
     } else {
@@ -92,17 +157,41 @@ internal fun LazyListScope.relatedVideosGridContent(
     onVideoClick: (Video) -> Unit,
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
     firstCardModifier: Modifier = Modifier,
+    upNextVideoId: String? = null,
+    collections: List<RelatedCollection> = emptyList(),
+    onPlaylistClick: (String) -> Unit = {},
 ) {
     val columns = if (cardStyle == PlayerRelatedCardStyle.COMPACT) 1 else layout.columns
-    val rows = relatedGridRows(relatedVideos.size, columns)
+    // A playlist takes a whole row, so it matches the row cards a grid row cannot fill.
+    val gridPlaylistMetrics =
+        RelatedPlaylistMetrics(
+            layout = VideoCardLayout.Row,
+            thumbnailWidth = layout.thumbnailWidth,
+            inset = layout.cardDensity.inset,
+            horizontalPadding = layout.contentPadding,
+        )
+    relatedLaneSegments(relatedVideos.size, collections).forEach { segment ->
+        when (segment) {
+            is RelatedLaneSegment.Videos -> {
+                val rows = relatedGridRows(segment.count, columns).map { row -> row.map { it + segment.start } }
+                items(
+                    count = rows.size,
+                    key = { index -> rows[index].joinToString { relatedVideos[it].id } },
+                    contentType = { index -> if (rows[index].size == 1) "related_row" else "related_grid_row" },
+                ) { index ->
+                    val row = rows[index]
+                    val firstRow = row.firstOrNull() == 0
+                    val labelled = firstRow && relatedVideos.first().id == upNextVideoId
+                    UpNextLabelled(labelled = labelled, horizontalPadding = layout.contentPadding) {
+                        KeyboardCardFocus { RelatedGridRow(row, firstRow, relatedVideos, layout, onVideoClick, firstCardModifier) }
+                    }
+                }
+            }
 
-    items(
-        count = rows.size,
-        key = { index -> rows[index].joinToString { relatedVideos[it].id } },
-        contentType = { index -> if (rows[index].size == 1) "related_row" else "related_grid_row" },
-    ) { index ->
-        val row = rows[index]
-        KeyboardCardFocus { RelatedGridRow(row, index == 0, relatedVideos, layout, onVideoClick, firstCardModifier) }
+            is RelatedLaneSegment.Collection -> {
+                relatedCollectionItem(segment.collection, gridPlaylistMetrics, onPlaylistClick, onVideoClick)
+            }
+        }
     }
 }
 
@@ -149,6 +238,41 @@ private fun RelatedGridRow(
         }
     }
 }
+
+/**
+ * The lane's tail. It asks for the next page as it comes into view, only while [enabled] (the open
+ * player: the page stays composed behind the mini player), and after a failure waits for a retry.
+ */
+internal fun LazyListScope.relatedVideosFooter(
+    continuation: String?,
+    append: RelatedAppend,
+    enabled: Boolean,
+    onLoadMore: () -> Unit,
+) {
+    if (continuation == null) return
+    item(key = RELATED_FOOTER_KEY, contentType = RELATED_FOOTER_KEY) {
+        val loadMore by rememberUpdatedState(onLoadMore)
+        if (enabled && append == RelatedAppend.IDLE) {
+            LaunchedEffect(continuation) { loadMore() }
+        }
+        FeedPagingFooter(
+            appendState =
+                when (append) {
+                    RelatedAppend.IDLE -> LoadState.NotLoading(endOfPaginationReached = false)
+                    RelatedAppend.LOADING -> LoadState.Loading
+                    RelatedAppend.FAILED -> RelatedPageFailed
+                },
+            itemCount = 1,
+            onRetry = onLoadMore,
+        )
+    }
+}
+
+/** No message of its own, so the footer shows its generic "Load failed". */
+private val RelatedPageFailed = LoadState.Error(Exception())
+
+/** The pick to label, only while autoplay will actually play it: a queue plays its own next video. */
+internal fun VideoPlayerUiState.labelledUpNext(queueHasNext: Boolean): String? = upNextVideoId.takeIf { autoplayEnabled && !queueHasNext }
 
 /**
  * Whether the related list lays out as [relatedVideosGridContent]: always on the medium layout, and on
@@ -231,6 +355,9 @@ internal fun LazyListScope.relatedVideosSkeleton(
 }
 
 private val GridRowVerticalPadding = 6.dp
+private val UpNextLabelHorizontalPadding = 16.dp
+private val UpNextLabelVerticalPadding = 8.dp
 private val SkeletonCardSpacing = 12.dp
 private const val RELATED_SKELETON_CARDS = 3
+private const val RELATED_FOOTER_KEY = "related_footer"
 private const val RELATED_SKELETON_HOLD_MS = 3_000L

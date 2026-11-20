@@ -23,11 +23,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.RichTextTarget
 import io.github.aedev.flow.data.model.Video
@@ -45,9 +43,10 @@ import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
 import io.github.aedev.flow.ui.components.shared.rememberRichTextInlineContent
 import io.github.aedev.flow.ui.openYouTubeUrl
 import io.github.aedev.flow.utils.toAnnotatedString
+import io.github.aedev.flow.utils.youtubeWatchUrl
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FlowDescriptionBottomSheet(
     video: Video,
@@ -88,25 +87,39 @@ fun FlowDescriptionBottomSheet(
     val richDescription =
         if (showOriginal) remember(video.description) { plainRichText(video.description) } else descriptionPage?.description
     val descriptionEmoji = rememberRichTextInlineContent(richDescription)
-    val descriptionText =
-        remember(richDescription, video.description, linkColor, textColor) {
-            richDescription?.toAnnotatedString(linkColor = linkColor, textColor = textColor)
-                ?: parseHtmlDescription(video.description, linkColor)
+    val linkActions =
+        rememberRichTextLinkActions(
+            onSeekMs = onSeekMs,
+            onOpenUrl = openLink,
+            onChannel = onChannelClick ?: navigator::openChannel,
+            onHashtag = onHashtagClick,
+        )
+    val descriptionBlocks =
+        remember(richDescription, video.description, video.id, linkColor, textColor, linkActions) {
+            richDescription
+                ?.descriptionBlocks(ownVideoId = video.id)
+                ?.map { block ->
+                    block.mapText { it.toAnnotatedString(linkColor = linkColor, textColor = textColor, actions = linkActions) }
+                }
+                ?: listOf(DescriptionBlock.Text(parseHtmlDescription(video.description, linkColor, linkActions)))
         }
-    var descLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val descriptionText =
+        remember(richDescription, descriptionBlocks) {
+            richDescription?.text ?: descriptionBlocks.joinToString("\n") { (it as? DescriptionBlock.Text)?.text?.text.orEmpty() }
+        }
     val translateAction = rememberTranslateAction()
     val scope = rememberCoroutineScope()
     var translated by remember(video.id) { mutableStateOf<TitledTranslation?>(null) }
     var translating by remember(video.id) { mutableStateOf(false) }
     val shownDescription =
-        remember(translated, descriptionText) {
-            translated?.body?.takeIf { it.isNotBlank() }?.let { AnnotatedString(it) }
-                ?: descriptionText
+        remember(translated, descriptionBlocks) {
+            translated?.body?.takeIf { it.isNotBlank() }?.let { listOf(DescriptionBlock.Text(AnnotatedString(it))) }
+                ?: descriptionBlocks
         }
 
     // The server marks its own hashtags; a description that only arrived as HTML is still scanned.
     val hashtags =
-        remember(richDescription, descriptionText.text) {
+        remember(richDescription, descriptionText) {
             richDescription
                 ?.spans
                 ?.mapNotNull { span -> (span.target as? RichTextTarget.Hashtag)?.tag }
@@ -114,7 +127,7 @@ fun FlowDescriptionBottomSheet(
                 ?.distinct()
                 ?.take(5)
                 ?: Regex("""#\w+""")
-                    .findAll(descriptionText.text)
+                    .findAll(descriptionText)
                     .map { it.value }
                     .distinct()
                     .take(5)
@@ -138,11 +151,7 @@ fun FlowDescriptionBottomSheet(
                 title = stringResource(R.string.description),
                 onClose = { sheetState.dismiss() },
                 modifier = dragModifier,
-                titleStyle =
-                    MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
+                titleStyle = MaterialTheme.typography.headlineMediumEmphasized,
                 actions = {
                     IconButton(
                         onClick = {
@@ -152,7 +161,7 @@ fun FlowDescriptionBottomSheet(
                                 scope.launch {
                                     translating = true
                                     try {
-                                        translated = translateAction.translate(titledText(video.title, descriptionText.text))?.splitTitle()
+                                        translated = translateAction.translate(titledText(video.title, descriptionText))?.splitTitle()
                                     } finally {
                                         translating = false
                                     }
@@ -179,7 +188,7 @@ fun FlowDescriptionBottomSheet(
                     IconButton(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("description", descriptionText.text)
+                            val clip = ClipData.newPlainText("description", descriptionText)
                             clipboard.setPrimaryClip(clip)
                             android.widget.Toast
                                 .makeText(
@@ -208,8 +217,7 @@ fun FlowDescriptionBottomSheet(
             FlowSelectionContainer {
                 Text(
                     text = translated?.title?.takeIf { it.isNotBlank() } ?: video.title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLargeEmphasized,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -234,20 +242,10 @@ fun FlowDescriptionBottomSheet(
             }
 
             DescriptionBody(
-                text = shownDescription,
+                blocks = shownDescription,
                 inlineContent = descriptionEmoji,
                 tint = tint,
-                onLayout = { descLayoutResult = it },
-                onTap = { offset ->
-                    shownDescription.handleDescriptionTap(
-                        offset = offset,
-                        onSeekMs = onSeekMs,
-                        onHashtagClick = onHashtagClick,
-                        onChannelClick = onChannelClick ?: navigator::openChannel,
-                        onOpenUrl = openLink,
-                    )
-                },
-                layoutResult = descLayoutResult,
+                onVideoClick = { card -> openLink(youtubeWatchUrl(card.videoId, card.startSeconds)) },
             )
 
             if (hashtags.isNotEmpty()) {
@@ -273,6 +271,10 @@ fun FlowDescriptionBottomSheet(
                     }
                 }
             }
+
+            descriptionPage?.music?.let { DescriptionMusicSection(music = it, tint = tint, actions = linkActions) }
+
+            descriptionPage?.disclosure?.let { DescriptionDisclosureCard(disclosure = it, tint = tint, actions = linkActions) }
 
             if (chapterCount > 0 && onChaptersClick != null) {
                 DescriptionSectionRow(

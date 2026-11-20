@@ -39,6 +39,7 @@ import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
+import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.FlowDescriptionBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowNoteEditorDialog
 import io.github.aedev.flow.ui.components.shared.MediaDownloadPrompt
@@ -165,11 +166,13 @@ internal fun PlayerDescriptionSheetHost(
     val videoNote by viewModel.videoNote.collectAsStateWithLifecycle()
     val videoNotesEnabled by viewModel.videoNotesEnabled.collectAsStateWithLifecycle()
     var showNoteEditor by rememberSaveable(video.id) { mutableStateOf(false) }
+    val navigator = LocalMediaNavigator.current
     LaunchedEffect(video.id) {
         viewModel.loadDescription(video.id)
     }
     FlowDescriptionBottomSheet(
         video = video,
+        onHashtagClick = { tag -> navigator.openSearch("#$tag") },
         descriptionPage = descriptionPage,
         tags = (listOfNotNull(video.category) + video.tags).distinct(),
         chapterCount = uiState.chapters.size,

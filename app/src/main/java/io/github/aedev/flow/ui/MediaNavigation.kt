@@ -3,9 +3,11 @@ package io.github.aedev.flow.ui
 import android.net.Uri
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import io.github.aedev.flow.data.local.SearchFilter
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.ui.components.layout.navigation.MediaNavigator
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
+import io.github.aedev.flow.ui.screens.search.searchRoute
 import io.github.aedev.flow.utils.YouTubeLink
 
 internal const val MUSIC_ARTIST_ROUTE_PATTERN = "artist/{channelId}"
@@ -86,6 +88,12 @@ internal class FlowMediaNavigator(
     override fun openSettings(target: SettingsTarget) {
         beforeNavigate()
         navController.navigate("settings?target=${target.encode()}")
+    }
+
+    override fun openSearch(query: String) {
+        if (query.isBlank()) return
+        beforeNavigate()
+        navController.navigate(searchRoute(query, SearchFilter.DEFAULT, depth = 1))
     }
 
     override fun openEqualizer() {

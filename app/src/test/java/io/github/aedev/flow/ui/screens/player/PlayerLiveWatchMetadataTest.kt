@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.player
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.repository.WatchRelatedPages
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.repository.YouTubeRepository.LiveWatchMetadata
 import io.github.aedev.flow.player.EnhancedPlayerManager
@@ -57,6 +58,7 @@ class PlayerLiveWatchMetadataTest {
     private fun loader() =
         PlayerSecondaryMetadataLoader(
             repository = repository,
+            relatedPages = WatchRelatedPages(repository, testDispatcher),
             playerManager = playerManager,
             playerPreferences = playerPreferences,
             scope = loaderScope,

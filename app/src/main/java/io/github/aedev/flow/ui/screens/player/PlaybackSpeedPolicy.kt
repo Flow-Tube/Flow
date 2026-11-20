@@ -1,5 +1,7 @@
 package io.github.aedev.flow.ui.screens.player
 
+import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
+
 /** What the player knows about a video when it picks a starting speed. */
 internal data class PlaybackSpeedContext(
     val videoId: String?,
@@ -48,4 +50,19 @@ internal object PlaybackSpeedPolicy {
         category: String?,
         openedAsMusic: Boolean,
     ): Boolean = openedAsMusic || !musicVideoType.isNullOrBlank() || category.equals(MUSIC_CATEGORY, ignoreCase = true)
+}
+
+/** What the screen already knows about [videoId], with what the stream response added on top. */
+internal fun VideoPlayerUiState.speedContextFor(
+    videoId: String,
+    musicVideoType: String? = null,
+    channelId: String? = null,
+): PlaybackSpeedContext {
+    val cached = cachedVideo?.takeIf { it.id == videoId }
+    return PlaybackSpeedContext(
+        videoId = videoId,
+        channelId = channelId ?: cached?.channelId,
+        musicVideoType = musicVideoType,
+        knownMusic = cached?.isMusic == true,
+    )
 }

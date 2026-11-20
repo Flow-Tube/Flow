@@ -2,6 +2,7 @@ package io.github.aedev.flow.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.innertube.models.response.GetLiveChatResponse
+import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.Test
 
@@ -41,7 +42,7 @@ class ChatReplayPageTest {
                 .continuationContents!!
                 .liveChatContinuation!!
 
-        val page = LiveChatRepository().replayPageOf(continuation)
+        val page = LiveChatRepository(mockk(relaxed = true)).replayPageOf(continuation)
 
         assertThat(page.messages.map { it.offsetMs to it.message.id }).containsExactly(1_500L to "a", 28_000L to "b").inOrder()
         assertThat(
@@ -62,7 +63,7 @@ class ChatReplayPageTest {
     fun `the last page has no next token`() {
         val continuation = GetLiveChatResponse.LiveChatContinuation()
 
-        val page = LiveChatRepository().replayPageOf(continuation)
+        val page = LiveChatRepository(mockk(relaxed = true)).replayPageOf(continuation)
 
         assertThat(page.messages).isEmpty()
         assertThat(page.nextContinuation).isNull()

@@ -38,6 +38,12 @@ object VideoCardDefaults {
     val AvatarSize: Dp = 40.dp
 
     val RowVerticalPadding: Dp = 8.dp
+
+    /** The gap between a row's title and the lines under it. */
+    val RowTitleGap: Dp = 6.dp
+
+    /** The gap between the lines under a stacked card's thumbnail. */
+    val StackedTextSpacing: Dp = 4.dp
 }
 
 /**

@@ -33,6 +33,12 @@ class FeedExclusions(
 
     fun hidesAsAi(video: Video): Boolean = ai.blocks(video)
 
+    /** The blocked-words check alone, for cards that carry a name and a byline but no channel. */
+    fun hidesText(
+        title: String,
+        byline: String,
+    ): Boolean = blockedText(title, byline)
+
     fun hidesFromRecommendations(video: Video): Boolean =
         hides(video) ||
             (video.channelId.isNotBlank() && video.channelId in suppressedChannelIds) ||
