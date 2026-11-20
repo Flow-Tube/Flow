@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.player.stage
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameHolder
 import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientStatusBarGlow
@@ -33,6 +34,7 @@ internal fun rememberPlayerAmbient(
     layoutMode: PlayerLayoutMode,
 ): PlayerAmbient {
     val frames = remember { AmbientFrameHolder() }
+    SideEffect { frames.responsive = prefs.ambientResponsive }
     // Listened to only while battery saver can still turn the glow off.
     val powerSaving = prefs.ambientGlowEnabled && !prefs.ambientGlowInBatterySaver && rememberPowerSaveMode()
     val glow =

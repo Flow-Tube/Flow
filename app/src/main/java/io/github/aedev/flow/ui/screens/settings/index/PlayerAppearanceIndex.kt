@@ -255,6 +255,13 @@ internal object PlayerAppearanceIndex {
             R.string.player_settings_glow_battery_saver_subtitle,
             R.string.settings_section_video_player,
         )
+    val ambientMotion =
+        entry(
+            "ambient_motion",
+            R.string.player_settings_ambient_motion,
+            R.string.player_settings_ambient_motion_subtitle,
+            R.string.settings_section_video_player,
+        )
     val videoArtworkColors =
         entry(
             "video_artwork_colors",
@@ -374,6 +381,7 @@ internal object PlayerAppearanceIndex {
             immersiveGlow,
             immersiveScrollDim,
             glowInBatterySaver,
+            ambientMotion,
             videoArtworkColors,
             groupedQuality,
             paidPromotion,

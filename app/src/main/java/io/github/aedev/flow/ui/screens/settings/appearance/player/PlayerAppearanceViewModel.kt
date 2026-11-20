@@ -81,6 +81,7 @@ class PlayerAppearanceViewModel
         val immersiveGlow = preferences.videoAmbientImmersiveEnabled.asState(false)
         val immersiveScrollDim = preferences.videoAmbientImmersiveScrollDim.asState(true)
         val glowInBatterySaver = preferences.videoAmbientGlowInBatterySaver.asState(false)
+        val ambientResponsive = preferences.videoAmbientResponsive.asState(false)
         val videoArtworkColors = preferences.videoArtworkColors.asState(true)
         val groupedQualitySelector = preferences.groupedQualitySelectorEnabled.asState(false)
         val paidPromotionLabel = preferences.paidPromotionLabel.asState(false)
@@ -181,6 +182,8 @@ class PlayerAppearanceViewModel
         fun setImmersiveScrollDim(value: Boolean) = write { preferences.setVideoAmbientImmersiveScrollDim(value) }
 
         fun setGlowInBatterySaver(value: Boolean) = write { preferences.setVideoAmbientGlowInBatterySaver(value) }
+
+        fun setAmbientResponsive(value: Boolean) = write { preferences.setVideoAmbientResponsive(value) }
 
         fun setVideoArtworkColors(value: Boolean) = write { preferences.setVideoArtworkColors(value) }
 

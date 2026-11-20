@@ -103,6 +103,13 @@ class AmbientStoryboardFramesTest {
     }
 
     @Test
+    fun `live frames glide unless a responsive light is chosen`() {
+        assertThat(liveFramesCrossfade(AmbientCadence.STANDARD, responsive = false)).isFalse()
+        assertThat(liveFramesCrossfade(AmbientCadence.STANDARD, responsive = true)).isTrue()
+        assertThat(liveFramesCrossfade(AmbientCadence.LIVELY, responsive = true)).isFalse()
+    }
+
+    @Test
     fun `chroma boost leaves grey alone and keeps luminance`() {
         val grid = floatArrayOf(0.4f, 0.4f, 0.4f, 0.1f, 0.3f, 0.2f)
         val before = relativeLuminance(0.1f, 0.3f, 0.2f)
