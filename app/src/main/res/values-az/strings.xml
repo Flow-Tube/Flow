@@ -5231,4 +5231,22 @@
     <string name="mini_player_action_tuck">Kənara yığ</string>
     <string name="player_zoomed_to_fill">Doldurmaq üçün yaxınlaşdırılıb</string>
     <string name="player_seek_release_to_cancel">Ləğv etmək üçün burax</string>
+    <plurals name="comment_folded_replies">
+        <item quantity="one">%1$d cavab</item>
+        <item quantity="other">%1$d cavab</item>
+    </plurals>
+    <string name="comment_creator_replied">%1$s cavab verdi</string>
+    <string name="comment_creator_replied_unnamed">Yaradıcı cavab verdi</string>
+    <string name="description_music_section">Musiqi</string>
+    <string name="description_how_this_was_made">Bu necə hazırlanıb</string>
+    <string name="channel_badge_artist">Rəsmi Sənətçi Kanalı</string>
+    <string name="settings_related_collections_title">Əlaqəli Pleylistlər və Shorts-lar</string>
+    <string name="settings_related_collections_subtitle">Əlaqəli videolar arasında pleylistləri, Miksləri və Shorts-ları göstər</string>
+    <string name="settings_keywords_related_collections">miks, mikslər, pleylist, shorts, bölmə, növbəti</string>
+    <string name="player_settings_ambient_motion">Mühit hərəkəti</string>
+    <string name="player_settings_ambient_motion_subtitle">Rənglərin videoya nə qədər tez uyğunlaşdığı</string>
+    <string name="player_settings_ambient_motion_smooth">Hamar</string>
+    <string name="player_settings_ambient_motion_responsive">Həssas</string>
+    <string name="settings_quality_remember">Video keyfiyyətini xatırla</string>
+    <string name="settings_quality_remember_summary">Oynadıcıda seçilmiş keyfiyyət standarta gəlir</string>
 </resources>
