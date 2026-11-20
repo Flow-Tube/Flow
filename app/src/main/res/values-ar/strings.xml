@@ -4698,7 +4698,7 @@
     <string name="error_members_or_paid_hint">يحتاج هذا الفيديو إلى عضوية في القناة أو عملية شراء على YouTube.</string>
     <string name="error_rate_limited">يقيّد YouTube هذه الشبكة</string>
     <string name="error_rate_limited_hint">انتظر بعض الوقت وحاول مرة أخرى، أو بدّل الشبكة.</string>
-    <string name="error_bot_wall_network_hint">جرّب شبكة أخرى، مثل بيانات الجوال.</string>
+    <string name="error_bot_wall_network_hint">جرّب استخدام بيانات الهاتف أو انتظر قليلًا. غالبًا ما تُحل هذه المشكلة تلقائياً.</string>
     <string name="error_bot_wall_session">يريد YouTube التأكد من أنك لست روبوتًا</string>
     <string name="error_bot_wall_session_hint">أعد تعيين جلسة YouTube، ثم حاول مرة أخرى.</string>
     <string name="music_playback_warning_rate_limited">YouTube يقيّد هذه الشبكة. حاول مرة أخرى لاحقًا.</string>
@@ -5747,4 +5747,30 @@
         <item quantity="many">تم استيراد %d قائمة تشغيل</item>
         <item quantity="other">تم استيراد %d قائمة تشغيل</item>
     </plurals>
+    <string name="mini_player_action_open">فتح المشغّل</string>
+    <string name="mini_player_action_larger">تكبير الحجم</string>
+    <string name="mini_player_action_smaller">تصغير الحجم</string>
+    <string name="mini_player_action_next_corner">انقل إلى الزاوية التالية</string>
+    <string name="mini_player_action_tuck">إخفاء في الجانب</string>
+    <string name="player_settings_ambient_motion">حركة Ambient</string>
+    <string name="player_settings_ambient_motion_subtitle">مدى سرعة تفاعل الألوان مع الفيديو</string>
+    <string name="player_settings_ambient_motion_smooth">سلس</string>
+    <string name="player_settings_ambient_motion_responsive">سريع الاستجابة</string>
+    <string name="newpipe_extractor_credit">من أين بدأ استخراج YouTube في Flow</string>
+    <string name="player_zoomed_to_fill">تكبير لملء الشاشة</string>
+    <string name="player_seek_release_to_cancel">أفلِت للإلغاء</string>
+    <string name="error_members_only">فيديو للأعضاء فقط</string>
+    <string name="error_members_only_hint">انضم إلى هذه القناة على YouTube لمشاهدة الفيديو.</string>
+    <string name="error_copyright_removed">تمت إزالته بسبب حقوق النشر</string>
+    <string name="error_copyright_removed_hint">طلب %1$s من YouTube إزالة هذا الفيديو.</string>
+    <string name="error_copyright_removed_hint_unnamed">طلب أحد أصحاب حقوق النشر من YouTube إزالة هذا الفيديو.</string>
+    <string name="error_removed_by_uploader">أزاله صاحب الفيديو</string>
+    <string name="error_removed_by_uploader_hint">حذف صاحب الفيديو هذا الفيديو من YouTube.</string>
+    <string name="error_policy_removed">تمت إزالته بواسطة YouTube</string>
+    <string name="error_policy_removed_hint">أزال YouTube هذا الفيديو لمخالفته إرشاداته.</string>
+    <string name="error_recording_unavailable">التسجيل غير متاح</string>
+    <string name="error_recording_unavailable_hint">انتهى هذا البث المباشر دون أن يحتفظ YouTube بتسجيل له.</string>
+    <string name="error_bot_wall_mobile_data_hint">جرّب الاتصال بشبكة Wi-Fi أو انتظر قليلًا. غالبًا ما تُحل هذه المشكلة تلقائيًا.</string>
+    <string name="settings_quality_remember">تذكّر جودة الفيديو</string>
+    <string name="settings_quality_remember_summary">تصبح الجودة المختارة في المشغّل هي الافتراضية</string>
 </resources>
