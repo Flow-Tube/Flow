@@ -1,5 +1,7 @@
 package io.github.aedev.flow.player.shorts
 
+import androidx.media3.exoplayer.dash.manifest.DashManifest
+
 /** What each pooled player holds, kept together so a slot is assigned and cleared as one. */
 internal class ShortsSlots(
     size: Int,
@@ -13,6 +15,7 @@ internal class ShortsSlots(
     val audioUrls = arrayOfNulls<String?>(size)
     val videoManifests = arrayOfNulls<String?>(size)
     val audioManifests = arrayOfNulls<String?>(size)
+    val adaptiveManifests = arrayOfNulls<DashManifest?>(size)
 
     /** YouTube's loudness for each slot's reel, in dB; null when its response carried none. */
     val loudnessGainsDb = arrayOfNulls<Float>(size)
@@ -32,6 +35,7 @@ internal class ShortsSlots(
         videoManifest: String?,
         audioManifest: String?,
         loudnessGainDb: Float? = null,
+        adaptiveManifest: DashManifest? = null,
     ) {
         ownerIndices[slot] = index
         videoIds[slot] = videoId
@@ -40,6 +44,7 @@ internal class ShortsSlots(
         videoManifests[slot] = videoManifest
         audioManifests[slot] = audioManifest
         loudnessGainsDb[slot] = loudnessGainDb
+        adaptiveManifests[slot] = adaptiveManifest
     }
 
     fun clear(slot: Int) {
@@ -50,5 +55,6 @@ internal class ShortsSlots(
         videoManifests[slot] = null
         audioManifests[slot] = null
         loudnessGainsDb[slot] = null
+        adaptiveManifests[slot] = null
     }
 }

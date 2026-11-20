@@ -1,6 +1,9 @@
 package io.github.aedev.flow.data.shorts
 
 import android.util.Log
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.dash.manifest.DashManifest
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.audio.LoudnessGain
@@ -36,6 +39,8 @@ data class ShortPlaybackStreams(
     /** See [ShortsDashManifest]. Null means play the URL progressively. */
     val videoDashManifest: String? = null,
     val audioDashManifest: String? = null,
+    /** Auto's adaptive ladder, see [shortsAutoLadder]; null plays the single [videoUrl]. */
+    val videoAdaptiveManifest: DashManifest? = null,
     val details: ShortDetails? = null,
     /** YouTube's loudness for the reel, in dB, for volume normalization. */
     val loudnessGainDb: Float? = null,
@@ -195,6 +200,7 @@ class ShortsStreamResolver internal constructor(
         return nowMillis() + ttlSeconds * 1_000L * EXPIRY_FRACTION_PERCENT / 100L
     }
 
+    @OptIn(UnstableApi::class)
     private fun VideoExtractionResult.toPlaybackStreams(
         targetHeight: Int,
         preferredAudioLanguage: String,
@@ -211,6 +217,7 @@ class ShortsStreamResolver internal constructor(
             durationMs = durationMs,
             videoDashManifest = ShortsDashManifest.forVideo(video, videoUrl, durationMs),
             audioDashManifest = audio?.url?.let { ShortsDashManifest.forAudio(audio, it, durationMs) },
+            videoAdaptiveManifest = if (targetHeight == 0) shortsAutoLadder(videoFormats, video, durationMs) else null,
             details = playerResponse.videoDetails?.toShortDetails(durationMs),
             loudnessGainDb = LoudnessGain.gainDb(playerResponse.playerConfig?.audioConfig, audio?.loudnessDb),
         )

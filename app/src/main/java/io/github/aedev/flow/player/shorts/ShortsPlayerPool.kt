@@ -1,7 +1,6 @@
 package io.github.aedev.flow.player.shorts
 
 import android.content.Context
-import android.media.audiofx.AudioEffect
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
@@ -11,16 +10,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.dash.manifest.DashManifest
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
-import dagger.hilt.android.EntryPointAccessors
 import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.ShortVideo
-import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
-import io.github.aedev.flow.player.audio.AudioSessionAnnouncer
 import io.github.aedev.flow.player.audio.LoudnessGain
-import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
 import io.github.aedev.flow.player.cache.PlayerCacheManager
 import io.github.aedev.flow.player.cache.SharedPlayerCacheProvider
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
@@ -62,9 +58,7 @@ class ShortsPlayerPool private constructor() {
     private val players = arrayOfNulls<ExoPlayer>(POOL_SIZE)
     private val slots = ShortsSlots(POOL_SIZE)
 
-    private val equalizers = arrayOfNulls<EqualizerAudioProcessor>(POOL_SIZE)
-    private val audioSessionAnnouncers = arrayOfNulls<AudioSessionAnnouncer>(POOL_SIZE)
-    private var equalizerScope: CoroutineScope? = null
+    private var audioEffects: ShortsPoolAudioEffects? = null
 
     private var isInitialized = false
     private var dataSourceFactory: DefaultDataSource.Factory? = null
@@ -76,11 +70,16 @@ class ShortsPlayerPool private constructor() {
      */
     private var mediaSession: MediaSession? = null
 
+    @Volatile
     private var activeIndex: Int = -1
     private var activeVideoId: String? = null
 
     private val _ownershipGeneration = MutableStateFlow(0)
     val ownershipGeneration: StateFlow<Int> = _ownershipGeneration.asStateFlow()
+
+    private val _trimGeneration = MutableStateFlow(0)
+    val trimGeneration: StateFlow<Int> = _trimGeneration.asStateFlow()
+    private var memoryTrim: ShortsMemoryTrim? = null
 
     private fun bumpOwnership() {
         _ownershipGeneration.value += 1
@@ -192,35 +191,28 @@ class ShortsPlayerPool private constructor() {
             },
         )
 
-        val effects = EntryPointAccessors.fromApplication(appContext, AudioEffectsEntryPoint::class.java)
-        val equalizerSpec = effects.equalizerRepository().processingSpec
-        equalizerScope =
-            CoroutineScope(SupervisorJob() + Dispatchers.Default).also { scope ->
-                scope.launch { equalizerSpec.collect { spec -> equalizers.forEach { it?.setSpec(spec) } } }
-            }
+        val audio = ShortsPoolAudioEffects(appContext, POOL_SIZE).also { audioEffects = it }
 
         try {
             for (i in 0 until POOL_SIZE) {
-                val equalizer = EqualizerAudioProcessor().also { it.setSpec(equalizerSpec.value) }
-                equalizers[i] = equalizer
                 players[i] =
                     ShortsPlayerFactory
                         .player(
                             appContext,
-                            equalizer,
+                            audio.equalizerFor(i),
                             dataSourceFactory!!,
                             preferredAudioLanguage,
                             slotVideoId = { slots.videoIds[i] },
                             onFirstFrame = { firstFrames.onRendered(slots.videoIds[i]) },
+                            isActiveSlot = { activeIndex >= 0 && ShortsSlotRules.slotFor(activeIndex, POOL_SIZE) == i },
                         ).also {
                             it.addListener(playingListener)
-                            audioSessionAnnouncers[i] =
-                                AudioSessionAnnouncer(effects.audioSessionRegistry(), AudioEffect.CONTENT_TYPE_MOVIE)
-                                    .apply { attach(it) }
+                            audio.announce(i, it)
                         }
                 slots.clear(i)
             }
             mediaSession = ShortsPlayerFactory.mediaSession(appContext, players[0]!!)
+            memoryTrim = ShortsMemoryTrim(appContext) { trimInactiveSlots() }.also { it.register() }
             isInitialized = true
             Log.d(TAG, "Player pool initialized with $POOL_SIZE players")
         } catch (error: Throwable) {
@@ -327,6 +319,7 @@ class ShortsPlayerPool private constructor() {
         videoDashManifest: String? = null,
         audioDashManifest: String? = null,
         loudnessGainDb: Float? = null,
+        videoAdaptiveManifest: DashManifest? = null,
     ) {
         if (!isInitialized || index < 0) return
         val slot = index % POOL_SIZE
@@ -348,13 +341,13 @@ class ShortsPlayerPool private constructor() {
         firstFrames.forget(slots.videoIds[slot])
         firstFrames.forget(videoId)
 
-        slots.assign(slot, index, videoId, videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb)
+        slots.assign(slot, index, videoId, videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb, videoAdaptiveManifest)
         applyVolume(slot)
         bumpOwnership()
 
         // Load media
         if (shouldPlay) ShortsStartupTrace.onPrepared(videoId)
-        preparePlayerInternal(player, videoUrl, audioUrl, videoDashManifest, audioDashManifest)
+        preparePlayerInternal(player, videoUrl, audioUrl, videoDashManifest, audioDashManifest, videoAdaptiveManifest)
 
         // Set playback state
         player.setPlaybackSpeed(basePlaybackSpeed)
@@ -409,20 +402,29 @@ class ShortsPlayerPool private constructor() {
     fun releaseUnusedPlayers(currentIndex: Int) {
         if (!isInitialized) return
 
-        var released = false
-        for (i in 0 until POOL_SIZE) {
-            val ownerIndex = slots.ownerIndices[i] ?: continue
-            if (ShortsSlotRules.shouldRelease(ownerIndex, currentIndex)) {
-                Log.d(TAG, "Releasing stale player slot $i (owned by index $ownerIndex, current is $currentIndex)")
-                players[i]?.stop()
-                players[i]?.clearMediaItems()
-                slots.videoIds[i]?.let { ShortsStartupTrace.forget(it) }
-                firstFrames.forget(slots.videoIds[i])
-                slots.clear(i)
-                released = true
-            }
+        val stale = (0 until POOL_SIZE).filter { ShortsSlotRules.shouldRelease(slots.ownerIndices[it], currentIndex) }
+        stale.forEach(::releaseSlot)
+        if (stale.isNotEmpty()) bumpOwnership()
+    }
+
+    /** Memory pressure: everything but the reel on screen goes; [trimGeneration] tells the pager to prepare them again. */
+    private fun trimInactiveSlots() {
+        val active = if (activeIndex >= 0) ShortsSlotRules.slotFor(activeIndex, POOL_SIZE) else -1
+        val inactive = (0 until POOL_SIZE).filter { it != active && slots.ownerIndices[it] != null }
+        inactive.forEach(::releaseSlot)
+        if (inactive.isNotEmpty()) {
+            bumpOwnership()
+            _trimGeneration.value += 1
         }
-        if (released) bumpOwnership()
+    }
+
+    private fun releaseSlot(slot: Int) {
+        Log.d(TAG, "Releasing player slot $slot (owned by index ${slots.ownerIndices[slot]})")
+        players[slot]?.stop()
+        players[slot]?.clearMediaItems()
+        slots.videoIds[slot]?.let { ShortsStartupTrace.forget(it) }
+        firstFrames.forget(slots.videoIds[slot])
+        slots.clear(slot)
     }
 
     /**
@@ -448,7 +450,14 @@ class ShortsPlayerPool private constructor() {
         slots.audioUrls[slot] = newAudioUrl
         slots.audioManifests[slot] = newAudioDashManifest
 
-        preparePlayerInternal(player, videoUrl, newAudioUrl, slots.videoManifests[slot], newAudioDashManifest)
+        preparePlayerInternal(
+            player,
+            videoUrl,
+            newAudioUrl,
+            slots.videoManifests[slot],
+            newAudioDashManifest,
+            slots.adaptiveManifests[slot],
+        )
         player.setPlaybackSpeed(basePlaybackSpeed)
         player.playWhenReady = wasPlaying
         player.repeatMode = if (shortsPlaybackMode == "loop") Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
@@ -476,9 +485,10 @@ class ShortsPlayerPool private constructor() {
         player.clearMediaItems()
         slots.videoUrls[slot] = newVideoUrl
         slots.videoManifests[slot] = newVideoDashManifest
+        slots.adaptiveManifests[slot] = null
 
         val audioUrl = slots.audioUrls[slot]
-        preparePlayerInternal(player, newVideoUrl, audioUrl, newVideoDashManifest, slots.audioManifests[slot])
+        preparePlayerInternal(player, newVideoUrl, audioUrl, newVideoDashManifest, slots.audioManifests[slot], null)
         player.setPlaybackSpeed(basePlaybackSpeed)
         player.playWhenReady = wasPlaying
         player.seekTo(position)
@@ -491,9 +501,10 @@ class ShortsPlayerPool private constructor() {
         audioUrl: String?,
         videoDashManifest: String?,
         audioDashManifest: String?,
+        videoAdaptiveManifest: DashManifest?,
     ) {
         val factory = cachedDataSourceFactory ?: dataSourceFactory ?: return
-        ShortsMediaSources.load(player, factory, videoUrl, audioUrl, videoDashManifest, audioDashManifest)
+        ShortsMediaSources.load(player, factory, videoUrl, audioUrl, videoDashManifest, audioDashManifest, videoAdaptiveManifest)
         player.setPlaybackSpeed(basePlaybackSpeed)
     }
 
@@ -560,18 +571,17 @@ class ShortsPlayerPool private constructor() {
      */
     fun release() {
         Log.d(TAG, "Releasing player pool")
+        memoryTrim?.unregister()
+        memoryTrim = null
         preferenceObservers.stop()
         poolScope?.cancel()
         poolScope = null
         cachedDataSourceFactory = null
         mediaSession?.release()
         mediaSession = null
-        equalizerScope?.cancel()
-        equalizerScope = null
+        audioEffects?.release()
+        audioEffects = null
         for (i in 0 until POOL_SIZE) {
-            audioSessionAnnouncers[i]?.detach()
-            audioSessionAnnouncers[i] = null
-            equalizers[i] = null
             players[i]?.stop()
             players[i]?.release()
             players[i] = null

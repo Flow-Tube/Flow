@@ -71,11 +71,12 @@ internal object ShortsPlayerFactory {
         preferredAudioLanguage: String,
         slotVideoId: () -> String?,
         onFirstFrame: () -> Unit,
+        isActiveSlot: () -> Boolean,
     ): ExoPlayer {
         // The device cap is landscape; a Short is portrait, so its axes swap.
         val (maxVideoWidth, maxVideoHeight) = VideoSizeCap.forDevice(context).let { it.maxHeight to it.maxWidth }
 
-        val loadControl = LoadControlFactory.forShorts()
+        val loadControl = InactiveSlotLoadControl(LoadControlFactory.forShorts(), isActiveSlot)
 
         val trackSelector =
             DefaultTrackSelector(

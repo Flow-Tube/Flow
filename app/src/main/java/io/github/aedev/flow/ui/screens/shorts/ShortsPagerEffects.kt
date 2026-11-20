@@ -1,11 +1,14 @@
 package io.github.aedev.flow.ui.screens.shorts
 
+import android.app.ActivityManager
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +55,12 @@ internal fun ShortsPagerPlaybackEffects(
     viewModel: ShortsViewModel,
 ) {
     val context = LocalContext.current
+    val playerPool = remember { ShortsPlayerPool.getInstance() }
+    val isLowRamDevice =
+        remember(context) {
+            (context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice ==
+                true
+        }
     val playShortId = shorts.getOrNull(playPage)?.id
     val preparedShortId = remember { mutableStateOf<String?>(null) }
 
@@ -59,7 +68,6 @@ internal fun ShortsPagerPlaybackEffects(
         val height = targetHeight ?: return@LaunchedEffect
         val current = shorts.getOrNull(playPage) ?: return@LaunchedEffect
         preparedShortId.value = null
-        val playerPool = ShortsPlayerPool.getInstance()
         playerPool.initialize(context)
         playerPool.setCurrentVideo(current)
         val preferredLang = playerPreferences.preferredAudioLanguage.first()
@@ -82,11 +90,12 @@ internal fun ShortsPagerPlaybackEffects(
     val previousShortId = shorts.getOrNull(playPage - 1)?.id
     val nextShortId = shorts.getOrNull(playPage + 1)?.id
     val preloadShortId = shorts.getOrNull(playPage + 2)?.id
-    LaunchedEffect(playPage, playShortId, previousShortId, nextShortId, preloadShortId, targetHeight) {
+    // A trim under memory pressure dropped the neighbours; preparing them again needs a fresh run.
+    val trimGeneration by playerPool.trimGeneration.collectAsState()
+    LaunchedEffect(playPage, playShortId, previousShortId, nextShortId, preloadShortId, targetHeight, trimGeneration) {
         val height = targetHeight ?: return@LaunchedEffect
         val currentId = playShortId ?: return@LaunchedEffect
         val settled = playPage
-        val playerPool = ShortsPlayerPool.getInstance()
         // Each resolve mints a BotGuard PoToken, and those serialise on one process-wide WebView, so
         // the neighbours wait for the short the user is looking at rather than queue ahead of it.
         snapshotFlow { preparedShortId.value }.first { it == currentId }
@@ -95,7 +104,8 @@ internal fun ShortsPagerPlaybackEffects(
         shorts.getOrNull(settled + 1)?.let { next ->
             launch { prepareReel(playerPool, viewModel, settled + 1, next, height, preferredLang, shouldPlay = false) }
         }
-        shorts.getOrNull(settled - 1)?.let { previous ->
+        // On a low-RAM device only the reel ahead is kept ready, so at most two decoders are live.
+        shorts.getOrNull(settled - 1)?.takeUnless { isLowRamDevice }?.let { previous ->
             launch { prepareReel(playerPool, viewModel, settled - 1, previous, height, preferredLang, shouldPlay = false) }
         }
         // Two ahead: resolved only, not handed to a player. Last so it never competes with the visible short.
@@ -119,7 +129,6 @@ internal fun ShortsPagerPlaybackEffects(
         if (previous == null || height == previous) return@LaunchedEffect
 
         val settled = latestPlayPage
-        val playerPool = ShortsPlayerPool.getInstance()
         val preferredLang = playerPreferences.preferredAudioLanguage.first()
 
         // A network change must not restart the reel being watched; the new quality starts with the next one.
@@ -159,6 +168,7 @@ private suspend fun prepareReel(
             videoDashManifest = streams.videoDashManifest,
             audioDashManifest = streams.audioDashManifest,
             loudnessGainDb = streams.loudnessGainDb,
+            videoAdaptiveManifest = streams.videoAdaptiveManifest,
         )
     } catch (e: Exception) {
         Log.e(TAG, "Failed to prepare player for ${short.id}", e)
