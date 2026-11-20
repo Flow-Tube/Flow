@@ -23,6 +23,7 @@ import io.github.aedev.flow.sync2.engine.Session
 import io.github.aedev.flow.sync2.live.LiveChannel
 import io.github.aedev.flow.sync2.live.LiveDevices
 import io.github.aedev.flow.sync2.live.LiveTransport
+import io.github.aedev.flow.sync2.live.startSessionLive
 import io.github.aedev.flow.sync2.roster.replayRoster
 import io.github.aedev.flow.sync2.service.AutoSync
 import io.github.aedev.flow.sync2.service.LinkedSync
@@ -407,17 +408,14 @@ class LanSync
             val peer = LanPeer(link, session, local) { live.receive(it) }
             val reader = peer.start(this)
             val detach =
-                if (serveOnly) {
-                    null
-                } else {
-                    live.attach(
-                        object : LiveTransport {
-                            override suspend fun send(envelope: ByteArray) = peer.sendLive(envelope)
-                        },
-                    )
-                }
+                startSessionLive(
+                    object : LiveTransport {
+                        override suspend fun send(envelope: ByteArray) = peer.sendLive(envelope)
+                    },
+                    waiting = envelope,
+                    attach = if (serveOnly) null else live::attach,
+                )
             try {
-                envelope?.let { peer.sendLive(it) }
                 if (!serveOnly) peer.pull()
                 peer.awaitQuiet(QUIET_MS)
             } finally {
