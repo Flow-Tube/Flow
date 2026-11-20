@@ -2255,14 +2255,6 @@ object YouTube {
                 .toCommentRepliesPage(ownVideoId)
         }
 
-    suspend fun liveChatContinuation(videoId: String): Result<String?> =
-        runCatching {
-            innerTube
-                .nextForLiveChat(videoId)
-                .body<io.github.aedev.flow.innertube.models.response.LiveChatSeedResponse>()
-                .seedContinuation()
-        }
-
     suspend fun liveChat(
         continuation: String,
         offsetMs: Long? = null,
@@ -2272,36 +2264,6 @@ object YouTube {
             innerTube
                 .getLiveChat(continuation, offsetMs, replay)
                 .body<io.github.aedev.flow.innertube.models.response.GetLiveChatResponse>()
-        }
-
-    suspend fun watchMetadata(videoId: String): Result<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse> =
-        runCatching {
-            val primary =
-                innerTube
-                    .next(WEB, videoId, null, null, null, null, null)
-                    .body<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse>()
-            if (primary.relatedVideos().isNotEmpty()) {
-                primary
-            } else {
-                val webWatch =
-                    runCatching {
-                        innerTube
-                            .nextForLiveChat(videoId)
-                            .body<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse>()
-                    }.getOrNull()
-                if (webWatch != null && webWatch.relatedVideos().size > primary.relatedVideos().size) {
-                    webWatch
-                } else {
-                    primary
-                }
-            }
-        }
-
-    suspend fun watchMetadataLite(videoId: String): Result<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse> =
-        runCatching {
-            innerTube
-                .next(WEB, videoId, null, null, null, null, null)
-                .body<io.github.aedev.flow.innertube.models.response.WatchMetadataResponse>()
         }
 
     suspend fun registerPlayback(

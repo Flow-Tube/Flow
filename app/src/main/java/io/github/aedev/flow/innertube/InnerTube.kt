@@ -739,30 +739,11 @@ class InnerTube {
         parameter("prettyPrint", false)
     }
 
-    suspend fun nextForLiveChat(videoId: String) =
-        withRetry {
-            val client = YouTubeClient.WEB
-            httpClient.post("https://www.youtube.com/youtubei/v1/next") {
-                webYouTubeHeaders(client)
-                setBody(
-                    NextBody(
-                        context = client.toContext(locale, visitorData, null),
-                        videoId = videoId,
-                        playlistId = null,
-                        playlistSetVideoId = null,
-                        index = null,
-                        params = null,
-                        continuation = null,
-                    ),
-                )
-            }
-        }
-
     /**
      * The watch page for [videoId] or one of its continuations, on the main site.
      *
-     * The comment section only exists on the web watch response, so this posts to the same host
-     * and headers as [nextForLiveChat] rather than the music API the default request points at.
+     * The comment section and the chat seed only exist on the web watch response, so this posts to
+     * the main site rather than the music API the default request points at.
      */
     suspend fun nextWatch(
         videoId: String? = null,

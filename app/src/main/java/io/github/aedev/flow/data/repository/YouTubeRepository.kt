@@ -445,25 +445,16 @@ class YouTubeRepository
         suspend fun watchNextResponse(videoId: String): JsonElement? = watchResponses.forPlayer(videoId)
 
         /**
-         * The typed watch response, off the one request the player already makes.
-         *
-         * [watchNextResponse] is cached and coalesced; [YouTube.watchMetadata] is neither, and
-         * issues its own `/next` (sometimes two). Reaching for that one directly on a cache miss is
-         * what had a single load fetching the watch page up to three times, once per consumer, none
-         * of them seeding the cache for the next. A [forFeed] read never stores what it fetched.
+         * The typed watch response, off the one request the player already makes. Every watch
+         * request goes through that cache: a second `/next` for the same video, or one to the
+         * music host, returns the same page. A [forFeed] read never stores what it fetched.
          */
         private suspend fun watchMetadataFor(
             videoId: String,
-            requireRelated: Boolean = false,
             forFeed: Boolean = false,
         ): WatchMetadataResponse? {
-            watchResponses.cached(videoId)?.let(::decodeWatchMetadata)?.let { return it }
             val response = if (forFeed) watchResponses.forFeed(videoId) else watchResponses.forPlayer(videoId)
-            val shared = response?.let(::decodeWatchMetadata)
-            // [YouTube.watchMetadata] retries against the other host when the lane comes back
-            // empty, so a caller that needs one still gets that second chance.
-            if (shared != null && (!requireRelated || shared.relatedVideos().isNotEmpty())) return shared
-            return YouTube.watchMetadata(videoId).getOrNull() ?: shared
+            return response?.let(::decodeWatchMetadata)
         }
 
         /** Seeds [videoCategory] when a player response happened to carry the category already. */
@@ -647,7 +638,7 @@ class YouTubeRepository
         ): LiveWatchMetadata? =
             withContext(Dispatchers.IO) {
                 val resp =
-                    watchMetadataFor(videoId, requireRelated = true, forFeed = forFeed)
+                    watchMetadataFor(videoId, forFeed = forFeed)
                         ?: return@withContext null
                 val related = WatchMetadataVideoMapper.relatedVideos(resp)
                 Log.i(
@@ -686,7 +677,7 @@ class YouTubeRepository
         ): List<Video> =
             withContext(Dispatchers.IO) {
                 val resp =
-                    watchMetadataFor(videoId, requireRelated = true, forFeed = forFeed)
+                    watchMetadataFor(videoId, forFeed = forFeed)
                         ?: return@withContext emptyList()
                 enrichLikelyCollabAvatarStacks(WatchMetadataVideoMapper.relatedVideos(resp))
                     .filter { it.id.isNotBlank() && it.id != videoId }
@@ -695,7 +686,7 @@ class YouTubeRepository
 
         suspend fun refreshVideoMetadata(video: Video): Video? =
             withContext(Dispatchers.IO) {
-                val response = YouTube.watchMetadataLite(video.id).getOrNull() ?: return@withContext null
+                val response = watchMetadataFor(video.id, forFeed = true) ?: return@withContext null
                 mergeWatchMetadata(video, response)
             }
 
