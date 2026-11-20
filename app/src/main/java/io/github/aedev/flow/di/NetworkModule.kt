@@ -7,8 +7,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.network.AppProxyManager
+import io.github.aedev.flow.network.SharedConnectionPool
 import okhttp3.Cache
-import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -31,10 +31,6 @@ object NetworkModule {
     // Cache configuration
     private const val CACHE_SIZE_MB = 100L * 1024L * 1024L // 100MB cache
 
-    // Connection pool configuration
-    private const val MAX_IDLE_CONNECTIONS = 6
-    private const val KEEP_ALIVE_DURATION_MINUTES = 2L
-
     // Timeout configuration (in seconds)
     private const val CONNECT_TIMEOUT = 15L
     private const val READ_TIMEOUT = 30L
@@ -53,14 +49,6 @@ object NetworkModule {
         val cacheDirectory = File(context.cacheDir, "http_cache")
         val cache = Cache(cacheDirectory, CACHE_SIZE_MB)
 
-        // Connection pool for connection reuse (massive speed improvement)
-        val connectionPool =
-            ConnectionPool(
-                MAX_IDLE_CONNECTIONS,
-                KEEP_ALIVE_DURATION_MINUTES,
-                TimeUnit.MINUTES,
-            )
-
         // Dispatcher for high concurrency parallel requests
         val dispatcher =
             Dispatcher().apply {
@@ -73,8 +61,7 @@ object NetworkModule {
                 .Builder()
                 // Enable HTTP/2 for multiplexing (parallel streams on single connection)
                 .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-                // Connection pool for reuse
-                .connectionPool(connectionPool)
+                .connectionPool(SharedConnectionPool.pool)
                 // High concurrency dispatcher
                 .dispatcher(dispatcher)
                 // Response caching
@@ -106,7 +93,7 @@ object NetworkModule {
             OkHttpClient
                 .Builder()
                 .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-                .connectionPool(ConnectionPool(2, 1, TimeUnit.MINUTES))
+                .connectionPool(SharedConnectionPool.pool)
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)

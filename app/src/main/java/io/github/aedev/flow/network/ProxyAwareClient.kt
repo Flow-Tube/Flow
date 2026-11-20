@@ -3,8 +3,8 @@ package io.github.aedev.flow.network
 import okhttp3.OkHttpClient
 
 /**
- * One [OkHttpClient] per proxy configuration, rebuilt only when that configuration changes: calls
- * share one connection pool, while a proxy switch still takes effect without a restart.
+ * One [OkHttpClient] per proxy configuration, rebuilt only when that configuration changes, on the
+ * [SharedConnectionPool]: a proxy switch still takes effect without a restart.
  */
 class ProxyAwareClient(
     private val configure: OkHttpClient.Builder.() -> OkHttpClient.Builder = { this },
@@ -23,7 +23,7 @@ class ProxyAwareClient(
         return synchronized(lock) {
             cachedClient?.let { if (cachedProxySignature == signature) return it }
             AppProxyManager
-                .applyTo(OkHttpClient.Builder())
+                .applyTo(OkHttpClient.Builder().connectionPool(SharedConnectionPool.pool))
                 .configure()
                 .build()
                 .also {

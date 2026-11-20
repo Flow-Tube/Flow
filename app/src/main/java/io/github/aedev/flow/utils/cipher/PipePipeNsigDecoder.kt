@@ -2,7 +2,7 @@ package io.github.aedev.flow.utils.cipher
 
 import android.content.Context
 import android.util.Log
-import io.github.aedev.flow.network.AppProxyManager
+import io.github.aedev.flow.network.ProxyAwareClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -11,7 +11,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONObject
@@ -85,11 +84,7 @@ object PipePipeNsigDecoder {
 
     @Volatile private var restoredFromDisk = false
 
-    @Volatile private var cachedClient: OkHttpClient? = null
-
-    @Volatile private var cachedClientSignature: String? = null
-
-    private val clientLock = Any()
+    private val http = ProxyAwareClient { connectTimeout(8, TimeUnit.SECONDS).readTimeout(8, TimeUnit.SECONDS) }
 
     /** Stores the application context used to persist the player id. Does no I/O. */
     fun initialize(context: Context) {
@@ -103,27 +98,6 @@ object PipePipeNsigDecoder {
     suspend fun warmUp() {
         runCatching { ensurePlayerId() }
             .onFailure { Log.w(TAG, "warm-up failed: ${it.javaClass.simpleName}: ${it.message}") }
-    }
-
-    /**
-     * A proxy change must not keep routing through the previous client's pooled connections, so
-     * the cached client is rebuilt whenever the proxy signature changes.
-     */
-    private fun client(): OkHttpClient {
-        val signature = AppProxyManager.currentSignature()
-        cachedClient?.let { if (cachedClientSignature == signature) return it }
-        return synchronized(clientLock) {
-            cachedClient?.let { if (cachedClientSignature == signature) return@synchronized it }
-            AppProxyManager
-                .applyTo(OkHttpClient.Builder())
-                .connectTimeout(8, TimeUnit.SECONDS)
-                .readTimeout(8, TimeUnit.SECONDS)
-                .build()
-                .also {
-                    cachedClient = it
-                    cachedClientSignature = signature
-                }
-        }
     }
 
     private suspend fun Call.await(): Response =
@@ -156,7 +130,7 @@ object PipePipeNsigDecoder {
                 .url(url)
                 .header("User-Agent", USER_AGENT)
                 .build()
-        return client().newCall(request).await().use { response ->
+        return http.get().newCall(request).await().use { response ->
             if (!response.isSuccessful) {
                 Log.w(TAG, "HTTP ${response.code} for ${url.substringBefore('?')}")
                 null
