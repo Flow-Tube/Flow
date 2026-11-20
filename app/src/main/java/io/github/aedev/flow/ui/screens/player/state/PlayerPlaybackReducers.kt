@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.player.state
 
 import io.github.aedev.flow.data.local.VideoQuality
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.models.response.VideoChapter
@@ -204,6 +205,7 @@ internal fun VideoPlayerUiState.applyRelatedVideos(
     videos: List<Video>,
     upNextVideoId: String? = null,
     continuation: String? = null,
+    collections: List<RelatedCollection> = emptyList(),
 ): VideoPlayerUiState =
     if (cachedVideo?.id != videoId) {
         this
@@ -213,6 +215,7 @@ internal fun VideoPlayerUiState.applyRelatedVideos(
             upNextVideoId = upNextVideoId,
             relatedContinuation = continuation,
             relatedAppend = RelatedAppend.IDLE,
+            relatedCollections = collections,
         )
     }
 

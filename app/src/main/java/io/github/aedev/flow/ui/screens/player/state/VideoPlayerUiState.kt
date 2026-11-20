@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.player.state
 
 import io.github.aedev.flow.data.local.VideoQuality
 import io.github.aedev.flow.data.model.LiveChatMessage
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
@@ -20,6 +21,8 @@ data class VideoPlayerUiState(
     /** The next related page; null once the lane has reached its end. */
     val relatedContinuation: String? = null,
     val relatedAppend: RelatedAppend = RelatedAppend.IDLE,
+    /** Playlists, Mixes and Shorts shelves placed among [relatedVideos]; autoplay never reads them. */
+    val relatedCollections: List<RelatedCollection> = emptyList(),
     val videoStream: VideoStream? = null,
     val audioStream: AudioStream? = null,
     val availableQualities: List<VideoQuality> = emptyList(),
@@ -92,6 +95,7 @@ data class VideoPlayerUiState(
             upNextVideoId = null,
             relatedContinuation = null,
             relatedAppend = RelatedAppend.IDLE,
+            relatedCollections = emptyList(),
             isSubscribed = isSubscribed && video.channelId.isNotBlank() && video.channelId == cachedVideo?.channelId,
             likeState = likeState.takeIf { video.id == cachedVideo?.id },
             hlsUrl = null,

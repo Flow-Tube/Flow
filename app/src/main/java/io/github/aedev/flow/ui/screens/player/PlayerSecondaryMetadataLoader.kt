@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.player
 import android.util.Log
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.WatchRelatedPage
 import io.github.aedev.flow.data.recommendation.FeedExclusions
@@ -13,6 +14,7 @@ import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PlayerRelatedVideosPolicy
+import io.github.aedev.flow.ui.screens.player.state.RelatedLanePlacement
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.utils.OriginalTextPolicy
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -46,6 +48,7 @@ internal sealed interface SecondaryMetadata {
         /** Set only when YouTube's pick survived the filters and heads [videos]. */
         val upNextVideoId: String? = null,
         val continuation: String? = null,
+        val collections: List<RelatedCollection> = emptyList(),
     ) : SecondaryMetadata
 
     class Category(
@@ -486,6 +489,16 @@ internal class PlayerSecondaryMetadataLoader(
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             val unwatched = PlayerRelatedVideosPolicy.withoutWatched(videos, playerManager.watchedSuggestionsSource)
             val ordered = PlayerRelatedVideosPolicy.upNextFirst(unwatched, upNextVideoId)
+            val collections =
+                page
+                    ?.let {
+                        RelatedLanePlacement.place(
+                            listed = it.videos,
+                            shown = ordered,
+                            collections = RelatedLanePlacement.visible(videoId, it.collections, shortsEnabled(), exclusions()),
+                            upNextVideoId = upNextVideoId,
+                        )
+                    }.orEmpty()
             onResult(
                 SecondaryMetadata.Related(
                     videoId = videoId,
@@ -493,6 +506,7 @@ internal class PlayerSecondaryMetadataLoader(
                     videos = ordered,
                     upNextVideoId = upNextVideoId?.takeIf { it == ordered.firstOrNull()?.id },
                     continuation = page?.continuation,
+                    collections = collections,
                 ),
             )
         }

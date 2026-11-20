@@ -1,5 +1,6 @@
 package io.github.aedev.flow.data.repository
 
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.WatchRelatedPage
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
@@ -42,6 +43,7 @@ internal class WatchRelatedPages(
     ): WatchRelatedPage {
         val seen = mutableSetOf<String>()
         val compact = mutableListOf<WatchMetadataResponse.CompactVideo>()
+        val collections = mutableListOf<RelatedCollection>()
         results.entries.forEach { entry ->
             when (entry) {
                 is WatchRelatedEntry.Videos -> {
@@ -49,6 +51,14 @@ internal class WatchRelatedPages(
                         val id = video.videoId?.takeIf { it.isNotBlank() } ?: return@forEach
                         if (seen.add(id)) compact += video
                     }
+                }
+
+                is WatchRelatedEntry.PlaylistCard -> {
+                    collections += RelatedCollection.PlaylistCard(seen.size, entry.playlist)
+                }
+
+                is WatchRelatedEntry.ShortsShelf -> {
+                    collections += RelatedCollection.ShortsShelf(seen.size, entry.title, entry.shorts)
                 }
             }
         }
@@ -58,7 +68,12 @@ internal class WatchRelatedPages(
             } else {
                 repository.enrichLikelyCollabAvatarStacks(WatchMetadataVideoMapper.relatedVideos(responseOf(compact)))
             }
-        return WatchRelatedPage(videos = videos, upNextVideoId = upNextVideoId, continuation = results.continuation)
+        return WatchRelatedPage(
+            videos = videos,
+            upNextVideoId = upNextVideoId,
+            continuation = results.continuation,
+            collections = collections,
+        )
     }
 
     /** The shape [WatchMetadataVideoMapper] reads, so every page maps its cards the one way. */

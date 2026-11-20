@@ -59,6 +59,7 @@ internal fun VideoPlayerUiState.beginLoadFor(videoId: String): VideoPlayerUiStat
         upNextVideoId = null,
         relatedContinuation = null,
         relatedAppend = RelatedAppend.IDLE,
+        relatedCollections = emptyList(),
         channelAvatarUrl =
             cachedVideo
                 ?.takeIf { it.id == videoId }

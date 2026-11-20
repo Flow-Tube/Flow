@@ -88,6 +88,7 @@ internal fun EnhancedVideoPlayerScreen(
     ambientImmersive: Boolean = false,
     onVideoClick: (Video) -> Unit,
     onChannelClick: (String) -> Unit,
+    onPlaylistClick: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val windowSizeClass = LocalWindowSizeClass.current
@@ -103,6 +104,7 @@ internal fun EnhancedVideoPlayerScreen(
     val commentsEnabled = prefs.commentsEnabled && !isLocalMedia
     val showCommentsPreview = prefs.commentsPreviewEnabled
     val relatedCardStyle = prefs.relatedCardStyle
+    val relatedCollections = if (prefs.showRelatedCollections) uiState.relatedCollections else emptyList()
     val isInPipMode by GlobalPlayerState.isInPipMode.collectAsStateWithLifecycle()
     val playerState by EnhancedPlayerManager.getInstance().playerState.collectAsStateWithLifecycle()
     val showsRelatedSkeleton = rememberRelatedSkeleton(video, uiState, screenState)
@@ -199,7 +201,9 @@ internal fun EnhancedVideoPlayerScreen(
                             commentsEnabled = commentsEnabled,
                             showRelatedVideos = showRelatedVideos,
                             relatedCardStyle = relatedCardStyle,
+                            relatedCollections = relatedCollections,
                             onVideoClick = onVideoClick,
+                            onPlaylistClick = onPlaylistClick,
                             onChannelClick = onChannelClick,
                             modifier = Modifier.fillMaxSize(),
                             queueCard =
@@ -278,6 +282,8 @@ internal fun EnhancedVideoPlayerScreen(
                                     cardStyle = relatedCardStyle,
                                     firstCardModifier = firstRelatedCard,
                                     upNextVideoId = upNextVideoId,
+                                    collections = relatedCollections,
+                                    onPlaylistClick = onPlaylistClick,
                                 )
                             } else {
                                 relatedVideosContent(
@@ -286,6 +292,8 @@ internal fun EnhancedVideoPlayerScreen(
                                     cardStyle = relatedCardStyle,
                                     firstCardModifier = firstRelatedCard,
                                     upNextVideoId = upNextVideoId,
+                                    collections = relatedCollections,
+                                    onPlaylistClick = onPlaylistClick,
                                 )
                             }
                             if (!showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty()) {

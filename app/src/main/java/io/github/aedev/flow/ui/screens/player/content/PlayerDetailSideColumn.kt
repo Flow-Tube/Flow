@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerState
 import io.github.aedev.flow.ui.components.videoplayer.sheet.LiveChatPreview
@@ -61,7 +62,9 @@ internal fun PlayerDetailSideColumn(
     commentsEnabled: Boolean,
     showRelatedVideos: Boolean,
     relatedCardStyle: PlayerRelatedCardStyle,
+    relatedCollections: List<RelatedCollection>,
     onVideoClick: (Video) -> Unit,
+    onPlaylistClick: (String) -> Unit,
     onChannelClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     queueCard: (@Composable () -> Unit)? = null,
@@ -268,6 +271,8 @@ internal fun PlayerDetailSideColumn(
                                             cardStyle = relatedCardStyle,
                                             firstCardModifier = Modifier.focusRequester(screenState.relatedFocus.firstCard),
                                             upNextVideoId = uiState.labelledUpNext(playerState.hasNext),
+                                            collections = relatedCollections,
+                                            onPlaylistClick = onPlaylistClick,
                                         )
                                         if (uiState.relatedVideos.isNotEmpty()) {
                                             relatedVideosFooter(

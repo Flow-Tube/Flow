@@ -310,6 +310,32 @@ class PlayerSecondaryMetadataLoaderTest {
             assertThat(related.upNextVideoId).isNull()
         }
 
+    @Test
+    fun `playlists reach the lane where YouTube listed them and the Shorts shelf follows the Shorts switch`() =
+        runTest(testDispatcher) {
+            shortsEnabled = false
+            coEvery { repository.watchNextResponse("v1") } returns
+                WatchRelatedResultsTest.watch(
+                    results =
+                        listOf(
+                            WatchRelatedResultsTest.videoLockup("a"),
+                            WatchRelatedResultsTest.reelShelf("Shorts", "s1"),
+                            WatchRelatedResultsTest.mixLockup("RDa"),
+                            WatchRelatedResultsTest.videoLockup("b"),
+                        ),
+                )
+            coEvery { repository.enrichLikelyCollabAvatarStacks(any(), any()) } answers { firstArg() }
+            val loader = loader()
+
+            playing("v1")
+            loader.loadRelatedVideos("v1", primaryCandidates = emptyList(), loadToken = TOKEN_A)
+            advanceUntilIdle()
+
+            val related = relatedResults().single()
+            assertThat(related.videos.map { it.id }).containsExactly("a", "b").inOrder()
+            assertThat(related.collections.map { it.key to it.position }).containsExactly("related_playlist:RDa" to 1)
+        }
+
     private fun stubWatchPage(
         ids: List<String>,
         upNext: String? = null,

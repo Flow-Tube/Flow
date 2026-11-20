@@ -7,6 +7,7 @@ import io.github.aedev.flow.data.repository.WatchRelatedPages
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PlayerRelatedVideosPolicy
 import io.github.aedev.flow.ui.screens.player.state.RelatedAppend
+import io.github.aedev.flow.ui.screens.player.state.RelatedLanePlacement
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.ui.screens.player.state.appendRelatedPage
 import io.github.aedev.flow.ui.screens.player.state.awaitsRelatedPage
@@ -53,10 +54,11 @@ internal class RelatedPagesLoader(
                 return@launch
             }
             val kept = unwatched(PlayerRelatedVideosPolicy.sanitize(videoId, page.videos, shortsEnabled(), exclusions()))
+            val collections = RelatedLanePlacement.visible(videoId, page.collections, shortsEnabled(), exclusions())
             var lane: List<Video>? = null
             uiState.update { state ->
                 if (!state.awaitsRelatedPage(videoId, token)) return@update state
-                state.appendRelatedPage(kept, page.continuation).also { lane = it.relatedVideos }
+                state.appendRelatedPage(page.videos, kept, collections, page.continuation).also { lane = it.relatedVideos }
             }
             // The queue follows the lane, so autoplay can run on into the pages the viewer opened.
             lane?.let { videos ->

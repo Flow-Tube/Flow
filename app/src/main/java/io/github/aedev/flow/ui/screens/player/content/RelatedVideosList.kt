@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
+import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.partialRowIndices
@@ -42,7 +43,8 @@ import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import kotlinx.coroutines.delay
 
 /**
- * Related videos content for LazyListScope.
+ * Related videos content for LazyListScope, with [collections] between the videos where YouTube
+ * listed them.
  */
 internal fun LazyListScope.relatedVideosContent(
     relatedVideos: List<Video>,
@@ -50,11 +52,35 @@ internal fun LazyListScope.relatedVideosContent(
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
     firstCardModifier: Modifier = Modifier,
     upNextVideoId: String? = null,
+    collections: List<RelatedCollection> = emptyList(),
+    onPlaylistClick: (String) -> Unit = {},
+) {
+    relatedLaneSegments(relatedVideos.size, collections).forEach { segment ->
+        when (segment) {
+            is RelatedLaneSegment.Videos -> {
+                relatedVideoItems(relatedVideos, segment, onVideoClick, cardStyle, firstCardModifier, upNextVideoId)
+            }
+
+            is RelatedLaneSegment.Collection -> {
+                relatedCollectionItem(segment.collection, onPlaylistClick, onVideoClick)
+            }
+        }
+    }
+}
+
+private fun LazyListScope.relatedVideoItems(
+    relatedVideos: List<Video>,
+    segment: RelatedLaneSegment.Videos,
+    onVideoClick: (Video) -> Unit,
+    cardStyle: PlayerRelatedCardStyle,
+    firstCardModifier: Modifier,
+    upNextVideoId: String?,
 ) {
     items(
-        count = relatedVideos.size,
-        key = { index -> relatedVideos[index].id },
-    ) { index ->
+        count = segment.count,
+        key = { offset -> relatedVideos[segment.start + offset].id },
+    ) { offset ->
+        val index = segment.start + offset
         val relatedVideo = relatedVideos[index]
         val cardModifier = if (index == 0) firstCardModifier else Modifier
         UpNextLabelled(labelled = index == 0 && relatedVideo.id == upNextVideoId) {
@@ -127,19 +153,31 @@ internal fun LazyListScope.relatedVideosGridContent(
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
     firstCardModifier: Modifier = Modifier,
     upNextVideoId: String? = null,
+    collections: List<RelatedCollection> = emptyList(),
+    onPlaylistClick: (String) -> Unit = {},
 ) {
     val columns = if (cardStyle == PlayerRelatedCardStyle.COMPACT) 1 else layout.columns
-    val rows = relatedGridRows(relatedVideos.size, columns)
+    relatedLaneSegments(relatedVideos.size, collections).forEach { segment ->
+        when (segment) {
+            is RelatedLaneSegment.Videos -> {
+                val rows = relatedGridRows(segment.count, columns).map { row -> row.map { it + segment.start } }
+                items(
+                    count = rows.size,
+                    key = { index -> rows[index].joinToString { relatedVideos[it].id } },
+                    contentType = { index -> if (rows[index].size == 1) "related_row" else "related_grid_row" },
+                ) { index ->
+                    val row = rows[index]
+                    val firstRow = row.firstOrNull() == 0
+                    val labelled = firstRow && relatedVideos.first().id == upNextVideoId
+                    UpNextLabelled(labelled = labelled, horizontalPadding = layout.contentPadding) {
+                        KeyboardCardFocus { RelatedGridRow(row, firstRow, relatedVideos, layout, onVideoClick, firstCardModifier) }
+                    }
+                }
+            }
 
-    items(
-        count = rows.size,
-        key = { index -> rows[index].joinToString { relatedVideos[it].id } },
-        contentType = { index -> if (rows[index].size == 1) "related_row" else "related_grid_row" },
-    ) { index ->
-        val row = rows[index]
-        val labelled = index == 0 && relatedVideos.firstOrNull()?.id == upNextVideoId && row.firstOrNull() == 0
-        UpNextLabelled(labelled = labelled, horizontalPadding = layout.contentPadding) {
-            KeyboardCardFocus { RelatedGridRow(row, index == 0, relatedVideos, layout, onVideoClick, firstCardModifier) }
+            is RelatedLaneSegment.Collection -> {
+                relatedCollectionItem(segment.collection, onPlaylistClick, onVideoClick)
+            }
         }
     }
 }

@@ -76,10 +76,49 @@ class WatchRelatedResultsTest {
         assertThat(response.relatedContinuationResults(hl = "en").continuation).isNull()
     }
 
+    @Test
+    fun `a Mix lockup becomes a playlist entry in its place`() {
+        val results = watch(results = listOf(videoLockup("a"), mixLockup("RDa"), videoLockup("b"))).watchRelatedResults(hl = "en")
+
+        assertThat(results.entries).hasSize(3)
+        val mix = results.entries[1] as WatchRelatedEntry.PlaylistCard
+        assertThat(mix.playlist.id).isEqualTo("RDa")
+        assertThat(mix.playlist.name).isEqualTo("Mix - a")
+        assertThat(mix.playlist.isLocal).isFalse()
+    }
+
+    @Test
+    fun `the Shorts shelf keeps its title and its reels`() {
+        val results = watch(results = listOf(reelShelf("Shorts remixing this video", "s1", "s2"))).watchRelatedResults(hl = "en")
+
+        val shelf = results.entries.single() as WatchRelatedEntry.ShortsShelf
+        assertThat(shelf.title).isEqualTo("Shorts remixing this video")
+        assertThat(shelf.shorts.map { it.id }).containsExactly("s1", "s2").inOrder()
+        assertThat(shelf.shorts.all { it.isShort }).isTrue()
+    }
+
     companion object {
         fun continuationItem(token: String) =
             """{"continuationItemRenderer":{"trigger":"CONTINUATION_TRIGGER_ON_ITEM_SHOWN",""" +
                 """"continuationEndpoint":{"continuationCommand":{"token":"$token"}}}}"""
+
+        fun mixLockup(id: String) =
+            """
+            {"lockupViewModel":{"contentId":"$id","contentType":"LOCKUP_CONTENT_TYPE_PLAYLIST",
+              "contentImage":{"collectionThumbnailViewModel":{"primaryThumbnail":{"thumbnailViewModel":{
+                "image":{"sources":[{"url":"https://i.ytimg.com/vi/x/hqdefault.jpg","width":336,"height":188}]},
+                "overlays":[{"thumbnailOverlayBadgeViewModel":{"thumbnailBadges":[{"thumbnailBadgeViewModel":{"text":"Mix"}}]}}]}}}},
+              "metadata":{"lockupMetadataViewModel":{"title":{"content":"Mix - ${id.removePrefix("RD")}"}}}}}
+            """.trimIndent()
+
+        fun reelShelf(
+            title: String,
+            vararg ids: String,
+        ) = """{"reelShelfRenderer":{"title":{"runs":[{"text":"$title"}]},"items":[""" +
+            ids.joinToString(",") { id ->
+                """{"shortsLockupViewModel":{"onTap":{"innertubeCommand":{"reelWatchEndpoint":{"videoId":"$id"}}},""" +
+                    """"overlayMetadata":{"primaryText":{"content":"Short $id"},"secondaryText":{"content":"3.2M views"}}}}"""
+            } + "]}}"
 
         fun autoplaySet(videoId: String) = """{"mode":"NORMAL","autoplayVideo":{"watchEndpoint":{"videoId":"$videoId"}}}"""
 

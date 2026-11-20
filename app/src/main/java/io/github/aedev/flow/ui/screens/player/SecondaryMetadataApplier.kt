@@ -47,13 +47,7 @@ internal class SecondaryMetadataApplier(
             }
 
             is SecondaryMetadata.Related -> {
-                publishRelatedVideos(
-                    result.videoId,
-                    result.videos,
-                    result.loadToken,
-                    result.upNextVideoId,
-                    result.continuation,
-                )
+                publishRelatedVideos(result.videoId, result.videos, result.loadToken, lane = result)
             }
 
             is SecondaryMetadata.LiveWatch -> {
@@ -159,8 +153,7 @@ internal class SecondaryMetadataApplier(
         videoId: String,
         videos: List<Video>,
         loadToken: Long,
-        upNextVideoId: String? = null,
-        continuation: String? = null,
+        lane: SecondaryMetadata.Related? = null,
     ) {
         if (!isLoadCurrent(loadToken) || videos.isEmpty()) return
         val state = uiState.value
@@ -175,7 +168,7 @@ internal class SecondaryMetadataApplier(
                 videos = videos,
                 enabled = autoplay,
             )
-            uiState.update { it.applyRelatedVideos(videoId, videos, upNextVideoId, continuation) }
+            uiState.update { it.applyRelatedVideos(videoId, videos, lane?.upNextVideoId, lane?.continuation, lane?.collections.orEmpty()) }
         }
         noteRelatedForLearning(videoId, videos)
     }

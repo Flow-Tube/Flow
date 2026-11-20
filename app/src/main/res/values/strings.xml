@@ -1393,6 +1393,9 @@
     <string name="content_settings_dynamic_components">Dynamic Components</string>
     <string name="settings_show_related_videos_title">Show related videos</string>
     <string name="settings_show_related_videos_subtitle">Display related videos below the video player</string>
+    <string name="settings_related_collections_title">Playlists and Shorts in related</string>
+    <string name="settings_related_collections_subtitle">Show playlists, Mixes and Shorts among related videos</string>
+    <string name="settings_keywords_related_collections">mix, mixes, playlist, shorts, shelf, up next</string>
     <!-- Home Feed -->
     <string name="content_settings_header_home_feed">Home Feed</string>
     <string name="content_settings_home_feed_title">Enable Home Feed</string>

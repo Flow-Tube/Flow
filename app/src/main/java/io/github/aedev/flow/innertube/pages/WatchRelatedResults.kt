@@ -1,6 +1,12 @@
 package io.github.aedev.flow.innertube.pages
 
+import io.github.aedev.flow.data.model.Playlist
+import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
+import io.github.aedev.flow.innertube.pages.renderer.FeedItem
+import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
+import io.github.aedev.flow.innertube.pages.renderer.toFeedItem
+import io.github.aedev.flow.innertube.pages.renderer.toFeedShelf
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -10,6 +16,16 @@ import kotlinx.serialization.json.JsonObject
 sealed interface WatchRelatedEntry {
     data class Videos(
         val videos: List<WatchMetadataResponse.CompactVideo>,
+    ) : WatchRelatedEntry
+
+    /** A playlist or a Mix; a Mix id starts with "RD". */
+    data class PlaylistCard(
+        val playlist: Playlist,
+    ) : WatchRelatedEntry
+
+    data class ShortsShelf(
+        val title: String?,
+        val shorts: List<Video>,
     ) : WatchRelatedEntry
 }
 
@@ -97,6 +113,19 @@ private fun collectEntries(
         }
         return
     }
+    node["reelShelfRenderer"].objectOrNull()?.let {
+        val shelf = node.toFeedShelf(FeedItemOwner(), index = out.size) ?: return
+        val shorts = shelf.items.filterIsInstance<FeedItem.ShortItem>().map { it.video }
+        if (shorts.isNotEmpty()) out += WatchRelatedEntry.ShortsShelf(shelf.title, shorts)
+        return
+    }
+    node["lockupViewModel"].objectOrNull()?.let { lockup ->
+        val contentType = lockup["contentType"].stringOrNull()
+        if (contentType != null && contentType != LOCKUP_CONTENT_TYPE_VIDEO) {
+            (node.toFeedItem(FeedItemOwner()) as? FeedItem.PlaylistItem)?.let { out += WatchRelatedEntry.PlaylistCard(it.playlist) }
+            return
+        }
+    }
     node["continuationItemRenderer"].objectOrNull()?.let { renderer ->
         renderer["continuationEndpoint"]
             .objectOrNull()
@@ -117,5 +146,6 @@ private fun collectEntries(
 }
 
 private const val AUTOPLAY_MODE_NORMAL = "NORMAL"
+private const val LOCKUP_CONTENT_TYPE_VIDEO = "LOCKUP_CONTENT_TYPE_VIDEO"
 
 private val relatedJson = Json { ignoreUnknownKeys = true }
