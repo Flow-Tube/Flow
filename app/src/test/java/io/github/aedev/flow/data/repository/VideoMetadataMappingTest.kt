@@ -190,7 +190,7 @@ class VideoMetadataMappingTest {
     fun `a channel without an avatar falls back to the watch page's channel`() =
         runTest {
             source.serveChannel(channel.copy(avatarUrl = ""))
-            coEvery { repository.getLiveWatchMetadata("dQw4w9WgXcQ") } returns
+            coEvery { repository.getLiveWatchMetadata("dQw4w9WgXcQ", forFeed = true) } returns
                 YouTubeRepository.LiveWatchMetadata(
                     title = null,
                     channelName = "Rick Astley",
@@ -211,7 +211,7 @@ class VideoMetadataMappingTest {
     @Test
     fun `with no avatar anywhere the channel header is asked last`() =
         runTest {
-            coEvery { repository.getLiveWatchMetadata(any()) } returns null
+            coEvery { repository.getLiveWatchMetadata(any(), any()) } returns null
             coEvery { repository.fetchChannelAvatarById("UCuAXFkgsw1L7xaCfnd5JJOw") } returns "https://yt3.ggpht.com/header=s900"
 
             val enriched = repository.enrichMissingChannelMetadata(listOf(cardWithoutAvatar())).single()
