@@ -514,7 +514,11 @@ internal class PlayerSecondaryMetadataLoader(
                         RelatedLanePlacement.place(
                             listed = it.videos,
                             shown = ordered,
-                            collections = RelatedLanePlacement.visible(videoId, it.collections, shortsEnabled(), exclusions()),
+                            collections =
+                                PlayerRelatedVideosPolicy.withoutWatchedShorts(
+                                    RelatedLanePlacement.visible(videoId, it.collections, shortsEnabled(), exclusions()),
+                                    playerManager.watchedSuggestionsSource,
+                                ),
                             upNextVideoId = upNextVideoId,
                         )
                     }.orEmpty()

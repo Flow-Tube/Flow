@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.player.state
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.model.CollectionLabels
 import io.github.aedev.flow.data.model.Playlist
 import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
@@ -33,6 +34,20 @@ class RelatedLaneStateTest {
             .containsExactly(mix)
         val kept = RelatedLanePlacement.visible("v", listOf(shelf), shortsEnabled = true, FeedExclusions(suppressedVideoIds = setOf("s1")))
         assertThat((kept.single() as RelatedCollection.ShortsShelf).shorts.map { it.id }).containsExactly("s2")
+    }
+
+    @Test
+    fun `a playlist or Mix whose name or artists hit a blocked word is dropped`() {
+        val mix =
+            RelatedCollection.PlaylistCard(
+                0,
+                Playlist(id = "RD", name = "Mix - Rick", thumbnailUrl = "", videoCount = 0, isLocal = false),
+                CollectionLabels(byline = "Toto, Cyndi Lauper"),
+            )
+        val other = playlist("PL", position = 1)
+        val blocked = FeedExclusions(blockedText = { title, byline -> "Lauper" in title || "Lauper" in byline })
+
+        assertThat(RelatedLanePlacement.visible("v", listOf(mix, other), shortsEnabled = true, blocked)).containsExactly(other)
     }
 
     @Test

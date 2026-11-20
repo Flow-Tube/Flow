@@ -54,7 +54,11 @@ internal class RelatedPagesLoader(
                 return@launch
             }
             val kept = unwatched(PlayerRelatedVideosPolicy.sanitize(videoId, page.videos, shortsEnabled(), exclusions()))
-            val collections = RelatedLanePlacement.visible(videoId, page.collections, shortsEnabled(), exclusions())
+            val collections =
+                PlayerRelatedVideosPolicy.withoutWatchedShorts(
+                    RelatedLanePlacement.visible(videoId, page.collections, shortsEnabled(), exclusions()),
+                    playerManager.watchedSuggestionsSource,
+                )
             var lane: List<Video>? = null
             uiState.update { state ->
                 if (!state.awaitsRelatedPage(videoId, token)) return@update state

@@ -61,8 +61,9 @@ internal object RelatedLanePlacement {
     ): List<RelatedCollection> =
         collections.mapNotNull { collection ->
             when (collection) {
+                // YouTube sends these with no channel, so only blocked words can reach them.
                 is RelatedCollection.PlaylistCard -> {
-                    collection
+                    collection.takeUnless { exclusions.hidesText(it.playlist.name, it.labels.byline.orEmpty()) }
                 }
 
                 is RelatedCollection.ShortsShelf -> {
