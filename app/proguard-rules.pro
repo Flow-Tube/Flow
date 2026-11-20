@@ -20,7 +20,6 @@
 ## Rules for Gson serialization
 -keepattributes Signature
 -keepattributes *Annotation*
--keep class com.google.gson.** { *; }
 -keep class * implements com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
@@ -33,7 +32,6 @@
 -keep class io.github.aedev.flow.data.model.** { *; }
 -keep class io.github.aedev.flow.data.local.** { *; }
 -keep class io.github.aedev.flow.data.lyrics.** { *; }
--keep class io.github.aedev.flow.innertube.models.** { *; }
 
 ## Gson-persisted models that live OUTSIDE the packages above (issue #996): without an
 ## explicit keep, R8 may strip the generic Signature of MusicTrack.artists, and cached
@@ -56,14 +54,10 @@
 
 ## Rules for Ktor
 -dontwarn io.ktor.**
--keep class io.ktor.** { *; }
 
-## Rules for Brotli & re2j
+## Rules for Brotli
 -dontwarn org.brotli.**
--keep class org.brotli.** { *; }
 -dontwarn org.conscrypt.**
--dontwarn com.google.re2j.**
--keep class com.google.re2j.** { *; }
 
 ## Third-party / Platform warning suppressions
 -dontwarn okhttp3.**
