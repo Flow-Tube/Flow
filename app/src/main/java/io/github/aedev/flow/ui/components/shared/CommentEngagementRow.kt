@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.formatLikeCount
 
 private val CreatorHeartAvatarSize = 18.dp
@@ -77,7 +78,7 @@ private fun CreatorHeart(
         Icon(
             imageVector = Icons.Filled.Favorite,
             contentDescription = description,
-            tint = MaterialTheme.colorScheme.error,
+            tint = MaterialTheme.extendedColors.creatorHeart,
             modifier = Modifier.size(14.dp),
         )
         return
@@ -91,7 +92,7 @@ private fun CreatorHeart(
         Icon(
             imageVector = Icons.Filled.Favorite,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
+            tint = MaterialTheme.extendedColors.creatorHeart,
             modifier =
                 Modifier
                     .align(Alignment.BottomEnd)
