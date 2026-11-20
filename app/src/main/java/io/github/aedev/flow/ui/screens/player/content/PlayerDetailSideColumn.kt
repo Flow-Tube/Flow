@@ -269,6 +269,14 @@ internal fun PlayerDetailSideColumn(
                                             firstCardModifier = Modifier.focusRequester(screenState.relatedFocus.firstCard),
                                             upNextVideoId = uiState.labelledUpNext(playerState.hasNext),
                                         )
+                                        if (uiState.relatedVideos.isNotEmpty()) {
+                                            relatedVideosFooter(
+                                                continuation = uiState.relatedContinuation,
+                                                append = uiState.relatedAppend,
+                                                enabled = screenState.isPlayerExpanded,
+                                                onLoadMore = { viewModel.loadMoreRelated(video.id) },
+                                            )
+                                        }
                                     }
                                 }
                             }

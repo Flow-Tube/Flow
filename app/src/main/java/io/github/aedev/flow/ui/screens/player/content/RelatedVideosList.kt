@@ -16,16 +16,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.partialRowIndices
+import io.github.aedev.flow.ui.components.shared.FeedPagingFooter
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.LocalHardwareKeyboard
 import io.github.aedev.flow.ui.components.shared.LocalSkeletonGradientEnabled
@@ -34,6 +37,7 @@ import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.card.VideoCardSkeleton
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
+import io.github.aedev.flow.ui.screens.player.state.RelatedAppend
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import kotlinx.coroutines.delay
 
@@ -184,6 +188,38 @@ private fun RelatedGridRow(
     }
 }
 
+/**
+ * The lane's tail. It asks for the next page as it comes into view, only while [enabled] (the open
+ * player: the page stays composed behind the mini player), and after a failure waits for a retry.
+ */
+internal fun LazyListScope.relatedVideosFooter(
+    continuation: String?,
+    append: RelatedAppend,
+    enabled: Boolean,
+    onLoadMore: () -> Unit,
+) {
+    if (continuation == null) return
+    item(key = RELATED_FOOTER_KEY, contentType = RELATED_FOOTER_KEY) {
+        val loadMore by rememberUpdatedState(onLoadMore)
+        if (enabled && append == RelatedAppend.IDLE) {
+            LaunchedEffect(continuation) { loadMore() }
+        }
+        FeedPagingFooter(
+            appendState =
+                when (append) {
+                    RelatedAppend.IDLE -> LoadState.NotLoading(endOfPaginationReached = false)
+                    RelatedAppend.LOADING -> LoadState.Loading
+                    RelatedAppend.FAILED -> RelatedPageFailed
+                },
+            itemCount = 1,
+            onRetry = onLoadMore,
+        )
+    }
+}
+
+/** No message of its own, so the footer shows its generic "Load failed". */
+private val RelatedPageFailed = LoadState.Error(Exception())
+
 /** The pick to label, only while autoplay will actually play it: a queue plays its own next video. */
 internal fun VideoPlayerUiState.labelledUpNext(queueHasNext: Boolean): String? = upNextVideoId.takeIf { autoplayEnabled && !queueHasNext }
 
@@ -272,4 +308,5 @@ private val UpNextLabelHorizontalPadding = 16.dp
 private val UpNextLabelVerticalPadding = 8.dp
 private val SkeletonCardSpacing = 12.dp
 private const val RELATED_SKELETON_CARDS = 3
+private const val RELATED_FOOTER_KEY = "related_footer"
 private const val RELATED_SKELETON_HOLD_MS = 3_000L

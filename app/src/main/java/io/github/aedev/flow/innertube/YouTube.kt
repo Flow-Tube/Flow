@@ -2212,6 +2212,12 @@ object YouTube {
             Json.parseToJsonElement(innerTube.nextWatch(videoId = videoId).bodyAsText())
         }
 
+    /** The next page of a watch page's related lane, from the same host and client as the first. */
+    suspend fun relatedContinuationJson(continuation: String): Result<JsonElement> =
+        runCatching {
+            Json.parseToJsonElement(innerTube.nextWatch(continuation = continuation).bodyAsText())
+        }
+
     /** The description, its typed spans and the figures beside it, from an already-fetched watch response. */
     fun videoDescription(
         watchNext: JsonElement,

@@ -110,10 +110,12 @@ internal class PlayerCollaborators(
             cachedCategory = repository::cachedVideoCategory,
         )
 
+    private val watchRelatedPages = WatchRelatedPages(repository, networkDispatcher)
+
     val secondaryMetadata =
         PlayerSecondaryMetadataLoader(
             repository = repository,
-            relatedPages = WatchRelatedPages(repository, networkDispatcher),
+            relatedPages = watchRelatedPages,
             playerManager = playerManager,
             playerPreferences = playerPreferences,
             scope = scope,
@@ -124,6 +126,18 @@ internal class PlayerCollaborators(
             exclusions = { loads.exclusions },
             isPlaybackCurrent = isLoadCurrent,
             onResult = { result -> sessionApplier.applySecondary(result) },
+        )
+
+    val relatedPages =
+        RelatedPagesLoader(
+            pages = watchRelatedPages,
+            uiState = uiState,
+            playerManager = playerManager,
+            playerPreferences = playerPreferences,
+            scope = scope,
+            networkDispatcher = networkDispatcher,
+            shortsEnabled = { loads.shortsEnabled },
+            exclusions = { loads.exclusions },
         )
 
     val watchSessions =

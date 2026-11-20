@@ -13,8 +13,10 @@ sealed interface WatchRelatedEntry {
     ) : WatchRelatedEntry
 }
 
+/** [continuation] asks for the next page; null at the end of the lane. */
 data class WatchRelatedResults(
     val entries: List<WatchRelatedEntry>,
+    val continuation: String? = null,
 )
 
 /** The related lane of a full web watch response. */
@@ -31,6 +33,22 @@ fun JsonElement.watchRelatedResults(hl: String?): WatchRelatedResults =
         ?.get("results")
         .arrayOrNull()
         .toWatchRelatedResults(hl)
+
+/** What a related [continuation][WatchRelatedResults.continuation] appends to the lane. */
+fun JsonElement.relatedContinuationResults(hl: String?): WatchRelatedResults =
+    JsonArray(
+        objectOrNull()
+            ?.get("onResponseReceivedEndpoints")
+            .arrayOrNull()
+            .orEmpty()
+            .flatMap { endpoint ->
+                val action =
+                    endpoint.objectOrNull()?.let {
+                        it["appendContinuationItemsAction"].objectOrNull() ?: it["reloadContinuationItemsCommand"].objectOrNull()
+                    }
+                action?.get("continuationItems").arrayOrNull().orEmpty()
+            },
+    ).toWatchRelatedResults(hl)
 
 /**
  * The video YouTube itself plays next: the autoplay set the countdown uses. A shuffle set can sit
@@ -60,19 +78,34 @@ fun JsonElement.watchUpNextVideoId(): String? =
 
 private fun JsonArray?.toWatchRelatedResults(hl: String?): WatchRelatedResults {
     val entries = mutableListOf<WatchRelatedEntry>()
-    orEmpty().forEach { element -> collectEntries(element.objectOrNull() ?: return@forEach, hl, entries) }
-    return WatchRelatedResults(entries)
+    var continuation: String? = null
+    orEmpty().forEach { element ->
+        collectEntries(element.objectOrNull() ?: return@forEach, hl, entries) { continuation = it }
+    }
+    return WatchRelatedResults(entries, continuation)
 }
 
 private fun collectEntries(
     node: JsonObject,
     hl: String?,
     out: MutableList<WatchRelatedEntry>,
+    onContinuation: (String) -> Unit,
 ) {
     node["itemSectionRenderer"].objectOrNull()?.let { section ->
         section["contents"].arrayOrNull().orEmpty().forEach { child ->
-            child.objectOrNull()?.let { collectEntries(it, hl, out) }
+            child.objectOrNull()?.let { collectEntries(it, hl, out, onContinuation) }
         }
+        return
+    }
+    node["continuationItemRenderer"].objectOrNull()?.let { renderer ->
+        renderer["continuationEndpoint"]
+            .objectOrNull()
+            ?.get("continuationCommand")
+            .objectOrNull()
+            ?.get("token")
+            .stringOrNull()
+            ?.takeIf { it.isNotBlank() }
+            ?.let(onContinuation)
         return
     }
     val videos =

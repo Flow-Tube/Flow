@@ -40,6 +40,7 @@ import io.github.aedev.flow.ui.screens.player.content.VideoInfoContent
 import io.github.aedev.flow.ui.screens.player.content.labelledUpNext
 import io.github.aedev.flow.ui.screens.player.content.relatedListUsesGrid
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosContent
+import io.github.aedev.flow.ui.screens.player.content.relatedVideosFooter
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosGridContent
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosSkeleton
 import io.github.aedev.flow.ui.screens.player.content.rememberRelatedSkeleton
@@ -285,6 +286,14 @@ internal fun EnhancedVideoPlayerScreen(
                                     cardStyle = relatedCardStyle,
                                     firstCardModifier = firstRelatedCard,
                                     upNextVideoId = upNextVideoId,
+                                )
+                            }
+                            if (!showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty()) {
+                                relatedVideosFooter(
+                                    continuation = uiState.relatedContinuation,
+                                    append = uiState.relatedAppend,
+                                    enabled = screenState.isPlayerExpanded,
+                                    onLoadMore = { viewModel.loadMoreRelated(video.id) },
                                 )
                             }
                         }

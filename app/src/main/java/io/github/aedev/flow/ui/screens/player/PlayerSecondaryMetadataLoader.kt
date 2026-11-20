@@ -45,6 +45,7 @@ internal sealed interface SecondaryMetadata {
         val videos: List<Video>,
         /** Set only when YouTube's pick survived the filters and heads [videos]. */
         val upNextVideoId: String? = null,
+        val continuation: String? = null,
     ) : SecondaryMetadata
 
     class Category(
@@ -398,7 +399,7 @@ internal class PlayerSecondaryMetadataLoader(
                         exclusions = exclusions(),
                     )
                 if (resolved.isNotEmpty()) {
-                    publish(videoId, resolved, loadToken, fetched?.upNextVideoId)
+                    publish(videoId, resolved, loadToken, fetched)
                 } else {
                     Log.d(TAG, "No related videos resolved for $videoId")
                 }
@@ -479,8 +480,9 @@ internal class PlayerSecondaryMetadataLoader(
         videoId: String,
         videos: List<Video>,
         loadToken: Long,
-        upNextVideoId: String? = null,
+        page: WatchRelatedPage? = null,
     ) {
+        val upNextVideoId = page?.upNextVideoId
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             val unwatched = PlayerRelatedVideosPolicy.withoutWatched(videos, playerManager.watchedSuggestionsSource)
             val ordered = PlayerRelatedVideosPolicy.upNextFirst(unwatched, upNextVideoId)
@@ -490,6 +492,7 @@ internal class PlayerSecondaryMetadataLoader(
                     loadToken = loadToken,
                     videos = ordered,
                     upNextVideoId = upNextVideoId?.takeIf { it == ordered.firstOrNull()?.id },
+                    continuation = page?.continuation,
                 ),
             )
         }

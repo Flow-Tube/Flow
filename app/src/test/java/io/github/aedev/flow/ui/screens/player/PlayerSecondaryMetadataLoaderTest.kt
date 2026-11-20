@@ -280,7 +280,7 @@ class PlayerSecondaryMetadataLoaderTest {
     @Test
     fun `YouTube's pick from the watch page heads the published lane`() =
         runTest(testDispatcher) {
-            stubWatchPage(listOf("a", "b", "pick"), upNext = "pick")
+            stubWatchPage(listOf("a", "b", "pick"), upNext = "pick", continuation = "next")
             val loader = loader()
 
             playing("v1")
@@ -290,6 +290,7 @@ class PlayerSecondaryMetadataLoaderTest {
             val related = relatedResults().single()
             assertThat(related.videos.map { it.id }).containsExactly("pick", "a", "b").inOrder()
             assertThat(related.upNextVideoId).isEqualTo("pick")
+            assertThat(related.continuation).isEqualTo("next")
             coVerify(exactly = 0) { repository.getRelatedCandidates(any()) }
         }
 
@@ -312,10 +313,13 @@ class PlayerSecondaryMetadataLoaderTest {
     private fun stubWatchPage(
         ids: List<String>,
         upNext: String? = null,
+        continuation: String? = null,
     ) {
         coEvery { repository.watchNextResponse("v1") } returns
             WatchRelatedResultsTest.watch(
-                results = ids.map(WatchRelatedResultsTest::videoLockup),
+                results =
+                    ids.map(WatchRelatedResultsTest::videoLockup) +
+                        listOfNotNull(continuation?.let(WatchRelatedResultsTest::continuationItem)),
                 autoplay = upNext?.let { "[${WatchRelatedResultsTest.autoplaySet(it)}]" },
             )
         coEvery { repository.enrichLikelyCollabAvatarStacks(any(), any()) } answers { firstArg() }

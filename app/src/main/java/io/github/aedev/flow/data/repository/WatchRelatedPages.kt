@@ -5,6 +5,7 @@ import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
 import io.github.aedev.flow.innertube.pages.WatchRelatedEntry
 import io.github.aedev.flow.innertube.pages.WatchRelatedResults
+import io.github.aedev.flow.innertube.pages.relatedContinuationResults
 import io.github.aedev.flow.innertube.pages.watchRelatedResults
 import io.github.aedev.flow.innertube.pages.watchUpNextVideoId
 import kotlinx.coroutines.CoroutineDispatcher
@@ -23,13 +24,22 @@ internal class WatchRelatedPages(
     suspend fun firstPage(videoId: String): WatchRelatedPage? =
         withContext(dispatcher) {
             val watch = repository.watchNextResponse(videoId) ?: return@withContext null
-            toPage(watch.watchRelatedResults(YouTube.locale.hl), watch.watchUpNextVideoId())
+            toPage(watch.watchRelatedResults(YouTube.locale.hl), watch.watchUpNextVideoId()).takeIf { it.videos.isNotEmpty() }
+        }
+
+    /** The page [continuation] opens, or null when the request failed. */
+    suspend fun nextPage(continuation: String): WatchRelatedPage? =
+        withContext(dispatcher) {
+            YouTube
+                .relatedContinuationJson(continuation)
+                .getOrNull()
+                ?.let { toPage(it.relatedContinuationResults(YouTube.locale.hl), upNextVideoId = null) }
         }
 
     private suspend fun toPage(
         results: WatchRelatedResults,
         upNextVideoId: String?,
-    ): WatchRelatedPage? {
+    ): WatchRelatedPage {
         val seen = mutableSetOf<String>()
         val compact = mutableListOf<WatchMetadataResponse.CompactVideo>()
         results.entries.forEach { entry ->
@@ -42,9 +52,13 @@ internal class WatchRelatedPages(
                 }
             }
         }
-        if (compact.isEmpty()) return null
-        val videos = repository.enrichLikelyCollabAvatarStacks(WatchMetadataVideoMapper.relatedVideos(responseOf(compact)))
-        return WatchRelatedPage(videos = videos, upNextVideoId = upNextVideoId)
+        val videos =
+            if (compact.isEmpty()) {
+                emptyList()
+            } else {
+                repository.enrichLikelyCollabAvatarStacks(WatchMetadataVideoMapper.relatedVideos(responseOf(compact)))
+            }
+        return WatchRelatedPage(videos = videos, upNextVideoId = upNextVideoId, continuation = results.continuation)
     }
 
     /** The shape [WatchMetadataVideoMapper] reads, so every page maps its cards the one way. */

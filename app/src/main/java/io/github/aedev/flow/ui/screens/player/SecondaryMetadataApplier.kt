@@ -38,14 +38,43 @@ internal class SecondaryMetadataApplier(
 ) {
     fun apply(result: SecondaryMetadata) {
         when (result) {
-            is SecondaryMetadata.Channel -> applyChannelMetadata(result)
-            is SecondaryMetadata.PaidPromotion -> applyPaidPromotion(result)
-            is SecondaryMetadata.Related -> publishRelatedVideos(result.videoId, result.videos, result.loadToken, result.upNextVideoId)
-            is SecondaryMetadata.LiveWatch -> applyLiveWatchMetadata(result)
-            is SecondaryMetadata.Category -> applyCategory(result)
-            is SecondaryMetadata.Heatmap -> applyHeatmap(result)
-            is SecondaryMetadata.Chapters -> applyChapters(result)
-            is SecondaryMetadata.WatchInfo -> applyWatchInfo(result)
+            is SecondaryMetadata.Channel -> {
+                applyChannelMetadata(result)
+            }
+
+            is SecondaryMetadata.PaidPromotion -> {
+                applyPaidPromotion(result)
+            }
+
+            is SecondaryMetadata.Related -> {
+                publishRelatedVideos(
+                    result.videoId,
+                    result.videos,
+                    result.loadToken,
+                    result.upNextVideoId,
+                    result.continuation,
+                )
+            }
+
+            is SecondaryMetadata.LiveWatch -> {
+                applyLiveWatchMetadata(result)
+            }
+
+            is SecondaryMetadata.Category -> {
+                applyCategory(result)
+            }
+
+            is SecondaryMetadata.Heatmap -> {
+                applyHeatmap(result)
+            }
+
+            is SecondaryMetadata.Chapters -> {
+                applyChapters(result)
+            }
+
+            is SecondaryMetadata.WatchInfo -> {
+                applyWatchInfo(result)
+            }
         }
     }
 
@@ -131,6 +160,7 @@ internal class SecondaryMetadataApplier(
         videos: List<Video>,
         loadToken: Long,
         upNextVideoId: String? = null,
+        continuation: String? = null,
     ) {
         if (!isLoadCurrent(loadToken) || videos.isEmpty()) return
         val state = uiState.value
@@ -145,7 +175,7 @@ internal class SecondaryMetadataApplier(
                 videos = videos,
                 enabled = autoplay,
             )
-            uiState.update { it.applyRelatedVideos(videoId, videos, upNextVideoId) }
+            uiState.update { it.applyRelatedVideos(videoId, videos, upNextVideoId, continuation) }
         }
         noteRelatedForLearning(videoId, videos)
     }

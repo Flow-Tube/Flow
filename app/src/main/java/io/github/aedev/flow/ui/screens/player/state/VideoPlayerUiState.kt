@@ -17,6 +17,9 @@ data class VideoPlayerUiState(
     val relatedVideos: List<Video> = emptyList(),
     /** YouTube's next pick when it heads [relatedVideos], for the lane to label it. */
     val upNextVideoId: String? = null,
+    /** The next related page; null once the lane has reached its end. */
+    val relatedContinuation: String? = null,
+    val relatedAppend: RelatedAppend = RelatedAppend.IDLE,
     val videoStream: VideoStream? = null,
     val audioStream: AudioStream? = null,
     val availableQualities: List<VideoQuality> = emptyList(),
@@ -87,6 +90,8 @@ data class VideoPlayerUiState(
             savedPosition = null,
             relatedVideos = emptyList(),
             upNextVideoId = null,
+            relatedContinuation = null,
+            relatedAppend = RelatedAppend.IDLE,
             isSubscribed = isSubscribed && video.channelId.isNotBlank() && video.channelId == cachedVideo?.channelId,
             likeState = likeState.takeIf { video.id == cachedVideo?.id },
             hlsUrl = null,
@@ -100,3 +105,6 @@ data class VideoPlayerUiState(
             storyboard = emptyList(),
         )
 }
+
+/** Where the next related page stands: a failure waits for a retry rather than asking again by itself. */
+enum class RelatedAppend { IDLE, LOADING, FAILED }

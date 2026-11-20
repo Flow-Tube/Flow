@@ -203,11 +203,17 @@ internal fun VideoPlayerUiState.applyRelatedVideos(
     videoId: String,
     videos: List<Video>,
     upNextVideoId: String? = null,
+    continuation: String? = null,
 ): VideoPlayerUiState =
     if (cachedVideo?.id != videoId) {
         this
     } else {
-        copy(relatedVideos = videos, upNextVideoId = upNextVideoId)
+        copy(
+            relatedVideos = videos,
+            upNextVideoId = upNextVideoId,
+            relatedContinuation = continuation,
+            relatedAppend = RelatedAppend.IDLE,
+        )
     }
 
 /**

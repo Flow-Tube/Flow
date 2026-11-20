@@ -178,6 +178,9 @@ class VideoPlayerViewModel
 
         fun setAutoplayHold(hold: Boolean) = playerManager.setAutoplayHold(hold)
 
+        /** The next related page, asked for when the lane's end comes into view. */
+        fun loadMoreRelated(videoId: String) = collaborators.relatedPages.loadMore(videoId)
+
         private val unregisterBeforeSwitch = BeforeProfileSwitch.register(watchSessions::finalizeActiveSession)
 
         override fun onCleared() {
