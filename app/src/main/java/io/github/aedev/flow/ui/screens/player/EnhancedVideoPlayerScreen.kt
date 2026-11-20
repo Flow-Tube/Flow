@@ -37,8 +37,10 @@ import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueueDockDef
 import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueuePaneCard
 import io.github.aedev.flow.ui.screens.player.content.PlayerDetailSideColumn
 import io.github.aedev.flow.ui.screens.player.content.VideoInfoContent
+import io.github.aedev.flow.ui.screens.player.content.labelledUpNext
 import io.github.aedev.flow.ui.screens.player.content.relatedListUsesGrid
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosContent
+import io.github.aedev.flow.ui.screens.player.content.relatedVideosFooter
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosGridContent
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosSkeleton
 import io.github.aedev.flow.ui.screens.player.content.rememberRelatedSkeleton
@@ -86,6 +88,7 @@ internal fun EnhancedVideoPlayerScreen(
     ambientImmersive: Boolean = false,
     onVideoClick: (Video) -> Unit,
     onChannelClick: (String) -> Unit,
+    onPlaylistClick: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val windowSizeClass = LocalWindowSizeClass.current
@@ -101,6 +104,7 @@ internal fun EnhancedVideoPlayerScreen(
     val commentsEnabled = prefs.commentsEnabled && !isLocalMedia
     val showCommentsPreview = prefs.commentsPreviewEnabled
     val relatedCardStyle = prefs.relatedCardStyle
+    val relatedCollections = if (prefs.showRelatedCollections) uiState.relatedCollections else emptyList()
     val isInPipMode by GlobalPlayerState.isInPipMode.collectAsStateWithLifecycle()
     val playerState by EnhancedPlayerManager.getInstance().playerState.collectAsStateWithLifecycle()
     val showsRelatedSkeleton = rememberRelatedSkeleton(video, uiState, screenState)
@@ -197,7 +201,9 @@ internal fun EnhancedVideoPlayerScreen(
                             commentsEnabled = commentsEnabled,
                             showRelatedVideos = showRelatedVideos,
                             relatedCardStyle = relatedCardStyle,
+                            relatedCollections = relatedCollections,
                             onVideoClick = onVideoClick,
+                            onPlaylistClick = onPlaylistClick,
                             onChannelClick = onChannelClick,
                             modifier = Modifier.fillMaxSize(),
                             queueCard =
@@ -230,6 +236,7 @@ internal fun EnhancedVideoPlayerScreen(
                     enabled = showRelatedVideos && !showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty() && !isInPipMode,
                 )
                 val firstRelatedCard = Modifier.focusRequester(screenState.relatedFocus.firstCard)
+                val upNextVideoId = uiState.labelledUpNext(playerState.hasNext)
                 if (ambientGlowFrames != null && immersive) {
                     AmbientImmersiveLayer(frames = ambientGlowFrames, isScrolling = { dimOnScroll && listState.isScrollInProgress })
                 } else if (ambientGlowFrames != null) {
@@ -274,6 +281,9 @@ internal fun EnhancedVideoPlayerScreen(
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
                                     firstCardModifier = firstRelatedCard,
+                                    upNextVideoId = upNextVideoId,
+                                    collections = relatedCollections,
+                                    onPlaylistClick = onPlaylistClick,
                                 )
                             } else {
                                 relatedVideosContent(
@@ -281,6 +291,17 @@ internal fun EnhancedVideoPlayerScreen(
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
                                     firstCardModifier = firstRelatedCard,
+                                    upNextVideoId = upNextVideoId,
+                                    collections = relatedCollections,
+                                    onPlaylistClick = onPlaylistClick,
+                                )
+                            }
+                            if (!showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty()) {
+                                relatedVideosFooter(
+                                    continuation = uiState.relatedContinuation,
+                                    append = uiState.relatedAppend,
+                                    enabled = screenState.isPlayerExpanded,
+                                    onLoadMore = { viewModel.loadMoreRelated(video.id) },
                                 )
                             }
                         }

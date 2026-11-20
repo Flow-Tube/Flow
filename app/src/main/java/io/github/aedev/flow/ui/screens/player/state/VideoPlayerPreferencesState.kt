@@ -66,6 +66,7 @@ internal class VideoPlayerPreferencesState(
     val transcriptLanguage: String,
     val commentsPreviewEnabled: Boolean,
     val showRelatedVideos: Boolean,
+    val showRelatedCollections: Boolean,
     val relatedCardStyle: PlayerRelatedCardStyle,
     val feedColumns: HomeFeedColumns,
     val deArrowEnabled: Boolean,
@@ -119,6 +120,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         .collectAsState(initial = CaptionTrackResolver.NO_PREFERRED_LANGUAGE)
     val commentsPreviewEnabled by playerPreferences.commentsPreviewEnabled.collectAsState(initial = true)
     val showRelatedVideos by playerPreferences.showRelatedVideos.collectAsState(initial = true)
+    val showRelatedCollections by playerPreferences.showRelatedCollections.collectAsState(initial = true)
     val relatedCardStyle by playerPreferences.playerRelatedCardStyle.collectAsState(initial = PlayerRelatedCardStyle.FULL_WIDTH)
     val feedColumns by playerPreferences.homeFeedColumns.collectAsState(initial = HomeFeedColumns.AUTO)
     val deArrowEnabled by playerPreferences.deArrowEnabled.collectAsState(initial = false)
@@ -168,6 +170,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         transcriptLanguage = transcriptLanguage,
         commentsPreviewEnabled = commentsPreviewEnabled,
         showRelatedVideos = showRelatedVideos,
+        showRelatedCollections = showRelatedCollections,
         relatedCardStyle = relatedCardStyle,
         feedColumns = feedColumns,
         deArrowEnabled = deArrowEnabled,

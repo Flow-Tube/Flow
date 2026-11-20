@@ -26,7 +26,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.RichTextTarget
 import io.github.aedev.flow.data.model.Video
@@ -47,7 +46,7 @@ import io.github.aedev.flow.utils.toAnnotatedString
 import io.github.aedev.flow.utils.youtubeWatchUrl
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FlowDescriptionBottomSheet(
     video: Video,
@@ -152,11 +151,7 @@ fun FlowDescriptionBottomSheet(
                 title = stringResource(R.string.description),
                 onClose = { sheetState.dismiss() },
                 modifier = dragModifier,
-                titleStyle =
-                    MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
+                titleStyle = MaterialTheme.typography.headlineMediumEmphasized,
                 actions = {
                     IconButton(
                         onClick = {
@@ -222,8 +217,7 @@ fun FlowDescriptionBottomSheet(
             FlowSelectionContainer {
                 Text(
                     text = translated?.title?.takeIf { it.isNotBlank() } ?: video.title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLargeEmphasized,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -277,6 +271,10 @@ fun FlowDescriptionBottomSheet(
                     }
                 }
             }
+
+            descriptionPage?.music?.let { DescriptionMusicSection(music = it, tint = tint, actions = linkActions) }
+
+            descriptionPage?.disclosure?.let { DescriptionDisclosureCard(disclosure = it, tint = tint, actions = linkActions) }
 
             if (chapterCount > 0 && onChaptersClick != null) {
                 DescriptionSectionRow(

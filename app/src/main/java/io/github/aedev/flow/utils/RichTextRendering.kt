@@ -120,7 +120,7 @@ class RichTextLinkActions(
     val onHashtag: ((String) -> Unit)? = null,
 )
 
-private fun RichTextTarget.clickAction(actions: RichTextLinkActions): (() -> Unit)? =
+internal fun RichTextTarget.clickAction(actions: RichTextLinkActions): (() -> Unit)? =
     when (this) {
         is RichTextTarget.Timestamp -> actions.onSeekMs?.let { seek -> { seek(seconds * 1_000L) } }
         is RichTextTarget.Video -> actions.onOpenUrl?.let { open -> { open(youtubeWatchUrl(videoId, startSeconds)) } }

@@ -281,6 +281,10 @@ internal fun FlowPlayerOverlays(
                 playerSheetState.collapse()
                 navController.openShorts(ShortsQueueSource.SeededFeed(videoId))
             },
+            onNavigateToPlaylist = { playlistId ->
+                playerSheetState.collapse()
+                navController.openPage("playlist/$playlistId")
+            },
         )
 
         val barVideo = playerUiState.cachedVideo
