@@ -250,7 +250,10 @@ private fun JsonObject.toRichTextSpan(
 private fun JsonObject.toRichTextTarget(ownVideoId: String?): RichTextTarget? {
     this["watchEndpoint"].objectOrNull()?.let { watch ->
         val videoId = watch["videoId"].stringOrNull() ?: return@let
-        val startSeconds = watch["startTimeSeconds"].longOrNull()
+        // The "0:00" chapter link carries no start time, only continuePlayback.
+        val startSeconds =
+            watch["startTimeSeconds"].longOrNull()
+                ?: 0L.takeIf { videoId == ownVideoId && watch["continuePlayback"].booleanOrFalse() }
         return if (videoId == ownVideoId && startSeconds != null) {
             RichTextTarget.Timestamp(startSeconds)
         } else {

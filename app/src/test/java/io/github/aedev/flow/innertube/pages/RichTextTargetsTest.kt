@@ -38,4 +38,22 @@ class RichTextTargetsTest {
             targetsOf("""{"browseEndpoint": {"browseId": "FEhashtag", "canonicalBaseUrl": "/hashtag/queen"}}"""),
         )
     }
+
+    @Test
+    fun `the 0 colon 00 chapter link seeks to the start instead of reopening the video`() {
+        assertEquals(
+            listOf(
+                RichTextTarget.Timestamp(0),
+                RichTextTarget.Timestamp(116),
+                RichTextTarget.Video("ownVideo123"),
+                RichTextTarget.Video("otherVideo1"),
+            ),
+            targetsOf(
+                """{"watchEndpoint": {"videoId": "ownVideo123", "continuePlayback": true}}""",
+                """{"watchEndpoint": {"videoId": "ownVideo123", "continuePlayback": true, "startTimeSeconds": 116}}""",
+                """{"watchEndpoint": {"videoId": "ownVideo123"}}""",
+                """{"watchEndpoint": {"videoId": "otherVideo1", "continuePlayback": true}}""",
+            ),
+        )
+    }
 }
