@@ -10,7 +10,11 @@ import kotlinx.serialization.json.JsonObject
 data class WatchPageHeader(
     /** The hashtags or the place YouTube prints above the title. */
     val superTitle: RichText? = null,
+    val ownerBadge: ChannelBadge? = null,
 )
+
+/** The mark beside a channel name; an artist's channel carries a note where others carry a tick. */
+enum class ChannelBadge { VERIFIED, ARTIST }
 
 internal fun JsonElement.toWatchPageHeader(ownVideoId: String?): WatchPageHeader {
     val primary = watchInfoRenderer("videoPrimaryInfoRenderer")
@@ -19,8 +23,34 @@ internal fun JsonElement.toWatchPageHeader(ownVideoId: String?): WatchPageHeader
         primary?.get("superTitleLink").runsToRichText(ownVideoId)?.let { line ->
             line.copy(spans = line.spans.filter { it.target is RichTextTarget.Hashtag })
         }
-    return WatchPageHeader(superTitle = superTitle)
+    val badgeStyles =
+        watchInfoRenderer("videoSecondaryInfoRenderer")
+            ?.get("owner")
+            .objectOrNull()
+            ?.get("videoOwnerRenderer")
+            .objectOrNull()
+            ?.get("badges")
+            .arrayOrNull()
+            .orEmpty()
+            .mapNotNull {
+                it
+                    .objectOrNull()
+                    ?.get("metadataBadgeRenderer")
+                    .objectOrNull()
+                    ?.get("style")
+                    .stringOrNull()
+            }
+    val ownerBadge =
+        when {
+            ARTIST_BADGE in badgeStyles -> ChannelBadge.ARTIST
+            VERIFIED_BADGE in badgeStyles -> ChannelBadge.VERIFIED
+            else -> null
+        }
+    return WatchPageHeader(superTitle = superTitle, ownerBadge = ownerBadge)
 }
+
+private const val VERIFIED_BADGE = "BADGE_STYLE_TYPE_VERIFIED"
+private const val ARTIST_BADGE = "BADGE_STYLE_TYPE_VERIFIED_ARTIST"
 
 /** One of the info renderers the web watch response stacks under the player. */
 internal fun JsonElement.watchInfoRenderer(name: String): JsonObject? =

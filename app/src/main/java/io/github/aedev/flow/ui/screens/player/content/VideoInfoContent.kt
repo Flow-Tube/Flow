@@ -100,6 +100,7 @@ internal fun VideoInfoContent(
         description = video.description,
         isUpcoming = uiState.isUpcoming,
         channelName = resolvedChannelName,
+        channelBadge = uiState.watchHeader?.ownerBadge,
         channelAvatarUrl = uiState.channelAvatarUrl ?: video.channelThumbnailUrl,
         channelAvatarUrls = video.channelThumbnailUrls,
         collaborators = resolvedCollaborators,

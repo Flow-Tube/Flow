@@ -61,7 +61,7 @@ class ReelDescriptionPageTest {
 
     @Test
     fun `reads how this was made`() {
-        val disclosure = requireNotNull(reel.toReelDescriptionPage(ownVideoId = "reel")?.howThisWasMade)
+        val disclosure = requireNotNull(reel.toReelDescriptionPage(ownVideoId = "reel")?.disclosure)
 
         assertEquals("How this was made", disclosure.title)
         assertEquals("Auto-dubbed", disclosure.header)

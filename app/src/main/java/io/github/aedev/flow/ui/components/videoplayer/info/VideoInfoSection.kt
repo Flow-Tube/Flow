@@ -8,6 +8,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +27,7 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
+import io.github.aedev.flow.innertube.pages.ChannelBadge
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
 import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
@@ -52,6 +56,7 @@ internal fun VideoInfoSection(
     description: String?,
     isUpcoming: Boolean = false,
     channelName: String,
+    channelBadge: ChannelBadge? = null,
     channelAvatarUrl: String,
     channelAvatarUrls: List<String> = emptyList(),
     collaborators: List<VideoCollaborator> = emptyList(),
@@ -222,17 +227,22 @@ internal fun VideoInfoSection(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = displayChannelName,
-                        style =
-                            MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                            ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = displayChannelName,
+                            style =
+                                MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 16.sp,
+                                ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        // A collaboration names several channels, and the badge belongs to one of them.
+                        if (channelBadge != null && collaborators.size <= 1) ChannelBadgeIcon(channelBadge)
+                    }
 
                     val subText = subscriberCount?.let { formatSubscriberCount(it) } ?: ""
                     if (subText.isNotEmpty()) {
@@ -330,4 +340,18 @@ private fun VideoSuperTitle(line: RichText) {
     )
 }
 
+@Composable
+private fun ChannelBadgeIcon(badge: ChannelBadge) {
+    Icon(
+        imageVector = if (badge == ChannelBadge.ARTIST) Icons.Rounded.MusicNote else Icons.Rounded.CheckCircle,
+        contentDescription = stringResource(if (badge == ChannelBadge.ARTIST) R.string.channel_badge_artist else R.string.verified),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier =
+            Modifier
+                .padding(start = 4.dp)
+                .size(BadgeSize),
+    )
+}
+
 private val InfoPadding = 12.dp
+private val BadgeSize = 14.dp

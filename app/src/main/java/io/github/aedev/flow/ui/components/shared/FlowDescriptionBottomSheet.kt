@@ -278,6 +278,10 @@ fun FlowDescriptionBottomSheet(
                 }
             }
 
+            descriptionPage?.music?.let { DescriptionMusicSection(music = it, tint = tint, actions = linkActions) }
+
+            descriptionPage?.disclosure?.let { DescriptionDisclosureCard(disclosure = it, tint = tint, actions = linkActions) }
+
             if (chapterCount > 0 && onChaptersClick != null) {
                 DescriptionSectionRow(
                     title = stringResource(R.string.chapters),

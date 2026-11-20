@@ -36,10 +36,37 @@ class WatchPageHeaderTest {
         assertNull(header.superTitle)
     }
 
-    private fun watchResponse(primary: String): String =
+    @Test
+    fun `an artist channel reads as an artist even beside a verified badge`() {
+        val header = Json.parseToJsonElement(watchResponse(secondary = owner("VERIFIED", "VERIFIED_ARTIST"))).toWatchPageHeader("abc")
+
+        assertEquals(ChannelBadge.ARTIST, header.ownerBadge)
+    }
+
+    @Test
+    fun `reads a verified channel, and no badge for one without`() {
+        val verified = Json.parseToJsonElement(watchResponse(secondary = owner("VERIFIED"))).toWatchPageHeader("abc")
+        val plain = Json.parseToJsonElement(watchResponse(secondary = owner())).toWatchPageHeader("abc")
+
+        assertEquals(ChannelBadge.VERIFIED, verified.ownerBadge)
+        assertNull(plain.ownerBadge)
+    }
+
+    private fun owner(vararg styles: String): String =
+        """
+        {"owner":{"videoOwnerRenderer":{"badges":[
+          ${styles.joinToString(",") { """{"metadataBadgeRenderer":{"style":"BADGE_STYLE_TYPE_$it"}}""" }}
+        ]}}}
+        """
+
+    private fun watchResponse(
+        primary: String = "{}",
+        secondary: String = "{}",
+    ): String =
         """
         {"contents":{"twoColumnWatchNextResults":{"results":{"results":{"contents":[
-          {"videoPrimaryInfoRenderer":$primary}
+          {"videoPrimaryInfoRenderer":$primary},
+          {"videoSecondaryInfoRenderer":$secondary}
         ]}}}}}
         """.trimIndent()
 

@@ -557,6 +557,9 @@
     <string name="description">Description</string>
     <string name="desc_see_more">See more</string>
     <string name="description_video_card_source" translatable="false">YouTube</string>
+    <string name="description_music_section">Music</string>
+    <string name="description_how_this_was_made">How this was made</string>
+    <string name="channel_badge_artist">Official Artist Channel</string>
     <string name="desc_see_less">See less</string>
     <string name="copy_description">Copy description</string>
     <string name="description_copied">Description copied to clipboard</string>

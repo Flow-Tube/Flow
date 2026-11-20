@@ -335,7 +335,9 @@ private fun JsonObject.toRichTextEmoji(textLength: Int): RichTextEmoji? {
  * YouTube prints outbound links as `youtube.com/redirect?...&q=<encoded target>`. The wrapper is
  * what the user would otherwise see and copy, so the real destination is recovered here.
  */
-internal fun unwrapRedirectUrl(url: String): String {
+internal fun unwrapRedirectUrl(link: String): String {
+    // A help link ("Learn more") comes protocol-relative, which no browser intent can open.
+    val url = if (link.startsWith("//")) "https:$link" else link
     if (!url.contains("/redirect?")) return url
     val query = url.substringAfter('?', "").split('&')
     val target = query.firstOrNull { it.startsWith("q=") }?.removePrefix("q=") ?: return url
