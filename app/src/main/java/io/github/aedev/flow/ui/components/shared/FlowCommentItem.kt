@@ -49,9 +49,6 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.utils.formatLikeCount
 
-/** Centre of the parent avatar: the row's start padding plus half the 40 dp avatar, less the line. */
-private val ThreadLineStart = 35.dp
-
 @Composable
 fun FlowCommentItem(
     comment: Comment,
@@ -63,6 +60,8 @@ fun FlowCommentItem(
     onToggleReplies: () -> Unit,
     isExpanded: Boolean,
     onExpand: () -> Unit,
+    isUnfolded: (String) -> Boolean,
+    onUnfold: (String) -> Unit,
     onAvatarClick: (String) -> Unit = {},
     tint: MediaArtworkTint? = null,
 ) {
@@ -96,20 +95,24 @@ fun FlowCommentItem(
         )
     }
 
+    val threadOpen = isRepliesVisible && comment.replies.isNotEmpty()
+    val lineColor = MaterialTheme.colorScheme.outlineVariant
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .then(if (threadOpen) Modifier.commentThreadStem(lineColor) else Modifier)
                     .padding(horizontal = ThreadHorizontalPadding)
-                    .padding(top = 12.dp, bottom = 4.dp),
+                    .padding(top = CommentRowTopPadding, bottom = 4.dp),
         ) {
             ChannelAvatarImage(
                 url = comment.authorThumbnail,
                 contentDescription = null,
                 modifier =
                     Modifier
-                        .size(40.dp)
+                        .size(CommentAvatarSize)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable {
@@ -118,7 +121,7 @@ fun FlowCommentItem(
                         },
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(CommentAvatarGap))
 
             Column(modifier = Modifier.weight(1f)) {
                 if (comment.isPinned) {
@@ -225,12 +228,13 @@ fun FlowCommentItem(
             }
         }
 
-        if (isRepliesVisible && comment.replies.isNotEmpty()) {
-            val tree = remember(comment.replies) { buildCommentReplyTree(comment.replies) }
+        if (threadOpen) {
             ReplyThread(
-                nodes = tree,
+                replies = comment.replies,
                 hasMore = comment.continuationToken != null,
-                startPadding = ThreadLineStart,
+                loadingMore = isLoadingReplies,
+                isUnfolded = isUnfolded,
+                onUnfold = onUnfold,
                 tint = tint,
                 onSeekMs = onSeekMs,
                 onAuthorClick = onAuthorClick,

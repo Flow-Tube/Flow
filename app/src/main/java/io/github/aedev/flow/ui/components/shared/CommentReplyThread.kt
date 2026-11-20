@@ -1,69 +1,57 @@
 package io.github.aedev.flow.ui.components.shared
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.model.Comment
 
-internal val ThreadHorizontalPadding = 16.dp
-private val ThreadLineWidth = 2.dp
-
-/** Width of the elbow column: the turn, plus the gap before the reply's avatar. */
-private val ThreadConnectorWidth = 20.dp
-private val ThreadElbowRadius = 8.dp
-
-/** Where the line turns: the vertical centre of a reply's 24 dp avatar under its 8 dp top padding. */
-private val ThreadElbowY = 20.dp
-
-/** A reply to a reply starts its own branch just inside its parent's text. */
-private val NestedThreadStart = 12.dp
-private val ThreadLineGap = 15.dp
+/** How far a label row's button reaches back so its text, not its edge, lines up with the column. */
+private val ThreadLabelInset = 8.dp
 
 /**
- * The replies under one comment, and the replies to those.
+ * The replies under one comment, drawn as the conversation they are.
  *
- * Each reply hangs off the thread line on an elbow, the way a conversation branches: the line runs
- * down from the parent's avatar, turns into each reply, and carries on past it to the next one. A
- * reply that answered another reply sits one branch deeper, which is the only thing that tells the
- * two apart — YouTube stores a single flat level and marks the nesting with an `@handle` alone.
+ * Every reply hangs off the line that drops from the avatar it answered, one avatar column further
+ * in. YouTube sends a single flat level, so who answered whom comes from the leading `@handle`
+ * (see [buildCommentReplyTree]); the tree is rebuilt whenever another page of replies arrives.
  */
 @Composable
 internal fun ReplyThread(
-    nodes: List<CommentReplyNode>,
+    replies: List<Comment>,
     hasMore: Boolean,
-    startPadding: Dp,
+    loadingMore: Boolean,
+    isUnfolded: (String) -> Boolean,
+    onUnfold: (String) -> Unit,
     tint: MediaArtworkTint?,
     onSeekMs: (Long) -> Unit,
     onAuthorClick: (String) -> Unit,
@@ -71,120 +59,91 @@ internal fun ReplyThread(
     onLoadMore: () -> Unit,
 ) {
     val lineColor = MaterialTheme.colorScheme.outlineVariant
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(start = startPadding, end = ThreadHorizontalPadding, bottom = 4.dp),
-    ) {
-        nodes.forEachIndexed { index, node ->
-            val continues = index != nodes.lastIndex || hasMore
-            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                ThreadConnector(
-                    color = lineColor,
-                    continuesBelow = continues,
-                    modifier = Modifier.fillMaxHeight(),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    FlowReplyItem(
-                        reply = node.comment,
-                        onSeekMs = onSeekMs,
-                        onAuthorClick = onAuthorClick,
-                        onAvatarClick = onAvatarClick,
-                        tint = tint,
-                    )
-                    if (node.children.isNotEmpty()) {
-                        ReplyThread(
-                            nodes = node.children,
-                            hasMore = false,
-                            startPadding = NestedThreadStart,
-                            tint = tint,
+    val tree = remember(replies) { buildCommentReplyTree(replies) }
+    // Laid out in composition so that unfolding a sub-thread, a state read, lays the rows out again.
+    val rows = commentThreadRows(tree, hasMore, isUnfolded)
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        rows.forEach { row ->
+            key(row.key) {
+                val lines = row.lines
+                when (row) {
+                    is CommentThreadRow.Reply -> {
+                        FlowReplyItem(
+                            reply = row.comment,
                             onSeekMs = onSeekMs,
                             onAuthorClick = onAuthorClick,
                             onAvatarClick = onAvatarClick,
-                            onLoadMore = onLoadMore,
+                            tint = tint,
+                            modifier =
+                                Modifier
+                                    .commentThreadLines(lines, lineColor)
+                                    .padding(start = threadContentStart(lines.column), end = ThreadHorizontalPadding),
+                        )
+                    }
+
+                    is CommentThreadRow.Folded -> {
+                        ThreadLabelRow(
+                            lines = lines,
+                            lineColor = lineColor,
+                            text = pluralStringResource(R.plurals.comment_folded_replies, row.count, row.count),
+                            icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            onClick = { onUnfold(row.parentId) },
+                        )
+                    }
+
+                    is CommentThreadRow.MoreReplies -> {
+                        ThreadLabelRow(
+                            lines = lines,
+                            lineColor = lineColor,
+                            text = stringResource(R.string.load_more_replies),
+                            icon = Icons.Rounded.KeyboardArrowDown,
+                            loading = loadingMore,
+                            onClick = onLoadMore,
                         )
                     }
                 }
             }
         }
-
-        if (hasMore) {
-            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                ThreadConnector(
-                    color = lineColor,
-                    continuesBelow = false,
-                    modifier = Modifier.fillMaxHeight(),
-                )
-                Text(
-                    text = stringResource(R.string.load_more_replies),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier =
-                        Modifier
-                            .padding(start = ThreadLineGap)
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable(onClick = onLoadMore)
-                            .padding(vertical = 8.dp),
-                )
-            }
-        }
     }
 }
 
-/**
- * The line into one reply: down from above, a quarter turn towards the text, and on down to the
- * next reply when there is one.
- */
+/** "3 replies >" or "Load more replies", hanging off the thread line where a reply would. */
 @Composable
-private fun ThreadConnector(
-    color: Color,
-    continuesBelow: Boolean,
-    modifier: Modifier = Modifier,
+private fun ThreadLabelRow(
+    lines: CommentThreadLines,
+    lineColor: Color,
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    loading: Boolean = false,
 ) {
-    Canvas(modifier = modifier.width(ThreadConnectorWidth)) {
-        val stroke = ThreadLineWidth.toPx()
-        val elbowY = ThreadElbowY.toPx()
-        val radius = ThreadElbowRadius.toPx()
-        val x = stroke / 2f
-
-        drawLine(
-            color = color,
-            start = Offset(x, 0f),
-            end = Offset(x, (elbowY - radius).coerceAtLeast(0f)),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        drawArc(
-            color = color,
-            startAngle = 180f,
-            sweepAngle = -90f,
-            useCenter = false,
-            topLeft = Offset(x, elbowY - 2 * radius),
-            size = Size(radius * 2, radius * 2),
-            style = Stroke(width = stroke, cap = StrokeCap.Round),
-        )
-        drawLine(
-            color = color,
-            start = Offset(x + radius, elbowY),
-            end = Offset(size.width, elbowY),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        if (continuesBelow) {
-            drawLine(
-                color = color,
-                start = Offset(x, (elbowY - radius).coerceAtLeast(0f)),
-                end = Offset(x, size.height),
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .commentThreadLines(lines, lineColor, elbowAtCentre = true)
+                .padding(start = threadContentStart(lines.column) - ThreadLabelInset, end = ThreadHorizontalPadding),
+    ) {
+        TextButton(
+            onClick = onClick,
+            contentPadding = PaddingValues(horizontal = ThreadLabelInset),
+        ) {
+            Text(text = text, style = MaterialTheme.typography.labelLarge)
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        }
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }
 }
 
-/** "12 replies" with the chevron that says it opens, in place of the rule that used to sit here. */
+/** "12 replies" with the chevron that says it opens. */
 @Composable
 internal fun RepliesToggle(
     replyCount: Int,

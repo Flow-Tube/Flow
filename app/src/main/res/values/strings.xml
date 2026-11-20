@@ -533,6 +533,11 @@
         <item quantity="other">View %1$d replies</item>
     </plurals>
     <string name="load_more_replies">Load more replies</string>
+    <!-- Folded replies to a reply, opened in place, e.g. "3 replies" -->
+    <plurals name="comment_folded_replies">
+        <item quantity="one">%1$d reply</item>
+        <item quantity="other">%1$d replies</item>
+    </plurals>
     <string name="select_text">Select Text</string>
     <string name="pinned_comment">Pinned comment</string>
     <string name="pinned_by_creator">Pinned by creator</string>
