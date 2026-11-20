@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"
+agp = "9.5.1"
 kotlin = "2.4.10"
 coreKtx = "1.19.0"
 conscrypt = "2.6.1"
@@ -149,6 +149,7 @@ zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCo
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
