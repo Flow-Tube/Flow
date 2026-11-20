@@ -38,7 +38,6 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
 
@@ -153,7 +152,6 @@ fun FlowCommentItem(
                             style =
                                 MaterialTheme.typography.bodyMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    lineHeight = 20.sp,
                                 ),
                             maxLines = if (isExpanded) Int.MAX_VALUE else 4,
                             overflow = TextOverflow.Ellipsis,
