@@ -15,6 +15,7 @@ import io.github.aedev.flow.innertube.models.response.VideoChaptersParser
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.innertube.models.response.VideoHeatmapParser
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
+import io.github.aedev.flow.innertube.pages.LiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.WatchPageHeader
@@ -537,6 +538,21 @@ class YouTubeRepository
             withContext(Dispatchers.IO) {
                 val response = watchNextResponse(videoId) ?: return@withContext null
                 YouTube.videoDescription(response, videoId).takeIf { !it.isEmpty }
+            }
+
+        /**
+         * One round of the live counts a watch page refreshes; null when the request failed. Not
+         * cached: every call is a deliberate poll, paced by the server's own interval.
+         */
+        suspend fun liveMetadataUpdate(
+            videoId: String,
+            continuation: String?,
+        ): LiveMetadataUpdate? =
+            withContext(Dispatchers.IO) {
+                YouTube
+                    .updatedMetadata(videoId, continuation)
+                    .onFailure { Log.d(TAG, "Live metadata for $videoId failed: ${it.message}") }
+                    .getOrNull()
             }
 
         /** The hashtags above the title and the rest of the title row, off the shared watch response. */

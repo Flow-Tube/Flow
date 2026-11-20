@@ -125,6 +125,7 @@ class VideoPlayerViewModel
 
         private val comments = collaborators.comments
         private val descriptions = collaborators.descriptions
+        private val liveCounts = collaborators.liveCounts
         private val transcripts = collaborators.transcripts
         private val watchSessions = collaborators.watchSessions
         private val liveChat = collaborators.liveChat
@@ -395,6 +396,9 @@ class VideoPlayerViewModel
             }
             descriptions.load(videoId)
         }
+
+        /** Refreshes a live video's counts until cancelled; the watch page runs it only while on screen. */
+        suspend fun refreshLiveCounts(videoId: String) = liveCounts.run(videoId)
 
         fun loadComments(videoId: String) {
             if (LocalMediaIds.isLocal(videoId)) {

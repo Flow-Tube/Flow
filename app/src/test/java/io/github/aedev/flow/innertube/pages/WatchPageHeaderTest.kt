@@ -37,6 +37,15 @@ class WatchPageHeaderTest {
     }
 
     @Test
+    fun `reads the endpoint the server wants counts refreshed through`() {
+        val primary = """{"updatedMetadataEndpoint":{"updatedMetadataEndpoint":{"videoId":"abc","initialDelayMs":300000}}}"""
+        val header = Json.parseToJsonElement(watchResponse(primary = primary)).toWatchPageHeader("abc")
+
+        assertEquals(UpdatedMetadataEndpoint(videoId = "abc", initialDelayMs = 300_000L), header.updatedMetadata)
+        assertNull(Json.parseToJsonElement(watchResponse()).toWatchPageHeader("abc").updatedMetadata)
+    }
+
+    @Test
     fun `an artist channel reads as an artist even beside a verified badge`() {
         val header = Json.parseToJsonElement(watchResponse(secondary = owner("VERIFIED", "VERIFIED_ARTIST"))).toWatchPageHeader("abc")
 

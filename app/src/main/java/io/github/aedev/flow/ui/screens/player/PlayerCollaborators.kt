@@ -102,6 +102,13 @@ internal class PlayerCollaborators(
             networkDispatcher = networkDispatcher,
         )
 
+    val liveCounts =
+        LiveCountsRefresher(
+            repository = repository,
+            uiState = uiState,
+            networkDispatcher = networkDispatcher,
+        )
+
     private val playbackPreparer =
         PlaybackPreparer(
             context = context,

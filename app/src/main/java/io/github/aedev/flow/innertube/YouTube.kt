@@ -58,6 +58,7 @@ import io.github.aedev.flow.innertube.pages.HistoryPage
 import io.github.aedev.flow.innertube.pages.HomePage
 import io.github.aedev.flow.innertube.pages.LibraryContinuationPage
 import io.github.aedev.flow.innertube.pages.LibraryPage
+import io.github.aedev.flow.innertube.pages.LiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
 import io.github.aedev.flow.innertube.pages.NewReleaseAlbumPage
 import io.github.aedev.flow.innertube.pages.NextPage
@@ -122,6 +123,7 @@ import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
 import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
+import io.github.aedev.flow.innertube.pages.toLiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.toMixPlaylistPage
 import io.github.aedev.flow.innertube.pages.toTimedComments
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
@@ -2216,6 +2218,16 @@ object YouTube {
     suspend fun relatedContinuationJson(continuation: String): Result<JsonElement> =
         runCatching {
             Json.parseToJsonElement(innerTube.nextWatch(continuation = continuation).bodyAsText())
+        }
+
+    /** The live counts [videoId]'s watch page asks for, or the next round of them through [continuation]. */
+    suspend fun updatedMetadata(
+        videoId: String,
+        continuation: String?,
+    ): Result<LiveMetadataUpdate> =
+        runCatching {
+            val response = innerTube.updatedMetadata(videoId = videoId.takeIf { continuation == null }, continuation = continuation)
+            Json.parseToJsonElement(response.bodyAsText()).toLiveMetadataUpdate(locale.hl)
         }
 
     /** The description, its typed spans and the figures beside it, from an already-fetched watch response. */

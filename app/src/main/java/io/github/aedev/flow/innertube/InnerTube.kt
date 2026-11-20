@@ -766,6 +766,24 @@ class InnerTube {
         }
     }
 
+    /** The watch page's refreshed counts and date, on the same host and headers as [nextWatch]. */
+    suspend fun updatedMetadata(
+        videoId: String? = null,
+        continuation: String? = null,
+    ) = withRetry {
+        val client = YouTubeClient.WEB
+        httpClient.post("https://www.youtube.com/youtubei/v1/updated_metadata") {
+            webYouTubeHeaders(client)
+            setBody(
+                UpdatedMetadataBody(
+                    context = client.toContext(locale, visitorData, null),
+                    videoId = videoId,
+                    continuation = continuation,
+                ),
+            )
+        }
+    }
+
     /**
      * YouTube's Timed comments for the comment section [continuation] opens. Only the iOS client
      * accepts the Timed filter without a login; Android answers it with HTTP 400 and the web has no

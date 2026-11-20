@@ -11,6 +11,13 @@ data class WatchPageHeader(
     /** The hashtags or the place YouTube prints above the title. */
     val superTitle: RichText? = null,
     val ownerBadge: ChannelBadge? = null,
+    /** Present when the server wants the counts refreshed through `updated_metadata`. */
+    val updatedMetadata: UpdatedMetadataEndpoint? = null,
+)
+
+data class UpdatedMetadataEndpoint(
+    val videoId: String,
+    val initialDelayMs: Long? = null,
 )
 
 /** The mark beside a channel name; an artist's channel carries a note where others carry a tick. */
@@ -46,7 +53,17 @@ internal fun JsonElement.toWatchPageHeader(ownVideoId: String?): WatchPageHeader
             VERIFIED_BADGE in badgeStyles -> ChannelBadge.VERIFIED
             else -> null
         }
-    return WatchPageHeader(superTitle = superTitle, ownerBadge = ownerBadge)
+    val updatedMetadata =
+        primary
+            ?.get("updatedMetadataEndpoint")
+            .objectOrNull()
+            ?.get("updatedMetadataEndpoint")
+            .objectOrNull()
+            ?.let { endpoint ->
+                val videoId = endpoint["videoId"].stringOrNull()?.takeIf { it.isNotBlank() } ?: return@let null
+                UpdatedMetadataEndpoint(videoId, endpoint["initialDelayMs"].stringOrNull()?.toLongOrNull())
+            }
+    return WatchPageHeader(superTitle = superTitle, ownerBadge = ownerBadge, updatedMetadata = updatedMetadata)
 }
 
 private const val VERIFIED_BADGE = "BADGE_STYLE_TYPE_VERIFIED"
