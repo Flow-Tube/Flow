@@ -18,6 +18,7 @@ object ShortsStartupTrace {
     private val openedAt = ConcurrentHashMap<String, Long>()
     private val preparedAt = ConcurrentHashMap<String, Long>()
     private val reported = ConcurrentHashMap.newKeySet<String>()
+    private val activatedAt = ConcurrentHashMap<String, Long>()
 
     /** The moment the screen decided it needs this short playable. */
     fun onRequested(videoId: String) {
@@ -50,6 +51,18 @@ object ShortsStartupTrace {
         report("$id FIRST FRAME: buffer=${buffer ?: -1}ms total=${total ?: -1}ms")
     }
 
+    /** The pager made this short the active page; the clock for [onPlaying]. */
+    fun onActivated(videoId: String) {
+        activatedAt.putIfAbsent(videoId, now())
+    }
+
+    /** The active short started playing: what a swipe costs, whether or not its frame was already drawn. */
+    fun onPlaying(videoId: String?) {
+        val id = videoId ?: return
+        val activated = activatedAt.remove(id) ?: return
+        report("$id SWIPE TO PLAY: ${now() - activated}ms")
+    }
+
     /** Playback state transitions on the active short, so a stall is visible as a gap. */
     fun onState(
         videoId: String?,
@@ -68,6 +81,7 @@ object ShortsStartupTrace {
         openedAt.remove(videoId)
         preparedAt.remove(videoId)
         reported.remove(videoId)
+        activatedAt.remove(videoId)
     }
 
     private fun now(): Long = System.currentTimeMillis()

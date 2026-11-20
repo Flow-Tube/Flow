@@ -38,6 +38,7 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
 import io.github.aedev.flow.player.analytics.RenderedFirstFrameListener
 import io.github.aedev.flow.player.analytics.SphericalVideoListener
+import io.github.aedev.flow.player.analytics.VideoStartupTrace
 import io.github.aedev.flow.player.audio.AudioEffectsEntryPoint
 import io.github.aedev.flow.player.audio.AudioFeaturesManager
 import io.github.aedev.flow.player.audio.AudioSessionAnnouncer
@@ -784,7 +785,10 @@ class EnhancedPlayerManager private constructor() {
                 }
             }
         player?.addAnalyticsListener(
-            RenderedFirstFrameListener(currentVideoId = { currentVideoId }) { videoId -> _firstFrameVideoId.value = videoId },
+            RenderedFirstFrameListener(currentVideoId = { currentVideoId }) { videoId ->
+                _firstFrameVideoId.value = videoId
+                VideoStartupTrace.onFirstFrame(videoId)
+            },
         )
         player?.addAnalyticsListener(
             SphericalVideoListener { spherical ->

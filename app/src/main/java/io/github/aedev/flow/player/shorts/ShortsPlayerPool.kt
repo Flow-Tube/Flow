@@ -220,7 +220,7 @@ class ShortsPlayerPool private constructor() {
                             equalizer,
                             dataSourceFactory!!,
                             preferredAudioLanguage,
-                        ) { _currentVideoId.value }
+                        ) { slots.videoIds[i] }
                         .also {
                             it.addListener(playingListener)
                             audioSessionAnnouncers[i] =
@@ -387,6 +387,7 @@ class ShortsPlayerPool private constructor() {
 
         activeIndex = index
         activeVideoId = videoId
+        ShortsStartupTrace.onActivated(videoId)
 
         for (i in 0 until POOL_SIZE) {
             val player = players[i] ?: continue

@@ -23,6 +23,7 @@ import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.extractor.DefaultExtractorsFactory
 import io.github.aedev.flow.R
+import io.github.aedev.flow.player.analytics.VideoStartupTrace
 import io.github.aedev.flow.player.cache.PlayerCacheManager
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.datasource.PlatformCaptionTransport
@@ -205,6 +206,7 @@ class MediaLoader(
                 if (mediaSource != null) {
                     exoPlayer.setMediaSource(mediaSource)
                     exoPlayer.prepare()
+                    VideoStartupTrace.onPrepared(mediaId.ifBlank { null })
                     stateFlow.value = stateFlow.value.copy(isPrepared = true)
 
                     // SABR sessions already start fetching at the position; seeking the

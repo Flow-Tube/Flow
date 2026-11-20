@@ -20,6 +20,7 @@ import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.util.EventLogger
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.player.analytics.PlaybackSessionStats
 import io.github.aedev.flow.player.audio.shouldHandleAudioFocus
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
@@ -33,6 +34,7 @@ class PlayerFactory {
     companion object {
         private const val TAG = "PlayerFactory"
         private const val EVENT_LOG_TAG = "FlowVideoEvents"
+        private const val STATS_LOG_TAG = "FlowPlaybackStats"
     }
 
     private class CachedPrefs(
@@ -179,7 +181,12 @@ class PlayerFactory {
                 it.setWakeMode(C.WAKE_MODE_LOCAL)
                 // Renderer, decoder, surface and stall events under one tag, so a stall can be
                 // timed from logcat instead of argued about (#1298).
-                if (BuildConfig.DEBUG) it.addAnalyticsListener(EventLogger(EVENT_LOG_TAG))
+                if (BuildConfig.DEBUG) {
+                    it.addAnalyticsListener(EventLogger(EVENT_LOG_TAG))
+                    it.addAnalyticsListener(
+                        PlaybackSessionStats(STATS_LOG_TAG, { (it.bufferedPosition - it.currentPosition).coerceAtLeast(0) }),
+                    )
+                }
                 Log.d(TAG, "ExoPlayer instance created")
             }
     }
