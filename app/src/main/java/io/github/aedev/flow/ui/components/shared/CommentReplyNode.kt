@@ -8,7 +8,8 @@ data class CommentReplyNode(
     val children: List<CommentReplyNode> = emptyList(),
 )
 
-private val LEADING_MENTION = Regex("""^\s*@([^\s,:]+)""")
+// A leading mention can sit behind a zero-width space, which \s does not match.
+private val LEADING_MENTION = Regex("""^[\s\u200B\u200C\u200D\u2060\uFEFF]*@([^\s,:\u200B]+)""")
 
 /**
  * Arranges a flat reply list into the conversation it actually is.
