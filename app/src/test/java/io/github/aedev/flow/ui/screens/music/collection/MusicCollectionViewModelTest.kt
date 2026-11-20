@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.music.collection
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelStore
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.engagement.LikedMediaUseCase
 import io.github.aedev.flow.data.local.LikedVideoInfo
@@ -62,6 +63,13 @@ class MusicCollectionViewModelTest {
             relaxed = true,
         ).also { every { it.batches } returns MutableStateFlow(emptyMap()) }
 
+    /**
+     * The ViewModel loads on the app's own pools, so its work can outlive the test. Clearing it
+     * before unmocking cancels that work instead of letting it reach the real service and fail in
+     * whichever runTest comes next.
+     */
+    private val viewModels = ViewModelStore()
+
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -70,26 +78,29 @@ class MusicCollectionViewModelTest {
 
     @After
     fun tearDown() {
+        viewModels.clear()
         Dispatchers.resetMain()
         unmockkAll()
     }
 
-    private fun viewModel(id: String) =
-        MusicCollectionViewModel(
-            context,
-            SavedStateHandle(mapOf(MUSIC_COLLECTION_ARG to id)),
-            playlists,
-            DailyMixStore(),
-            mockk(relaxed = true),
-            likes,
-            musicLibrary,
-            likedMedia,
-            mockk(relaxed = true),
-            mockk(relaxed = true),
-            downloads,
-            collections,
-            syncState,
-        )
+    private fun viewModel(
+        id: String,
+        dailyMixes: DailyMixStore = DailyMixStore(),
+    ) = MusicCollectionViewModel(
+        context,
+        SavedStateHandle(mapOf(MUSIC_COLLECTION_ARG to id)),
+        playlists,
+        dailyMixes,
+        mockk(relaxed = true),
+        likes,
+        musicLibrary,
+        likedMedia,
+        mockk(relaxed = true),
+        mockk(relaxed = true),
+        downloads,
+        collections,
+        syncState,
+    ).also { viewModels.put("collection_${viewModels.keys().size}", it) }
 
     private fun entity(
         id: String,
@@ -136,7 +147,7 @@ class MusicCollectionViewModelTest {
 
     private fun MusicCollectionViewModel.settled(): MusicCollectionUiState =
         runBlocking {
-            withTimeout(2_000) { state.first { !it.isLoading } }
+            withTimeout(SETTLE_TIMEOUT_MS) { state.first { !it.isLoading } }
         }
 
     @Test
@@ -187,7 +198,7 @@ class MusicCollectionViewModelTest {
         val refreshed = runBlocking { withTimeout(2_000) { viewModel.state.first { it.details?.tracks?.size == 2 } } }
         assertThat(refreshed.isSaved).isTrue()
         assertThat(refreshed.kind).isEqualTo(MusicCollectionKind.SAVED)
-        coVerify(timeout = 2_000) { playlists.syncSavedPlaylistVideos(id, match { it.map(Video::id) == listOf("a", "b") }) }
+        coVerify(timeout = SETTLE_TIMEOUT_MS) { playlists.syncSavedPlaylistVideos(id, match { it.map(Video::id) == listOf("a", "b") }) }
     }
 
     @Test
@@ -200,8 +211,8 @@ class MusicCollectionViewModelTest {
 
         viewModel(id)
 
-        coVerify(timeout = 2_000) { playlists.syncSavedPlaylistVideos(id, match { it.map(Video::id) == listOf("z", "b") }) }
-        coVerify(timeout = 2_000) { syncState.markSynced(id, any()) }
+        coVerify(timeout = SETTLE_TIMEOUT_MS) { playlists.syncSavedPlaylistVideos(id, match { it.map(Video::id) == listOf("z", "b") }) }
+        coVerify(timeout = SETTLE_TIMEOUT_MS) { syncState.markSynced(id, any()) }
     }
 
     @Test
@@ -214,7 +225,7 @@ class MusicCollectionViewModelTest {
         val viewModel = viewModel(id)
 
         runBlocking { withTimeout(2_000) { viewModel.state.first { it.details?.continuation == "next" } } }
-        coVerify(timeout = 2_000) { syncState.syncedAt(id) }
+        coVerify(timeout = SETTLE_TIMEOUT_MS) { syncState.syncedAt(id) }
         coVerify(exactly = 0) { YouTubeMusicService.fetchPlaylistContinuation(any(), any()) }
         coVerify(exactly = 0) { playlists.syncSavedPlaylistVideos(any(), any()) }
     }
@@ -301,7 +312,7 @@ class MusicCollectionViewModelTest {
         viewModel.delete()
         entity.value = null
 
-        coVerify(timeout = 2_000) { playlists.deletePlaylist(id) }
+        coVerify(timeout = SETTLE_TIMEOUT_MS) { playlists.deletePlaylist(id) }
         assertThat(viewModel.state.value.isDeleted).isTrue()
         assertThat(viewModel.state.value.failed).isFalse()
     }
@@ -317,7 +328,7 @@ class MusicCollectionViewModelTest {
 
         viewModel.download()
 
-        coVerify(timeout = 2_000) {
+        coVerify(timeout = SETTLE_TIMEOUT_MS) {
             downloads.queueCollectionSongs(
                 match { it.id == id && it.kind == DownloadCollectionKind.MUSIC_PLAYLIST },
                 match { songs -> songs.map { it.videoId } == listOf("a", "b") },
@@ -329,27 +340,14 @@ class MusicCollectionViewModelTest {
     @Test
     fun `a daily mix is saved as a music playlist of your own`() {
         val store = DailyMixStore().apply { publish(listOf(MusicSection(title = "Mix 1", tracks = listOf(track("a"), track("b"))))) }
-        val viewModel =
-            MusicCollectionViewModel(
-                context,
-                SavedStateHandle(mapOf(MUSIC_COLLECTION_ARG to "daily_mix_0")),
-                playlists,
-                store,
-                mockk(relaxed = true),
-                likes,
-                musicLibrary,
-                likedMedia,
-                mockk(relaxed = true),
-                mockk(relaxed = true),
-                downloads,
-                collections,
-                syncState,
-            )
+        val viewModel = viewModel("daily_mix_0", store)
         assertThat(viewModel.settled().kind).isEqualTo(MusicCollectionKind.DAILY_MIX)
 
         viewModel.saveAsPlaylist()
 
-        coVerify(timeout = 2_000) { playlists.importPlaylist("Mix 1", any(), match { it.map(Video::id) == listOf("a", "b") }, true, any()) }
+        coVerify(timeout = SETTLE_TIMEOUT_MS) {
+            playlists.importPlaylist("Mix 1", any(), match { it.map(Video::id) == listOf("a", "b") }, true, any())
+        }
     }
 
     @Test
@@ -385,14 +383,19 @@ class MusicCollectionViewModelTest {
 
         viewModel.createAndAdd("Fresh", "notes")
 
-        coVerify(timeout = 2_000) {
+        coVerify(timeout = SETTLE_TIMEOUT_MS) {
             playlists.createPlaylist(any(), "Fresh", "notes", false, true)
         }
-        coVerify(timeout = 2_000) {
+        coVerify(timeout = SETTLE_TIMEOUT_MS) {
             playlists.addVideosToPlaylist(any(), match { it.map(Video::id) == listOf("a", "b") })
         }
         val message = runBlocking { withTimeout(2_000) { viewModel.messages.first() } }
         assertThat(message.pluralRes).isEqualTo(io.github.aedev.flow.R.plurals.merge_playlist_success)
         assertThat(message.args).contains("Fresh")
+    }
+
+    private companion object {
+        /** Real pools on a busy CI runner can take seconds to get to the load. */
+        const val SETTLE_TIMEOUT_MS = 10_000L
     }
 }

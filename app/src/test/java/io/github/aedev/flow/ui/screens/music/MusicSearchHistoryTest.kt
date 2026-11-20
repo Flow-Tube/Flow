@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.music
 
+import androidx.lifecycle.ViewModelStore
 import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PrivacyGate
@@ -33,6 +34,13 @@ class MusicSearchHistoryTest {
     private val history: SearchHistoryRepository = mockk(relaxed = true)
     private var deepFlow = false
 
+    /**
+     * The ViewModel loads on the app's own pools, so its work can outlive the test. Clearing it
+     * before unmocking cancels that work instead of letting it reach the real services and fail
+     * in whichever runTest comes next.
+     */
+    private val viewModels = ViewModelStore()
+
     private fun viewModel() =
         MusicSearchViewModel(
             mockk<DownloadManager>(relaxed = true).also { every { it.downloadedTracks } returns flowOf(emptyList()) },
@@ -44,7 +52,7 @@ class MusicSearchHistoryTest {
             ),
             mockk(relaxed = true),
             mockk<AiListRepository>().also { every { it.matcher } returns MutableStateFlow(AiListMatcher.NONE) },
-        )
+        ).also { viewModels.put("music_search_${viewModels.keys().size}", it) }
 
     @Before
     fun setUp() {
@@ -57,6 +65,7 @@ class MusicSearchHistoryTest {
 
     @After
     fun tearDown() {
+        viewModels.clear()
         Dispatchers.resetMain()
         unmockkAll()
     }

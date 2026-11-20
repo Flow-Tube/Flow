@@ -113,6 +113,15 @@ jobs:
           :app:compileGithubDebugAndroidTestKotlin
           --build-cache --stacktrace
 
+      - name: Upload unit test reports
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+          retention-days: 7
+
   lint:
     name: Lint
     runs-on: ubuntu-24.04

@@ -237,6 +237,8 @@ tasks.withType<Test>().configureEach {
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     // `-Dflow.fuzz.cases=N` and `-Dflow.fuzz.seed=S` reach the property tests.
     for (name in listOf("flow.fuzz.cases", "flow.fuzz.seed")) providers.systemProperty(name).orNull?.let { systemProperty(name, it) }
+    // A failure's cause, e.g. what an earlier test leaked into runTest, otherwise only reaches the HTML report.
+    testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
 }
 
 // One profile for every shipped variant: foss, nightly and github run the same startup code, and
