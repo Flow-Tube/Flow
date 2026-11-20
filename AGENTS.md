@@ -128,7 +128,7 @@ A legitimate hand-rolled component must therefore:
 - **Never add a new dependency that overlaps one already on the list.** Use what is there. A new
   dependency needs a stated reason that an existing one cannot cover.
 - **Never hand-roll security-relevant code** — crypto, signing, token handling, TLS. The app has
-  Conscrypt, OkHttp and the platform providers.
+  BouncyCastle, OkHttp and the platform providers.
 - **Never re-invent player wiring.** See the performance rules below: Media3 owns playback, the
   media session, and the media notification.
 - **Never disable, wrap, or work around a library API because its behaviour surprised you** until
