@@ -109,6 +109,7 @@ class PlayerPreferences(
         val VIDEO_AMBIENT_GLOW_ENABLED = booleanPreferencesKey("video_ambient_glow_enabled")
         val VIDEO_AMBIENT_IMMERSIVE_ENABLED = booleanPreferencesKey("video_ambient_immersive_enabled")
         val VIDEO_AMBIENT_GLOW_BATTERY_SAVER = booleanPreferencesKey("video_ambient_glow_battery_saver")
+        val VIDEO_AMBIENT_RESPONSIVE = booleanPreferencesKey("video_ambient_responsive")
         val VIDEO_AMBIENT_IMMERSIVE_SCROLL_DIM = booleanPreferencesKey("video_ambient_immersive_scroll_dim")
         val PREFERRED_SUBTITLE_LANGUAGE = stringPreferencesKey("preferred_subtitle_language")
         val TRANSCRIPT_LANGUAGE = stringPreferencesKey("transcript_language")
@@ -2432,6 +2433,19 @@ class PlayerPreferences(
     suspend fun setVideoAmbientGlowInBatterySaver(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.VIDEO_AMBIENT_GLOW_BATTERY_SAVER] = enabled
+        }
+    }
+
+    /** Whether the ambient light follows the picture quickly instead of gliding (#2234). */
+    val videoAmbientResponsive: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.VIDEO_AMBIENT_RESPONSIVE] ?: false
+            }
+
+    suspend fun setVideoAmbientResponsive(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.VIDEO_AMBIENT_RESPONSIVE] = enabled
         }
     }
 

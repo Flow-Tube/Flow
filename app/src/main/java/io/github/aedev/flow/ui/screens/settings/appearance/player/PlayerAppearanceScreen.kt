@@ -137,6 +137,11 @@ internal fun PlayerAppearanceScreen(
             ),
             FlowToggleOption(MusicPlainControlColors.APP_THEME, stringResource(R.string.player_appearance_plain_control_colors_app)),
         )
+    val ambientMotionOptions =
+        listOf(
+            FlowToggleOption(false, stringResource(R.string.player_settings_ambient_motion_smooth)),
+            FlowToggleOption(true, stringResource(R.string.player_settings_ambient_motion_responsive)),
+        )
     val sidePanelOptions = FullscreenSidePanelWidth.entries.map { FlowToggleOption(it, stringResource(sidePanelWidthLabel(it))) }
     val miniPlayerOptions = MiniPlayerSize.entries.map { FlowToggleOption(it, stringResource(miniPlayerSizeLabel(it))) }
     val portraitSummary = stringResource(R.string.player_fullscreen_seekbar_width_subtitle, portraitPadding)
@@ -244,6 +249,13 @@ internal fun PlayerAppearanceScreen(
                 viewModel.glowInBatterySaver,
                 viewModel::setGlowInBatterySaver,
                 enabled = ambientGlow,
+            )
+            toggleGroup(
+                PlayerAppearanceIndex.ambientMotion,
+                ambientMotionOptions,
+                viewModel.ambientResponsive,
+                viewModel::setAmbientResponsive,
+                enabled = ambientMode || ambientGlow,
             )
             switch(PlayerAppearanceIndex.videoArtworkColors, videoArtworkColors, viewModel::setVideoArtworkColors)
             switch(PlayerAppearanceIndex.groupedQuality, groupedQuality, viewModel::setGroupedQualitySelector)
