@@ -1544,8 +1544,8 @@
     <string name="open">مفتوح</string>
     <string name="music_quality_header">دقة صوت الموسيقي</string>
     <string name="music_quality_auto">تلقائي</string>
-    <string name="music_quality_high">عالي</string>
-    <string name="music_quality_medium">متوسط</string>
+    <string name="music_quality_high">عالية</string>
+    <string name="music_quality_medium">متوسطة</string>
     <string name="music_quality_low">منخفضة</string>
     <string name="music_playback_warning_forbidden">تم رفض الوصول إلى بث الموسيقى. قد يكون موقع يوتيوب يقيّد الوصول إلى هذا العنوان IP؛ حاول إعادة تحميل الصفحة أو تغيير الشبكة/VPN.</string>
     <string name="music_playback_warning_network">فشل بث الموسيقى بسبب مشكلة في الشبكة. تحقق من إتصالك بالإنترنت أو جرب شبكة أخرى.</string>
@@ -5642,7 +5642,7 @@
     <string name="settings_nav_labels_title">تسميات علامات التبويب</string>
     <string name="settings_nav_labels_summary">الأسماء أسفل الأيقونات في الشريط السفلي</string>
     <string name="settings_nav_labels_always">دائماً</string>
-    <string name="settings_nav_labels_selected">محدد</string>
+    <string name="settings_nav_labels_selected">عند التحديد</string>
     <string name="settings_nav_labels_never">أبداً</string>
     <string name="settings_keywords_nav_style">عائم، كبسولة، نمط، شريط سفلي</string>
     <string name="settings_nav_style_title">نمط الشريط</string>
@@ -5773,4 +5773,20 @@
     <string name="error_bot_wall_mobile_data_hint">جرّب الاتصال بشبكة Wi-Fi أو انتظر قليلًا. غالبًا ما تُحل هذه المشكلة تلقائيًا.</string>
     <string name="settings_quality_remember">تذكّر جودة الفيديو</string>
     <string name="settings_quality_remember_summary">تصبح الجودة المختارة في المشغّل هي الافتراضية</string>
+    <plurals name="comment_folded_replies">
+        <item quantity="zero">لا توجد ردود</item>
+        <item quantity="one">رد واحد</item>
+        <item quantity="two">ردان</item>
+        <item quantity="few">%1$d ردود</item>
+        <item quantity="many">%1$d رد</item>
+        <item quantity="other">%1$d رد</item>
+    </plurals>
+    <string name="comment_creator_replied">ردّ %1$s</string>
+    <string name="comment_creator_replied_unnamed">ردّ منشئ المحتوى</string>
+    <string name="description_music_section">الموسيقى</string>
+    <string name="description_how_this_was_made">كيف صُنع هذا</string>
+    <string name="channel_badge_artist">القناة الرسمية للفنان</string>
+    <string name="settings_related_collections_title">قوائم التشغيل وفيديوهات Shorts ذات الصلة</string>
+    <string name="settings_related_collections_subtitle">إظهار قوائم التشغيل والمزيج الموسيقي وفيديوهات Shorts ضمن الفيديوهات ذات الصلة</string>
+    <string name="settings_keywords_related_collections">مزيج موسيقي، أمزجة موسيقية، قائمة تشغيل، فيديوهات Shorts، رف، التالي</string>
 </resources>
