@@ -27,18 +27,16 @@ internal suspend fun deliverLive(
  * Starts live traffic on a session over [transport] that was opened to carry [waiting]. [attach]
  * joins the session to the live channel, or is null when this device only serves it. Returns how
  * to leave the channel again.
+ *
+ * [waiting] goes first: joining announces this device with a newer counter, and the other device
+ * drops a message whose counter isn't newer than the last it took, so a "Play on" sent while no
+ * session was open would otherwise never arrive.
  */
 internal suspend fun startSessionLive(
     transport: LiveTransport,
     waiting: ByteArray?,
     attach: (suspend (LiveTransport) -> () -> Unit)?,
 ): (() -> Unit)? {
-    val detach = attach?.invoke(transport)
-    try {
-        waiting?.let { transport.send(it) }
-    } catch (e: Throwable) {
-        detach?.invoke()
-        throw e
-    }
-    return detach
+    waiting?.let { transport.send(it) }
+    return attach?.invoke(transport)
 }
