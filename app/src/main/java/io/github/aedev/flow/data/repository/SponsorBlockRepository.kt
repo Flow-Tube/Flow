@@ -46,6 +46,20 @@ private class HashedSegment(
     val videoDuration: Double = 0.0,
 )
 
+@Serializable
+private class HashedVideoSegments(
+    @SerialName("videoID") val videoId: String,
+    val segments: List<HashedFullSegment> = emptyList(),
+)
+
+@Serializable
+private class HashedFullSegment(
+    val category: String,
+    val segment: List<Float> = emptyList(),
+    @SerialName("UUID") val uuid: String = "",
+    val actionType: String = "",
+)
+
 @Singleton
 class SponsorBlockRepository
     @Inject
@@ -55,29 +69,19 @@ class SponsorBlockRepository
         private val gson = Gson()
         private val segmentListType = object : TypeToken<List<SponsorBlockSegment>>() {}.type
 
+        /** Segments for [videoId]. Only a hash prefix of the id is sent; the match is picked here. */
         suspend fun getSegments(videoId: String): List<SponsorBlockSegment> =
             withContext(Dispatchers.IO) {
                 try {
-                    val url = segmentsUrl(videoId)
-
-                    val request =
-                        Request
-                            .Builder()
-                            .url(url)
-                            .build()
-
-                    val response = client.newCall(request).execute()
-                    response.use { resp ->
-                        if (resp.isSuccessful) {
-                            val responseBody = resp.body?.string() ?: return@withContext emptyList()
-                            return@withContext parseSegments(responseBody) ?: emptyList()
-                        } else {
-                            return@withContext emptyList()
-                        }
+                    client.newCall(Request.Builder().url(segmentsUrl(videoId)).build()).execute().use { response ->
+                        if (response.isSuccessful) parseHashedVideoSegments(response.body.string(), videoId) else emptyList()
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    return@withContext emptyList()
+                } catch (e: IOException) {
+                    Log.w(TAG, "Segment lookup failed: ${e.message}")
+                    emptyList()
+                } catch (e: SerializationException) {
+                    Log.w(TAG, "Segment lookup unreadable: ${e.message}")
+                    emptyList()
                 }
             }
 
@@ -187,20 +191,14 @@ class SponsorBlockRepository
             private val hashedJson = Json { ignoreUnknownKeys = true }
 
             /** Asks for every video sharing the id's hash prefix, so the server can't tell which one is playing. */
-            internal fun nonMusicSegmentsUrl(videoId: String): HttpUrl {
-                val hash =
-                    MessageDigest
-                        .getInstance("SHA-256")
-                        .digest(videoId.toByteArray())
-                        .toHexString()
-                return SKIP_SEGMENTS_URL
+            internal fun nonMusicSegmentsUrl(videoId: String): HttpUrl =
+                SKIP_SEGMENTS_URL
                     .toHttpUrl()
                     .newBuilder()
-                    .addPathSegment(hash.take(HASH_PREFIX_LENGTH))
+                    .addPathSegment(hashPrefix(videoId))
                     .addQueryParameter("categories", listOf(SponsorBlockCategories.MUSIC_OFF_TOPIC).toJsonArray())
                     .addQueryParameter("actionTypes", listOf(SKIP_ACTION).toJsonArray())
                     .build()
-            }
 
             /** The segments of [videoId] among the videos sharing its hash prefix. */
             internal fun parseHashedSegments(
@@ -216,15 +214,34 @@ class SponsorBlockRepository
                         it.category == SponsorBlockCategories.MUSIC_OFF_TOPIC && it.actionType == SKIP_ACTION && it.segment.size == 2
                     }.map { TimedSegment(it.segment[0], it.segment[1], it.videoDuration) }
 
-            /** The lookup for [videoId], asking for every category and action type Flow handles. */
+            /** The lookup for [videoId], by hash prefix, asking for every category and action type Flow handles. */
             internal fun segmentsUrl(videoId: String): HttpUrl =
                 SKIP_SEGMENTS_URL
                     .toHttpUrl()
                     .newBuilder()
-                    .addQueryParameter("videoID", videoId)
+                    .addPathSegment(hashPrefix(videoId))
                     .addQueryParameter("categories", SponsorBlockCategories.all.toJsonArray())
                     .addQueryParameter("actionTypes", SponsorBlockCategories.actionTypes.toJsonArray())
                     .build()
+
+            /** The segments of [videoId] among the videos sharing its hash prefix. */
+            internal fun parseHashedVideoSegments(
+                json: String,
+                videoId: String,
+            ): List<SponsorBlockSegment> =
+                hashedJson
+                    .decodeFromString<List<HashedVideoSegments>>(json)
+                    .firstOrNull { it.videoId == videoId }
+                    ?.segments
+                    .orEmpty()
+                    .map { SponsorBlockSegment(it.category, it.segment, it.uuid, it.actionType) }
+
+            private fun hashPrefix(videoId: String): String =
+                MessageDigest
+                    .getInstance("SHA-256")
+                    .digest(videoId.toByteArray())
+                    .toHexString()
+                    .take(HASH_PREFIX_LENGTH)
 
             private fun List<String>.toJsonArray(): String = JsonArray(map { JsonPrimitive(it) }).toString()
         }
