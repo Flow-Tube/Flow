@@ -8,25 +8,28 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CommentsDisabled
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
-import io.github.aedev.flow.utils.formatRichText
+import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.data.model.plainRichText
+import io.github.aedev.flow.ui.components.shared.rememberRichTextInlineContent
+import io.github.aedev.flow.utils.toAnnotatedString
 
 private const val DISABLED_CONTENT_ALPHA = 0.38f
 private val DisabledIconSize = 18.dp
 
 @Composable
 internal fun CommentsPreview(
-    latestComment: String?,
+    latestComment: Comment?,
     authorAvatar: String?,
     onClick: () -> Unit,
     totalText: String? = null,
@@ -75,7 +78,7 @@ internal fun CommentsPreview(
                         color = disabledContent,
                     )
                 }
-            } else if (showPreviewText && !latestComment.isNullOrBlank()) {
+            } else if (showPreviewText && latestComment != null && latestComment.text.isNotBlank()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
@@ -90,20 +93,17 @@ internal fun CommentsPreview(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    val primaryColor = MaterialTheme.colorScheme.primary
+                    val linkColor = MaterialTheme.colorScheme.primary
+                    val textColor = MaterialTheme.colorScheme.onSurface
+                    val richText = remember(latestComment) { latestComment.richText ?: plainRichText(latestComment.text) }
                     val annotatedComment =
-                        if (!latestComment.isNullOrBlank()) {
-                            formatRichText(
-                                text = latestComment,
-                                primaryColor = primaryColor,
-                                textColor = MaterialTheme.colorScheme.onSurface,
-                            )
-                        } else {
-                            null
+                        remember(richText, linkColor, textColor) {
+                            richText.toAnnotatedString(linkColor = linkColor, textColor = textColor)
                         }
 
                     Text(
-                        text = annotatedComment ?: AnnotatedString(""),
+                        text = annotatedComment,
+                        inlineContent = rememberRichTextInlineContent(richText),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,

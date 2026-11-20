@@ -215,7 +215,7 @@ internal fun VideoInfoContent(
 
     if (commentsEnabled) {
         CommentsPreview(
-            latestComment = if (showCommentsPreview) commentsUiState.comments.firstOrNull()?.text else null,
+            latestComment = if (showCommentsPreview) commentsUiState.comments.firstOrNull() else null,
             authorAvatar = if (showCommentsPreview) commentsUiState.comments.firstOrNull()?.authorThumbnail else null,
             totalText = commentsUiState.totalText,
             showPreviewText = showCommentsPreview,

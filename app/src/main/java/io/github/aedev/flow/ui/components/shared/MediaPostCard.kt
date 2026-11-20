@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,10 +39,11 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.model.plainRichText
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
-import io.github.aedev.flow.utils.formatRichText
+import io.github.aedev.flow.utils.toAnnotatedString
 
 /**
  * One community post, laid out as YouTube lays it out: author, text, then the attachment running the
@@ -63,9 +65,11 @@ fun MediaPostCard(
     var textOverflows by rememberSaveable(post.id) { mutableStateOf(false) }
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val uriHandler = LocalUriHandler.current
+    val linkActions = rememberRichTextLinkActions(onOpenUrl = { url -> runCatching { uriHandler.openUri(url) } })
     val formattedText =
-        remember(post.text, primaryColor, onSurfaceColor) {
-            formatRichText(text = post.text, primaryColor = primaryColor, textColor = onSurfaceColor)
+        remember(post.text, primaryColor, onSurfaceColor, linkActions) {
+            plainRichText(post.text).toAnnotatedString(linkColor = primaryColor, textColor = onSurfaceColor, actions = linkActions)
         }
 
     Column(
