@@ -15,6 +15,7 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.utils.parseCookieString
 import io.github.aedev.flow.innertube.utils.sha1
 import io.github.aedev.flow.network.FlowRequestLog
+import io.github.aedev.flow.network.SharedConnectionPool
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.*
@@ -157,14 +158,7 @@ class InnerTube {
             engine {
                 config {
                     FlowRequestLog.install(this)
-                    // Aggressive connection pool for faster connection reuse
-                    connectionPool(
-                        okhttp3.ConnectionPool(
-                            15, // Increased from 10 - more connections available
-                            5, // keepAliveDuration
-                            java.util.concurrent.TimeUnit.MINUTES,
-                        ),
-                    )
+                    connectionPool(SharedConnectionPool.pool)
 
                     // Faster timeout configurations - fail fast, retry smart
                     connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
