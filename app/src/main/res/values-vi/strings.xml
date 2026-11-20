@@ -5157,4 +5157,24 @@
     </plurals>
     <plurals name="playlists_imported">
     </plurals>
+    <string name="mini_player_action_open">Mở trình phát</string>
+    <string name="mini_player_action_larger">Phóng to</string>
+    <string name="mini_player_action_smaller">Thu nhỏ</string>
+    <string name="mini_player_action_next_corner">Chuyển sang góc tiếp theo</string>
+    <string name="mini_player_action_tuck">Ẩn sang mép màn hình</string>
+    <string name="newpipe_extractor_credit">Nơi Flow bắt đầu phát triển tính năng trích xuất dữ liệu YouTube</string>
+    <string name="player_zoomed_to_fill">Đã phóng to để lấp đầy màn hình</string>
+    <string name="player_seek_release_to_cancel">Thả ra để hủy</string>
+    <string name="error_members_only">Video chỉ dành cho hội viên</string>
+    <string name="error_members_only_hint">Hãy tham gia hội viên của kênh này trên YouTube để xem video.</string>
+    <string name="error_copyright_removed">Đã bị gỡ vì lý do bản quyền</string>
+    <string name="error_copyright_removed_hint">%1$s đã yêu cầu YouTube gỡ video này.</string>
+    <string name="error_copyright_removed_hint_unnamed">Một chủ sở hữu bản quyền đã yêu cầu YouTube gỡ video này.</string>
+    <string name="error_removed_by_uploader">Đã bị người tải lên gỡ bỏ</string>
+    <string name="error_removed_by_uploader_hint">Người tải lên đã xóa video này khỏi YouTube.</string>
+    <string name="error_policy_removed">Đã bị YouTube gỡ bỏ</string>
+    <string name="error_policy_removed_hint">YouTube đã gỡ video này vì vi phạm quy định của nền tảng.</string>
+    <string name="error_recording_unavailable">Không có bản ghi</string>
+    <string name="error_recording_unavailable_hint">Buổi phát trực tiếp này đã kết thúc và không có bản ghi trên YouTube.</string>
+    <string name="error_bot_wall_mobile_data_hint">Hãy thử dùng Wi-Fi hoặc đợi một lúc. Vấn đề này thường tự hết.</string>
 </resources>
