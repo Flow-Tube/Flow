@@ -316,7 +316,8 @@ class ShortsViewModel
         fun selectCommentSort(
             videoId: String,
             sort: VideoCommentSort,
-        ) = comments.selectSort(videoId, sort)
+            readAhead: Boolean,
+        ) = comments.selectSort(videoId, sort, readAhead)
 
         fun selectTimedComments(
             videoId: String,

@@ -406,7 +406,8 @@ class VideoPlayerViewModel
         fun selectCommentSort(
             videoId: String,
             sort: VideoCommentSort,
-        ) = comments.selectSort(videoId, sort)
+            readAhead: Boolean,
+        ) = comments.selectSort(videoId, sort, readAhead)
 
         val timedCommentsFollow: StateFlow<Boolean> =
             playerPreferences.timedCommentsFollow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)

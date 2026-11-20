@@ -259,12 +259,14 @@ fun ShortsScreen(
                         if (filter == CommentSortFilter.TIMED) {
                             viewModel.selectTimedComments(videoId, timedCommentOrders(commentSortOptions))
                         } else {
-                            videoCommentSortFor(commentSortOptions, filter)?.let { sort -> viewModel.selectCommentSort(videoId, sort) }
+                            videoCommentSortFor(commentSortOptions, filter)?.let { sort ->
+                                viewModel.selectCommentSort(videoId, sort, filter.readsAhead)
+                            }
                         }
                     }
                 },
                 isLoadingMore = isLoadingMoreComments,
-                hasMore = commentSortFilter == CommentSortFilter.TIMED && hasMoreComments,
+                hasMore = hasMoreComments,
                 onLoadMore = {
                     uiState.shorts
                         .getOrNull(uiState.currentIndex)

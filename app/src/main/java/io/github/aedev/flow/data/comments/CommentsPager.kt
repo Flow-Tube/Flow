@@ -25,9 +25,9 @@ private const val TAG = "CommentsPager"
 private const val STARTUP_GATE_TIMEOUT_MS = 20_000L
 
 /**
- * Pages fetched behind the first one, so a filter that reads the whole loaded set has something to
- * read. Bounded and sequential: each page waits for the one before it, and a user-driven load more
- * or a sort change cancels what is left.
+ * Pages read ahead of the first one for a sort that arranges the loaded set itself, so it has more
+ * than twenty rows to arrange. Every other order pages on scroll only. Bounded and sequential: each
+ * page waits for the one before it, and a user-driven load more or a sort change cancels what is left.
  */
 private const val DEFAULT_PREFETCH_PAGES = 3
 
@@ -99,6 +99,7 @@ internal class CommentsPager(
     private var next: CommentsPageResult = CommentsPageResult.EMPTY
     private var loadJob: Job? = null
     private var prefetchJob: Job? = null
+    private var hasReadAhead = false
     private var loadingVideoId: String? = null
     private var activeSortToken: String? = null
     private var timedCursors: MutableList<CommentsPageResult> = mutableListOf()
@@ -130,16 +131,26 @@ internal class CommentsPager(
 
     fun load(videoId: String) {
         if (loadingVideoId == videoId && activeSortToken == null && loadJob?.isActive == true) return
-        startLoad(videoId, sortToken = null)
+        startLoad(videoId, sortToken = null, readAhead = false)
     }
 
-    /** Reloads the section in the order [sort] names, which is a different continuation entirely. */
+    /**
+     * Reloads the section in the order [sort] names, which is a different continuation entirely.
+     * Two chips can share one continuation (Newest and Oldest), so a switch between them keeps what
+     * has loaded. [readAhead] is for a chip that arranges the loaded set itself.
+     */
     fun selectSort(
         videoId: String,
         sort: VideoCommentSort,
+        readAhead: Boolean = false,
     ) {
-        if (activeSortToken == sort.token && loadJob?.isActive == true) return
-        startLoad(videoId, sortToken = sort.token)
+        val sameSection = loadingVideoId == videoId && activeSortToken == sort.token
+        if (sameSection && loadJob?.isActive == true) return
+        if (sameSection && _comments.value.isNotEmpty()) {
+            if (readAhead) prefetchFollowingPages(videoId)
+            return
+        }
+        startLoad(videoId, sortToken = sort.token, readAhead = readAhead)
     }
 
     /**
@@ -214,6 +225,7 @@ internal class CommentsPager(
     private fun startLoad(
         videoId: String,
         sortToken: String?,
+        readAhead: Boolean,
     ) {
         resetForLoad(videoId, sortToken)
         loadJob =
@@ -230,7 +242,7 @@ internal class CommentsPager(
                     page.totalText?.let { _totalText.value = it }
                     page.totalCount?.let { _totalCount.value = it }
                     _isDisabled.value = page.disabled
-                    prefetchFollowingPages(videoId)
+                    if (readAhead) prefetchFollowingPages(videoId)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -256,6 +268,7 @@ internal class CommentsPager(
         }
         loadingVideoId = videoId
         activeSortToken = sortToken
+        hasReadAhead = false
         _comments.value = emptyList()
         next = CommentsPageResult.EMPTY
         timedCursors = mutableListOf()
@@ -303,12 +316,10 @@ internal class CommentsPager(
         }
     }
 
-    /**
-     * Walks a bounded number of further pages in the background once the first one has landed, so
-     * a filter over the loaded set is not deciding from twenty rows.
-     */
+    /** Walks a bounded number of further pages in the background once the first one has landed. */
     private fun prefetchFollowingPages(videoId: String) {
-        if (prefetchPages <= 0) return
+        if (prefetchPages <= 0 || hasReadAhead) return
+        hasReadAhead = true
         prefetchJob?.cancel()
         prefetchJob =
             scope.launch {
