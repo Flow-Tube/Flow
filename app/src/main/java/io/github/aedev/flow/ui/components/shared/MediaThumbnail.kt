@@ -151,6 +151,7 @@ fun CollectionThumbnail(
     width: Dp = MediaThumbnailDefaults.CollectionWidth,
     shape: Shape = MaterialTheme.shapes.small,
     placeholder: ImageVector? = null,
+    overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     Box(
         modifier =
@@ -180,5 +181,7 @@ fun CollectionThumbnail(
                 contentScale = ContentScale.Crop,
             )
         }
+
+        overlay()
     }
 }

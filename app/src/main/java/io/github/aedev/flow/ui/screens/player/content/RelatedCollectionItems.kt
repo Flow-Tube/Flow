@@ -3,7 +3,6 @@ package io.github.aedev.flow.ui.screens.player.content
 import androidx.compose.foundation.lazy.LazyListScope
 import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.Video
-import io.github.aedev.flow.ui.components.PlaylistCard
 import io.github.aedev.flow.ui.components.shared.MediaShortsShelf
 
 /** A run of the related lane: consecutive videos, or one collection between them. */
@@ -43,13 +42,16 @@ internal fun relatedLaneSegments(
 /** A playlist opens its page, a Mix included; a Short opens in the Shorts player through [onShortClick]. */
 internal fun LazyListScope.relatedCollectionItem(
     collection: RelatedCollection,
+    playlistMetrics: RelatedPlaylistMetrics,
     onPlaylistClick: (String) -> Unit,
     onShortClick: (Video) -> Unit,
 ) {
     when (collection) {
         is RelatedCollection.PlaylistCard -> {
             item(key = collection.key, contentType = "related_playlist") {
-                PlaylistCard(playlist = collection.playlist, onClick = { onPlaylistClick(collection.playlist.id) })
+                KeyboardCardFocus {
+                    RelatedPlaylistCard(card = collection, metrics = playlistMetrics, onClick = { onPlaylistClick(collection.playlist.id) })
+                }
             }
         }
 

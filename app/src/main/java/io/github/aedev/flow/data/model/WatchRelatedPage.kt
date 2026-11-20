@@ -27,6 +27,7 @@ sealed interface RelatedCollection {
     data class PlaylistCard(
         override val position: Int,
         val playlist: Playlist,
+        val labels: CollectionLabels = CollectionLabels(),
     ) : RelatedCollection {
         override val key: String get() = "related_playlist:${playlist.id}"
 
@@ -43,3 +44,13 @@ sealed interface RelatedCollection {
         override fun at(position: Int) = copy(position = position)
     }
 }
+
+/**
+ * A playlist or Mix as YouTube words it in a list: [badge] on the thumbnail ("Mix", "25 videos"),
+ * [byline] under the title (the channel, or the artists a Mix draws on), then [details].
+ */
+data class CollectionLabels(
+    val badge: String? = null,
+    val byline: String? = null,
+    val details: String? = null,
+)

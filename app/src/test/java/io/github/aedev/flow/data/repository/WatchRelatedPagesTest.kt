@@ -39,7 +39,10 @@ class WatchRelatedPagesTest {
             assertThat(page.upNextVideoId).isEqualTo("c")
             assertThat(page.continuation).isEqualTo("next")
             assertThat(page.collections.map { it.position }).containsExactly(2, 3).inOrder()
-            assertThat((page.collections[0] as RelatedCollection.PlaylistCard).playlist.id).isEqualTo("RDb")
+            val mix = page.collections[0] as RelatedCollection.PlaylistCard
+            assertThat(mix.playlist.id).isEqualTo("RDb")
+            assertThat(mix.labels.badge).isEqualTo("Mix")
+            assertThat(mix.labels.byline).isEqualTo("Toto, Cyndi Lauper, and more")
             assertThat((page.collections[1] as RelatedCollection.ShortsShelf).shorts.map { it.id }).containsExactly("s1")
         }
 

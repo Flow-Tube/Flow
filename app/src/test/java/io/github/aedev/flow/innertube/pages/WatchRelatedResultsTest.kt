@@ -88,6 +88,52 @@ class WatchRelatedResultsTest {
     }
 
     @Test
+    fun `a Mix keeps its badge and the lines YouTube prints under its title`() {
+        val mix = watch(results = listOf(mixLockup("RDa"))).watchRelatedResults(hl = "en").entries.single() as WatchRelatedEntry.PlaylistCard
+
+        assertThat(mix.labels.badge).isEqualTo("Mix")
+        assertThat(mix.labels.byline).isEqualTo("Toto, Cyndi Lauper, and more")
+        assertThat(mix.labels.details).isEqualTo("Playlist")
+        assertThat(mix.playlist.videoCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `a playlist drops its link to the full playlist and keeps its count`() {
+        val rows = "[" + row(part("Rick Astley", "UCuAXFkgsw1L7xaCfnd5JJOw"), part("Playlist")) + "," + row(part("View full playlist", "VLPLabc")) + "]"
+
+        val card =
+            watch(results = listOf(playlistLockup("PLabc", rows, badge = "25 videos")))
+                .watchRelatedResults(hl = "en")
+                .entries
+                .single() as WatchRelatedEntry.PlaylistCard
+
+        assertThat(card.labels.badge).isEqualTo("25 videos")
+        assertThat(card.labels.byline).isEqualTo("Rick Astley")
+        assertThat(card.labels.details).isEqualTo("Playlist")
+        assertThat(card.playlist.videoCount).isEqualTo(25)
+    }
+
+    @Test
+    fun `every part after the byline joins with YouTube's own delimiter`() {
+        val rows = "[" + row(part("Rick Astley")) + "," + row(part("Updated today"), part("Playlist")) + "]"
+
+        val card = watch(results = listOf(playlistLockup("PLabc", rows))).watchRelatedResults(hl = "en").entries.single() as WatchRelatedEntry.PlaylistCard
+
+        assertThat(card.labels.badge).isNull()
+        assertThat(card.labels.byline).isEqualTo("Rick Astley")
+        assertThat(card.labels.details).isEqualTo("Updated today · Playlist")
+    }
+
+    @Test
+    fun `a playlist with no metadata rows has no lines to show`() {
+        val card = watch(results = listOf(playlistLockup("PLabc", "[]", badge = "Mix"))).watchRelatedResults(hl = "en").entries.single() as WatchRelatedEntry.PlaylistCard
+
+        assertThat(card.labels.badge).isEqualTo("Mix")
+        assertThat(card.labels.byline).isNull()
+        assertThat(card.labels.details).isNull()
+    }
+
+    @Test
     fun `the Shorts shelf keeps its title and its reels`() {
         val results = watch(results = listOf(reelShelf("Shorts remixing this video", "s1", "s2"))).watchRelatedResults(hl = "en")
 
@@ -108,8 +154,31 @@ class WatchRelatedResultsTest {
               "contentImage":{"collectionThumbnailViewModel":{"primaryThumbnail":{"thumbnailViewModel":{
                 "image":{"sources":[{"url":"https://i.ytimg.com/vi/x/hqdefault.jpg","width":336,"height":188}]},
                 "overlays":[{"thumbnailOverlayBadgeViewModel":{"thumbnailBadges":[{"thumbnailBadgeViewModel":{"text":"Mix"}}]}}]}}}},
-              "metadata":{"lockupMetadataViewModel":{"title":{"content":"Mix - ${id.removePrefix("RD")}"}}}}}
+              "metadata":{"lockupMetadataViewModel":{"title":{"content":"Mix - ${id.removePrefix("RD")}"},
+                "metadata":{"contentMetadataViewModel":{"delimiter":" • ","metadataRows":[{"metadataParts":[
+                  {"text":{"content":"Toto, Cyndi Lauper, and more"}},{"text":{"content":"Playlist"}}]}]}}}}}}
             """.trimIndent()
+
+        fun playlistLockup(
+            id: String,
+            rows: String,
+            badge: String? = null,
+        ) = """
+            {"lockupViewModel":{"contentId":"$id","contentType":"LOCKUP_CONTENT_TYPE_PLAYLIST",
+              "contentImage":{"collectionThumbnailViewModel":{"primaryThumbnail":{"thumbnailViewModel":{
+                "image":{"sources":[{"url":"https://i.ytimg.com/vi/x/hqdefault.jpg","width":336,"height":188}]},
+                "overlays":[${badge?.let { """{"thumbnailOverlayBadgeViewModel":{"thumbnailBadges":[{"thumbnailBadgeViewModel":{"text":"$it"}}]}}""" }.orEmpty()}]}}}},
+              "metadata":{"lockupMetadataViewModel":{"title":{"content":"Playlist $id"},
+                "metadata":{"contentMetadataViewModel":{"delimiter":" · ","metadataRows":$rows}}}}}}
+            """.trimIndent()
+
+        private fun part(
+            text: String,
+            browseId: String? = null,
+        ) = """{"text":{"content":"$text"""" +
+            browseId?.let { ""","commandRuns":[{"onTap":{"innertubeCommand":{"browseEndpoint":{"browseId":"$it"}}}}]""" }.orEmpty() + "}}"
+
+        private fun row(vararg parts: String) = """{"metadataParts":[${parts.joinToString(",")}]}"""
 
         fun reelShelf(
             title: String,

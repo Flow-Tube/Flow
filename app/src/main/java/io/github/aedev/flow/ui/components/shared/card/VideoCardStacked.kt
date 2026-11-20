@@ -131,7 +131,7 @@ private fun StackedCardText(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(if (dense) DenseTextSpacing else TextSpacing),
+        verticalArrangement = Arrangement.spacedBy(if (dense) DenseTextSpacing else VideoCardDefaults.StackedTextSpacing),
     ) {
         Text(
             text = state.title,
@@ -165,7 +165,6 @@ private fun StackedCardText(
     }
 }
 
-private val TextSpacing = 4.dp
 private val DenseTextSpacing = 2.dp
 private val DenseDetailsTopPadding = 6.dp
 private val DenseDetailsBottomPadding = 8.dp

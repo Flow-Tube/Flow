@@ -1,10 +1,12 @@
 package io.github.aedev.flow.innertube.pages
 
+import io.github.aedev.flow.data.model.CollectionLabels
 import io.github.aedev.flow.data.model.Playlist
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
 import io.github.aedev.flow.innertube.pages.renderer.FeedItem
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
+import io.github.aedev.flow.innertube.pages.renderer.lockupCollectionLabels
 import io.github.aedev.flow.innertube.pages.renderer.toFeedItem
 import io.github.aedev.flow.innertube.pages.renderer.toFeedShelf
 import kotlinx.serialization.json.Json
@@ -21,6 +23,7 @@ sealed interface WatchRelatedEntry {
     /** A playlist or a Mix; a Mix id starts with "RD". */
     data class PlaylistCard(
         val playlist: Playlist,
+        val labels: CollectionLabels = CollectionLabels(),
     ) : WatchRelatedEntry
 
     data class ShortsShelf(
@@ -122,7 +125,9 @@ private fun collectEntries(
     node["lockupViewModel"].objectOrNull()?.let { lockup ->
         val contentType = lockup["contentType"].stringOrNull()
         if (contentType != null && contentType != LOCKUP_CONTENT_TYPE_VIDEO) {
-            (node.toFeedItem(FeedItemOwner()) as? FeedItem.PlaylistItem)?.let { out += WatchRelatedEntry.PlaylistCard(it.playlist) }
+            (node.toFeedItem(FeedItemOwner()) as? FeedItem.PlaylistItem)?.let {
+                out += WatchRelatedEntry.PlaylistCard(it.playlist, lockup.lockupCollectionLabels())
+            }
             return
         }
     }

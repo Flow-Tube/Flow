@@ -37,6 +37,7 @@ import io.github.aedev.flow.ui.components.shared.ThumbnailSkeletonGradient
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.card.VideoCardSkeleton
+import io.github.aedev.flow.ui.components.shared.card.inset
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.RelatedAppend
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
@@ -62,7 +63,11 @@ internal fun LazyListScope.relatedVideosContent(
             }
 
             is RelatedLaneSegment.Collection -> {
-                relatedCollectionItem(segment.collection, onPlaylistClick, onVideoClick)
+                val metrics =
+                    RelatedPlaylistMetrics(
+                        layout = if (cardStyle == PlayerRelatedCardStyle.COMPACT) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                    )
+                relatedCollectionItem(segment.collection, metrics, onPlaylistClick, onVideoClick)
             }
         }
     }
@@ -132,7 +137,7 @@ private fun UpNextLabelled(
 
 /** Once a keyboard is typing, related cards act as on a TV: one focus stop each, lifted while focused. */
 @Composable
-private fun KeyboardCardFocus(content: @Composable () -> Unit) {
+internal fun KeyboardCardFocus(content: @Composable () -> Unit) {
     if (LocalHardwareKeyboard.current.inUse && !LocalDpadNavigation.current) {
         CompositionLocalProvider(LocalDpadNavigation provides true, content)
     } else {
@@ -157,6 +162,14 @@ internal fun LazyListScope.relatedVideosGridContent(
     onPlaylistClick: (String) -> Unit = {},
 ) {
     val columns = if (cardStyle == PlayerRelatedCardStyle.COMPACT) 1 else layout.columns
+    // A playlist takes a whole row, so it matches the row cards a grid row cannot fill.
+    val gridPlaylistMetrics =
+        RelatedPlaylistMetrics(
+            layout = VideoCardLayout.Row,
+            thumbnailWidth = layout.thumbnailWidth,
+            inset = layout.cardDensity.inset,
+            horizontalPadding = layout.contentPadding,
+        )
     relatedLaneSegments(relatedVideos.size, collections).forEach { segment ->
         when (segment) {
             is RelatedLaneSegment.Videos -> {
@@ -176,7 +189,7 @@ internal fun LazyListScope.relatedVideosGridContent(
             }
 
             is RelatedLaneSegment.Collection -> {
-                relatedCollectionItem(segment.collection, onPlaylistClick, onVideoClick)
+                relatedCollectionItem(segment.collection, gridPlaylistMetrics, onPlaylistClick, onVideoClick)
             }
         }
     }

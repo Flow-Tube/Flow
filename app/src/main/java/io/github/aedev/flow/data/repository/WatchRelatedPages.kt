@@ -54,7 +54,7 @@ internal class WatchRelatedPages(
                 }
 
                 is WatchRelatedEntry.PlaylistCard -> {
-                    collections += RelatedCollection.PlaylistCard(seen.size, entry.playlist)
+                    collections += RelatedCollection.PlaylistCard(seen.size, entry.playlist, entry.labels)
                 }
 
                 is WatchRelatedEntry.ShortsShelf -> {
