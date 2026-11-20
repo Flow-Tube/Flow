@@ -5,8 +5,10 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 import io.github.aedev.flow.data.repository.WatchChannel
+import io.github.aedev.flow.data.repository.WatchRelatedPages
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
+import io.github.aedev.flow.innertube.pages.WatchRelatedResultsTest
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
@@ -70,6 +72,7 @@ class PlayerSecondaryMetadataLoaderTest {
     private fun loader(): PlayerSecondaryMetadataLoader =
         PlayerSecondaryMetadataLoader(
             repository = repository,
+            relatedPages = WatchRelatedPages(repository, testDispatcher),
             playerManager = playerManager,
             playerPreferences = playerPreferences,
             scope = loaderScope,
@@ -273,6 +276,50 @@ class PlayerSecondaryMetadataLoaderTest {
             coVerify(exactly = 1) { repository.getRelatedCandidates("v1") }
             assertThat(relatedResults().single().videos.map { it.id }).containsExactly("v2")
         }
+
+    @Test
+    fun `YouTube's pick from the watch page heads the published lane`() =
+        runTest(testDispatcher) {
+            stubWatchPage(listOf("a", "b", "pick"), upNext = "pick")
+            val loader = loader()
+
+            playing("v1")
+            loader.loadRelatedVideos("v1", primaryCandidates = emptyList(), loadToken = TOKEN_A)
+            advanceUntilIdle()
+
+            val related = relatedResults().single()
+            assertThat(related.videos.map { it.id }).containsExactly("pick", "a", "b").inOrder()
+            assertThat(related.upNextVideoId).isEqualTo("pick")
+            coVerify(exactly = 0) { repository.getRelatedCandidates(any()) }
+        }
+
+    @Test
+    fun `a pick the viewer hid leaves today's order and no label`() =
+        runTest(testDispatcher) {
+            stubWatchPage(listOf("a", "b", "pick"), upNext = "pick")
+            exclusions = FeedExclusions(suppressedVideoIds = setOf("pick"))
+            val loader = loader()
+
+            playing("v1")
+            loader.loadRelatedVideos("v1", primaryCandidates = emptyList(), loadToken = TOKEN_A)
+            advanceUntilIdle()
+
+            val related = relatedResults().single()
+            assertThat(related.videos.map { it.id }).containsExactly("a", "b").inOrder()
+            assertThat(related.upNextVideoId).isNull()
+        }
+
+    private fun stubWatchPage(
+        ids: List<String>,
+        upNext: String? = null,
+    ) {
+        coEvery { repository.watchNextResponse("v1") } returns
+            WatchRelatedResultsTest.watch(
+                results = ids.map(WatchRelatedResultsTest::videoLockup),
+                autoplay = upNext?.let { "[${WatchRelatedResultsTest.autoplaySet(it)}]" },
+            )
+        coEvery { repository.enrichLikelyCollabAvatarStacks(any(), any()) } answers { firstArg() }
+    }
 
     private companion object {
         const val TOKEN_A = 1L

@@ -37,6 +37,7 @@ import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueueDockDef
 import io.github.aedev.flow.ui.components.videoplayer.sheet.PlaylistQueuePaneCard
 import io.github.aedev.flow.ui.screens.player.content.PlayerDetailSideColumn
 import io.github.aedev.flow.ui.screens.player.content.VideoInfoContent
+import io.github.aedev.flow.ui.screens.player.content.labelledUpNext
 import io.github.aedev.flow.ui.screens.player.content.relatedListUsesGrid
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosContent
 import io.github.aedev.flow.ui.screens.player.content.relatedVideosGridContent
@@ -230,6 +231,7 @@ internal fun EnhancedVideoPlayerScreen(
                     enabled = showRelatedVideos && !showsRelatedSkeleton && uiState.relatedVideos.isNotEmpty() && !isInPipMode,
                 )
                 val firstRelatedCard = Modifier.focusRequester(screenState.relatedFocus.firstCard)
+                val upNextVideoId = uiState.labelledUpNext(playerState.hasNext)
                 if (ambientGlowFrames != null && immersive) {
                     AmbientImmersiveLayer(frames = ambientGlowFrames, isScrolling = { dimOnScroll && listState.isScrollInProgress })
                 } else if (ambientGlowFrames != null) {
@@ -274,6 +276,7 @@ internal fun EnhancedVideoPlayerScreen(
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
                                     firstCardModifier = firstRelatedCard,
+                                    upNextVideoId = upNextVideoId,
                                 )
                             } else {
                                 relatedVideosContent(
@@ -281,6 +284,7 @@ internal fun EnhancedVideoPlayerScreen(
                                     onVideoClick = onVideoClick,
                                     cardStyle = relatedCardStyle,
                                     firstCardModifier = firstRelatedCard,
+                                    upNextVideoId = upNextVideoId,
                                 )
                             }
                         }

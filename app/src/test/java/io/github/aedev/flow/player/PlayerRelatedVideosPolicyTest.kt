@@ -226,6 +226,28 @@ class PlayerRelatedVideosPolicyTest {
             assertThat(PlayerRelatedVideosPolicy.withoutWatched(videos, null as WatchedSuggestionsSource?)).isEqualTo(videos)
         }
 
+    @Test
+    fun `YouTube's pick heads the list and the rest keep their order`() {
+        val videos = listOf(video("a"), video("b"), video("pick"), video("c"))
+
+        val ordered = PlayerRelatedVideosPolicy.upNextFirst(videos, "pick")
+
+        assertThat(ordered.map { it.id }).containsExactly("pick", "a", "b", "c").inOrder()
+    }
+
+    @Test
+    fun `a pick the filters removed leaves the order as it was`() {
+        val kept =
+            PlayerRelatedVideosPolicy.sanitize(
+                videoId = "playing",
+                candidates = listOf(video("a"), video("pick", channelId = "blocked"), video("b")),
+                exclusions = FeedExclusions(blockedChannelIds = setOf("blocked")),
+            )
+
+        assertThat(PlayerRelatedVideosPolicy.upNextFirst(kept, "pick").map { it.id }).containsExactly("a", "b").inOrder()
+        assertThat(PlayerRelatedVideosPolicy.upNextFirst(kept, null)).isEqualTo(kept)
+    }
+
     private fun video(
         id: String,
         channelId: String = "channel-id",

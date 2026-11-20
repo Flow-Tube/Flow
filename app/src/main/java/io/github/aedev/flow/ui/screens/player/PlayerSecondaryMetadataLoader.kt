@@ -4,7 +4,9 @@ import android.util.Log
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.model.WatchRelatedPage
 import io.github.aedev.flow.data.recommendation.FeedExclusions
+import io.github.aedev.flow.data.repository.WatchRelatedPages
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.VideoChapter
@@ -41,6 +43,8 @@ internal sealed interface SecondaryMetadata {
         override val videoId: String,
         override val loadToken: Long,
         val videos: List<Video>,
+        /** Set only when YouTube's pick survived the filters and heads [videos]. */
+        val upNextVideoId: String? = null,
     ) : SecondaryMetadata
 
     class Category(
@@ -94,6 +98,7 @@ internal sealed interface SecondaryMetadata {
  */
 internal class PlayerSecondaryMetadataLoader(
     private val repository: YouTubeRepository,
+    private val relatedPages: WatchRelatedPages,
     private val playerManager: EnhancedPlayerManager,
     private val playerPreferences: PlayerPreferences,
     private val scope: CoroutineScope,
@@ -374,23 +379,26 @@ internal class PlayerSecondaryMetadataLoader(
                     return@launch
                 }
 
-                val fallbackCandidates =
+                // The watch page first, for its own order; the older lookup retries another client.
+                val fetched =
                     withTimeoutOrNull(RELATED_FALLBACK_TIMEOUT_MS) {
-                        repository.getRelatedCandidates(videoId)
-                    }.orEmpty()
+                        relatedPages.firstPage(videoId)?.takeIf { page ->
+                            PlayerRelatedVideosPolicy.sanitize(videoId, page.videos, shortsEnabled(), exclusions()).isNotEmpty()
+                        } ?: WatchRelatedPage(repository.getRelatedCandidates(videoId))
+                    }
                 if (!isPlaybackCurrent(loadToken) || !relatedLoad.holds(videoId, loadToken)) return@launch
 
                 val resolved =
                     PlayerRelatedVideosPolicy.select(
                         videoId = videoId,
                         primary = primaryCandidates,
-                        fallback = fallbackCandidates,
+                        fallback = fetched?.videos.orEmpty(),
                         current = currentState().relatedVideos,
                         shortsEnabled = shortsEnabled(),
                         exclusions = exclusions(),
                     )
                 if (resolved.isNotEmpty()) {
-                    publish(videoId, resolved, loadToken)
+                    publish(videoId, resolved, loadToken, fetched?.upNextVideoId)
                 } else {
                     Log.d(TAG, "No related videos resolved for $videoId")
                 }
@@ -471,10 +479,19 @@ internal class PlayerSecondaryMetadataLoader(
         videoId: String,
         videos: List<Video>,
         loadToken: Long,
+        upNextVideoId: String? = null,
     ) {
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             val unwatched = PlayerRelatedVideosPolicy.withoutWatched(videos, playerManager.watchedSuggestionsSource)
-            onResult(SecondaryMetadata.Related(videoId = videoId, loadToken = loadToken, videos = unwatched))
+            val ordered = PlayerRelatedVideosPolicy.upNextFirst(unwatched, upNextVideoId)
+            onResult(
+                SecondaryMetadata.Related(
+                    videoId = videoId,
+                    loadToken = loadToken,
+                    videos = ordered,
+                    upNextVideoId = upNextVideoId?.takeIf { it == ordered.firstOrNull()?.id },
+                ),
+            )
         }
     }
 

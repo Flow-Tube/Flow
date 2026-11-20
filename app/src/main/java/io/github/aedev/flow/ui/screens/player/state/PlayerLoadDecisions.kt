@@ -56,6 +56,7 @@ internal fun VideoPlayerUiState.beginLoadFor(videoId: String): VideoPlayerUiStat
         streamSizes = emptyMap(),
         savedPosition = null,
         relatedVideos = emptyList(),
+        upNextVideoId = null,
         channelAvatarUrl =
             cachedVideo
                 ?.takeIf { it.id == videoId }

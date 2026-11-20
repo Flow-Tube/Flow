@@ -34,6 +34,19 @@ object PlayerRelatedVideosPolicy {
             .filterNot { exclusions.hidesFromRecommendations(it) }
             .distinctBy { it.id }
 
+    /**
+     * YouTube's own next pick ahead of the rest, which keep their order. Runs after every filter, so
+     * a pick the viewer hid or already watched is simply absent and the list is left as it was.
+     */
+    fun upNextFirst(
+        videos: List<Video>,
+        upNextVideoId: String?,
+    ): List<Video> {
+        val index = upNextVideoId?.let { id -> videos.indexOfFirst { it.id == id } } ?: -1
+        if (index <= 0) return videos
+        return listOf(videos[index]) + videos.subList(0, index) + videos.subList(index + 1, videos.size)
+    }
+
     /** [sanitize] against a live [source]; a null source hides nothing. */
     suspend fun sanitizeHidden(
         videoId: String,

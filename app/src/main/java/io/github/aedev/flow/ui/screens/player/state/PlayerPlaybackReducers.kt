@@ -202,11 +202,12 @@ internal fun VideoPlayerUiState.applyChannelMetadata(result: SecondaryMetadata.C
 internal fun VideoPlayerUiState.applyRelatedVideos(
     videoId: String,
     videos: List<Video>,
+    upNextVideoId: String? = null,
 ): VideoPlayerUiState =
     if (cachedVideo?.id != videoId) {
         this
     } else {
-        copy(relatedVideos = videos)
+        copy(relatedVideos = videos, upNextVideoId = upNextVideoId)
     }
 
 /**

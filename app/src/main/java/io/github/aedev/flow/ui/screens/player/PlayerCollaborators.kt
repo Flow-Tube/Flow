@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.localmedia.LocalSubtitles
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.repository.LiveChatRepository
 import io.github.aedev.flow.data.repository.SponsorBlockRepository
+import io.github.aedev.flow.data.repository.WatchRelatedPages
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.data.transcript.TranscriptRepository
@@ -112,6 +113,7 @@ internal class PlayerCollaborators(
     val secondaryMetadata =
         PlayerSecondaryMetadataLoader(
             repository = repository,
+            relatedPages = WatchRelatedPages(repository, networkDispatcher),
             playerManager = playerManager,
             playerPreferences = playerPreferences,
             scope = scope,

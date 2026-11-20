@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -16,7 +18,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.FeedGridLayout
@@ -40,6 +45,7 @@ internal fun LazyListScope.relatedVideosContent(
     onVideoClick: (Video) -> Unit,
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
     firstCardModifier: Modifier = Modifier,
+    upNextVideoId: String? = null,
 ) {
     items(
         count = relatedVideos.size,
@@ -47,26 +53,50 @@ internal fun LazyListScope.relatedVideosContent(
     ) { index ->
         val relatedVideo = relatedVideos[index]
         val cardModifier = if (index == 0) firstCardModifier else Modifier
-        KeyboardCardFocus {
-            when (cardStyle) {
-                PlayerRelatedCardStyle.COMPACT -> {
-                    MediaVideoCard(
-                        video = relatedVideo,
-                        layout = VideoCardLayout.Row,
-                        onClick = { onVideoClick(relatedVideo) },
-                        modifier = cardModifier,
-                    )
-                }
+        UpNextLabelled(labelled = index == 0 && relatedVideo.id == upNextVideoId) {
+            KeyboardCardFocus {
+                when (cardStyle) {
+                    PlayerRelatedCardStyle.COMPACT -> {
+                        MediaVideoCard(
+                            video = relatedVideo,
+                            layout = VideoCardLayout.Row,
+                            onClick = { onVideoClick(relatedVideo) },
+                            modifier = cardModifier,
+                        )
+                    }
 
-                PlayerRelatedCardStyle.FULL_WIDTH -> {
-                    MediaVideoCard(
-                        video = relatedVideo,
-                        onClick = { onVideoClick(relatedVideo) },
-                        modifier = cardModifier,
-                    )
+                    PlayerRelatedCardStyle.FULL_WIDTH -> {
+                        MediaVideoCard(
+                            video = relatedVideo,
+                            onClick = { onVideoClick(relatedVideo) },
+                            modifier = cardModifier,
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/** YouTube's next pick, named above its card the way the countdown names it. */
+@Composable
+private fun UpNextLabelled(
+    labelled: Boolean,
+    horizontalPadding: Dp = UpNextLabelHorizontalPadding,
+    content: @Composable () -> Unit,
+) {
+    if (!labelled) {
+        content()
+        return
+    }
+    Column {
+        Text(
+            text = stringResource(R.string.autoplay_countdown_up_next),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = UpNextLabelVerticalPadding),
+        )
+        content()
     }
 }
 
@@ -92,6 +122,7 @@ internal fun LazyListScope.relatedVideosGridContent(
     onVideoClick: (Video) -> Unit,
     cardStyle: PlayerRelatedCardStyle = PlayerRelatedCardStyle.FULL_WIDTH,
     firstCardModifier: Modifier = Modifier,
+    upNextVideoId: String? = null,
 ) {
     val columns = if (cardStyle == PlayerRelatedCardStyle.COMPACT) 1 else layout.columns
     val rows = relatedGridRows(relatedVideos.size, columns)
@@ -102,7 +133,10 @@ internal fun LazyListScope.relatedVideosGridContent(
         contentType = { index -> if (rows[index].size == 1) "related_row" else "related_grid_row" },
     ) { index ->
         val row = rows[index]
-        KeyboardCardFocus { RelatedGridRow(row, index == 0, relatedVideos, layout, onVideoClick, firstCardModifier) }
+        val labelled = index == 0 && relatedVideos.firstOrNull()?.id == upNextVideoId && row.firstOrNull() == 0
+        UpNextLabelled(labelled = labelled, horizontalPadding = layout.contentPadding) {
+            KeyboardCardFocus { RelatedGridRow(row, index == 0, relatedVideos, layout, onVideoClick, firstCardModifier) }
+        }
     }
 }
 
@@ -149,6 +183,9 @@ private fun RelatedGridRow(
         }
     }
 }
+
+/** The pick to label, only while autoplay will actually play it: a queue plays its own next video. */
+internal fun VideoPlayerUiState.labelledUpNext(queueHasNext: Boolean): String? = upNextVideoId.takeIf { autoplayEnabled && !queueHasNext }
 
 /**
  * Whether the related list lays out as [relatedVideosGridContent]: always on the medium layout, and on
@@ -231,6 +268,8 @@ internal fun LazyListScope.relatedVideosSkeleton(
 }
 
 private val GridRowVerticalPadding = 6.dp
+private val UpNextLabelHorizontalPadding = 16.dp
+private val UpNextLabelVerticalPadding = 8.dp
 private val SkeletonCardSpacing = 12.dp
 private const val RELATED_SKELETON_CARDS = 3
 private const val RELATED_SKELETON_HOLD_MS = 3_000L

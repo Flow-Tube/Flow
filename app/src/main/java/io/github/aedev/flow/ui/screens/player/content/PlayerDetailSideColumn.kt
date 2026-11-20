@@ -267,6 +267,7 @@ internal fun PlayerDetailSideColumn(
                                             onVideoClick = onVideoClick,
                                             cardStyle = relatedCardStyle,
                                             firstCardModifier = Modifier.focusRequester(screenState.relatedFocus.firstCard),
+                                            upNextVideoId = uiState.labelledUpNext(playerState.hasNext),
                                         )
                                     }
                                 }

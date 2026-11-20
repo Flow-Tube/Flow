@@ -40,7 +40,7 @@ internal class SecondaryMetadataApplier(
         when (result) {
             is SecondaryMetadata.Channel -> applyChannelMetadata(result)
             is SecondaryMetadata.PaidPromotion -> applyPaidPromotion(result)
-            is SecondaryMetadata.Related -> publishRelatedVideos(result.videoId, result.videos, result.loadToken)
+            is SecondaryMetadata.Related -> publishRelatedVideos(result.videoId, result.videos, result.loadToken, result.upNextVideoId)
             is SecondaryMetadata.LiveWatch -> applyLiveWatchMetadata(result)
             is SecondaryMetadata.Category -> applyCategory(result)
             is SecondaryMetadata.Heatmap -> applyHeatmap(result)
@@ -130,6 +130,7 @@ internal class SecondaryMetadataApplier(
         videoId: String,
         videos: List<Video>,
         loadToken: Long,
+        upNextVideoId: String? = null,
     ) {
         if (!isLoadCurrent(loadToken) || videos.isEmpty()) return
         val state = uiState.value
@@ -144,7 +145,7 @@ internal class SecondaryMetadataApplier(
                 videos = videos,
                 enabled = autoplay,
             )
-            uiState.update { it.applyRelatedVideos(videoId, videos) }
+            uiState.update { it.applyRelatedVideos(videoId, videos, upNextVideoId) }
         }
         noteRelatedForLearning(videoId, videos)
     }

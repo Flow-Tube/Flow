@@ -15,6 +15,8 @@ import io.github.aedev.flow.player.stream.model.VideoStream
 data class VideoPlayerUiState(
     val cachedVideo: Video? = null,
     val relatedVideos: List<Video> = emptyList(),
+    /** YouTube's next pick when it heads [relatedVideos], for the lane to label it. */
+    val upNextVideoId: String? = null,
     val videoStream: VideoStream? = null,
     val audioStream: AudioStream? = null,
     val availableQualities: List<VideoQuality> = emptyList(),
@@ -84,6 +86,7 @@ data class VideoPlayerUiState(
             streamSizes = emptyMap(),
             savedPosition = null,
             relatedVideos = emptyList(),
+            upNextVideoId = null,
             isSubscribed = isSubscribed && video.channelId.isNotBlank() && video.channelId == cachedVideo?.channelId,
             likeState = likeState.takeIf { video.id == cachedVideo?.id },
             hlsUrl = null,
