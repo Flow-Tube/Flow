@@ -30,13 +30,6 @@ data class VideoDescriptionChannel(
     val links: List<VideoDescriptionLink> = emptyList(),
 )
 
-/** The "How this was made" note: altered or synthetic content, auto-dubbed audio and the like. */
-data class VideoDescriptionDisclosure(
-    val title: String,
-    val header: String?,
-    val body: RichText?,
-)
-
 /**
  * The watch page's own description: the text with its typed spans, and the figures beside it.
  *
@@ -50,30 +43,19 @@ data class VideoDescriptionPage(
     val publishedDateText: String? = null,
     val factoids: List<VideoDescriptionFactoid> = emptyList(),
     val channel: VideoDescriptionChannel? = null,
-    val howThisWasMade: VideoDescriptionDisclosure? = null,
+    val music: VideoDescriptionMusic? = null,
+    val disclosure: VideoDescriptionDisclosure? = null,
 ) {
     val isEmpty: Boolean
-        get() = description == null && viewCount == null && factoids.isEmpty() && channel == null
+        get() =
+            description == null && viewCount == null && factoids.isEmpty() && channel == null &&
+                music == null && disclosure == null
 }
 
 internal fun JsonElement.toVideoDescriptionPage(ownVideoId: String?): VideoDescriptionPage {
-    val results =
-        objectOrNull()
-            ?.get("contents")
-            .objectOrNull()
-            ?.get("twoColumnWatchNextResults")
-            .objectOrNull()
-            ?.get("results")
-            .objectOrNull()
-            ?.get("results")
-            .objectOrNull()
-            ?.get("contents")
-            .arrayOrNull()
-            .orEmpty()
-    val primary =
-        results.firstNotNullOfOrNull { it.objectOrNull()?.get("videoPrimaryInfoRenderer").objectOrNull() }
-    val secondary =
-        results.firstNotNullOfOrNull { it.objectOrNull()?.get("videoSecondaryInfoRenderer").objectOrNull() }
+    val primary = watchInfoRenderer("videoPrimaryInfoRenderer")
+    val secondary = watchInfoRenderer("videoSecondaryInfoRenderer")
+    val items = structuredDescriptionItems()
     val viewCountRenderer =
         primary
             ?.get("viewCount")
@@ -97,9 +79,10 @@ internal fun JsonElement.toVideoDescriptionPage(ownVideoId: String?): VideoDescr
                     ?.let(::parseYouTubeViewCount)
                     ?.takeIf { it > 0L },
         publishedDateText = primary?.get("dateText").youtubeText(),
-        factoids = structuredDescriptionItems().flatMap { it.toFactoids() },
-        channel = structuredDescriptionItems().firstNotNullOfOrNull { it.toChannel() },
-        howThisWasMade = structuredDescriptionItems().firstNotNullOfOrNull { it.toDisclosure(ownVideoId) },
+        factoids = items.flatMap { it.toFactoids() },
+        channel = items.firstNotNullOfOrNull { it.toChannel() },
+        music = items.firstNotNullOfOrNull { it.toMusicSection(ownVideoId) },
+        disclosure = items.firstNotNullOfOrNull { it.toDisclosure(ownVideoId) },
     )
 }
 
@@ -120,19 +103,10 @@ internal fun JsonElement.toReelDescriptionPage(ownVideoId: String?): VideoDescri
             publishedDateText = header?.get("publishDate").youtubeText(),
             factoids = items.flatMap { it.toFactoids() },
             channel = items.firstNotNullOfOrNull { it.toChannel() },
-            howThisWasMade = items.firstNotNullOfOrNull { it.toDisclosure(ownVideoId) },
+            music = items.firstNotNullOfOrNull { it.toMusicSection(ownVideoId) },
+            disclosure = items.firstNotNullOfOrNull { it.toDisclosure(ownVideoId) },
         )
     return page.takeUnless { it.isEmpty }
-}
-
-private fun JsonObject.toDisclosure(ownVideoId: String?): VideoDescriptionDisclosure? {
-    val section = this["howThisWasMadeSectionViewModel"].objectOrNull() ?: return null
-    val title = section["sectionTitle"].youtubeText()?.takeIf { it.isNotBlank() } ?: return null
-    return VideoDescriptionDisclosure(
-        title = title,
-        header = section["bodyHeader"].youtubeText(),
-        body = section["bodyText"].toRichText(ownVideoId),
-    )
 }
 
 /**

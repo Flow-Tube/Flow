@@ -15,12 +15,15 @@ import io.github.aedev.flow.innertube.models.response.VideoChaptersParser
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
 import io.github.aedev.flow.innertube.models.response.VideoHeatmapParser
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
+import io.github.aedev.flow.innertube.pages.LiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
+import io.github.aedev.flow.innertube.pages.WatchPageHeader
 import io.github.aedev.flow.innertube.pages.YouTubeCountParser
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.search.resultVideos
+import io.github.aedev.flow.innertube.pages.toWatchPageHeader
 import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -317,27 +320,24 @@ class YouTubeRepository
                             batch
                                 .map { video ->
                                     async(Dispatchers.IO) {
-                                        val collaborators =
-                                            videoCollaboratorCache[video.id]
-                                                ?: withTimeoutOrNull(4_000L) {
-                                                    YouTube.videoCollaborators(video.id).getOrNull()
-                                                }.orEmpty().also { items ->
-                                                    if (items.isNotEmpty()) {
-                                                        videoCollaboratorCache.put(video.id, items)
-                                                    }
-                                                }
+                                        val cachedCollaborators = videoCollaboratorCache[video.id]
+                                        val cachedStack = videoAvatarStackCache[video.id]
+                                        val (collaborators, fetchedStack) =
+                                            if (cachedCollaborators != null || cachedStack != null) {
+                                                cachedCollaborators.orEmpty() to cachedStack.orEmpty()
+                                            } else {
+                                                withTimeoutOrNull(4_000L) {
+                                                    YouTube.videoOwnerCredits(video.id).getOrNull()
+                                                }?.also { (items, urls) ->
+                                                    if (items.isNotEmpty()) videoCollaboratorCache.put(video.id, items)
+                                                    videoAvatarStackCache.put(video.id, urls)
+                                                } ?: (emptyList<VideoCollaborator>() to emptyList())
+                                            }
                                         val stack =
                                             collaborators
                                                 .map { it.thumbnailUrl }
                                                 .filter { it.isNotBlank() }
-                                                .ifEmpty {
-                                                    videoAvatarStackCache[video.id]
-                                                        ?: withTimeoutOrNull(4_000L) {
-                                                            YouTube.videoAvatarStack(video.id).getOrNull()
-                                                        }.orEmpty().also { urls ->
-                                                            videoAvatarStackCache.put(video.id, urls)
-                                                        }
-                                                }
+                                                .ifEmpty { fetchedStack }
                                         video.id to (collaborators to stack)
                                     }
                                 }.awaitAll()
@@ -535,6 +535,27 @@ class YouTubeRepository
             withContext(Dispatchers.IO) {
                 val response = watchNextResponse(videoId) ?: return@withContext null
                 YouTube.videoDescription(response, videoId).takeIf { !it.isEmpty }
+            }
+
+        /**
+         * One round of the live counts a watch page refreshes; null when the request failed. Not
+         * cached: every call is a deliberate poll, paced by the server's own interval.
+         */
+        suspend fun liveMetadataUpdate(
+            videoId: String,
+            continuation: String?,
+        ): LiveMetadataUpdate? =
+            withContext(Dispatchers.IO) {
+                YouTube
+                    .updatedMetadata(videoId, continuation)
+                    .onFailure { Log.d(TAG, "Live metadata for $videoId failed: ${it.message}") }
+                    .getOrNull()
+            }
+
+        /** The hashtags above the title and the rest of the title row, off the shared watch response. */
+        suspend fun watchPageHeader(videoId: String): WatchPageHeader? =
+            withContext(Dispatchers.IO) {
+                watchNextResponse(videoId)?.toWatchPageHeader(videoId)
             }
 
         /**

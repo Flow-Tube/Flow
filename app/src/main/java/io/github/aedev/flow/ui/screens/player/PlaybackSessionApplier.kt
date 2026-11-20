@@ -272,6 +272,7 @@ internal class PlaybackSessionApplier(
         secondaryMetadata.loadRelatedVideos(load.videoId, emptyList(), load.token)
         secondaryMetadata.loadHeatmap(load.videoId, load.token)
         secondaryMetadata.loadChapters(load.videoId, load.token)
+        secondaryMetadata.loadWatchHeader(load.videoId, load.token)
         secondaryMetadata.loadWatchInfo(load.videoId, video, load.token)
     }
 
@@ -329,6 +330,7 @@ internal class PlaybackSessionApplier(
         liveChat.start(videoId)
 
         secondaryMetadata.refreshLiveWatchMetadata(videoId, identity.enrichedVideo, load.token)
+        secondaryMetadata.loadWatchHeader(videoId, load.token)
     }
 
     private suspend fun prepareVodStreamFromInnerTube(
@@ -402,6 +404,7 @@ internal class PlaybackSessionApplier(
         secondaryMetadata.loadCategory(videoId, load.token)
         secondaryMetadata.loadHeatmap(videoId, load.token)
         secondaryMetadata.loadChapters(videoId, load.token)
+        secondaryMetadata.loadWatchHeader(videoId, load.token)
         secondaryMetadata.loadPaidPromotion(videoId, load.token)
         secondaryMetadata.loadWatchInfo(videoId, identity.enrichedVideo, load.token)
         secondaryMetadata.loadChannelMetadata(

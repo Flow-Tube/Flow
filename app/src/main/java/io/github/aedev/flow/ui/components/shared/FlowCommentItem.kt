@@ -4,7 +4,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,15 +17,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.outlined.ThumbUp
-import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,13 +38,8 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
-import io.github.aedev.flow.utils.formatLikeCount
-
-/** Centre of the parent avatar: the row's start padding plus half the 40 dp avatar, less the line. */
-private val ThreadLineStart = 35.dp
 
 @Composable
 fun FlowCommentItem(
@@ -63,6 +52,8 @@ fun FlowCommentItem(
     onToggleReplies: () -> Unit,
     isExpanded: Boolean,
     onExpand: () -> Unit,
+    isUnfolded: (String) -> Boolean,
+    onUnfold: (String) -> Unit,
     onAvatarClick: (String) -> Unit = {},
     tint: MediaArtworkTint? = null,
 ) {
@@ -96,20 +87,24 @@ fun FlowCommentItem(
         )
     }
 
+    val threadOpen = isRepliesVisible && comment.replies.isNotEmpty()
+    val lineColor = MaterialTheme.colorScheme.outlineVariant
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .then(if (threadOpen) Modifier.commentThreadStem(lineColor) else Modifier)
                     .padding(horizontal = ThreadHorizontalPadding)
-                    .padding(top = 12.dp, bottom = 4.dp),
+                    .padding(top = CommentRowTopPadding, bottom = 4.dp),
         ) {
             ChannelAvatarImage(
                 url = comment.authorThumbnail,
                 contentDescription = null,
                 modifier =
                     Modifier
-                        .size(40.dp)
+                        .size(CommentAvatarSize)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable {
@@ -118,7 +113,7 @@ fun FlowCommentItem(
                         },
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(CommentAvatarGap))
 
             Column(modifier = Modifier.weight(1f)) {
                 if (comment.isPinned) {
@@ -157,7 +152,6 @@ fun FlowCommentItem(
                             style =
                                 MaterialTheme.typography.bodyMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    lineHeight = 20.sp,
                                 ),
                             maxLines = if (isExpanded) Int.MAX_VALUE else 4,
                             overflow = TextOverflow.Ellipsis,
@@ -213,6 +207,8 @@ fun FlowCommentItem(
                         replyCount = comment.replyCount,
                         expanded = isRepliesVisible,
                         loading = isLoadingReplies,
+                        creatorAvatar = comment.creatorReplyThumbnail,
+                        creatorName = comment.creatorReplyName,
                         onClick = {
                             if (!isRepliesVisible && comment.replies.isEmpty()) {
                                 isLoadingReplies = true
@@ -225,12 +221,23 @@ fun FlowCommentItem(
             }
         }
 
-        if (isRepliesVisible && comment.replies.isNotEmpty()) {
-            val tree = remember(comment.replies) { buildCommentReplyTree(comment.replies) }
+        if (threadOpen) {
+            val creatorAvatar =
+                remember(comment) {
+                    comment.creatorHeartThumbnail
+                        ?: comment.creatorReplyThumbnail
+                        ?: comment.replies
+                            .firstOrNull { it.isCreator }
+                            ?.authorThumbnail
+                            ?.takeIf(String::isNotBlank)
+                }
             ReplyThread(
-                nodes = tree,
+                replies = comment.replies,
                 hasMore = comment.continuationToken != null,
-                startPadding = ThreadLineStart,
+                loadingMore = isLoadingReplies,
+                isUnfolded = isUnfolded,
+                onUnfold = onUnfold,
+                creatorAvatar = creatorAvatar,
                 tint = tint,
                 onSeekMs = onSeekMs,
                 onAuthorClick = onAuthorClick,
@@ -239,117 +246,6 @@ fun FlowCommentItem(
                     isLoadingReplies = true
                     onLoadMoreReplies(comment)
                 },
-            )
-        }
-    }
-}
-
-@Composable
-internal fun CommentAuthorRow(
-    comment: Comment,
-    onAuthorClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        CommentAuthorName(
-            comment = comment,
-            onAuthorClick = onAuthorClick,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        if (comment.isVerified || comment.isArtist) {
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Rounded.Verified,
-                contentDescription = stringResource(R.string.verified),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(13.dp),
-            )
-        }
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = localizedCommentPublishedTime(comment.publishedTime),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun CommentAuthorName(
-    comment: Comment,
-    onAuthorClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val name = formatAuthorName(comment.author)
-    val clickable =
-        modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = ripple(),
-            onClick = { onAuthorClick(commentAuthorChannelRef(comment)) },
-        )
-    if (comment.isCreator) {
-        Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            shape = CircleShape,
-            modifier = clickable,
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            )
-        }
-        return
-    }
-    Text(
-        text = name,
-        style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = clickable,
-    )
-}
-
-/**
- * The like count, and the heart the creator left on this comment.
- *
- * The thumbs-down and reply icons that used to sit here were decoration: neither was clickable,
- * and neither has an action this app can perform without a signed-in session.
- */
-@Composable
-internal fun CommentEngagementRow(
-    comment: Comment,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = Icons.Outlined.ThumbUp,
-            contentDescription = stringResource(R.string.like),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(14.dp),
-        )
-        val likeText = comment.likeCountText.takeIf { it.isNotBlank() } ?: comment.likeCount.takeIf { it > 0 }?.let(::formatLikeCount)
-        if (likeText != null) {
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = likeText,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (comment.isHearted) {
-            Spacer(modifier = Modifier.width(14.dp))
-            Icon(
-                imageVector = Icons.Filled.Favorite,
-                contentDescription = comment.heartedByText ?: stringResource(R.string.comment_hearted_by_creator),
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(14.dp),
             )
         }
     }

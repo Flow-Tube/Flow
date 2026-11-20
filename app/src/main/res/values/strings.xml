@@ -533,6 +533,14 @@
         <item quantity="other">View %1$d replies</item>
     </plurals>
     <string name="load_more_replies">Load more replies</string>
+    <!-- Folded replies to a reply, opened in place, e.g. "3 replies" -->
+    <plurals name="comment_folded_replies">
+        <item quantity="one">%1$d reply</item>
+        <item quantity="other">%1$d replies</item>
+    </plurals>
+    <!-- Spoken for the creator's avatar on a thread's replies button, e.g. "MKBHD replied" -->
+    <string name="comment_creator_replied">%1$s replied</string>
+    <string name="comment_creator_replied_unnamed">The creator replied</string>
     <string name="select_text">Select Text</string>
     <string name="pinned_comment">Pinned comment</string>
     <string name="pinned_by_creator">Pinned by creator</string>
@@ -557,6 +565,9 @@
     <string name="description">Description</string>
     <string name="desc_see_more">See more</string>
     <string name="description_video_card_source" translatable="false">YouTube</string>
+    <string name="description_music_section">Music</string>
+    <string name="description_how_this_was_made">How this was made</string>
+    <string name="channel_badge_artist">Official Artist Channel</string>
     <string name="desc_see_less">See less</string>
     <string name="copy_description">Copy description</string>
     <string name="description_copied">Description copied to clipboard</string>

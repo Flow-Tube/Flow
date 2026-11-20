@@ -81,6 +81,8 @@ class CommentUiTest {
                     onToggleReplies = {},
                     isExpanded = false,
                     onExpand = {},
+                    isUnfolded = { false },
+                    onUnfold = {},
                 )
             }
         }

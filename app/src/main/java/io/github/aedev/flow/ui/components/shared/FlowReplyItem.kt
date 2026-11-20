@@ -34,6 +34,8 @@ fun FlowReplyItem(
     onAuthorClick: (String) -> Unit = {},
     onAvatarClick: (String) -> Unit = {},
     tint: MediaArtworkTint? = null,
+    creatorAvatar: String? = null,
+    modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
     val accent = tint?.accent ?: MaterialTheme.colorScheme.primary
@@ -58,16 +60,16 @@ fun FlowReplyItem(
 
     Row(
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = ReplyRowVerticalPadding),
     ) {
         ChannelAvatarImage(
             url = reply.authorThumbnail,
             contentDescription = null,
             modifier =
                 Modifier
-                    .size(24.dp)
+                    .size(ReplyAvatarSize)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable {
@@ -76,10 +78,9 @@ fun FlowReplyItem(
                     },
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(ReplyAvatarGap))
 
         Column(modifier = Modifier.weight(1f)) {
-            // Header: Author + Time
             CommentAuthorRow(
                 comment = reply,
                 onAuthorClick = onAuthorClick,
@@ -87,7 +88,6 @@ fun FlowReplyItem(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // Reply Body
             SelectionContainer {
                 BasicText(
                     text = replyText.annotated,
@@ -114,8 +114,7 @@ fun FlowReplyItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Action Bar (Minimal for replies)
-            CommentEngagementRow(comment = reply)
+            CommentEngagementRow(comment = reply, creatorAvatar = creatorAvatar)
         }
     }
 }

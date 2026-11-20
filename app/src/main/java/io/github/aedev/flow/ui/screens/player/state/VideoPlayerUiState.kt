@@ -9,6 +9,7 @@ import io.github.aedev.flow.innertube.models.response.PaidPromotionLabel
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.innertube.models.response.VideoHeatmap
+import io.github.aedev.flow.innertube.pages.WatchPageHeader
 import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.player.stream.model.AudioStream
 import io.github.aedev.flow.player.stream.model.VideoStream
@@ -69,6 +70,7 @@ data class VideoPlayerUiState(
     val isLiveChatAvailable: Boolean = false,
     val liveChatMessages: List<LiveChatMessage> = emptyList(),
     val isLiveChatLoading: Boolean = false,
+    val watchHeader: WatchPageHeader? = null,
 ) {
     /**
      * The state to show while [video] is being armed: its metadata, and every field that describes
@@ -107,6 +109,7 @@ data class VideoPlayerUiState(
             chapters = emptyList(),
             heatmap = null,
             storyboard = emptyList(),
+            watchHeader = null,
         )
 }
 
