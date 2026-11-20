@@ -14,6 +14,7 @@ import io.github.aedev.flow.innertube.models.response.NextResponse
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.utils.parseCookieString
 import io.github.aedev.flow.innertube.utils.sha1
+import io.github.aedev.flow.network.FlowRequestLog
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.*
@@ -155,6 +156,7 @@ class InnerTube {
             // PERFORMANCE OPTIMIZED: Enhanced network configuration
             engine {
                 config {
+                    FlowRequestLog.install(this)
                     // Aggressive connection pool for faster connection reuse
                     connectionPool(
                         okhttp3.ConnectionPool(
