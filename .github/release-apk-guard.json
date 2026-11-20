@@ -1279,5 +1279,6 @@
     "Lkotlin/reflect/jvm/internal/",
     "Lcom/google/re2j/",
     "Landroidx/constraintlayout/"
-  ]
+  ],
+  "onlyAppLocales": true
 }

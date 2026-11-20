@@ -31,21 +31,22 @@ fun secretValue(
         ?: System.getenv(environment)
         ?: ""
 
-// The in-app picker lists the same languages AGP writes into the generated locale config: every
-// values folder that carries a strings.xml, so a new Weblate language shows up in both at once.
-fun translatedLocaleTags(): List<String> =
+// Every values folder that carries a strings.xml, as its resource qualifier (pt-rBR, b+yue+Hant).
+// The in-app picker, the generated locale config and the APK's resources all follow this list, so a
+// new Weblate language shows up in all three at once.
+fun translatedLocaleQualifiers(): List<String> =
     file("src/main/res")
         .listFiles()
         .orEmpty()
-        .filter { it.isDirectory && it.resolve("strings.xml").exists() }
-        .mapNotNull { dir ->
-            val qualifier = dir.name.removePrefix("values-")
-            when {
-                qualifier == dir.name -> null
-                qualifier.startsWith("b+") -> qualifier.removePrefix("b+").replace('+', '-')
-                Regex("[a-z]{2,3}(-r[A-Z]{2})?").matches(qualifier) -> qualifier.replace("-r", "-")
-                else -> null
-            }
+        .filter { it.isDirectory && it.resolve("strings.xml").exists() && it.name.startsWith("values-") }
+        .map { it.name.removePrefix("values-") }
+        .filter { it.startsWith("b+") || Regex("[a-z]{2,3}(-r[A-Z]{2})?").matches(it) }
+        .sorted()
+
+fun translatedLocaleTags(): List<String> =
+    translatedLocaleQualifiers()
+        .map { qualifier ->
+            if (qualifier.startsWith("b+")) qualifier.removePrefix("b+").replace('+', '-') else qualifier.replace("-r", "-")
         }.map { if (it == "in" || it.startsWith("in-")) "id" + it.removePrefix("in") else it }
         .sorted()
 
@@ -116,6 +117,8 @@ android {
 
     androidResources {
         generateLocaleConfig = true
+        // Libraries bring their own strings in about 90 languages; the app ships only the ones it is translated into.
+        localeFilters += listOf("en") + translatedLocaleQualifiers()
     }
 
     signingConfigs {

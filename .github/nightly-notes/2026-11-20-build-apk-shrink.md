@@ -1,2 +1,2 @@
 ## Improved
-- The app download is about 1.8 MB smaller
+- The app download is about 3.3 MB smaller

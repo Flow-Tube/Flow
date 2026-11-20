@@ -10,7 +10,8 @@ signature it stripped (#996, #964). This reads the shrunk dex instead and compar
 - modelFieldSignatures: the generic fields of the data models, which must keep their signature;
 - reflectCallers, when listed: the only methods outside kotlin.reflect that may call kotlin-reflect's full API;
 - absentPackages: libraries that must not ship;
-- every language the app is translated into (values-*/strings.xml) must be in resources.arsc.
+- every language the app is translated into (values-*/strings.xml) must be in resources.arsc, and with
+  onlyAppLocales no other.
 
 Usage: release_apk_guard.py APK [APK ...]          check
        release_apk_guard.py --print APK            print the facts of one APK as JSON
@@ -204,6 +205,10 @@ def check(apk: pathlib.Path, expected: dict) -> list:
     missing = sorted(translated - set(found["locales"]))
     if missing:
         problems.append(f"Translations missing from the APK: {missing}")
+    if expected.get("onlyAppLocales"):
+        extra = sorted(set(found["locales"]) - translated - {"en"})
+        if extra:
+            problems.append(f"Languages the app is not translated into ship in resources.arsc: {extra}. Check androidResources.localeFilters.")
     for package in expected.get("absentPackages", []):
         shipped = [name for name in found["classes"] if name.startswith(package)]
         if shipped:
