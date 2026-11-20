@@ -54,8 +54,8 @@ internal fun rememberCommentText(
 /**
  * The inline images a piece of rich text carries, keyed the way [toAnnotatedString] references them.
  *
- * Comment emoji are square; a platform icon in a description is wider than it is tall, so both are
- * given a box a little wider than the line and left to fit inside it.
+ * A custom emoji is drawn a little larger than the text. A site icon inserted before a link sits in
+ * a one-em box, YouTube's 14 pt beside its 14 pt text, and fits inside it whatever its proportions.
  */
 @Composable
 fun rememberRichTextInlineContent(richText: RichText?): Map<String, InlineTextContent> {
@@ -66,8 +66,8 @@ fun rememberRichTextInlineContent(richText: RichText?): Map<String, InlineTextCo
                 InlineTextContent(
                     placeholder =
                         Placeholder(
-                            width = if (image.length == 0) InsertedImageWidth else EmojiSize,
-                            height = EmojiSize,
+                            width = if (image.length == 0) InsertedImageSize else EmojiSize,
+                            height = if (image.length == 0) InsertedImageSize else EmojiSize,
                             placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
                         ),
                 ) {
@@ -82,4 +82,4 @@ fun rememberRichTextInlineContent(richText: RichText?): Map<String, InlineTextCo
     }
 }
 
-private val InsertedImageWidth = 1.5.em
+private val InsertedImageSize = 1.em

@@ -133,25 +133,26 @@ private fun RichTextTarget.linkStyle(
     linkColor: Color,
     highlighted: Boolean,
 ): SpanStyle =
-    when (this) {
+    when {
+        // The chip behind it already marks the link, so it reads in the text's own colour, as
+        // YouTube draws it; an underline as well made a column of social handles read as a column
+        // of corrections.
+        highlighted -> {
+            SpanStyle(textDecoration = TextDecoration.None)
+        }
+
         // Colour and weight alone: a timestamp sits mid-sentence, and a chip around three digits
         // reads as a button dropped into the middle of a paragraph.
-        is RichTextTarget.Timestamp, is RichTextTarget.Hashtag -> {
+        this is RichTextTarget.Timestamp || this is RichTextTarget.Hashtag -> {
             SpanStyle(color = linkColor, fontWeight = FontWeight.Bold)
         }
 
-        is RichTextTarget.Channel -> {
+        this is RichTextTarget.Channel -> {
             SpanStyle(color = linkColor, fontWeight = FontWeight.Medium)
         }
 
-        is RichTextTarget.Video, is RichTextTarget.Url -> {
-            SpanStyle(
-                color = linkColor,
-                // A link inside a highlight is already marked by the chip behind it; underlining it
-                // too is what made a column of social handles read as a column of corrections.
-                textDecoration = if (highlighted) TextDecoration.None else TextDecoration.Underline,
-                fontWeight = FontWeight.Medium,
-            )
+        else -> {
+            SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline, fontWeight = FontWeight.Medium)
         }
     }
 

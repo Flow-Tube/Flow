@@ -91,6 +91,38 @@ data class RichText(
     val hasTimestamp: Boolean get() = spans.any { it.target is RichTextTarget.Timestamp }
 }
 
+/**
+ * The part of this text between [from] and [to], with every range clipped to it and moved to its
+ * start. An emoji that replaces text is kept only whole; an inserted one belongs to the text after it.
+ */
+fun RichText.slice(
+    from: Int,
+    to: Int,
+): RichText {
+    val start = from.coerceIn(0, text.length)
+    val end = to.coerceIn(start, text.length)
+
+    fun <T> clip(
+        rangeStart: Int,
+        rangeEnd: Int,
+        make: (Int, Int) -> T,
+    ): T? {
+        val clippedStart = maxOf(rangeStart, start)
+        val clippedEnd = minOf(rangeEnd, end)
+        return if (clippedStart < clippedEnd) make(clippedStart - start, clippedEnd - clippedStart) else null
+    }
+    return RichText(
+        text = text.substring(start, end),
+        spans = spans.mapNotNull { span -> clip(span.start, span.end) { at, length -> span.copy(start = at, length = length) } },
+        emojis =
+            emojis
+                .filter { it.start >= start && it.start + it.length <= end && (it.length > 0 || it.start < end) }
+                .map { it.copy(start = it.start - start) },
+        highlights = highlights.mapNotNull { clip(it.start, it.end) { at, length -> RichTextHighlight(at, length) } },
+        styles = styles.mapNotNull { style -> clip(style.start, style.end) { at, length -> style.copy(start = at, length = length) } },
+    )
+}
+
 private val PLAIN_URL = Regex("""https?://\S+""")
 private val PLAIN_TIMESTAMP = Regex("""\b(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\b""")
 private val PLAIN_HASHTAG = Regex("""(?<![\w#])#[\p{L}\p{N}_]+""")

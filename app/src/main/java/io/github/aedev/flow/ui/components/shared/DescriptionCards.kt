@@ -68,22 +68,32 @@ internal fun FactoidCard(
 }
 
 /**
- * The description text in its own tinted card, collapsed until the reader asks for the rest.
+ * The description in its own tinted card, collapsed until the reader asks for the rest.
  *
- * The button only appears once the text has actually overflowed, so a two-line description does
- * not get a control that expands nothing.
+ * Collapsed, it shows the text up to the first card, cut at a few lines. The button only appears
+ * when that hides something, so a two-line description does not get a control that expands nothing.
  */
 @Composable
 internal fun DescriptionBody(
-    text: AnnotatedString,
+    blocks: List<DescriptionBlock<AnnotatedString>>,
     inlineContent: Map<String, InlineTextContent>,
     tint: MediaArtworkTint,
-    layoutResult: TextLayoutResult?,
-    onLayout: (TextLayoutResult) -> Unit,
+    onVideoClick: (DescriptionBlock.VideoCard) -> Unit,
 ) {
     val highlightColor = tint.onContainer.copy(alpha = HIGHLIGHT_ALPHA)
-    var expanded by rememberSaveable(text.text) { mutableStateOf(false) }
-    var overflowed by remember(text.text) { mutableStateOf(false) }
+    val key =
+        remember(blocks) {
+            blocks.joinToString("\n") { block ->
+                when (block) {
+                    is DescriptionBlock.Text -> block.text.text
+                    is DescriptionBlock.VideoCard -> block.videoId
+                }
+            }
+        }
+    var expanded by rememberSaveable(key) { mutableStateOf(false) }
+    var textOverflowed by remember(key) { mutableStateOf(false) }
+    val collapsedCount = blocks.indexOfFirst { it is DescriptionBlock.Text } + 1
+    val shown = if (expanded || collapsedCount == 0) blocks else blocks.take(collapsedCount)
 
     Surface(
         shape = MaterialTheme.shapes.large,
@@ -95,35 +105,26 @@ internal fun DescriptionBody(
             modifier = Modifier.padding(BodyPadding),
             verticalArrangement = Arrangement.spacedBy(BodySpacing),
         ) {
-            FlowSelectionContainer {
-                BasicText(
-                    text = text,
-                    inlineContent = inlineContent,
-                    style =
-                        MaterialTheme.typography.bodyMedium.copy(
+            shown.forEach { block ->
+                when (block) {
+                    is DescriptionBlock.Text -> {
+                        DescriptionTextBlock(
+                            text = block.text,
+                            inlineContent = inlineContent,
                             color = tint.onContainer,
-                            lineHeight = 24.sp,
-                            fontSize = 15.sp,
-                        ),
-                    maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_BODY_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                    onTextLayout = { result ->
-                        onLayout(result)
-                        if (result.hasVisualOverflow) overflowed = true
-                    },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .animateContentSize()
-                            .richTextHighlights(
-                                text = text,
-                                layoutResult = { layoutResult },
-                                color = highlightColor,
-                            ),
-                )
+                            highlightColor = highlightColor,
+                            maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_BODY_LINES,
+                            onOverflow = { textOverflowed = true },
+                        )
+                    }
+
+                    is DescriptionBlock.VideoCard -> {
+                        DescriptionVideoCard(card = block, tint = tint, onClick = { onVideoClick(block) })
+                    }
+                }
             }
 
-            if (overflowed) {
+            if (textOverflowed || shown.size < blocks.size) {
                 OutlinedButton(
                     onClick = { expanded = !expanded },
                     shapes = ButtonDefaults.shapes(),
@@ -142,6 +143,41 @@ internal fun DescriptionBody(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DescriptionTextBlock(
+    text: AnnotatedString,
+    inlineContent: Map<String, InlineTextContent>,
+    color: Color,
+    highlightColor: Color,
+    maxLines: Int,
+    onOverflow: () -> Unit,
+) {
+    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    FlowSelectionContainer {
+        BasicText(
+            text = text,
+            inlineContent = inlineContent,
+            style =
+                MaterialTheme.typography.bodyMedium.copy(
+                    color = color,
+                    lineHeight = 24.sp,
+                    fontSize = 15.sp,
+                ),
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { result ->
+                layout = result
+                if (result.hasVisualOverflow) onOverflow()
+            },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .animateContentSize()
+                    .richTextHighlights(text = text, layoutResult = { layout }, color = highlightColor),
+        )
     }
 }
 
