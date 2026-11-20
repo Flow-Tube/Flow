@@ -186,4 +186,26 @@
     <string name="error_bot_wall_network_hint">ජංගම දත්ත වැනි වෙනත් ජාලයක් උත්සාහ කරන්න.</string>
     <string name="settings_keywords_wellbeing">තිර කාලය, ඩිජිටල් යහපැවැත්ම, නින්ද, නින්දට යන වේලාව, විවේකය, නැරඹුම් කාලය, භාවිතය</string>
     <string name="settings_watch_time_week_total">මෙම සතියේ %1$s</string>
+    <string name="subscriptions_sort_most_watched">වැඩිපුරම නැරඹූ</string>
+    <string name="subscriptions_open_channel">නාලිකාව විවෘත කරන්න</string>
+    <string name="top_bar_close_search">සෙවීම වසන්න</string>
+    <string name="home_load_more_failed">තවත් වීඩියෝ පූරණය කළ නොහැකි විය.</string>
+    <string name="home_load_more_failed_body">ඔබගේ සම්බන්ධතාවය පරීක්ෂා කරන්න</string>
+    <plurals name="subscriptions_refresh_progress_template">
+        <item quantity="one">චැනලය නැවත අලුත් කිරීම</item>
+        <item quantity="other">චැනල් නැවත අලුත් කිරීම</item>
+    </plurals>
+    <plurals name="subscriptions_refresh_checks_template">
+        <item quantity="one">ශෝට්ස් සහ සජීවී සඳහා චැනලය පරීක්ෂා කිරීම</item>
+        <item quantity="other">ශෝට්ස් සහ සජීවී සඳහා චැනල් පරීක්ෂා කිරීම</item>
+    </plurals>
+    <string name="channel_add_to_group">කණ්ඩායමට එක් කරන්න</string>
+    <string name="channel_groups_sheet_title">චැනල් එකතුව</string>
+    <string name="channel_groups_empty">චැනල් එකතුවන් නොමැත</string>
+    <string name="subscriptions_failed_channels_body">ඔවුන්ගේ අලුත්ම වීඩියෝ මේ ෆීඩ් එකෙන් අතුරුදන් වී තිබේ</string>
+    <string name="subscriptions_failed_channels_more">%1$s සහ%2$d තවත්</string>
+    <string name="conjunction_and">සහ</string>
+    <string name="streamed_date_template">ස්ට්‍රීම් වී ඇත</string>
+    <string name="auto_group_music_playlists">ගීත ලැයිස්තුව</string>
+    <string name="auto_group_video_playlists">වීඩියෝ ලැයිස්තුව</string>
 </resources>
