@@ -112,6 +112,14 @@ fun HomeScreen(
         refreshHomeOnReselect = refreshHomeOnReselect,
     )
 
+    val previewViewModel: HomePreviewViewModel = hiltViewModel()
+    HomePreviewEffects(
+        viewModel = previewViewModel,
+        gridState = gridStates.feed,
+        videos = uiState.videos,
+        enabled = homeFeedEnabled && chips.isAll && homeViewMode != HomeViewMode.LIST,
+    )
+
     val haptic = LocalHapticFeedback.current
     val homeLabel = stringResource(R.string.nav_home)
     val deepFlowLabel = stringResource(R.string.deep_flow_mode_title)
