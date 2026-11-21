@@ -126,4 +126,19 @@ class CardTextFormatterTest {
 
         assertEquals(1, resolved)
     }
+
+    @Test
+    fun `spaces inside a part no longer break, separators still do`() {
+        assertEquals("3\u00A0days\u00A0ago", keepPartsWhole("3 days ago"))
+        assertEquals("82K\u00A0views", keepPartsWhole("82K views"))
+        assertEquals("3\u00A0days\u00A0ago • Jun\u00A018,\u00A02025", keepPartsWhole("3 days ago • Jun 18, 2025"))
+        assertEquals("Streamed\u00A02\u00A0weeks\u00A0ago", keepPartsWhole("Streamed 2 weeks ago"))
+    }
+
+    @Test
+    fun `a part without spaces is unchanged`() {
+        assertEquals("2025-06-18", keepPartsWhole("2025-06-18"))
+        assertEquals("LIVE", keepPartsWhole("LIVE"))
+        assertEquals("", keepPartsWhole(""))
+    }
 }

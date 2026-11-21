@@ -111,17 +111,35 @@ object CardTextFormatter {
     ): CardByline =
         CardByline(
             date =
-                formatUploadDateConfigured(
-                    date = key.uploadDate,
-                    mode = key.settings.resolve(DateContext.LISTS),
-                    style = key.settings.formatStyle,
-                    labels = key.labels,
-                    timestampFallbackMs = key.timestamp,
-                    locale = key.locale,
-                    hl = key.hl,
-                    timestampIsExact = key.timestampIsExact,
-                    nowMillis = nowMs,
+                keepPartsWhole(
+                    formatUploadDateConfigured(
+                        date = key.uploadDate,
+                        mode = key.settings.resolve(DateContext.LISTS),
+                        style = key.settings.formatStyle,
+                        labels = key.labels,
+                        timestampFallbackMs = key.timestamp,
+                        locale = key.locale,
+                        hl = key.hl,
+                        timestampIsExact = key.timestampIsExact,
+                        nowMillis = nowMs,
+                    ),
                 ),
-            views = if (key.viewCount > 0L) key.viewsTemplate.format(formatCompactCount(key.viewCount, key.locale)) else "",
+            views =
+                if (key.viewCount > 0L) {
+                    keepPartsWhole(key.viewsTemplate.format(formatCompactCount(key.viewCount, key.locale)))
+                } else {
+                    ""
+                },
         )
 }
+
+private const val NO_BREAK_SPACE = '\u00A0'
+private const val PART_SEPARATOR = " • "
+
+/**
+ * A byline wraps only between its parts: spaces inside a part ("3 days ago", "82K views") stop being
+ * break opportunities, while the " • " between parts, including the one inside a relative-and-exact
+ * date, stays breakable.
+ */
+internal fun keepPartsWhole(text: String): String =
+    text.split(PART_SEPARATOR).joinToString(PART_SEPARATOR) { part -> part.replace(' ', NO_BREAK_SPACE) }
