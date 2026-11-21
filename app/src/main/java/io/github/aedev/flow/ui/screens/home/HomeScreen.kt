@@ -56,6 +56,7 @@ import io.github.aedev.flow.ui.components.layout.topbar.rememberFlowScrollAwaySt
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipRow
+import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -76,6 +77,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val preferences = remember(context) { PlayerPreferences(context) }
+    val topBarHideOnScroll by preferences.topBarHideOnScroll.collectAsStateWithLifecycle(initialValue = true)
     val homeViewMode by preferences.homeViewMode.collectAsStateWithLifecycle(initialValue = HomeViewMode.GRID)
     val homeFeedColumns by preferences.homeFeedColumns.collectAsStateWithLifecycle(initialValue = HomeFeedColumns.AUTO)
     val homeFeedEnabled by preferences.homeFeedEnabled.collectAsStateWithLifecycle(initialValue = true)
@@ -120,7 +122,7 @@ fun HomeScreen(
     OnTabReselected(FlowTab.Home.route) { headerState.show(headerSpec) }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().reachUnderStatusBar(),
         contentWindowInsets = WindowInsets(0.dp),
         snackbarHost = {
             SnackbarHost(snackbarHostState, Modifier.floatAboveBottomChrome(LocalFlowBottomInsets.current))
@@ -129,6 +131,7 @@ fun HomeScreen(
         FlowScrollAwayLayout(
             modifier = Modifier.padding(padding),
             state = headerState,
+            hideOnScroll = topBarHideOnScroll,
             header = {
                 FlowTopBar(
                     title = {

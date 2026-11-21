@@ -72,6 +72,7 @@ internal fun AppearanceScreen(
     val separatePlaylists by viewModel.separatePlaylists.collectAsStateWithLifecycle()
     val appLogo by viewModel.appLogo.collectAsStateWithLifecycle()
     val topBarProfile by viewModel.topBarProfile.collectAsStateWithLifecycle()
+    val topBarHideOnScroll by viewModel.topBarHideOnScroll.collectAsStateWithLifecycle()
     val groupBadges by viewModel.groupBadges.collectAsStateWithLifecycle()
     val cardLikeButtons by viewModel.cardLikeButtons.collectAsStateWithLifecycle()
     val cardMarkWatched by viewModel.cardMarkWatched.collectAsStateWithLifecycle()
@@ -207,6 +208,7 @@ internal fun AppearanceScreen(
                 viewModel::setSettingsInProfileMenu,
                 enabled = topBarProfile,
             )
+            switch(AppearanceIndex.topBarHideOnScroll, topBarHideOnScroll, viewModel::setTopBarHideOnScroll)
             switch(AppearanceIndex.groupBadges, groupBadges, viewModel::setGroupBadges)
         }
         group(key = "appearance.cards", header = R.string.settings_section_video_cards) {

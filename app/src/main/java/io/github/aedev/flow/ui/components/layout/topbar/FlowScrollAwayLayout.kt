@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.IntOffset
 import io.github.aedev.flow.ui.LocalStatusBarHero
 import io.github.aedev.flow.ui.components.layout.navigation.flowUsesNavigationRail
 import io.github.aedev.flow.ui.theme.statusBarScrim
-import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import io.github.aedev.flow.ui.utils.rememberTouchExplorationEnabled
 import kotlin.math.roundToInt
 
@@ -73,12 +72,15 @@ fun rememberFlowScrollAwayState(): FlowScrollAwayState {
  * A feed whose header (the top bar and anything under it, such as chips) slides away as the feed
  * scrolls down and comes back on the way up, snapping shown or hidden on release.
  *
- * The page reaches up under the status bar, which keeps a translucent scrim, so the feed shows
- * through it once the header has gone. The header is laid over the feed and moved in the layout
- * phase; the feed keeps its full size and is never measured again while the header moves.
- * [content] receives the header's height as its top padding.
+ * It must start at the window's top edge: give the screen's outermost container (its Scaffold, which
+ * clips its content) [reachUnderStatusBar]. The header's background runs up under the status bar,
+ * so the status bar is solid while the header is shown; as the header slides away under the status
+ * bar's translucent scrim, the feed shows through it. The header is laid over the feed and moved in
+ * the layout phase; the feed keeps its full size and is never measured again while the header
+ * moves. [content] receives the header's height, status bar included, as its top padding.
  *
- * The header stays put with a screen reader exploring by touch, and on windows with the rail.
+ * The header stays put when [hideOnScroll] is off, with a screen reader exploring by touch, and on
+ * windows with the rail.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,12 +88,13 @@ fun FlowScrollAwayLayout(
     header: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
     state: FlowScrollAwayState = rememberFlowScrollAwayState(),
+    hideOnScroll: Boolean = true,
     content: @Composable (topPadding: Dp) -> Unit,
 ) {
     val density = LocalDensity.current
     val statusBarTopPx = WindowInsets.statusBars.getTop(density)
     val statusBarTop = with(density) { statusBarTopPx.toDp() }
-    val pinned = rememberTouchExplorationEnabled() || flowUsesNavigationRail()
+    val pinned = !hideOnScroll || rememberTouchExplorationEnabled() || flowUsesNavigationRail()
     val canScroll = rememberUpdatedState(!pinned)
     val motion = MaterialTheme.motionScheme
     val behavior =
@@ -120,7 +123,6 @@ fun FlowScrollAwayLayout(
         modifier =
             modifier
                 .fillMaxSize()
-                .reachUnderStatusBar(statusBarTopPx)
                 .nestedScroll(behavior.nestedScrollConnection)
                 .drawWithContent {
                     drawContent()

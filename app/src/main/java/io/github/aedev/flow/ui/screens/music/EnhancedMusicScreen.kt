@@ -26,11 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.music.model.audioMusicOnly
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
@@ -50,6 +52,7 @@ import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
 import io.github.aedev.flow.ui.components.shared.MusicScreenShimmerLoading
+import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
 import java.util.Random
@@ -74,6 +77,10 @@ fun EnhancedMusicScreen(
     libraryViewModel: MusicHomeLibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val topBarHideOnScroll by remember(context) { PlayerPreferences(context) }
+        .topBarHideOnScroll
+        .collectAsStateWithLifecycle(initialValue = true)
     val ownPlaylists by libraryViewModel.playlists.collectAsStateWithLifecycle()
     val musicSubscriptions by libraryViewModel.subscriptions.collectAsStateWithLifecycle()
     val hiddenShelves by libraryViewModel.hiddenShelves.collectAsStateWithLifecycle()
@@ -158,6 +165,7 @@ fun EnhancedMusicScreen(
     OnTabReselected(FlowTab.Music.route) { headerState.show(headerSpec) }
 
     Scaffold(
+        modifier = Modifier.reachUnderStatusBar(),
         floatingActionButton = {
             if (showRecognize) {
                 FloatingActionButton(
@@ -174,6 +182,7 @@ fun EnhancedMusicScreen(
         FlowScrollAwayLayout(
             modifier = Modifier.padding(paddingValues),
             state = headerState,
+            hideOnScroll = topBarHideOnScroll,
             header = {
                 FlowTopBar(
                     title = stringResource(R.string.screen_title_music),

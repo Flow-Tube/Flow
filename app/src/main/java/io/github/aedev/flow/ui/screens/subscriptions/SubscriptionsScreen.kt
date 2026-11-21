@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -57,6 +59,7 @@ import io.github.aedev.flow.ui.components.layout.topbar.FlowScrollAwayLayout
 import io.github.aedev.flow.ui.components.layout.topbar.FlowSearchTopBar
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
 import io.github.aedev.flow.ui.components.layout.topbar.rememberFlowScrollAwayState
+import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import kotlinx.coroutines.launch
 
 @Composable
@@ -71,9 +74,9 @@ fun SubscriptionsScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val columnPreference by remember(context) { PlayerPreferences(context) }
-        .homeFeedColumns
-        .collectAsStateWithLifecycle(HomeFeedColumns.AUTO)
+    val preferences = remember(context) { PlayerPreferences(context) }
+    val columnPreference by preferences.homeFeedColumns.collectAsStateWithLifecycle(HomeFeedColumns.AUTO)
+    val topBarHideOnScroll by preferences.topBarHideOnScroll.collectAsStateWithLifecycle(initialValue = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val feedGridState = rememberLazyGridState()
@@ -128,9 +131,11 @@ fun SubscriptionsScreen(
     )
 
     Scaffold(
+        modifier = Modifier.reachUnderStatusBar(),
         topBar = {
             if (isManagingSubs) {
                 FlowSearchTopBar(
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
                     onClose = closeManage,
@@ -224,6 +229,7 @@ fun SubscriptionsScreen(
                 } else {
                     FlowScrollAwayLayout(
                         state = headerState,
+                        hideOnScroll = topBarHideOnScroll,
                         header = {
                             FlowTopBar(
                                 title = stringResource(R.string.top_bar_subscriptions_title),
