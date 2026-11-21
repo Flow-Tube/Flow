@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.content
 
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.aedev.flow.data.local.FeedAutoplay
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SharedLinkAction
 import io.github.aedev.flow.data.local.WatchedThreshold
@@ -19,6 +20,7 @@ class ContentSettingsViewModel
     ) : SettingsViewModel() {
         val homeFeed = preferences.homeFeedEnabled.asState(true)
         val refreshOnReselect = preferences.refreshHomeOnReselect.asState(true)
+        val feedAutoplay = preferences.feedAutoplay.asState(FeedAutoplay.OFF)
         val homeChips = preferences.homeChipsEnabled.asState(true)
         val homeNewVideosButton = preferences.homeNewVideosButtonEnabled.asState(true)
         val continueWatching = preferences.continueWatchingEnabled.asState(true)
@@ -63,6 +65,8 @@ class ContentSettingsViewModel
         fun setHomeFeed(value: Boolean) = write { preferences.setHomeFeedEnabled(value) }
 
         fun setRefreshOnReselect(value: Boolean) = write { preferences.setRefreshHomeOnReselect(value) }
+
+        fun setFeedAutoplay(value: FeedAutoplay) = write { preferences.setFeedAutoplay(value) }
 
         fun setHomeChips(value: Boolean) = write { preferences.setHomeChipsEnabled(value) }
 

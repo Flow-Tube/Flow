@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.index
 
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.settings.SettingAvailability
 import io.github.aedev.flow.ui.components.settings.SettingEntry
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 
@@ -22,6 +23,15 @@ internal object ContentIndex {
             summary = R.string.content_settings_home_reselect_refresh_subtitle,
             section = R.string.settings_section_home,
             destination = page,
+        )
+    val feedAutoplay =
+        SettingEntry(
+            key = "content.home.feed_autoplay",
+            title = R.string.content_settings_feed_autoplay_title,
+            keywords = R.string.content_settings_feed_autoplay_keywords,
+            section = R.string.settings_section_home,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val homeChips =
         SettingEntry(
@@ -290,6 +300,7 @@ internal object ContentIndex {
         listOf(
             homeFeed,
             refreshOnReselect,
+            feedAutoplay,
             homeChips,
             homeNewVideosButton,
             continueWatching,
