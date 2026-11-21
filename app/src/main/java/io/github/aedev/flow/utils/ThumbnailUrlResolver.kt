@@ -1,5 +1,8 @@
 package io.github.aedev.flow.utils
 
+import io.github.aedev.flow.data.images.ThumbnailTierPolicy
+import io.github.aedev.flow.data.images.YouTubeThumbnail
+import io.github.aedev.flow.data.images.YouTubeThumbnailTier
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 
@@ -27,60 +30,6 @@ object ThumbnailUrlResolver {
     }
 
     /**
-     * Candidate tiers for a feed/list/grid card, best first.
-     *
-     * maxresdefault is deliberately excluded: YouTube only generates it for a subset of videos,
-     * so requesting it from a card costs a failed round trip before the fallback on every video
-     * that lacks it, and when it does exist it is 1920x1080 for a surface that never shows more
-     * than roughly a third of those pixels. hq720 is already >= the widest phone card.
-     */
-    fun youtubeThumbnailCandidates(
-        videoId: String,
-        quality: ThumbnailQuality = ThumbnailQuality.HIGH,
-        portrait: Boolean = false,
-    ): List<String> {
-        val id = videoId.trim()
-        if (id.isEmpty() || LocalMediaIds.isLocal(id)) return emptyList()
-        return youtubeThumbnailTiers(quality, portrait).map { tier -> "https://i.ytimg.com/vi/$id/$tier.jpg" }
-    }
-
-    /**
-     * Best tier first, always ending in hqdefault, the one every video has. A portrait card crops a
-     * 16:9 frame to about a third of its width, so it never drops below hqdefault.
-     */
-    private fun youtubeThumbnailTiers(
-        quality: ThumbnailQuality,
-        portrait: Boolean,
-    ): List<String> =
-        when (quality) {
-            ThumbnailQuality.HIGH -> listOf("hq720", "hqdefault")
-            ThumbnailQuality.MEDIUM -> listOf("sddefault", "hqdefault")
-            ThumbnailQuality.LOW -> if (portrait) listOf("hqdefault") else listOf("mqdefault", "hqdefault")
-            ThumbnailQuality.OFF -> emptyList()
-        }
-
-    /**
-     * YouTube's automatic middle frame (`2.jpg`, about half way in) in the viewer's tier, best first:
-     * a still from the video, never the uploader's thumbnail. Every video has `hq2`.
-     */
-    fun youtubeFrameCandidates(
-        videoId: String,
-        quality: ThumbnailQuality = ThumbnailQuality.HIGH,
-        portrait: Boolean = false,
-    ): List<String> {
-        val id = videoId.trim()
-        if (id.isEmpty() || LocalMediaIds.isLocal(id)) return emptyList()
-        val tiers =
-            when (quality) {
-                ThumbnailQuality.HIGH -> listOf("maxres2", "sd2", "hq2")
-                ThumbnailQuality.MEDIUM -> listOf("sd2", "hq2")
-                ThumbnailQuality.LOW -> if (portrait) listOf("hq2") else listOf("mq2", "hq2")
-                ThumbnailQuality.OFF -> emptyList()
-            }
-        return tiers.map { tier -> "https://i.ytimg.com/vi/$id/$tier.jpg" }
-    }
-
-    /**
      * A Short's own portrait image on i.ytimg: `frame0` (its first frame, from the reel sequence) or `oar2`
      * (original aspect ratio). The 16:9 tiers would crop a vertical clip to its middle third.
      */
@@ -89,36 +38,33 @@ object ThumbnailUrlResolver {
     /** A cover stored on the device: a download's saved thumbnail, or a MediaStore item. */
     fun isDeviceUri(url: String): Boolean = url.startsWith("file:") || url.startsWith("content:") || url.startsWith("/")
 
-    fun resolveVideoThumbnailCandidates(
+    /**
+     * What a video's image loads, best first: a stored image YouTube did not serve (a DeArrow frame, a
+     * Short's portrait poster, a cover on the device) ahead of a [YouTubeThumbnail], which picks its
+     * i.ytimg tier from the size it is drawn at. Off keeps only covers stored on the device.
+     */
+    fun resolveVideoThumbnailModels(
         videoId: String,
         rawUrl: String?,
         quality: ThumbnailQuality = ThumbnailQuality.HIGH,
         portrait: Boolean = false,
         youTubeFrames: Boolean = false,
-    ): List<String> {
+    ): List<Any> {
         val raw = rawUrl?.trim().orEmpty()
         val resolvedVideoId = resolveYoutubeThumbnailVideoId(videoId, raw)
-        val youtubeCandidates =
-            if (youTubeFrames) {
-                // Live and upcoming videos have no frames yet; only they ever reach the last entry.
-                youtubeFrameCandidates(resolvedVideoId, quality, portrait) +
-                    youtubeThumbnailCandidates(resolvedVideoId, quality, portrait).takeLast(1)
-            } else {
-                youtubeThumbnailCandidates(resolvedVideoId, quality, portrait)
-            }
-
-        val candidates =
-            when {
-                raw.isEmpty() -> youtubeCandidates
-                portrait && isPortraitReelPoster(raw) -> listOf(raw) + youtubeCandidates
-                isYoutubeVideoThumbnail(raw) -> youtubeCandidates
-                quality == ThumbnailQuality.OFF && !isDeviceUri(raw) -> youtubeCandidates
-                else -> listOf(raw) + youtubeCandidates
-            }
-
-        return candidates
-            .filter { it.isNotBlank() }
-            .distinct()
+        val youtube =
+            listOfNotNull(
+                YouTubeThumbnail(resolvedVideoId, quality, portrait, youTubeFrames).takeIf {
+                    quality != ThumbnailQuality.OFF && resolvedVideoId.isNotEmpty() && !LocalMediaIds.isLocal(resolvedVideoId)
+                },
+            )
+        return when {
+            raw.isEmpty() -> youtube
+            portrait && isPortraitReelPoster(raw) -> listOf(raw) + youtube
+            isYoutubeVideoThumbnail(raw) -> youtube
+            quality == ThumbnailQuality.OFF && !isDeviceUri(raw) -> youtube
+            else -> listOf(raw) + youtube
+        }
     }
 
     fun preferredVideoThumbnail(
@@ -157,11 +103,9 @@ object ThumbnailUrlResolver {
         val raw = rawUrl?.trim().orEmpty()
         val id = videoId.trim()
 
-        if (raw.isEmpty()) return buildHighQualityYoutubeThumbnail(id)
-
         return when {
-            isYoutubeVideoThumbnail(raw) -> {
-                normalizeVideoThumbnail(id, raw)
+            raw.isEmpty() || isYoutubeVideoThumbnail(raw) -> {
+                squareYoutubeArtwork(id, raw, size)
             }
 
             raw.contains("googleusercontent.com") || raw.contains("ggpht.com") -> {
@@ -172,6 +116,19 @@ object ThumbnailUrlResolver {
                 raw
             }
         }
+    }
+
+    private fun squareYoutubeArtwork(
+        videoId: String,
+        rawUrl: String,
+        size: Int,
+    ): String {
+        val name = ThumbnailTierPolicy.squareCropName(size)
+        val resolvedVideoId = resolveYoutubeThumbnailVideoId(videoId, rawUrl)
+        if (name == YouTubeThumbnailTier.HQ720.thumbnailName || resolvedVideoId.isEmpty() || LocalMediaIds.isLocal(resolvedVideoId)) {
+            return normalizeVideoThumbnail(videoId, rawUrl)
+        }
+        return "https://i.ytimg.com/vi/$resolvedVideoId/$name.jpg"
     }
 
     fun resolveChannelBanner(

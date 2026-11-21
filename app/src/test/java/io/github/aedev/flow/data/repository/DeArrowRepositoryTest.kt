@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -84,6 +86,22 @@ class DeArrowRepositoryTest {
             gate.countDown()
 
             assertThat(asks.awaitAll().map { it?.titles?.single()?.title }).containsExactly("t", "t", "t", "t", "t")
+            assertThat(requests.get()).isEqualTo(1)
+        }
+
+    @Test
+    fun `a card flung away before the answer still gets it cached`() =
+        runBlocking {
+            val gate = CountDownLatch(1)
+            val deArrow = repository(gate) { 404 to """{"titles":[],"thumbnails":[],"randomTime":0.4}""" }
+
+            val card = launch(Dispatchers.IO) { deArrow.branding("abc123def45") }
+            while (requests.get() == 0) Thread.sleep(5)
+            card.cancelAndJoin()
+            gate.countDown()
+            while (!deArrow.isCached("abc123def45")) Thread.sleep(5)
+            deArrow.branding("abc123def45")
+
             assertThat(requests.get()).isEqualTo(1)
         }
 

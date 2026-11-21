@@ -6,7 +6,7 @@ import io.github.aedev.flow.data.local.AppDatabase
 import io.github.aedev.flow.data.local.ChannelSubscription
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
-import io.github.aedev.flow.data.local.ViewHistory
+import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.local.dao.SubscriptionGroupDao
 import io.github.aedev.flow.data.local.entity.SubscriptionGroupEntity
 import io.github.aedev.flow.data.model.Video
@@ -46,7 +46,7 @@ class SubscriptionsViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private val subscriptionRepository: SubscriptionRepository = mockk(relaxed = true)
-    private val viewHistory: ViewHistory = mockk(relaxed = true)
+    private val watchProgress: WatchProgressStore = mockk(relaxed = true)
     private val subscriptionFeedRepository: SubscriptionFeedRepository = mockk(relaxed = true)
     private val database: AppDatabase = mockk(relaxed = true)
     private val playerPreferences: PlayerPreferences = mockk(relaxed = true)
@@ -71,7 +71,7 @@ class SubscriptionsViewModelTest {
         coEvery { playerPreferences.subscriptionLastRefreshTime } returns flowOf(0L)
         coEvery { playerPreferences.subscriptionLastRefreshedCount } returns flowOf(0)
         coEvery { playerPreferences.subscriptionShowCheckedVideoCount } returns flowOf(true)
-        coEvery { viewHistory.getVideoWatchProgress() } returns flowOf(emptyList())
+        coEvery { watchProgress.videoProgress } returns flowOf(emptyList())
         coEvery { playerPreferences.hideWatchedVideosFromSubscriptions } returns flowOf(false)
         coEvery { playerPreferences.hideWatchedShorts } returns flowOf(true)
         coEvery { playerPreferences.watchedThreshold } returns flowOf(mockk(relaxed = true))
@@ -94,7 +94,7 @@ class SubscriptionsViewModelTest {
                 subscriptionFeedRepository = subscriptionFeedRepository,
                 playerPreferences = playerPreferences,
                 subscriptionGroupDao = subscriptionGroupDao,
-                subscriptionWatchedVideos = SubscriptionWatchedVideos(viewHistory, playerPreferences, database),
+                subscriptionWatchedVideos = SubscriptionWatchedVideos(watchProgress, playerPreferences, database),
                 neuroEngine = neuroEngine,
                 backupCoordinator = mockk(relaxed = true),
                 watchHistoryDao = mockk(relaxed = true),

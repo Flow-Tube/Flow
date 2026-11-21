@@ -1,9 +1,9 @@
 package io.github.aedev.flow.data.repository
 
 import io.github.aedev.flow.di.NetworkIoDispatcher
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -19,7 +19,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,7 +28,7 @@ import javax.inject.Singleton
  * is not (about 500 bytes against 200 KB for `/player`). Live-probed 2026-10-16 (#1230).
  *
  * One request per video per process: answers and refusals are cached, concurrent asks share one
- * request, and [MAX_PARALLEL] keeps a fast scroll from filling the network pool.
+ * request that finishes even when its askers leave, and [MAX_PARALLEL] keeps a fast scroll from filling the network pool.
  */
 @Singleton
 class OriginalTitleRepository
@@ -39,13 +38,16 @@ class OriginalTitleRepository
         @NetworkIoDispatcher private val dispatcher: CoroutineDispatcher,
     ) {
         private val answers = BoundedCache(CAPACITY)
-        private val inFlight = ConcurrentHashMap<String, CompletableDeferred<String?>>()
+        private val lookups = SharedLookups<String?>(CoroutineScope(SupervisorJob() + dispatcher))
         private val permits = Semaphore(MAX_PARALLEL)
         private val answered =
             MutableSharedFlow<String>(extraBufferCapacity = ANSWER_BUFFER, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
         /** What a request already answered, for a card's first frame. */
         fun cached(videoId: String): String? = answers[videoId]?.ifEmpty { null }
+
+        /** Whether a request already answered for [videoId], even when the answer was no title. */
+        fun isAnswered(videoId: String): Boolean = answers[videoId] != null
 
         /** [cached], updated when a lookup started elsewhere answers; never requests anything itself. */
         fun cachedUpdates(videoId: String): Flow<String?> =
@@ -56,18 +58,7 @@ class OriginalTitleRepository
 
         suspend fun originalTitle(videoId: String): String? {
             answers[videoId]?.let { return it.ifEmpty { null } }
-            val mine = CompletableDeferred<String?>()
-            inFlight.putIfAbsent(videoId, mine)?.let { return it.await() }
-            try {
-                val title = permits.withPermit { fetch(videoId) }
-                mine.complete(title)
-                return title
-            } catch (e: CancellationException) {
-                mine.complete(null)
-                throw e
-            } finally {
-                inFlight.remove(videoId, mine)
-            }
+            return lookups.await(videoId) { permits.withPermit { fetch(videoId) } }
         }
 
         private suspend fun fetch(videoId: String): String? =

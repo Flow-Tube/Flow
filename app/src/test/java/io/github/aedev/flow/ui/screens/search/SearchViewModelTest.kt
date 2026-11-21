@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.search
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.engagement.HiddenContentStore
 import io.github.aedev.flow.data.local.ContentType
 import io.github.aedev.flow.data.local.Duration
 import io.github.aedev.flow.data.local.PrivacyGate
@@ -22,6 +23,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.runs
 import io.mockk.unmockkAll
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -61,6 +63,7 @@ class SearchViewModelTest {
             mockk(relaxed = true),
             privacyGate,
             savedState,
+            HiddenContentStore(CoroutineScope(Dispatchers.Unconfined)),
         )
 
     @Before

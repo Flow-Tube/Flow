@@ -16,6 +16,7 @@ import io.github.aedev.flow.data.local.HomeFeedCacheFilters
 import io.github.aedev.flow.data.local.HomeFeedCacheRepository
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.local.ViewHistory
+import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.data.recommendation.ChannelMemoryRepository
@@ -28,7 +29,6 @@ import io.github.aedev.flow.data.recommendation.NeuroScoring
 import io.github.aedev.flow.data.recommendation.RankTrace
 import io.github.aedev.flow.data.recommendation.UserBrain
 import io.github.aedev.flow.data.repository.YouTubeRepository
-import io.github.aedev.flow.data.repository.needsChannelMetadata
 import io.github.aedev.flow.data.shorts.ShortsFeedRepository
 import io.github.aedev.flow.data.subscriptions.HomeSubscriptionUploads
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -99,6 +100,7 @@ class HomeViewModel
         private val homeSubscriptionUploads: HomeSubscriptionUploads,
         private val persistentHomeFeedCache: HomeFeedCacheRepository,
         private val viewHistory: ViewHistory,
+        private val watchProgress: WatchProgressStore,
         private val channelMemory: ChannelMemoryRepository,
         private val chipFeeds: HomeChipFeeds,
         private val snapshotRecorder: HomeSnapshotRecorder,
@@ -143,9 +145,7 @@ class HomeViewModel
 
         private val relatedPickIds = ConcurrentHashMap.newKeySet<String>()
 
-        private val channelMetadataEnrichmentInFlight =
-            java.util.concurrent.ConcurrentHashMap
-                .newKeySet<String>()
+        private val channelsAskedAbout = ConcurrentHashMap.newKeySet<String>()
 
         private val _uiState = MutableStateFlow(HomeUiState())
         val uiState: StateFlow<HomeUiState> =
@@ -225,6 +225,7 @@ class HomeViewModel
         fun enrichChipVideo(video: Video) = chipFeeds.enrichVisible(video)
 
         init {
+            viewModelScope.launch(PerformanceDispatcher.networkIO) { enrichLandedChannels() }
             chipFeeds.attach(
                 scope = viewModelScope,
                 savedState = savedStateHandle,
@@ -258,7 +259,7 @@ class HomeViewModel
 
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
                 combine(
-                    viewHistory.getVideoHistoryFlow(),
+                    watchProgress.videoProgress,
                     playerPreferences.hideWatchedVideosFromHome,
                     playerPreferences.watchedThreshold.combine(playerPreferences.countImportedAsWatched, ::Pair),
                     playerPreferences.continueWatchingEnabled,
@@ -272,7 +273,17 @@ class HomeViewModel
                         continueWatchingEnabled = continueWatchingEnabled,
                         hideWatchedShorts = hideWatchedShorts,
                     )
-                }.collect { result ->
+                }.map { result ->
+                    val entries =
+                        if (result.continueWatchingIds.isEmpty()) {
+                            emptyList()
+                        } else {
+                            viewHistory.getEntries(
+                                result.continueWatchingIds,
+                            )
+                        }
+                    result to orderContinueWatching(result.continueWatchingIds, entries)
+                }.collect { (result, continueWatching) ->
                     watchedVideoIds.value = result.watchedVideoIds
                     watchedShortIds.value = result.watchedShortIds
                     _uiState.update { state ->
@@ -284,7 +295,7 @@ class HomeViewModel
                         state.copy(
                             videos = videos,
                             shorts = shorts,
-                            continueWatchingVideos = result.continueWatchingVideos,
+                            continueWatchingVideos = continueWatching,
                         )
                     }
                 }
@@ -1482,39 +1493,28 @@ class HomeViewModel
             return updatedSnapshot
         }
 
-        fun enrichChannelMetadataIfMissing(video: Video) {
-            val videoId = video.id
-            if (!video.needsChannelMetadata() || !channelMetadataEnrichmentInFlight.add(videoId)) return
-
-            viewModelScope.launch(PerformanceDispatcher.networkIO) {
-                try {
+        /**
+         * Whenever cards land, asks once per channel still missing its name or avatar, in one bounded
+         * round, and writes the list once. Rounds run one at a time; a page landing mid-round waits.
+         */
+        private suspend fun enrichLandedChannels() {
+            _uiState
+                .map { it.videos }
+                .distinctUntilChanged()
+                .conflate()
+                .collect { videos ->
+                    val asked = channelsToEnrich(videos, channelsAskedAbout)
+                    if (asked.isEmpty()) return@collect
                     val enriched =
-                        repository
-                            .enrichMissingChannelMetadata(listOf(video), limit = 1)
-                            .firstOrNull()
-                            ?: return@launch
-                    if (enriched == video) return@launch
-
+                        enrichedByChannel(asked, repository.enrichMissingChannelMetadata(asked, limit = asked.size))
+                    if (enriched.isEmpty()) return@collect
                     _uiState.update { state ->
-                        val updated =
-                            state.videos.map { current ->
-                                if (current.id != videoId) {
-                                    current
-                                } else {
-                                    current.withChannelMetadataFrom(enriched)
-                                }
-                            }
-                        if (updated == state.videos) {
-                            state
-                        } else {
-                            HomeFeedCache.update(updated, state.shorts)
-                            state.copy(videos = updated)
-                        }
+                        val updated = state.videos.withEnrichedChannels(enriched)
+                        if (updated == state.videos) return@update state
+                        HomeFeedCache.update(updated, state.shorts)
+                        state.copy(videos = updated)
                     }
-                } finally {
-                    channelMetadataEnrichmentInFlight.remove(videoId)
                 }
-            }
         }
 
         /**

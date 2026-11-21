@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.history
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.engagement.HiddenContentStore
 import io.github.aedev.flow.data.local.VideoHistoryEntry
 import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.local.dao.VideoDao
@@ -12,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -69,6 +71,7 @@ class HistoryViewModelTest {
                     watchHistoryDao,
                     ShortsContentFilter(flowOf(true)),
                     ShortsQueueHandoff(),
+                    HiddenContentStore(CoroutineScope(Dispatchers.Unconfined)),
                 )
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -91,6 +94,7 @@ class HistoryViewModelTest {
                     watchHistoryDao,
                     ShortsContentFilter(flowOf(true)),
                     ShortsQueueHandoff(),
+                    HiddenContentStore(CoroutineScope(Dispatchers.Unconfined)),
                 )
             viewModel.clearHistory()
             testDispatcher.scheduler.advanceUntilIdle()
@@ -111,6 +115,7 @@ class HistoryViewModelTest {
                     watchHistoryDao,
                     ShortsContentFilter(flowOf(true)),
                     ShortsQueueHandoff(),
+                    HiddenContentStore(CoroutineScope(Dispatchers.Unconfined)),
                 )
             viewModel.removeFromHistory("vid_123")
             testDispatcher.scheduler.advanceUntilIdle()

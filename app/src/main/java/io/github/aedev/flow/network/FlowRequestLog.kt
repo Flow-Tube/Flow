@@ -96,7 +96,7 @@ object FlowRequestLog : Interceptor {
 
     private fun elapsedMs(startNs: Long): Long = (System.nanoTime() - startNs) / 1_000_000L
 
-    private class CountingBody(
+    internal class CountingBody(
         private val delegate: ResponseBody,
         private val onDone: (Long) -> Unit,
     ) : ResponseBody() {

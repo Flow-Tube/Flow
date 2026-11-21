@@ -37,10 +37,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.images.PostImage
+import io.github.aedev.flow.data.model.Playlist
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.renderer.PostAttachment
+import io.github.aedev.flow.ui.components.PlaylistCard
+import io.github.aedev.flow.ui.components.PlaylistCardLayout
+import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
+import io.github.aedev.flow.utils.YouTubeLink
 import io.github.aedev.flow.utils.formatDuration
 import io.github.aedev.flow.utils.formatViewCount
 
@@ -55,7 +61,23 @@ fun MediaPostAttachment(
         is PostAttachment.Images -> PostImages(attachment.urls, modifier, compact)
         is PostAttachment.Poll -> PostPoll(attachment, modifier)
         is PostAttachment.SharedVideo -> PostSharedVideo(attachment.video, onVideoClick, modifier)
+        is PostAttachment.SharedPlaylist -> PostSharedPlaylist(attachment.playlist, modifier)
     }
+}
+
+@Composable
+private fun PostSharedPlaylist(
+    playlist: Playlist,
+    modifier: Modifier = Modifier,
+) {
+    val navigator = LocalMediaNavigator.current
+    PlaylistCard(
+        playlist = playlist,
+        onClick = { navigator.openLink(YouTubeLink.Playlist(playlist.id, isMusic = false)) },
+        layout = PlaylistCardLayout.LIST,
+        modifier = modifier.padding(horizontal = PostHorizontalPadding),
+        useInternalPadding = false,
+    )
 }
 
 @Composable
@@ -64,7 +86,7 @@ private fun PostImages(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
-    val resolved = remember(urls) { urls.map { ThumbnailUrlResolver.resolveCommunityPostImage(it) } }
+    val resolved = remember(urls) { urls.map { PostImage(it) } }
     val whole = remember(urls) { urls.map { ThumbnailUrlResolver.resolveCommunityPostImage(it, uncropped = true) } }
     if (resolved.isEmpty()) return
 
@@ -77,7 +99,7 @@ private fun PostImages(
     // that there is one.
     if (resolved.size == 1) {
         AsyncImage(
-            model = rememberLoopCappedImageRequest(if (compact) resolved.first() else whole.first()),
+            model = rememberLoopCappedImageRequest(if (compact) resolved.first() else PostImage(urls.first(), uncropped = true)),
             contentDescription = stringResource(R.string.community_post_image_content_description),
             modifier =
                 modifier

@@ -3,7 +3,7 @@ package io.github.aedev.flow.data.subscriptions
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.AppDatabase
 import io.github.aedev.flow.data.local.PlayerPreferences
-import io.github.aedev.flow.data.local.ViewHistory
+import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.local.WatchedThreshold
 import io.github.aedev.flow.data.local.dao.WatchProgress
 import io.mockk.every
@@ -28,8 +28,8 @@ class SubscriptionWatchedVideosTest {
         rows: List<WatchProgress> = history,
         countImported: Boolean = false,
     ): SubscriptionWatchedVideos {
-        val viewHistory: ViewHistory = mockk(relaxed = true)
-        every { viewHistory.getVideoWatchProgress() } returns flowOf(rows)
+        val watchProgress: WatchProgressStore = mockk(relaxed = true)
+        every { watchProgress.videoProgress } returns flowOf(rows)
         val preferences: PlayerPreferences = mockk(relaxed = true)
         every { preferences.hideWatchedShorts } returns flowOf(hideWatchedShorts)
         every { preferences.hideWatchedVideosFromSubscriptions } returns flowOf(hideWatchedVideos)
@@ -37,7 +37,7 @@ class SubscriptionWatchedVideosTest {
         every { preferences.countImportedAsWatched } returns flowOf(countImported)
         val database: AppDatabase = mockk(relaxed = true)
         every { database.downloadDao().getVideoDownloads() } returns flowOf(emptyList())
-        return SubscriptionWatchedVideos(viewHistory, preferences, database)
+        return SubscriptionWatchedVideos(watchProgress, preferences, database)
     }
 
     @Test

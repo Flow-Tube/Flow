@@ -35,6 +35,9 @@ class WatchProgressTest {
         timestamp = 0L,
     )
 
+    private fun List<WatchProgress>.toWatchProgressMap(countImported: Boolean = false): Map<String, Float> =
+        mapNotNull { row -> row.cardProgress(countImported)?.let { row.videoId to it } }.toMap()
+
     @Test
     fun `a part-watched video maps to its fraction`() {
         val map = listOf(entry("a", position = 30_000, duration = 120_000)).toWatchProgressMap()
@@ -65,7 +68,15 @@ class WatchProgressTest {
 
     @Test
     fun `a card reads its own entry out of the shared store`() {
-        val entries = mutableStateOf(mapOf("a" to 0.25f, "b" to 0.75f))
+        val entries =
+            mutableStateOf(
+                CardProgressRows(
+                    mapOf(
+                        "a" to entry("a", position = 30_000, duration = 120_000),
+                        "b" to entry("b", position = 90_000, duration = 120_000),
+                    ),
+                ),
+            )
         val store = VideoWatchProgressStore(entries)
         var forA: Float? = null
         var forMissing: Float? = null
@@ -84,7 +95,7 @@ class WatchProgressTest {
 
     @Test
     fun `a card picks up a progress write without being rebuilt`() {
-        val entries = mutableStateOf(emptyMap<String, Float>())
+        val entries = mutableStateOf(CardProgressRows())
         val store = VideoWatchProgressStore(entries)
         var seen: Float? = null
 
@@ -96,7 +107,7 @@ class WatchProgressTest {
         rule.waitForIdle()
         assertThat(seen).isNull()
 
-        entries.value = mapOf("a" to 0.5f)
+        entries.value = CardProgressRows(mapOf("a" to entry("a", position = 60_000, duration = 120_000)))
         rule.waitForIdle()
 
         assertThat(seen).isEqualTo(0.5f)

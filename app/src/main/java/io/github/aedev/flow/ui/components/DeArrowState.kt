@@ -27,7 +27,8 @@ internal data class DeArrowLookup(
 
 /**
  * What DeArrow replaces on [video], or null to keep YouTube's: switched off, a local file, no lookup
- * installed, or nothing to replace. An answer already fetched shows on the first frame.
+ * installed, or nothing to replace. An answer already fetched shows on the first frame, and only a
+ * missing answer starts a coroutine.
  */
 @Composable
 internal fun rememberDeArrowResult(
@@ -63,8 +64,12 @@ internal fun rememberDeArrowLookup(
                 repository.isCached(video.id) -> DeArrowLookup(resolve(repository.cached(video.id)), answered = true)
                 else -> DeArrowLookup(null, answered = false)
             }
-        produceState(initialValue = initial, video.id, active, useRandomFrame) {
-            if (active && !initial.answered) value = DeArrowLookup(resolve(repository?.branding(video.id)), answered = true)
-        }.value
+        if (initial.answered) {
+            initial
+        } else {
+            produceState(initialValue = initial, video.id, active, useRandomFrame) {
+                value = DeArrowLookup(resolve(repository?.branding(video.id)), answered = true)
+            }.value
+        }
     }
 }

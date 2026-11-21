@@ -13,7 +13,8 @@ val LocalOriginalTitles = staticCompositionLocalOf<OriginalTitleRepository?> { n
 
 /**
  * The title in the video's own language, or null to keep the shown one: switched off, a local file,
- * no lookup installed, or none known yet. A title already fetched shows on the first frame.
+ * no lookup installed, or none known yet. A title already fetched shows on the first frame, and only
+ * a missing answer starts a coroutine.
  */
 @Composable
 fun rememberOriginalTitle(
@@ -23,9 +24,11 @@ fun rememberOriginalTitle(
     val titles = LocalOriginalTitles.current
     val active = enabled && titles != null && !LocalMediaIds.isLocal(videoId)
     return key(videoId, active) {
-        produceState(initialValue = if (active) titles?.cached(videoId) else null, videoId, active) {
-            if (active) value = titles?.originalTitle(videoId)
-        }.value
+        when {
+            !active || titles == null -> null
+            titles.isAnswered(videoId) -> titles.cached(videoId)
+            else -> produceState<String?>(initialValue = null, videoId) { value = titles.originalTitle(videoId) }.value
+        }
     }
 }
 

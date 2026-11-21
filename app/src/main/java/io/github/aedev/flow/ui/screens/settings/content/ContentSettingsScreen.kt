@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.FeedAutoplay
 import io.github.aedev.flow.data.local.SharedLinkAction
 import io.github.aedev.flow.data.local.WatchedThreshold
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
@@ -49,6 +50,7 @@ internal fun ContentSettingsScreen(
     val linkHandlingLabel = rememberLinkHandlingLabel()
     var showThresholdDialog by rememberSaveable { mutableStateOf(false) }
     var showSharedLinksDialog by rememberSaveable { mutableStateOf(false) }
+    var showFeedAutoplayDialog by rememberSaveable { mutableStateOf(false) }
 
     SettingsPage(
         title = stringResource(R.string.settings_content_title),
@@ -58,6 +60,10 @@ internal fun ContentSettingsScreen(
         group(key = "content.home", header = R.string.settings_section_home) {
             switch(ContentIndex.homeFeed, viewModel.homeFeed, viewModel::setHomeFeed)
             switch(ContentIndex.refreshOnReselect, viewModel.refreshOnReselect, viewModel::setRefreshOnReselect)
+            choice(ContentIndex.feedAutoplay, onClick = { showFeedAutoplayDialog = true }) {
+                val mode by viewModel.feedAutoplay.collectAsStateWithLifecycle()
+                feedAutoplayLabel(mode)
+            }
             switch(ContentIndex.homeChips, viewModel.homeChips, viewModel::setHomeChips)
             switch(ContentIndex.homeNewVideosButton, viewModel.homeNewVideosButton, viewModel::setHomeNewVideosButton)
             switch(ContentIndex.continueWatching, viewModel.continueWatching, viewModel::setContinueWatching)
@@ -163,6 +169,18 @@ internal fun ContentSettingsScreen(
         )
     }
 
+    if (showFeedAutoplayDialog) {
+        val mode by viewModel.feedAutoplay.collectAsStateWithLifecycle()
+        FlowChoiceDialog(
+            title = stringResource(R.string.content_settings_feed_autoplay_title),
+            description = stringResource(R.string.content_settings_feed_autoplay_dialog_body),
+            options = FeedAutoplay.entries.map { FlowChoice(it, feedAutoplayLabel(it)) },
+            selected = mode,
+            onSelect = viewModel::setFeedAutoplay,
+            onDismiss = { showFeedAutoplayDialog = false },
+        )
+    }
+
     if (showSharedLinksDialog) {
         val action by viewModel.sharedLinkAction.collectAsStateWithLifecycle()
         FlowChoiceDialog(
@@ -175,6 +193,14 @@ internal fun ContentSettingsScreen(
         )
     }
 }
+
+@Composable
+private fun feedAutoplayLabel(mode: FeedAutoplay): String =
+    when (mode) {
+        FeedAutoplay.OFF -> stringResource(R.string.content_settings_feed_autoplay_off)
+        FeedAutoplay.WIFI_ONLY -> stringResource(R.string.content_settings_feed_autoplay_wifi)
+        FeedAutoplay.ALWAYS -> stringResource(R.string.content_settings_feed_autoplay_always)
+    }
 
 @Composable
 private fun sharedLinkActionLabel(action: SharedLinkAction): String =

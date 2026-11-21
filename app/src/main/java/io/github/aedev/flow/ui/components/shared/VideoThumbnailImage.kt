@@ -21,6 +21,7 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.video.preferVideoFrameEmbeddedThumbnailKey
 import coil3.video.videoFramePercent
+import io.github.aedev.flow.data.images.YouTubeThumbnail
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import io.github.aedev.flow.data.localmedia.localVideoFrameFor
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -61,7 +62,7 @@ fun VideoThumbnailImage(
                 }
 
                 model is String || model == null -> {
-                    ThumbnailUrlResolver.resolveVideoThumbnailCandidates(videoId, model as? String, quality, portrait, youTubeFrames)
+                    ThumbnailUrlResolver.resolveVideoThumbnailModels(videoId, model as? String, quality, portrait, youTubeFrames)
                 }
 
                 else -> {
@@ -115,7 +116,7 @@ private fun SafeAsyncImage(
             )
         }
 
-        (currentModel is String && currentModel.isNotEmpty()) || currentModel is Int -> {
+        (currentModel is String && currentModel.isNotEmpty()) || currentModel is Int || currentModel is YouTubeThumbnail -> {
             val context = LocalPlatformContext.current
             val request =
                 remember(currentModel, placeholderKey) {

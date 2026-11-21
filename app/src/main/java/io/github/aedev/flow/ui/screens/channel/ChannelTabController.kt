@@ -4,7 +4,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import io.github.aedev.flow.data.engagement.HiddenContent
 import io.github.aedev.flow.data.paging.FeedTabPagingSource
+import io.github.aedev.flow.data.paging.withoutHiddenVideos
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.channel.ChannelFilterGroup
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -40,6 +43,7 @@ internal data class ChannelTabState(
  */
 internal class ChannelTabController(
     private val scope: CoroutineScope,
+    private val hidden: Flow<HiddenContent>,
 ) {
     private val _states = MutableStateFlow<Map<ChannelTabKind, ChannelTabState>>(emptyMap())
     val states: StateFlow<Map<ChannelTabKind, ChannelTabState>> = _states.asStateFlow()
@@ -148,7 +152,9 @@ internal class ChannelTabController(
                         onPageLoaded = { page -> publish(kind, page.filters, page.sections) },
                     )
                 },
-            ).flow.cachedIn(scope)
+            ).flow
+                .cachedIn(scope)
+                .combine(hidden) { items, hidden -> items.withoutHiddenVideos(hidden) }
 
         _states.update { states ->
             val current = states[kind] ?: ChannelTabState()

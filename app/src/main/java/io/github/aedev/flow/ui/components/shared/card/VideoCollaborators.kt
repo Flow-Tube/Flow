@@ -1,7 +1,7 @@
 package io.github.aedev.flow.ui.components.shared.card
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
@@ -55,22 +55,22 @@ internal fun rememberCollaboratorChannelDisplayName(
     }
 }
 
+/** A video whose byline already names its channels, or whose lookup is cached, starts no coroutine. */
 @Composable
 internal fun rememberCollaboratorItems(video: Video): List<VideoCollaborator> {
-    val needsResolution = video.needsCollaboratorResolution()
-    val fetchedCollaborators by produceState<List<VideoCollaborator>>(
-        initialValue = emptyList(),
-        key1 = video.id,
-        key2 = video.collaborators,
-        key3 = needsResolution,
-    ) {
-        value =
-            if (needsResolution) {
-                VideoCollaboratorResolver.resolve(video.id)
-            } else {
+    val fetchedCollaborators =
+        key(video.id) {
+            if (!video.needsCollaboratorResolution()) {
                 emptyList()
+            } else {
+                VideoCollaboratorResolver.cached(video.id)
+                    ?: produceState(
+                        emptyList(),
+                        video.id,
+                        video.collaborators,
+                    ) { value = VideoCollaboratorResolver.resolve(video.id) }.value
             }
-    }
+        }
     return remember(video, fetchedCollaborators) {
         video.collaboratorItems(fetchedCollaborators)
     }

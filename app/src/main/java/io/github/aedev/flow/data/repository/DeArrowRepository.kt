@@ -2,9 +2,9 @@ package io.github.aedev.flow.data.repository
 
 import io.github.aedev.flow.data.model.DeArrowContent
 import io.github.aedev.flow.di.NetworkIoDispatcher
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
@@ -13,7 +13,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,7 +21,8 @@ import javax.inject.Singleton
  *
  * A video nobody has submitted for answers 404 with a usable body (the random frame time), so 404
  * is cached like any answer. One request per video per [TTL_MS]: concurrent asks share a request
- * and [MAX_PARALLEL] keeps a fast scroll from filling the network pool.
+ * that finishes even when its askers leave, and [MAX_PARALLEL] keeps a fast scroll from filling the
+ * network pool.
  */
 @Singleton
 class DeArrowRepository internal constructor(
@@ -45,7 +45,7 @@ class DeArrowRepository internal constructor(
         object : LinkedHashMap<String, Entry>(CAPACITY, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Entry>?) = size > CAPACITY
         }
-    private val inFlight = ConcurrentHashMap<String, CompletableDeferred<DeArrowContent?>>()
+    private val lookups = SharedLookups<DeArrowContent?>(CoroutineScope(SupervisorJob() + dispatcher))
     private val permits = Semaphore(MAX_PARALLEL)
 
     /** What a request already answered, for a card's first frame. */
@@ -56,18 +56,7 @@ class DeArrowRepository internal constructor(
 
     suspend fun branding(videoId: String): DeArrowContent? {
         fresh(videoId)?.let { return it.content }
-        val mine = CompletableDeferred<DeArrowContent?>()
-        inFlight.putIfAbsent(videoId, mine)?.let { return it.await() }
-        try {
-            val content = permits.withPermit { fetch(videoId) }
-            mine.complete(content)
-            return content
-        } catch (e: CancellationException) {
-            mine.complete(null)
-            throw e
-        } finally {
-            inFlight.remove(videoId, mine)
-        }
+        return lookups.await(videoId) { permits.withPermit { fetch(videoId) } }
     }
 
     private suspend fun fetch(videoId: String): DeArrowContent? =
