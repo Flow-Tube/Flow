@@ -40,7 +40,7 @@ fun SearchTopBar(
     textFieldState: TextFieldState,
     onSearch: (String) -> Unit,
     onBack: () -> Unit,
-    onVoiceSearch: () -> Unit,
+    onVoiceSearch: (() -> Unit)?,
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
     onFieldFocused: () -> Unit = {},
@@ -67,11 +67,13 @@ fun SearchTopBar(
             onFieldFocused = onFieldFocused,
         )
 
-        IconButton(onClick = onVoiceSearch) {
-            Icon(
-                imageVector = Icons.Rounded.Mic,
-                contentDescription = stringResource(R.string.voice_search_cd),
-            )
+        if (onVoiceSearch != null) {
+            IconButton(onClick = onVoiceSearch) {
+                Icon(
+                    imageVector = Icons.Rounded.Mic,
+                    contentDescription = stringResource(R.string.voice_search_cd),
+                )
+            }
         }
 
         actions?.invoke()

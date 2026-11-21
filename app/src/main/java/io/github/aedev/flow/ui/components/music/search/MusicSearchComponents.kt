@@ -54,7 +54,7 @@ fun MusicSearchBar(
     onSearch: () -> Unit,
     onBackClick: () -> Unit,
     onClearClick: () -> Unit,
-    onVoiceSearchClick: () -> Unit,
+    onVoiceSearchClick: (() -> Unit)?,
     focusRequester: FocusRequester = remember { FocusRequester() },
 ) {
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -83,11 +83,13 @@ fun MusicSearchBar(
                 focusRequester = focusRequester,
             )
 
-            IconButton(onClick = onVoiceSearchClick) {
-                Icon(
-                    imageVector = Icons.Rounded.Mic,
-                    contentDescription = stringResource(R.string.voice_search_cd),
-                )
+            if (onVoiceSearchClick != null) {
+                IconButton(onClick = onVoiceSearchClick) {
+                    Icon(
+                        imageVector = Icons.Rounded.Mic,
+                        contentDescription = stringResource(R.string.voice_search_cd),
+                    )
+                }
             }
         }
     }
