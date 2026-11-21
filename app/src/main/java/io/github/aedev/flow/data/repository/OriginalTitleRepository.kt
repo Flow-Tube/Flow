@@ -47,6 +47,9 @@ class OriginalTitleRepository
         /** What a request already answered, for a card's first frame. */
         fun cached(videoId: String): String? = answers[videoId]?.ifEmpty { null }
 
+        /** Whether a request already answered for [videoId], even when the answer was no title. */
+        fun isAnswered(videoId: String): Boolean = answers[videoId] != null
+
         /** [cached], updated when a lookup started elsewhere answers; never requests anything itself. */
         fun cachedUpdates(videoId: String): Flow<String?> =
             answered
