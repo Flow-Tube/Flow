@@ -5249,4 +5249,7 @@
     <string name="player_settings_ambient_motion_responsive">Həssas</string>
     <string name="settings_quality_remember">Video keyfiyyətini xatırla</string>
     <string name="settings_quality_remember_summary">Oynadıcıda seçilmiş keyfiyyət standarta gəlir</string>
+    <string name="settings_top_bar_hide_on_scroll_title">Sürüşdürmədə üst zolağı gizlət</string>
+    <string name="settings_top_bar_hide_on_scroll_summary">Əsas səhifədə, Abunəliklərdə və Musiqidə</string>
+    <string name="settings_top_bar_hide_on_scroll_keywords">üst zolağı, başlıq, çiplər, sürüşdürmə, gizlət, status zolağı</string>
 </resources>
