@@ -24,7 +24,6 @@ import io.github.aedev.flow.data.localmedia.MediaRetrieverDecoderFactory
 import io.github.aedev.flow.data.localmedia.MediaStoreThumbnailFetcher
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.innertube.YouTube
-import io.github.aedev.flow.network.ImageRequestLog
 import io.github.aedev.flow.player.cache.PlayerCacheManager
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
@@ -53,11 +52,9 @@ object AppModule {
     @Singleton
     fun provideImageLoader(
         @ApplicationContext context: Context,
-        okHttpClient: OkHttpClient,
-    ): ImageLoader {
-        val imageClient =
-            if (BuildConfig.DEBUG) okHttpClient.newBuilder().addInterceptor(ImageRequestLog).build() else okHttpClient
-        return ImageLoader
+        @ImageClient imageClient: OkHttpClient,
+    ): ImageLoader =
+        ImageLoader
             .Builder(context)
             .components {
                 add(DrawnSizeImageInterceptor())
@@ -84,5 +81,4 @@ object AppModule {
             .allowRgb565(context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true)
             .apply { if (BuildConfig.DEBUG) logger(DebugLogger()) }
             .build()
-    }
 }
