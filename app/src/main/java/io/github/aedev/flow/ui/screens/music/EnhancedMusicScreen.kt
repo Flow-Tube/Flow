@@ -26,19 +26,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.music.model.audioMusicOnly
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
+import io.github.aedev.flow.ui.OnTabReselected
 import io.github.aedev.flow.ui.TabScrollEventBus
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.floatAboveBottomChrome
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
+import io.github.aedev.flow.ui.components.layout.topbar.FlowScrollAwayLayout
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
+import io.github.aedev.flow.ui.components.layout.topbar.rememberFlowScrollAwayState
 import io.github.aedev.flow.ui.components.music.section.HomeSectionType
 import io.github.aedev.flow.ui.components.music.section.MusicHomeLibrary
 import io.github.aedev.flow.ui.components.music.section.musicHomeFeed
@@ -46,6 +52,7 @@ import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
 import io.github.aedev.flow.ui.components.shared.MusicScreenShimmerLoading
+import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
 import java.util.Random
@@ -70,6 +77,10 @@ fun EnhancedMusicScreen(
     libraryViewModel: MusicHomeLibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val topBarHideOnScroll by remember(context) { PlayerPreferences(context) }
+        .topBarHideOnScroll
+        .collectAsStateWithLifecycle(initialValue = true)
     val ownPlaylists by libraryViewModel.playlists.collectAsStateWithLifecycle()
     val musicSubscriptions by libraryViewModel.subscriptions.collectAsStateWithLifecycle()
     val hiddenShelves by libraryViewModel.hiddenShelves.collectAsStateWithLifecycle()
@@ -149,18 +160,12 @@ fun EnhancedMusicScreen(
     val musicMenus = LocalMusicMenus.current
 
     val bottomInsets = LocalFlowBottomInsets.current
+    val headerState = rememberFlowScrollAwayState()
+    val headerSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    OnTabReselected(FlowTab.Music.route) { headerState.show(headerSpec) }
 
     Scaffold(
-        topBar = {
-            FlowTopBar(
-                title = stringResource(R.string.screen_title_music),
-                actions = {
-                    IconButton(onClick = onSearchClick) {
-                        Icon(Icons.Outlined.Search, stringResource(R.string.search))
-                    }
-                },
-            )
-        },
+        modifier = Modifier.reachUnderStatusBar(),
         floatingActionButton = {
             if (showRecognize) {
                 FloatingActionButton(
@@ -174,23 +179,33 @@ fun EnhancedMusicScreen(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0.dp),
     ) { paddingValues ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-        ) {
+        FlowScrollAwayLayout(
+            modifier = Modifier.padding(paddingValues),
+            state = headerState,
+            hideOnScroll = topBarHideOnScroll,
+            header = {
+                FlowTopBar(
+                    title = stringResource(R.string.screen_title_music),
+                    actions = {
+                        IconButton(onClick = onSearchClick) {
+                            Icon(Icons.Outlined.Search, stringResource(R.string.search))
+                        }
+                    },
+                )
+            },
+        ) { topPadding ->
             val isInitialLoading = uiState.isLoading && uiState.trendingSongs.isEmpty() && uiState.dynamicSections.isEmpty()
 
             when {
                 isInitialLoading -> {
-                    MusicScreenShimmerLoading()
+                    MusicScreenShimmerLoading(Modifier.padding(top = topPadding))
                 }
 
                 uiState.error != null && uiState.trendingSongs.isEmpty() -> {
                     FlowErrorState(
                         error = uiState.error ?: stringResource(R.string.error_occurred),
                         onRetry = { viewModel.retry() },
+                        modifier = Modifier.padding(top = topPadding),
                     )
                 }
 
@@ -221,12 +236,13 @@ fun EnhancedMusicScreen(
                         isRefreshing = uiState.isLoading || uiState.homeChipPage?.status == MusicHomeChipStatus.REFRESHING,
                         onRefresh = { viewModel.refresh() },
                         state = pullState,
+                        indicatorTopPadding = topPadding,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         LazyColumn(
                             state = musicListState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = flowBottomContentPadding(FeedBottomClearance)),
+                            contentPadding = PaddingValues(top = topPadding, bottom = flowBottomContentPadding(FeedBottomClearance)),
                         ) {
                             musicHomeFeed(
                                 uiState = uiState,

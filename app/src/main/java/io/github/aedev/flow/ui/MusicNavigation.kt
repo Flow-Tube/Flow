@@ -4,7 +4,6 @@ import androidx.compose.runtime.*
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import io.github.aedev.flow.data.localmedia.toMusicTrack
 import io.github.aedev.flow.data.localmedia.toVideo
@@ -28,9 +27,7 @@ internal fun NavGraphBuilder.musicRoutes(
     defaultStartRoute: String,
     onMusicStarted: () -> Unit,
 ) {
-    composable("music") {
-        currentRoute.value = "music"
-
+    page("music") {
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         EnhancedMusicScreen(
@@ -76,8 +73,7 @@ internal fun NavGraphBuilder.musicRoutes(
         )
     }
 
-    composable("moodsAndGenres") {
-        currentRoute.value = "moodsAndGenres"
+    page("moodsAndGenres") {
         io.github.aedev.flow.ui.screens.music.MoodsAndGenresScreen(
             onBackClick = { navController.popBackStack() },
             onGenreClick = { item ->
@@ -88,7 +84,7 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Music Search Screen
-    composable(
+    page(
         route = "musicSearch?query={query}",
         arguments =
             listOf(
@@ -99,8 +95,6 @@ internal fun NavGraphBuilder.musicRoutes(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = "musicSearch"
-
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         val initialQuery = backStackEntry.arguments?.getString("query")
 
@@ -130,9 +124,7 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Music Recognition (Shazam) Screen
-    composable("musicRecognize") {
-        currentRoute.value = "musicRecognize"
-
+    page("musicRecognize") {
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         fun playRecognized(result: io.github.aedev.flow.data.recognition.RecognitionResult) {
@@ -162,9 +154,7 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Music Recognition History Screen
-    composable("recognitionHistory") {
-        currentRoute.value = "recognitionHistory"
-
+    page("recognitionHistory") {
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         io.github.aedev.flow.ui.screens.recognition.RecognitionHistoryScreen(
@@ -194,7 +184,7 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // YouTube Browse Screen (for mood/genre content)
-    composable(
+    page(
         route = "youtube_browse/{browseId}?params={params}",
         arguments =
             listOf(
@@ -206,8 +196,6 @@ internal fun NavGraphBuilder.musicRoutes(
                 },
             ),
     ) {
-        currentRoute.value = "youtube_browse"
-
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         io.github.aedev.flow.ui.screens.music.YouTubeBrowseScreen(
@@ -240,11 +228,11 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Artist Page
-    composable(
+    page(
         MUSIC_ARTIST_ROUTE_PATTERN,
         arguments = listOf(navArgument("channelId") { type = NavType.StringType }),
     ) { backStackEntry ->
-        val channelId = backStackEntry.arguments?.getString("channelId") ?: return@composable
+        val channelId = backStackEntry.arguments?.getString("channelId") ?: return@page
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         io.github.aedev.flow.ui.screens.music.ArtistRoute(
             channelId = channelId,
@@ -272,7 +260,7 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Artist Items Page (View All)
-    composable(
+    page(
         "artistItems/{channelId}/{browseId}?params={params}",
         arguments =
             listOf(
@@ -285,7 +273,7 @@ internal fun NavGraphBuilder.musicRoutes(
                 navArgument("channelId") { type = NavType.StringType },
             ),
     ) { backStackEntry ->
-        val browseId = backStackEntry.arguments?.getString("browseId") ?: return@composable
+        val browseId = backStackEntry.arguments?.getString("browseId") ?: return@page
         val params = backStackEntry.arguments?.getString("params")
         // channelId is available if needed contextually
 
@@ -324,11 +312,11 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     // Music Playlist Page
-    composable(
+    page(
         MUSIC_PLAYLIST_ROUTE_PATTERN,
         arguments = listOf(navArgument("playlistId") { type = NavType.StringType }),
     ) { backStackEntry ->
-        if (backStackEntry.arguments?.getString("playlistId") == null) return@composable
+        if (backStackEntry.arguments?.getString("playlistId") == null) return@page
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         io.github.aedev.flow.ui.screens.music.collection.MusicCollectionScreen(
             callbacks =

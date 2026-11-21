@@ -8,7 +8,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import io.github.aedev.flow.data.local.PlaylistRepository
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
@@ -80,8 +79,7 @@ fun NavGraphBuilder.flowAppGraph(
     // =============================================
     // ONBOARDING (First-time user experience)
     // =============================================
-    composable("onboarding") {
-        currentRoute.value = "onboarding"
+    page("onboarding") {
         OnboardingScreen(
             onComplete = {
                 // Navigate to the selected default tab and clear the backstack so user can't go back to onboarding
@@ -92,8 +90,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable("home") {
-        currentRoute.value = "home"
+    page("home") {
         HomeScreen(
             onVideoClick = { video ->
                 navController.openVideoOrShorts(video, disableShortsPlayer) {
@@ -118,19 +115,16 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable(UPDATE_ROUTE) {
-        currentRoute.value = UPDATE_ROUTE
+    page(UPDATE_ROUTE) {
         UpdateScreen(onClose = { navController.popBackStack() })
     }
 
-    composable(TIMES_UP_ROUTE) {
-        currentRoute.value = TIMES_UP_ROUTE
+    page(TIMES_UP_ROUTE) {
         TimesUpScreen(onClose = { navController.popBackStack() })
     }
 
     // Notifications Screen
-    composable("notifications") {
-        currentRoute.value = "notifications"
+    page("notifications") {
         NotificationScreen(
             onBackClick = { navController.popBackStack() },
             onNotificationClick = { videoId ->
@@ -142,7 +136,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable(
+    page(
         route = SHORTS_ROUTE_PATTERN,
         arguments =
             listOf(
@@ -153,7 +147,6 @@ fun NavGraphBuilder.flowAppGraph(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = SHORTS_ROUTE_KEY
         val source = ShortsQueueSource.decode(backStackEntry.arguments?.getString(SHORTS_ROUTE_ARG))
         val isRootTab = source == ShortsQueueSource.Feed
         ShortsScreen(
@@ -168,8 +161,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable("subscriptions") { backStackEntry ->
-        currentRoute.value = "subscriptions"
+    page("subscriptions") { backStackEntry ->
         val openMusic by backStackEntry.savedStateHandle
             .getStateFlow(OPEN_MUSIC_SUBSCRIPTIONS, false)
             .collectAsStateWithLifecycle()
@@ -194,8 +186,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable("library") {
-        currentRoute.value = "library"
+    page("library") {
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         val downloadsSourceName =
             androidx.compose.ui.res.stringResource(
@@ -260,7 +251,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable(
+    page(
         route = SEARCH_ROUTE_PATTERN,
         arguments =
             listOf(
@@ -280,7 +271,6 @@ fun NavGraphBuilder.flowAppGraph(
                 },
             ),
     ) { entry ->
-        currentRoute.value = "search"
         val depth = entry.arguments?.getInt(SEARCH_DEPTH_ARG) ?: 1
         // Search owns the whole screen, the way YouTube's does.
         SearchScreen(
@@ -312,15 +302,13 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable(EQUALIZER_ROUTE) {
-        currentRoute.value = EQUALIZER_ROUTE
+    page(EQUALIZER_ROUTE) {
         CompositionLocalProvider(LocalNewSettings provides rememberNewSettings()) {
             EqualizerScreen(onBack = { navController.popBackStack() })
         }
     }
 
-    composable("categories") {
-        currentRoute.value = "categories"
+    page("categories") {
         io.github.aedev.flow.ui.screens.categories.CategoriesScreen(
             onVideoClick = { video ->
                 navController.openVideoOrShorts(video, disableShortsPlayer) { playerViewModel.playVideo(it) }
@@ -334,7 +322,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable(
+    page(
         route = "settings?target={target}",
         arguments =
             listOf(
@@ -345,7 +333,6 @@ fun NavGraphBuilder.flowAppGraph(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = "settings"
         SettingsHost(
             start = SettingsTarget.decode(backStackEntry.arguments?.getString("target")),
             onExit = { navController.popBackStack() },
@@ -355,7 +342,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable(
+    page(
         route = RecapRoutes.STATS,
         arguments =
             listOf(
@@ -366,7 +353,6 @@ fun NavGraphBuilder.flowAppGraph(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = "recap"
         RecapScreen(
             onBack = { navController.popBackStack() },
             onPlayStory = { period, source -> navController.navigate(RecapRoutes.story(period, source)) },
@@ -374,7 +360,7 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable(
+    page(
         route = RecapRoutes.STORY,
         arguments =
             listOf(
@@ -386,7 +372,6 @@ fun NavGraphBuilder.flowAppGraph(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = "recap_story"
         val period = RecapRoutes.decode(backStackEntry.arguments?.getString(RecapRoutes.ARG_PERIOD))
         if (period == null) {
             LaunchedEffect(Unit) { navController.popBackStack() }
@@ -399,18 +384,16 @@ fun NavGraphBuilder.flowAppGraph(
         }
     }
 
-    composable("donations") {
-        currentRoute.value = "donations"
+    page("donations") {
         io.github.aedev.flow.ui.screens.settings.about.DonationsScreen(
             onNavigateBack = { navController.popBackStack() },
         )
     }
 
-    composable(
+    page(
         route = "channel?url={channelUrl}",
         arguments = listOf(navArgument("channelUrl") { type = NavType.StringType }),
     ) { backStackEntry ->
-        currentRoute.value = "channel"
         val channelUrl =
             backStackEntry.arguments?.getString("channelUrl")?.let {
                 java.net.URLDecoder.decode(it, "UTF-8")
@@ -438,8 +421,7 @@ fun NavGraphBuilder.flowAppGraph(
     }
 
     // History Screen
-    composable("history") {
-        currentRoute.value = "history"
+    page("history") {
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         HistoryScreen(
             onVideoClick = { track ->
@@ -473,7 +455,7 @@ fun NavGraphBuilder.flowAppGraph(
     }
 
     // Playlists Screen
-    composable(
+    page(
         route = "playlists?kind={kind}",
         arguments =
             listOf(
@@ -484,7 +466,6 @@ fun NavGraphBuilder.flowAppGraph(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = "playlists"
         val fixedKind =
             backStackEntry.arguments?.getString("kind")?.let { name ->
                 io.github.aedev.flow.ui.components.shared.MediaKind.entries
@@ -503,11 +484,10 @@ fun NavGraphBuilder.flowAppGraph(
     }
 
     // Playlist Detail Screen
-    composable(
+    page(
         "playlist/{playlistId}",
         arguments = listOf(navArgument("playlistId") { type = NavType.StringType }),
     ) { _ ->
-        currentRoute.value = "playlist"
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         PlaylistDetailScreen(
             onNavigateBack = { navController.popBackStack() },
@@ -526,8 +506,7 @@ fun NavGraphBuilder.flowAppGraph(
     }
 
     // Saved Shorts Grid
-    composable("savedShorts") {
-        currentRoute.value = "savedShorts"
+    page("savedShorts") {
         io.github.aedev.flow.ui.screens.library.SavedShortsGridScreen(
             onBackClick = { navController.popBackStack() },
             onVideoClick = { videoId ->
@@ -536,15 +515,13 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    composable("notes") {
-        currentRoute.value = "notes"
+    page("notes") {
         io.github.aedev.flow.ui.screens.notes.NotesScreen(
             onBackClick = { navController.popBackStack() },
             onPlay = { video, startPositionMs -> playerViewModel.playVideo(video, startPositionMs = startPositionMs) },
         )
     }
-    composable("localMedia") {
-        currentRoute.value = "localMedia"
+    page("localMedia") {
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         val localTitle =
             androidx.compose.ui.res
@@ -566,15 +543,14 @@ fun NavGraphBuilder.flowAppGraph(
         )
     }
 
-    downloadsRoutes(navController, mediaNavigator, currentRoute, playerViewModel, onMusicStarted)
+    downloadsRoutes(navController, mediaNavigator, playerViewModel, onMusicStarted)
 
     musicRoutes(navController, mediaNavigator, currentRoute, playerViewModel, defaultStartRoute, onMusicStarted)
 
-    widgetPlaybackRoutes(navController, currentRoute, defaultStartRoute, playerViewModel, onMusicStarted)
+    widgetPlaybackRoutes(navController, defaultStartRoute, playerViewModel, onMusicStarted)
 
     linkPlaybackRoutes(
         navController = navController,
-        currentRoute = currentRoute,
         playerViewModel = playerViewModel,
         playerUiStateResult = playerUiStateResult,
         playerSheetState = playerSheetState,

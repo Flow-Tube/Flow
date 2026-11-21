@@ -56,6 +56,7 @@ class AppearanceViewModel
         val separatePlaylists = preferences.separatePlaylistKinds.asState(false)
         val appLogo = preferences.showAppLogoIcon.asState(true)
         val topBarProfile = preferences.showProfileInTopBar.asState(true)
+        val topBarHideOnScroll = preferences.topBarHideOnScroll.asState(true)
         val settingsInProfileMenu = preferences.settingsInProfileMenu.asState(false)
         val groupBadges = preferences.showChannelGroupBadges.asState(false)
         val cardLikeButtons = preferences.videoCardActionsEnabled.asState(false)
@@ -160,6 +161,8 @@ class AppearanceViewModel
         fun setDownloadsTab(enabled: Boolean) = write { preferences.setDownloadsNavigationEnabled(enabled) }
 
         fun setHideNavOnScroll(enabled: Boolean) = write { preferences.setBottomNavHideOnScroll(enabled) }
+
+        fun setTopBarHideOnScroll(enabled: Boolean) = write { preferences.setTopBarHideOnScroll(enabled) }
 
         fun setNavLabels(labels: NavBarLabels) = write { preferences.setBottomNavLabels(labels) }
 

@@ -20,6 +20,7 @@ internal fun rememberCollectionHeaderState(
     tracks: List<MusicTrack>,
     downloadProgress: Float?,
     isDownloaded: Boolean,
+    artworkKey: String?,
 ): CollectionHeaderState {
     val details = requireNotNull(state.details)
     val isAlbum = state.kind == MusicCollectionKind.ALBUM
@@ -44,6 +45,7 @@ internal fun rememberCollectionHeaderState(
                 .takeUnless { isAlbum }
                 .orEmpty(),
         artworkUrl = details.thumbnailUrl.ifBlank { tracks.firstOrNull()?.thumbnailUrl.orEmpty() },
+        artworkKey = artworkKey,
         isSaved = state.isSaved,
         canSave = state.kind in SavableKinds,
         canShare = state.kind != null,

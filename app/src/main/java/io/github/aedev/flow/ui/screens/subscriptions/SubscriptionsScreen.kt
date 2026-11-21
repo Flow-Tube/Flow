@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -49,10 +51,15 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
+import io.github.aedev.flow.ui.OnTabReselected
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.floatAboveBottomChrome
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
+import io.github.aedev.flow.ui.components.layout.topbar.FlowScrollAwayLayout
 import io.github.aedev.flow.ui.components.layout.topbar.FlowSearchTopBar
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
+import io.github.aedev.flow.ui.components.layout.topbar.rememberFlowScrollAwayState
+import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import kotlinx.coroutines.launch
 
 @Composable
@@ -67,13 +74,16 @@ fun SubscriptionsScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val columnPreference by remember(context) { PlayerPreferences(context) }
-        .homeFeedColumns
-        .collectAsStateWithLifecycle(HomeFeedColumns.AUTO)
+    val preferences = remember(context) { PlayerPreferences(context) }
+    val columnPreference by preferences.homeFeedColumns.collectAsStateWithLifecycle(HomeFeedColumns.AUTO)
+    val topBarHideOnScroll by preferences.topBarHideOnScroll.collectAsStateWithLifecycle(initialValue = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val feedGridState = rememberLazyGridState()
     val postsListState = rememberLazyListState()
+    val headerState = rememberFlowScrollAwayState()
+    val headerSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    OnTabReselected(FlowTab.Subscriptions.route) { headerState.show(headerSpec) }
     var showPosts by rememberSaveable { mutableStateOf(false) }
 
     var isManagingSubs by rememberSaveable { mutableStateOf(false) }
@@ -121,9 +131,11 @@ fun SubscriptionsScreen(
     )
 
     Scaffold(
+        modifier = Modifier.reachUnderStatusBar(),
         topBar = {
             if (isManagingSubs) {
                 FlowSearchTopBar(
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
                     onClose = closeManage,
@@ -172,26 +184,6 @@ fun SubscriptionsScreen(
                         }
                     },
                 )
-            } else {
-                FlowTopBar(
-                    title = stringResource(R.string.top_bar_subscriptions_title),
-                    crowded = true,
-                    actions = {
-                        IconButton(onClick = { viewModel.toggleViewMode() }) {
-                            Icon(
-                                imageVector =
-                                    if (uiState.isFullWidthView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                                contentDescription = stringResource(R.string.toggle_view_mode),
-                            )
-                        }
-                        IconButton(onClick = { openManage(false) }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Search,
-                                contentDescription = stringResource(R.string.search_subscriptions),
-                            )
-                        }
-                    },
-                )
             }
         },
         snackbarHost = {
@@ -234,51 +226,81 @@ fun SubscriptionsScreen(
                             }
                         },
                     )
-                } else if (uiState.subscribedChannels.isEmpty()) {
-                    SubscriptionsEmptyState(modifier = Modifier.fillMaxSize())
-                } else if (showPosts && uiState.showPostsChip) {
-                    SubscriptionPostsContent(
-                        channelIds = uiState.selectedGroupScope(),
-                        listState = postsListState,
-                        onChannelClick = onChannelClick,
-                        onVideoClick = onVideoClick,
+                } else {
+                    FlowScrollAwayLayout(
+                        state = headerState,
+                        hideOnScroll = topBarHideOnScroll,
                         header = {
-                            SubscriptionsFeedHeader(
+                            FlowTopBar(
+                                title = stringResource(R.string.top_bar_subscriptions_title),
+                                crowded = true,
+                                actions = {
+                                    IconButton(onClick = { viewModel.toggleViewMode() }) {
+                                        Icon(
+                                            imageVector =
+                                                if (uiState.isFullWidthView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                                            contentDescription = stringResource(R.string.toggle_view_mode),
+                                        )
+                                    }
+                                    IconButton(onClick = { openManage(false) }) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Search,
+                                            contentDescription = stringResource(R.string.search_subscriptions),
+                                        )
+                                    }
+                                },
+                            )
+                        },
+                    ) { topPadding ->
+                        if (uiState.subscribedChannels.isEmpty()) {
+                            SubscriptionsEmptyState(modifier = Modifier.padding(top = topPadding).fillMaxSize())
+                        } else if (showPosts && uiState.showPostsChip) {
+                            SubscriptionPostsContent(
+                                channelIds = uiState.selectedGroupScope(),
+                                listState = postsListState,
+                                onChannelClick = onChannelClick,
+                                onVideoClick = onVideoClick,
+                                header = {
+                                    SubscriptionsFeedHeader(
+                                        state = uiState,
+                                        topChannels = topChannels,
+                                        onChannelClick = onChannelClick,
+                                        onViewAllClick = { openManage(false) },
+                                        onMusicSubscriptionsClick = { openManage(true) },
+                                        onGroupSelected = viewModel::selectGroup,
+                                        onManageGroups = { showGroupsDialog = true },
+                                        postsSelected = true,
+                                        onPostsClick = { showPosts = false },
+                                        pinnedCount = channels.pinnedCount,
+                                        onTogglePin = { viewModel.togglePin(it.id) },
+                                    )
+                                },
+                                topPadding = topPadding,
+                            )
+                        } else {
+                            SubscriptionsFeedContent(
                                 state = uiState,
+                                videos = videos,
                                 topChannels = topChannels,
+                                gridState = feedGridState,
+                                columnPreference = columnPreference,
+                                onRefresh = viewModel::refreshFeed,
+                                onVideoClick = onVideoClick,
+                                onShortClick = onShortClick,
                                 onChannelClick = onChannelClick,
                                 onViewAllClick = { openManage(false) },
                                 onMusicSubscriptionsClick = { openManage(true) },
                                 onGroupSelected = viewModel::selectGroup,
                                 onManageGroups = { showGroupsDialog = true },
-                                postsSelected = true,
-                                onPostsClick = { showPosts = false },
+                                onRetryFailedChannels = viewModel::retryFailedChannels,
+                                onDismissFailedChannels = viewModel::dismissFailedChannels,
+                                onPostsClick = { showPosts = true }.takeIf { uiState.showPostsChip },
                                 pinnedCount = channels.pinnedCount,
                                 onTogglePin = { viewModel.togglePin(it.id) },
+                                topPadding = topPadding,
                             )
-                        },
-                    )
-                } else {
-                    SubscriptionsFeedContent(
-                        state = uiState,
-                        videos = videos,
-                        topChannels = topChannels,
-                        gridState = feedGridState,
-                        columnPreference = columnPreference,
-                        onRefresh = viewModel::refreshFeed,
-                        onVideoClick = onVideoClick,
-                        onShortClick = onShortClick,
-                        onChannelClick = onChannelClick,
-                        onViewAllClick = { openManage(false) },
-                        onMusicSubscriptionsClick = { openManage(true) },
-                        onGroupSelected = viewModel::selectGroup,
-                        onManageGroups = { showGroupsDialog = true },
-                        onRetryFailedChannels = viewModel::retryFailedChannels,
-                        onDismissFailedChannels = viewModel::dismissFailedChannels,
-                        onPostsClick = { showPosts = true }.takeIf { uiState.showPostsChip },
-                        pinnedCount = channels.pinnedCount,
-                        onTogglePin = { viewModel.togglePin(it.id) },
-                    )
+                        }
+                    }
                 }
             }
         }

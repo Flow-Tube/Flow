@@ -24,7 +24,6 @@ import io.github.aedev.flow.ui.screens.playlists.LinkedPlaylistViewModel
 /** Routes a link from another app opens to start playback; each plays, then leaves at once. */
 internal fun NavGraphBuilder.linkPlaybackRoutes(
     navController: NavHostController,
-    currentRoute: MutableState<String>,
     playerViewModel: VideoPlayerViewModel,
     playerUiStateResult: State<VideoPlayerUiState>,
     playerSheetState: PlayerDraggableState,
@@ -45,7 +44,6 @@ internal fun NavGraphBuilder.linkPlaybackRoutes(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = "musicPlayer"
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         val links: LinkedPlaylistViewModel = hiltViewModel()
         val videoId = backStackEntry.arguments?.getString(MUSIC_PLAYER_ROUTE_ARG).orEmpty()
@@ -92,7 +90,7 @@ internal fun NavGraphBuilder.linkPlaybackRoutes(
     }
 
     composable(
-        route = "player/{videoId}",
+        route = PLAYER_ROUTE_PATTERN,
         arguments = listOf(navArgument("videoId") { type = NavType.StringType }),
     ) { backStackEntry ->
         val videoId = backStackEntry.arguments?.getString("videoId")
@@ -125,7 +123,8 @@ internal fun NavGraphBuilder.linkPlaybackRoutes(
 
 private const val LINKED_PLAYLIST_ARG = "playlistId"
 private const val LINKED_VIDEO_ARG = "videoId"
-private const val LINKED_PLAYLIST_ROUTE_PATTERN = "linkedPlaylist/{$LINKED_PLAYLIST_ARG}/{$LINKED_VIDEO_ARG}"
+internal const val PLAYER_ROUTE_PATTERN = "player/{videoId}"
+internal const val LINKED_PLAYLIST_ROUTE_PATTERN = "linkedPlaylist/{$LINKED_PLAYLIST_ARG}/{$LINKED_VIDEO_ARG}"
 
 internal fun linkedPlaylistRoute(
     playlistId: String,
