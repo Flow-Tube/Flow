@@ -5453,4 +5453,20 @@
     <string name="player_settings_ambient_motion_responsive">Reactivo</string>
     <string name="settings_quality_remember">Recordar calidad de vídeo</string>
     <string name="settings_quality_remember_summary">La calidad que elijas en el reproductor pasará a ser la predeterminada</string>
+    <plurals name="comment_folded_replies">
+        <item quantity="one">%1$d respuesta</item>
+        <item quantity="many">%1$d respuestas</item>
+        <item quantity="other">%1$d respuestas</item>
+    </plurals>
+    <string name="comment_creator_replied">%1$s respondió</string>
+    <string name="comment_creator_replied_unnamed">El autor respondió</string>
+    <string name="description_music_section">Música</string>
+    <string name="description_how_this_was_made">Cómo se hizo</string>
+    <string name="channel_badge_artist">Canal oficial del artista</string>
+    <string name="settings_related_collections_title">Listas y Shorts en relacionados</string>
+    <string name="settings_related_collections_subtitle">Mostrar listas, mezclas y Shorts entre los vídeos relacionados</string>
+    <string name="settings_keywords_related_collections">mezcla, mezclas, lista, shorts, sección, a continuación</string>
+    <string name="settings_top_bar_hide_on_scroll_title">Ocultar la barra superior al desplazar</string>
+    <string name="settings_top_bar_hide_on_scroll_summary">En Inicio, Suscripciones y Música</string>
+    <string name="settings_top_bar_hide_on_scroll_keywords">barra superior, encabezado, etiquetas, desplazar, ocultar, barra de estado</string>
 </resources>
