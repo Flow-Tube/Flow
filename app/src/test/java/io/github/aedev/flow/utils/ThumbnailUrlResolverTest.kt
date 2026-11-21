@@ -1,6 +1,7 @@
 package io.github.aedev.flow.utils
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.images.YouTubeThumbnail
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import org.junit.Test
 
@@ -10,19 +11,19 @@ class ThumbnailUrlResolverTest {
         val frame0 = "https://i.ytimg.com/vi/abc123/frame0.jpg"
         val oar2 = "https://i.ytimg.com/vi/abc123/oar2.jpg?sqp=xyz"
 
-        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailCandidates("abc123", frame0, ThumbnailQuality.HIGH, portrait = true))
-            .containsExactly(frame0, "https://i.ytimg.com/vi/abc123/hq720.jpg", "https://i.ytimg.com/vi/abc123/hqdefault.jpg")
+        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailModels("abc123", frame0, ThumbnailQuality.HIGH, portrait = true))
+            .containsExactly(frame0, YouTubeThumbnail("abc123", ThumbnailQuality.HIGH, portrait = true))
             .inOrder()
-        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailCandidates("abc123", oar2, ThumbnailQuality.LOW, portrait = true).first())
+        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailModels("abc123", oar2, ThumbnailQuality.LOW, portrait = true).first())
             .isEqualTo(oar2)
     }
 
     @Test
     fun `a landscape image still swaps a Short's poster for the tiers`() {
-        val candidates =
-            ThumbnailUrlResolver.resolveVideoThumbnailCandidates("abc123", "https://i.ytimg.com/vi/abc123/oar2.jpg", ThumbnailQuality.HIGH)
+        val models =
+            ThumbnailUrlResolver.resolveVideoThumbnailModels("abc123", "https://i.ytimg.com/vi/abc123/oar2.jpg", ThumbnailQuality.HIGH)
 
-        assertThat(candidates.first()).isEqualTo("https://i.ytimg.com/vi/abc123/hq720.jpg")
+        assertThat(models).containsExactly(YouTubeThumbnail("abc123", ThumbnailQuality.HIGH))
         assertThat(ThumbnailUrlResolver.isPortraitReelPoster("https://i.ytimg.com/vi/abc123/hqdefault.jpg")).isFalse()
     }
 
@@ -63,51 +64,46 @@ class ThumbnailUrlResolverTest {
 
     @Test
     fun `card candidates never request maxresdefault`() {
-        val candidates = ThumbnailUrlResolver.youtubeThumbnailCandidates(VIDEO_ID)
+        val thumbnail = YouTubeThumbnail(VIDEO_ID, ThumbnailQuality.HIGH)
 
-        assertThat(candidates)
+        assertThat(thumbnail.urls(0, 0))
             .containsExactly(
                 "https://i.ytimg.com/vi/$VIDEO_ID/hq720.jpg",
                 "https://i.ytimg.com/vi/$VIDEO_ID/hqdefault.jpg",
             ).inOrder()
+        assertThat(thumbnail.urls(3840, 2160).none { "maxresdefault" in it }).isTrue()
     }
 
     @Test
     fun `card candidates are empty for a blank video id`() {
-        assertThat(ThumbnailUrlResolver.youtubeThumbnailCandidates("   ")).isEmpty()
+        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailModels("   ", null)).isEmpty()
     }
 
     @Test
     fun `a stored maxres url is downgraded to card tiers`() {
         val stored = "https://i.ytimg.com/vi/$VIDEO_ID/maxresdefault.jpg"
 
-        val candidates = ThumbnailUrlResolver.resolveVideoThumbnailCandidates(VIDEO_ID, stored)
+        val models = ThumbnailUrlResolver.resolveVideoThumbnailModels(VIDEO_ID, stored)
 
-        assertThat(candidates).doesNotContain(stored)
-        assertThat(candidates.first()).isEqualTo("https://i.ytimg.com/vi/$VIDEO_ID/hq720.jpg")
+        assertThat(models).containsExactly(YouTubeThumbnail(VIDEO_ID, ThumbnailQuality.HIGH))
     }
 
     @Test
     fun `a non youtube thumbnail is kept ahead of the youtube fallbacks`() {
         val raw = "https://example.com/custom/art.png"
 
-        val candidates = ThumbnailUrlResolver.resolveVideoThumbnailCandidates(VIDEO_ID, raw)
+        val models = ThumbnailUrlResolver.resolveVideoThumbnailModels(VIDEO_ID, raw)
 
-        assertThat(candidates.first()).isEqualTo(raw)
-        assertThat(candidates).hasSize(3)
+        assertThat(models).containsExactly(raw, YouTubeThumbnail(VIDEO_ID, ThumbnailQuality.HIGH)).inOrder()
     }
 
     @Test
     fun `candidates recover the video id from the raw url`() {
         val raw = "https://i.ytimg.com/vi/$OTHER_ID/hqdefault.jpg"
 
-        val candidates = ThumbnailUrlResolver.resolveVideoThumbnailCandidates("", raw)
+        val models = ThumbnailUrlResolver.resolveVideoThumbnailModels("", raw)
 
-        assertThat(candidates)
-            .containsExactly(
-                "https://i.ytimg.com/vi/$OTHER_ID/hq720.jpg",
-                "https://i.ytimg.com/vi/$OTHER_ID/hqdefault.jpg",
-            ).inOrder()
+        assertThat(models).containsExactly(YouTubeThumbnail(OTHER_ID, ThumbnailQuality.HIGH))
     }
 
     @Test
@@ -184,11 +180,11 @@ class ThumbnailUrlResolverTest {
     @Test
     fun `youtube frames replace the uploader's thumbnail tiers at each quality`() {
         fun frames(quality: ThumbnailQuality) =
-            ThumbnailUrlResolver.youtubeFrameCandidates("abc123", quality).map { it.substringAfterLast('/') }
+            YouTubeThumbnail("abc123", quality, frames = true).urls(0, 0).map { it.substringAfterLast('/') }
 
-        assertThat(frames(ThumbnailQuality.HIGH)).containsExactly("maxres2.jpg", "sd2.jpg", "hq2.jpg").inOrder()
-        assertThat(frames(ThumbnailQuality.MEDIUM)).containsExactly("sd2.jpg", "hq2.jpg").inOrder()
-        assertThat(frames(ThumbnailQuality.LOW)).containsExactly("mq2.jpg", "hq2.jpg").inOrder()
+        assertThat(frames(ThumbnailQuality.HIGH)).containsExactly("maxres2.jpg", "sd2.jpg", "hq2.jpg", "hqdefault.jpg").inOrder()
+        assertThat(frames(ThumbnailQuality.MEDIUM)).containsExactly("sd2.jpg", "hq2.jpg", "hqdefault.jpg").inOrder()
+        assertThat(frames(ThumbnailQuality.LOW)).containsExactly("mq2.jpg", "hq2.jpg", "hqdefault.jpg").inOrder()
         assertThat(frames(ThumbnailQuality.OFF)).isEmpty()
     }
 
@@ -196,17 +192,17 @@ class ThumbnailUrlResolverTest {
     fun `a DeArrow frame falls back to youtube frames, never the uploader's thumbnail`() {
         val dearrow = "https://dearrow-thumb.ajay.app/api/v1/getThumbnail?videoID=abc123&time=12.5"
 
-        val candidates =
-            ThumbnailUrlResolver.resolveVideoThumbnailCandidates(
+        val models =
+            ThumbnailUrlResolver.resolveVideoThumbnailModels(
                 "abc123",
                 dearrow,
                 ThumbnailQuality.HIGH,
                 youTubeFrames = true,
             )
 
-        assertThat(candidates)
+        assertThat(models).containsExactly(dearrow, YouTubeThumbnail("abc123", ThumbnailQuality.HIGH, frames = true)).inOrder()
+        assertThat((models.last() as YouTubeThumbnail).urls(0, 0))
             .containsExactly(
-                dearrow,
                 "https://i.ytimg.com/vi/abc123/maxres2.jpg",
                 "https://i.ytimg.com/vi/abc123/sd2.jpg",
                 "https://i.ytimg.com/vi/abc123/hq2.jpg",
@@ -216,15 +212,16 @@ class ThumbnailUrlResolverTest {
 
     @Test
     fun `the uploader's thumbnail is only the last resort when youtube frames are wanted`() {
-        val candidates =
-            ThumbnailUrlResolver.resolveVideoThumbnailCandidates(
+        val models =
+            ThumbnailUrlResolver.resolveVideoThumbnailModels(
                 "abc123",
                 "https://i.ytimg.com/vi/abc123/hq720.jpg",
                 ThumbnailQuality.MEDIUM,
                 youTubeFrames = true,
             )
 
-        assertThat(candidates)
+        assertThat(models).containsExactly(YouTubeThumbnail("abc123", ThumbnailQuality.MEDIUM, frames = true))
+        assertThat((models.single() as YouTubeThumbnail).urls(0, 0))
             .containsExactly(
                 "https://i.ytimg.com/vi/abc123/sd2.jpg",
                 "https://i.ytimg.com/vi/abc123/hq2.jpg",
@@ -234,6 +231,6 @@ class ThumbnailUrlResolverTest {
 
     @Test
     fun `local videos get no youtube frames`() {
-        assertThat(ThumbnailUrlResolver.youtubeFrameCandidates("local_42")).isEmpty()
+        assertThat(ThumbnailUrlResolver.resolveVideoThumbnailModels("local_42", null, youTubeFrames = true)).isEmpty()
     }
 }
