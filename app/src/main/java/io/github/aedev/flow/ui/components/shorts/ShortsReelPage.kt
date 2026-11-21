@@ -140,7 +140,7 @@ internal fun ShortsReelPage(
     val ambientActive = isActive && settings.ambientModeEnabled && !isInPip
     var attachedPlayer by remember { mutableStateOf<Player?>(null) }
     val ambientPlaying = remember(attachedPlayer) { attachedPlayer?.isPlayingFlow() ?: flowOf(false) }
-    val ambientFrames = rememberAmbientFrame(playerView, ambientActive, ambientPlaying)
+    val ambientFrames = rememberAmbientFrame(playerView, ambientActive && attachedPlayer != null, ambientPlaying)
     var ambientVideoAspect by remember { mutableStateOf<Float?>(null) }
 
     ShortsReelPlaybackEffects(
