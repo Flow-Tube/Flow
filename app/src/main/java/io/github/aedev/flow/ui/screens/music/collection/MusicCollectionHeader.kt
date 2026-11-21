@@ -50,16 +50,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
+import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
+import io.github.aedev.flow.ui.components.shared.LocalSharedArtworkImages
 import io.github.aedev.flow.ui.components.shared.connectedButtonShapes
 import io.github.aedev.flow.ui.components.shared.flowHeroArtworkSize
+import io.github.aedev.flow.ui.components.shared.sharedArtwork
 
 private const val DESCRIPTION_COLLAPSED_LINES = 2
 private val DownloadProgressSize: Dp = 28.dp
@@ -74,6 +79,8 @@ internal data class CollectionHeaderState(
     val metadata: String,
     val description: String,
     val artworkUrl: String,
+    /** The id the page was opened with, which the tapped card's artwork shares. */
+    val artworkKey: String?,
     val isSaved: Boolean,
     val canSave: Boolean,
     val canShare: Boolean,
@@ -113,7 +120,7 @@ internal fun MusicCollectionHero(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        CollectionArtwork(state.artworkUrl, Modifier.size(flowHeroArtworkSize()))
+        CollectionArtwork(state.artworkUrl, state.artworkKey, Modifier.size(flowHeroArtworkSize()))
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             CollectionTitleBlock(state, actions, centered = true)
         }
@@ -141,7 +148,7 @@ internal fun MusicCollectionHeaderPane(
         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // The cover gives way when the pane is short, as on a TV, so the actions under it stay on screen.
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                CollectionArtwork(state.artworkUrl, Modifier.weight(1f, fill = false))
+                CollectionArtwork(state.artworkUrl, state.artworkKey, Modifier.weight(1f, fill = false))
                 CollectionTitleBlock(state, actions, centered = false)
             }
             CollectionSecondaryActions(state, actions)
@@ -150,19 +157,52 @@ internal fun MusicCollectionHeaderPane(
     }
 }
 
+/**
+ * The collection's cover. Opened from a card, it shows the card's image until its own has loaded,
+ * so the artwork flying in from the card is never blank.
+ */
 @Composable
-private fun CollectionArtwork(
+internal fun CollectionArtwork(
     url: String,
+    artworkKey: String?,
     modifier: Modifier,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = modifier.aspectRatio(1f),
-    ) {
-        if (url.isNotBlank()) {
-            AsyncImage(model = url, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+    val shape = MaterialTheme.shapes.extraLarge
+    val context = LocalContext.current
+    val cardImage = LocalSharedArtworkImages.current?.get(artworkKey)
+    val data = url.ifBlank { cardImage?.url.orEmpty() }
+    val request =
+        remember(data, cardImage) {
+            ImageRequest
+                .Builder(context)
+                .data(data)
+                .placeholderMemoryCacheKey(cardImage?.memoryCacheKey)
+                .build()
         }
+    Surface(
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = modifier.aspectRatio(1f).sharedArtwork(artworkKey, shape),
+    ) {
+        if (data.isNotBlank()) {
+            AsyncImage(model = request, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        }
+    }
+}
+
+/** The page's shape while the collection loads: its cover in the hero's place, so the card's artwork has somewhere to land. */
+@Composable
+internal fun MusicCollectionLoadingHero(
+    artworkKey: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CollectionArtwork(url = "", artworkKey = artworkKey, modifier = Modifier.size(flowHeroArtworkSize()))
+        FlowLoadingIndicator()
     }
 }
 

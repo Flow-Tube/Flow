@@ -50,10 +50,14 @@ internal fun navTransitionKind(
 /**
  * The NavHost's transitions. A page slides in over the page it came from, which drifts a quarter
  * of the way out underneath. Only translation changes, so neither page needs an offscreen layer.
+ * With [reducedMotion] (a low-RAM phone, battery saver) tabs swap at once and pages slide briskly.
  */
 internal class FlowNavTransitions(
     private val searchIsTab: () -> Boolean,
+    private val reducedMotion: () -> Boolean = { false },
 ) {
+    private fun pageSlide() = if (reducedMotion()) NavigationMotion.PageSlideBrisk else NavigationMotion.PageSlide
+
     private var tabTapTargetId: String? = null
 
     /**
@@ -75,14 +79,19 @@ internal class FlowNavTransitions(
                 toTab = targetState.flowTab(),
                 searchIsTab = searchIsTab(),
             )
-        return if (kind == NavTransitionKind.PAGE && tapTarget == targetState.id) NavTransitionKind.TAB else kind
+        val tabSwitch = kind == NavTransitionKind.TAB || (kind == NavTransitionKind.PAGE && tapTarget == targetState.id)
+        return when {
+            tabSwitch && reducedMotion() -> NavTransitionKind.NONE
+            tabSwitch -> NavTransitionKind.TAB
+            else -> kind
+        }
     }
 
     val enter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         when (kind()) {
             NavTransitionKind.NONE -> EnterTransition.None
             NavTransitionKind.TAB -> fadeIn(NavigationMotion.TabFadeIn)
-            NavTransitionKind.PAGE -> slideIntoContainer(SlideDirection.Start, NavigationMotion.PageSlide)
+            NavTransitionKind.PAGE -> slideIntoContainer(SlideDirection.Start, pageSlide())
         }
     }
 
@@ -90,7 +99,7 @@ internal class FlowNavTransitions(
         when (kind()) {
             NavTransitionKind.NONE -> ExitTransition.None
             NavTransitionKind.TAB -> fadeOut(NavigationMotion.TabFadeOut)
-            NavTransitionKind.PAGE -> slideOutOfContainer(SlideDirection.Start, NavigationMotion.PageSlide) { it / UNDERNEATH_SHARE }
+            NavTransitionKind.PAGE -> slideOutOfContainer(SlideDirection.Start, pageSlide()) { it / UNDERNEATH_SHARE }
         }
     }
 
@@ -98,7 +107,7 @@ internal class FlowNavTransitions(
         when (kind()) {
             NavTransitionKind.NONE -> EnterTransition.None
             NavTransitionKind.TAB -> fadeIn(NavigationMotion.TabFadeIn)
-            NavTransitionKind.PAGE -> slideIntoContainer(SlideDirection.End, NavigationMotion.PageSlide) { it / UNDERNEATH_SHARE }
+            NavTransitionKind.PAGE -> slideIntoContainer(SlideDirection.End, pageSlide()) { it / UNDERNEATH_SHARE }
         }
     }
 
@@ -106,7 +115,7 @@ internal class FlowNavTransitions(
         when (kind()) {
             NavTransitionKind.NONE -> ExitTransition.None
             NavTransitionKind.TAB -> fadeOut(NavigationMotion.TabFadeOut)
-            NavTransitionKind.PAGE -> slideOutOfContainer(SlideDirection.End, NavigationMotion.PageSlide)
+            NavTransitionKind.PAGE -> slideOutOfContainer(SlideDirection.End, pageSlide())
         }
     }
 

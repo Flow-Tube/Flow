@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import io.github.aedev.flow.ui.components.shared.LocalPageAnimationScope
 
 /**
  * A screen of the app graph. It paints the theme background behind its content, so while two
@@ -25,7 +27,7 @@ internal fun NavGraphBuilder.page(
     composable(route = route, arguments = arguments) { entry ->
         val scope = this
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            scope.content(entry)
+            CompositionLocalProvider(LocalPageAnimationScope provides scope) { scope.content(entry) }
         }
     }
 }
