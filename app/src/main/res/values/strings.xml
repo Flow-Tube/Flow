@@ -1451,6 +1451,9 @@
     <string name="settings_profile_menu_settings_title">Settings in the profile menu</string>
     <string name="settings_profile_menu_settings_summary">Hide the settings icon and open Settings from your profile</string>
     <string name="settings_top_bar_profile_keywords">profile, avatar, account, top bar, settings icon, gear</string>
+    <string name="settings_top_bar_hide_on_scroll_title">Hide top bar on scroll</string>
+    <string name="settings_top_bar_hide_on_scroll_summary">On Home, Subscriptions and Music</string>
+    <string name="settings_top_bar_hide_on_scroll_keywords">top bar, header, chips, scroll, hide, status bar</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Show Shorts</string>
     <string name="content_settings_shorts_content_subtitle">Hide Shorts everywhere. Saved Shorts and history are kept.</string>

@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.home.chips
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.PlaylistInfo
@@ -41,7 +43,9 @@ internal fun HomeChipContent(
     onRefresh: () -> Unit,
     onEnrichVideo: (Video) -> Unit,
     modifier: Modifier = Modifier,
+    topPadding: Dp = 0.dp,
 ) {
+    val belowHeader = modifier.padding(top = topPadding)
     when (val feed = state.feed) {
         null, ChipFeed.Loading -> {
             FeedGridSkeleton(
@@ -50,7 +54,7 @@ internal fun HomeChipContent(
                 stackedInset = !feedLayout.cardsBleed,
                 placeholderCount = SKELETON_CARDS,
                 compactRowSpacing = if (isListView) 0.dp else feedLayout.cardSpacing,
-                modifier = modifier,
+                modifier = belowHeader,
             )
         }
 
@@ -70,11 +74,12 @@ internal fun HomeChipContent(
                 onShortsShown = {},
                 onRefresh = onRefresh,
                 modifier = modifier,
+                topPadding = topPadding,
             )
         }
 
         is ChipFeed.Mixes -> {
-            HomeMixGrid(feed.mixes, feedLayout, isListView, gridState, onPlayMix, modifier)
+            HomeMixGrid(feed.mixes, feedLayout, isListView, gridState, onPlayMix, modifier, topPadding)
         }
 
         ChipFeed.Empty -> {
@@ -82,7 +87,7 @@ internal fun HomeChipContent(
                 title = stringResource(R.string.home_chip_empty_title),
                 subtitle = stringResource(R.string.home_chip_empty_body),
                 icon = Icons.Outlined.VideoLibrary,
-                modifier = modifier.fillMaxSize(),
+                modifier = belowHeader.fillMaxSize(),
             )
         }
 
@@ -90,7 +95,7 @@ internal fun HomeChipContent(
             FlowErrorState(
                 error = stringResource(R.string.home_chip_failed),
                 onRetry = onRefresh,
-                modifier = modifier,
+                modifier = belowHeader,
             )
         }
     }
@@ -104,6 +109,7 @@ private fun HomeMixGrid(
     gridState: LazyGridState,
     onPlayMix: (HomeMix) -> Unit,
     modifier: Modifier = Modifier,
+    topPadding: Dp = 0.dp,
 ) {
     val horizontalPadding = if (isListView) feedLayout.listContentPadding else feedLayout.contentPadding
     LazyVerticalGrid(
@@ -114,7 +120,7 @@ private fun HomeMixGrid(
             PaddingValues(
                 start = horizontalPadding,
                 end = horizontalPadding,
-                top = MixGridTopPadding,
+                top = MixGridTopPadding + topPadding,
                 bottom = flowBottomContentPadding(),
             ),
         verticalArrangement = Arrangement.spacedBy(feedLayout.cardSpacing),

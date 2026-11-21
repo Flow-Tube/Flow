@@ -38,6 +38,8 @@ internal fun ApplyStatusBarStyle(
     videoPlayerExpanded: Boolean = false,
     // A page's full-bleed hero is under the status bar, so its icons must be light to read on the photo.
     heroUnderStatusBar: Boolean = false,
+    // A page scrolls its content under a scrim of its own, keeping the theme's icons.
+    pageUnderStatusBar: Boolean = false,
 ) {
     val activity = LocalContext.current as? Activity ?: return
     val view = LocalView.current
@@ -61,8 +63,8 @@ internal fun ApplyStatusBarStyle(
     SideEffect {
         val window = activity.window
         val insetsController = WindowCompat.getInsetsController(window, view)
-        val shouldDrawBehindStatusBar =
-            isFullscreen || isMusicPlayerImmersive || isShortsPlayer || videoPlayerExpanded || heroUnderStatusBar
+        val coveredByDarkSurface = isFullscreen || isMusicPlayerImmersive || isShortsPlayer || videoPlayerExpanded || heroUnderStatusBar
+        val shouldDrawBehindStatusBar = coveredByDarkSurface || pageUnderStatusBar
 
         window.statusBarColor =
             if (shouldDrawBehindStatusBar) {
@@ -74,24 +76,33 @@ internal fun ApplyStatusBarStyle(
         val musicImmersiveOnLightSurface =
             isMusicPlayerImmersive && musicPlayerOnThemeSurface && !isDarkTheme && !isFullscreen && !isShortsPlayer
         insetsController.isAppearanceLightStatusBars =
-            (!isDarkTheme && !shouldDrawBehindStatusBar) || musicImmersiveOnLightSurface
+            (!isDarkTheme && !coveredByDarkSurface) || musicImmersiveOnLightSurface
     }
 }
 
 /**
- * Lets the page on screen say its hero photo sits under the status bar, so the status bar icons
- * turn light while the photo is there. Only the page that claimed it last can release it, so a
- * page leaving during a transition never clears the claim of the page that replaced it.
+ * Lets the page on screen say it draws under the status bar, so the window stops painting the bar
+ * itself. A hero photo also turns the icons light; a page that scrolls its content under a scrim
+ * keeps the theme's icons. Only the page that claimed it last can release it, so a page leaving
+ * during a transition never clears the claim of the page that replaced it.
  */
 @Stable
 internal class StatusBarHeroState {
     private var owner: Any? by mutableStateOf(null)
+    private var themedIcons by mutableStateOf(false)
 
     val heroUnderStatusBar: Boolean
-        get() = owner != null
+        get() = owner != null && !themedIcons
 
-    fun claim(owner: Any) {
+    val pageUnderStatusBar: Boolean
+        get() = owner != null && themedIcons
+
+    fun claim(
+        owner: Any,
+        themedIcons: Boolean = false,
+    ) {
         this.owner = owner
+        this.themedIcons = themedIcons
     }
 
     fun release(owner: Any) {

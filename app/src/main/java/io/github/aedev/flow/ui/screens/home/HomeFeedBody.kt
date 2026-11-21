@@ -3,8 +3,11 @@ package io.github.aedev.flow.ui.screens.home
 import android.os.SystemClock
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
@@ -19,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
@@ -39,6 +44,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private const val SKELETON_CARD_COUNT = 12
 
@@ -162,13 +168,17 @@ internal fun HomeFeedBody(
     onNavigateToHistory: () -> Unit,
     onOpenShortsFeed: () -> Unit,
     showShorts: Boolean = true,
+    topPadding: Dp = 0.dp,
+    headerOffsetPx: () -> Float = { 0f },
 ) {
     val context = LocalContext.current
+    val belowHeader = Modifier.padding(top = topPadding)
+    val statusBars = WindowInsets.statusBars
     val scope = rememberCoroutineScope()
     val newVideosButtonEnabled by viewModel.newVideosButtonEnabled.collectAsStateWithLifecycle()
     when {
         !homeFeedEnabled -> {
-            HomeFeedDisabledState(modifier = Modifier.fillMaxSize())
+            HomeFeedDisabledState(modifier = belowHeader.fillMaxSize())
         }
 
         !chips.isAll -> {
@@ -181,6 +191,7 @@ internal fun HomeFeedBody(
                 onPlayMix = { mix -> onPlayMix(mix.videos, context.getString(R.string.home_mix_title, mix.seed.title)) },
                 onRefresh = viewModel::refreshSelectedChip,
                 onEnrichVideo = viewModel::enrichChipVideo,
+                topPadding = topPadding,
             )
         }
 
@@ -191,6 +202,7 @@ internal fun HomeFeedBody(
                 stackedInset = !feedLayout.cardsBleed,
                 placeholderCount = SKELETON_CARD_COUNT,
                 compactRowSpacing = if (isListView) 0.dp else feedLayout.cardSpacing,
+                modifier = belowHeader,
             )
         }
 
@@ -198,6 +210,7 @@ internal fun HomeFeedBody(
             FlowErrorState(
                 error = uiState.error ?: stringResource(R.string.error_occurred),
                 onRetry = { viewModel.retry() },
+                modifier = belowHeader,
             )
         }
 
@@ -229,6 +242,7 @@ internal fun HomeFeedBody(
                     // Since v5 the feed can end at a few dozen cards; a list that just stops reads as broken (#1317).
                     footerMinVideos = 0,
                     showShorts = showShorts,
+                    topPadding = topPadding,
                 )
                 HomeNewVideosButton(
                     visible = uiState.pendingFeed != null && newVideosButtonEnabled,
@@ -236,7 +250,12 @@ internal fun HomeFeedBody(
                         viewModel.showNewVideos()
                         scope.launch { gridStates.feed.scrollToItem(0) }
                     },
-                    modifier = Modifier.align(Alignment.TopCenter),
+                    // Rides up with the header as it scrolls away, stopping under the status bar.
+                    modifier =
+                        Modifier.align(Alignment.TopCenter).offset {
+                            val top = topPadding.toPx() + headerOffsetPx()
+                            IntOffset(0, top.roundToInt().coerceAtLeast(statusBars.getTop(this)))
+                        },
                 )
             }
         }

@@ -84,6 +84,16 @@ internal object AppearanceIndex {
             destination = page,
             availability = SettingAvailability.NotOnTv,
         )
+    val topBarHideOnScroll =
+        SettingEntry(
+            key = "appearance.top_bar_hide_on_scroll",
+            title = R.string.settings_top_bar_hide_on_scroll_title,
+            summary = R.string.settings_top_bar_hide_on_scroll_summary,
+            keywords = R.string.settings_top_bar_hide_on_scroll_keywords,
+            section = R.string.settings_section_layout,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
+        )
     val settingsInProfileMenu =
         SettingEntry(
             key = "appearance.settings_in_profile_menu",
@@ -208,6 +218,7 @@ internal object AppearanceIndex {
             appLogo,
             topBarProfile,
             settingsInProfileMenu,
+            topBarHideOnScroll,
             groupBadges,
             cardLikeButtons,
             cardWatchProgress,

@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.VideoHistoryEntry
@@ -50,6 +51,7 @@ internal fun HomeFeedGrid(
     onRetryLoadMore: () -> Unit = {},
     footerMinVideos: Int = FEED_FOOTER_MIN_VIDEOS,
     showShorts: Boolean = true,
+    topPadding: Dp = 0.dp,
 ) {
     val videos = uiState.videos
     val channelMemoryReason = stringResource(R.string.home_reason_channel_memory)
@@ -82,7 +84,7 @@ internal fun HomeFeedGrid(
                 .dpadFocusGroup()
                 .testTag("home_feed"),
         state = gridState,
-        contentPadding = plan.contentPadding(top = FeedTopPadding, bottom = flowBottomContentPadding()),
+        contentPadding = plan.contentPadding(top = FeedTopPadding + topPadding, bottom = flowBottomContentPadding()),
         verticalArrangement = Arrangement.spacedBy(plan.rowSpacing),
     ) {
         itemsIndexed(
