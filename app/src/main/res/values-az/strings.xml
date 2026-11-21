@@ -5252,4 +5252,20 @@
     <string name="settings_top_bar_hide_on_scroll_title">Sürüşdürmədə üst zolağı gizlət</string>
     <string name="settings_top_bar_hide_on_scroll_summary">Əsas səhifədə, Abunəliklərdə və Musiqidə</string>
     <string name="settings_top_bar_hide_on_scroll_keywords">üst zolağı, başlıq, çiplər, sürüşdürmə, gizlət, status zolağı</string>
+    <string name="premiered_date_template">Premyera %1$s</string>
+    <string name="content_settings_feed_autoplay_title">Əsas Səhifədə Avtomatik Oynat</string>
+    <string name="content_settings_feed_autoplay_dialog_body">Dayandırdığınız videonu səssiz, birbaşa lentdə oynadır.</string>
+    <string name="content_settings_feed_autoplay_off">Bağla</string>
+    <string name="content_settings_feed_autoplay_wifi">Yalnız Wi-Fi</string>
+    <string name="content_settings_feed_autoplay_always">Həmişə</string>
+    <string name="content_settings_feed_autoplay_keywords">avtomatik oynatma, önizləmə, sətirdaxili, səssiz, lentlərdə oynatma</string>
+    <string name="home_preview_mute">Önizləməni səssiz et</string>
+    <string name="home_preview_unmute">Önizləməni səssizdən çıxar</string>
+    <string name="home_preview_captions_on">Titrləri göstər</string>
+    <string name="home_preview_captions_off">Titrləri gizlət</string>
+    <string name="settings_video_card_style_title">Kart üslubu</string>
+    <string name="settings_video_card_style_summary">Tam en Əsas səhifə və Abunəliklərdəki miniatürlərin künclərini götürür</string>
+    <string name="settings_video_card_style_keywords">kart, miniatür, künclər, dairəvi, tam en, kənardan kənara, kənarədək</string>
+    <string name="settings_video_card_style_rounded">Dairəvi</string>
+    <string name="settings_video_card_style_full_width">Tam en</string>
 </resources>
