@@ -13,6 +13,7 @@ import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.community.PostCommentsLoader
+import io.github.aedev.flow.data.engagement.HiddenContentStore
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchFilter
@@ -23,6 +24,7 @@ import io.github.aedev.flow.data.paging.SearchPagingSource
 import io.github.aedev.flow.data.paging.SearchResultItem
 import io.github.aedev.flow.data.paging.WatchedVideoLookup
 import io.github.aedev.flow.data.paging.watchedVideoIds
+import io.github.aedev.flow.data.paging.withoutHidden
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.search.SearchSuggestionsRepository
 import io.github.aedev.flow.data.shorts.ShortsContentFilter
@@ -67,6 +69,7 @@ class SearchViewModel
         private val preferences: PlayerPreferences,
         private val privacyGate: PrivacyGate,
         private val savedState: SavedStateHandle,
+        hiddenContent: HiddenContentStore,
     ) : ViewModel() {
         val postComments = PostCommentsLoader(viewModelScope)
 
@@ -108,6 +111,7 @@ class SearchViewModel
                         },
                     ).flow
                 }.cachedIn(viewModelScope)
+                .combine(hiddenContent.hidden) { results, hidden -> results.withoutHidden(hidden) }
 
         private val watchedVideos =
             WatchedVideoLookup { videos ->

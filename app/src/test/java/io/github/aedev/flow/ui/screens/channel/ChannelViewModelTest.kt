@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.engagement.HiddenContentStore
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.notes.NotesRepository
@@ -13,6 +14,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +53,7 @@ class ChannelViewModelTest {
                 notesRepository = notesRepository,
                 playerPreferences = playerPreferences,
                 aiList = aiList,
+                hiddenContent = HiddenContentStore(CoroutineScope(Dispatchers.Unconfined)),
             )
     }
 
