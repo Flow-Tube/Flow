@@ -34,9 +34,11 @@ import io.github.aedev.flow.ui.components.shared.LocalYouTubeFramesOnly
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.utils.rememberIsOnWifi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 
 /**
  * Card settings that are identical for every card on screen.
@@ -188,6 +190,7 @@ fun ProvideVideoCardState(
                 .getAllWatchProgress()
                 .combine(playerPreferences.countImportedAsWatched) { entries, countImported -> entries.toWatchProgressMap(countImported) }
                 .distinctUntilChanged()
+                .flowOn(Dispatchers.Default)
         }
     val progressEntries = progressFlow.collectAsStateWithLifecycle(emptyMap())
     val progressStore = remember(progressEntries) { VideoWatchProgressStore(progressEntries) }
