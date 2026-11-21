@@ -228,7 +228,7 @@ internal fun HomeFeedBody(
                     isListView = isListView,
                     gridState = gridStates.feed,
                     onVideoClick = onVideoClick,
-                    onEnrichChannelMetadata = viewModel::enrichChannelMetadataIfMissing,
+                    onEnrichChannelMetadata = null,
                     onContinueWatchingClick = { entry -> onVideoClick(entry.toResumeVideo()) },
                     onContinueWatchingRemove = viewModel::removeContinueWatchingEntry,
                     onShortClick = { shelf, tapped ->

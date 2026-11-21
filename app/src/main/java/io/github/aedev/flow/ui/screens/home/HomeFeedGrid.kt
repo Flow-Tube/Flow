@@ -39,7 +39,7 @@ internal fun HomeFeedGrid(
     isListView: Boolean,
     gridState: LazyGridState,
     onVideoClick: (Video) -> Unit,
-    onEnrichChannelMetadata: (Video) -> Unit,
+    onEnrichChannelMetadata: ((Video) -> Unit)?,
     onContinueWatchingClick: (VideoHistoryEntry) -> Unit,
     onContinueWatchingRemove: (String) -> Unit,
     onShortClick: (List<Video>, Video) -> Unit,
@@ -95,8 +95,10 @@ internal fun HomeFeedGrid(
         ) { index, row ->
             when (row) {
                 is HomeFeedRow.VideoCard -> {
-                    LaunchedEffect(row.video.id, row.video.channelId, row.video.channelThumbnailUrl) {
-                        onEnrichChannelMetadata(row.video)
+                    if (onEnrichChannelMetadata != null) {
+                        LaunchedEffect(row.video.id, row.video.channelId, row.video.channelThumbnailUrl) {
+                            onEnrichChannelMetadata(row.video)
+                        }
                     }
                     MediaVideoCard(
                         video = row.video,
