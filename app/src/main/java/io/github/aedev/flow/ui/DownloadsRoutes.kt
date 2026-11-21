@@ -3,7 +3,6 @@ package io.github.aedev.flow.ui
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.composable
 import io.github.aedev.flow.R
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.ui.components.layout.navigation.DOWNLOADS_ROUTE
@@ -21,7 +20,7 @@ internal fun NavGraphBuilder.downloadsRoutes(
     onMusicStarted: () -> Unit,
 ) {
     listOf(DOWNLOADS_ROUTE, DOWNLOADS_TAB_ROUTE).forEach { route ->
-        composable(route) {
+        page(route) {
             val musicPlayerViewModel = sharedMusicPlayerViewModel()
             val downloadsTitle = stringResource(R.string.library_downloads_label)
             DownloadsScreen(
