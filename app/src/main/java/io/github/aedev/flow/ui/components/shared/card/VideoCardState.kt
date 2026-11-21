@@ -237,9 +237,13 @@ internal class VideoCardSheetState {
     var showCollaborators by mutableStateOf(false)
 }
 
-/** Everything a card shows about [video], resolved once for every card layout. */
-@Stable
-internal class VideoCardState(
+/**
+ * Everything a card shows about [video], resolved once for every card layout. A value with
+ * structural equality, rebuilt only when an input changes, so the thumbnail, side actions and
+ * sheets skip when the card recomposes for anything else.
+ */
+@Immutable
+internal data class VideoCardState(
     val video: Video,
     val title: String,
     val thumbnailUrl: String?,
@@ -253,7 +257,7 @@ internal class VideoCardState(
     val showReminderBadge: Boolean,
     val sheets: VideoCardSheetState,
 ) {
-    val avatarUrls: List<String> get() = video.channelAvatarUrls(collaborators)
+    val avatarUrls: List<String> = video.channelAvatarUrls(collaborators)
 
     val isWatched: Boolean get() = isWatchedProgress(watchProgress)
 
@@ -279,18 +283,36 @@ internal fun rememberVideoCardState(video: Video): VideoCardState {
     val channelName = rememberCollaboratorChannelDisplayName(video.channelName, collaborators)
     val watchProgress = rememberWatchProgress(video.id)
     val sheets = remember { VideoCardSheetState() }
-    return VideoCardState(
-        video = video,
-        title = deArrow?.title ?: originalTitle ?: video.title,
-        thumbnailUrl = thumbnail.url,
-        deArrowTitle = deArrow?.title != null,
-        deArrowFrameUrl = deArrow?.thumbnailUrl,
-        youTubeFrames = thumbnail.youTubeFrames,
-        deArrowBadgeEnabled = preferences.deArrowBadgeEnabled,
-        channelName = channelName,
-        collaborators = collaborators,
-        watchProgress = watchProgress,
-        showReminderBadge = video.isUpcoming && video.id in preferences.upcomingReminderIds,
-        sheets = sheets,
-    )
+    val title = deArrow?.title ?: originalTitle ?: video.title
+    val deArrowTitle = deArrow?.title != null
+    val deArrowFrameUrl = deArrow?.thumbnailUrl
+    val showReminderBadge = video.isUpcoming && video.id in preferences.upcomingReminderIds
+    return remember(
+        video,
+        title,
+        thumbnail.url,
+        deArrowTitle,
+        deArrowFrameUrl,
+        thumbnail.youTubeFrames,
+        preferences.deArrowBadgeEnabled,
+        channelName,
+        collaborators,
+        watchProgress,
+        showReminderBadge,
+    ) {
+        VideoCardState(
+            video = video,
+            title = title,
+            thumbnailUrl = thumbnail.url,
+            deArrowTitle = deArrowTitle,
+            deArrowFrameUrl = deArrowFrameUrl,
+            youTubeFrames = thumbnail.youTubeFrames,
+            deArrowBadgeEnabled = preferences.deArrowBadgeEnabled,
+            channelName = channelName,
+            collaborators = collaborators,
+            watchProgress = watchProgress,
+            showReminderBadge = showReminderBadge,
+            sheets = sheets,
+        )
+    }
 }
