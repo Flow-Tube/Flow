@@ -51,18 +51,22 @@ fun formatMultiplierLabel(
     }
 }
 
-fun formatViewCount(count: Long): String = compactCountFormatter().format(count)
+fun formatViewCount(count: Long): String = formatCompactCount(count)
 
 fun formatSubscriberCount(count: Long): String {
     if (count <= 0L) return ""
-    return compactCountFormatter().format(count)
+    return formatCompactCount(count)
 }
 
-private fun compactCountFormatter(): CompactDecimalFormat =
-    CompactDecimalFormat.getInstance(
-        Locale.getDefault(),
-        CompactDecimalFormat.CompactStyle.SHORT,
-    )
+private val CompactCounts =
+    LocaleSlot<CompactDecimalFormat> { locale ->
+        CompactDecimalFormat.getInstance(locale, CompactDecimalFormat.CompactStyle.SHORT)
+    }
+
+internal fun formatCompactCount(
+    count: Long,
+    locale: Locale = Locale.getDefault(),
+): String = CompactCounts.use(locale) { it.format(count) }
 
 fun formatYouTubeRelativeTime(
     timestampMillis: Long,

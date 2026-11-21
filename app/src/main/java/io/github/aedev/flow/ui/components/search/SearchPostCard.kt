@@ -104,6 +104,7 @@ private fun CommunityPost.previewImageUrl(): String? =
     when (val value = attachment) {
         is PostAttachment.Images -> value.urls.firstOrNull()
         is PostAttachment.SharedVideo -> value.video.thumbnailUrl.takeIf(String::isNotBlank)
+        is PostAttachment.SharedPlaylist -> value.playlist.thumbnailUrl.takeIf(String::isNotBlank)
         else -> null
     }
 

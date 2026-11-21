@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.model.SponsorBlockSegment
@@ -91,6 +92,8 @@ fun MediaSeekBar(
     duration: Long = 0L,
     bufferedValue: Float = 0f,
     edgeAligned: Boolean = false,
+    /** The edge-aligned strip's touch height; the track still sits on its bottom edge. */
+    edgeAlignedHeight: Dp = EdgeAlignedHeight,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val thumbFillColor = MaterialTheme.colorScheme.surface
@@ -181,7 +184,7 @@ fun MediaSeekBar(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(if (edgeAligned) EdgeAlignedHeight else ExpandedRowHeight),
+                    .height(if (edgeAligned) edgeAlignedHeight else ExpandedRowHeight),
             contentAlignment = if (edgeAligned) Alignment.BottomCenter else Alignment.Center,
         ) {
             if (edgeAligned) {

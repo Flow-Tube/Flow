@@ -50,6 +50,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.contentfilter.aislist.AiVerdict
+import io.github.aedev.flow.data.images.MusicArtwork
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.components.music.common.MusicNowPlayingOverlay
 import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
@@ -118,6 +119,14 @@ fun MusicTrackItem(
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
     val highlight = if (isPlaying) rememberMusicArtworkColors(track.thumbnailUrl) else null
+    val artwork =
+        remember(context, track.videoId, track.thumbnailUrl) {
+            ImageRequest
+                .Builder(context)
+                .data(MusicArtwork(track.videoId, track.thumbnailUrl))
+                .crossfade(true)
+                .build()
+        }
     val rowColor = highlight?.container ?: containerColor
     val titleColor = highlight?.onContainer ?: scheme.onBackground
     val aiWarned = rememberAiListVerdict(track) { it.verdict(track) == AiVerdict.WARN }
@@ -170,12 +179,7 @@ fun MusicTrackItem(
                 contentAlignment = Alignment.Center,
             ) {
                 AsyncImage(
-                    model =
-                        ImageRequest
-                            .Builder(context)
-                            .data(track.listThumbnailUrl)
-                            .crossfade(true)
-                            .build(),
+                    model = artwork,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,

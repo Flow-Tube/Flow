@@ -36,7 +36,7 @@ internal fun LazyListScope.trackShelf(
     onTrackMenu: (MusicTrack) -> Unit,
 ) {
     if (tracks.isEmpty()) return
-    item(key = id) {
+    item(key = id, contentType = MusicShelfContentType.TrackCards) {
         MusicTrackCardShelf(
             title = stringResource(titleRes),
             tracks = tracks,
@@ -57,7 +57,7 @@ internal fun LazyListScope.collectionShelf(
     onCollectionMenu: (MusicPlaylist, Boolean) -> Unit,
 ) {
     if (collections.isEmpty()) return
-    item(key = id) {
+    item(key = id, contentType = MusicShelfContentType.Collections) {
         MusicCollectionShelf(
             title = stringResource(titleRes),
             collections = collections,
@@ -78,7 +78,7 @@ internal fun LazyListScope.mediaShelf(
     onTrackMenu: (MusicTrack) -> Unit,
 ) {
     if (tracks.isEmpty()) return
-    item(key = id) {
+    item(key = id, contentType = MusicShelfContentType.TrackList) {
         MediaTrackListSection(
             title = stringResource(titleRes),
             tracks = tracks,
@@ -97,7 +97,7 @@ internal fun LazyListScope.dailyDiscover(
     onTrackMenu: (MusicTrack) -> Unit,
 ) {
     if (items.isEmpty()) return
-    item(key = "daily_discover") {
+    item(key = "daily_discover", contentType = MusicShelfContentType.DailyDiscover) {
         val tracks = items.map { it.recommendation }
         DailyDiscoverShelf(
             items = items,
@@ -120,7 +120,7 @@ internal fun LazyListScope.quickPicks(
     onTrackMenu: (MusicTrack) -> Unit,
 ) {
     if (tracks.isEmpty()) return
-    item(key = "quick_picks") {
+    item(key = "quick_picks", contentType = MusicShelfContentType.QuickPicks) {
         MusicQuickPicksShelf(
             title = stringResource(R.string.section_quick_picks),
             tracks = tracks,
@@ -143,7 +143,7 @@ internal fun LazyListScope.charts(
     onTrackMenu: (MusicTrack) -> Unit,
 ) {
     if (tracks.isEmpty()) return
-    item(key = "charts") {
+    item(key = "charts", contentType = MusicShelfContentType.Charts) {
         MusicChartsShelf(
             title = stringResource(R.string.trending),
             tracks = tracks,
@@ -161,7 +161,7 @@ internal fun LazyListScope.chartPlaylists(
     onCollectionMenu: (MusicPlaylist, Boolean) -> Unit,
 ) {
     if (playlists.isEmpty()) return
-    item(key = "chart_playlists") {
+    item(key = "chart_playlists", contentType = MusicShelfContentType.Collections) {
         MusicCollectionShelf(
             title = chartShelfTitle(countryCode, R.string.section_charts_in, R.string.section_charts_global),
             collections = playlists,
@@ -178,7 +178,7 @@ internal fun LazyListScope.chartArtists(
     onArtistClick: (String) -> Unit,
 ) {
     if (artists.isEmpty()) return
-    item(key = "chart_artists") {
+    item(key = "chart_artists", contentType = MusicShelfContentType.Artists) {
         MusicArtistShelf(
             title = chartShelfTitle(countryCode, R.string.section_top_artists_in, R.string.section_top_artists_global),
             artists = artists,
@@ -218,7 +218,7 @@ internal fun LazyListScope.community(
     onCollectionMenu: (MusicCollectionActionItem) -> Unit,
 ) {
     if (playlists.isEmpty()) return
-    item(key = "from_the_community") {
+    item(key = "from_the_community", contentType = MusicShelfContentType.Community) {
         CommunityPlaylistsSection(
             playlists = playlists,
             downloadedTrackIds = downloaded,
@@ -236,8 +236,8 @@ internal fun LazyListScope.genres(
     onSongClick: (MusicTrack, List<MusicTrack>, String?) -> Unit,
     onTrackMenu: (MusicTrack) -> Unit,
 ) {
-    genreTracks.entries.take(3).forEachIndexed { index, (genre, tracks) ->
-        item(key = "genre:$index:$genre") {
+    genreTracks.entries.take(3).forEach { (genre, tracks) ->
+        item(key = "genre:$genre", contentType = MusicShelfContentType.TrackCards) {
             MusicTrackCardShelf(
                 title = stringResource(R.string.genre_mix_template, genre),
                 tracks = tracks,
@@ -266,7 +266,7 @@ internal fun LazyListScope.similarTo(
     fun moreFromShelf(section: MusicSection) {
         val key = "more_from:${section.seedId}"
         if (!emittedKeys.add(key)) return
-        item(key = key) {
+        item(key = key, contentType = MusicShelfContentType.TrackCards) {
             MusicTrackCardShelf(
                 title = section.title,
                 tracks = section.tracks,
@@ -281,8 +281,10 @@ internal fun LazyListScope.similarTo(
         }
     }
 
-    (dailyMixes + uiState.similarToSections).forEachIndexed { index, section ->
-        item(key = "similar_to:$index:${section.title}") {
+    val similarSections = dailyMixes + uiState.similarToSections
+    val similarKeys = uniqueItemKeys(similarSections.map { "similar_to:${it.seedId.orEmpty()}:${it.title}" })
+    similarSections.forEachIndexed { index, section ->
+        item(key = similarKeys[index], contentType = MusicShelfContentType.TrackCards) {
             MusicTrackCardShelf(
                 title = section.title,
                 tracks = section.tracks,
@@ -314,7 +316,7 @@ internal fun LazyListScope.similarTo(
         val seedId = section.seedId ?: return@forEachIndexed
         val performances = uiState.otherPerformanceSections.firstOrNull { it.seedId == seedId }
         if (performances != null && emittedKeys.add("other_performances:$seedId")) {
-            item(key = "other_performances:$seedId") {
+            item(key = "other_performances:$seedId", contentType = MusicShelfContentType.QuickPicks) {
                 MusicQuickPicksShelf(
                     title = performances.title,
                     subtitle = performances.label,
@@ -344,22 +346,22 @@ internal fun LazyListScope.dynamicHome(
     onTrackMenu: (MusicTrack) -> Unit,
     onCollectionMenu: (MusicTrack) -> Unit,
 ) {
-    uiState.dynamicSections
-        .filterNot { it.title.isDuplicateOfADedicatedShelf() }
-        .forEachIndexed { index, section ->
-            item(key = "dynamic:$index:${section.title}") {
-                MusicTrackCardShelf(
-                    title = section.title,
-                    tracks = section.tracks,
-                    keyNamespace = "dynamic_${index}_${section.title}",
-                    downloadedTrackIds = downloaded,
-                    onTrackClick = { onSongClick(it, section.tracks, section.title) },
-                    onTrackMenu = onTrackMenu,
-                    onCollectionClick = { onAlbumClick(it.videoId) },
-                    onCollectionMenu = onCollectionMenu,
-                )
-            }
+    val sections = uiState.dynamicSections.filterNot { it.title.isDuplicateOfADedicatedShelf() }
+    val keys = uniqueItemKeys(sections.map { "dynamic:${it.title}" })
+    sections.forEachIndexed { index, section ->
+        item(key = keys[index], contentType = MusicShelfContentType.TrackCards) {
+            MusicTrackCardShelf(
+                title = section.title,
+                tracks = section.tracks,
+                keyNamespace = "dynamic_${index}_${section.title}",
+                downloadedTrackIds = downloaded,
+                onTrackClick = { onSongClick(it, section.tracks, section.title) },
+                onTrackMenu = onTrackMenu,
+                onCollectionClick = { onAlbumClick(it.videoId) },
+                onCollectionMenu = onCollectionMenu,
+            )
         }
+    }
 }
 
 internal fun LazyListScope.newReleases(
@@ -371,7 +373,7 @@ internal fun LazyListScope.newReleases(
     onCollectionMenu: (MusicTrack) -> Unit,
 ) {
     if (tracks.isEmpty()) return
-    item(key = "new_releases") {
+    item(key = "new_releases", contentType = MusicShelfContentType.TrackCards) {
         MusicTrackCardShelf(
             title = stringResource(R.string.section_new_releases),
             tracks = tracks.take(10),

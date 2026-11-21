@@ -30,6 +30,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.AppFontSelection
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.HomeViewMode
+import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.platform.AppUiMode
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsPage
@@ -73,6 +74,7 @@ internal fun AppearanceScreen(
     val appLogo by viewModel.appLogo.collectAsStateWithLifecycle()
     val topBarProfile by viewModel.topBarProfile.collectAsStateWithLifecycle()
     val topBarHideOnScroll by viewModel.topBarHideOnScroll.collectAsStateWithLifecycle()
+    val videoCardStyle by viewModel.videoCardStyle.collectAsStateWithLifecycle()
     val groupBadges by viewModel.groupBadges.collectAsStateWithLifecycle()
     val cardLikeButtons by viewModel.cardLikeButtons.collectAsStateWithLifecycle()
     val cardMarkWatched by viewModel.cardMarkWatched.collectAsStateWithLifecycle()
@@ -114,6 +116,11 @@ internal fun AppearanceScreen(
                 columns.fixedCount?.toString() ?: stringResource(R.string.content_settings_home_columns_auto),
             )
         }
+    val cardStyleOptions =
+        listOf(
+            FlowToggleOption(VideoCardStyle.ROUNDED, stringResource(R.string.settings_video_card_style_rounded)),
+            FlowToggleOption(VideoCardStyle.FULL_WIDTH, stringResource(R.string.settings_video_card_style_full_width)),
+        )
     val artworkOptions =
         listOf(
             FlowToggleOption(GridItemSize.BIG, stringResource(R.string.content_settings_grid_big_title)),
@@ -209,6 +216,7 @@ internal fun AppearanceScreen(
                 enabled = topBarProfile,
             )
             switch(AppearanceIndex.topBarHideOnScroll, topBarHideOnScroll, viewModel::setTopBarHideOnScroll)
+            toggleGroup(AppearanceIndex.videoCardStyle, cardStyleOptions, videoCardStyle, viewModel::setVideoCardStyle)
             switch(AppearanceIndex.groupBadges, groupBadges, viewModel::setGroupBadges)
         }
         group(key = "appearance.cards", header = R.string.settings_section_video_cards) {

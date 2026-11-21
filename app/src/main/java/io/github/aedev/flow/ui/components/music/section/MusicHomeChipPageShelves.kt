@@ -35,12 +35,12 @@ internal fun LazyListScope.musicHomeChipPage(
 ) {
     when {
         page.status == MusicHomeChipStatus.LOADING -> {
-            item(key = "chip_loading") { FlowFeedProgress() }
+            item(key = "chip_loading", contentType = MusicShelfContentType.ChipStatus) { FlowFeedProgress() }
             return
         }
 
         page.status == MusicHomeChipStatus.FAILED -> {
-            item(key = "chip_failed") {
+            item(key = "chip_failed", contentType = MusicShelfContentType.ChipStatus) {
                 FlowErrorState(
                     error = stringResource(R.string.music_chip_load_failed, page.chip.title),
                     onRetry = onRetry,
@@ -51,7 +51,7 @@ internal fun LazyListScope.musicHomeChipPage(
         }
 
         page.sections.isEmpty() && page.continuation == null -> {
-            item(key = "chip_empty") {
+            item(key = "chip_empty", contentType = MusicShelfContentType.ChipStatus) {
                 FlowEmptyState(
                     title = stringResource(R.string.music_chip_empty),
                     modifier = Modifier.fillParentMaxHeight(STATE_HEIGHT_FRACTION),
@@ -62,7 +62,12 @@ internal fun LazyListScope.musicHomeChipPage(
     }
 
     val playFrom = MUSIC_GENRE_SOURCE_PREFIX + page.chip.title
-    itemsIndexed(page.sections, key = { index, section -> "chip:$index:${section.title}" }) { index, section ->
+    val keys = uniqueItemKeys(page.sections.map { "chip:${it.title}" })
+    itemsIndexed(
+        items = page.sections,
+        key = { index, _ -> keys[index] },
+        contentType = { _, section -> if (section.isSongShelf) MusicShelfContentType.QuickPicks else MusicShelfContentType.TrackCards },
+    ) { index, section ->
         if (section.isSongShelf) {
             MusicQuickPicksShelf(
                 title = section.title,
@@ -87,7 +92,7 @@ internal fun LazyListScope.musicHomeChipPage(
     }
 
     page.continuation?.let { continuation ->
-        item(key = "chip_continuation") {
+        item(key = "chip_continuation", contentType = MusicShelfContentType.Continuation) {
             LaunchedEffect(continuation) { onLoadMore() }
             if (page.isMoreLoading) FlowFeedProgress() else Box(modifier = Modifier.height(0.dp))
         }

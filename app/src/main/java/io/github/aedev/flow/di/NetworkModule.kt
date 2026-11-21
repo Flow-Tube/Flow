@@ -6,7 +6,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.network.AppProxyManager
+import io.github.aedev.flow.network.ImageRequestLog
 import io.github.aedev.flow.network.SharedConnectionPool
 import okhttp3.Cache
 import okhttp3.Dispatcher
@@ -40,6 +42,9 @@ object NetworkModule {
     // Dispatcher configuration
     private const val MAX_REQUESTS_TOTAL = 32 // Max concurrent requests
     private const val MAX_REQUESTS_PER_HOST = 5 // Max per host
+
+    private const val IMAGE_MAX_REQUESTS = 32
+    private const val IMAGE_MAX_REQUESTS_PER_HOST = 16
 
     @Provides
     @Singleton
@@ -80,6 +85,28 @@ object NetworkModule {
     }
 
     /**
+     * The client Coil fetches images with. Coil keeps its own disk cache, so this one has no HTTP
+     * cache, which would store every image a second time. It has its own dispatcher, so a screen of
+     * thumbnails is not queued five at a time behind API calls; i.ytimg speaks HTTP/2, which
+     * carries the extra requests on one connection. The connection pool, proxy and request log stay
+     * shared with the main client.
+     */
+    @Provides
+    @Singleton
+    @ImageClient
+    fun provideImageClient(okHttpClient: OkHttpClient): OkHttpClient =
+        okHttpClient
+            .newBuilder()
+            .cache(null)
+            .dispatcher(
+                Dispatcher().apply {
+                    maxRequests = IMAGE_MAX_REQUESTS
+                    maxRequestsPerHost = IMAGE_MAX_REQUESTS_PER_HOST
+                },
+            ).apply { if (BuildConfig.DEBUG) addInterceptor(ImageRequestLog) }
+            .build()
+
+    /**
      * Provides a lightweight client for quick metadata requests
      * Uses shorter timeouts for fast-fail behavior
      */
@@ -100,6 +127,11 @@ object NetworkModule {
                 .retryOnConnectionFailure(true),
         )
 }
+
+/** The OkHttp client Coil loads images with. */
+@javax.inject.Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ImageClient
 
 /**
  * Qualifier annotation for metadata-specific HTTP client

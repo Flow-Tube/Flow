@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.components.shared
 
 import android.graphics.Bitmap
+import androidx.collection.LruCache
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
@@ -97,6 +98,40 @@ fun rememberMediaPalette(
     val onBase = remember(base) { onBaseFor(base) }
     return MediaPalette(base = base, accent = accent, onBase = onBase)
 }
+
+/**
+ * The cover's vivid swatch (its dominant one when it has none), or null until it is known. It reads
+ * [thumbnailUrl] from the image cache only, so pass it once the cover itself has loaded; the swatch is
+ * kept per URL for the process, so a card scrolled back into view does not run the palette again.
+ */
+@Composable
+fun rememberArtworkAccent(thumbnailUrl: String?): Color? {
+    val context = LocalContext.current
+    var accent by remember(thumbnailUrl) { mutableStateOf(thumbnailUrl?.let { artworkAccents[it] }) }
+    LaunchedEffect(thumbnailUrl) {
+        if (thumbnailUrl.isNullOrEmpty() || accent != null) return@LaunchedEffect
+        val request =
+            ImageRequest
+                .Builder(context)
+                .data(thumbnailUrl)
+                .allowHardware(false)
+                .size(ACCENT_SAMPLE_PX)
+                .networkCachePolicy(CachePolicy.DISABLED)
+                .build()
+        val result = SingletonImageLoader.get(context).execute(request) as? SuccessResult ?: return@LaunchedEffect
+        val swatch =
+            withContext(Dispatchers.Default) {
+                val (base, vivid) = artworkSwatches(result.image.toBitmap())
+                vivid ?: base
+            } ?: return@LaunchedEffect
+        artworkAccents.put(thumbnailUrl, swatch)
+        accent = swatch
+    }
+    return accent
+}
+
+private const val ACCENT_SAMPLE_PX = 64
+private val artworkAccents = LruCache<String, Color>(256)
 
 /** The palette of a decoded cover, off the composition, for surfaces with no composition of their own. */
 fun mediaPaletteOf(

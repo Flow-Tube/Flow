@@ -38,6 +38,7 @@ internal fun VideoCardThumbnail(
     // DeArrow answers 204 for a frame it has not rendered yet, and the image falls back to YouTube's
     // own frame, never the uploader's thumbnail.
     var deArrowFrameShown by remember(state.deArrowFrameUrl) { mutableStateOf(false) }
+    val feedOverlay = LocalVideoCardThumbnailOverlay.current
     MediaThumbnail(
         videoId = video.id,
         thumbnailUrl = state.thumbnailUrl,
@@ -70,5 +71,6 @@ internal fun VideoCardThumbnail(
                 modifier = badgeModifier.align(Alignment.TopEnd),
             )
         }
+        feedOverlay?.invoke(this, video.id)
     }
 }

@@ -14,12 +14,12 @@ private const val ANIMATED_IMAGE_REPEATS = 2
  * endless loop would keep drawing frames nobody sees.
  */
 @Composable
-fun rememberLoopCappedImageRequest(url: String): ImageRequest {
+fun rememberLoopCappedImageRequest(data: Any): ImageRequest {
     val context = LocalPlatformContext.current
-    return remember(context, url) {
+    return remember(context, data) {
         ImageRequest
             .Builder(context)
-            .data(url)
+            .data(data)
             .repeatCount(ANIMATED_IMAGE_REPEATS)
             .build()
     }

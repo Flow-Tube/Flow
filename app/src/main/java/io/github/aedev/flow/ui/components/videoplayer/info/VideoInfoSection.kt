@@ -35,6 +35,7 @@ import io.github.aedev.flow.ui.components.shared.FlowSubscribeButtonSize
 import io.github.aedev.flow.ui.components.shared.card.rememberCollaboratorChannelDisplayName
 import io.github.aedev.flow.ui.components.shared.rememberChannelOrganizeActions
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
+import io.github.aedev.flow.ui.components.shared.rememberDateLabels
 import io.github.aedev.flow.ui.components.shared.rememberRichTextLinkActions
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.DateContext
@@ -119,6 +120,7 @@ internal fun VideoInfoSection(
         // ============ TITLE SECTION ============
         val context = LocalContext.current
         val dateSettings = rememberDateDisplaySettings()
+        val dateLabels = rememberDateLabels()
         // Title, counts and "…more" are one target: tapping any of them opens the description,
         // which is what the "…more" affordance was already promising.
         Column(
@@ -173,7 +175,7 @@ internal fun VideoInfoSection(
                         text =
                             stringResource(
                                 R.string.duration_with_dot_template,
-                                dateSettings.format(uploadDate, DateContext.WATCH, video.timestamp, video.timestampIsExact),
+                                dateSettings.format(uploadDate, DateContext.WATCH, dateLabels, video.timestamp, video.timestampIsExact),
                             ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

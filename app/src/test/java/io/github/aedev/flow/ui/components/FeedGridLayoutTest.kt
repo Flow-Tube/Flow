@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.HomeFeedColumns
+import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 import org.junit.Test
@@ -189,5 +190,32 @@ class FeedGridLayoutTest {
         assertThat(layout.cardInset).isEqualTo(VideoCardDefaults.Inset)
         assertThat(layout.contentPadding + VideoCardDefaults.Inset).isEqualTo(16.dp)
         assertThat(layout.listContentPadding).isEqualTo(layout.contentPadding)
+    }
+
+    @Test
+    fun `the rounded style never drops the thumbnail corners`() {
+        listOf(360.dp, 600.dp, 1200.dp).forEach { width ->
+            assertThat(feedGridLayoutFor(width).thumbnailsBleed).isFalse()
+            assertThat(feedGridLayoutFor(width, cardStyle = VideoCardStyle.ROUNDED).thumbnailsBleed).isFalse()
+        }
+    }
+
+    @Test
+    fun `the full width style applies only to one compact column`() {
+        val phone = feedGridLayoutFor(411.dp, cardStyle = VideoCardStyle.FULL_WIDTH)
+        assertThat(phone.thumbnailsBleed).isTrue()
+        assertThat(phone.contentPadding).isEqualTo(0.dp)
+
+        assertThat(feedGridLayoutFor(411.dp, HomeFeedColumns.TWO, cardStyle = VideoCardStyle.FULL_WIDTH).thumbnailsBleed).isFalse()
+        assertThat(feedGridLayoutFor(700.dp, cardStyle = VideoCardStyle.FULL_WIDTH).thumbnailsBleed).isFalse()
+    }
+
+    @Test
+    fun `the card style changes nothing else about the grid`() {
+        listOf(411.dp, 700.dp, 1200.dp).forEach { width ->
+            val rounded = feedGridLayoutFor(width)
+            assertThat(feedGridLayoutFor(width, cardStyle = VideoCardStyle.FULL_WIDTH).copy(cardStyle = VideoCardStyle.ROUNDED))
+                .isEqualTo(rounded)
+        }
     }
 }

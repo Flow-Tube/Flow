@@ -5,10 +5,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.utils.CardTextFormatter
 import io.github.aedev.flow.utils.DateDisplaySettings
+import io.github.aedev.flow.utils.DateLabels
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -50,3 +55,19 @@ fun ProvideDateDisplaySettings(content: @Composable () -> Unit) {
 
 @Composable
 fun rememberDateDisplaySettings(): DateDisplaySettings = LocalDateDisplaySettings.current
+
+/** The words around a formatted date, in the reader's language, resolved once per locale. */
+@Composable
+fun rememberDateLabels(): DateLabels {
+    val resources = LocalResources.current
+    val locale = LocalConfiguration.current.locales[0]
+    return remember(resources, locale) {
+        CardTextFormatter.dateLabels(locale) {
+            DateLabels(
+                live = resources.getString(R.string.status_live),
+                streamedTemplate = resources.getString(R.string.streamed_date_template),
+                premieredTemplate = resources.getString(R.string.premiered_date_template),
+            )
+        }
+    }
+}

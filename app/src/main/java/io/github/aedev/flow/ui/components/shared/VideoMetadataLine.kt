@@ -5,11 +5,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.utils.CardTextFormatter
 import io.github.aedev.flow.utils.DateContext
 import io.github.aedev.flow.utils.DateDisplayMode
 import io.github.aedev.flow.utils.formatPremiereDate
 import io.github.aedev.flow.utils.formatScheduledStart
-import io.github.aedev.flow.utils.formatViewCount
 import io.github.aedev.flow.utils.upcomingReleaseMs
 
 @Composable
@@ -40,10 +40,21 @@ fun videoMetadataLine(
             ?: stringResource(R.string.premiere_soon)
     }
 
-    val uploadedAt =
-        remember(video.uploadDate, video.timestamp, video.timestampIsExact, dateSettings) {
-            dateSettings.format(video.uploadDate, DateContext.LISTS, video.timestamp, video.timestampIsExact)
+    val labels = rememberDateLabels()
+    val viewsTemplate = stringResource(R.string.views_template)
+    val byline =
+        remember(video.uploadDate, video.timestamp, video.timestampIsExact, video.viewCount, dateSettings, labels, viewsTemplate) {
+            CardTextFormatter.byline(
+                uploadDate = video.uploadDate,
+                timestamp = video.timestamp,
+                timestampIsExact = video.timestampIsExact,
+                viewCount = video.viewCount,
+                settings = dateSettings,
+                labels = labels,
+                viewsTemplate = viewsTemplate,
+            )
         }
+    val uploadedAt = byline.date
 
     // A zero count means "not reported" — members-only uploads carry no view count at all — so the
     // row shows the date alone rather than a literal "0 views".
@@ -56,7 +67,7 @@ fun videoMetadataLine(
     }
 
     // A live stream has viewers but no date, and a row must not end in a dangling separator.
-    val views = stringResource(R.string.views_template, formatViewCount(video.viewCount))
+    val views = byline.views
     return when {
         uploadedAt.isBlank() && includeChannel -> stringResource(R.string.video_metadata_short_template, channelName, views)
         uploadedAt.isBlank() -> views
