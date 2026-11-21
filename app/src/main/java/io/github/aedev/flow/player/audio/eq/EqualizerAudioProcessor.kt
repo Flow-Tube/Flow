@@ -56,6 +56,8 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
 
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
         val format = inputAudioFormat
+        // Media3 flushes a processor that was never configured too; NOT_SET has channelCount -1 (#2205).
+        if (format == AudioProcessor.AudioFormat.NOT_SET) return
         if (format.sampleRate != sampleRate || format.channelCount != channelCount || format.encoding != encoding) {
             sampleRate = format.sampleRate
             channelCount = format.channelCount

@@ -213,6 +213,19 @@ class EqualizerAudioProcessorTest {
     }
 
     @Test
+    fun `a flush before any format is configured is harmless`() {
+        val eq =
+            EqualizerAudioProcessor().apply {
+                setSpec(EqProcessingSpec(enabled = true, preampDb = -6.0206, bands = emptyList()))
+                flush(AudioProcessor.StreamMetadata.DEFAULT)
+                configure(AudioProcessor.AudioFormat(rate, 2, C.ENCODING_PCM_16BIT))
+                flush(AudioProcessor.StreamMetadata.DEFAULT)
+            }
+        val input = sine(440.0, 4_800)
+        assertThat(gainDb(input, eq.run(input))).isWithin(0.05).of(-6.02)
+    }
+
+    @Test
     fun `a slight over is bent under full scale instead of clipped flat`() {
         val over = EqProcessingSpec(enabled = true, preampDb = 1.0, bands = emptyList())
         val eq = processor(channels = 1, spec = over)
