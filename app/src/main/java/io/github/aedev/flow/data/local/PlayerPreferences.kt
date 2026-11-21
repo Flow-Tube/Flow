@@ -186,6 +186,7 @@ class PlayerPreferences(
         val HOME_NAVIGATION_ENABLED = booleanPreferencesKey("home_navigation_enabled")
         val SHORTS_NAVIGATION_ENABLED = booleanPreferencesKey("shorts_navigation_enabled")
         val BOTTOM_NAV_HIDE_ON_SCROLL = booleanPreferencesKey("bottom_nav_hide_on_scroll")
+        val TOP_BAR_HIDE_ON_SCROLL = booleanPreferencesKey("top_bar_hide_on_scroll")
         val BOTTOM_NAV_LABELS = stringPreferencesKey("bottom_nav_labels")
         val BOTTOM_NAV_STYLE = stringPreferencesKey("bottom_nav_style")
         val BOTTOM_NAV_SCRUB = booleanPreferencesKey("bottom_nav_scrub")
@@ -1692,6 +1693,19 @@ class PlayerPreferences(
     suspend fun setBottomNavHideOnScroll(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.BOTTOM_NAV_HIDE_ON_SCROLL] = enabled
+        }
+    }
+
+    // When OFF, the feed tabs' top bar stays pinned instead of scrolling away with the feed.
+    val topBarHideOnScroll: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.TOP_BAR_HIDE_ON_SCROLL] ?: true
+            }
+
+    suspend fun setTopBarHideOnScroll(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.TOP_BAR_HIDE_ON_SCROLL] = enabled
         }
     }
 

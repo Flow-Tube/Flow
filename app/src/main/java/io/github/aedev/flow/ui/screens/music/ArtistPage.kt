@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -56,6 +55,7 @@ import io.github.aedev.flow.ui.components.music.section.MusicShelf
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.toCollectionActionItem
 import io.github.aedev.flow.ui.components.shared.dpadDownTo
+import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import kotlinx.coroutines.launch
 
 private const val TOP_TRACKS_SHOWN = 5
@@ -334,18 +334,3 @@ internal fun ArtistPage(
         }
     }
 }
-
-/**
- * The app keeps every page below the status bar. The artist page reaches back up under it by
- * [topPx], so the hero photo fills the status bar while the top bar pads itself back down.
- */
-private fun Modifier.reachUnderStatusBar(topPx: Int): Modifier =
-    layout { measurable, constraints ->
-        if (topPx == 0 || !constraints.hasBoundedHeight) {
-            val placeable = measurable.measure(constraints)
-            return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-        }
-        val height = constraints.maxHeight + topPx
-        val placeable = measurable.measure(constraints.copy(minHeight = height, maxHeight = height))
-        layout(placeable.width, constraints.maxHeight) { placeable.place(0, -topPx) }
-    }
