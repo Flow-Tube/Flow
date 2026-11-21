@@ -303,7 +303,6 @@ class EnhancedPlayerManagerStreamsTest {
         durationSeconds = 212,
         dashManifestUrl = null,
         streamType = VOD,
-        relatedVideos = emptyList(),
         preferredCodec = "auto",
         itVideoFormats = emptyList(),
         itAudioFormats = emptyList(),

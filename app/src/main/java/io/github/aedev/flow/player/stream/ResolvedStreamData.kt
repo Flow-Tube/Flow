@@ -20,7 +20,6 @@ internal data class ResolvedStreamData(
     val durationSeconds: Long,
     val dashManifestUrl: String?,
     val streamType: StreamType?,
-    val relatedVideos: List<Video>,
     val preferredCodec: String,
     val itVideoFormats: List<PlayerResponse.StreamingData.Format>,
     val itAudioFormats: List<PlayerResponse.StreamingData.Format>,
