@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.playlists
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +34,7 @@ import io.github.aedev.flow.ui.components.library.PlaylistSortOrder
 import io.github.aedev.flow.ui.components.library.sortedForPlaylist
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionUndo
 import io.github.aedev.flow.utils.PerformanceDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +53,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import javax.inject.Inject
+
+private const val TAG = "PlaylistDetailVM"
 
 private const val ENRICHMENT_STUB_LIMIT = 50
 private const val ENRICHMENT_CHUNK_SIZE = 5
@@ -506,7 +510,14 @@ class PlaylistDetailViewModel
         private fun refreshSavedPlaylist() {
             viewModelScope.launch {
                 val details = playlistRepository.complete(playlistId) ?: return@launch
-                repository.syncSavedPlaylistVideos(playlistId, details.videos)
+                try {
+                    repository.syncSavedPlaylistVideos(playlistId, details.videos)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Saved copy of $playlistId not refreshed", e)
+                    return@launch
+                }
                 _uiState.update { state ->
                     state.copy(
                         playlistName = details.title.ifBlank { state.playlistName },

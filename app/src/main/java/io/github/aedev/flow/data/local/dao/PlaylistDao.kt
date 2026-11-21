@@ -164,12 +164,16 @@ interface PlaylistDao {
         updatePlaylistThumbnail(playlistId, getFirstVideoThumbnail(playlistId).orEmpty())
     }
 
-    /** Makes the playlist hold exactly [orderedVideoIds], in that order, as one change. */
+    /**
+     * Makes the playlist hold exactly [orderedVideoIds], in that order, as one change. A playlist
+     * removed while its refresh was loading is left gone (#2232).
+     */
     @Transaction
     suspend fun replacePlaylistVideos(
         playlistId: String,
         orderedVideoIds: List<String>,
     ) {
+        if (getPlaylist(playlistId) == null) return
         val wanted = orderedVideoIds.toSet()
         getVideoIdsInPlaylist(playlistId).filterNot { it in wanted }.forEach { removeVideoFromPlaylist(playlistId, it) }
         orderedVideoIds.forEachIndexed { index, videoId ->
