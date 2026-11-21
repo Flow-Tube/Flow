@@ -18,6 +18,10 @@ object NavigationMotion {
     val PageSlide: FiniteAnimationSpec<IntOffset> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = PAGE_SLIDE_STIFFNESS, visibilityThreshold = IntOffset(1, 1))
 
+    /** The same slide on a low-RAM phone or with battery saver on: over in about 150 ms, so fewer frames are drawn. */
+    val PageSlideBrisk: FiniteAnimationSpec<IntOffset> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = PAGE_SLIDE_BRISK_STIFFNESS, visibilityThreshold = IntOffset(1, 1))
+
     /** Material's fade-through between top-level destinations: the old one leaves in the first 30%. */
     val TabFadeOut: FiniteAnimationSpec<Float> = tween(TAB_FADE_OUT_MS, easing = FastOutLinearInEasing)
 
@@ -27,5 +31,6 @@ object NavigationMotion {
 }
 
 private const val PAGE_SLIDE_STIFFNESS = 500f
+private const val PAGE_SLIDE_BRISK_STIFFNESS = 1400f
 private const val TAB_FADE_TOTAL_MS = 300
 private const val TAB_FADE_OUT_MS = 90

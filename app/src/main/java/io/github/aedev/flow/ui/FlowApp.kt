@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui
 
 import android.app.Activity
+import android.app.ActivityManager
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -78,6 +79,7 @@ import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import io.github.aedev.flow.ui.screens.update.UpdateLaunchEffect
 import io.github.aedev.flow.ui.theme.ThemeMode
 import io.github.aedev.flow.ui.theme.ThemeVariant
+import io.github.aedev.flow.ui.utils.rememberPowerSaveMode
 import io.github.aedev.flow.ui.utils.rememberTouchExplorationEnabled
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
@@ -145,7 +147,12 @@ fun FlowApp(
     val defaultTab = resolveDefaultFlowTab(defaultNavTabIndex, navTabOrder, navigationVisibility)
     val defaultStartRoute = defaultTab.route
     val currentNavigationTabs by rememberUpdatedState(navigationTabs)
-    val navTransitions = remember { FlowNavTransitions(searchIsTab = { FlowTab.Search in currentNavigationTabs }) }
+    val lowRamDevice = remember(context) { context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true }
+    val reducedNavMotion by rememberUpdatedState(lowRamDevice || rememberPowerSaveMode())
+    val navTransitions =
+        remember {
+            FlowNavTransitions(searchIsTab = { FlowTab.Search in currentNavigationTabs }, reducedMotion = { reducedNavMotion })
+        }
     val currentStartRoute by rememberUpdatedState(defaultStartRoute)
     val openDownloads = remember(navController) { { navController.openDownloads(currentNavigationTabs, currentStartRoute) } }
 
