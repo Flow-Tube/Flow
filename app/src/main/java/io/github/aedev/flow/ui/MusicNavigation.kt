@@ -29,8 +29,6 @@ internal fun NavGraphBuilder.musicRoutes(
     onMusicStarted: () -> Unit,
 ) {
     composable("music") {
-        currentRoute.value = "music"
-
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         EnhancedMusicScreen(
@@ -77,7 +75,6 @@ internal fun NavGraphBuilder.musicRoutes(
     }
 
     composable("moodsAndGenres") {
-        currentRoute.value = "moodsAndGenres"
         io.github.aedev.flow.ui.screens.music.MoodsAndGenresScreen(
             onBackClick = { navController.popBackStack() },
             onGenreClick = { item ->
@@ -99,8 +96,6 @@ internal fun NavGraphBuilder.musicRoutes(
                 },
             ),
     ) { backStackEntry ->
-        currentRoute.value = "musicSearch"
-
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         val initialQuery = backStackEntry.arguments?.getString("query")
 
@@ -131,8 +126,6 @@ internal fun NavGraphBuilder.musicRoutes(
 
     // Music Recognition (Shazam) Screen
     composable("musicRecognize") {
-        currentRoute.value = "musicRecognize"
-
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         fun playRecognized(result: io.github.aedev.flow.data.recognition.RecognitionResult) {
@@ -163,8 +156,6 @@ internal fun NavGraphBuilder.musicRoutes(
 
     // Music Recognition History Screen
     composable("recognitionHistory") {
-        currentRoute.value = "recognitionHistory"
-
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         io.github.aedev.flow.ui.screens.recognition.RecognitionHistoryScreen(
@@ -206,8 +197,6 @@ internal fun NavGraphBuilder.musicRoutes(
                 },
             ),
     ) {
-        currentRoute.value = "youtube_browse"
-
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
 
         io.github.aedev.flow.ui.screens.music.YouTubeBrowseScreen(

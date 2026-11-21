@@ -155,8 +155,14 @@ fun FlowApp(
         preferences.showRestoredMusicMiniPlayer.collect { value = it }
     }
 
-    // Offline Monitoring
+    // Set from the back stack, never by a page while it composes: a page leaving during a
+    // transition would write its own key back over the one arriving.
     val currentRoute = remember { mutableStateOf(defaultStartRoute) }
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            routeKeyFor(entry.destination.route)?.let { currentRoute.value = it }
+        }
+    }
 
     // Onboarding check
     var needsOnboarding by remember { mutableStateOf<Boolean?>(null) }

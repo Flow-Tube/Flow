@@ -1,6 +1,5 @@
 package io.github.aedev.flow.ui
 
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -18,13 +17,11 @@ import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 internal fun NavGraphBuilder.downloadsRoutes(
     navController: NavHostController,
     mediaNavigator: MediaNavigator,
-    currentRoute: MutableState<String>,
     playerViewModel: VideoPlayerViewModel,
     onMusicStarted: () -> Unit,
 ) {
     listOf(DOWNLOADS_ROUTE, DOWNLOADS_TAB_ROUTE).forEach { route ->
         composable(route) {
-            currentRoute.value = route
             val musicPlayerViewModel = sharedMusicPlayerViewModel()
             val downloadsTitle = stringResource(R.string.library_downloads_label)
             DownloadsScreen(

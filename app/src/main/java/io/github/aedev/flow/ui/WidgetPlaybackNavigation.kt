@@ -2,7 +2,6 @@ package io.github.aedev.flow.ui
 
 import android.net.Uri
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -19,7 +18,7 @@ import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.widgets.WidgetPlaybackViewModel
 
 internal const val ON_REPEAT_SHUFFLE_ROUTE = "onRepeatShuffle"
-private const val WIDGET_PLAYLIST_ROUTE = "widgetPlaylist/{playlistId}?shuffle={shuffle}&start={start}"
+internal const val WIDGET_PLAYLIST_ROUTE = "widgetPlaylist/{playlistId}?shuffle={shuffle}&start={start}"
 
 internal fun widgetPlaylistRoute(
     playlistId: String,
@@ -32,13 +31,11 @@ internal fun widgetPlaylistRoute(
 /** Routes a home-screen widget opens to start playback; each plays, then leaves at once. */
 internal fun NavGraphBuilder.widgetPlaybackRoutes(
     navController: NavHostController,
-    currentRoute: MutableState<String>,
     defaultStartRoute: String,
     playerViewModel: VideoPlayerViewModel,
     onMusicStarted: () -> Unit,
 ) {
     composable(ON_REPEAT_SHUFFLE_ROUTE) {
-        currentRoute.value = "musicPlayer"
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         val sourceName = stringResource(R.string.widget_on_repeat)
         LaunchedEffect(Unit) {
@@ -67,7 +64,6 @@ internal fun NavGraphBuilder.widgetPlaybackRoutes(
                 },
             ),
     ) { entry ->
-        currentRoute.value = "musicPlayer"
         val playlistId = entry.arguments?.getString("playlistId").orEmpty()
         val shuffle = entry.arguments?.getBoolean("shuffle") ?: false
         val startVideoId = entry.arguments?.getString("start")
