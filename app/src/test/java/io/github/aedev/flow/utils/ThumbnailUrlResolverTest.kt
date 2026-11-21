@@ -66,7 +66,7 @@ class ThumbnailUrlResolverTest {
     fun `card candidates never request maxresdefault`() {
         val thumbnail = YouTubeThumbnail(VIDEO_ID, ThumbnailQuality.HIGH)
 
-        assertThat(thumbnail.urls(0, 0))
+        assertThat(thumbnail.urls(0, 0).filter { it.endsWith(".jpg") })
             .containsExactly(
                 "https://i.ytimg.com/vi/$VIDEO_ID/hq720.jpg",
                 "https://i.ytimg.com/vi/$VIDEO_ID/hqdefault.jpg",
@@ -180,7 +180,7 @@ class ThumbnailUrlResolverTest {
     @Test
     fun `youtube frames replace the uploader's thumbnail tiers at each quality`() {
         fun frames(quality: ThumbnailQuality) =
-            YouTubeThumbnail("abc123", quality, frames = true).urls(0, 0).map { it.substringAfterLast('/') }
+            YouTubeThumbnail("abc123", quality, frames = true).urls(0, 0).filter { it.endsWith(".jpg") }.map { it.substringAfterLast('/') }
 
         assertThat(frames(ThumbnailQuality.HIGH)).containsExactly("maxres2.jpg", "sd2.jpg", "hq2.jpg", "hqdefault.jpg").inOrder()
         assertThat(frames(ThumbnailQuality.MEDIUM)).containsExactly("sd2.jpg", "hq2.jpg", "hqdefault.jpg").inOrder()
@@ -201,7 +201,7 @@ class ThumbnailUrlResolverTest {
             )
 
         assertThat(models).containsExactly(dearrow, YouTubeThumbnail("abc123", ThumbnailQuality.HIGH, frames = true)).inOrder()
-        assertThat((models.last() as YouTubeThumbnail).urls(0, 0))
+        assertThat((models.last() as YouTubeThumbnail).urls(0, 0).filter { it.endsWith(".jpg") })
             .containsExactly(
                 "https://i.ytimg.com/vi/abc123/maxres2.jpg",
                 "https://i.ytimg.com/vi/abc123/sd2.jpg",
@@ -221,7 +221,7 @@ class ThumbnailUrlResolverTest {
             )
 
         assertThat(models).containsExactly(YouTubeThumbnail("abc123", ThumbnailQuality.MEDIUM, frames = true))
-        assertThat((models.single() as YouTubeThumbnail).urls(0, 0))
+        assertThat((models.single() as YouTubeThumbnail).urls(0, 0).filter { it.endsWith(".jpg") })
             .containsExactly(
                 "https://i.ytimg.com/vi/abc123/sd2.jpg",
                 "https://i.ytimg.com/vi/abc123/hq2.jpg",

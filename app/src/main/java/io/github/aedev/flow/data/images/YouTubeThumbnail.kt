@@ -13,13 +13,19 @@ data class YouTubeThumbnail(
     val portrait: Boolean = false,
     val frames: Boolean = false,
 ) {
-    /** The URLs to try for an image drawn at [widthPx] by [heightPx], best first; zero means unknown. */
+    /**
+     * The URLs to try for an image drawn at [widthPx] by [heightPx], best first; zero means unknown.
+     * Each tier is asked for as WebP first, which is smaller for most videos, then as JPEG for the
+     * uploads that have no WebP copy.
+     */
     fun urls(
         widthPx: Int,
         heightPx: Int,
     ): List<String> {
         val tier = ThumbnailTierPolicy.pick(widthPx, heightPx, ceiling, portrait) ?: return emptyList()
         val names = if (frames) ThumbnailTierPolicy.frameNames(tier) else ThumbnailTierPolicy.thumbnailNames(tier)
-        return names.map { name -> "https://i.ytimg.com/vi/$videoId/$name.jpg" }
+        return names.flatMap { name ->
+            listOf("https://i.ytimg.com/vi_webp/$videoId/$name.webp", "https://i.ytimg.com/vi/$videoId/$name.jpg")
+        }
     }
 }

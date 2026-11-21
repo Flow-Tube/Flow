@@ -11,11 +11,22 @@ class ThumbnailQualityTiersTest {
     private fun tiers(
         quality: ThumbnailQuality,
         portrait: Boolean = false,
-    ) = YouTubeThumbnail(id, quality, portrait).urls(0, 0).map { it.substringAfterLast('/') }
+    ) = YouTubeThumbnail(id, quality, portrait).urls(0, 0).filter { it.endsWith(".jpg") }.map { it.substringAfterLast('/') }
 
     @Test
     fun `high is the ladder every card loaded before the setting existed`() {
         assertThat(tiers(ThumbnailQuality.HIGH)).containsExactly("hq720.jpg", "hqdefault.jpg").inOrder()
+    }
+
+    @Test
+    fun `each tier is asked for as WebP before JPEG`() {
+        assertThat(YouTubeThumbnail(id, ThumbnailQuality.MEDIUM).urls(0, 0))
+            .containsExactly(
+                "https://i.ytimg.com/vi_webp/$id/sddefault.webp",
+                "https://i.ytimg.com/vi/$id/sddefault.jpg",
+                "https://i.ytimg.com/vi_webp/$id/hqdefault.webp",
+                "https://i.ytimg.com/vi/$id/hqdefault.jpg",
+            ).inOrder()
     }
 
     @Test

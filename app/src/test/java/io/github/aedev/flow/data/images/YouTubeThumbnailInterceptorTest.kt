@@ -25,6 +25,8 @@ class YouTubeThumbnailInterceptorTest {
 
     private fun url(name: String) = "https://i.ytimg.com/vi/$id/$name.jpg"
 
+    private fun webp(name: String) = "https://i.ytimg.com/vi_webp/$id/$name.webp"
+
     private fun request(data: Any) = ImageRequest.Builder(context).data(data).build()
 
     private inner class FakeChain(
@@ -69,21 +71,22 @@ class YouTubeThumbnailInterceptorTest {
             val result = YouTubeThumbnailInterceptor().intercept(chain)
 
             assertThat(result).isInstanceOf(SuccessResult::class.java)
-            assertThat(chain.fetched).containsExactly(url("hqdefault"))
+            assertThat(chain.fetched).containsExactly(webp("hqdefault"))
         }
 
     @Test
     fun `a missing tier falls through inside one load and is never asked for again`() =
         runTest {
             val interceptor = YouTubeThumbnailInterceptor()
-            val first = chain(fullWidthCard, missing = setOf(url("hq720")))
-            val second = chain(fullWidthCard, missing = setOf(url("hq720")))
+            val missing = setOf(webp("hq720"), url("hq720"))
+            val first = chain(fullWidthCard, missing)
+            val second = chain(fullWidthCard, missing)
 
             assertThat(interceptor.intercept(first)).isInstanceOf(SuccessResult::class.java)
             interceptor.intercept(second)
 
-            assertThat(first.fetched).containsExactly(url("hq720"), url("hqdefault")).inOrder()
-            assertThat(second.fetched).containsExactly(url("hqdefault"))
+            assertThat(first.fetched).containsExactly(webp("hq720"), url("hq720"), webp("hqdefault")).inOrder()
+            assertThat(second.fetched).containsExactly(webp("hqdefault"))
         }
 
     @Test
@@ -96,15 +99,17 @@ class YouTubeThumbnailInterceptorTest {
             assertThat(interceptor.intercept(offline)).isInstanceOf(ErrorResult::class.java)
             interceptor.intercept(online)
 
-            assertThat(offline.fetched).containsExactly(url("hq720"), url("hqdefault")).inOrder()
-            assertThat(online.fetched).containsExactly(url("hq720"))
+            assertThat(offline.fetched)
+                .containsExactly(webp("hq720"), url("hq720"), webp("hqdefault"), url("hqdefault"))
+                .inOrder()
+            assertThat(online.fetched).containsExactly(webp("hq720"))
         }
 
     @Test
     fun `the last tier is still asked for after it once went missing`() =
         runTest {
             val interceptor = YouTubeThumbnailInterceptor()
-            interceptor.intercept(chain(row, missing = setOf(url("hqdefault"))))
+            interceptor.intercept(chain(row, missing = setOf(webp("hqdefault"), url("hqdefault"))))
             val retry = chain(row)
 
             interceptor.intercept(retry)
@@ -119,7 +124,7 @@ class YouTubeThumbnailInterceptorTest {
 
             YouTubeThumbnailInterceptor().intercept(original)
 
-            assertThat(original.fetched.first()).isEqualTo(url("sddefault"))
+            assertThat(original.fetched.first()).isEqualTo(webp("sddefault"))
         }
 
     @Test
