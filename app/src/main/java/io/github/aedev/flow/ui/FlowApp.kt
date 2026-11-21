@@ -144,6 +144,7 @@ fun FlowApp(
     val defaultTab = resolveDefaultFlowTab(defaultNavTabIndex, navTabOrder, navigationVisibility)
     val defaultStartRoute = defaultTab.route
     val currentNavigationTabs by rememberUpdatedState(navigationTabs)
+    val navTransitions = remember { FlowNavTransitions(searchIsTab = { FlowTab.Search in currentNavigationTabs }) }
     val currentStartRoute by rememberUpdatedState(defaultStartRoute)
     val openDownloads = remember(navController) { { navController.openDownloads(currentNavigationTabs, currentStartRoute) } }
 
@@ -404,6 +405,7 @@ fun FlowApp(
                 } else {
                     currentRoute.value = tab.route
                     navController.tapTab(action, tab, selectedTab, defaultStartRoute)
+                    if (action != TabTap.POP_TO_ROOT) navTransitions.markTabTap(navController.currentBackStackEntry?.id)
                 }
             },
             barVisible = barComposed,
@@ -485,12 +487,12 @@ fun FlowApp(
                                     NavHost(
                                         navController = navController,
                                         startDestination = if (needsOnboarding == true) "onboarding" else defaultStartRoute,
-                                        enterTransition = FlowNavTransitions.enter,
-                                        exitTransition = FlowNavTransitions.exit,
-                                        popEnterTransition = FlowNavTransitions.popEnter,
-                                        popExitTransition = FlowNavTransitions.popExit,
-                                        predictivePopEnterTransition = FlowNavTransitions.predictivePopEnter,
-                                        predictivePopExitTransition = FlowNavTransitions.predictivePopExit,
+                                        enterTransition = navTransitions.enter,
+                                        exitTransition = navTransitions.exit,
+                                        popEnterTransition = navTransitions.popEnter,
+                                        popExitTransition = navTransitions.popExit,
+                                        predictivePopEnterTransition = navTransitions.predictivePopEnter,
+                                        predictivePopExitTransition = navTransitions.predictivePopExit,
                                     ) {
                                         flowAppGraph(
                                             navController = navController,
