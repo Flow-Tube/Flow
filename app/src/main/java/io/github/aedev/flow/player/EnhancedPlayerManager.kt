@@ -541,6 +541,10 @@ class EnhancedPlayerManager private constructor() {
     private var diskReadAhead: DiskReadAhead? = null
     private var qualityManager: QualityManager? = null
     private var surfaceManager: SurfaceManager? = null
+
+    // What the player view on screen actually inflated; the TV interface picks a SurfaceView on any version.
+    @Volatile
+    private var videoOutputIsSurfaceView = VideoSurfacePolicy.usesSurfaceView(Build.VERSION.SDK_INT)
     private var sponsorBlockHandler: SponsorBlockHandler? = null
     private var playbackTracker: PlaybackTracker? = null
     private var errorHandler: PlayerErrorHandler? = null
@@ -3352,6 +3356,10 @@ class EnhancedPlayerManager private constructor() {
         )
     }
 
+    fun setVideoOutputIsSurfaceView(value: Boolean) {
+        videoOutputIsSurfaceView = value
+    }
+
     fun restoreVideoOutput() {
         val p = player ?: return
         val displayInteractive = isDisplayInteractive()
@@ -3359,7 +3367,7 @@ class EnhancedPlayerManager private constructor() {
         val surfaceValid = surfaceManager?.isSurfaceValid() == true || _playerState.value.showsSpherical
         val canRestore =
             VideoSurfacePolicy.canRestoreVideoOutput(
-                sdkInt = Build.VERSION.SDK_INT,
+                outputIsSurfaceView = videoOutputIsSurfaceView,
                 isDisplayInteractive = displayInteractive,
                 isSurfaceValid = surfaceValid,
             )

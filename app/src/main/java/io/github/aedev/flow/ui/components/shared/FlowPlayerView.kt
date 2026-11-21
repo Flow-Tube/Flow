@@ -14,10 +14,13 @@ import io.github.aedev.flow.player.surface.VideoSurfacePolicy
  * the spherical one a 360 video is looked around in. PlayerView fixes its surface when inflated.
  */
 @LayoutRes
-fun flowPlayerViewLayout(spherical: Boolean = false): Int =
+fun flowPlayerViewLayout(
+    spherical: Boolean = false,
+    tvInterface: Boolean = false,
+): Int =
     when {
         spherical -> R.layout.video_player_view_spherical
-        VideoSurfacePolicy.usesSurfaceView(Build.VERSION.SDK_INT) -> R.layout.video_player_view_surface
+        VideoSurfacePolicy.usesSurfaceView(Build.VERSION.SDK_INT, tvInterface) -> R.layout.video_player_view_surface
         else -> R.layout.video_player_view
     }
 

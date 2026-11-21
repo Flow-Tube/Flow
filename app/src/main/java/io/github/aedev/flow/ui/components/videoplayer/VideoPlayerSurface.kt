@@ -80,6 +80,7 @@ fun VideoPlayerSurface(
     sphericalStill: Boolean = false,
     sphericalZoom: () -> Float = { 1f },
     sphericalDragSpeed: Float = 1f,
+    tvInterface: Boolean = false,
 ) {
     val ambientActive = ambientMode && resizeMode == 0 && !spherical
     val localAmbientFrames = remember { AmbientFrameHolder() }
@@ -105,9 +106,9 @@ fun VideoPlayerSurface(
     val cornerRadiusPx = with(density) { cornerRadiusDp.dp.toPx() }
 
     val playerView =
-        remember(spherical) {
+        remember(spherical, tvInterface) {
             Log.d("EnhancedVideoPlayer", "Creating shared PlayerView (sdk=${Build.VERSION.SDK_INT} spherical=$spherical)")
-            (LayoutInflater.from(context).inflate(flowPlayerViewLayout(spherical), null) as PlayerView).apply {
+            (LayoutInflater.from(context).inflate(flowPlayerViewLayout(spherical, tvInterface), null) as PlayerView).apply {
                 layoutParams =
                     FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -122,11 +123,12 @@ fun VideoPlayerSurface(
 
     DisposableEffect(playerView) {
         val surfaceView = playerView.videoSurfaceView?.takeUnless { it is SphericalGLSurfaceView } as? SurfaceView
+        val manager = EnhancedPlayerManager.getInstance()
+        manager.setVideoOutputIsSurfaceView(surfaceView != null)
         if (surfaceView == null) {
             return@DisposableEffect onDispose { }
         }
 
-        val manager = EnhancedPlayerManager.getInstance()
         var attachedHolder: SurfaceHolder? = null
         var attachedSurface: Surface? = null
 

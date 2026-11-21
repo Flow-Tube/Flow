@@ -4,13 +4,22 @@ import android.os.Build
 import androidx.media3.common.Player
 
 object VideoSurfacePolicy {
-    fun usesSurfaceView(sdkInt: Int): Boolean = sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-
-    fun canRestoreVideoOutput(
+    /**
+     * TextureView below Android 14 exists only for phone picture-in-picture, which froze on a
+     * SurfaceView there. The TV interface never enters PiP, and a TextureView makes every video
+     * frame redraw the whole window: on a TV chip that drops frames while the audio carries on (#2205).
+     */
+    fun usesSurfaceView(
         sdkInt: Int,
+        tvInterface: Boolean = false,
+    ): Boolean = tvInterface || sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+
+    /** A destroyed SurfaceView surface must come back before video is turned on again; a TextureView keeps its own. */
+    fun canRestoreVideoOutput(
+        outputIsSurfaceView: Boolean,
         isDisplayInteractive: Boolean,
         isSurfaceValid: Boolean,
-    ): Boolean = isDisplayInteractive && (!usesSurfaceView(sdkInt) || isSurfaceValid)
+    ): Boolean = isDisplayInteractive && (!outputIsSurfaceView || isSurfaceValid)
 
     /**
      * Whether a same-position seek is needed after a destroyed video surface comes back.

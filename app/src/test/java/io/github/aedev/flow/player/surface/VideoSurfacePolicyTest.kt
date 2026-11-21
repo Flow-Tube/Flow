@@ -10,7 +10,7 @@ class VideoSurfacePolicyTest {
     fun `surface view restore waits for a valid holder`() {
         assertThat(
             VideoSurfacePolicy.canRestoreVideoOutput(
-                sdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+                outputIsSurfaceView = true,
                 isDisplayInteractive = true,
                 isSurfaceValid = false,
             ),
@@ -21,7 +21,7 @@ class VideoSurfacePolicyTest {
     fun `surface view restores once its holder is valid`() {
         assertThat(
             VideoSurfacePolicy.canRestoreVideoOutput(
-                sdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+                outputIsSurfaceView = true,
                 isDisplayInteractive = true,
                 isSurfaceValid = true,
             ),
@@ -32,7 +32,7 @@ class VideoSurfacePolicyTest {
     fun `texture view restore does not require a surface holder`() {
         assertThat(
             VideoSurfacePolicy.canRestoreVideoOutput(
-                sdkInt = Build.VERSION_CODES.TIRAMISU,
+                outputIsSurfaceView = false,
                 isDisplayInteractive = true,
                 isSurfaceValid = false,
             ),
@@ -40,10 +40,30 @@ class VideoSurfacePolicyTest {
     }
 
     @Test
+    fun `an Android 9 TV surface view waits for a valid holder too`() {
+        val surfaceView = VideoSurfacePolicy.usesSurfaceView(Build.VERSION_CODES.P, tvInterface = true)
+
+        assertThat(surfaceView).isTrue()
+        assertThat(
+            VideoSurfacePolicy.canRestoreVideoOutput(
+                outputIsSurfaceView = surfaceView,
+                isDisplayInteractive = true,
+                isSurfaceValid = false,
+            ),
+        ).isFalse()
+    }
+
+    @Test
+    fun `phones keep a texture view below Android 14 and a surface view from it`() {
+        assertThat(VideoSurfacePolicy.usesSurfaceView(Build.VERSION_CODES.TIRAMISU)).isFalse()
+        assertThat(VideoSurfacePolicy.usesSurfaceView(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)).isTrue()
+    }
+
+    @Test
     fun `video output stays disabled while display is not interactive`() {
         assertThat(
             VideoSurfacePolicy.canRestoreVideoOutput(
-                sdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+                outputIsSurfaceView = true,
                 isDisplayInteractive = false,
                 isSurfaceValid = true,
             ),
