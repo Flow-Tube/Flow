@@ -313,6 +313,7 @@ fun TvPlayerScreen(
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT,
             modifier = Modifier.fillMaxSize(),
             ambientMode = prefs.ambientModeEnabled,
+            tvInterface = true,
         )
         Media3SubtitleOverlay(
             enabled = playerState.selectedSubtitleUrl != null,
