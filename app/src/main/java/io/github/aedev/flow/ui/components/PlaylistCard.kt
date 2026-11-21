@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,8 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -45,10 +46,23 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Playlist
 import io.github.aedev.flow.data.model.PlaylistInfo
 import io.github.aedev.flow.ui.components.shared.MediaTextBadge
+import io.github.aedev.flow.ui.components.shared.rememberArtworkAccent
 import io.github.aedev.flow.ui.components.shared.thumbnailUrlOrNull
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 
 private val RowHorizontalPadding = 12.dp
+private val ListCoverWidth = 160.dp
+private val SheetPeek = 5.dp
+private val SheetInset = 10.dp
+private const val NEAR_SHEET_TINT = 0.55f
+private const val FAR_SHEET_TINT = 0.35f
+
+/** [surface] blended toward the cover's [accent] by [amount]; the plain surface until the cover is in. */
+private fun sheetTone(
+    surface: Color,
+    accent: Color?,
+    amount: Float,
+): Color = if (accent == null) surface else lerp(surface, accent, amount)
 
 enum class PlaylistCardLayout {
     LIST,
@@ -130,13 +144,11 @@ private fun PlaylistCardContent(
                     .padding(vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LayeredPlaylistArtwork(
+            StackedPlaylistArtwork(
                 thumbnailUrl = thumbnailUrl,
                 videoCount = videoCount,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f),
+                coverModifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
             )
             Row(verticalAlignment = Alignment.Top) {
                 PlaylistCardText(
@@ -170,13 +182,10 @@ private fun PlaylistCardContent(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LayeredPlaylistArtwork(
+        StackedPlaylistArtwork(
             thumbnailUrl = thumbnailUrl,
             videoCount = videoCount,
-            modifier =
-                Modifier
-                    .width(142.dp)
-                    .aspectRatio(16f / 9f),
+            coverModifier = Modifier.width(ListCoverWidth),
         )
 
         PlaylistCardText(
@@ -245,7 +254,7 @@ private fun PlaylistCardMenu(
 private fun PlaylistArtworkImage(
     url: String,
     modifier: Modifier,
-    alpha: Float = 1f,
+    onLoaded: () -> Unit,
 ) {
     var model by remember(url) { mutableStateOf(url) }
     AsyncImage(
@@ -253,53 +262,64 @@ private fun PlaylistArtworkImage(
         contentDescription = null,
         modifier = modifier,
         contentScale = ContentScale.Crop,
-        alpha = alpha,
+        onSuccess = { onLoaded() },
         onError = { ThumbnailUrlResolver.fallbackVideoThumbnail("", model)?.let { model = it } },
     )
 }
 
+/**
+ * The cover under two sheets that peek out above it, each narrower than the one in front, so the
+ * artwork reads as a stack. Once the cover has loaded, the sheets take its colour, blended into the
+ * surface tones so they stay visible on light and dark themes. [coverModifier] sizes the cover's
+ * width; the sheets' peek is added above it.
+ */
 @Composable
-private fun LayeredPlaylistArtwork(
+private fun StackedPlaylistArtwork(
     thumbnailUrl: String,
     videoCount: Int?,
+    coverModifier: Modifier,
     modifier: Modifier = Modifier,
 ) {
     val artworkUrl = thumbnailUrlOrNull(thumbnailUrl).orEmpty()
+    val shape = MaterialTheme.shapes.medium
+    var coverLoaded by remember(artworkUrl) { mutableStateOf(false) }
+    val accent = rememberArtworkAccent(artworkUrl.takeIf { coverLoaded })
+    val nearSheet by animateColorAsState(
+        targetValue = sheetTone(MaterialTheme.colorScheme.surfaceContainerHighest, accent, NEAR_SHEET_TINT),
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "playlistNearSheet",
+    )
+    val farSheet by animateColorAsState(
+        targetValue = sheetTone(MaterialTheme.colorScheme.surfaceContainerHigh, accent, FAR_SHEET_TINT),
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "playlistFarSheet",
+    )
     Box(modifier = modifier) {
         Box(
             modifier =
                 Modifier
-                    .fillMaxSize()
-                    .offset(x = (-3).dp, y = (-3).dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            if (artworkUrl.isNotBlank()) {
-                PlaylistArtworkImage(
-                    url = artworkUrl,
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .blur(10.dp),
-                    alpha = 0.7f,
-                )
-            }
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.18f)),
-            )
-        }
+                    .matchParentSize()
+                    .padding(horizontal = SheetInset * 2)
+                    .background(farSheet, shape),
+        )
         Box(
             modifier =
                 Modifier
-                    .fillMaxSize()
-                    .clip(MaterialTheme.shapes.medium)
+                    .matchParentSize()
+                    .padding(start = SheetInset, end = SheetInset, top = SheetPeek)
+                    .background(nearSheet, shape),
+        )
+        Box(
+            modifier =
+                Modifier
+                    .padding(top = SheetPeek * 2)
+                    .then(coverModifier)
+                    .aspectRatio(16f / 9f)
+                    .clip(shape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
             if (artworkUrl.isNotBlank()) {
-                PlaylistArtworkImage(url = artworkUrl, modifier = Modifier.fillMaxSize())
+                PlaylistArtworkImage(url = artworkUrl, modifier = Modifier.fillMaxSize(), onLoaded = { coverLoaded = true })
             } else {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.PlaylistPlay,
