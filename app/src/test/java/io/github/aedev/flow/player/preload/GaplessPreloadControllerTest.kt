@@ -52,7 +52,6 @@ class GaplessPreloadControllerTest {
         durationSeconds = 120L,
         dashManifestUrl = null,
         streamType = streamType,
-        relatedVideos = emptyList(),
         preferredCodec = "avc",
         itVideoFormats = emptyList(),
         itAudioFormats = emptyList(),

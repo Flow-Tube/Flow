@@ -2286,6 +2286,25 @@ class EnhancedPlayerManager private constructor() {
         val videos: List<Video> = emptyList(),
     )
 
+    /**
+     * A preloaded video's related list is read once it plays, not when it is preloaded: most
+     * preloads are never reached, and each read is a whole watch response held in memory (#2204).
+     */
+    private fun loadAutoplayCandidates(videoId: String) {
+        scope.launch {
+            val related =
+                try {
+                    visibleRelatedCandidates(videoId)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Related videos for $videoId not loaded", e)
+                    return@launch
+                }
+            if (currentVideoId == videoId) setAutoplayCandidates(videoId, related, autoplayEnabled)
+        }
+    }
+
     private suspend fun visibleRelatedCandidates(videoId: String): List<Video> {
         val repository = YouTubeRepository.getInstance()
         val page = WatchRelatedPages(repository).firstPage(videoId)
@@ -2360,7 +2379,6 @@ class EnhancedPlayerManager private constructor() {
                 durationSeconds = InnerTubeVideoMapper.durationSeconds(extraction),
                 dashManifestUrl = extraction.liveDashUrl,
                 streamType = InnerTubeVideoMapper.streamType(extraction),
-                relatedVideos = visibleRelatedCandidates(video.id),
                 preferredCodec = preferredCodecKey,
                 itVideoFormats = extraction.videoFormats,
                 itAudioFormats = extraction.audioFormats,
@@ -2441,7 +2459,8 @@ class EnhancedPlayerManager private constructor() {
             channel = data.enrichedVideo.channelName,
             thumbnail = data.enrichedVideo.thumbnailUrl,
         )
-        setAutoplayCandidates(data.enrichedVideo.id, data.relatedVideos, autoplayEnabled)
+        setAutoplayCandidates(data.enrichedVideo.id, emptyList(), autoplayEnabled)
+        loadAutoplayCandidates(data.enrichedVideo.id)
 
         val isAutoMode = data.videoStream == null
         _playerState.value =
