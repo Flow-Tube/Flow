@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.LoadState
@@ -53,6 +54,7 @@ internal fun SubscriptionPostsContent(
     onVideoClick: (Video) -> Unit,
     header: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    topPadding: Dp = 0.dp,
     viewModel: SubscriptionPostsViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(channelIds) { viewModel.show(channelIds) }
@@ -73,12 +75,13 @@ internal fun SubscriptionPostsContent(
                 viewModel.forgetCachedPosts()
                 posts.refresh()
             },
+            indicatorTopPadding = topPadding,
             modifier = Modifier.fillMaxSize(),
         ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = flowBottomContentPadding()),
+                contentPadding = PaddingValues(top = topPadding, bottom = flowBottomContentPadding()),
             ) {
                 item(key = "posts_header", contentType = "header") { header() }
 

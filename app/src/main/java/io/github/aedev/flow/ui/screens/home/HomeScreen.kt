@@ -20,8 +20,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,11 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,11 +45,14 @@ import io.github.aedev.flow.data.local.VideoHistoryEntry
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.player.DeepFlowManager
+import io.github.aedev.flow.ui.OnTabReselected
 import io.github.aedev.flow.ui.TabScrollEventBus
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.floatAboveBottomChrome
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
+import io.github.aedev.flow.ui.components.layout.topbar.FlowScrollAwayLayout
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
+import io.github.aedev.flow.ui.components.layout.topbar.rememberFlowScrollAwayState
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipRow
@@ -85,8 +86,8 @@ fun HomeScreen(
     val gridStates = rememberHomeGridStates()
     val coroutineScope = rememberCoroutineScope()
     val chips by viewModel.chips.collectAsStateWithLifecycle()
-    val chipRowState = rememberTopAppBarState()
-    val chipRowBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(chipRowState)
+    val headerState = rememberFlowScrollAwayState()
+    val headerSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val snackbarHostState = remember { SnackbarHostState() }
     val refreshFailed = stringResource(R.string.home_refresh_failed)
     val retryLabel = stringResource(R.string.retry)
@@ -116,6 +117,7 @@ fun HomeScreen(
         coroutineScope.launch { DeepFlowManager.toggle(context) }
     }
     val logoClicks = Modifier.homeLogoClicks(homeLabel, deepFlowLabel, onClick = reselectHome, onLongClick = toggleDeepFlow)
+    OnTabReselected(FlowTab.Home.route) { headerState.show(headerSpec) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -123,66 +125,60 @@ fun HomeScreen(
         snackbarHost = {
             SnackbarHost(snackbarHostState, Modifier.floatAboveBottomChrome(LocalFlowBottomInsets.current))
         },
-        topBar = {
-            FlowTopBar(
-                title = {
-                    Text(
-                        stringResource(R.string.app_name_uppercase),
-                        modifier = logoClicks,
-                        style =
-                            MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 1.sp,
-                            ),
-                    )
-                },
-                leading =
-                    if (showAppLogoIcon) {
-                        {
-                            FlowHeaderLogoIcon(
-                                isDeepFlowActive = deepFlowActive,
-                                modifier = Modifier.size(32.dp).then(logoClicks),
+    ) { padding ->
+        FlowScrollAwayLayout(
+            modifier = Modifier.padding(padding),
+            state = headerState,
+            header = {
+                FlowTopBar(
+                    title = {
+                        Text(
+                            stringResource(R.string.app_name_uppercase),
+                            modifier = logoClicks,
+                            style =
+                                MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 1.sp,
+                                ),
+                        )
+                    },
+                    leading =
+                        if (showAppLogoIcon) {
+                            {
+                                FlowHeaderLogoIcon(
+                                    isDeepFlowActive = deepFlowActive,
+                                    modifier = Modifier.size(32.dp).then(logoClicks),
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                    actions = {
+                        IconButton(onClick = onSearchClick) {
+                            Icon(
+                                Icons.Outlined.Search,
+                                contentDescription = stringResource(R.string.search),
                             )
                         }
-                    } else {
-                        null
-                    },
-                actions = {
-                    IconButton(onClick = onSearchClick) {
-                        Icon(
-                            Icons.Outlined.Search,
-                            contentDescription = stringResource(R.string.search),
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .background(MaterialTheme.colorScheme.background),
-        ) {
-            if (homeFeedEnabled && chips.chips.size > 1) {
-                HomeChipRow(
-                    state = chips,
-                    scrollState = chipRowState,
-                    onSelect = { key ->
-                        chipRowState.heightOffset = 0f
-                        viewModel.selectChip(key)
                     },
                 )
-            }
+                if (homeFeedEnabled && chips.chips.size > 1) {
+                    HomeChipRow(
+                        state = chips,
+                        onSelect = { key ->
+                            coroutineScope.launch { headerState.show(headerSpec) }
+                            viewModel.selectChip(key)
+                        },
+                    )
+                }
+            },
+        ) { topPadding ->
             ResettableHomePullToRefreshBox(
                 resetKey = uiState.isLoading && uiState.videos.isEmpty(),
                 isRefreshing = if (chips.isAll) uiState.isRefreshing else chips.isRefreshing,
                 onRefresh = { if (chips.isAll) viewModel.refreshFeed() else viewModel.refreshSelectedChip() },
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .nestedScroll(chipRowBehavior.nestedScrollConnection),
+                indicatorTopPadding = topPadding,
+                modifier = Modifier.fillMaxSize(),
             ) {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     HomeFeedBody(
@@ -198,6 +194,8 @@ fun HomeScreen(
                         onShortClick = onShortClick,
                         onNavigateToHistory = onNavigateToHistory,
                         onOpenShortsFeed = onOpenShortsFeed,
+                        topPadding = topPadding,
+                        headerOffsetPx = { headerState.headerOffsetPx },
                     )
                 }
             }
@@ -225,6 +223,7 @@ private fun ResettableHomePullToRefreshBox(
     resetKey: Boolean,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    indicatorTopPadding: Dp,
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -232,6 +231,7 @@ private fun ResettableHomePullToRefreshBox(
         FlowPullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
+            indicatorTopPadding = indicatorTopPadding,
             modifier = modifier,
             content = content,
         )

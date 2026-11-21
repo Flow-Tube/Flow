@@ -63,6 +63,7 @@ internal fun SubscriptionsFeedContent(
     onPostsClick: (() -> Unit)? = null,
     pinnedCount: Int = 0,
     onTogglePin: ((Channel) -> Unit)? = null,
+    topPadding: Dp = 0.dp,
 ) {
     val pullRefreshState = rememberPullToRefreshState()
 
@@ -76,6 +77,7 @@ internal fun SubscriptionsFeedContent(
         isRefreshing = state.isLoading,
         onRefresh = onRefresh,
         state = pullRefreshState,
+        indicatorTopPadding = topPadding,
         modifier = modifier.fillMaxSize(),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -95,7 +97,7 @@ internal fun SubscriptionsFeedContent(
                 columns = plan.cells,
                 state = gridState,
                 modifier = Modifier.fillMaxSize().dpadFocusGroup(),
-                contentPadding = plan.contentPadding(top = FeedTopPadding, bottom = flowBottomContentPadding()),
+                contentPadding = plan.contentPadding(top = FeedTopPadding + topPadding, bottom = flowBottomContentPadding()),
                 verticalArrangement = Arrangement.spacedBy(plan.rowSpacing),
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {

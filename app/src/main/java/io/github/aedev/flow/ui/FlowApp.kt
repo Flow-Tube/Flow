@@ -329,6 +329,7 @@ fun FlowApp(
                 statusBarHero.heroUnderStatusBar &&
                     !musicPlayerSheetState.isExpanded &&
                     playerSheetState.currentValue != PlayerSheetValue.Expanded,
+            pageUnderStatusBar = statusBarHero.pageUnderStatusBar,
         )
 
         LaunchedEffect(isInPipMode) {

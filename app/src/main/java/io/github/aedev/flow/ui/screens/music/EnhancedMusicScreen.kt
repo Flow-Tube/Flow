@@ -34,11 +34,15 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.music.model.audioMusicOnly
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
+import io.github.aedev.flow.ui.OnTabReselected
 import io.github.aedev.flow.ui.TabScrollEventBus
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.floatAboveBottomChrome
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
+import io.github.aedev.flow.ui.components.layout.topbar.FlowScrollAwayLayout
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
+import io.github.aedev.flow.ui.components.layout.topbar.rememberFlowScrollAwayState
 import io.github.aedev.flow.ui.components.music.section.HomeSectionType
 import io.github.aedev.flow.ui.components.music.section.MusicHomeLibrary
 import io.github.aedev.flow.ui.components.music.section.musicHomeFeed
@@ -149,18 +153,11 @@ fun EnhancedMusicScreen(
     val musicMenus = LocalMusicMenus.current
 
     val bottomInsets = LocalFlowBottomInsets.current
+    val headerState = rememberFlowScrollAwayState()
+    val headerSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    OnTabReselected(FlowTab.Music.route) { headerState.show(headerSpec) }
 
     Scaffold(
-        topBar = {
-            FlowTopBar(
-                title = stringResource(R.string.screen_title_music),
-                actions = {
-                    IconButton(onClick = onSearchClick) {
-                        Icon(Icons.Outlined.Search, stringResource(R.string.search))
-                    }
-                },
-            )
-        },
         floatingActionButton = {
             if (showRecognize) {
                 FloatingActionButton(
@@ -174,23 +171,32 @@ fun EnhancedMusicScreen(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0.dp),
     ) { paddingValues ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-        ) {
+        FlowScrollAwayLayout(
+            modifier = Modifier.padding(paddingValues),
+            state = headerState,
+            header = {
+                FlowTopBar(
+                    title = stringResource(R.string.screen_title_music),
+                    actions = {
+                        IconButton(onClick = onSearchClick) {
+                            Icon(Icons.Outlined.Search, stringResource(R.string.search))
+                        }
+                    },
+                )
+            },
+        ) { topPadding ->
             val isInitialLoading = uiState.isLoading && uiState.trendingSongs.isEmpty() && uiState.dynamicSections.isEmpty()
 
             when {
                 isInitialLoading -> {
-                    MusicScreenShimmerLoading()
+                    MusicScreenShimmerLoading(Modifier.padding(top = topPadding))
                 }
 
                 uiState.error != null && uiState.trendingSongs.isEmpty() -> {
                     FlowErrorState(
                         error = uiState.error ?: stringResource(R.string.error_occurred),
                         onRetry = { viewModel.retry() },
+                        modifier = Modifier.padding(top = topPadding),
                     )
                 }
 
@@ -221,12 +227,13 @@ fun EnhancedMusicScreen(
                         isRefreshing = uiState.isLoading || uiState.homeChipPage?.status == MusicHomeChipStatus.REFRESHING,
                         onRefresh = { viewModel.refresh() },
                         state = pullState,
+                        indicatorTopPadding = topPadding,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         LazyColumn(
                             state = musicListState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = flowBottomContentPadding(FeedBottomClearance)),
+                            contentPadding = PaddingValues(top = topPadding, bottom = flowBottomContentPadding(FeedBottomClearance)),
                         ) {
                             musicHomeFeed(
                                 uiState = uiState,
