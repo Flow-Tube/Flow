@@ -96,8 +96,7 @@ internal fun MembersOnlyLabel(video: Video) {
  */
 @Composable
 internal fun rememberAiListLabel(video: Video): String? {
-    val matcher = LocalAiListMatcher.current
-    val warned = remember(matcher, video.channelId, video.channelHandle) { matcher.verdict(video) == AiVerdict.WARN }
+    val warned = rememberAiListVerdict(video.channelId, video.channelHandle) { it.verdict(video) == AiVerdict.WARN }
     return if (warned) stringResource(R.string.ai_list_label) else null
 }
 

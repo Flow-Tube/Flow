@@ -56,7 +56,7 @@ import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
 import io.github.aedev.flow.ui.components.music.common.rememberMusicArtworkColors
 import io.github.aedev.flow.ui.components.shared.DownloadedBadge
 import io.github.aedev.flow.ui.components.shared.ExplicitBadge
-import io.github.aedev.flow.ui.components.shared.card.LocalAiListMatcher
+import io.github.aedev.flow.ui.components.shared.card.rememberAiListVerdict
 import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.theme.Dimensions
 import io.github.aedev.flow.utils.formatDuration
@@ -120,8 +120,7 @@ fun MusicTrackItem(
     val highlight = if (isPlaying) rememberMusicArtworkColors(track.thumbnailUrl) else null
     val rowColor = highlight?.container ?: containerColor
     val titleColor = highlight?.onContainer ?: scheme.onBackground
-    val aiMatcher = LocalAiListMatcher.current
-    val aiWarned = remember(aiMatcher, track) { aiMatcher.verdict(track) == AiVerdict.WARN }
+    val aiWarned = rememberAiListVerdict(track) { it.verdict(track) == AiVerdict.WARN }
     val subtitleColor = highlight?.onContainer?.copy(alpha = HIGHLIGHT_SUBTITLE_ALPHA) ?: scheme.onBackground.copy(alpha = SUBTITLE_ALPHA)
     val accentColor = highlight?.accent ?: scheme.onSurfaceVariant
 

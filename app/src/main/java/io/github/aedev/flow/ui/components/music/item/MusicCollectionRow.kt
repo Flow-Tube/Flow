@@ -39,7 +39,7 @@ import io.github.aedev.flow.innertube.models.ArtistItem
 import io.github.aedev.flow.innertube.models.PlaylistItem
 import io.github.aedev.flow.innertube.models.SongItem
 import io.github.aedev.flow.innertube.models.YTItem
-import io.github.aedev.flow.ui.components.shared.card.LocalAiListMatcher
+import io.github.aedev.flow.ui.components.shared.card.rememberAiListVerdict
 import io.github.aedev.flow.ui.components.shared.flowArtistShape
 import io.github.aedev.flow.ui.components.shared.onMenuKey
 import io.github.aedev.flow.ui.screens.music.aiCreditedIds
@@ -76,8 +76,7 @@ fun MusicCollectionRow(
         return
     }
 
-    val aiMatcher = LocalAiListMatcher.current
-    val aiWarned = remember(aiMatcher, item) { aiMatcher.musicVerdict(item.aiCreditedIds()) == AiVerdict.WARN }
+    val aiWarned = rememberAiListVerdict(item) { it.musicVerdict(item.aiCreditedIds()) == AiVerdict.WARN }
     val aiLabel = if (aiWarned) stringResource(R.string.ai_list_label) else null
 
     Row(

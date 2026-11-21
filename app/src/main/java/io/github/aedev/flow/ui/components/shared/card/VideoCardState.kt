@@ -51,7 +51,6 @@ data class VideoCardPreferences(
     val deArrowBadgeEnabled: Boolean = false,
     val actionsEnabled: Boolean = false,
     val markWatchedEnabled: Boolean = false,
-    val upcomingReminderIds: Set<String> = emptySet(),
     val showWatchProgress: Boolean = true,
     val originalTitlesEnabled: Boolean = false,
     val deArrowRandomFrame: Boolean = true,
@@ -63,9 +62,6 @@ data class VideoCardPreferences(
  * rare write invalidates the subtree wholesale instead of being tracked per reader.
  */
 val LocalVideoCardPreferences = staticCompositionLocalOf { VideoCardPreferences() }
-
-/** The AI channel list's matcher; static for the same reason, it changes only with the list or a setting. */
-val LocalAiListMatcher = staticCompositionLocalOf { AiListMatcher.NONE }
 
 /**
  * Watch progress for every video in history, backed by one Room observer.
@@ -165,9 +161,8 @@ fun ProvideVideoCardState(
                 playerPreferences.deArrowBadgeEnabled,
                 playerPreferences.videoCardActionsEnabled,
                 playerPreferences.videoCardMarkWatchedEnabled,
-                playerPreferences.upcomingVideoReminderIds,
-            ) { deArrow, deArrowBadge, actions, markWatched, reminders ->
-                VideoCardPreferences(deArrow, deArrowBadge, actions, markWatched, reminders)
+            ) { deArrow, deArrowBadge, actions, markWatched ->
+                VideoCardPreferences(deArrow, deArrowBadge, actions, markWatched)
             }.combine(playerPreferences.showWatchProgress) { cardPreferences, showWatchProgress ->
                 cardPreferences.copy(showWatchProgress = showWatchProgress)
             }.combine(playerPreferences.originalTitles) { cardPreferences, originalTitles ->
@@ -191,7 +186,11 @@ fun ProvideVideoCardState(
     val thumbnailQuality = thumbnailQualities?.let { (wifi, cellular) -> ThumbnailQuality.effective(isWifi, wifi, cellular) }
     val artworkColors by playerPreferences.videoArtworkColors.collectAsStateWithLifecycle(true)
     val aiMatcherFlow = remember(aiList) { aiList?.matcher ?: MutableStateFlow(AiListMatcher.NONE) }
-    val aiMatcher by aiMatcherFlow.collectAsStateWithLifecycle()
+    val aiMatcher = aiMatcherFlow.collectAsStateWithLifecycle()
+    val aiLookup = remember(aiMatcher) { AiListLookup(aiMatcher) }
+    val reminderIdsFlow = remember(playerPreferences) { playerPreferences.upcomingVideoReminderIds.distinctUntilChanged() }
+    val reminderIds = reminderIdsFlow.collectAsStateWithLifecycle(emptySet())
+    val reminders = remember(reminderIds) { UpcomingReminders(reminderIds) }
 
     val progressFlow =
         remember(watchProgress, playerPreferences) {
@@ -209,7 +208,8 @@ fun ProvideVideoCardState(
         LocalArtworkColors provides artworkColors,
         LocalOriginalTitles provides originalTitles,
         LocalDeArrow provides deArrow,
-        LocalAiListMatcher provides aiMatcher,
+        LocalAiListMatcher provides aiLookup,
+        LocalUpcomingReminders provides reminders,
         content = content,
     )
 }
@@ -286,7 +286,7 @@ internal fun rememberVideoCardState(video: Video): VideoCardState {
     val title = deArrow?.title ?: originalTitle ?: video.title
     val deArrowTitle = deArrow?.title != null
     val deArrowFrameUrl = deArrow?.thumbnailUrl
-    val showReminderBadge = video.isUpcoming && video.id in preferences.upcomingReminderIds
+    val showReminderBadge = if (video.isUpcoming) rememberHasReminder(video.id) else false
     return remember(
         video,
         title,
