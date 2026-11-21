@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.home
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.VideoHistoryEntry
 import io.github.aedev.flow.data.local.WatchedThreshold
+import io.github.aedev.flow.data.local.dao.WatchProgress
 import org.junit.Test
 
 class HomeHistoryFilterTest {
@@ -26,7 +27,7 @@ class HomeHistoryFilterTest {
             )
 
         assertThat(result.watchedVideoIds).containsExactly("watched")
-        assertThat(result.continueWatchingVideos.map { it.videoId }).containsExactly("in-progress")
+        assertThat(result.continueWatchingIds).containsExactly("in-progress")
     }
 
     @Test
@@ -45,7 +46,7 @@ class HomeHistoryFilterTest {
             )
 
         assertThat(result.watchedVideoIds).isEmpty()
-        assertThat(result.continueWatchingVideos.map { it.videoId }).containsExactly("ninety")
+        assertThat(result.continueWatchingIds).containsExactly("ninety")
     }
 
     // #979 (owner decision D1): the Shorts shelf follows its own setting, on by default.
@@ -107,13 +108,11 @@ class HomeHistoryFilterTest {
         duration: Long,
         timestamp: Long,
         isShort: Boolean = false,
-    ) = VideoHistoryEntry(
+    ) = WatchProgress(
         videoId = id,
         position = position,
         duration = duration,
         timestamp = timestamp,
-        title = id,
-        thumbnailUrl = "",
         isShort = isShort,
     )
 
@@ -133,6 +132,13 @@ class HomeHistoryFilterTest {
 
         assertThat(watched(countImported = false).watchedVideoIds).isEmpty()
         assertThat(watched(countImported = true).watchedVideoIds).containsExactly("imported")
-        assertThat(watched(countImported = true).continueWatchingVideos).isEmpty()
+        assertThat(watched(countImported = true).continueWatchingIds).isEmpty()
+    }
+
+    @Test
+    fun `continue watching keeps the newest-first order of its ids`() {
+        val entries = listOf("b", "a").map { VideoHistoryEntry(it, 50, 100, 0, it, "") }
+
+        assertThat(orderContinueWatching(listOf("a", "gone", "b"), entries).map { it.videoId }).containsExactly("a", "b").inOrder()
     }
 }

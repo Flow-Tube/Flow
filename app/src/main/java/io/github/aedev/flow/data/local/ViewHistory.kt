@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.aedev.flow.data.local.dao.WatchHistoryDao
 import io.github.aedev.flow.data.local.dao.WatchProgress
+import io.github.aedev.flow.data.local.dao.WatchProgressFingerprint
 import io.github.aedev.flow.data.local.entity.WatchHistoryEntity
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.profile.StoreScope
@@ -18,7 +19,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -44,13 +48,29 @@ class ViewHistory private constructor(
     private val database = AppDatabase.profile(context)
     private val dao = database.watchHistoryDao()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val historyChanges = MutableSharedFlow<HistoryChange>(extraBufferCapacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /**
+     * The rows each write here touched, emitted after the write lands. Writers outside this class
+     * (sync, import enrichment) are not announced; [WatchProgressStore] catches those through
+     * [progressFingerprint].
+     */
+    val changes: Flow<HistoryChange> = historyChanges.asSharedFlow()
+
+    private fun announce(videoId: String) {
+        historyChanges.tryEmit(HistoryChange.Rows(setOf(videoId)))
+    }
+
+    private fun announceAll() {
+        historyChanges.tryEmit(HistoryChange.All)
+    }
 
     companion object {
         private const val TAG = "ViewHistory"
         private const val WATCH_HISTORY_TABLE = "watch_history"
 
         // Below SQLite's bound-variable limit on every Android version.
-        private const val UNPLAYED_DELETE_BATCH = 500
+        private const val ID_BATCH = 500
 
         @Volatile
         private var instance: ViewHistory? = null
@@ -118,6 +138,7 @@ class ViewHistory private constructor(
                 isLocal = isLocal,
             ),
         )
+        announce(videoId)
     }
 
     /**
@@ -131,11 +152,13 @@ class ViewHistory private constructor(
         if (durationMs <= 0L) return
         if (PlayerPreferences(context).isWatchHistorySavingBlocked()) return
         dao.markCompleted(videoId, durationMs)
+        announce(videoId)
     }
 
     /** Clears playback progress for [videoId]. The history row stays; the card stops reading as watched. */
     suspend fun clearProgress(videoId: String) {
         dao.clearProgress(videoId)
+        announce(videoId)
     }
 
     suspend fun getSavedPosition(videoId: String): Long = dao.getPosition(videoId) ?: 0L
@@ -173,7 +196,10 @@ class ViewHistory private constructor(
         channelName: String,
     ) {
         if (PlayerPreferences(context).isWatchHistorySavingBlocked()) return
-        if (dao.updateProgress(videoId, position, duration) > 0) return
+        if (dao.updateProgress(videoId, position, duration) > 0) {
+            announce(videoId)
+            return
+        }
         savePlaybackPosition(videoId, position, duration, title, thumbnailUrl, channelName, isMusic = true)
     }
 
@@ -216,6 +242,7 @@ class ViewHistory private constructor(
                 isLocal = LocalMediaIds.isLocal(videoId),
             ),
         )
+        announce(videoId)
     }
 
     /**
@@ -241,15 +268,19 @@ class ViewHistory private constructor(
                 )
             }
         dao.insertAll(entities)
+        announceAll()
     }
 
     suspend fun clearVideoHistory(videoId: String) {
         dao.deleteEntry(videoId)
+        announce(videoId)
     }
 
     /** Removes [videoIds] from history where they were only imported, never played; returns how many went. */
     suspend fun removeUnplayedEntries(videoIds: Collection<String>): Int =
-        videoIds.chunked(UNPLAYED_DELETE_BATCH).sumOf { dao.deleteUnplayed(it) }
+        videoIds.chunked(ID_BATCH).sumOf { dao.deleteUnplayed(it) }.also { removed ->
+            if (removed > 0) announceAll()
+        }
 
     /**
      * Marks the given video as fully watched (position = duration) so it no longer
@@ -257,14 +288,17 @@ class ViewHistory private constructor(
      */
     suspend fun markAsWatched(videoId: String) {
         dao.markAsWatched(videoId)
+        announce(videoId)
     }
 
     suspend fun clearAllHistory() {
         dao.clearAll()
+        announceAll()
     }
 
     suspend fun clearShortsHistory() {
         dao.clearShorts()
+        announceAll()
     }
 
     // ── Reads ────────────────────────────────────────────────────────────────
@@ -288,11 +322,21 @@ class ViewHistory private constructor(
     /** Plays of files on the device, newest first: their progress and when they were last played. */
     fun getLocalHistoryFlow(): Flow<List<VideoHistoryEntry>> = observeHistory(isLocal = 1)
 
-    /** Position and duration of every entry, for progress bars. */
-    fun getAllWatchProgress(): Flow<List<WatchProgress>> = observe { dao.readProgress() }
+    /** Position and duration of every entry. Readers that stay subscribed go through [WatchProgressStore]. */
+    suspend fun readAllProgress(): List<WatchProgress> = dao.readProgress()
 
-    /** Position and duration of every video (non-music, non-local) entry, for watched checks. */
-    fun getVideoWatchProgress(): Flow<List<WatchProgress>> = observe { dao.readProgress(isMusic = 0, isLocal = 0) }
+    /** Progress rows for [videoIds]; an id without a row is absent. */
+    suspend fun readProgressRows(videoIds: Collection<String>): List<WatchProgress> =
+        videoIds.chunked(ID_BATCH).flatMap { dao.getProgressRows(it) }
+
+    suspend fun progressFingerprint(): WatchProgressFingerprint = dao.progressFingerprint()
+
+    /** Full entries for [videoIds], in no particular order. */
+    suspend fun getEntries(videoIds: Collection<String>): List<VideoHistoryEntry> =
+        videoIds.chunked(ID_BATCH).flatMap { chunk -> dao.getEntries(chunk).map { it.toDomain() } }
+
+    /** Fires once on collection and after every change to the table, whoever made it. */
+    fun invalidations(): Flow<Unit> = database.invalidationTracker.createFlow(WATCH_HISTORY_TABLE).map { }
 
     /** The latest [limit] video entries, newest first, without reading the rest of the table. */
     suspend fun getRecentVideoHistory(
@@ -378,6 +422,7 @@ class ViewHistory private constructor(
                 }
             }
             if (batch.isNotEmpty()) dao.insertAll(batch)
+            announceAll()
 
             context.viewHistoryDataStore.edit { it.clear() }
             Log.i(TAG, "DataStore → Room migration complete (${videoIds.size} entries)")

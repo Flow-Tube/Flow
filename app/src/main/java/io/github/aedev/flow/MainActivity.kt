@@ -25,6 +25,7 @@ import io.github.aedev.flow.applock.hideFromRecentsWhenAsked
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.AppFontPreferences
 import io.github.aedev.flow.data.local.LocalDataManager
+import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.playlist.PlaylistTransfer
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.repository.DeArrowRepository
@@ -76,6 +77,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var aiList: AiListRepository
+
+    @Inject
+    lateinit var watchProgress: WatchProgressStore
 
     @Inject
     lateinit var textTranslator: TextTranslator
@@ -224,6 +228,7 @@ class MainActivity : ComponentActivity() {
                     originalTitles = originalTitles,
                     deArrow = deArrow,
                     aiList = aiList,
+                    watchProgress = watchProgress,
                     appIconController = appIconController,
                     appLock = appLock,
                     onUiRoot = { cachedAppUiRoot = it },

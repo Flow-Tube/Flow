@@ -16,6 +16,7 @@ import io.github.aedev.flow.data.local.HomeFeedCacheFilters
 import io.github.aedev.flow.data.local.HomeFeedCacheRepository
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.local.ViewHistory
+import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.data.recommendation.ChannelMemoryRepository
@@ -99,6 +100,7 @@ class HomeViewModel
         private val homeSubscriptionUploads: HomeSubscriptionUploads,
         private val persistentHomeFeedCache: HomeFeedCacheRepository,
         private val viewHistory: ViewHistory,
+        private val watchProgress: WatchProgressStore,
         private val channelMemory: ChannelMemoryRepository,
         private val chipFeeds: HomeChipFeeds,
         private val snapshotRecorder: HomeSnapshotRecorder,
@@ -258,7 +260,7 @@ class HomeViewModel
 
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
                 combine(
-                    viewHistory.getVideoHistoryFlow(),
+                    watchProgress.videoProgress,
                     playerPreferences.hideWatchedVideosFromHome,
                     playerPreferences.watchedThreshold.combine(playerPreferences.countImportedAsWatched, ::Pair),
                     playerPreferences.continueWatchingEnabled,
@@ -272,7 +274,17 @@ class HomeViewModel
                         continueWatchingEnabled = continueWatchingEnabled,
                         hideWatchedShorts = hideWatchedShorts,
                     )
-                }.collect { result ->
+                }.map { result ->
+                    val entries =
+                        if (result.continueWatchingIds.isEmpty()) {
+                            emptyList()
+                        } else {
+                            viewHistory.getEntries(
+                                result.continueWatchingIds,
+                            )
+                        }
+                    result to orderContinueWatching(result.continueWatchingIds, entries)
+                }.collect { (result, continueWatching) ->
                     watchedVideoIds.value = result.watchedVideoIds
                     watchedShortIds.value = result.watchedShortIds
                     _uiState.update { state ->
@@ -284,7 +296,7 @@ class HomeViewModel
                         state.copy(
                             videos = videos,
                             shorts = shorts,
-                            continueWatchingVideos = result.continueWatchingVideos,
+                            continueWatchingVideos = continueWatching,
                         )
                     }
                 }

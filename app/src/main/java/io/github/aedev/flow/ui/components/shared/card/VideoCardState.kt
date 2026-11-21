@@ -18,7 +18,7 @@ import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ThumbnailQuality
-import io.github.aedev.flow.data.local.ViewHistory
+import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.local.dao.WatchProgress
 import io.github.aedev.flow.data.local.isImportedWatch
 import io.github.aedev.flow.data.model.Video
@@ -34,11 +34,9 @@ import io.github.aedev.flow.ui.components.shared.LocalYouTubeFramesOnly
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.utils.rememberIsOnWifi
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOn
 
 /**
  * Card settings that are identical for every card on screen.
@@ -78,14 +76,25 @@ val LocalAiListMatcher = staticCompositionLocalOf { AiListMatcher.NONE }
  */
 @Stable
 class VideoWatchProgressStore internal constructor(
-    private val entries: State<Map<String, Float>>,
+    private val entries: State<CardProgressRows>,
 ) {
-    internal fun progressFor(videoId: String): Float? = entries.value[videoId]
+    internal fun progressFor(videoId: String): Float? = entries.value.let { it.rows[videoId]?.cardProgress(it.countImported) }
 
     internal companion object {
-        val Empty = VideoWatchProgressStore(mutableStateOf(emptyMap()))
+        val Empty = VideoWatchProgressStore(mutableStateOf(CardProgressRows()))
     }
 }
+
+/**
+ * History rows as cards read them; per-card progress is worked out on lookup, so a save costs no
+ * full pass. Compared by identity on purpose: the store emits only real changes, and comparing two
+ * whole-history maps would put that full pass back on the main thread.
+ */
+@Immutable
+internal class CardProgressRows(
+    val rows: Map<String, WatchProgress> = emptyMap(),
+    val countImported: Boolean = false,
+)
 
 val LocalVideoWatchProgress = staticCompositionLocalOf { VideoWatchProgressStore.Empty }
 
@@ -134,6 +143,7 @@ fun ProvideVideoCardState(
     originalTitles: OriginalTitleRepository?,
     deArrow: DeArrowRepository?,
     aiList: AiListRepository? = null,
+    watchProgress: WatchProgressStore,
     quickActions: QuickActionsViewModel = sharedQuickActionsViewModel(),
     content: @Composable () -> Unit,
 ) {
@@ -184,15 +194,10 @@ fun ProvideVideoCardState(
     val aiMatcher by aiMatcherFlow.collectAsStateWithLifecycle()
 
     val progressFlow =
-        remember(context, playerPreferences) {
-            ViewHistory
-                .getInstance(context)
-                .getAllWatchProgress()
-                .combine(playerPreferences.countImportedAsWatched) { entries, countImported -> entries.toWatchProgressMap(countImported) }
-                .distinctUntilChanged()
-                .flowOn(Dispatchers.Default)
+        remember(watchProgress, playerPreferences) {
+            watchProgress.entries.combine(playerPreferences.countImportedAsWatched.distinctUntilChanged(), ::CardProgressRows)
         }
-    val progressEntries = progressFlow.collectAsStateWithLifecycle(emptyMap())
+    val progressEntries = progressFlow.collectAsStateWithLifecycle(CardProgressRows())
     val progressStore = remember(progressEntries) { VideoWatchProgressStore(progressEntries) }
 
     CompositionLocalProvider(
@@ -210,24 +215,20 @@ fun ProvideVideoCardState(
 }
 
 /**
- * Below 3% a video counts as not started, and at 90% the bar is filled rather than left a sliver
- * short of the end. Mirrors what each card computed for itself before. With [countImported], a video
- * from a YouTube history import fills the bar too; music and local files never do.
+ * Below 3% a video counts as not started (null), and at 90% the bar is filled rather than left a
+ * sliver short of the end. With [countImported], a video from a YouTube history import fills the bar
+ * too; music and local files never do.
  */
-internal fun List<WatchProgress>.toWatchProgressMap(countImported: Boolean = false): Map<String, Float> =
-    buildMap {
-        this@toWatchProgressMap.forEach { entry ->
-            if (countImported && !entry.isMusic && !entry.isLocal && isImportedWatch(entry.position, entry.duration)) {
-                put(entry.videoId, 1f)
-                return@forEach
-            }
-            if (entry.duration <= 0) return@forEach
-            val percentage = entry.position.toFloat() / entry.duration.toFloat() * 100f
-            if (percentage >= 3f) {
-                put(entry.videoId, if (percentage >= 90f) 1f else percentage / 100f)
-            }
-        }
+internal fun WatchProgress.cardProgress(countImported: Boolean = false): Float? {
+    if (countImported && !isMusic && !isLocal && isImportedWatch(position, duration)) return 1f
+    if (duration <= 0) return null
+    val percentage = position.toFloat() / duration.toFloat() * 100f
+    return when {
+        percentage >= 90f -> 1f
+        percentage >= 3f -> percentage / 100f
+        else -> null
     }
+}
 
 /** Which of a card's sheets is open. Kept apart from [VideoCardState] so a new title or progress value never closes one. */
 @Stable

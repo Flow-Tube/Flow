@@ -67,7 +67,7 @@ interface WatchHistoryDao {
     /** [getHistoryPage] with only what watched and progress checks read. */
     @Query(
         """
-        SELECT videoId, position, duration, timestamp, isMusic, isLocal FROM watch_history
+        SELECT videoId, position, duration, timestamp, isMusic, isLocal, isShort FROM watch_history
         WHERE (:isMusic < 0 OR isMusic = :isMusic)
         AND (:isLocal < 0 OR isLocal = :isLocal)
         AND (timestamp < :beforeTimestamp OR (timestamp = :beforeTimestamp AND videoId > :afterVideoId))
@@ -157,17 +157,34 @@ interface WatchHistoryDao {
 
     /** Every Short with progress; which of them count as watched is [WatchedThreshold.isWatched]'s call. */
     @Query(
-        "SELECT videoId, position, duration, timestamp, isMusic, isLocal FROM watch_history " +
+        "SELECT videoId, position, duration, timestamp, isMusic, isLocal, isShort FROM watch_history " +
             "WHERE isMusic = 0 AND isLocal = 0 AND isShort = 1 AND position > 0 AND duration > 0",
     )
     suspend fun readShortProgress(): List<WatchProgress>
 
-    @Query("SELECT videoId, position, duration, timestamp, isMusic, isLocal FROM watch_history WHERE videoId = :videoId")
+    @Query("SELECT videoId, position, duration, timestamp, isMusic, isLocal, isShort FROM watch_history WHERE videoId = :videoId")
     suspend fun getProgress(videoId: String): WatchProgress?
+
+    /** [getProgress] for several rows of any kind; an id with no row is simply absent. */
+    @Query(
+        "SELECT videoId, position, duration, timestamp, isMusic, isLocal, isShort FROM watch_history " +
+            "WHERE videoId IN (:videoIds)",
+    )
+    suspend fun getProgressRows(videoIds: List<String>): List<WatchProgress>
+
+    @Query(
+        "SELECT COUNT(*) AS rowCount, COALESCE(SUM(position), 0) AS positionSum, COALESCE(SUM(duration), 0) AS durationSum, " +
+            "COALESCE(SUM(timestamp), 0) AS timestampSum, " +
+            "COALESCE(SUM(isMusic + 2 * isLocal + 4 * isShort), 0) AS flagSum FROM watch_history",
+    )
+    suspend fun progressFingerprint(): WatchProgressFingerprint
+
+    @Query("SELECT * FROM watch_history WHERE videoId IN (:videoIds)")
+    suspend fun getEntries(videoIds: List<String>): List<WatchHistoryEntity>
 
     /** Progress for just [videoIds], so a search page asks about its own results and nothing else. */
     @Query(
-        "SELECT videoId, position, duration, timestamp, isMusic, isLocal FROM watch_history " +
+        "SELECT videoId, position, duration, timestamp, isMusic, isLocal, isShort FROM watch_history " +
             "WHERE isMusic = 0 AND isLocal = 0 AND videoId IN (:videoIds)",
     )
     suspend fun getProgressFor(videoIds: List<String>): List<WatchProgress>
@@ -222,6 +239,16 @@ data class WatchProgress(
     val timestamp: Long,
     val isMusic: Boolean = false,
     val isLocal: Boolean = false,
+    val isShort: Boolean = false,
+)
+
+/** Sums over every row, so a reader holding the rows can tell whether the table changed under it. */
+data class WatchProgressFingerprint(
+    val rowCount: Long,
+    val positionSum: Long,
+    val durationSum: Long,
+    val timestampSum: Long,
+    val flagSum: Long,
 )
 
 /** One row of [WatchHistoryDao.getChannelVideoCounts]. */

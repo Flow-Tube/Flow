@@ -29,6 +29,7 @@ import io.github.aedev.flow.applock.AppLock
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.AppUiModePreferences
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.repository.DeArrowRepository
 import io.github.aedev.flow.data.repository.OriginalTitleRepository
@@ -68,6 +69,7 @@ internal fun FlowRoot(
     originalTitles: OriginalTitleRepository,
     deArrow: DeArrowRepository,
     aiList: AiListRepository,
+    watchProgress: WatchProgressStore,
     appIconController: AppIconController,
     appLock: AppLock,
     onUiRoot: (AppUiRoot) -> Unit,
@@ -137,7 +139,7 @@ internal fun FlowRoot(
                     // Card preferences and watch progress are collected once here. Cards used to
                     // collect them individually, so a feed of ten opened ten Room observers and
                     // fifty DataStore collectors.
-                    ProvideVideoCardState(originalTitles, deArrow, aiList) {
+                    ProvideVideoCardState(originalTitles, deArrow, aiList, watchProgress = watchProgress) {
                         Box(
                             modifier =
                                 Modifier

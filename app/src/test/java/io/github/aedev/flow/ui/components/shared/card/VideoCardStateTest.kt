@@ -16,6 +16,9 @@ class VideoCardStateTest {
         timestamp = 0L,
     )
 
+    private fun List<WatchProgress>.toWatchProgressMap(countImported: Boolean = false): Map<String, Float> =
+        mapNotNull { row -> row.cardProgress(countImported)?.let { row.videoId to it } }.toMap()
+
     @Test
     fun `partially watched videos map to fractional progress`() {
         val map = listOf(entry("a", position = 50, duration = 100)).toWatchProgressMap()
