@@ -1420,6 +1420,10 @@
     <string name="content_settings_feed_autoplay_wifi">Wi-Fi only</string>
     <string name="content_settings_feed_autoplay_always">Always</string>
     <string name="content_settings_feed_autoplay_keywords">autoplay, preview, inline, muted, playback in feeds</string>
+    <string name="home_preview_mute">Mute preview</string>
+    <string name="home_preview_unmute">Unmute preview</string>
+    <string name="home_preview_captions_on">Show captions</string>
+    <string name="home_preview_captions_off">Hide captions</string>
     <string name="content_settings_home_chips_title">Home chips</string>
     <string name="content_settings_home_chips_subtitle">Show the row of chips above the feed</string>
     <string name="content_settings_home_new_videos_title">New videos button</string>

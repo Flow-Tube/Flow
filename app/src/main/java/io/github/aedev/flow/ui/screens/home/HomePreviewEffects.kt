@@ -8,6 +8,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.Lifecycle
@@ -15,6 +16,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.ui.components.home.HomePreviewControls
+import io.github.aedev.flow.ui.components.home.HomePreviewControlsState
 import io.github.aedev.flow.ui.components.home.HomePreviewSurface
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -53,18 +56,26 @@ internal fun HomePreviewEffects(
     }
 }
 
-/** What each feed card draws over its thumbnail: the preview, on the one card it is for. */
+/** What each feed card draws over its thumbnail: the preview, on the one card it is for. [onOpen] gets the card's video id. */
 @Composable
-internal fun rememberHomePreviewOverlay(viewModel: HomePreviewViewModel): @Composable BoxScope.(String) -> Unit =
-    remember(viewModel) {
-        val overlay: @Composable BoxScope.(String) -> Unit = { videoId -> HomePreviewCardOverlay(viewModel, videoId) }
+internal fun rememberHomePreviewOverlay(
+    viewModel: HomePreviewViewModel,
+    onOpen: (String) -> Unit,
+): @Composable BoxScope.(String) -> Unit {
+    val currentOnOpen by rememberUpdatedState(onOpen)
+    return remember(viewModel) {
+        val overlay: @Composable BoxScope.(
+            String,
+        ) -> Unit = { videoId -> HomePreviewCardOverlay(viewModel, videoId) { currentOnOpen(videoId) } }
         overlay
     }
+}
 
 @Composable
 private fun HomePreviewCardOverlay(
     viewModel: HomePreviewViewModel,
     videoId: String,
+    onOpen: () -> Unit,
 ) {
     val active by viewModel.activeVideoId.collectAsStateWithLifecycle()
     if (active != videoId) return
@@ -76,6 +87,25 @@ private fun HomePreviewCardOverlay(
         showVideo = state.showsVideo,
         onAttached = { attached -> viewModel.onSurfaceAttached(videoId, attached) },
     )
+    if (state.showsVideo) {
+        HomePreviewControls(
+            state =
+                HomePreviewControlsState(
+                    muted = state.muted,
+                    hasCaptions = state.hasCaptions,
+                    captionsOn = state.captionsOn,
+                    buffering = state.buffering,
+                    playing = state.playing,
+                    durationMs = state.durationMs,
+                    storyboard = state.storyboard,
+                ),
+            readPositionMs = { viewModel.positionMs },
+            onToggleMute = viewModel::toggleMute,
+            onToggleCaptions = viewModel::toggleCaptions,
+            onSeekTo = viewModel::seekTo,
+            onOpen = onOpen,
+        )
+    }
 }
 
 private fun Video.canPreview(): Boolean = !isShort && !isLive && !isUpcoming && duration > 0

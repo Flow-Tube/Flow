@@ -170,6 +170,26 @@ internal class HomePreviewViewModel
             return position
         }
 
+        val positionMs: Long get() = player.positionMs
+
+        /** The choice holds for every later preview this session, as the reference's does. */
+        fun toggleMute() {
+            muted = !muted
+            player.setMuted(muted)
+            _state.update { it.copy(muted = muted) }
+        }
+
+        fun toggleCaptions() {
+            val on = !_state.value.captionsOn
+            captionsChoice = on
+            player.setCaptions(on)
+            _state.update { it.copy(captionsOn = on) }
+        }
+
+        fun seekTo(positionMs: Long) {
+            player.seekTo(positionMs)
+        }
+
         private suspend fun run(videoId: String) {
             val slow = gate.value.slowNetwork
             val media =

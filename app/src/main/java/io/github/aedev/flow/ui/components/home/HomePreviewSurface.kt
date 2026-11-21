@@ -22,6 +22,9 @@ import io.github.aedev.flow.R
 
 private const val CAPTION_TEXT_FRACTION = 0.075f
 
+// Keeps captions off the screen edge on a full-width card.
+private const val CAPTION_SIDE_PADDING_DP = 8
+
 // Lifts captions clear of the time bar and the status badge along the bottom edge.
 private const val CAPTION_BOTTOM_FRACTION = 0.2f
 
@@ -53,6 +56,8 @@ internal fun HomePreviewSurface(
                     setUserDefaultStyle()
                     setFractionalTextSize(CAPTION_TEXT_FRACTION)
                     setBottomPaddingFraction(CAPTION_BOTTOM_FRACTION)
+                    val sidePadding = (CAPTION_SIDE_PADDING_DP * resources.displayMetrics.density).toInt()
+                    setPadding(sidePadding, 0, sidePadding, 0)
                 }
             }
         },

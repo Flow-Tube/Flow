@@ -125,11 +125,14 @@ fun HomeScreen(
         videos = uiState.videos,
         enabled = homeFeedEnabled && chips.isAll && homeViewMode != HomeViewMode.LIST,
     )
-    val previewOverlay = rememberHomePreviewOverlay(previewViewModel)
     val openVideo: (Video) -> Unit = { video ->
         val previewedTo = previewViewModel.openAt(video.id)
         if (previewedTo != null && previewedTo >= MIN_HANDOFF_POSITION_MS) onOpenPreview(video, previewedTo) else onVideoClick(video)
     }
+    val previewOverlay =
+        rememberHomePreviewOverlay(previewViewModel) { videoId ->
+            uiState.videos.firstOrNull { it.id == videoId }?.let(openVideo)
+        }
 
     val haptic = LocalHapticFeedback.current
     val homeLabel = stringResource(R.string.nav_home)
