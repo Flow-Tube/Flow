@@ -100,7 +100,7 @@ internal fun SubscriptionsFeedContent(
                 contentPadding = plan.contentPadding(top = FeedTopPadding + topPadding, bottom = flowBottomContentPadding()),
                 verticalArrangement = Arrangement.spacedBy(plan.rowSpacing),
             ) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
+                item(key = "subscriptions_header", contentType = "subscriptions_header", span = { GridItemSpan(maxLineSpan) }) {
                     Column {
                         SubscriptionsFeedHeader(
                             state = state,
@@ -140,7 +140,7 @@ internal fun SubscriptionsFeedContent(
                 }
 
                 if (showShorts && state.isShortsShelfEnabled && state.shorts.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
+                    item(key = "subscriptions_shorts", contentType = "subscriptions_shorts", span = { GridItemSpan(maxLineSpan) }) {
                         Column {
                             MediaShortsShelf(
                                 shorts = state.shorts,
@@ -159,7 +159,7 @@ internal fun SubscriptionsFeedContent(
                 itemsIndexed(
                     items = videos,
                     key = { _, video -> video.id },
-                    contentType = { _, _ -> "video" },
+                    contentType = { index, _ -> if (plan.isListCard(index)) "video_row" else "video_stacked" },
                     span = { index, _ -> plan.span(index, spansOwnRow = false, maxLineSpan = maxLineSpan) },
                 ) { index, video ->
                     MediaVideoCard(

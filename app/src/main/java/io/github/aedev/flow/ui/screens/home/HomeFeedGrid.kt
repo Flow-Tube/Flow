@@ -90,7 +90,13 @@ internal fun HomeFeedGrid(
         itemsIndexed(
             items = rows,
             key = { _, row -> row.key },
-            contentType = { _, row -> row::class },
+            contentType = { index, row ->
+                when (row) {
+                    is HomeFeedRow.VideoCard -> if (plan.isListCard(index)) HomeContentType.VideoRow else HomeContentType.VideoStacked
+                    HomeFeedRow.ContinueWatching -> HomeContentType.ContinueWatching
+                    HomeFeedRow.Shorts -> HomeContentType.Shorts
+                }
+            },
             span = { index, row -> plan.span(index, row.spansRow, maxLineSpan) },
         ) { index, row ->
             when (row) {
@@ -143,6 +149,7 @@ internal fun HomeFeedGrid(
         if (uiState.isLoadingMore) {
             item(
                 key = "loading_indicator",
+                contentType = HomeContentType.LoadingMore,
                 span = { GridItemSpan(maxLineSpan) },
             ) {
                 FlowFeedProgress()
@@ -152,6 +159,7 @@ internal fun HomeFeedGrid(
         if (uiState.loadMoreFailed && !uiState.isLoadingMore) {
             item(
                 key = "load_more_failed",
+                contentType = HomeContentType.LoadMoreFailed,
                 span = { GridItemSpan(maxLineSpan) },
             ) {
                 HomeLoadMoreFailed(onRetry = onRetryLoadMore)
@@ -161,6 +169,7 @@ internal fun HomeFeedGrid(
         if (!uiState.hasMorePages && videos.size > footerMinVideos && !uiState.isLoadingMore) {
             item(
                 key = "feed_footer",
+                contentType = HomeContentType.EndFooter,
                 span = { GridItemSpan(maxLineSpan) },
             ) {
                 FlowFeedFooter(
@@ -171,3 +180,6 @@ internal fun HomeFeedGrid(
         }
     }
 }
+
+// A row-layout card and a stacked one have different trees, so each gets its own reuse pool.
+private enum class HomeContentType { VideoRow, VideoStacked, ContinueWatching, Shorts, LoadingMore, LoadMoreFailed, EndFooter }

@@ -84,6 +84,14 @@ private fun LazyListScope.relatedVideoItems(
     items(
         count = segment.count,
         key = { offset -> relatedVideos[segment.start + offset].id },
+        contentType = { offset ->
+            val index = segment.start + offset
+            when {
+                index == 0 && relatedVideos[index].id == upNextVideoId -> "related_video_up_next"
+                cardStyle == PlayerRelatedCardStyle.COMPACT -> "related_video_row"
+                else -> "related_video_stacked"
+            }
+        },
     ) { offset ->
         val index = segment.start + offset
         val relatedVideo = relatedVideos[index]
