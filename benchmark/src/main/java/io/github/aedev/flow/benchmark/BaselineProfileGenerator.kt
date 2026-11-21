@@ -6,6 +6,11 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.Until
+import io.github.aedev.flow.benchmark.NavigationJourneys.BYPASS_ONBOARDING
+import io.github.aedev.flow.benchmark.NavigationJourneys.openAndCloseSettings
+import io.github.aedev.flow.benchmark.NavigationJourneys.openHome
+import io.github.aedev.flow.benchmark.NavigationJourneys.scrollHome
+import io.github.aedev.flow.benchmark.NavigationJourneys.switchTabs
 import org.junit.Rule
 import org.junit.Test
 
@@ -48,6 +53,17 @@ class BaselineProfileGenerator {
             flingFeed(Direction.UP, times = 1)
         }
 
+    /** Tab switches, a page opened and left, and the scroll-away header on Home. */
+    @Test
+    fun navigate() =
+        collectProfile(includeInStartupProfile = false) {
+            pressHome()
+            openHome()
+            switchTabs()
+            openAndCloseSettings()
+            scrollHome()
+        }
+
     private fun collectProfile(
         includeInStartupProfile: Boolean,
         journey: MacrobenchmarkScope.() -> Unit,
@@ -79,8 +95,6 @@ class BaselineProfileGenerator {
     }
 
     private companion object {
-        // Home is the journey: a fresh profiling install would otherwise open onboarding.
-        const val BYPASS_ONBOARDING = "io.github.aedev.flow.extra.BENCHMARK_BYPASS_ONBOARDING"
         const val UI_SETTLE_MS = 1_500L
         const val CONTENT_TIMEOUT_MS = 10_000L
     }
