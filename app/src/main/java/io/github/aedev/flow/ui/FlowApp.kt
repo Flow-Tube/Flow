@@ -60,6 +60,7 @@ import io.github.aedev.flow.ui.components.profiles.SwitchRefusals
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
+import io.github.aedev.flow.ui.components.shared.FlowSharedTransitions
 import io.github.aedev.flow.ui.components.shared.LocalMediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.SubscriptionBellAlerts
@@ -494,33 +495,35 @@ fun FlowApp(
                                     LinkedSyncAlerts(snackbarHostState)
                                     SwitchRefusals(profileSwitchViewModel)
                                     PlayOnHost(onManageDevices = { mediaNavigator.openSettings(SettingsTarget(SettingsDestination.SYNC)) })
-                                    NavHost(
-                                        navController = navController,
-                                        startDestination = if (needsOnboarding == true) "onboarding" else defaultStartRoute,
-                                        enterTransition = navTransitions.enter,
-                                        exitTransition = navTransitions.exit,
-                                        popEnterTransition = navTransitions.popEnter,
-                                        popExitTransition = navTransitions.popExit,
-                                        predictivePopEnterTransition = navTransitions.predictivePopEnter,
-                                        predictivePopExitTransition = navTransitions.predictivePopExit,
-                                    ) {
-                                        flowAppGraph(
+                                    FlowSharedTransitions(enabled = !lowRamDevice) {
+                                        NavHost(
                                             navController = navController,
-                                            mediaNavigator = mediaNavigator,
-                                            currentRoute = currentRoute,
-                                            playerSheetState = playerSheetState,
-                                            musicPlayerSheetState = musicPlayerSheetState,
-                                            homeViewModel = homeViewModel,
-                                            playerViewModel = playerViewModel,
-                                            playerUiStateResult = playerUiStateResult,
-                                            playerVisibleState = playerVisibleState,
-                                            disableShortsPlayer = disableShortsPlayer,
-                                            defaultStartRoute = defaultStartRoute,
-                                            onMusicStarted = onMusicStarted,
-                                            openDownloads = openDownloads,
-                                            searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
-                                            searchIsTab = { FlowTab.Search in currentNavigationTabs },
-                                        )
+                                            startDestination = if (needsOnboarding == true) "onboarding" else defaultStartRoute,
+                                            enterTransition = navTransitions.enter,
+                                            exitTransition = navTransitions.exit,
+                                            popEnterTransition = navTransitions.popEnter,
+                                            popExitTransition = navTransitions.popExit,
+                                            predictivePopEnterTransition = navTransitions.predictivePopEnter,
+                                            predictivePopExitTransition = navTransitions.predictivePopExit,
+                                        ) {
+                                            flowAppGraph(
+                                                navController = navController,
+                                                mediaNavigator = mediaNavigator,
+                                                currentRoute = currentRoute,
+                                                playerSheetState = playerSheetState,
+                                                musicPlayerSheetState = musicPlayerSheetState,
+                                                homeViewModel = homeViewModel,
+                                                playerViewModel = playerViewModel,
+                                                playerUiStateResult = playerUiStateResult,
+                                                playerVisibleState = playerVisibleState,
+                                                disableShortsPlayer = disableShortsPlayer,
+                                                defaultStartRoute = defaultStartRoute,
+                                                onMusicStarted = onMusicStarted,
+                                                openDownloads = openDownloads,
+                                                searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
+                                                searchIsTab = { FlowTab.Search in currentNavigationTabs },
+                                            )
+                                        }
                                     }
                                 }
                             }

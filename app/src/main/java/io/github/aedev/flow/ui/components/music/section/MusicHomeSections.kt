@@ -130,6 +130,7 @@ fun MusicTrackCardShelf(
                     isDownloaded = downloadedTrackIds.contains(track.videoId),
                     onClick = { track.open(onTrackClick, onCollectionClick) },
                     onLongClick = { track.open(onTrackMenu, onCollectionMenu) },
+                    artworkKey = track.videoId.takeIf { track.isCollection && onCollectionClick != null },
                 )
             }
         }
@@ -197,6 +198,7 @@ fun MusicCollectionShelf(
             thumbnailHeight = thumbnailHeight,
             onClick = { onCollectionClick(collection) },
             onLongClick = { onCollectionMenu(collection) },
+            artworkKey = collection.id,
         )
     }
 }
