@@ -1,5 +1,6 @@
 package io.github.aedev.flow.data.music.model
 
+import io.github.aedev.flow.data.images.MusicArtwork
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.serialization.Serializable
@@ -59,8 +60,17 @@ data class MusicTrack(
     val highResThumbnailUrl: String
         get() = ThumbnailUrlResolver.resolveMusicThumbnail(videoId, thumbnailUrl, 1080)
 
+    // Gson allocates tracks without running initializers, so the cache starts null rather than lazy.
+    @kotlin.jvm.Transient
+    @kotlinx.serialization.Transient
+    private var listThumbnailCache: String? = null
+
     val listThumbnailUrl: String
-        get() = ThumbnailUrlResolver.resolveMusicThumbnail(videoId, thumbnailUrl, 256)
+        get() =
+            listThumbnailCache
+                ?: ThumbnailUrlResolver.resolveMusicThumbnail(videoId, thumbnailUrl, MusicArtwork.LIST_SIZE).also {
+                    listThumbnailCache = it
+                }
 }
 
 @Serializable

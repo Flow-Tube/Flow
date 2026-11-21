@@ -17,7 +17,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.io.IOException
 
-class YouTubeThumbnailInterceptorTest {
+class DrawnSizeImageInterceptorTest {
     private val context = mockk<Context>(relaxed = true)
     private val id = "jNQXAC9IVRw"
     private val fullWidthCard = Size(1080, 608)
@@ -68,7 +68,7 @@ class YouTubeThumbnailInterceptorTest {
         runTest {
             val chain = chain(row)
 
-            val result = YouTubeThumbnailInterceptor().intercept(chain)
+            val result = DrawnSizeImageInterceptor().intercept(chain)
 
             assertThat(result).isInstanceOf(SuccessResult::class.java)
             assertThat(chain.fetched).containsExactly(webp("hqdefault"))
@@ -77,7 +77,7 @@ class YouTubeThumbnailInterceptorTest {
     @Test
     fun `a missing tier falls through inside one load and is never asked for again`() =
         runTest {
-            val interceptor = YouTubeThumbnailInterceptor()
+            val interceptor = DrawnSizeImageInterceptor()
             val missing = setOf(webp("hq720"), url("hq720"))
             val first = chain(fullWidthCard, missing)
             val second = chain(fullWidthCard, missing)
@@ -92,7 +92,7 @@ class YouTubeThumbnailInterceptorTest {
     @Test
     fun `a failure other than 404 is not remembered`() =
         runTest {
-            val interceptor = YouTubeThumbnailInterceptor()
+            val interceptor = DrawnSizeImageInterceptor()
             val offline = chain(fullWidthCard, offline = true)
             val online = chain(fullWidthCard)
 
@@ -108,7 +108,7 @@ class YouTubeThumbnailInterceptorTest {
     @Test
     fun `the last tier is still asked for after it once went missing`() =
         runTest {
-            val interceptor = YouTubeThumbnailInterceptor()
+            val interceptor = DrawnSizeImageInterceptor()
             interceptor.intercept(chain(row, missing = setOf(webp("hqdefault"), url("hqdefault"))))
             val retry = chain(row)
 
@@ -122,7 +122,7 @@ class YouTubeThumbnailInterceptorTest {
         runTest {
             val original = chain(Size.ORIGINAL, quality = ThumbnailQuality.MEDIUM)
 
-            YouTubeThumbnailInterceptor().intercept(original)
+            DrawnSizeImageInterceptor().intercept(original)
 
             assertThat(original.fetched.first()).isEqualTo(webp("sddefault"))
         }
@@ -133,7 +133,7 @@ class YouTubeThumbnailInterceptorTest {
             val plain = "https://example.com/art.png"
             val chain = FakeChain(request(plain), row, { null })
 
-            YouTubeThumbnailInterceptor().intercept(chain)
+            DrawnSizeImageInterceptor().intercept(chain)
 
             assertThat(chain.fetched).containsExactly(plain)
         }

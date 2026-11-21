@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.images.PostImage
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.renderer.PostAttachment
 import io.github.aedev.flow.ui.theme.extendedColors
@@ -64,7 +65,7 @@ private fun PostImages(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
-    val resolved = remember(urls) { urls.map { ThumbnailUrlResolver.resolveCommunityPostImage(it) } }
+    val resolved = remember(urls) { urls.map { PostImage(it) } }
     val whole = remember(urls) { urls.map { ThumbnailUrlResolver.resolveCommunityPostImage(it, uncropped = true) } }
     if (resolved.isEmpty()) return
 
@@ -77,7 +78,7 @@ private fun PostImages(
     // that there is one.
     if (resolved.size == 1) {
         AsyncImage(
-            model = rememberLoopCappedImageRequest(if (compact) resolved.first() else whole.first()),
+            model = rememberLoopCappedImageRequest(if (compact) resolved.first() else PostImage(urls.first(), uncropped = true)),
             contentDescription = stringResource(R.string.community_post_image_content_description),
             modifier =
                 modifier

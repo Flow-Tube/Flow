@@ -1,6 +1,8 @@
 package io.github.aedev.flow.utils
 
+import io.github.aedev.flow.data.images.ThumbnailTierPolicy
 import io.github.aedev.flow.data.images.YouTubeThumbnail
+import io.github.aedev.flow.data.images.YouTubeThumbnailTier
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 
@@ -101,11 +103,9 @@ object ThumbnailUrlResolver {
         val raw = rawUrl?.trim().orEmpty()
         val id = videoId.trim()
 
-        if (raw.isEmpty()) return buildHighQualityYoutubeThumbnail(id)
-
         return when {
-            isYoutubeVideoThumbnail(raw) -> {
-                normalizeVideoThumbnail(id, raw)
+            raw.isEmpty() || isYoutubeVideoThumbnail(raw) -> {
+                squareYoutubeArtwork(id, raw, size)
             }
 
             raw.contains("googleusercontent.com") || raw.contains("ggpht.com") -> {
@@ -116,6 +116,19 @@ object ThumbnailUrlResolver {
                 raw
             }
         }
+    }
+
+    private fun squareYoutubeArtwork(
+        videoId: String,
+        rawUrl: String,
+        size: Int,
+    ): String {
+        val name = ThumbnailTierPolicy.squareCropName(size)
+        val resolvedVideoId = resolveYoutubeThumbnailVideoId(videoId, rawUrl)
+        if (name == YouTubeThumbnailTier.HQ720.thumbnailName || resolvedVideoId.isEmpty() || LocalMediaIds.isLocal(resolvedVideoId)) {
+            return normalizeVideoThumbnail(videoId, rawUrl)
+        }
+        return "https://i.ytimg.com/vi/$resolvedVideoId/$name.jpg"
     }
 
     fun resolveChannelBanner(

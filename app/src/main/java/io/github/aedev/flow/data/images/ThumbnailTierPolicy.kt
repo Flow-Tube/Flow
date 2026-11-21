@@ -75,6 +75,17 @@ object ThumbnailTierPolicy {
         return frames + YouTubeThumbnailTier.HQ.thumbnailName
     }
 
+    /**
+     * The file for a square crop [sizePx] on a side. hqdefault and sddefault pad the frame with bars a
+     * square crop would show, so only mqdefault or hq720 fit.
+     */
+    fun squareCropName(sizePx: Int): String =
+        if (YouTubeThumbnailTier.MQ.height >= sizePx * MIN_COVERAGE) {
+            YouTubeThumbnailTier.MQ.thumbnailName
+        } else {
+            YouTubeThumbnailTier.HQ720.thumbnailName
+        }
+
     // A 9:16 crop keeps about a third of a 16:9 frame's width, so a portrait card never drops below hqdefault.
     private fun floor(portrait: Boolean): YouTubeThumbnailTier = if (portrait) YouTubeThumbnailTier.HQ else YouTubeThumbnailTier.MQ
 

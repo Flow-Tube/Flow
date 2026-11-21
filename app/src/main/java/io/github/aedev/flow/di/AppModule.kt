@@ -19,7 +19,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.BuildConfig
-import io.github.aedev.flow.data.images.YouTubeThumbnailInterceptor
+import io.github.aedev.flow.data.images.DrawnSizeImageInterceptor
 import io.github.aedev.flow.data.localmedia.MediaRetrieverDecoderFactory
 import io.github.aedev.flow.data.localmedia.MediaStoreThumbnailFetcher
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
@@ -60,7 +60,7 @@ object AppModule {
         return ImageLoader
             .Builder(context)
             .components {
-                add(YouTubeThumbnailInterceptor())
+                add(DrawnSizeImageInterceptor())
                 add(OkHttpNetworkFetcherFactory(callFactory = { imageClient }))
                 add(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) AnimatedImageDecoder.Factory() else GifDecoder.Factory())
                 add(MediaRetrieverDecoderFactory(VideoFrameDecoder.Factory()))
