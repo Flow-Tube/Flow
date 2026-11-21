@@ -41,6 +41,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.HomeViewMode
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.data.local.VideoHistoryEntry
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
@@ -78,6 +79,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val preferences = remember(context) { PlayerPreferences(context) }
     val topBarHideOnScroll by preferences.topBarHideOnScroll.collectAsStateWithLifecycle(initialValue = true)
+    val videoCardStyle by preferences.videoCardStyle.collectAsStateWithLifecycle(initialValue = VideoCardStyle.ROUNDED)
     val homeViewMode by preferences.homeViewMode.collectAsStateWithLifecycle(initialValue = HomeViewMode.GRID)
     val homeFeedColumns by preferences.homeFeedColumns.collectAsStateWithLifecycle(initialValue = HomeFeedColumns.AUTO)
     val homeFeedEnabled by preferences.homeFeedEnabled.collectAsStateWithLifecycle(initialValue = true)
@@ -189,7 +191,7 @@ fun HomeScreen(
                         uiState = uiState,
                         chips = chips,
                         gridStates = gridStates,
-                        feedLayout = rememberFeedGridLayout(maxWidth, homeFeedColumns),
+                        feedLayout = rememberFeedGridLayout(maxWidth, homeFeedColumns, cardStyle = videoCardStyle),
                         isListView = homeViewMode == HomeViewMode.LIST,
                         homeFeedEnabled = homeFeedEnabled,
                         onVideoClick = onVideoClick,

@@ -54,6 +54,7 @@ fun FeedGridSkeleton(
                     useInternalPadding = stackedInset,
                     thumbnailWidth = plan.listThumbnailWidth,
                     density = plan.cardDensity,
+                    fullBleed = layout.thumbnailsBleed,
                 )
             }
         }

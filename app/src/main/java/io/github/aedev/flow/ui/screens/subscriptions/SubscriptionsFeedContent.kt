@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.local.HomeFeedColumns
+import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
@@ -59,6 +60,7 @@ internal fun SubscriptionsFeedContent(
     modifier: Modifier = Modifier,
     maxAutoColumns: Int = FEED_MAX_AUTO_COLUMNS,
     minCellWidth: Dp = FeedCardMinWidth,
+    cardStyle: VideoCardStyle = VideoCardStyle.ROUNDED,
     showShorts: Boolean = true,
     onPostsClick: (() -> Unit)? = null,
     pinnedCount: Int = 0,
@@ -81,7 +83,7 @@ internal fun SubscriptionsFeedContent(
         modifier = modifier.fillMaxSize(),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val feedLayout = rememberFeedGridLayout(maxWidth, columnPreference, maxAutoColumns, minCellWidth)
+            val feedLayout = rememberFeedGridLayout(maxWidth, columnPreference, maxAutoColumns, minCellWidth, cardStyle)
             val listMode = !state.isFullWidthView
             val plan =
                 rememberFeedGridPlan(
@@ -169,6 +171,7 @@ internal fun SubscriptionsFeedContent(
                         useInternalPadding = !feedLayout.cardsBleed,
                         thumbnailWidth = plan.listThumbnailWidth,
                         density = plan.cardDensity,
+                        fullBleed = feedLayout.thumbnailsBleed,
                     )
                 }
             }

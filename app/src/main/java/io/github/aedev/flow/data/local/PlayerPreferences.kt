@@ -187,6 +187,7 @@ class PlayerPreferences(
         val SHORTS_NAVIGATION_ENABLED = booleanPreferencesKey("shorts_navigation_enabled")
         val BOTTOM_NAV_HIDE_ON_SCROLL = booleanPreferencesKey("bottom_nav_hide_on_scroll")
         val TOP_BAR_HIDE_ON_SCROLL = booleanPreferencesKey("top_bar_hide_on_scroll")
+        val VIDEO_CARD_STYLE = stringPreferencesKey("video_card_style")
         val BOTTOM_NAV_LABELS = stringPreferencesKey("bottom_nav_labels")
         val BOTTOM_NAV_STYLE = stringPreferencesKey("bottom_nav_style")
         val BOTTOM_NAV_SCRUB = booleanPreferencesKey("bottom_nav_scrub")
@@ -1706,6 +1707,20 @@ class PlayerPreferences(
     suspend fun setTopBarHideOnScroll(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.TOP_BAR_HIDE_ON_SCROLL] = enabled
+        }
+    }
+
+    val videoCardStyle: Flow<VideoCardStyle> =
+        context.playerPreferencesDataStore.data
+            .map { preferences ->
+                preferences[Keys.VIDEO_CARD_STYLE]
+                    ?.let { stored -> runCatching { VideoCardStyle.valueOf(stored) }.getOrNull() }
+                    ?: VideoCardStyle.ROUNDED
+            }.distinctUntilChanged()
+
+    suspend fun setVideoCardStyle(style: VideoCardStyle) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.VIDEO_CARD_STYLE] = style.name
         }
     }
 
@@ -5949,6 +5964,12 @@ enum class HomeFeedColumns(
 
 enum class PlayerRelatedCardStyle {
     COMPACT,
+    FULL_WIDTH,
+}
+
+/** How a feed's single phone column draws its cards: inset with rounded corners, or full width without. */
+enum class VideoCardStyle {
+    ROUNDED,
     FULL_WIDTH,
 }
 

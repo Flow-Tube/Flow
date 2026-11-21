@@ -1455,6 +1455,11 @@
     <string name="settings_top_bar_hide_on_scroll_title">Hide top bar on scroll</string>
     <string name="settings_top_bar_hide_on_scroll_summary">On Home, Subscriptions and Music</string>
     <string name="settings_top_bar_hide_on_scroll_keywords">top bar, header, chips, scroll, hide, status bar</string>
+    <string name="settings_video_card_style_title">Card style</string>
+    <string name="settings_video_card_style_summary">Full width takes the corners off thumbnails on Home and Subscriptions</string>
+    <string name="settings_video_card_style_keywords">card, thumbnail, corners, rounded, full width, edge to edge, bleed</string>
+    <string name="settings_video_card_style_rounded">Rounded</string>
+    <string name="settings_video_card_style_full_width">Full width</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Show Shorts</string>
     <string name="content_settings_shorts_content_subtitle">Hide Shorts everywhere. Saved Shorts and history are kept.</string>

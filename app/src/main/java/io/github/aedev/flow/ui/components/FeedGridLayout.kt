@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 import io.github.aedev.flow.data.local.HomeFeedColumns
+import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 import io.github.aedev.flow.ui.theme.Dimensions
@@ -67,6 +68,7 @@ data class FeedGridLayout(
     val thumbnailWidth: Dp = cardWidth - cardInset * 2,
     /** The padding in list mode, whose rows keep the regular inset even where the grid is dense. */
     val listContentPadding: Dp = contentPadding,
+    val cardStyle: VideoCardStyle = VideoCardStyle.ROUNDED,
 ) {
     val cardDensity: VideoCardDensity get() = if (dense) VideoCardDensity.Dense else VideoCardDensity.Regular
 
@@ -78,6 +80,9 @@ data class FeedGridLayout(
      * margin, so two or three pinned columns keep each card's inset to leave a gap between them.
      */
     val cardsBleed: Boolean get() = isCompact && columns == 1
+
+    /** Whether stacked cards' thumbnails drop their corners: the full-width style, where cards bleed. */
+    val thumbnailsBleed: Boolean get() = cardsBleed && cardStyle == VideoCardStyle.FULL_WIDTH
 }
 
 /**
@@ -90,6 +95,7 @@ fun feedGridLayoutFor(
     columnPreference: HomeFeedColumns = HomeFeedColumns.AUTO,
     maxAutoColumns: Int = FEED_MAX_AUTO_COLUMNS,
     minCellWidth: Dp = FeedCardMinWidth,
+    cardStyle: VideoCardStyle = VideoCardStyle.ROUNDED,
 ): FeedGridLayout {
     val isCompact = maxWidth < WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
     val spacing =
@@ -124,6 +130,7 @@ fun feedGridLayoutFor(
         cardInset = cardInset,
         thumbnailWidth = availableWidth / alignedColumns - cardInset * 2,
         listContentPadding = regularPadding,
+        cardStyle = cardStyle,
     )
 }
 
@@ -149,7 +156,8 @@ fun rememberFeedGridLayout(
     columnPreference: HomeFeedColumns = HomeFeedColumns.AUTO,
     maxAutoColumns: Int = FEED_MAX_AUTO_COLUMNS,
     minCellWidth: Dp = FeedCardMinWidth,
+    cardStyle: VideoCardStyle = VideoCardStyle.ROUNDED,
 ): FeedGridLayout =
-    remember(maxWidth, columnPreference, maxAutoColumns, minCellWidth) {
-        feedGridLayoutFor(maxWidth, columnPreference, maxAutoColumns, minCellWidth)
+    remember(maxWidth, columnPreference, maxAutoColumns, minCellWidth, cardStyle) {
+        feedGridLayoutFor(maxWidth, columnPreference, maxAutoColumns, minCellWidth, cardStyle)
     }

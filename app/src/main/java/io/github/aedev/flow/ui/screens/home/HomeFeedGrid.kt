@@ -113,6 +113,7 @@ internal fun HomeFeedGrid(
                         useInternalPadding = !feedLayout.cardsBleed,
                         thumbnailWidth = plan.listThumbnailWidth,
                         density = plan.cardDensity,
+                        fullBleed = feedLayout.thumbnailsBleed,
                         reason = channelMemoryReason.takeIf { uiState.origins[row.video.id]?.kind == HomeCardOrigin.Kind.CHANNEL_MEMORY },
                         whyShown = uiState.origins[row.video.id]?.label(),
                         modifier = Modifier.testTag("home_video_card"),
