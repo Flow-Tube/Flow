@@ -40,20 +40,22 @@ fun FeedGridSkeleton(
                 compactRowSpacing = compactRowSpacing,
             )
         }
-    LazyVerticalGrid(
-        columns = plan.cells,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = plan.contentPadding(top = topPadding, bottom = flowBottomContentPadding()),
-        verticalArrangement = Arrangement.spacedBy(plan.rowSpacing),
-        userScrollEnabled = false,
-    ) {
-        items(count = placeholderCount, key = { "skeleton:$it" }, contentType = { "skeleton" }) { index ->
-            VideoCardSkeleton(
-                layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
-                useInternalPadding = stackedInset,
-                thumbnailWidth = plan.listThumbnailWidth,
-                density = plan.cardDensity,
-            )
+    SkeletonSurface {
+        LazyVerticalGrid(
+            columns = plan.cells,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = plan.contentPadding(top = topPadding, bottom = flowBottomContentPadding()),
+            verticalArrangement = Arrangement.spacedBy(plan.rowSpacing),
+            userScrollEnabled = false,
+        ) {
+            items(count = placeholderCount, key = { "skeleton:$it" }, contentType = { "skeleton" }) { index ->
+                VideoCardSkeleton(
+                    layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                    useInternalPadding = stackedInset,
+                    thumbnailWidth = plan.listThumbnailWidth,
+                    density = plan.cardDensity,
+                )
+            }
         }
     }
 }

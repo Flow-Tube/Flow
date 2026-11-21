@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.shared.MediaThumbnailDefaults
 import io.github.aedev.flow.ui.components.shared.ShimmerBone
+import io.github.aedev.flow.ui.components.shared.SkeletonSurface
 
 private val TitleLineHeight = 16.dp
 private val MetaLineHeight = 12.dp
@@ -35,9 +36,11 @@ fun VideoCardSkeleton(
     thumbnailWidth: Dp = VideoCardDefaults.RowThumbnailWidth,
     density: VideoCardDensity = VideoCardDensity.Regular,
 ) {
-    when (layout) {
-        VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, density, modifier)
-        VideoCardLayout.Row -> RowSkeleton(thumbnailWidth, density.inset, modifier)
+    SkeletonSurface {
+        when (layout) {
+            VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, density, modifier)
+            VideoCardLayout.Row -> RowSkeleton(thumbnailWidth, density.inset, modifier)
+        }
     }
 }
 
