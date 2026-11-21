@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.home
 
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.lazy.grid.LazyGridLayoutInfo
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
@@ -14,6 +15,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.ui.components.home.HomePreviewSurface
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
@@ -49,6 +51,31 @@ internal fun HomePreviewEffects(
         }.distinctUntilChanged()
             .collect(viewModel::onCandidate)
     }
+}
+
+/** What each feed card draws over its thumbnail: the preview, on the one card it is for. */
+@Composable
+internal fun rememberHomePreviewOverlay(viewModel: HomePreviewViewModel): @Composable BoxScope.(String) -> Unit =
+    remember(viewModel) {
+        val overlay: @Composable BoxScope.(String) -> Unit = { videoId -> HomePreviewCardOverlay(viewModel, videoId) }
+        overlay
+    }
+
+@Composable
+private fun HomePreviewCardOverlay(
+    viewModel: HomePreviewViewModel,
+    videoId: String,
+) {
+    val active by viewModel.activeVideoId.collectAsStateWithLifecycle()
+    if (active != videoId) return
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    if (state.videoId != videoId || state.phase == HomePreviewPhase.FINISHED) return
+    val player by viewModel.surfacePlayer.collectAsStateWithLifecycle()
+    HomePreviewSurface(
+        player = player,
+        showVideo = state.showsVideo,
+        onAttached = { attached -> viewModel.onSurfaceAttached(videoId, attached) },
+    )
 }
 
 private fun Video.canPreview(): Boolean = !isShort && !isLive && !isUpcoming && duration > 0

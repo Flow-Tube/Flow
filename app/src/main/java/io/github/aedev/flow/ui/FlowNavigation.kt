@@ -97,6 +97,7 @@ fun NavGraphBuilder.flowAppGraph(
                     playerViewModel.playVideo(it)
                 }
             },
+            onOpenPreview = { video, positionMs -> playerViewModel.playVideo(video, startPositionMs = positionMs) },
             onShortClick = { source ->
                 navController.openShortsOrPlayer(source, disableShortsPlayer)
             },

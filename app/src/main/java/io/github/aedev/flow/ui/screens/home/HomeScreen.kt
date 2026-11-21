@@ -21,6 +21,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -56,6 +57,7 @@ import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
 import io.github.aedev.flow.ui.components.layout.topbar.rememberFlowScrollAwayState
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
+import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardThumbnailOverlay
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipRow
 import io.github.aedev.flow.ui.utils.reachUnderStatusBar
 import kotlinx.coroutines.flow.collectLatest
@@ -63,10 +65,14 @@ import kotlinx.coroutines.launch
 
 private const val MILLIS_PER_SECOND = 1000L
 
+// Below this a preview has shown too little to be worth resuming from; the video opens as any other.
+private const val MIN_HANDOFF_POSITION_MS = 1_000L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onVideoClick: (Video) -> Unit,
+    onOpenPreview: (Video, positionMs: Long) -> Unit,
     onShortClick: (ShortsQueueSource) -> Unit,
     onSearchClick: () -> Unit,
     onNavigateToHistory: () -> Unit = {},
@@ -119,6 +125,11 @@ fun HomeScreen(
         videos = uiState.videos,
         enabled = homeFeedEnabled && chips.isAll && homeViewMode != HomeViewMode.LIST,
     )
+    val previewOverlay = rememberHomePreviewOverlay(previewViewModel)
+    val openVideo: (Video) -> Unit = { video ->
+        val previewedTo = previewViewModel.openAt(video.id)
+        if (previewedTo != null && previewedTo >= MIN_HANDOFF_POSITION_MS) onOpenPreview(video, previewedTo) else onVideoClick(video)
+    }
 
     val haptic = LocalHapticFeedback.current
     val homeLabel = stringResource(R.string.nav_home)
@@ -193,23 +204,25 @@ fun HomeScreen(
                 indicatorTopPadding = topPadding,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                    HomeFeedBody(
-                        viewModel = viewModel,
-                        uiState = uiState,
-                        chips = chips,
-                        gridStates = gridStates,
-                        feedLayout = rememberFeedGridLayout(maxWidth, homeFeedColumns, cardStyle = videoCardStyle),
-                        isListView = homeViewMode == HomeViewMode.LIST,
-                        homeFeedEnabled = homeFeedEnabled,
-                        onVideoClick = onVideoClick,
-                        onPlayMix = onPlayMix,
-                        onShortClick = onShortClick,
-                        onNavigateToHistory = onNavigateToHistory,
-                        onOpenShortsFeed = onOpenShortsFeed,
-                        topPadding = topPadding,
-                        headerOffsetPx = { headerState.headerOffsetPx },
-                    )
+                CompositionLocalProvider(LocalVideoCardThumbnailOverlay provides previewOverlay) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        HomeFeedBody(
+                            viewModel = viewModel,
+                            uiState = uiState,
+                            chips = chips,
+                            gridStates = gridStates,
+                            feedLayout = rememberFeedGridLayout(maxWidth, homeFeedColumns, cardStyle = videoCardStyle),
+                            isListView = homeViewMode == HomeViewMode.LIST,
+                            homeFeedEnabled = homeFeedEnabled,
+                            onVideoClick = openVideo,
+                            onPlayMix = onPlayMix,
+                            onShortClick = onShortClick,
+                            onNavigateToHistory = onNavigateToHistory,
+                            onOpenShortsFeed = onOpenShortsFeed,
+                            topPadding = topPadding,
+                            headerOffsetPx = { headerState.headerOffsetPx },
+                        )
+                    }
                 }
             }
         }
