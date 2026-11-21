@@ -44,8 +44,11 @@ import io.github.aedev.flow.ui.components.currentGridThumbnailHeight
 import io.github.aedev.flow.ui.components.music.common.MusicNowPlayingOverlay
 import io.github.aedev.flow.ui.components.music.common.isTrackPlaying
 import io.github.aedev.flow.ui.components.shared.DownloadedBadge
+import io.github.aedev.flow.ui.components.shared.LocalSharedArtworkImages
+import io.github.aedev.flow.ui.components.shared.SharedArtworkImage
 import io.github.aedev.flow.ui.components.shared.focusLift
 import io.github.aedev.flow.ui.components.shared.onMenuKey
+import io.github.aedev.flow.ui.components.shared.sharedArtwork
 import io.github.aedev.flow.ui.components.shared.titleMarquee
 import io.github.aedev.flow.ui.components.shared.titleMarqueeOverflow
 
@@ -76,10 +79,12 @@ fun MusicCollectionCard(
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     trailingContent: (@Composable BoxScope.() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    artworkKey: String? = null,
 ) {
     val textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start
 
     val interactionSource = remember { MutableInteractionSource() }
+    val artworkImages = LocalSharedArtworkImages.current
     Column(
         horizontalAlignment = horizontalAlignment,
         modifier =
@@ -99,10 +104,17 @@ fun MusicCollectionCard(
                 model = thumbnailUrl,
                 contentDescription = title,
                 contentScale = ContentScale.Crop,
+                onSuccess =
+                    if (artworkKey != null && artworkImages != null && thumbnailUrl != null) {
+                        { artworkImages.put(artworkKey, SharedArtworkImage(thumbnailUrl, it.result.memoryCacheKey)) }
+                    } else {
+                        null
+                    },
                 modifier =
                     Modifier
                         .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier.height(thumbnailHeight))
                         .aspectRatio(aspectRatio)
+                        .sharedArtwork(artworkKey, shape)
                         .clip(shape),
             )
             if (isPlaying) {

@@ -1,5 +1,6 @@
 package io.github.aedev.flow.di
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import coil3.ImageLoader
@@ -8,6 +9,7 @@ import coil3.gif.AnimatedImageDecoder
 import coil3.gif.GifDecoder
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.allowRgb565
 import coil3.request.crossfade
 import coil3.util.DebugLogger
 import coil3.video.VideoFrameDecoder
@@ -73,6 +75,8 @@ object AppModule {
                     .apply { if (limit != null) maxSizeBytes(limit) else maxSizePercent(AUTOMATIC_DISK_SHARE) }
                     .build()
             }.crossfade(true)
+            // Low-RAM phones decode opaque images at half the memory, as YouTube does on them.
+            .allowRgb565(context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true)
             .apply { if (BuildConfig.DEBUG) logger(DebugLogger()) }
             .build()
 }

@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui
 
 import android.app.Activity
+import android.app.ActivityManager
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -59,6 +60,7 @@ import io.github.aedev.flow.ui.components.profiles.SwitchRefusals
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
+import io.github.aedev.flow.ui.components.shared.FlowSharedTransitions
 import io.github.aedev.flow.ui.components.shared.LocalMediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.SubscriptionBellAlerts
@@ -78,6 +80,7 @@ import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import io.github.aedev.flow.ui.screens.update.UpdateLaunchEffect
 import io.github.aedev.flow.ui.theme.ThemeMode
 import io.github.aedev.flow.ui.theme.ThemeVariant
+import io.github.aedev.flow.ui.utils.rememberPowerSaveMode
 import io.github.aedev.flow.ui.utils.rememberTouchExplorationEnabled
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
@@ -145,7 +148,12 @@ fun FlowApp(
     val defaultTab = resolveDefaultFlowTab(defaultNavTabIndex, navTabOrder, navigationVisibility)
     val defaultStartRoute = defaultTab.route
     val currentNavigationTabs by rememberUpdatedState(navigationTabs)
-    val navTransitions = remember { FlowNavTransitions(searchIsTab = { FlowTab.Search in currentNavigationTabs }) }
+    val lowRamDevice = remember(context) { context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true }
+    val reducedNavMotion by rememberUpdatedState(lowRamDevice || rememberPowerSaveMode())
+    val navTransitions =
+        remember {
+            FlowNavTransitions(searchIsTab = { FlowTab.Search in currentNavigationTabs }, reducedMotion = { reducedNavMotion })
+        }
     val currentStartRoute by rememberUpdatedState(defaultStartRoute)
     val openDownloads = remember(navController) { { navController.openDownloads(currentNavigationTabs, currentStartRoute) } }
 
@@ -487,33 +495,35 @@ fun FlowApp(
                                     LinkedSyncAlerts(snackbarHostState)
                                     SwitchRefusals(profileSwitchViewModel)
                                     PlayOnHost(onManageDevices = { mediaNavigator.openSettings(SettingsTarget(SettingsDestination.SYNC)) })
-                                    NavHost(
-                                        navController = navController,
-                                        startDestination = if (needsOnboarding == true) "onboarding" else defaultStartRoute,
-                                        enterTransition = navTransitions.enter,
-                                        exitTransition = navTransitions.exit,
-                                        popEnterTransition = navTransitions.popEnter,
-                                        popExitTransition = navTransitions.popExit,
-                                        predictivePopEnterTransition = navTransitions.predictivePopEnter,
-                                        predictivePopExitTransition = navTransitions.predictivePopExit,
-                                    ) {
-                                        flowAppGraph(
+                                    FlowSharedTransitions(enabled = !lowRamDevice) {
+                                        NavHost(
                                             navController = navController,
-                                            mediaNavigator = mediaNavigator,
-                                            currentRoute = currentRoute,
-                                            playerSheetState = playerSheetState,
-                                            musicPlayerSheetState = musicPlayerSheetState,
-                                            homeViewModel = homeViewModel,
-                                            playerViewModel = playerViewModel,
-                                            playerUiStateResult = playerUiStateResult,
-                                            playerVisibleState = playerVisibleState,
-                                            disableShortsPlayer = disableShortsPlayer,
-                                            defaultStartRoute = defaultStartRoute,
-                                            onMusicStarted = onMusicStarted,
-                                            openDownloads = openDownloads,
-                                            searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
-                                            searchIsTab = { FlowTab.Search in currentNavigationTabs },
-                                        )
+                                            startDestination = if (needsOnboarding == true) "onboarding" else defaultStartRoute,
+                                            enterTransition = navTransitions.enter,
+                                            exitTransition = navTransitions.exit,
+                                            popEnterTransition = navTransitions.popEnter,
+                                            popExitTransition = navTransitions.popExit,
+                                            predictivePopEnterTransition = navTransitions.predictivePopEnter,
+                                            predictivePopExitTransition = navTransitions.predictivePopExit,
+                                        ) {
+                                            flowAppGraph(
+                                                navController = navController,
+                                                mediaNavigator = mediaNavigator,
+                                                currentRoute = currentRoute,
+                                                playerSheetState = playerSheetState,
+                                                musicPlayerSheetState = musicPlayerSheetState,
+                                                homeViewModel = homeViewModel,
+                                                playerViewModel = playerViewModel,
+                                                playerUiStateResult = playerUiStateResult,
+                                                playerVisibleState = playerVisibleState,
+                                                disableShortsPlayer = disableShortsPlayer,
+                                                defaultStartRoute = defaultStartRoute,
+                                                onMusicStarted = onMusicStarted,
+                                                openDownloads = openDownloads,
+                                                searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
+                                                searchIsTab = { FlowTab.Search in currentNavigationTabs },
+                                            )
+                                        }
                                     }
                                 }
                             }
