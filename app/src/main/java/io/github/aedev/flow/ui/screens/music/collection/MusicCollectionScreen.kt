@@ -39,7 +39,6 @@ import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.musicCollectionShareUrl
 import io.github.aedev.flow.ui.components.music.sheet.toCollectionActionItem
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
-import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowSelectionToolbar
 import io.github.aedev.flow.ui.components.shared.FlowSidePanes
 import io.github.aedev.flow.ui.components.shared.FlowSortChip
@@ -93,7 +92,13 @@ fun MusicCollectionScreen(
         }
 
         state.isLoading -> {
-            FlowLoadingIndicator()
+            Scaffold(
+                topBar = { FlowTopBar(title = "", onBack = callbacks.onBackClick) },
+                contentWindowInsets = WindowInsets(0.dp),
+                containerColor = MaterialTheme.colorScheme.background,
+            ) { padding ->
+                MusicCollectionLoadingHero(viewModel.collectionId, Modifier.padding(padding))
+            }
         }
 
         else -> {
@@ -217,7 +222,13 @@ private fun CollectionContent(
         }
     }
     val headerState =
-        rememberCollectionHeaderState(state, tracks, downloadProgress, isDownloaded = downloadedCollection?.isComplete == true)
+        rememberCollectionHeaderState(
+            state,
+            tracks,
+            downloadProgress,
+            isDownloaded = downloadedCollection?.isComplete == true,
+            artworkKey = viewModel.collectionId,
+        )
     val headerActions =
         CollectionHeaderActions(
             onPlay = { play(0, tracks) },

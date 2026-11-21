@@ -4,8 +4,10 @@ import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntOffset
 
 /**
@@ -21,6 +23,10 @@ object NavigationMotion {
     /** The same slide on a low-RAM phone or with battery saver on: over in about 150 ms, so fewer frames are drawn. */
     val PageSlideBrisk: FiniteAnimationSpec<IntOffset> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = PAGE_SLIDE_BRISK_STIFFNESS, visibilityThreshold = IntOffset(1, 1))
+
+    /** Artwork flying from a card to the cover of the page it opened, in step with the page slide. */
+    val ArtworkBounds: FiniteAnimationSpec<Rect> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = PAGE_SLIDE_STIFFNESS, visibilityThreshold = Rect.VisibilityThreshold)
 
     /** Material's fade-through between top-level destinations: the old one leaves in the first 30%. */
     val TabFadeOut: FiniteAnimationSpec<Float> = tween(TAB_FADE_OUT_MS, easing = FastOutLinearInEasing)
