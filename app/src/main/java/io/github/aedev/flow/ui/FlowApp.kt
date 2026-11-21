@@ -78,6 +78,7 @@ import io.github.aedev.flow.ui.screens.update.UPDATE_ROUTE
 import io.github.aedev.flow.ui.screens.update.UpdateLaunchEffect
 import io.github.aedev.flow.ui.theme.ThemeMode
 import io.github.aedev.flow.ui.theme.ThemeVariant
+import io.github.aedev.flow.ui.utils.rememberTouchExplorationEnabled
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 
@@ -216,7 +217,8 @@ fun FlowApp(
 
     val navScrollState =
         rememberFlowNavigationScrollState(
-            hideOnScroll = bottomNavHideOnScroll && !usesNavigationRail,
+            // A screen reader exploring by touch would otherwise land on a bar that has moved off screen.
+            hideOnScroll = bottomNavHideOnScroll && !usesNavigationRail && !rememberTouchExplorationEnabled(),
             routeKey = currentEntry?.id ?: currentRoute.value,
             locked = currentRoute.value == SHORTS_ROUTE_KEY,
         )
