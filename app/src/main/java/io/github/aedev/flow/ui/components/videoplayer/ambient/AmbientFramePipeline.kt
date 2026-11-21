@@ -12,6 +12,7 @@ import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
@@ -207,12 +209,12 @@ internal class AmbientPipeline(
                     val wait = storyboardDelayMs(position, step, fade, player.playbackParameters.speed)
                     jumped = withTimeoutOrNull(wait) { player.renderedFrames().first() } != null
                 } else {
-                    awaitPlayingOrNewFrame(playerView, isPlaying)
+                    awaitPlayingOrNewFrame(isPlaying, playerView.player?.renderedFrames())
                     jumped = true
                 }
             } else {
                 val cadence = capturePass(playerView, hot())
-                if (playing) delay(cadence) else awaitPlayingOrNewFrame(playerView, isPlaying)
+                if (playing) delay(cadence) else awaitPlayingOrNewFrame(isPlaying, playerView.player?.renderedFrames())
             }
         }
     }
@@ -264,15 +266,6 @@ internal class AmbientPipeline(
                 base * (1L shl consecutiveFailures.coerceAtMost(3)).coerceAtMost(MAX_BACKOFF_MULTIPLIER)
             }
         }
-    }
-
-    private suspend fun awaitPlayingOrNewFrame(
-        playerView: PlayerView,
-        isPlaying: Flow<Boolean>,
-    ) {
-        val playing = isPlaying.filter { it }.map { }
-        val player = playerView.player
-        (if (player == null) playing else merge(playing, player.renderedFrames())).first()
     }
 
     /** Runs on Default. Returns true when the frame differed enough to become a new target. */
@@ -488,6 +481,18 @@ internal class AmbientStill(
     val bitmap: Bitmap,
     val rect: Rect,
 )
+
+/**
+ * Returns once [isPlaying] turns true or a new frame is drawn. A flow that ends without either
+ * (a Shorts page with no player passes `flowOf(false)`) holds until cancelled instead of throwing.
+ */
+internal suspend fun awaitPlayingOrNewFrame(
+    isPlaying: Flow<Boolean>,
+    renderedFrames: Flow<Unit>?,
+) {
+    val playing = isPlaying.filter { it }.map { }
+    (if (renderedFrames == null) playing else merge(playing, renderedFrames)).firstOrNull() ?: awaitCancellation()
+}
 
 /** One emission per frame the player draws after a seek, a new item or a new surface. */
 internal fun Player.renderedFrames(): Flow<Unit> =
