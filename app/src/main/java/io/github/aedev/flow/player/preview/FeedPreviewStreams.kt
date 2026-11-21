@@ -10,6 +10,7 @@ import io.github.aedev.flow.player.stream.CaptionFormat
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor.VideoExtractionResult
+import io.github.aedev.flow.player.stream.PlaybackLoadResolver
 import io.github.aedev.flow.player.stream.ResolvedCaption
 import io.github.aedev.flow.player.stream.StoryboardLevel
 import io.github.aedev.flow.player.stream.StoryboardSpec
@@ -120,7 +121,10 @@ internal class FeedPreviewStreams
                 ?.let { return it.result }
             val result =
                 try {
-                    withTimeoutOrNull(EXTRACT_TIMEOUT_MS) { InnerTubeVideoStreamExtractor.extract(videoId) }
+                    // The watch page's budget, not a shorter one: kids and label videos only resolve
+                    // at the ladder's TV step, after both web clients, and a tighter cap cancelled
+                    // them there. Scrolling away still cancels the wait.
+                    withTimeoutOrNull(PlaybackLoadResolver.INNERTUBE_TIMEOUT_MS) { InnerTubeVideoStreamExtractor.extract(videoId) }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -135,7 +139,6 @@ internal class FeedPreviewStreams
             const val TAG = "FeedPreviewStreams"
             const val PREVIEW_HEIGHT = 480
             const val MAX_HELD = 20
-            const val EXTRACT_TIMEOUT_MS = 8_000L
             const val REUSE_MAX_AGE_MS = 30 * 60_000L
             const val HANDOFF_MAX_AGE_MS = 10 * 60_000L
         }
