@@ -84,6 +84,7 @@ internal fun fallbackFactoids(
                             date = read.ageText,
                             mode = DateDisplayMode.RELATIVE,
                             style = DateFormatStyle.SYSTEM,
+                            labels = rememberDateLabels(),
                             timestampFallbackMs = video.timestamp,
                             locale = locale,
                             timestampIsExact = video.timestampIsExact,

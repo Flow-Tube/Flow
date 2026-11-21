@@ -94,6 +94,16 @@ internal object AppearanceIndex {
             destination = page,
             availability = SettingAvailability.NotOnTv,
         )
+    val videoCardStyle =
+        SettingEntry(
+            key = "appearance.video_card_style",
+            title = R.string.settings_video_card_style_title,
+            summary = R.string.settings_video_card_style_summary,
+            keywords = R.string.settings_video_card_style_keywords,
+            section = R.string.settings_section_layout,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
+        )
     val settingsInProfileMenu =
         SettingEntry(
             key = "appearance.settings_in_profile_menu",
@@ -219,6 +229,7 @@ internal object AppearanceIndex {
             topBarProfile,
             settingsInProfileMenu,
             topBarHideOnScroll,
+            videoCardStyle,
             groupBadges,
             cardLikeButtons,
             cardWatchProgress,

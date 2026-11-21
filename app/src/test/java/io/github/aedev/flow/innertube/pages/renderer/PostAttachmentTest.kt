@@ -122,6 +122,33 @@ class PostAttachmentTest {
     }
 
     @Test
+    fun `a shared playlist keeps its id, title, cover and count`() {
+        val parsed =
+            attachment(
+                """
+                { "playlistRenderer": {
+                  "playlistId": "PLsynthetic01",
+                  "title": { "simpleText": "Bench builds" },
+                  "videoCount": "12",
+                  "thumbnails": [ { "thumbnails": [ { "url": "https://i.ytimg.test/p.jpg", "width": 480, "height": 270 } ] } ],
+                  "thumbnail": { "thumbnails": [ { "url": "https://i.ytimg.test/p.jpg", "width": 480, "height": 270 } ] }
+                } }
+                """.trimIndent(),
+            )
+
+        val playlist = (parsed as PostAttachment.SharedPlaylist).playlist
+        assertEquals("PLsynthetic01", playlist.id)
+        assertEquals("Bench builds", playlist.name)
+        assertEquals("https://i.ytimg.test/p.jpg", playlist.thumbnailUrl)
+        assertEquals(12, playlist.videoCount)
+    }
+
+    @Test
+    fun `a playlist without an id is not an attachment`() {
+        assertNull(attachment("""{ "playlistRenderer": { "title": { "simpleText": "No id" } } }"""))
+    }
+
+    @Test
     fun `a text-only post has no attachment`() {
         assertNull(attachment("{}"))
         assertNull(attachment("""{"someFutureAttachment":{"id":"x"}}"""))

@@ -1,5 +1,6 @@
 package io.github.aedev.flow.innertube.pages.renderer
 
+import io.github.aedev.flow.data.model.Playlist
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.pages.arrayOrNull
 import io.github.aedev.flow.innertube.pages.objectOrNull
@@ -23,6 +24,10 @@ sealed interface PostAttachment {
     data class SharedVideo(
         val video: Video,
     ) : PostAttachment
+
+    data class SharedPlaylist(
+        val playlist: Playlist,
+    ) : PostAttachment
 }
 
 data class PollChoice(
@@ -42,6 +47,7 @@ internal fun JsonElement?.toPostAttachment(owner: FeedItemOwner): PostAttachment
     node.singleImage()?.let { return it }
     node.poll()?.let { return it }
     node.sharedVideo(owner)?.let { return it }
+    node.sharedPlaylist(owner)?.let { return it }
     return null
 }
 
@@ -98,3 +104,12 @@ private fun JsonObject.sharedVideo(owner: FeedItemOwner): PostAttachment.SharedV
     val item = FEED_ITEM_PARSERS.getValue("videoRenderer").parse(renderer, owner)
     return (item as? FeedItem.VideoItem)?.let { PostAttachment.SharedVideo(it.video) }
 }
+
+private val SharedPlaylistRenderers = listOf("playlistRenderer", "lockupViewModel")
+
+private fun JsonObject.sharedPlaylist(owner: FeedItemOwner): PostAttachment.SharedPlaylist? =
+    SharedPlaylistRenderers
+        .firstNotNullOfOrNull { key ->
+            val renderer = this[key].objectOrNull() ?: return@firstNotNullOfOrNull null
+            (FEED_ITEM_PARSERS.getValue(key).parse(renderer, owner) as? FeedItem.PlaylistItem)?.playlist
+        }?.let(PostAttachment::SharedPlaylist)

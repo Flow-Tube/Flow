@@ -14,6 +14,7 @@ import io.github.aedev.flow.utils.DateContextMode
 import io.github.aedev.flow.utils.DateDisplayMode
 import io.github.aedev.flow.utils.DateDisplaySettings
 import io.github.aedev.flow.utils.DateFormatStyle
+import io.github.aedev.flow.utils.TestDateLabels
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,7 +70,7 @@ class DateDisplayProviderTest {
     @Test
     fun `a card metadata line renders the provided mode`() {
         val video = video()
-        val expected = provided.format(video.uploadDate, DateContext.LISTS, video.timestamp)
+        val expected = provided.format(video.uploadDate, DateContext.LISTS, TestDateLabels, video.timestamp)
 
         rule.setContent {
             MaterialTheme {

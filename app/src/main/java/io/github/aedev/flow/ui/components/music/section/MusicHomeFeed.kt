@@ -74,7 +74,7 @@ fun LazyListScope.musicHomeFeed(
     ) = onCollectionMenu(collection.toCollectionActionItem(isAlbum))
 
     if (uiState.homeChips.isNotEmpty()) {
-        item(key = "home_chips") {
+        item(key = "home_chips", contentType = MusicShelfContentType.Chips) {
             MusicHomeChipRow(
                 chips = uiState.homeChips,
                 selectedChipTitle = uiState.homeChipPage?.chip?.title,
@@ -91,7 +91,7 @@ fun LazyListScope.musicHomeFeed(
     yourLibrary(library, onArtistClick)
 
     if (shown(MusicHomeShelf.LISTEN_AGAIN) && uiState.listenAgain.isNotEmpty()) {
-        item(key = "listen_again") {
+        item(key = "listen_again", contentType = MusicShelfContentType.TrackCards) {
             MusicTrackCardShelf(
                 title = stringResource(R.string.section_listen_again),
                 tracks = uiState.listenAgain,
@@ -104,7 +104,7 @@ fun LazyListScope.musicHomeFeed(
     }
 
     if (shown(MusicHomeShelf.ON_REPEAT) && uiState.onRepeatTracks.isNotEmpty()) {
-        item(key = "on_repeat") {
+        item(key = "on_repeat", contentType = MusicShelfContentType.BrainTracks) {
             BrainShelf(
                 title = stringResource(R.string.section_on_repeat),
                 tracks = uiState.onRepeatTracks,
@@ -117,7 +117,7 @@ fun LazyListScope.musicHomeFeed(
 
     val rotationBucket = uiState.rotationBucket
     if (shown(MusicHomeShelf.ROTATION) && uiState.rotationTracks.isNotEmpty() && rotationBucket != null) {
-        item(key = "rotation") {
+        item(key = "rotation", contentType = MusicShelfContentType.BrainTracks) {
             BrainShelf(
                 title = stringResource(rotationBucket.rotationTitleRes()),
                 tracks = uiState.rotationTracks,
@@ -129,7 +129,7 @@ fun LazyListScope.musicHomeFeed(
     }
 
     if (shown(MusicHomeShelf.SPEED_DIAL) && speedDialTracks.isNotEmpty()) {
-        item(key = "speed_dial") {
+        item(key = "speed_dial", contentType = MusicShelfContentType.SpeedDial) {
             SpeedDialSection(
                 speedDialTracks = speedDialTracks,
                 downloadedTrackIds = downloaded,
@@ -140,7 +140,7 @@ fun LazyListScope.musicHomeFeed(
     }
 
     if (shown(MusicHomeShelf.REDISCOVER) && uiState.rediscoverTracks.isNotEmpty()) {
-        item(key = "rediscover") {
+        item(key = "rediscover", contentType = MusicShelfContentType.BrainTracks) {
             BrainShelf(
                 title = stringResource(R.string.section_rediscover),
                 tracks = uiState.rediscoverTracks,
@@ -152,7 +152,7 @@ fun LazyListScope.musicHomeFeed(
     }
 
     if (shown(MusicHomeShelf.DEEP_CUTS) && uiState.deepCutTracks.isNotEmpty()) {
-        item(key = "deep_cuts") {
+        item(key = "deep_cuts", contentType = MusicShelfContentType.BrainTracks) {
             BrainShelf(
                 title = stringResource(R.string.section_deep_cuts),
                 tracks = uiState.deepCutTracks,
@@ -164,7 +164,7 @@ fun LazyListScope.musicHomeFeed(
     }
 
     if (shown(MusicHomeShelf.ARTISTS_FOR_YOU) && uiState.artistsForYou.isNotEmpty()) {
-        item(key = "artists_for_you") {
+        item(key = "artists_for_you", contentType = MusicShelfContentType.Artists) {
             MusicArtistShelf(
                 title = stringResource(R.string.section_artists_for_you),
                 artists = uiState.artistsForYou,
@@ -291,7 +291,7 @@ fun LazyListScope.musicHomeFeed(
 
             HomeSectionType.POPULAR_ARTISTS -> {
                 if (popularArtists.isNotEmpty()) {
-                    item(key = "popular_artists") {
+                    item(key = "popular_artists", contentType = MusicShelfContentType.Artists) {
                         MusicArtistShelf(
                             title = stringResource(R.string.section_popular_artists),
                             artists = popularArtists,
@@ -317,7 +317,7 @@ fun LazyListScope.musicHomeFeed(
 
             HomeSectionType.MOODS_AND_GENRES -> {
                 if (uiState.moodsAndGenres.isNotEmpty()) {
-                    item(key = "moods_and_genres") {
+                    item(key = "moods_and_genres", contentType = MusicShelfContentType.Moods) {
                         MusicMoodsShelf(
                             moods = uiState.moodsAndGenres,
                             onMoodClick = { onMoodsClick(it) },
@@ -330,7 +330,7 @@ fun LazyListScope.musicHomeFeed(
     }
 
     if (uiState.homeContinuation != null) {
-        item(key = "home_continuation") {
+        item(key = "home_continuation", contentType = MusicShelfContentType.Continuation) {
             LaunchedEffect(Unit) { onLoadMore() }
             if (uiState.isMoreLoading) FlowFeedProgress() else Box(modifier = Modifier.height(0.dp))
         }

@@ -11,6 +11,8 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -33,6 +35,7 @@ internal fun VideoCardStacked(
     density: VideoCardDensity,
     reason: String?,
     whyShown: String?,
+    fullBleed: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val state = rememberVideoCardState(video)
@@ -50,7 +53,7 @@ internal fun VideoCardStacked(
         VideoCardThumbnail(
             state = state,
             isUpcoming = video.isUpcoming,
-            shape = if (dense) MaterialTheme.shapes.medium else MaterialTheme.shapes.large,
+            shape = stackedThumbnailShape(dense, fullBleed),
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -164,6 +167,17 @@ private fun StackedCardText(
         (rememberAiListLabel(video) ?: reason)?.let { CardReasonLabel(it) }
     }
 }
+
+@Composable
+internal fun stackedThumbnailShape(
+    dense: Boolean,
+    fullBleed: Boolean,
+): Shape =
+    when {
+        fullBleed -> RectangleShape
+        dense -> MaterialTheme.shapes.medium
+        else -> MaterialTheme.shapes.large
+    }
 
 private val DenseTextSpacing = 2.dp
 private val DenseDetailsTopPadding = 6.dp

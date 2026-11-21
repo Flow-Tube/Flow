@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.shared.MediaThumbnailDefaults
 import io.github.aedev.flow.ui.components.shared.ShimmerBone
+import io.github.aedev.flow.ui.components.shared.SkeletonSurface
 
 private val TitleLineHeight = 16.dp
 private val MetaLineHeight = 12.dp
@@ -34,10 +35,13 @@ fun VideoCardSkeleton(
     useInternalPadding: Boolean = true,
     thumbnailWidth: Dp = VideoCardDefaults.RowThumbnailWidth,
     density: VideoCardDensity = VideoCardDensity.Regular,
+    fullBleed: Boolean = false,
 ) {
-    when (layout) {
-        VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, density, modifier)
-        VideoCardLayout.Row -> RowSkeleton(thumbnailWidth, density.inset, modifier)
+    SkeletonSurface {
+        when (layout) {
+            VideoCardLayout.Stacked -> StackedSkeleton(useInternalPadding, density, fullBleed, modifier)
+            VideoCardLayout.Row -> RowSkeleton(thumbnailWidth, density.inset, modifier)
+        }
     }
 }
 
@@ -45,6 +49,7 @@ fun VideoCardSkeleton(
 private fun StackedSkeleton(
     useInternalPadding: Boolean,
     density: VideoCardDensity,
+    fullBleed: Boolean,
     modifier: Modifier,
 ) {
     val dense = density == VideoCardDensity.Dense
@@ -56,7 +61,7 @@ private fun StackedSkeleton(
     ) {
         ShimmerBone(
             modifier = Modifier.fillMaxWidth().aspectRatio(MediaThumbnailDefaults.VideoAspectRatio),
-            shape = if (dense) MaterialTheme.shapes.medium else MaterialTheme.shapes.large,
+            shape = stackedThumbnailShape(dense, fullBleed),
         )
         if (dense) {
             TextLines(

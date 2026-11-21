@@ -29,7 +29,7 @@ internal fun LazyListScope.yourLibrary(
     onArtistClick: (String) -> Unit,
 ) {
     if (MusicHomeShelf.YOUR_PLAYLISTS !in library.hidden && library.playlists.isNotEmpty()) {
-        item(key = "your_playlists") {
+        item(key = "your_playlists", contentType = MusicShelfContentType.Collections) {
             MusicCollectionShelf(
                 title = stringResource(R.string.music_home_your_playlists),
                 collections = library.playlists,
@@ -42,7 +42,7 @@ internal fun LazyListScope.yourLibrary(
         }
     }
     if (MusicHomeShelf.YOUR_SUBSCRIPTIONS !in library.hidden && library.subscriptions.isNotEmpty()) {
-        item(key = "your_subscriptions") {
+        item(key = "your_subscriptions", contentType = MusicShelfContentType.Artists) {
             MusicArtistShelf(
                 title = stringResource(R.string.music_home_your_subscriptions),
                 artists = library.subscriptions,
@@ -64,7 +64,7 @@ internal fun LazyListScope.lastFmDiscovery(
     onTrackMenu: (MusicTrack) -> Unit,
 ) {
     if (!library.discoveryAvailable || MusicHomeShelf.LASTFM_DISCOVER in library.hidden) return
-    item(key = "lastfm_discover") {
+    item(key = "lastfm_discover", contentType = MusicShelfContentType.Discovery) {
         LaunchedEffect(Unit) { library.onDiscoveryShown() }
         val tracks = library.discovery
         if (tracks.isNotEmpty()) {
