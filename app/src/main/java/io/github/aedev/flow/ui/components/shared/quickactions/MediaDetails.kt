@@ -31,6 +31,7 @@ import io.github.aedev.flow.innertube.models.MediaInfo
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
+import io.github.aedev.flow.ui.components.shared.rememberDateLabels
 import io.github.aedev.flow.utils.DateContext
 import io.github.aedev.flow.utils.formatDuration
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -145,6 +146,7 @@ private fun mediaDetailLines(
 ): List<Pair<String, String>> {
     val context = LocalContext.current
     val dateSettings = rememberDateDisplaySettings()
+    val dateLabels = rememberDateLabels()
     val numbers = NumberFormat.getIntegerInstance()
     val info = state.info
     val lines = mutableListOf<Pair<String, String?>>()
@@ -159,11 +161,12 @@ private fun mediaDetailLines(
     lines += stringResource(R.string.duration) to state.durationSeconds?.let { formatDuration(it) }
     lines += stringResource(R.string.uploaded) to
         (
-            info?.uploadDate?.let { dateSettings.format(it, DateContext.WATCH) }
+            info?.uploadDate?.let { dateSettings.format(it, DateContext.WATCH, dateLabels) }
                 ?: subject.uploadDate?.takeIf { it.isNotBlank() }?.let {
                     dateSettings.format(
                         it,
                         DateContext.WATCH,
+                        dateLabels,
                         subject.timestamp ?: 0L,
                         subject.timestampIsExact,
                     )

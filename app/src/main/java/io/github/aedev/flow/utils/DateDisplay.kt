@@ -57,6 +57,16 @@ enum class DateFormatStyle(
 
 enum class DateContext { LISTS, WATCH, DESCRIPTION }
 
+/**
+ * The words a date line adds around the formatted date, from string resources in the reader's
+ * language. [streamedTemplate] and [premieredTemplate] take the date as their one argument.
+ */
+data class DateLabels(
+    val live: String,
+    val streamedTemplate: String,
+    val premieredTemplate: String,
+)
+
 data class DateDisplaySettings(
     val globalMode: DateDisplayMode = DateDisplayMode.RELATIVE,
     val formatStyle: DateFormatStyle = DateFormatStyle.SYSTEM,
@@ -77,6 +87,7 @@ data class DateDisplaySettings(
     fun format(
         date: String?,
         context: DateContext,
+        labels: DateLabels,
         timestampFallbackMs: Long = 0L,
         timestampIsExact: Boolean = false,
         locale: Locale = Locale.getDefault(),
@@ -85,6 +96,7 @@ data class DateDisplaySettings(
             date = date,
             mode = resolve(context),
             style = formatStyle,
+            labels = labels,
             timestampFallbackMs = timestampFallbackMs,
             locale = locale,
             timestampIsExact = timestampIsExact,
@@ -136,20 +148,23 @@ fun formatUploadDateConfigured(
     date: String?,
     mode: DateDisplayMode,
     style: DateFormatStyle,
+    labels: DateLabels,
     timestampFallbackMs: Long = 0L,
     locale: Locale = Locale.getDefault(),
     hl: String? = YouTube.locale.hl,
     timestampIsExact: Boolean = false,
     nowMillis: Long = System.currentTimeMillis(),
 ): String {
-    if (date?.trim().equals("live", ignoreCase = true)) return "LIVE"
+    if (date?.trim().equals("live", ignoreCase = true)) return labels.live
 
     val timestamp = resolveDisplayUploadTimestamp(date, timestampFallbackMs, nowMillis, hl)
-    val prefix = relativePrefix(date)
-    val relative = applyRelativePrefix(relativeString(date, timestamp, locale), prefix)
+    val prefixTemplate = relativePrefixTemplate(date, labels)
+    val relative by lazy(LazyThreadSafetyMode.NONE) {
+        applyPrefix(relativeString(date, timestamp, locale), prefixTemplate)
+    }
     val exactTimestamp = exactUploadTimestamp(date, timestamp, timestampFallbackMs, timestampIsExact, nowMillis, hl)
     val exact = if (exactTimestamp != null && exactTimestamp > 0L) formatExactDate(exactTimestamp, style, locale) else ""
-    val exactWithPrefix = applyExactPrefix(exact, prefix)
+    val exactWithPrefix = applyPrefix(exact, prefixTemplate)
     return when (mode) {
         DateDisplayMode.RELATIVE -> {
             relative
@@ -197,38 +212,30 @@ private fun relativeString(
     timestamp: Long?,
     locale: Locale,
 ): String {
-    val s = date?.trim().orEmpty()
-    if (s.equals("live", ignoreCase = true)) return "LIVE"
     if (timestamp != null && timestamp > 0L) {
         return formatYouTubeRelativeTime(timestamp, locale = locale)
     }
     return formatTimeAgo(date, locale)
 }
 
-private fun relativePrefix(date: String?): String? {
+private fun relativePrefixTemplate(
+    date: String?,
+    labels: DateLabels,
+): String? {
     val text = date?.trim().orEmpty().lowercase(Locale.US)
     return when {
-        text.startsWith("streamed ") -> "Streamed"
-        text.startsWith("premiered ") -> "Premiered"
+        text.startsWith("streamed ") -> labels.streamedTemplate
+        text.startsWith("premiered ") -> labels.premieredTemplate
         else -> null
     }
 }
 
-private fun applyRelativePrefix(
+private fun applyPrefix(
     value: String,
-    prefix: String?,
+    template: String?,
 ): String {
-    if (prefix == null || value.isBlank() || value == "LIVE") return value
-    val normalizedValue = if (value == "Just now") "just now" else value
-    return "$prefix $normalizedValue"
-}
-
-private fun applyExactPrefix(
-    value: String,
-    prefix: String?,
-): String {
-    if (prefix == null || value.isBlank()) return value
-    return "$prefix $value"
+    if (template == null || value.isBlank()) return value
+    return template.format(value)
 }
 
 private val StreamOrPremiereWords = Regex("(?i)^(streamed|premiered)\\s+(live\\s+)?(on\\s+)?")
@@ -248,31 +255,7 @@ fun parseToTimestamp(
     // whatever timestamp it already had.
     val cleanRaw = withoutStreamOrPremiereWords(raw)
 
-    val absFormats =
-        listOf(
-            "yyyy-MM-dd'T'HH:mm:ssXXX",
-            "yyyy-MM-dd'T'HH:mm:ssX",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSX",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd",
-            "MMM dd, yyyy",
-            "MMM d, yyyy",
-            "d MMM yyyy",
-            "dd MMM yyyy",
-        )
-    for (f in absFormats) {
-        for (loc in listOf(Locale.US, Locale.getDefault())) {
-            try {
-                val sdf = java.text.SimpleDateFormat(f, loc)
-                sdf.isLenient = false
-                val d = sdf.parse(cleanRaw)
-                if (d != null) return d.time
-            } catch (_: Exception) {
-            }
-        }
-    }
+    parseAbsoluteDate(cleanRaw)?.let { return it }
     return RelativeUploadDateParser.parse(cleanRaw, hl)
 }
 

@@ -114,6 +114,7 @@ class DateDisplayTest {
                 date = "hace 3 semanas",
                 mode = DateDisplayMode.RELATIVE,
                 style = DateFormatStyle.SYSTEM,
+                labels = TestDateLabels,
                 hl = "en",
             ),
         )

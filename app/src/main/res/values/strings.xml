@@ -59,6 +59,7 @@
     <string name="collaborator">Collaborator</string>
     <string name="conjunction_and">and</string>
     <string name="streamed_date_template">Streamed %1$s</string>
+    <string name="premiered_date_template">Premiered %1$s</string>
     <string name="channel_and_more_template">%1$s and %2$d more</string>
     <string name="stats">Stats</string>
     <string name="library">Library</string>
