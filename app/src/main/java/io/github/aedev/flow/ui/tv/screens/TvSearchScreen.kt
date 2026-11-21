@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -52,11 +53,12 @@ import io.github.aedev.flow.ui.screens.music.MusicSearchBody
 import io.github.aedev.flow.ui.screens.music.MusicSearchViewModel
 import io.github.aedev.flow.ui.screens.search.SearchResultsBody
 import io.github.aedev.flow.ui.screens.search.SearchViewModel
-import io.github.aedev.flow.ui.screens.search.launchVoiceSearch
 import io.github.aedev.flow.ui.screens.search.rememberSearchState
 import io.github.aedev.flow.ui.screens.search.rememberSearchSubmitter
 import io.github.aedev.flow.ui.tv.components.TvScreenFrame
 import io.github.aedev.flow.ui.tv.theme.LocalTvDimens
+import io.github.aedev.flow.utils.canVoiceSearch
+import io.github.aedev.flow.utils.launchVoiceSearch
 import kotlinx.coroutines.flow.drop
 
 private val KindSelectorWidth = 320.dp
@@ -110,6 +112,7 @@ fun TvSearchScreen(
             .collect(musicViewModel::onQueryChange)
     }
 
+    val voiceSearchAvailable = remember(context) { canVoiceSearch(context) }
     val voiceLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
@@ -136,8 +139,10 @@ fun TvSearchScreen(
                     onSearch = { submit() },
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = { launchVoiceSearch(context, voiceLauncher::launch) }) {
-                    Icon(imageVector = Icons.Rounded.Mic, contentDescription = stringResource(R.string.voice_search_cd))
+                if (voiceSearchAvailable) {
+                    IconButton(onClick = { launchVoiceSearch(context.getString(R.string.search_voice_prompt), voiceLauncher::launch) }) {
+                        Icon(imageVector = Icons.Rounded.Mic, contentDescription = stringResource(R.string.voice_search_cd))
+                    }
                 }
                 FlowConnectedToggleGroup(
                     options = kinds,

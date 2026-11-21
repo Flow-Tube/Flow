@@ -74,6 +74,10 @@
         <intent>
             <action android:name="android.intent.action.TRANSLATE" />
         </intent>
+        <!-- Speech input apps, so search hides the mic when none is installed (#2252). -->
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
     </queries>
 
     <application

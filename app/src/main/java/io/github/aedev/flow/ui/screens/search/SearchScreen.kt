@@ -1,9 +1,6 @@
 package io.github.aedev.flow.ui.screens.search
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,6 +44,8 @@ import io.github.aedev.flow.ui.components.search.SearchTopBarActions
 import io.github.aedev.flow.ui.components.shared.MediaPostCommentsSheet
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
+import io.github.aedev.flow.utils.canVoiceSearch
+import io.github.aedev.flow.utils.launchVoiceSearch
 
 /**
  * The route: a bar, then either what the user might be looking for or what they found.
@@ -78,6 +77,7 @@ fun SearchScreen(
     val submitWith = rememberSearchSubmitter(viewModel, state, quickActions, onNewSearch)
     val submit: (String) -> Unit = { raw -> submitWith(raw, uiState.filters) }
 
+    val voiceSearchAvailable = remember(context) { canVoiceSearch(context) }
     val voiceSearchLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
@@ -130,7 +130,12 @@ fun SearchScreen(
                 textFieldState = state.textFieldState,
                 onSearch = submit,
                 onBack = onBack,
-                onVoiceSearch = { launchVoiceSearch(context, voiceSearchLauncher::launch) },
+                onVoiceSearch =
+                    if (voiceSearchAvailable) {
+                        { launchVoiceSearch(context.getString(R.string.search_voice_prompt), voiceSearchLauncher::launch) }
+                    } else {
+                        null
+                    },
                 focusRequester = focusRequester,
                 onFieldFocused = state::startTyping,
                 actions =
@@ -202,20 +207,5 @@ fun SearchScreen(
             },
             onDismiss = { showFilters = false },
         )
-    }
-}
-
-internal fun launchVoiceSearch(
-    context: Context,
-    launch: (Intent) -> Unit,
-) {
-    val intent =
-        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.search_voice_prompt))
-        }
-    try {
-        launch(intent)
-    } catch (_: ActivityNotFoundException) {
     }
 }
