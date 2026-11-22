@@ -36,6 +36,7 @@ class SearchPagingSource(
     private val onHeader: (SearchHeader) -> Unit = {},
     private val loadPage: SearchPageLoader = DefaultSearchPageLoader,
     private val watchedVideos: WatchedVideoLookup = WatchedVideoLookup { emptySet() },
+    private val exactQuery: Boolean = false,
     private val loadContext: CoroutineContext = PerformanceDispatcher.networkIO,
     private val exclusions: suspend () -> FeedExclusions = { FeedExclusions.NONE },
 ) : PagingSource<String, SearchResultItem>() {
@@ -57,7 +58,7 @@ class SearchPagingSource(
             var continuation = params.key
             var requests = 0
             do {
-                val page = loadPage(query, filter.toSearchParams(), continuation)
+                val page = loadPage(query, filter.toSearchParams(exactQuery), continuation)
                 if (params.key == null && requests == 0) onHeader(page.header)
                 requests++
                 val items =
