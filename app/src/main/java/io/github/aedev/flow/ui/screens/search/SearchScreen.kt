@@ -138,6 +138,7 @@ fun SearchScreen(
                     },
                 focusRequester = focusRequester,
                 onFieldFocused = state::startTyping,
+                privateKeyboard = state.deepFlow.active,
                 actions =
                     if (showResults) {
                         {

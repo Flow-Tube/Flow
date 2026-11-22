@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.SearchType
 import io.github.aedev.flow.data.music.model.MusicArtist
@@ -89,6 +90,8 @@ fun MusicSearchScreen(
             }
         }
 
+    val deepFlowActive by viewModel.deepFlowActive.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
             MusicSearchBar(
@@ -107,6 +110,7 @@ fun MusicSearchScreen(
                         null
                     },
                 focusRequester = focusRequester,
+                privateKeyboard = deepFlowActive,
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
