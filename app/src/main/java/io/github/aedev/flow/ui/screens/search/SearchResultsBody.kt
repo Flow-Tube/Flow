@@ -40,9 +40,11 @@ import io.github.aedev.flow.ui.components.search.SearchShortsGrid
 import io.github.aedev.flow.ui.components.shared.FeedGridSkeleton
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
+import io.github.aedev.flow.ui.components.shared.RetryWhenBackOnline
 import io.github.aedev.flow.ui.components.shared.SubscriptionBellViewModel
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.sharedSubscriptionBellViewModel
+import io.github.aedev.flow.utils.LoadErrorKind
 import io.github.aedev.flow.utils.YouTubeLink
 import io.github.aedev.flow.utils.parseYouTubeLink
 
@@ -120,6 +122,7 @@ internal fun ColumnScope.SearchResultsBody(
         modifier = Modifier.padding(vertical = FilterBarVerticalPadding),
     )
 
+    RetryWhenBackOnline(pagingItems)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     uiState.header.correction
         ?.takeUnless { uiState.exactQuery }
@@ -161,7 +164,7 @@ internal fun ColumnScope.SearchResultsBody(
 
             refreshState is LoadState.Error && pagingItems.itemCount == 0 -> {
                 FlowErrorState(
-                    error = refreshState.error.localizedMessage ?: stringResource(R.string.search_failed),
+                    error = stringResource(LoadErrorKind.of(refreshState.error).messageRes(R.string.search_failed)),
                     onRetry = pagingItems::retry,
                 )
             }

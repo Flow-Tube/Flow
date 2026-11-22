@@ -35,6 +35,7 @@ import io.github.aedev.flow.ui.components.shared.FeedPagingFooter
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.MediaShortCard
+import io.github.aedev.flow.ui.components.shared.RetryWhenBackOnline
 import io.github.aedev.flow.ui.components.shared.ShortCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
@@ -63,6 +64,7 @@ internal fun ChannelTabItems(
     onPlaylistClick: (String) -> Unit,
     onChannelClick: (String) -> Unit,
 ) {
+    pagingItems?.let { RetryWhenBackOnline(it) }
     if (pagingItems == null || pagingItems.loadState.refresh is LoadState.Loading) {
         FlowLoadingIndicator(modifier = Modifier.padding(top = topInset))
         return

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import io.github.aedev.flow.R
+import io.github.aedev.flow.utils.LoadErrorKind
 
 /** The tail of any paged feed: loading, a retry, or the end of the results. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -36,18 +37,27 @@ fun FeedPagingFooter(
         }
 
         appendState is LoadState.Error -> {
+            val kind = LoadErrorKind.of(appendState.error)
             Column(
                 modifier = modifier.fillMaxWidth().padding(FooterPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(ErrorSpacing),
             ) {
                 Text(
-                    text = appendState.error.localizedMessage ?: stringResource(R.string.load_failed),
+                    text = stringResource(kind.messageRes(R.string.load_failed)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                 )
+                if (kind == LoadErrorKind.OFFLINE) {
+                    Text(
+                        text = stringResource(R.string.load_error_offline_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 OutlinedButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.retry))
                 }
