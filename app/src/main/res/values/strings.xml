@@ -5408,4 +5408,7 @@
     <string name="load_error_offline_hint">Loads again when you\'re back online</string>
     <string name="home_offline_downloads_hint">Your downloads still play</string>
     <string name="home_back_online_refresh">Back online · Refresh</string>
+    <string name="search_showing_results_for">Showing results for %1$s</string>
+    <string name="search_instead_for">Search instead for %1$s</string>
+    <string name="search_did_you_mean">Did you mean %1$s</string>
 </resources>

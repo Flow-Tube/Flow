@@ -1,3 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">ফ্লো</string>
+    <string name="subscriptions_search_placeholder">সাবস্ক্রিপশন অনুসন্ধান করুন ..।</string>
+    <string name="subscriptions_sort_label">চ্যানেলগুলো সাজান</string>
+    <string name="subscriptions_sort_default">ডিফল্ট</string>
+    <string name="subscriptions_sort_name">নাম (A–Z)</string>
+    <string name="subscriptions_sort_recent">সম্প্রতি আপডেট করা হয়েছে</string>
+    <string name="subscriptions_sort_most_watched">সবচেয়ে বেশি দেখা</string>
+    <string name="subscriptions_pin_channel">স্টার্ট মেনুতে পিন করুন</string>
+    <string name="subscriptions_unpin_channel">আনপিন করুন</string>
 </resources>

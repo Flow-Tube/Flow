@@ -3,6 +3,8 @@ package io.github.aedev.flow.ui.screens.home
 /** Fewer cards than this wait for the run's next attempt instead of showing on their own (#1317). */
 internal const val HOME_LOAD_MORE_MIN_CARDS = 4
 
+internal const val HOME_LOAD_MORE_PAGE_SIZE = 8
+
 /** How one load-more attempt ended. */
 internal enum class LoadMoreOutcome {
     /** Cards were added to Home. */

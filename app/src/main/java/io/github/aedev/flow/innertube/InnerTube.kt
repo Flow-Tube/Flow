@@ -345,18 +345,17 @@ class InnerTube {
 
     /**
      * Typeahead suggestions. Not an InnerTube endpoint — a JSONP array from the suggest host — but
-     * it rides the same client so it honours the app's locale, proxy and connection pool.
+     * it rides the same client so it honours the app's locale, proxy and connection pool. It never
+     * retries: a suggestion the user has typed past is worth nothing, and the next keystroke asks again.
      */
     suspend fun searchSuggestions(query: String) =
-        withRetry {
-            httpClient.get("https://suggestqueries-clients6.youtube.com/complete/search") {
-                parameter("client", "youtube")
-                parameter("ds", "yt")
-                parameter("hl", locale.hl)
-                parameter("gl", locale.gl)
-                parameter("q", query)
-                userAgent(YouTubeClient.WEB.userAgent)
-            }
+        httpClient.get("https://suggestqueries-clients6.youtube.com/complete/search") {
+            parameter("client", "youtube")
+            parameter("ds", "yt")
+            parameter("hl", locale.hl)
+            parameter("gl", locale.gl)
+            parameter("q", query)
+            userAgent(YouTubeClient.WEB.userAgent)
         }
 
     private suspend fun webBrowse(
@@ -856,16 +855,14 @@ class InnerTube {
     suspend fun getSearchSuggestions(
         client: YouTubeClient,
         input: String,
-    ) = withRetry {
-        httpClient.post("music/get_search_suggestions") {
-            ytClient(client)
-            setBody(
-                GetSearchSuggestionsBody(
-                    context = client.toContext(locale, visitorData, null),
-                    input = input,
-                ),
-            )
-        }
+    ) = httpClient.post("music/get_search_suggestions") {
+        ytClient(client)
+        setBody(
+            GetSearchSuggestionsBody(
+                context = client.toContext(locale, visitorData, null),
+                input = input,
+            ),
+        )
     }
 
     suspend fun getQueue(

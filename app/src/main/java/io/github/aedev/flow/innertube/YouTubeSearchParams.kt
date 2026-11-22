@@ -11,6 +11,8 @@ import java.util.Base64
  * combination the dialog cannot express ("videos, this week, over 20 minutes") encodes the same way
  * a single filter does. [YouTubeSearchParamsTest] pins every one of those tokens.
  *
+ * [exactQuery] searches the text as typed, with no spelling correction, and combines with any filter.
+ *
  * Only [SortBy.RELEVANCE] and [SortBy.VIEW_COUNT] actually reorder results — verified live on
  * 2026-09-14, and YouTube's dialog offers no others. Recency is an [UploadDate] filter, not a sort.
  */
@@ -74,6 +76,7 @@ internal object YouTubeSearchParams {
         duration: Duration? = null,
         uploadDate: UploadDate? = null,
         features: Set<Feature> = emptySet(),
+        exactQuery: Boolean = false,
     ): String? {
         val filters =
             ProtobufWriter.encode {
@@ -87,6 +90,7 @@ internal object YouTubeSearchParams {
             ProtobufWriter.encode {
                 if (sortBy.value != 0) writeInt32(SORT_FIELD, sortBy.value)
                 if (filters.isNotEmpty()) writeBytes(FILTERS_FIELD, filters)
+                if (exactQuery) writeBytes(QUERY_OPTIONS_FIELD, ProtobufWriter.encode { writeBool(EXACT_QUERY_FIELD, true) })
             }
         if (request.isEmpty()) return null
 
@@ -98,4 +102,8 @@ internal object YouTubeSearchParams {
     private const val FILTER_DATE_FIELD = 1
     private const val FILTER_TYPE_FIELD = 2
     private const val FILTER_DURATION_FIELD = 3
+
+    // "Search instead for" in a corrected search's response carries exactly this: field 8 { 1: 1 }.
+    private const val QUERY_OPTIONS_FIELD = 8
+    private const val EXACT_QUERY_FIELD = 1
 }

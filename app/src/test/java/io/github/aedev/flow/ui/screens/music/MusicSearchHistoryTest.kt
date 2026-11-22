@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.music
 import androidx.lifecycle.ViewModelStore
 import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchHistoryRepository
 import io.github.aedev.flow.data.local.SearchHistoryScope
@@ -52,6 +53,7 @@ class MusicSearchHistoryTest {
             ),
             mockk(relaxed = true),
             mockk<AiListRepository>().also { every { it.matcher } returns MutableStateFlow(AiListMatcher.NONE) },
+            mockk<PlayerPreferences>().also { every { it.deepFlowActive } returns flowOf(false) },
         ).also { viewModels.put("music_search_${viewModels.keys().size}", it) }
 
     @Before

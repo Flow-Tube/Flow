@@ -198,6 +198,24 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `searching exactly keeps the filters, survives a filter change and ends with a new search`() =
+        runTest(testDispatcher) {
+            val viewModel = viewModel()
+            val filters = SearchFilter(uploadDate = UploadDate.TODAY)
+            viewModel.search("minecarft speedrun", filters)
+
+            viewModel.searchExactly("minecarft speedrun")
+            assertThat(viewModel.uiState.value.exactQuery).isTrue()
+            assertThat(viewModel.uiState.value.filters).isEqualTo(filters)
+
+            viewModel.updateFilters(filters.copy(contentType = ContentType.VIDEOS))
+            assertThat(viewModel.uiState.value.exactQuery).isTrue()
+
+            viewModel.search("minecraft speedrun")
+            assertThat(viewModel.uiState.value.exactQuery).isFalse()
+        }
+
+    @Test
     fun `suggestions come from the one suggestions repository`() =
         runTest {
             val expected = listOf(SearchSuggestion("kotlin tutorial"), SearchSuggestion("kotlin android"))
@@ -210,11 +228,11 @@ class SearchViewModelTest {
         }
 
     @Test
-    fun `a suggestions failure leaves the field usable`() =
+    fun `a failed suggestions request reports no rows rather than an empty list`() =
         runTest {
-            coEvery { suggestions.suggestions(any()) } throws IllegalStateException("offline")
+            coEvery { suggestions.suggestions(any()) } returns null
 
-            assertThat(viewModel().getSearchSuggestions("kotlin")).isEmpty()
+            assertThat(viewModel().getSearchSuggestions("kotlin")).isNull()
         }
 
     @Test

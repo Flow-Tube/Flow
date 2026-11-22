@@ -10,13 +10,16 @@ import javax.inject.Singleton
 class SearchSuggestionsRepository
     @Inject
     constructor() {
-        suspend fun suggestions(query: String): List<SearchSuggestion> {
+        /** The rows for [query], or null when the request failed and the rows on screen should stay. */
+        suspend fun suggestions(query: String): List<SearchSuggestion>? {
             if (query.trim().length < MIN_QUERY_LENGTH) return emptyList()
             return YouTube
                 .videoSearchSuggestions(query.trim())
-                .getOrDefault(emptyList())
-                .take(MAX_SUGGESTIONS)
+                .getOrNull()
+                ?.take(MAX_SUGGESTIONS)
         }
+
+        suspend fun warm() = YouTube.warmSearchSuggestions()
 
         private companion object {
             const val MIN_QUERY_LENGTH = 2

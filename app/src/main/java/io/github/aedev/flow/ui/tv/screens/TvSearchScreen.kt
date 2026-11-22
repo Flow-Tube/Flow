@@ -59,7 +59,8 @@ import io.github.aedev.flow.ui.tv.components.TvScreenFrame
 import io.github.aedev.flow.ui.tv.theme.LocalTvDimens
 import io.github.aedev.flow.utils.canVoiceSearch
 import io.github.aedev.flow.utils.launchVoiceSearch
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 
 private val KindSelectorWidth = 320.dp
 
@@ -88,12 +89,12 @@ fun TvSearchScreen(
     val dimens = LocalTvDimens.current
     val softwareKeyboard = LocalSoftwareKeyboardController.current
     val uiState by viewModel.uiState.collectAsState()
-    val state = rememberSearchState(viewModel)
+    var kind by rememberSaveable { mutableStateOf(MediaKind.Videos) }
+    val state = rememberSearchState(viewModel, suggestionsActive = { kind != MediaKind.Music })
     val quickActions = sharedQuickActionsViewModel()
     val submitVideo = rememberSearchSubmitter(viewModel, state, quickActions)
     val pagingItems = viewModel.searchResults.collectAsLazyPagingItems()
     val gridState = rememberLazyGridState()
-    var kind by rememberSaveable { mutableStateOf(MediaKind.Videos) }
     val text = state.textFieldState
     val kinds = MediaKind.entries.map { FlowToggleOption(it, stringResource(it.labelRes), it.icon) }
 
@@ -106,9 +107,11 @@ fun TvSearchScreen(
         if (kind == MediaKind.Music) musicViewModel.performSearch(query) else submitVideo(query, uiState.filters)
     }
 
+    // Only the kind on screen asks for suggestions; switching to music hands it what was typed.
     LaunchedEffect(state) {
-        snapshotFlow { text.text.toString() }
-            .drop(1)
+        snapshotFlow { text.text.toString().takeIf { kind == MediaKind.Music } }
+            .distinctUntilChanged()
+            .filterNotNull()
             .collect(musicViewModel::onQueryChange)
     }
 
@@ -138,6 +141,7 @@ fun TvSearchScreen(
                     placeholder = stringResource(R.string.search_videos_channels_placeholder),
                     onSearch = { submit() },
                     modifier = Modifier.weight(1f),
+                    privateKeyboard = state.deepFlow.active,
                 )
                 if (voiceSearchAvailable) {
                     IconButton(onClick = { launchVoiceSearch(context.getString(R.string.search_voice_prompt), voiceLauncher::launch) }) {
@@ -196,6 +200,10 @@ fun TvSearchScreen(
                     onPlaylistClick = onPlaylistClick,
                     onShortsQueue = {},
                     dismissKeyboard = state::stopTyping,
+                    onSearch = { query ->
+                        text.setTextAndPlaceCursorAtEnd(query)
+                        submitVideo(query, uiState.filters)
+                    },
                     maxAutoColumns = dimens.feedMaxColumns,
                     minCellWidth = dimens.feedCardMinWidth,
                 )

@@ -38,6 +38,8 @@ import io.github.aedev.flow.ui.components.music.section.MusicMoodsShelf
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.toCollectionActionItem
 import io.github.aedev.flow.ui.components.search.searchHistoryItems
+import io.github.aedev.flow.ui.components.search.shownHistory
+import io.github.aedev.flow.ui.components.search.withoutShownHistory
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.FlowFeedProgress
@@ -147,7 +149,7 @@ internal fun MusicSearchBody(
                     isDownloaded = isDownloaded(item),
                 )
             }
-            items(uiState.suggestions, key = { it }) { suggestion ->
+            items(uiState.suggestions.withoutShownHistory(history.shownHistory(showAllHistory)) { it }, key = { it }) { suggestion ->
                 SearchSuggestionRow(
                     suggestion = suggestion,
                     onClick = {

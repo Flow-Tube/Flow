@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchHistoryItem
 import io.github.aedev.flow.data.local.SearchHistoryRepository
@@ -22,11 +23,15 @@ import io.github.aedev.flow.innertube.models.YTItem
 import io.github.aedev.flow.innertube.pages.ArtistSectionKind
 import io.github.aedev.flow.innertube.pages.MoodAndGenres
 import io.github.aedev.flow.innertube.pages.SearchSummaryPage
+import io.github.aedev.flow.ui.components.search.SUGGESTION_TIMEOUT_MS
+import io.github.aedev.flow.ui.components.search.collectLatestSuggestions
 import io.github.aedev.flow.ui.components.search.recentOrMatching
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -43,7 +48,12 @@ class MusicSearchViewModel
         private val privacyGate: PrivacyGate,
         @ApplicationContext private val context: Context,
         private val aiList: AiListRepository,
+        preferences: PlayerPreferences,
     ) : ViewModel() {
+        /** Deep Flow asks the keyboard not to learn what is typed here. */
+        val deepFlowActive: StateFlow<Boolean> =
+            preferences.deepFlowActive.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
         private val _query = MutableStateFlow("")
         val query: StateFlow<String> = _query.asStateFlow()
 
@@ -65,13 +75,12 @@ class MusicSearchViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _uiState.value)
 
         init {
-            // Handle search suggestions with debounce
-            _query
-                .debounce(300)
-                .filter { it.isNotBlank() && searchHistory.isSearchSuggestionsEnabled() }
-                .onEach { q ->
-                    fetchSuggestions(q)
-                }.launchIn(viewModelScope)
+            // A blank query still passes through so it cancels the request out for the text before it.
+            viewModelScope.launch(PerformanceDispatcher.networkIO) {
+                _query.collectLatestSuggestions { q ->
+                    if (q.isNotBlank() && searchHistory.isSearchSuggestionsEnabled()) fetchSuggestions(q)
+                }
+            }
 
             viewModelScope.launch(PerformanceDispatcher.networkIO) {
                 _moods.value = InnertubeMusicService.fetchMoodAndGenres()
@@ -93,32 +102,24 @@ class MusicSearchViewModel
             }
         }
 
-        /**
-         *  PERFORMANCE OPTIMIZED: Fetch suggestions with timeout
-         */
-        private fun fetchSuggestions(q: String) {
-            viewModelScope.launch(PerformanceDispatcher.networkIO) {
-                val result =
-                    withTimeoutOrNull(5_000L) {
-                        YouTube.searchSuggestions(q)
+        // Runs inside collectLatest: a newer query cancels it, and a cancelled request never writes.
+        private suspend fun fetchSuggestions(q: String) {
+            val result = withTimeoutOrNull(SUGGESTION_TIMEOUT_MS) { YouTube.searchSuggestions(q) }
+            currentCoroutineContext().ensureActive()
+            result
+                ?.onSuccess { suggestions ->
+                    _uiState.update {
+                        it.copy(
+                            suggestions =
+                                suggestions.queries.distinctByNonBlankKey { query ->
+                                    query.trim().lowercase()
+                                },
+                            recommendedItems = suggestions.recommendedItems.distinctByStableIdentity(),
+                        )
                     }
-
-                result
-                    ?.onSuccess { suggestions ->
-                        _uiState.update {
-                            it.copy(
-                                suggestions =
-                                    suggestions.queries.distinctByNonBlankKey { query ->
-                                        query.trim().lowercase()
-                                    },
-                                recommendedItems = suggestions.recommendedItems.distinctByStableIdentity(),
-                            )
-                        }
-                    }?.onFailure { throwable ->
-                        android.util.Log.w("MusicSearchViewModel", "Suggestions failed: ${throwable.message}")
-                        _uiState.update { it.copy(suggestions = emptyList(), recommendedItems = emptyList()) }
-                    }
-            }
+                }?.onFailure { throwable ->
+                    android.util.Log.w("MusicSearchViewModel", "Suggestions failed: ${throwable.message}")
+                }
         }
 
         /**

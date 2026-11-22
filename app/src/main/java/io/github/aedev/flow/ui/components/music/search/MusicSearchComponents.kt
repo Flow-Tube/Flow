@@ -56,6 +56,7 @@ fun MusicSearchBar(
     onClearClick: () -> Unit,
     onVoiceSearchClick: (() -> Unit)?,
     focusRequester: FocusRequester = remember { FocusRequester() },
+    privateKeyboard: Boolean = false,
 ) {
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
@@ -81,6 +82,7 @@ fun MusicSearchBar(
                 onSearch = onSearch,
                 onClear = onClearClick,
                 focusRequester = focusRequester,
+                privateKeyboard = privateKeyboard,
             )
 
             if (onVoiceSearchClick != null) {
