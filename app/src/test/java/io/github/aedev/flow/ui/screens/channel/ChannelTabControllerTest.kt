@@ -11,12 +11,19 @@ import io.mockk.coVerify
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
 
 class ChannelTabControllerTest {
     private val owner = FeedItemOwner(id = "UC1")
@@ -42,18 +49,30 @@ class ChannelTabControllerTest {
             coVerify(exactly = 0) { YouTube.channelTab(any(), any(), any(), any()) }
         }
 
+    // The load runs on the real network pool, so the test waits in real time for the first request
+    // to arrive and gives a duplicate the same window to show up before counting.
     @Test
     fun `asking for the Home tab again while it loads sends one request`() =
-        runTest(UnconfinedTestDispatcher()) {
+        runBlocking {
+            val calls = AtomicInteger()
+            val firstCall = CompletableDeferred<Unit>()
             val answer = CompletableDeferred<Result<ChannelTabContent>>()
-            coEvery { YouTube.channelTab(any(), any(), any(), any()) } coAnswers { answer.await() }
-            val controller = ChannelTabController(backgroundScope, MutableStateFlow(HiddenContent()))
+            coEvery { YouTube.channelTab(any(), any(), any(), any()) } coAnswers {
+                calls.incrementAndGet()
+                firstCall.complete(Unit)
+                answer.await()
+            }
+            val scope = CoroutineScope(SupervisorJob())
+            val controller = ChannelTabController(scope, MutableStateFlow(HiddenContent()))
             controller.reset("UC1", owner)
 
             controller.ensureLoaded(ChannelTabKind.Home, "EghmZWF0dXJlZPIG")
             controller.ensureLoaded(ChannelTabKind.Home, "EghmZWF0dXJlZPIG")
 
-            coVerify(exactly = 1) { YouTube.channelTab(any(), any(), any(), any()) }
+            withTimeout(5_000) { firstCall.await() }
+            delay(300)
+            assertThat(calls.get()).isEqualTo(1)
             answer.complete(Result.success(ChannelTabContent(kind = ChannelTabKind.Home, owner = owner)))
+            scope.cancel()
         }
 }
