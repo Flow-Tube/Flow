@@ -301,6 +301,14 @@ object YouTube {
             parseSearchSuggestions(innerTube.searchSuggestions(query).bodyAsText())
         }
 
+    /**
+     * Opens the suggest host's connection before the first keystroke needs it. The host is not the
+     * one start-up warms, and an empty query costs a few dozen bytes.
+     */
+    suspend fun warmSearchSuggestions() {
+        runCatching { innerTube.searchSuggestions("").bodyAsText() }
+    }
+
     /** One page of video search. Filters and sorting ride in [params]; paging rides in [continuation]. */
     suspend fun videoSearch(
         query: String,

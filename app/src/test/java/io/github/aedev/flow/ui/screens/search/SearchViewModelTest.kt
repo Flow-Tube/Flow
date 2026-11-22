@@ -210,11 +210,11 @@ class SearchViewModelTest {
         }
 
     @Test
-    fun `a suggestions failure leaves the field usable`() =
+    fun `a failed suggestions request reports no rows rather than an empty list`() =
         runTest {
-            coEvery { suggestions.suggestions(any()) } throws IllegalStateException("offline")
+            coEvery { suggestions.suggestions(any()) } returns null
 
-            assertThat(viewModel().getSearchSuggestions("kotlin")).isEmpty()
+            assertThat(viewModel().getSearchSuggestions("kotlin")).isNull()
         }
 
     @Test

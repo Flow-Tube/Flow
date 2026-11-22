@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +60,8 @@ fun SearchSuggestionsPanel(
     onDeepFlowChange: (Boolean) -> Unit = {},
 ) {
     var showAllHistory by rememberSaveable { mutableStateOf(false) }
+    val shownHistory = history.shownHistory(showAllHistory)
+    val remoteRows = remember(suggestions, shownHistory) { suggestions.withoutShownHistory(shownHistory) { it.text } }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = flowBottomContentPadding()),
@@ -87,7 +90,7 @@ fun SearchSuggestionsPanel(
             onClearHistory = onClearHistory,
         )
 
-        items(suggestions, key = { "suggestion:${it.text}" }) { suggestion ->
+        items(remoteRows, key = { "suggestion:${it.text}" }) { suggestion ->
             FlowSuggestionRow(
                 text = suggestion.text,
                 leadingIcon = Icons.Rounded.Search,
