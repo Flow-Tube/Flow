@@ -27,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
@@ -39,6 +40,7 @@ import io.github.aedev.flow.ui.components.shared.FlowConfirmDialog
 import io.github.aedev.flow.ui.components.shared.FlowSuggestionRow
 import io.github.aedev.flow.ui.components.shared.FlowSwitchRow
 import io.github.aedev.flow.ui.components.shared.deepFlowStatus
+import io.github.aedev.flow.utils.NetworkState
 
 /**
  * What the search screen shows before a query is submitted: the user's own history first, then
@@ -62,6 +64,9 @@ fun SearchSuggestionsPanel(
     var showAllHistory by rememberSaveable { mutableStateOf(false) }
     val shownHistory = history.shownHistory(showAllHistory)
     val remoteRows = remember(suggestions, shownHistory) { suggestions.withoutShownHistory(shownHistory) { it.text } }
+    // As YouTube does under Data Saver: a channel suggestion keeps its text and drops its picture.
+    val context = LocalContext.current
+    val showImages = remember(context) { !NetworkState.isDataSaverOn(context) }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = flowBottomContentPadding()),
@@ -96,7 +101,7 @@ fun SearchSuggestionsPanel(
                 leadingIcon = Icons.Rounded.Search,
                 onClick = { onSubmit(suggestion.text) },
                 query = query,
-                leadingImageUrl = suggestion.entity?.thumbnailUrl,
+                leadingImageUrl = suggestion.entity?.thumbnailUrl?.takeIf { showImages },
                 supportingText = suggestion.entity?.description,
                 trailingIcon = Icons.Rounded.NorthWest,
                 trailingContentDescription = stringResource(R.string.resize_fill),
