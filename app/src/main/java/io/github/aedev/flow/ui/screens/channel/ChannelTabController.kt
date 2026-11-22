@@ -9,6 +9,7 @@ import io.github.aedev.flow.data.paging.FeedTabPagingSource
 import io.github.aedev.flow.data.paging.withoutHiddenVideos
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.channel.ChannelFilterGroup
+import io.github.aedev.flow.innertube.pages.channel.ChannelTabContent
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.innertube.pages.renderer.FeedItem
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
@@ -75,11 +76,36 @@ internal class ChannelTabController(
         build(kind, params, continuation = null, selected = emptyList())
     }
 
+    /**
+     * Fills a shelves tab from a response already in hand. The channel's landing browse is its
+     * Home tab, so the tab shown first costs no request of its own.
+     */
+    fun seedSections(
+        kind: ChannelTabKind,
+        content: ChannelTabContent,
+    ) {
+        if (kind != ChannelTabKind.Home) return
+        _states.update { states ->
+            states +
+                (
+                    kind to
+                        (states[kind] ?: ChannelTabState()).copy(
+                            sections = content.sections,
+                            filters = content.filters,
+                            selected = content.filters.map { group -> group.selectedIndex },
+                            isLoading = false,
+                            loaded = true,
+                        )
+                )
+        }
+    }
+
     private fun loadSections(
         kind: ChannelTabKind,
         params: String,
     ) {
-        if (_states.value[kind]?.loaded == true) return
+        val current = _states.value[kind]
+        if (current?.loaded == true || current?.isLoading == true) return
         _states.update { it + (kind to (it[kind] ?: ChannelTabState()).copy(isLoading = true)) }
         scope.launch(PerformanceDispatcher.networkIO) {
             val page = YouTube.channelTab(browseId, params, owner, kind).getOrNull()
@@ -141,7 +167,7 @@ internal class ChannelTabController(
     ) {
         val pager =
             Pager(
-                config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+                config = PagingConfig(pageSize = PAGE_SIZE, prefetchDistance = PREFETCH_DISTANCE, enablePlaceholders = false),
                 pagingSourceFactory = {
                     FeedTabPagingSource(
                         browseId = browseId,
@@ -183,5 +209,8 @@ internal class ChannelTabController(
 
     private companion object {
         const val PAGE_SIZE = 20
+
+        // Search's distance: the next page starts loading six items from the end, not a page early.
+        const val PREFETCH_DISTANCE = 6
     }
 }
