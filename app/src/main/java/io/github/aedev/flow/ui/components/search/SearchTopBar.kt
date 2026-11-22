@@ -45,6 +45,7 @@ fun SearchTopBar(
     focusRequester: FocusRequester? = null,
     onFieldFocused: () -> Unit = {},
     actions: (@Composable () -> Unit)? = null,
+    privateKeyboard: Boolean = false,
 ) {
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = BarHorizontalPadding, vertical = BarVerticalPadding),
@@ -65,6 +66,7 @@ fun SearchTopBar(
             onSearch = onSearch,
             focusRequester = focusRequester,
             onFieldFocused = onFieldFocused,
+            privateKeyboard = privateKeyboard,
         )
 
         if (onVoiceSearch != null) {

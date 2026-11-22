@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchHistoryItem
 import io.github.aedev.flow.data.local.SearchHistoryRepository
@@ -43,7 +44,12 @@ class MusicSearchViewModel
         private val privacyGate: PrivacyGate,
         @ApplicationContext private val context: Context,
         private val aiList: AiListRepository,
+        preferences: PlayerPreferences,
     ) : ViewModel() {
+        /** Deep Flow asks the keyboard not to learn what is typed here. */
+        val deepFlowActive: StateFlow<Boolean> =
+            preferences.deepFlowActive.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
         private val _query = MutableStateFlow("")
         val query: StateFlow<String> = _query.asStateFlow()
 

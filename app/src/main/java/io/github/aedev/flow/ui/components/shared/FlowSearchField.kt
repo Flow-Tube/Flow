@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.shared
 
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -49,8 +50,11 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.InterceptPlatformTextInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.PlatformTextInputInterceptor
+import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +84,7 @@ fun FlowSearchField(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable RowScope.() -> Unit)? = null,
     releaseFocusWithKeyboard: Boolean = false,
+    privateKeyboard: Boolean = false,
 ) {
     if (releaseFocusWithKeyboard) ReleaseFocusWhenKeyboardCloses()
     val dpad = LocalDpadNavigation.current
@@ -118,49 +123,51 @@ fun FlowSearchField(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                BasicTextField(
-                    state = state,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
-                            .onFocusChanged {
-                                if (it.isFocused) onFieldFocused() else keyboardRequested = false
-                            }
-                            // A remote's OK opens the field's input session by turning keyboard-on-focus on while it
-                            // holds focus; without a session there is no connection for the keyboard to type into.
-                            .then(
-                                if (dpad) {
-                                    Modifier.onPreviewKeyEvent { event ->
-                                        if (event.key != Key.DirectionCenter) return@onPreviewKeyEvent false
-                                        if (event.type == KeyEventType.KeyUp) {
-                                            if (keyboardRequested) {
-                                                view.context.getSystemService<InputMethodManager>()?.showSoftInput(view, 0)
-                                            } else {
-                                                keyboardRequested = true
+                PrivateKeyboard(enabled = privateKeyboard) {
+                    BasicTextField(
+                        state = state,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
+                                .onFocusChanged {
+                                    if (it.isFocused) onFieldFocused() else keyboardRequested = false
+                                }
+                                // A remote's OK opens the field's input session by turning keyboard-on-focus on while it
+                                // holds focus; without a session there is no connection for the keyboard to type into.
+                                .then(
+                                    if (dpad) {
+                                        Modifier.onPreviewKeyEvent { event ->
+                                            if (event.key != Key.DirectionCenter) return@onPreviewKeyEvent false
+                                            if (event.type == KeyEventType.KeyUp) {
+                                                if (keyboardRequested) {
+                                                    view.context.getSystemService<InputMethodManager>()?.showSoftInput(view, 0)
+                                                } else {
+                                                    keyboardRequested = true
+                                                }
                                             }
+                                            true
                                         }
-                                        true
-                                    }
-                                } else {
-                                    Modifier
-                                },
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
+                        interactionSource = interactionSource,
+                        textStyle =
+                            LocalTextStyle.current.merge(
+                                MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                             ),
-                    interactionSource = interactionSource,
-                    textStyle =
-                        LocalTextStyle.current.merge(
-                            MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                        ),
-                    lineLimits = TextFieldLineLimits.SingleLine,
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    // A remote moving focus through the field must not raise the keyboard; OK on it does.
-                    keyboardOptions =
-                        KeyboardOptions(
-                            imeAction = ImeAction.Search,
-                            showKeyboardOnFocus = if (dpad) keyboardRequested else null,
-                        ),
-                    onKeyboardAction = { onSearch(state.text.toString()) },
-                )
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        // A remote moving focus through the field must not raise the keyboard; OK on it does.
+                        keyboardOptions =
+                            KeyboardOptions(
+                                imeAction = ImeAction.Search,
+                                showKeyboardOnFocus = if (dpad) keyboardRequested else null,
+                            ),
+                        onKeyboardAction = { onSearch(state.text.toString()) },
+                    )
+                }
             }
 
             if (state.text.isNotEmpty()) {
@@ -200,6 +207,7 @@ fun FlowSearchField(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable RowScope.() -> Unit)? = null,
     releaseFocusWithKeyboard: Boolean = false,
+    privateKeyboard: Boolean = false,
 ) {
     val state = remember { TextFieldState(initialText = query) }
     val echoes = remember { QueryEchoFilter() }
@@ -231,6 +239,7 @@ fun FlowSearchField(
         leadingIcon = leadingIcon,
         trailingContent = trailingContent,
         releaseFocusWithKeyboard = releaseFocusWithKeyboard,
+        privateKeyboard = privateKeyboard,
     )
 }
 
@@ -261,6 +270,33 @@ internal class QueryEchoFilter {
         const val MAX_PENDING = 64
     }
 }
+
+/**
+ * While [enabled], asks the keyboard not to learn from or remember what is typed, as it does in an
+ * incognito browser tab. Compose has no keyboard option for this flag, so the field's input request
+ * is wrapped on its way to the system. The wrapper stays in place when [enabled] flips, so the field
+ * keeps its focus and only the keyboard session restarts.
+ */
+@Composable
+private fun PrivateKeyboard(
+    enabled: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val interceptor =
+        remember(enabled) {
+            PlatformTextInputInterceptor { request, nextHandler ->
+                nextHandler.startInputMethod(if (enabled) request.withoutPersonalizedLearning() else request)
+            }
+        }
+    InterceptPlatformTextInput(interceptor = interceptor, content = content)
+}
+
+private fun PlatformTextInputMethodRequest.withoutPersonalizedLearning() =
+    PlatformTextInputMethodRequest { outAttributes ->
+        createInputConnection(outAttributes).also {
+            outAttributes.imeOptions = outAttributes.imeOptions or EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
+        }
+    }
 
 /**
  * For a field that filters a list in place: closing the keyboard (back, or the search key) ends
