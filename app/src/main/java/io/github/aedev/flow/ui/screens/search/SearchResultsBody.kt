@@ -32,6 +32,7 @@ import io.github.aedev.flow.ui.components.FEED_MAX_AUTO_COLUMNS
 import io.github.aedev.flow.ui.components.FeedCardMinWidth
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
+import io.github.aedev.flow.ui.components.search.SearchCorrectionRow
 import io.github.aedev.flow.ui.components.search.SearchFilterBar
 import io.github.aedev.flow.ui.components.search.SearchResultActions
 import io.github.aedev.flow.ui.components.search.SearchResults
@@ -105,6 +106,7 @@ internal fun ColumnScope.SearchResultsBody(
     onPlaylistClick: (Playlist) -> Unit,
     onShortsQueue: (ShortsQueueSource) -> Unit,
     dismissKeyboard: () -> Unit,
+    onSearch: (String) -> Unit,
     maxAutoColumns: Int = FEED_MAX_AUTO_COLUMNS,
     minCellWidth: Dp = FeedCardMinWidth,
     bell: SubscriptionBellViewModel = sharedSubscriptionBellViewModel(),
@@ -121,6 +123,17 @@ internal fun ColumnScope.SearchResultsBody(
     )
 
     RetryWhenBackOnline(pagingItems)
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    uiState.header.correction
+        ?.takeUnless { uiState.exactQuery }
+        ?.let { correction ->
+            SearchCorrectionRow(
+                correction = correction,
+                onSearchExactly = viewModel::searchExactly,
+                onSearchCorrected = onSearch,
+            )
+        }
+
     val refreshState = pagingItems.loadState.refresh
     BoxWithConstraints(modifier = Modifier.weight(1f)) {
         val feedLayout = rememberFeedGridLayout(maxWidth, feedColumns, maxAutoColumns, minCellWidth)

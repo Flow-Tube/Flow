@@ -189,6 +189,7 @@ fun SearchScreen(
                 onPlaylistClick = onPlaylistClick,
                 onShortsQueue = onShortsQueue,
                 dismissKeyboard = state::stopTyping,
+                onSearch = submit,
             )
         }
         MediaPostCommentsSheet(
