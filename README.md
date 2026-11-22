@@ -110,19 +110,33 @@ Flow gives you both. The recommendation engine learns what you like by analyzing
       <td align="center"><b>Home Feed</b><br><img src="Assets/Home.jpeg" width="240"></td>
       <td align="center"><b>Video Player</b><br><img src="Assets/VideoPlayer.jpeg" width="240"></td>
       <td align="center"><b>Shorts</b><br><img src="Assets/Shorts.jpeg" width="240"></td>
-      <td align="center"><b>Subscriptions</b><br><img src="Assets/Subscriptions.jpeg" width="240"></td>
-      <td align="center"><b>Channel View</b><br><img src="Assets/Channel.jpeg" width="240"></td>
-      <td align="center"><b>Playlist</b><br><img src="Assets/Playlist.jpeg" width="240"></td>
-      <td align="center"><b>Music Hub</b><br><img src="Assets/Music.jpeg" width="240"></td>
-      <td align="center"><b>Music Player</b><br><img src="Assets/MusicPlayer.jpeg" width="240"></td>
-      <td align="center"><b>Lyrics</b><br><img src="Assets/Lyrics.jpeg" width="240"></td>
-      <td align="center"><b>Artist Page</b><br><img src="Assets/Artist.jpeg" width="240"></td>
-      <td align="center"><b>Album</b><br><img src="Assets/Album.jpeg" width="240"></td>
-      <td align="center"><b>Your Library</b><br><img src="Assets/Library.jpeg" width="240"></td>
-      <td align="center"><b>Your Taste</b><br><img src="Assets/YourTaste.jpeg" width="240"></td>
     </tr>
   </table>
-  <sub>Scroll sideways to see every screen</sub>
+  <details>
+    <summary><b>More screenshots</b></summary>
+    <table>
+      <tr>
+        <td align="center"><b>Subscriptions</b><br><img src="Assets/Subscriptions.jpeg" width="240"></td>
+        <td align="center"><b>Channel View</b><br><img src="Assets/Channel.jpeg" width="240"></td>
+        <td align="center"><b>Playlist</b><br><img src="Assets/Playlist.jpeg" width="240"></td>
+      </tr>
+      <tr>
+        <td align="center"><b>Music Hub</b><br><img src="Assets/Music.jpeg" width="240"></td>
+        <td align="center"><b>Music Player</b><br><img src="Assets/MusicPlayer.jpeg" width="240"></td>
+        <td align="center"><b>Lyrics</b><br><img src="Assets/Lyrics.jpeg" width="240"></td>
+      </tr>
+      <tr>
+        <td align="center"><b>Artist Page</b><br><img src="Assets/Artist.jpeg" width="240"></td>
+        <td align="center"><b>Album</b><br><img src="Assets/Album.jpeg" width="240"></td>
+        <td align="center"><b>Your Library</b><br><img src="Assets/Library.jpeg" width="240"></td>
+      </tr>
+      <tr>
+        <td align="center"><b>Your Taste</b><br><img src="Assets/YourTaste.jpeg" width="240"></td>
+        <td align="center"></td>
+        <td align="center"></td>
+      </tr>
+    </table>
+  </details>
 </div>
 
 ---
