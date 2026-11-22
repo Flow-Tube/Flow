@@ -105,17 +105,23 @@ fun HandleDeepLinks(
 
 private const val OFFLINE_NOTICE_DELAY_MS = 3_000L
 
+/** The app's one connectivity callback, shared by the offline notice and every screen through [LocalNetworkOnline]. */
+@Composable
+fun rememberNetworkOnline(context: Context): State<Boolean> {
+    val connectivity = remember(context) { NetworkConnectivityObserver(context) }
+    return remember(connectivity) { connectivity.observeConnectivity() }.collectAsStateWithLifecycle(initialValue = true)
+}
+
 @Composable
 fun OfflineMonitor(
     context: Context,
+    online: State<Boolean>,
     snackbarHostState: SnackbarHostState,
     currentRoute: State<String>,
     onOpenDownloads: () -> Unit,
 ) {
     val openDownloads by rememberUpdatedState(onOpenDownloads)
-    val connectivity = remember(context) { NetworkConnectivityObserver(context) }
-    val isConnected by remember(connectivity) { connectivity.observeConnectivity() }
-        .collectAsStateWithLifecycle(initialValue = true)
+    val isConnected by online
     val route = currentRoute.value
 
     LaunchedEffect(isConnected, route) {

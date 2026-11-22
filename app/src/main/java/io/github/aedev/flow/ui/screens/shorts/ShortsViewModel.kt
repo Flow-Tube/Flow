@@ -40,6 +40,7 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.player.stream.StreamSizeEstimator
+import io.github.aedev.flow.utils.LoadErrorKind
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -185,7 +186,7 @@ class ShortsViewModel
                         _uiState.value =
                             _uiState.value.copy(
                                 isLoading = false,
-                                error = e.message ?: context.getString(R.string.error_failed_to_load_shorts),
+                                error = context.getString(LoadErrorKind.of(e).messageRes(R.string.error_failed_to_load_shorts)),
                             )
                     }
                 }

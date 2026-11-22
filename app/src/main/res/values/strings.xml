@@ -5405,4 +5405,5 @@
     <string name="ai_report_rate_limited">Too many reports sent, try again later</string>
     <string name="ai_report_rejected">AiSList rejected the report</string>
     <string name="ai_report_failed">Report failed, check your connection</string>
+    <string name="load_error_offline_hint">Loads again when you\'re back online</string>
 </resources>

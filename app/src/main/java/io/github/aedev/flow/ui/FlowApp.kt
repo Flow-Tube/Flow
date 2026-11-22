@@ -62,6 +62,7 @@ import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowSharedTransitions
 import io.github.aedev.flow.ui.components.shared.LocalMediaOpenOrigins
+import io.github.aedev.flow.ui.components.shared.LocalNetworkOnline
 import io.github.aedev.flow.ui.components.shared.MediaOpenOrigins
 import io.github.aedev.flow.ui.components.shared.SubscriptionBellAlerts
 import io.github.aedev.flow.ui.components.videoplayer.PlayerSheetValue
@@ -205,7 +206,8 @@ fun FlowApp(
 
     HandleIncomingVideo(deeplinkVideoId, isShort, isSharedLink, navController, preferences, onDeeplinkConsumed)
     HandleIncomingDownload(downloadVideoId, onDownloadConsumed)
-    OfflineMonitor(context, snackbarHostState, currentRoute, openDownloads)
+    val networkOnline = rememberNetworkOnline(context)
+    OfflineMonitor(context, networkOnline, snackbarHostState, currentRoute, openDownloads)
 
     val currentEntry by navController.currentBackStackEntryAsState()
     val statusBarHero = remember { StatusBarHeroState() }
@@ -490,6 +492,7 @@ fun FlowApp(
                                     LocalFlowBottomInsets provides bottomInsets,
                                     LocalFlowSnackbarHostState provides snackbarHostState,
                                     LocalStatusBarHero provides statusBarHero,
+                                    LocalNetworkOnline provides networkOnline,
                                 ) {
                                     if (needsOnboarding == false) SubscriptionBellAlerts(snackbarHostState)
                                     LinkedSyncAlerts(snackbarHostState)

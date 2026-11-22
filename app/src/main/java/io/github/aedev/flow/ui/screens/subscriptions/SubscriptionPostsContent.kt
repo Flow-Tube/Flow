@@ -37,6 +37,7 @@ import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
 import io.github.aedev.flow.ui.components.shared.MediaPostCard
 import io.github.aedev.flow.ui.components.shared.MediaPostCommentsSheet
+import io.github.aedev.flow.ui.components.shared.RetryWhenBackOnline
 import io.github.aedev.flow.ui.components.shared.rememberPostShareAction
 
 private val PostsMaxWidth = 760.dp
@@ -60,6 +61,7 @@ internal fun SubscriptionPostsContent(
     LaunchedEffect(channelIds) { viewModel.show(channelIds) }
     val posts = viewModel.posts.collectAsLazyPagingItems()
     val sharePost = rememberPostShareAction()
+    RetryWhenBackOnline(posts)
     val refreshState = posts.loadState.refresh
     val appendState = posts.loadState.append
     var userRefreshing by remember { mutableStateOf(false) }

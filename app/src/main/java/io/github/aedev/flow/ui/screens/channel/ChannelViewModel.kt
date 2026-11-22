@@ -26,6 +26,7 @@ import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
 import io.github.aedev.flow.ui.youtubeChannelBrowseId
 import io.github.aedev.flow.ui.youtubeChannelUrl
+import io.github.aedev.flow.utils.LoadErrorKind
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -228,7 +229,7 @@ class ChannelViewModel
                         Log.e(TAG, "Failed to load channel", error)
                         _uiState.update {
                             it.copy(
-                                error = error.message ?: appContext.getString(R.string.error_failed_to_load_channel),
+                                error = appContext.getString(LoadErrorKind.of(error).messageRes(R.string.error_failed_to_load_channel)),
                                 isLoading = false,
                             )
                         }
