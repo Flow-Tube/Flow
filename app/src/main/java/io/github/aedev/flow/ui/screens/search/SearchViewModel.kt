@@ -14,10 +14,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.community.PostCommentsLoader
 import io.github.aedev.flow.data.engagement.HiddenContentStore
+import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchFilter
+import io.github.aedev.flow.data.local.SearchHistoryItem
 import io.github.aedev.flow.data.local.SearchHistoryRepository
+import io.github.aedev.flow.data.local.SearchHistoryScope
 import io.github.aedev.flow.data.local.dao.WatchHistoryDao
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.paging.SearchPagingSource
@@ -33,6 +36,8 @@ import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.data.stats.VideoStatsRecorder
 import io.github.aedev.flow.innertube.pages.search.SearchHeader
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
+import io.github.aedev.flow.ui.components.shared.DeepFlowState
+import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -160,8 +165,6 @@ class SearchViewModel
             rememberSearch(query, filters)
         }
 
-        fun onSearchHistoryCleared() = videoStats.onSearchHistoryCleared()
-
         fun updateFilters(filters: SearchFilter) {
             val current = _uiState.value
             _uiState.value = current.copy(filters = filters)
@@ -194,8 +197,40 @@ class SearchViewModel
             _searchKey.value = null
         }
 
-        suspend fun getSearchSuggestions(query: String): List<SearchSuggestion> =
-            runCatching { suggestionsRepository.suggestions(query) }.getOrDefault(emptyList())
+        /** Rows for [query], or null when the request failed and the rows on screen should stay. */
+        suspend fun getSearchSuggestions(query: String): List<SearchSuggestion>? = suggestionsRepository.suggestions(query)
+
+        fun warmSearchSuggestions() {
+            viewModelScope.launch(PerformanceDispatcher.networkIO) { suggestionsRepository.warm() }
+        }
+
+        val searchHistoryItems: Flow<List<SearchHistoryItem>> = searchHistory.getSearchHistoryFlow()
+        val suggestionsEnabled: Flow<Boolean> = searchHistory.isSearchSuggestionsEnabledFlow()
+        val gridMode: Flow<Boolean> = preferences.searchIsGridMode
+        val shortsContentEnabled: Flow<Boolean> = preferences.shortsContentEnabled
+        val feedColumns: Flow<HomeFeedColumns> = preferences.homeFeedColumns
+        val deepFlow: Flow<DeepFlowState> =
+            combine(
+                preferences.deepFlowOnSearch,
+                preferences.deepFlowActive,
+                preferences.deepFlowActivatedAt,
+                preferences.deepFlowExpireHours,
+            ) { onSearch, active, activatedAt, expireHours ->
+                DeepFlowState(active = active, activatedAt = activatedAt, expireHours = expireHours, showOnSearch = onSearch)
+            }
+
+        fun deleteHistoryItem(item: SearchHistoryItem) {
+            viewModelScope.launch { searchHistory.deleteSearchItem(item.id) }
+        }
+
+        fun clearSearchHistory() {
+            viewModelScope.launch { searchHistory.clearSearchHistory(SearchHistoryScope.VIDEO) }
+            videoStats.onSearchHistoryCleared()
+        }
+
+        fun setGridMode(enabled: Boolean) {
+            viewModelScope.launch { preferences.setSearchIsGridMode(enabled) }
+        }
 
         private fun onHeader(header: SearchHeader) {
             _uiState.update { it.copy(header = header) }
