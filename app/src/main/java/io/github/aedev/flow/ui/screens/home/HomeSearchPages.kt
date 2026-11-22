@@ -4,6 +4,8 @@ import io.github.aedev.flow.data.model.Video
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+internal const val HOME_SEARCH_TIMEOUT_MS = 6_000L
+
 /**
  * Home's discovery searches. A page is fetched once per half hour however often load-more asks for
  * its query again, and the next page of a search that already filled Home with several cards is kept
