@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /** How long typing pauses before suggestions are asked for. Cancellation, not this wait, keeps rows current. */
-const val SUGGESTION_DEBOUNCE_MS = 150L
+const val SUGGESTION_DEBOUNCE_MS = 280L
 
 /** A suggestion request still out after this is dropped and the rows on screen stay. */
 const val SUGGESTION_TIMEOUT_MS = 2_000L
