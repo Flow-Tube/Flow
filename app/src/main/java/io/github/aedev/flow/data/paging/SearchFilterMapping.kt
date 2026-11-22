@@ -14,8 +14,9 @@ import io.github.aedev.flow.innertube.YouTubeSearchParams
  * Live is a feature flag rather than a type in YouTube's model, and Shorts is a type rather than a
  * separate endpoint; both are folded in here so the paging source only ever sends one request.
  */
-internal fun SearchFilter.toSearchParams(): String? =
+internal fun SearchFilter.toSearchParams(exactQuery: Boolean = false): String? =
     YouTubeSearchParams.build(
+        exactQuery = exactQuery,
         sortBy =
             when (sortType) {
                 SortType.RELEVANCE -> YouTubeSearchParams.SortBy.RELEVANCE

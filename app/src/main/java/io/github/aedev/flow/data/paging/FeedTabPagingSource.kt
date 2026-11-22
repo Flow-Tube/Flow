@@ -8,7 +8,7 @@ import io.github.aedev.flow.innertube.pages.channel.ChannelTabContent
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.innertube.pages.renderer.FeedItem
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
-import kotlinx.coroutines.Dispatchers
+import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.withContext
 
 /**
@@ -34,7 +34,7 @@ class FeedTabPagingSource(
     override fun getRefreshKey(state: PagingState<String, FeedItem>): String? = null
 
     override suspend fun load(params: LoadParams<String>): LoadResult<String, FeedItem> =
-        withContext(Dispatchers.IO) {
+        withContext(PerformanceDispatcher.networkIO) {
             val cursor = params.key
             val page =
                 when {

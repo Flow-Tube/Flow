@@ -22,7 +22,6 @@
     "Lio/github/aedev/flow/data/local/LocalDataManager$toggleLike$2$current$1;",
     "Lio/github/aedev/flow/data/local/LocalDataManager$watchHistory$1$1;",
     "Lio/github/aedev/flow/data/local/QueuePersistence$restoreQueue$type$1;",
-    "Lio/github/aedev/flow/data/local/SearchHistoryRepository$getSearchHistoryList$type$1;",
     "Lio/github/aedev/flow/data/lyrics/SimpMusicLyrics$parseRichSyncJson$type$1;",
     "Lio/github/aedev/flow/data/music/DownloadManager$parseStoredTracks$1$type$1;",
     "Lio/github/aedev/flow/data/music/PlaylistRepository$favorites$1$type$1;",

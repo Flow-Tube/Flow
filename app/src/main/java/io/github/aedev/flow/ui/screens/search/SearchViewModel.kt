@@ -56,6 +56,8 @@ data class SearchUiState(
     val query: String = "",
     val filters: SearchFilter = SearchFilter.DEFAULT,
     val header: SearchHeader = SearchHeader(),
+    /** The query runs as typed, without YouTube's spelling correction. */
+    val exactQuery: Boolean = false,
 )
 
 @HiltViewModel
@@ -86,6 +88,7 @@ class SearchViewModel
         private data class SearchKey(
             val query: String,
             val filter: SearchFilter,
+            val exactQuery: Boolean = false,
         )
 
         private val _searchKey = MutableStateFlow<SearchKey?>(null)
@@ -108,6 +111,7 @@ class SearchViewModel
                             SearchPagingSource(
                                 query = key.query,
                                 filter = key.filter,
+                                exactQuery = key.exactQuery,
                                 shortsEnabled = shortsEnabled,
                                 onHeader = ::onHeader,
                                 watchedVideos = watchedVideos,
@@ -162,12 +166,20 @@ class SearchViewModel
         }
 
         fun updateFilters(filters: SearchFilter) {
-            val currentQuery = _uiState.value.query
-            _uiState.value = _uiState.value.copy(filters = filters)
-            if (currentQuery.isNotBlank()) {
-                _searchKey.value = SearchKey(currentQuery, filters)
-                rememberSearch(currentQuery, filters)
+            val current = _uiState.value
+            _uiState.value = current.copy(filters = filters)
+            if (current.query.isNotBlank()) {
+                _searchKey.value = SearchKey(current.query, filters, current.exactQuery)
+                rememberSearch(current.query, filters)
             }
+        }
+
+        /** "Search instead for": the shown query again, as typed, keeping the filters. */
+        fun searchExactly(query: String) {
+            if (query.isBlank()) return
+            val filters = _uiState.value.filters
+            _uiState.value = SearchUiState(query = query, filters = filters, exactQuery = true)
+            _searchKey.value = SearchKey(query, filters, exactQuery = true)
         }
 
         private fun rememberSearch(

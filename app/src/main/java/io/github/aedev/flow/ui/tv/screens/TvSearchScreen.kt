@@ -141,6 +141,7 @@ fun TvSearchScreen(
                     placeholder = stringResource(R.string.search_videos_channels_placeholder),
                     onSearch = { submit() },
                     modifier = Modifier.weight(1f),
+                    privateKeyboard = state.deepFlow.active,
                 )
                 if (voiceSearchAvailable) {
                     IconButton(onClick = { launchVoiceSearch(context.getString(R.string.search_voice_prompt), voiceLauncher::launch) }) {
@@ -199,6 +200,10 @@ fun TvSearchScreen(
                     onPlaylistClick = onPlaylistClick,
                     onShortsQueue = {},
                     dismissKeyboard = state::stopTyping,
+                    onSearch = { query ->
+                        text.setTextAndPlaceCursorAtEnd(query)
+                        submitVideo(query, uiState.filters)
+                    },
                     maxAutoColumns = dimens.feedMaxColumns,
                     minCellWidth = dimens.feedCardMinWidth,
                 )

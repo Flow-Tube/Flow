@@ -198,6 +198,24 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `searching exactly keeps the filters, survives a filter change and ends with a new search`() =
+        runTest(testDispatcher) {
+            val viewModel = viewModel()
+            val filters = SearchFilter(uploadDate = UploadDate.TODAY)
+            viewModel.search("minecarft speedrun", filters)
+
+            viewModel.searchExactly("minecarft speedrun")
+            assertThat(viewModel.uiState.value.exactQuery).isTrue()
+            assertThat(viewModel.uiState.value.filters).isEqualTo(filters)
+
+            viewModel.updateFilters(filters.copy(contentType = ContentType.VIDEOS))
+            assertThat(viewModel.uiState.value.exactQuery).isTrue()
+
+            viewModel.search("minecraft speedrun")
+            assertThat(viewModel.uiState.value.exactQuery).isFalse()
+        }
+
+    @Test
     fun `suggestions come from the one suggestions repository`() =
         runTest {
             val expected = listOf(SearchSuggestion("kotlin tutorial"), SearchSuggestion("kotlin android"))

@@ -101,6 +101,23 @@ class SearchPagingSourceTest {
         }
 
     @Test
+    fun `an exact search sends the exact flag with the filters`() =
+        runTest {
+            val loader = RecordingLoader(listOf(SearchFixture.ALL_SAM_SULEK))
+            val paging =
+                SearchPagingSource(
+                    query = "sam sulek",
+                    filter = SearchFilter(contentType = ContentType.VIDEOS),
+                    loadPage = loader,
+                    exactQuery = true,
+                )
+
+            paging.loadPage()
+
+            assertThat(loader.calls[0].second).isEqualTo("EgIQAUICCAE%3D")
+        }
+
+    @Test
     fun `hands the next page token back as the paging key`() =
         runTest {
             val page = source(RecordingLoader(listOf(SearchFixture.ALL_SAM_SULEK))).loadPage()

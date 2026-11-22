@@ -27,6 +27,8 @@ object FlowRequestLog : Interceptor {
     private val clientNameRegex = Regex("\"clientName\"\\s*:\\s*\"([^\"]+)\"")
     private val videoIdRegex = Regex("\"videoId\"\\s*:\\s*\"([^\"]+)\"")
     private val continuationRegex = Regex("\"continuation\"\\s*:\\s*\"([^\"]+)\"")
+    private val browseIdRegex = Regex("\"browseId\"\\s*:\\s*\"([^\"]+)\"")
+    private val paramsRegex = Regex("\"params\"\\s*:\\s*\"([^\"]+)\"")
 
     fun install(builder: OkHttpClient.Builder): OkHttpClient.Builder {
         if (BuildConfig.DEBUG && builder.interceptors().none { it === this }) {
@@ -79,9 +81,12 @@ object FlowRequestLog : Interceptor {
         val client = body?.let { clientNameRegex.find(it)?.groupValues?.get(1) } ?: clientHeader ?: "-"
         val videoId = body?.let { videoIdRegex.find(it)?.groupValues?.get(1) } ?: videoQuery
         val continuation = body?.let { continuationRegex.find(it)?.groupValues?.get(1) }
+        val browseId = body?.let { browseIdRegex.find(it)?.groupValues?.get(1) }
+        val params = body?.let { paramsRegex.find(it)?.groupValues?.get(1) }
         val subject =
             videoId?.let { "v=$it" }
                 ?: continuation?.let { "c=${it.take(CONTINUATION_PREFIX_LENGTH)}" }
+                ?: browseId?.let { id -> "b=$id" + (params?.let { " p=${it.take(CONTINUATION_PREFIX_LENGTH)}" } ?: "") }
                 ?: "-"
         return "$method $path $client $host $subject"
     }

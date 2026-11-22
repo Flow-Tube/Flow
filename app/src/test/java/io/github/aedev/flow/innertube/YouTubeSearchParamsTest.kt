@@ -23,6 +23,17 @@ class YouTubeSearchParamsTest {
     }
 
     @Test
+    fun `an exact search sends the token a corrected search offers as its way back`() {
+        assertThat(YouTubeSearchParams.build(exactQuery = true)).isEqualTo("QgIIAQ%3D%3D")
+    }
+
+    @Test
+    fun `an exact search keeps the filters it runs with`() {
+        assertThat(YouTubeSearchParams.build(contentType = YouTubeSearchParams.ContentType.VIDEO, exactQuery = true))
+            .isEqualTo("EgIQAUICCAE%3D")
+    }
+
+    @Test
     fun `builds the type tokens`() {
         assertThat(params(contentType = YouTubeSearchParams.ContentType.VIDEO)).isEqualTo("EgIQAQ%3D%3D")
         assertThat(params(contentType = YouTubeSearchParams.ContentType.SHORTS)).isEqualTo("EgIQCQ%3D%3D")

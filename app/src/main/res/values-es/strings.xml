@@ -5469,4 +5469,20 @@
     <string name="settings_top_bar_hide_on_scroll_title">Ocultar la barra superior al desplazar</string>
     <string name="settings_top_bar_hide_on_scroll_summary">En Inicio, Suscripciones y Música</string>
     <string name="settings_top_bar_hide_on_scroll_keywords">barra superior, encabezado, etiquetas, desplazar, ocultar, barra de estado</string>
+    <string name="content_settings_feed_autoplay_dialog_body">Reproduce el vídeo en el que te detienes, sin sonido, directamente en el feed.</string>
+    <string name="content_settings_feed_autoplay_off">Desactivado</string>
+    <string name="content_settings_feed_autoplay_wifi">Solo Wi-Fi</string>
+    <string name="content_settings_feed_autoplay_always">Siempre</string>
+    <string name="home_preview_mute">Vista previa sin sonido</string>
+    <string name="home_preview_captions_on">Mostrar subtítulos</string>
+    <string name="home_preview_captions_off">Ocultar subtítulos</string>
+    <string name="settings_video_card_style_title">Estilo de tarjeta</string>
+    <string name="settings_video_card_style_summary">El ancho completo elimina las esquinas de las miniaturas en la página de inicio y en la de suscripciones</string>
+    <string name="settings_video_card_style_keywords">tarjeta, miniatura, esquinas, redondeado, ancho completo, de borde a borde, sangrado</string>
+    <string name="settings_video_card_style_rounded">Redondeado</string>
+    <string name="settings_video_card_style_full_width">Ancho completo</string>
+    <string name="premiered_date_template">%1$s estrenado</string>
+    <string name="content_settings_feed_autoplay_title">Reproducción automática en Inicio</string>
+    <string name="content_settings_feed_autoplay_keywords">reproducción automática, vista previa, integrado, silenciado, reproducción en feeds</string>
+    <string name="home_preview_unmute">Activar el sonido de la vista previa</string>
 </resources>

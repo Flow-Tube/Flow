@@ -3,8 +3,6 @@ package io.github.aedev.flow.data.local
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.profile.StoreScope
 import kotlinx.coroutines.flow.Flow
@@ -57,8 +55,6 @@ class SearchHistoryRepository
     constructor(
         @ApplicationContext private val context: Context,
     ) {
-        private val gson = Gson()
-
         companion object {
             private val SEARCH_HISTORY_KEY = stringPreferencesKey("search_history")
             private val MUSIC_SEARCH_HISTORY_KEY = stringPreferencesKey("music_search_history")
@@ -107,7 +103,7 @@ class SearchHistoryRepository
                         maxSize = preferences[MAX_HISTORY_SIZE_KEY] ?: DEFAULT_MAX_HISTORY_SIZE,
                         now = System.currentTimeMillis(),
                     )
-                preferences[historyKey(scope)] = gson.toJson(updated)
+                preferences[historyKey(scope)] = SearchHistoryCodec.encode(updated)
             }
         }
 
@@ -133,20 +129,20 @@ class SearchHistoryRepository
             context.searchDataStore.edit { preferences ->
                 val currentHistory = getSearchHistoryList(preferences, scope)
                 val updatedHistory = currentHistory.filter { it.id != itemId }
-                preferences[historyKey(scope)] = gson.toJson(updatedHistory)
+                preferences[historyKey(scope)] = SearchHistoryCodec.encode(updatedHistory)
             }
         }
 
         suspend fun clearSearchHistory(scope: SearchHistoryScope) {
             context.searchDataStore.edit { preferences ->
-                preferences[historyKey(scope)] = gson.toJson(emptyList<SearchHistoryItem>())
+                preferences[historyKey(scope)] = SearchHistoryCodec.encode(emptyList())
             }
         }
 
         suspend fun clearSearchHistory() {
             context.searchDataStore.edit { preferences ->
                 SearchHistoryScope.entries.forEach { scope ->
-                    preferences[historyKey(scope)] = gson.toJson(emptyList<SearchHistoryItem>())
+                    preferences[historyKey(scope)] = SearchHistoryCodec.encode(emptyList())
                 }
             }
         }
@@ -157,7 +153,7 @@ class SearchHistoryRepository
         ) {
             context.searchDataStore.edit { preferences ->
                 val maxSize = preferences[MAX_HISTORY_SIZE_KEY] ?: DEFAULT_MAX_HISTORY_SIZE
-                preferences[historyKey(scope)] = gson.toJson(items.newestUnique(maxSize))
+                preferences[historyKey(scope)] = SearchHistoryCodec.encode(items.newestUnique(maxSize))
             }
         }
 
@@ -177,7 +173,7 @@ class SearchHistoryRepository
                 val maxSize = preferences[MAX_HISTORY_SIZE_KEY] ?: DEFAULT_MAX_HISTORY_SIZE
                 val merged = filterExpiredHistory(getSearchHistoryList(preferences, scope) + items, preferences).newestUnique(maxSize)
                 kept = merged.count { it.id in importedIds }
-                preferences[historyKey(scope)] = gson.toJson(merged)
+                preferences[historyKey(scope)] = SearchHistoryCodec.encode(merged)
             }
             return kept
         }
@@ -226,7 +222,7 @@ class SearchHistoryRepository
                 SearchHistoryScope.entries.forEach { scope ->
                     val currentHistory = getSearchHistoryList(preferences, scope)
                     if (currentHistory.size > size) {
-                        preferences[historyKey(scope)] = gson.toJson(currentHistory.take(size))
+                        preferences[historyKey(scope)] = SearchHistoryCodec.encode(currentHistory.take(size))
                     }
                 }
             }
@@ -292,15 +288,7 @@ class SearchHistoryRepository
         private fun getSearchHistoryList(
             preferences: Preferences,
             scope: SearchHistoryScope,
-        ): List<SearchHistoryItem> {
-            val json = preferences[historyKey(scope)] ?: return emptyList()
-            return try {
-                val type = object : TypeToken<List<SearchHistoryItem>>() {}.type
-                gson.fromJson<List<SearchHistoryItem>>(json, type)?.map(SearchHistoryItem::sanitized) ?: emptyList()
-            } catch (e: Exception) {
-                emptyList()
-            }
-        }
+        ): List<SearchHistoryItem> = SearchHistoryCodec.decode(preferences[historyKey(scope)])
 
         // Helper: Filter expired history
         private fun filterExpiredHistory(
