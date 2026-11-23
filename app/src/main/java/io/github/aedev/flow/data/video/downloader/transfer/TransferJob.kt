@@ -43,7 +43,7 @@ enum class TransferStatus {
     FINISHED,
 }
 
-/** What one run of [ParallelDownloader] ended on. */
+/** What one run of [RangeDownloader] ended on. */
 sealed interface TransferResult {
     data object Completed : TransferResult
 
@@ -75,6 +75,7 @@ class TransferJob(
     val streams: List<TransferStream>,
     val threads: Int,
     val fallbackUserAgent: String,
+    val trace: DownloadTrace? = null,
 ) {
     @Volatile
     var status: TransferStatus = TransferStatus.RUNNING

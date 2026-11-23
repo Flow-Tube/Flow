@@ -8,6 +8,7 @@ import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.resolve.DownloadStreamResolver
 import io.github.aedev.flow.data.video.downloader.resolve.ResolveOutcome
 import io.github.aedev.flow.data.video.downloader.resolve.ResolvedStreams
+import io.github.aedev.flow.data.video.downloader.transfer.DownloadTrace
 import io.github.aedev.flow.data.video.downloader.transfer.RangeDownloader
 import io.github.aedev.flow.data.video.downloader.transfer.StreamRole
 import io.github.aedev.flow.data.video.downloader.transfer.TransferFailure
@@ -17,6 +18,7 @@ import io.github.aedev.flow.data.video.downloader.transfer.TransferState
 import io.github.aedev.flow.data.video.downloader.transfer.TransferStream
 import io.github.aedev.flow.innertube.models.YouTubeClient
 import io.github.aedev.flow.player.error.StreamDenialClassifier
+import io.github.aedev.flow.player.error.StreamDenialKind
 import io.github.aedev.flow.player.sabr.integration.SabrDownloadEngine
 import io.github.aedev.flow.player.stream.ClientGateTracker
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
@@ -76,11 +78,13 @@ class DownloadTransfer
             staging: DownloadStaging,
             itemId: Int,
             threads: Int,
+            trace: DownloadTrace,
         ): FetchOutcome {
             var avoid = emptySet<Int>()
             var acceptOtherTrack = false
             val refusals = mutableMapOf<Int, Int>()
             repeat(MAX_RESOLVES) {
+                trace.onResolve()
                 val streams =
                     when (val resolved = resolver.resolve(request, avoid, acceptOtherTrack)) {
                         is ResolveOutcome.Resolved -> {
@@ -96,7 +100,7 @@ class DownloadTransfer
                         }
 
                         ResolveOutcome.AudioTrackMissing -> {
-                            val sabr = viaSabr(request, staging, itemId, requireChosenTrack = true)
+                            val sabr = viaSabr(request, staging, itemId, trace, requireChosenTrack = true)
                             if (sabr is FetchOutcome.Fetched) return sabr
                             currentCoroutineContext().ensureActive()
                             acceptOtherTrack = true
@@ -125,7 +129,7 @@ class DownloadTransfer
                         ),
                     )
                 if (TransferState.read(staging.state)?.restoreInto(parts) == true) Log.d(TAG, "${request.videoId}: resuming saved blocks")
-                val job = TransferJob(request.videoId, parts, threads, YouTubeClient.USER_AGENT_WEB)
+                val job = TransferJob(request.videoId, parts, threads, YouTubeClient.USER_AGENT_WEB, trace)
                 val result =
                     try {
                         reportingProgress(
@@ -152,12 +156,13 @@ class DownloadTransfer
                     }
 
                     TransferResult.Stalled -> {
+                        trace.onStall()
                         Log.w(TAG, "${request.videoId}: no bytes for ${DIRECT_STALL_TICKS}s, resolving again")
                     }
 
                     is TransferResult.Denied -> {
                         val itag = StreamDenialClassifier.itagOf(result.url)?.toIntOrNull()
-                        ClientGateTracker.reportDenied(result.url)
+                        trace.onDenied(expired = ClientGateTracker.reportDenied(result.url) == StreamDenialKind.URL_EXPIRED)
                         if (itag != null && (refusals.merge(itag, 1, Int::plus) ?: 0) >= 2) avoid = avoid + itag
                     }
 
@@ -173,7 +178,7 @@ class DownloadTransfer
                     }
                 }
             }
-            return viaSabr(request, staging, itemId)
+            return viaSabr(request, staging, itemId, trace)
         }
 
         /**
@@ -185,8 +190,10 @@ class DownloadTransfer
             request: DownloadRequest,
             staging: DownloadStaging,
             itemId: Int,
+            trace: DownloadTrace,
             requireChosenTrack: Boolean = false,
         ): FetchOutcome {
+            trace.usedSabr = true
             staging.clearParts()
             val info =
                 try {

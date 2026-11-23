@@ -204,9 +204,10 @@ class RangeDownloader internal constructor(
         job.track(call)
         var written = 0L
         try {
+            val sentAt = job.trace?.now() ?: 0L
             val response =
                 try {
-                    call.execute()
+                    call.execute().also { job.trace?.onResponse(sentAt) }
                 } catch (e: IOException) {
                     return if (job.isRunning) BlockOutcome.Retry(e.message ?: e.javaClass.simpleName) else BlockOutcome.Stopped
                 }
@@ -231,6 +232,7 @@ class RangeDownloader internal constructor(
                                 return BlockOutcome.Stopped
                             }
                             file.write(buffer, 0, read)
+                            job.trace?.onBytes(read)
                             written += read
                             stream.downloaded.addAndGet(read.toLong())
                         }

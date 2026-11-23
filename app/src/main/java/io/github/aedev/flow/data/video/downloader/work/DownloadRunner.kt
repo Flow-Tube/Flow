@@ -1,6 +1,8 @@
 package io.github.aedev.flow.data.video.downloader.work
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.R
@@ -20,6 +22,8 @@ import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
 import io.github.aedev.flow.data.video.downloader.tags.Mp4ProjectionCopier
 import io.github.aedev.flow.data.video.downloader.tags.Mp4Remuxer
 import io.github.aedev.flow.data.video.downloader.tags.Mp4TagWriter
+import io.github.aedev.flow.data.video.downloader.transfer.DownloadTrace
+import io.github.aedev.flow.data.video.downloader.transfer.RangeDownloader
 import io.github.aedev.flow.data.video.storage.DownloadCovers
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadPlacement
@@ -77,26 +81,47 @@ class DownloadRunner
             val staging = DownloadStaging(downloads.stagingDirectory(), videoId)
             downloadDao.updateAllItemsStatus(videoId, DownloadItemStatus.DOWNLOADING)
             notifier.show(videoId, stored.tags.title, DownloadPhase.Transferring(0L, 0L))
+            val trace = DownloadTrace(videoId)
+            var outcome = "stopped"
+            var threads = 0
             try {
                 val request = enricher.enrich(stored)
-                val threads = request.threads ?: preferences.downloadThreads.first()
+                threads = request.threads ?: preferences.downloadThreads.first()
                 coroutineScope {
                     val cover = async { coverArt.load(request.tags.thumbnailUrl, request.kind) }
                     val withLyrics = async { lyrics.addTo(request) }
-                    when (val fetched = transfer.fetch(request, staging, item.id, threads)) {
+                    when (val fetched = transfer.fetch(request, staging, item.id, threads, trace)) {
                         is FetchOutcome.Failed -> {
                             withLyrics.cancel()
+                            outcome = "failed:${fetched.reason}"
                             fail(request, staging, messageFor(fetched.reason), keepParts = true)
                         }
 
                         is FetchOutcome.Fetched -> {
-                            finish(withLyrics.await(), staging, item.id, fetched, cover.await())
+                            outcome = finish(withLyrics.await(), staging, item.id, fetched, cover.await(), trace)
                         }
                     }
                 }
             } catch (e: CancellationException) {
                 withContext(NonCancellable) { onStopped(videoId, stored, staging) }
                 throw e
+            } finally {
+                withContext(NonCancellable) { Log.i(TRACE_TAG, trace.line(outcome, settingsOf(threads))) }
+            }
+        }
+
+        private suspend fun settingsOf(threads: Int): String =
+            "threads=$threads blockKiB=${RangeDownloader.BLOCK_SIZE / 1024} " +
+                "concurrent=${preferences.concurrentDownloads.first()} net=${networkKind()}"
+
+        private fun networkKind(): String {
+            val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return "unknown"
+            val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return "none"
+            return when {
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cellular"
+                else -> "other"
             }
         }
 
@@ -106,7 +131,8 @@ class DownloadRunner
             itemId: Int,
             fetched: FetchOutcome.Fetched,
             cover: ByteArray?,
-        ) {
+            trace: DownloadTrace,
+        ): String {
             notifier.show(request.videoId, request.tags.title, DownloadPhase.Finishing)
             downloads.emitProgress(
                 DownloadProgressUpdate(request.videoId, itemId, 0L, 0L, DownloadItemStatus.DOWNLOADING, isMerging = true),
@@ -115,6 +141,7 @@ class DownloadRunner
             val extension = if (request.wantsAudioOnly) "m4a" else "mp4"
             val output = staging.output(extension)
             val runJob = currentCoroutineContext().job
+            val remuxStarted = trace.now()
             val remuxed =
                 withContext(Dispatchers.IO) {
                     remuxer.remux(
@@ -125,11 +152,13 @@ class DownloadRunner
                         isCancelled = { !runJob.isActive },
                     )
                 }
+            trace.remuxMs = (trace.now() - remuxStarted) / NANOS_PER_MS
+            trace.peakStagingBytes = (fetched.videoPart?.length() ?: 0L) + fetched.audioPart.length() + output.length()
             if (remuxed is Mp4Remuxer.Result.Failure) {
                 currentCoroutineContext().ensureActive()
                 Log.w(TAG, "${request.videoId}: remux failed (${remuxed.reason}): ${remuxed.message}")
                 fail(request, staging, context.getString(R.string.download_failed_merge), keepParts = false)
-                return
+                return "failed:REMUX_${remuxed.reason}"
             }
             fetched.videoPart?.let { keepProjection(request.videoId, it, output) }
             try {
@@ -139,18 +168,21 @@ class DownloadRunner
             }
             if (!validator.isPlayable(output, expectVideo = !request.wantsAudioOnly, expectedDurationMs = fetched.durationMs)) {
                 fail(request, staging, context.getString(R.string.download_failed_unreadable), keepParts = false)
-                return
+                return "failed:UNREADABLE"
             }
             currentCoroutineContext().ensureActive()
             val size = output.length()
+            val placeStarted = trace.now()
             val placed = placement.place(output, request, extension)
+            trace.placeMs = (trace.now() - placeStarted) / NANOS_PER_MS
             if (placed == null) {
                 fail(request, staging, context.getString(R.string.download_failed_save), keepParts = true)
-                return
+                return "failed:PLACE"
             }
             withContext(NonCancellable) {
                 commit(request, staging, itemId, placed, extension, size, qualityOf(fetched), cover, fetched.streams)
             }
+            return "completed"
         }
 
         /** A 360° video stays 360°; a failure only costs the projection, never the download (#1967). */
@@ -274,6 +306,8 @@ class DownloadRunner
 
         private companion object {
             const val TAG = "DownloadRunner"
+            const val TRACE_TAG = "DownloadTrace"
+            const val NANOS_PER_MS = 1_000_000L
         }
     }
 
