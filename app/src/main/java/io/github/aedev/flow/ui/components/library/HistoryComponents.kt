@@ -323,7 +323,6 @@ internal fun HistoryEntryRow(
         showWatchProgress = true,
         modifier = modifier,
         subtitle = entry.channelName.takeIf { it.isNotBlank() },
-        thumbnailUrl = entry.thumbnailUrl,
         durationSeconds = (entry.duration / 1000L).toInt(),
         thumbnailWidth = thumbnailWidth,
     ) {

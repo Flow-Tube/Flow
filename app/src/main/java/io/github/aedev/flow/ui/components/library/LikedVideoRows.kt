@@ -42,7 +42,6 @@ internal fun LikedRow(
         onRemove = onUnlike,
         modifier = modifier,
         subtitle = like.channelName.takeIf { it.isNotBlank() },
-        thumbnailUrl = like.thumbnail,
     ) {
         MediaRowAction(
             icon = Icons.Filled.ThumbUp,
