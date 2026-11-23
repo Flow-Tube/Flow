@@ -105,21 +105,13 @@ class FeedGridPlanTest {
     }
 
     @Test
-    fun `a one-column grid drops its row spacing unless a phone asks for it`() {
-        assertThat(plan(360.dp).rowSpacing).isEqualTo(0.dp)
+    fun `phone cards keep Home's gap and rows sit flush`() {
+        val layout = feedGridLayoutFor(360.dp)
+
+        assertThat(plan(360.dp).rowSpacing).isEqualTo(layout.cardSpacing)
+        assertThat(plan(360.dp, listMode = true).rowSpacing).isEqualTo(0.dp)
         assertThat(plan(1200.dp).rowSpacing).isGreaterThan(0.dp)
         assertThat(plan(1200.dp, listMode = true).rowSpacing).isEqualTo(0.dp)
-
-        val spaced =
-            feedGridPlanFor(
-                layout = feedGridLayoutFor(360.dp),
-                listMode = false,
-                itemCount = 4,
-                spansOwnRow = { false },
-                includeLastRun = true,
-                compactRowSpacing = 12.dp,
-            )
-        assertThat(spaced.rowSpacing).isEqualTo(12.dp)
     }
 
     @Test

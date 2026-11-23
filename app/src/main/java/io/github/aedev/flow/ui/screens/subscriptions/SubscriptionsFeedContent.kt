@@ -90,7 +90,6 @@ internal fun SubscriptionsFeedContent(
                     spansOwnRow = { false },
                     includeLastRun = true,
                     itemsKey = videos,
-                    compactRowSpacing = if (listMode) 0.dp else feedLayout.cardSpacing,
                 )
             LazyVerticalGrid(
                 columns = plan.cells,

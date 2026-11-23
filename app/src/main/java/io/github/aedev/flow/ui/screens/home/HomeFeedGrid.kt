@@ -71,7 +71,6 @@ internal fun HomeFeedGrid(
             spansOwnRow = { rows[it].spansRow },
             includeLastRun = !uiState.hasMorePages,
             itemsKey = rows,
-            compactRowSpacing = if (isListView) 0.dp else feedLayout.cardSpacing,
         )
     val stripCardWidth = feedStripCardWidth(feedLayout.rowWidth, ContinueWatchingShelfDefaults.CardWidth)
 

@@ -52,7 +52,6 @@ internal fun HomeChipContent(
                 layout = feedLayout,
                 listMode = isListView,
                 placeholderCount = SKELETON_CARDS,
-                compactRowSpacing = if (isListView) 0.dp else feedLayout.cardSpacing,
                 modifier = belowHeader,
             )
         }

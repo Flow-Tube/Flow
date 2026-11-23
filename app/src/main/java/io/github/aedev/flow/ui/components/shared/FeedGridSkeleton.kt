@@ -22,11 +22,10 @@ fun FeedGridSkeleton(
     modifier: Modifier = Modifier,
     placeholderCount: Int = DEFAULT_PLACEHOLDER_COUNT,
     compactRows: Boolean = false,
-    compactRowSpacing: Dp = 0.dp,
     topPadding: Dp = FeedGridTopPadding,
 ) {
     val plan =
-        remember(layout, listMode, placeholderCount, compactRows, compactRowSpacing) {
+        remember(layout, listMode, placeholderCount, compactRows) {
             feedGridPlanFor(
                 layout = layout,
                 listMode = listMode,
@@ -34,7 +33,6 @@ fun FeedGridSkeleton(
                 spansOwnRow = { false },
                 includeLastRun = false,
                 compactRows = compactRows,
-                compactRowSpacing = compactRowSpacing,
             )
         }
     SkeletonSurface {

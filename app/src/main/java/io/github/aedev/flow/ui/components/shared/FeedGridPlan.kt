@@ -85,7 +85,8 @@ data class FeedGridPlan(
 
 /**
  * [includeLastRun] is false while more pages may still arrive: the tail of the list would otherwise
- * reflow every time a page lands. [compactRowSpacing] is the gap between one-column rows on a phone.
+ * reflow every time a page lands. A phone column of full cards keeps the layout's gap between them,
+ * as Home does; a phone column of rows sits flush, each row already padded.
  */
 fun feedGridPlanFor(
     layout: FeedGridLayout,
@@ -95,7 +96,6 @@ fun feedGridPlanFor(
     includeLastRun: Boolean,
     compactRows: Boolean = false,
     compactRowThumbnailWidth: Dp = VideoCardDefaults.RowThumbnailWidth,
-    compactRowSpacing: Dp = 0.dp,
 ): FeedGridPlan {
     val columns = if (listMode) 1 else layout.columns
     val dense = layout.dense && !listMode
@@ -106,7 +106,7 @@ fun feedGridPlanFor(
         rowSpacing =
             when {
                 columns > 1 -> layout.cardSpacing
-                layout.isCompact -> compactRowSpacing
+                layout.isCompact && !listMode && !compactRows -> layout.cardSpacing
                 else -> 0.dp
             },
         listThumbnailWidth = if (layout.isCompact) compactRowThumbnailWidth else layout.thumbnailWidth,
@@ -136,9 +136,8 @@ fun rememberFeedGridPlan(
     itemsKey: Any? = null,
     compactRows: Boolean = false,
     compactRowThumbnailWidth: Dp = VideoCardDefaults.RowThumbnailWidth,
-    compactRowSpacing: Dp = 0.dp,
 ): FeedGridPlan =
-    remember(layout, listMode, itemCount, includeLastRun, itemsKey, compactRows, compactRowThumbnailWidth, compactRowSpacing) {
+    remember(layout, listMode, itemCount, includeLastRun, itemsKey, compactRows, compactRowThumbnailWidth) {
         feedGridPlanFor(
             layout = layout,
             listMode = listMode,
@@ -147,7 +146,6 @@ fun rememberFeedGridPlan(
             includeLastRun = includeLastRun,
             compactRows = compactRows,
             compactRowThumbnailWidth = compactRowThumbnailWidth,
-            compactRowSpacing = compactRowSpacing,
         )
     }
 
