@@ -343,13 +343,17 @@ object PictureInPictureHelper {
                 .setAspectRatio(aspectRatio)
                 .setActions(actions)
 
-        videoViewBounds
+        // A reel fills the window; videoViewBounds belongs to the video player, wherever it sits.
+        val hintArea = if (navigation != null) (context as? Activity)?.windowBounds() else videoViewBounds
+        hintArea
             ?.let { pipSourceBounds(it, safeAspectRatio) }
             ?.let { builder.setSourceRectHint(android.graphics.Rect(it.left, it.top, it.right, it.bottom)) }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             builder.setAutoEnterEnabled(autoEnterEnabled)
-            builder.setSeamlessResizeEnabled(false)
+            // The documented setting for video. With false the window crossfades snapshots, and the
+            // live picture froze for up to 0.6 s after entering in an A/B on the API 37 emulator.
+            builder.setSeamlessResizeEnabled(true)
         }
         isAutoEnterArmed = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && autoEnterEnabled
 
@@ -427,6 +431,12 @@ object PictureInPictureHelper {
             pendingIntent,
         ).apply { isEnabled = spec.enabled }
     }
+
+    private fun Activity.windowBounds(): PipBounds? =
+        window
+            ?.decorView
+            ?.takeIf { it.width > 0 && it.height > 0 }
+            ?.let { PipBounds(0, 0, it.width, it.height) }
 
     private data class PipButton(
         val iconResId: Int,
