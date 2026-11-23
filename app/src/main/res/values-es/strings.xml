@@ -432,7 +432,7 @@
     <string name="remove_from_playlist_action">Eliminar de la lista de reproducción</string>
     <string name="category_gaming">Videojuegos</string>
     <string name="category_creative">Creativo</string>
-    <string name="channel_memory_subtitle">Comentarios implícitos de su historial de visualización</string>
+    <string name="channel_memory_subtitle">Comentarios implícitos de tu historial de visualización</string>
     <string name="header_your_collection">Tu colección</string>
     <string name="share_link_cd">Compartir enlace</string>
     <string name="year_artist_template">%1$s • %2$s</string>
@@ -1552,12 +1552,12 @@
     <string name="music_quality_low">Bajo</string>
     <string name="settings_item_datetime">Fecha y hora</string>
     <string name="music_download_location_label">Ubicación de descarga de música</string>
-    <string name="datetime_title">Visualización de fecha y hora</string>
+    <string name="datetime_title">Formato de fecha y hora</string>
     <string name="settings_item_datetime_subtitle">Personaliza cómo se muestran las fechas de carga</string>
     <string name="datetime_preview_header">Avance</string>
     <string name="datetime_format_header">Formato de fecha exacta</string>
     <string name="datetime_overrides_header">Anulaciones por sección</string>
-    <string name="datetime_mode_header">Visualización de la hora</string>
+    <string name="datetime_mode_header">Formato de hora</string>
     <string name="datetime_mode_relative">Tiempo relativo (por ejemplo, hace 7 meses)</string>
     <string name="datetime_mode_both">Ambos</string>
     <string name="datetime_overrides_note">Cambia el formato para lugares concretos. «Predeterminado» sigue el ajuste de arriba.</string>
@@ -5477,7 +5477,7 @@
     <string name="home_preview_captions_on">Mostrar subtítulos</string>
     <string name="home_preview_captions_off">Ocultar subtítulos</string>
     <string name="settings_video_card_style_title">Estilo de tarjeta</string>
-    <string name="settings_video_card_style_summary">El ancho completo elimina las esquinas de las miniaturas en la página de inicio y en la de suscripciones</string>
+    <string name="settings_video_card_style_summary">El ancho completo recorta las esquinas de las miniaturas de los vídeos</string>
     <string name="settings_video_card_style_keywords">tarjeta, miniatura, esquinas, redondeado, ancho completo, de borde a borde, sangrado</string>
     <string name="settings_video_card_style_rounded">Redondeado</string>
     <string name="settings_video_card_style_full_width">Ancho completo</string>
@@ -5491,4 +5491,19 @@
     <string name="search_instead_for">Buscar %1$s en su lugar</string>
     <string name="home_offline_downloads_hint">Tus descargas se siguen reproduciendo</string>
     <string name="home_back_online_refresh">Conexión restablecida · Actualizar</string>
+    <string name="repeat_mode_off">Repetición desactivada</string>
+    <string name="repeat_mode_all">Repetir todo</string>
+    <string name="repeat_mode_one">Repetir una</string>
+    <string name="playlist_video_position">%1$d de %2$d</string>
+    <plurals name="playlist_loading_all">
+        <item quantity="one">Cargando %1$d vídeo</item>
+        <item quantity="many">Cargando los %1$d vídeos</item>
+        <item quantity="other">Cargando los %1$d vídeos</item>
+    </plurals>
+    <string name="playlist_loading_all_unknown">Cargando todos los vídeos</string>
+    <plurals name="playlist_download_new">
+        <item quantity="one">Descargar %1$d vídeo nuevo</item>
+        <item quantity="many">Descargar %1$d vídeos nuevos</item>
+        <item quantity="other">Descargar %1$d vídeos nuevos</item>
+    </plurals>
 </resources>
