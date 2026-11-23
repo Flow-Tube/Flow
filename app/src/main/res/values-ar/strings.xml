@@ -5806,4 +5806,19 @@
     <string name="home_preview_captions_off">إخفاء الترجمة النصية</string>
     <string name="settings_top_bar_hide_on_scroll_title">إخفاء الشريط العلوي عند التمرير</string>
     <string name="settings_top_bar_hide_on_scroll_summary">في الصفحة الرئيسية والاشتراكات والموسيقى</string>
+    <string name="settings_top_bar_hide_on_scroll_keywords">الشريط العلوي، الشريط العلوي، الشرائح، التمرير، إخفاء، شريط الحالة</string>
+    <string name="settings_video_card_style_title">نمط البطاقات</string>
+    <string name="settings_video_card_style_summary">العرض الكامل يزيل الزوايا المستديرة من الصور المصغرة للفيديو</string>
+    <string name="settings_video_card_style_keywords">بطاقة، صورة مصغّرة، زوايا، مستدير، عرض كامل، من الحافة إلى الحافة، ممتد حتى الأطراف</string>
+    <string name="settings_video_card_style_rounded">مستديرة</string>
+    <string name="settings_video_card_style_full_width">عرض كامل</string>
+    <plurals name="playlist_loading_all">
+        <item quantity="zero">جارٍ تحميل %1$d فيديو</item>
+        <item quantity="one">جارٍ تحميل فيديو واحد</item>
+        <item quantity="two">جارٍ تحميل %1$d فيديو</item>
+        <item quantity="few">جارٍ تحميل %1$d فيديوهات</item>
+        <item quantity="many">جارٍ تحميل %1$d فيديو</item>
+        <item quantity="other">جارٍ تحميل %1$d فيديو</item>
+    </plurals>
+    <string name="playlist_loading_all_unknown">جارٍ تحميل كل الفيديوهات</string>
 </resources>
