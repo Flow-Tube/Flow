@@ -32,7 +32,6 @@ import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.components.shared.RetryWhenBackOnline
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
 import io.github.aedev.flow.utils.LoadErrorKind
 
@@ -105,10 +104,8 @@ internal fun CategoryPagedGrid(
                     val video = item.gridVideo()
                     MediaVideoCard(
                         video = video,
-                        layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                        spec = plan.videoCard(index),
                         onClick = { onVideoClick(video) },
-                        thumbnailWidth = plan.listThumbnailWidth,
-                        density = plan.cardDensity,
                     )
                 }
 
@@ -178,9 +175,8 @@ internal fun CategoryChartGrid(
         ) { index, video ->
             MediaVideoCard(
                 video = video,
-                layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                spec = plan.videoCard(index),
                 onClick = { onVideoClick(video) },
-                thumbnailWidth = plan.listThumbnailWidth,
             )
         }
     }
