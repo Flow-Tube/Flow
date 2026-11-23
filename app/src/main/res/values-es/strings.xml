@@ -1546,7 +1546,7 @@
     <string name="music_playback_warning_generic">Error en la reproducción de música. Inténtalo de nuevo o cambia de red si esto sigue sucediendo.</string>
     <string name="music_playback_warning_forbidden">Se denegó el acceso a la transmisión de música. YouTube puede estar limitando esta IP; Intente recargar o cambiar de red/VPN.</string>
     <string name="music_quality_auto">Automático</string>
-    <string name="music_quality_header">Calidad de audio musical</string>
+    <string name="music_quality_header">Calidad de audio de la música</string>
     <string name="music_quality_medium">Medio</string>
     <string name="music_quality_high">Alto</string>
     <string name="music_quality_low">Bajo</string>
