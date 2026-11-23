@@ -15,7 +15,6 @@ import io.github.aedev.flow.data.video.DownloadStreamPolicy
 import io.github.aedev.flow.data.video.OfflineSubtitleStore
 import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
-import io.github.aedev.flow.data.video.downloader.resolve.ResolvedStreams
 import io.github.aedev.flow.data.video.downloader.subtitle.DownloadSubtitleFile
 import io.github.aedev.flow.data.video.downloader.tags.CoverArtLoader
 import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
@@ -28,6 +27,7 @@ import io.github.aedev.flow.data.video.storage.DownloadCovers
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadPlacement
 import io.github.aedev.flow.data.video.storage.PlacedFile
+import io.github.aedev.flow.player.stream.ResolvedCaption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -89,6 +89,20 @@ class DownloadRunner
             try {
                 val request = enricher.enrich(stored)
                 threads = request.threads ?: preferences.downloadThreads.first()
+                val ready = ReadyOutput.read(staging.ready)?.takeIf { staging.output(it.extension).isFile }
+                if (ready != null) {
+                    outcome =
+                        placeAndCommit(
+                            request,
+                            staging,
+                            item.id,
+                            ready,
+                            coverArt.load(request.tags.thumbnailUrl, request.kind),
+                            null,
+                            trace,
+                        )
+                    return
+                }
                 coroutineScope {
                     val cover = async { coverArt.load(request.tags.thumbnailUrl, request.kind) }
                     val withLyrics = async { lyrics.addTo(request) }
@@ -212,22 +226,54 @@ class DownloadRunner
             }
             currentCoroutineContext().ensureActive()
             withContext(Dispatchers.IO) { DownloadFiles.sync(output) }
+            val quality = qualityOf(fetched)
+            val streams = fetched.streams
+            val ready =
+                ReadyOutput(
+                    extension = extension,
+                    quality = quality,
+                    swappedTrack =
+                        streams?.takeIf { it.audioTrackSwapped }?.let {
+                            DownloadStreamPolicy.audioLanguageLabel(it.audio) ?: context.getString(R.string.audio_track_original)
+                        },
+                    savedQuality = fetched.substitutedFor?.let { quality },
+                    wantedQuality =
+                        fetched.substitutedFor?.let {
+                            DownloadStreamPolicy.videoQualityLabel(
+                                it,
+                                context.getString(R.string.download_quality_hdr),
+                            )
+                        },
+                )
+            // A copy into a picked folder needs a third full-size file; the checked output no longer needs its parts.
+            if (placement.copiesInto(request)) {
+                withContext(Dispatchers.IO) {
+                    ReadyOutput.write(staging.ready, ready)
+                    staging.clearInputs()
+                }
+            }
+            return placeAndCommit(request, staging, itemId, ready, cover, streams?.captions, trace)
+        }
+
+        private suspend fun placeAndCommit(
+            request: DownloadRequest,
+            staging: DownloadStaging,
+            itemId: Int,
+            ready: ReadyOutput,
+            cover: ByteArray?,
+            captions: List<ResolvedCaption>?,
+            trace: DownloadTrace,
+        ): String {
+            val output = staging.output(ready.extension)
             val size = output.length()
             val placeStarted = trace.now()
-            val placed = placement.place(output, request, extension)
+            val placed = placement.place(output, request, ready.extension)
             trace.placeMs = (trace.now() - placeStarted) / NANOS_PER_MS
             if (placed == null) {
                 fail(request, staging, context.getString(R.string.download_failed_save), keepParts = true)
                 return "failed:PLACE"
             }
-            withContext(NonCancellable) {
-                val quality = qualityOf(fetched)
-                val instead =
-                    fetched.substitutedFor?.let { wanted ->
-                        quality to DownloadStreamPolicy.videoQualityLabel(wanted, context.getString(R.string.download_quality_hdr))
-                    }
-                commit(request, staging, itemId, placed, extension, size, quality, cover, fetched.streams, instead)
-            }
+            withContext(NonCancellable) { commit(request, staging, itemId, placed, ready, size, cover, captions.orEmpty()) }
             return "completed"
         }
 
@@ -252,25 +298,23 @@ class DownloadRunner
             staging: DownloadStaging,
             itemId: Int,
             placed: PlacedFile,
-            extension: String,
+            ready: ReadyOutput,
             size: Long,
-            quality: String,
             cover: ByteArray?,
-            streams: ResolvedStreams?,
-            qualityInstead: Pair<String, String>?,
+            captions: List<ResolvedCaption>,
         ) {
-            val captions = streams?.captions.orEmpty()
-            val swappedTrack =
-                streams?.takeIf { it.audioTrackSwapped }?.let {
-                    DownloadStreamPolicy.audioLanguageLabel(it.audio) ?: context.getString(R.string.audio_track_original)
-                }
+            val qualityInstead = ready.savedQuality?.let { saved -> ready.wantedQuality?.let { saved to it } }
             val path = placed.path
             val mimeType = if (request.wantsAudioOnly) "audio/mp4" else "video/mp4"
-            downloadDao.completeItem(itemId, path, placed.fileName, extension, mimeType, quality, size)
+            downloadDao.completeItem(itemId, path, placed.fileName, ready.extension, mimeType, ready.quality, size)
             cover?.let { DownloadCovers.save(context, request.videoId, it) }?.let { downloadDao.updateThumbnailPath(request.videoId, it) }
             if (!DownloadFiles.isDocument(path)) downloads.scanFile(path, mimeType)
             downloads.emitProgress(DownloadProgressUpdate(request.videoId, itemId, size, size, DownloadItemStatus.COMPLETED))
-            notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo, swappedTrack, qualityInstead))
+            notifier.show(
+                request.videoId,
+                request.tags.title,
+                DownloadPhase.Complete(placed.fellBackTo, ready.swappedTrack, qualityInstead),
+            )
             staging.clear()
             waits.clear(request.videoId)
             if (request.kind != DownloadKind.MUSIC && !request.wantsAudioOnly) {
@@ -305,7 +349,12 @@ class DownloadRunner
         ) {
             withContext(NonCancellable) {
                 waits.clear(request.videoId)
-                if (keepParts) staging.clearOutputs() else staging.clear()
+                // A checked output waiting to be copied is kept: its parts are already gone.
+                if (!keepParts) {
+                    staging.clear()
+                } else if (!staging.ready.exists()) {
+                    staging.clearOutputs()
+                }
                 downloadDao.updateAllItemsStatus(request.videoId, DownloadItemStatus.FAILED)
                 notifier.show(request.videoId, request.tags.title, DownloadPhase.Failed(message))
             }

@@ -20,12 +20,22 @@ internal class DownloadStaging(
     val sabrVideoPart = File("$stem.sabr.video.part")
     val sabrAudioPart = File("$stem.sabr.audio.part")
 
+    /** Marks the output as joined and checked, see [ReadyOutput]. */
+    val ready = File("$stem.ready.json")
+
     fun output(extension: String) = File("$stem.out.$extension")
 
     /** Everything this download wrote to staging, including a half-made output. */
     fun clear() {
         listOf(videoPart, audioPart, state, File("${state.path}.tmp"), output("mp4"), output("m4a"), output("webm"))
             .forEach { it.delete() }
+        ready.delete()
+        clearSabrParts()
+    }
+
+    /** What the output was made from, once the output itself is checked and on disk. */
+    fun clearInputs() {
+        listOf(videoPart, audioPart, state, File("${state.path}.tmp")).forEach { it.delete() }
         clearSabrParts()
     }
 
