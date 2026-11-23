@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 private const val QUEUE_STORE_NAME = "music_queue"
 
@@ -64,6 +65,9 @@ class QueuePersistence private constructor(
     private var saveJob: Job? = null
     private var autoSaveJob: Job? = null
     private var lastSaveTime = 0L
+    private val resumable by lazy {
+        ResumableQueueFile(ProfileFiles.preferences(context, StoreScope.PROFILE_PRIVATE, QUEUE_STORE_NAME))
+    }
 
     /**
      * Data class holding all queue state for persistence
@@ -132,6 +136,7 @@ class QueuePersistence private constructor(
                     prefs[AUTOMIX_KEY] = gson.toJson(automix)
                 }
                 lastSaveTime = now
+                withContext(Dispatchers.IO) { resumable.markReadable() }
                 Log.d(TAG, "Queue saved: ${queue.size} tracks, index=$currentIndex, pos=$currentPosition, automix=${automix.size}")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save queue", e)
@@ -143,6 +148,12 @@ class QueuePersistence private constructor(
      * Restore queue state from persistent storage
      */
     suspend fun restoreQueue(): QueueState? {
+        val restored = readQueue()
+        withContext(Dispatchers.IO) { if (restored == null) resumable.markUnreadable() else resumable.markReadable() }
+        return restored
+    }
+
+    private suspend fun readQueue(): QueueState? {
         return try {
             val prefs = context.queueDataStore.data.first()
 
@@ -215,11 +226,6 @@ class QueuePersistence private constructor(
         autoSaveJob = null
     }
 
-    /**
-     * Whether a queue was ever saved, from the store's file alone. Only non-empty queues are written
-     * and nothing clears the store, so the file exists exactly when there is a queue to resume. A media
-     * button that cold-starts the music service needs this answer on the main thread, before any read
-     * of the store could finish.
-     */
-    fun hasSavedQueueFile(): Boolean = ProfileFiles.preferences(context, StoreScope.PROFILE_PRIVATE, QUEUE_STORE_NAME).exists()
+    /** Whether a Play button may resume the saved queue; see [ResumableQueueFile]. */
+    fun hasResumableQueue(): Boolean = resumable.canResume()
 }
