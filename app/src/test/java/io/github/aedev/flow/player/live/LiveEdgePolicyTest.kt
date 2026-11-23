@@ -8,14 +8,14 @@ class LiveEdgePolicyTest {
     private val twelveHours = 43_200_000L
 
     @Test
-    fun `the default position after a couple of rebuffers is still live`() {
-        // 12 s readahead plus two 500 ms target raises.
-        assertThat(LiveEdgePolicy.isAtEdge(twelveHours, twelveHours - 13_000)).isTrue()
+    fun `the default position snapped back a segment, after a couple of rebuffers, is still live`() {
+        // 12 s readahead, snapped to a segment start up to 5 s earlier, plus two 500 ms target raises.
+        assertThat(LiveEdgePolicy.isAtEdge(twelveHours, twelveHours - 18_000)).isTrue()
     }
 
     @Test
-    fun `more than 15 seconds behind the window end is behind live`() {
-        assertThat(LiveEdgePolicy.isAtEdge(twelveHours, twelveHours - 15_001)).isFalse()
+    fun `more than 20 seconds behind the window end is behind live`() {
+        assertThat(LiveEdgePolicy.isAtEdge(twelveHours, twelveHours - 20_001)).isFalse()
         assertThat(LiveEdgePolicy.behindLiveMs(twelveHours, twelveHours - 5_025_000)).isEqualTo(5_025_000)
     }
 
