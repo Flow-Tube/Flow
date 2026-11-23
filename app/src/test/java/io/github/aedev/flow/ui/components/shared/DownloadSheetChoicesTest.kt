@@ -89,6 +89,17 @@ class DownloadSheetChoicesTest {
     }
 
     @Test
+    fun `an option the device can't play smoothly is passed over unless it was chosen`() {
+        val q1080 = ladder.first { it.height == 1080 }
+        val av1 = DownloadFormatOption("av1", hdr = false)
+        val smooth = { option: DownloadFormatOption -> option.codecKey == "h264" }
+
+        assertThat(DownloadSheetChoices.option(q1080, current = null, preferredCodec = "vp9", playsSmoothly = smooth))
+            .isEqualTo(DownloadFormatOption("h264", hdr = false))
+        assertThat(DownloadSheetChoices.option(q1080, current = av1, preferredCodec = null, playsSmoothly = smooth)).isEqualTo(av1)
+    }
+
+    @Test
     fun `a resolution keeps the chosen codec, else the default codec in SDR`() {
         val q1080 = ladder.first { it.height == 1080 }
         val q720 = ladder.first { it.height == 720 }

@@ -126,18 +126,23 @@ fun MediaDownloadSheetCompact(
                 ?: heights.firstOrNull() ?: 0,
         )
     }
+    val smoothItags by rememberSmoothItags(videoStreams)
+    val formatsAtHeight = videoStreams.filter { DownloadStreamPolicy.videoHeight(it) == selectedHeight }
     val codecsForHeight =
-        videoStreams
-            .filter { DownloadStreamPolicy.videoHeight(it) == selectedHeight }
+        formatsAtHeight
             .map(DownloadStreamPolicy::videoCodecKey)
             .distinct()
             .sortedBy { DownloadStreamPolicy.DOWNLOAD_CODEC_PRIORITY[it] ?: UNRANKED_CODEC }
-    var selectedCodec by remember(selectedHeight, lastCodec, preferredDownloadCodecKey) {
+    val smoothCodecs =
+        codecsForHeight
+            .filter { codec -> formatsAtHeight.any { DownloadStreamPolicy.videoCodecKey(it) == codec && smoothItags.playsSmoothly(it) } }
+            .ifEmpty { codecsForHeight }
+    var selectedCodec by remember(selectedHeight, lastCodec, preferredDownloadCodecKey, smoothCodecs) {
         mutableStateOf(
-            codecsForHeight.firstOrNull { it == preferredDownloadCodecKey }
-                ?: codecsForHeight.firstOrNull { it == lastCodec }
-                ?: codecsForHeight.firstOrNull { it == currentPlayingCodec }
-                ?: codecsForHeight.firstOrNull() ?: "",
+            smoothCodecs.firstOrNull { it == preferredDownloadCodecKey }
+                ?: smoothCodecs.firstOrNull { it == lastCodec }
+                ?: smoothCodecs.firstOrNull { it == currentPlayingCodec }
+                ?: smoothCodecs.firstOrNull() ?: "",
         )
     }
     var selectedAudioIndex by remember(audioStreams, lastAudioLabel, preferredLang) {

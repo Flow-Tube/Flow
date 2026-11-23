@@ -56,13 +56,22 @@ internal object VideoDecoderSupport {
     }
 
     fun canDecode(stream: VideoStream): Boolean {
-        val context = appContext ?: return true
         val itag = stream.itagItem ?: return true
-        val mime = MimeTypes.getVideoMediaMimeType(itag.codec)?.takeIf { it != MimeTypes.VIDEO_UNKNOWN } ?: return true
-        val width = itag.width.takeIf { it > 0 } ?: return true
-        val height = itag.height.takeIf { it > 0 } ?: return true
-        val fps = itag.fps.coerceAtLeast(0)
-        return answers.getOrPut("$mime|${itag.codec}|${width}x$height@$fps") { query(context, mime, itag.codec, width, height, fps) }
+        return canDecode(itag.codec, itag.width, itag.height, itag.fps)
+    }
+
+    /** The same answer for a stream known only by its RFC 6381 [codecs] string, size and rate. */
+    fun canDecode(
+        codecs: String?,
+        width: Int,
+        height: Int,
+        fps: Int,
+    ): Boolean {
+        val context = appContext ?: return true
+        val mime = MimeTypes.getVideoMediaMimeType(codecs)?.takeIf { it != MimeTypes.VIDEO_UNKNOWN } ?: return true
+        if (width <= 0 || height <= 0) return true
+        val rate = fps.coerceAtLeast(0)
+        return answers.getOrPut("$mime|$codecs|${width}x$height@$rate") { query(context, mime, codecs, width, height, rate) }
     }
 
     private fun query(

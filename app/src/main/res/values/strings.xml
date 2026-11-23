@@ -2925,6 +2925,7 @@
     <string name="audio_format_unknown">Audio</string>
     <!-- Approximate download size shown beside a quality; %1$s is a platform-formatted file size -->
     <string name="download_size_estimate">~%1$s</string>
+    <string name="download_may_stutter">May stutter here</string>
     <!-- Download dialog style (Content settings) -->
     <string name="download_menu_style_title">Download menu style</string>
     <string name="download_menu_style_subtitle">Choose how the download sheet looks</string>

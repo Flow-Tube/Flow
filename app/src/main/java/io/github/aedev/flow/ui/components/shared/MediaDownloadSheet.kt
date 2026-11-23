@@ -102,10 +102,14 @@ fun MediaDownloadSheet(
         mutableStateOf(defaultDownloadSubtitle(subtitleOptions, lastSubtitleLanguage))
     }
 
+    val smoothItags by rememberSmoothItags(remember(qualities) { qualities.flatMap { it.formats } })
     val quality =
         qualities.firstOrNull { it.height == chosenHeight }
             ?: defaultQuality?.let { DownloadSheetChoices.preselect(qualities, it.height) }
-    val option = quality?.let { DownloadSheetChoices.option(it, chosenOption, preferredCodec) }
+    val option =
+        quality?.let { q ->
+            DownloadSheetChoices.option(q, chosenOption, preferredCodec) { smoothItags.playsSmoothly(q.format(it)) }
+        }
     val audioOnly = chosenAudio ?: audioStreams.firstOrNull().takeIf { qualities.isEmpty() }
     val format = if (quality != null && option != null) quality.format(option) else null
     val hdrLabel = stringResource(R.string.download_quality_hdr)
@@ -182,16 +186,16 @@ fun MediaDownloadSheet(
 
         if (qualities.isNotEmpty()) {
             FlowSectionHeader(text = stringResource(R.string.video))
+            val stutters = stringResource(R.string.download_may_stutter)
             DownloadTileGrid(items = qualities, columns = VIDEO_COLUMNS) { item, modifier ->
-                val tileOption = DownloadSheetChoices.option(item, option, preferredCodec)
+                val tileOption = DownloadSheetChoices.option(item, option, preferredCodec) { smoothItags.playsSmoothly(item.format(it)) }
+                val size = tileOption?.let { approxDownloadSizeLabel(streamSizes[VideoCodecUtils.streamSizeKey(item.height, it.codecKey)]) }
                 DownloadChoiceTile(
                     title = VideoCodecUtils.qualityLabelWithFrameRate(item.height, item.fps),
                     detail =
-                        tileOption?.let {
-                            approxDownloadSizeLabel(
-                                streamSizes[VideoCodecUtils.streamSizeKey(item.height, it.codecKey)],
-                            )
-                        },
+                        listOfNotNull(size, stutters.takeIf { item.formats.none { smoothItags.playsSmoothly(it) } })
+                            .joinToString(separator)
+                            .ifEmpty { null },
                     badge = resolutionBadge(item.height)?.let { stringResource(it) },
                     checked = audioOnly == null && item == quality,
                     onClick = {
