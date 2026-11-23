@@ -693,7 +693,7 @@
     <string name="content_settings_header_display">Görünüş</string>
     <string name="content_settings_header_home_layout">Əsas Səhifə Tərtibatı</string>
     <string name="content_settings_home_layout_title">Əsas Səhifə Görünüş Rejimi</string>
-    <string name="content_settings_home_layout_subtitle">Videoların əsas səhifədə necə göstəriləcəyini seçin</string>
+    <string name="content_settings_home_layout_subtitle">Digər lentlər siz onları dəyişənə qədər bunu izləyir</string>
     <string name="content_settings_layout_grid">Tor</string>
     <string name="content_settings_layout_list">Siyahı</string>
     <string name="content_settings_grid_size_title">Tor Elementi Ölçüsü</string>
