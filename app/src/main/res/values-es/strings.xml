@@ -5485,4 +5485,8 @@
     <string name="content_settings_feed_autoplay_title">Reproducción automática en Inicio</string>
     <string name="content_settings_feed_autoplay_keywords">reproducción automática, vista previa, integrado, silenciado, reproducción en feeds</string>
     <string name="home_preview_unmute">Activar el sonido de la vista previa</string>
+    <string name="load_error_offline_hint">Se cargará de nuevo cuando tengas conexión</string>
+    <string name="search_showing_results_for">Mostrando resultados para %1$s</string>
+    <string name="search_did_you_mean">¿Quisiste decir %1$s?</string>
+    <string name="search_instead_for">Buscar %1$s en su lugar</string>
 </resources>
