@@ -373,6 +373,8 @@ class VideoDownloadManager
                     recentlyDeletedPaths.addAll(filePaths)
 
                     downloadDao.deleteDownload(videoId)
+                    // Before returning: a re-download queued right after reuses these staging names.
+                    DownloadStaging(stagingDirectory(), videoId).clear()
 
                     ioScope.launch {
                         val left = mutableListOf<String>()
@@ -397,7 +399,6 @@ class VideoDownloadManager
                             }
                         }
                         offlineSubtitleStore.delete(videoId)
-                        DownloadStaging(stagingDirectory(), videoId).clear()
                     }
                     true
                 } catch (e: Exception) {

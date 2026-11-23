@@ -13,6 +13,7 @@ import androidx.media3.container.MdtaMetadataEntry
 import androidx.media3.muxer.BufferInfo
 import androidx.media3.muxer.Mp4Muxer
 import androidx.media3.muxer.SeekableMuxerOutput
+import io.github.aedev.flow.data.video.downloader.transfer.DiskFull
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -41,7 +42,7 @@ class Mp4Remuxer
             ) : Result
         }
 
-        enum class Reason { INPUT_MISSING, NO_TRACK, UNSUPPORTED_AUDIO, UNSUPPORTED_VIDEO, CANCELLED, MUX_FAILED }
+        enum class Reason { INPUT_MISSING, NO_TRACK, UNSUPPORTED_AUDIO, UNSUPPORTED_VIDEO, CANCELLED, MUX_FAILED, DISK_FULL }
 
         private class Input(
             val extractor: MediaExtractor,
@@ -109,7 +110,7 @@ class Mp4Remuxer
                 rejection.failure
             } catch (e: Exception) {
                 Log.e(TAG, "Remux failed", e)
-                Result.Failure(Reason.MUX_FAILED, e.message ?: e.javaClass.simpleName)
+                Result.Failure(if (DiskFull.isCause(e)) Reason.DISK_FULL else Reason.MUX_FAILED, e.message ?: e.javaClass.simpleName)
             } finally {
                 inputs.forEach { runCatching { it.extractor.release() } }
                 if (!completed) output.delete()

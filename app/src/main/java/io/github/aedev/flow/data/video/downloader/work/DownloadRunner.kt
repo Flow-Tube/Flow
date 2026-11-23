@@ -157,7 +157,9 @@ class DownloadRunner
             if (remuxed is Mp4Remuxer.Result.Failure) {
                 currentCoroutineContext().ensureActive()
                 Log.w(TAG, "${request.videoId}: remux failed (${remuxed.reason}): ${remuxed.message}")
-                fail(request, staging, context.getString(R.string.download_failed_merge), keepParts = false)
+                val diskFull = remuxed.reason == Mp4Remuxer.Reason.DISK_FULL
+                val message = if (diskFull) R.string.download_failed_disk_full else R.string.download_failed_merge
+                fail(request, staging, context.getString(message), keepParts = diskFull)
                 return "failed:REMUX_${remuxed.reason}"
             }
             fetched.videoPart?.let { keepProjection(request.videoId, it, output) }

@@ -121,7 +121,7 @@ class RangeDownloader internal constructor(
                 }
             }
         } catch (e: IOException) {
-            val failure = if (isDiskFull(e)) TransferFailure.DISK_FULL else TransferFailure.BLOCK_FAILED
+            val failure = if (DiskFull.isCause(e)) TransferFailure.DISK_FULL else TransferFailure.BLOCK_FAILED
             job.fail(TransferResult.Failed(failure, e.message))
         }
         return job.outcome()
@@ -248,7 +248,7 @@ class RangeDownloader internal constructor(
         } catch (e: IOException) {
             stream.partialBlockBytes[block] = already + written
             if (!job.isRunning) return BlockOutcome.Stopped
-            return BlockOutcome.Retry(e.message ?: e.javaClass.simpleName, diskFull = isDiskFull(e))
+            return BlockOutcome.Retry(e.message ?: e.javaClass.simpleName, diskFull = DiskFull.isCause(e))
         } finally {
             job.untrack(call)
         }
@@ -380,9 +380,6 @@ class RangeDownloader internal constructor(
             attempt: Int,
             retryAfterMs: Long?,
         ): Long = retryAfterMs?.coerceIn(0L, MAX_RETRY_AFTER_MS) ?: (INITIAL_RETRY_DELAY_MS shl attempt)
-
-        fun isDiskFull(error: IOException): Boolean =
-            error.message?.contains("ENOSPC") == true || error.message?.contains("No space left") == true
 
         private fun retryAfterMs(response: Response): Long? =
             response

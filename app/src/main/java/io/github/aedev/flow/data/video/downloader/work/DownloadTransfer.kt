@@ -194,7 +194,7 @@ class DownloadTransfer
             requireChosenTrack: Boolean = false,
         ): FetchOutcome {
             trace.usedSabr = true
-            staging.clearParts()
+            staging.clearSabrParts()
             val info =
                 try {
                     InnerTubeVideoStreamExtractor.resolveSabrDownload(
@@ -239,8 +239,8 @@ class DownloadTransfer
                             visitorId = info.visitorId,
                             ustreamerConfig = info.ustreamerConfig,
                             durationMs = info.durationMs,
-                            videoOutputPath = staging.videoPart.path,
-                            audioOutputPath = staging.audioPart.path,
+                            videoOutputPath = staging.sabrVideoPart.path,
+                            audioOutputPath = staging.sabrAudioPart.path,
                             audioOnly = request.wantsAudioOnly,
                         ) { _, total -> if (total > 0) estimated = total }
                     }
@@ -248,8 +248,11 @@ class DownloadTransfer
                     engine.cancel()
                     throw e
                 }
-            if (!done) return FetchOutcome.Failed(FetchFailure.REFUSED)
-            return FetchOutcome.Fetched(staging.videoPart.takeUnless { request.wantsAudioOnly }, staging.audioPart, info.durationMs)
+            if (!done) {
+                staging.clearSabrParts()
+                return FetchOutcome.Failed(FetchFailure.REFUSED)
+            }
+            return FetchOutcome.Fetched(staging.sabrVideoPart.takeUnless { request.wantsAudioOnly }, staging.sabrAudioPart, info.durationMs)
         }
 
         private suspend fun <T> reportingProgress(
