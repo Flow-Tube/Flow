@@ -91,4 +91,49 @@ class PipActionsTest {
         assertEquals(listOf(PipControl.PREVIOUS, PipControl.PAUSE, PipControl.NEXT), specs.map { it.control })
         assertEquals(listOf(true, true, true), specs.map { it.enabled })
     }
+
+    @Test
+    fun `an ended video offers replay in the middle`() {
+        val specs = pipActionSpecs(false, null, 3, offerBackground = true, videoHasNext = true, videoStop = PipStop.ENDED)
+
+        assertEquals(listOf(PipControl.BACKGROUND, PipControl.REPLAY, PipControl.NEXT), specs.map { it.control })
+    }
+
+    @Test
+    fun `a failed video offers retry in the middle`() {
+        val specs = pipActionSpecs(false, null, 1, videoStop = PipStop.FAILED)
+
+        assertEquals(listOf(PipActionSpec(PipControl.RETRY)), specs)
+    }
+
+    @Test
+    fun `a video playing again shows pause whatever stopped it before`() {
+        val specs = pipActionSpecs(true, null, 3, offerBackground = true, videoStop = PipStop.ENDED)
+
+        assertEquals(PipControl.PAUSE, specs[1].control)
+    }
+
+    @Test
+    fun `a reel queue keeps play or pause`() {
+        val specs = pipActionSpecs(false, PipQueueNavigation(hasPrevious = true, hasNext = true), 3, videoStop = PipStop.ENDED)
+
+        assertEquals(PipControl.PLAY, specs[1].control)
+    }
+
+    @Test
+    fun `a right-to-left system gets the list reversed so the buttons read left to right`() {
+        val video = pipActionSpecs(true, null, 3, offerBackground = true, videoHasNext = true, systemRtl = true)
+        val reels = pipActionSpecs(true, PipQueueNavigation(hasPrevious = true, hasNext = false), 3, systemRtl = true)
+
+        assertEquals(listOf(PipControl.NEXT, PipControl.PAUSE, PipControl.BACKGROUND), video.map { it.control })
+        assertEquals(listOf(PipControl.NEXT, PipControl.PAUSE, PipControl.PREVIOUS), reels.map { it.control })
+        assertEquals(listOf(false, true, true), reels.map { it.enabled })
+    }
+
+    @Test
+    fun `a failure outranks the end`() {
+        assertEquals(PipStop.FAILED, pipStopOf(ended = true, failed = true))
+        assertEquals(PipStop.ENDED, pipStopOf(ended = true, failed = false))
+        assertEquals(null, pipStopOf(ended = false, failed = false))
+    }
 }

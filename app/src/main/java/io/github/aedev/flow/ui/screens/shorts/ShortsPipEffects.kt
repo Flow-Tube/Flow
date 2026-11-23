@@ -9,11 +9,15 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.player.PictureInPictureHelper
 import io.github.aedev.flow.player.PipQueueNavigation
 import io.github.aedev.flow.player.shorts.ShortsPlayerPool
@@ -26,10 +30,16 @@ internal fun ShortsPipActionEffect(
     pagerState: PagerState,
     isInPip: Boolean,
 ) {
-    val activity = LocalContext.current as? Activity
+    val context = LocalContext.current
+    val activity = context as? Activity
     val pool = remember { ShortsPlayerPool.getInstance() }
     val scope = rememberCoroutineScope()
     val inPip by rememberUpdatedState(isInPip)
+    val preferences = remember(context) { PlayerPreferences(context) }
+    val shortsPipEnabled by preferences.shortsPipEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val reelPlaying by pool.anyPlaying.collectAsStateWithLifecycle()
+    val pipAllowed by rememberUpdatedState(shortsPipEnabled)
+    var armed by remember { mutableStateOf(false) }
     val navigation by remember(pagerState) {
         derivedStateOf {
             PipQueueNavigation(
@@ -45,8 +55,10 @@ internal fun ShortsPipActionEffect(
             activity = activity,
             aspectRatio = pool.activeVideoAspectRatio() ?: PictureInPictureHelper.currentVideoAspectRatio,
             isPlaying = isPlaying,
+            autoEnterEnabled = pipAllowed && isPlaying,
             navigation = navigation,
         )
+        armed = pipAllowed && isPlaying
     }
 
     fun step(delta: Int) {
@@ -58,9 +70,14 @@ internal fun ShortsPipActionEffect(
     // The settled reel starts playing on its own, so the window follows it with a pause button. Setting
     // the params again once the window opens matters too: the Android 17 PiP menu can grey the skip
     // buttons the wrong way round from the params the window entered with, until they are set again.
-    LaunchedEffect(pagerState.settledPage, navigation, isInPip) {
+    // Outside the window, the params are armed while a reel plays so the home gesture enters PiP
+    // with the system's animation, as the video player does.
+    LaunchedEffect(pagerState.settledPage, navigation, isInPip, shortsPipEnabled, reelPlaying) {
         PictureInPictureHelper.setShortsNavigation(navigation)
-        if (inPip) restateWindow(isPlaying = true)
+        when {
+            inPip -> restateWindow(isPlaying = true)
+            shortsPipEnabled || armed -> restateWindow(isPlaying = reelPlaying)
+        }
     }
 
     DisposableEffect(activity, pool, pagerState) {
@@ -90,6 +107,10 @@ internal fun ShortsPipActionEffect(
 
         onDispose {
             PictureInPictureHelper.setShortsNavigation(null)
+            if (armed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                PictureInPictureHelper.updatePipParams(activity, isPlaying = false, autoEnterEnabled = false)
+                armed = false
+            }
             runCatching { activity.unregisterReceiver(receiver) }
                 .onFailure { Log.w(TAG, "Failed to unregister the Shorts PiP receiver", it) }
         }

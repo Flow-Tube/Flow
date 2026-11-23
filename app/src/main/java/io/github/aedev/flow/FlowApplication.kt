@@ -1,7 +1,6 @@
 package io.github.aedev.flow
 
 import android.app.Application
-import android.content.ComponentCallbacks2
 import android.content.Context
 import android.util.Log
 import androidx.compose.material3.ComposeMaterial3Flags
@@ -306,20 +305,16 @@ class FlowApplication :
         releaseVolatileMemory()
     }
 
-    @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         FlowCrashHandler.recordPhase("memory", "FlowApplication.onTrimMemory level=$level")
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+        if (AppMemoryTrim.releasesVolatileMemory(level)) {
             releaseVolatileMemory()
         }
     }
 
     private fun releaseVolatileMemory() {
         if (::playlistRepository.isInitialized) playlistRepository.trimMemory()
-        if (::imageLoader.isInitialized) {
-            imageLoader.memoryCache?.clear()
-        }
         if (::okHttpClient.isInitialized) {
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 okHttpClient.connectionPool.evictAll()

@@ -6,9 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import android.net.Uri
-import android.net.wifi.WifiManager
 import android.os.Bundle
-import android.os.PowerManager
 import android.os.Process
 import android.util.Log
 import android.view.KeyEvent
@@ -211,14 +209,7 @@ class Media3MusicService : MediaLibraryService() {
     private var applyingSavedShuffle = false
     private lateinit var connectivityObserver: NetworkConnectivityObserver
 
-    private var wakeLock: PowerManager.WakeLock? = null
-    private var wifiLock: WifiManager.WifiLock? = null
-
-    /**
-     * Coroutine job that defers WakeLock/WifiLock release by 12 seconds after playback pauses.
-     * Prevents the CPU from entering deep sleep during brief buffering/focus-loss events.
-     */
-    private var lockReleaseJob: Job? = null
+    private var idleJob: Job? = null
 
     private var offloadState = MusicOffloadState()
     private var appliedOffload: Boolean? = null
@@ -336,19 +327,6 @@ class Media3MusicService : MediaLibraryService() {
 
         connectivityObserver = NetworkConnectivityObserver(this)
         connectivityObserver.startObserving()
-
-        try {
-            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Flow:MusicServiceWakeLock")
-            wakeLock?.setReferenceCounted(false)
-
-            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            @Suppress("DEPRECATION")
-            wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "Flow:MusicServiceWifiLock")
-            wifiLock?.setReferenceCounted(false)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to acquire locks", e)
-        }
 
         lifecycleScope.launch {
             connectivityObserver.isConnected.collectLatest { isConnected ->
@@ -579,6 +557,8 @@ class Media3MusicService : MediaLibraryService() {
                 .setRenderersFactory(renderersFactory)
                 .setAudioAttributes(musicAudioAttributes, handlesAudioFocus)
                 .setHandleAudioBecomingNoisy(true)
+                // The only wake and Wi-Fi locks: ExoPlayer drops them while offloaded audio lets the
+                // CPU sleep, which a service-held lock used to defeat.
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setLoadControl(loadControl)
                 .setSeekBackIncrementMs(5000)
@@ -695,7 +675,7 @@ class Media3MusicService : MediaLibraryService() {
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    updateLocks(isPlaybackActive())
+                    onPlaybackActivityChanged(isPlaybackActive())
                     widgetPublisher.publish(player)
                     if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
                         // ENDED: the queue ran out — no transition fires for the last track.
@@ -730,7 +710,7 @@ class Media3MusicService : MediaLibraryService() {
                     playWhenReady: Boolean,
                     reason: Int,
                 ) {
-                    updateLocks(isPlaybackActive())
+                    onPlaybackActivityChanged(isPlaybackActive())
                     if (playWhenReady) {
                         pausedForMute = false
                         updateOffload { it.copy(pausedLong = false) }
@@ -774,7 +754,7 @@ class Media3MusicService : MediaLibraryService() {
                 }
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    updateLocks(isPlaybackActive())
+                    onPlaybackActivityChanged(isPlaybackActive())
                     widgetPublisher.publish(player)
                     if (isPlaying) {
                         lifecycleScope.launch {
@@ -1420,7 +1400,6 @@ class Media3MusicService : MediaLibraryService() {
         }
         io.github.aedev.flow.player.EnhancedMusicPlayerManager
             .onServiceStopped()
-        releaseLocks()
         stopSelf()
     }
 
@@ -1560,8 +1539,8 @@ class Media3MusicService : MediaLibraryService() {
 
         widgetPublisher.publishStopped()
 
-        lockReleaseJob?.cancel()
-        lockReleaseJob = null
+        idleJob?.cancel()
+        idleJob = null
 
         if (::connectivityObserver.isInitialized) {
             connectivityObserver.stopObserving()
@@ -1578,17 +1557,7 @@ class Media3MusicService : MediaLibraryService() {
             musicResume.saveCurrent(player)
             player.release()
         }
-        releaseLocks()
         super.onDestroy()
-    }
-
-    private fun acquireLocks() {
-        if (wakeLock?.isHeld != true) {
-            wakeLock?.acquire()
-        }
-        if (wifiLock?.isHeld != true) {
-            wifiLock?.acquire()
-        }
     }
 
     private fun isPlaybackActive(): Boolean {
@@ -1602,21 +1571,16 @@ class Media3MusicService : MediaLibraryService() {
             )
     }
 
-    private fun updateLocks(isPlaybackActive: Boolean) {
+    private fun onPlaybackActivityChanged(isPlaybackActive: Boolean) {
         lockScreenPlayer.setPlaying(isPlaybackActive)
-        lockReleaseJob?.cancel()
-        lockReleaseJob = null
+        idleJob?.cancel()
+        idleJob = null
+        if (isPlaybackActive) return
 
-        if (isPlaybackActive) {
-            acquireLocks()
-            return
-        }
-
-        lockReleaseJob =
+        idleJob =
             lifecycleScope.launch {
                 delay(12_000L)
                 if (!isPlaybackActive()) {
-                    releaseLocks()
                     // The system keeps the audio hardware awake for as long as a paused offloaded
                     // track exists (#1367); leaving offload makes the player release it.
                     if (isOffloaded) updateOffload { it.copy(pausedLong = true) }
@@ -1625,23 +1589,6 @@ class Media3MusicService : MediaLibraryService() {
                     }
                 }
             }
-    }
-
-    private fun releaseWakeLock() {
-        if (wakeLock?.isHeld == true) {
-            wakeLock?.release()
-        }
-    }
-
-    private fun releaseWifiLock() {
-        if (wifiLock?.isHeld == true) {
-            wifiLock?.release()
-        }
-    }
-
-    private fun releaseLocks() {
-        releaseWakeLock()
-        releaseWifiLock()
     }
 
     private fun isAppInForeground(): Boolean {
