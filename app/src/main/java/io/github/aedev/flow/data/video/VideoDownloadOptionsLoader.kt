@@ -1,6 +1,7 @@
 package io.github.aedev.flow.data.video
 
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.video.downloader.resolve.RecentExtractions
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.state.SubtitleOption
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
@@ -32,13 +33,16 @@ data class VideoDownloadOptions(
  */
 class VideoDownloadOptionsLoader
     @Inject
-    constructor() {
+    constructor(
+        private val recent: RecentExtractions,
+    ) {
         suspend fun load(video: Video): VideoDownloadOptions? =
             withContext(PerformanceDispatcher.networkIO) {
                 val result =
                     withTimeoutOrNull(EXTRACT_TIMEOUT_MS) {
                         runCatching { InnerTubeVideoStreamExtractor.extract(video.id) }.getOrNull()
                     } ?: return@withContext null
+                recent.remember(video.id, result)
                 val videoFormats = result.playableVideoFormats()
                 if (videoFormats.isEmpty()) return@withContext null
                 val audioFormats = result.playableAudioFormats()

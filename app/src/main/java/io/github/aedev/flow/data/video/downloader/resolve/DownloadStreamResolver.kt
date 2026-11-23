@@ -59,13 +59,17 @@ class DownloadStreamResolver
     constructor(
         @ApplicationContext private val context: Context,
         private val preferences: PlayerPreferences,
+        private val recent: RecentExtractions,
     ) {
         suspend fun resolve(
             request: DownloadRequest,
             avoidItags: Set<Int> = emptySet(),
             acceptOtherTrack: Boolean = false,
         ): ResolveOutcome {
-            val result = InnerTubeVideoStreamExtractor.extract(request.videoId) ?: return ResolveOutcome.Unavailable
+            val result =
+                recent.take(request.videoId)
+                    ?: InnerTubeVideoStreamExtractor.extract(request.videoId, audioOnly = request.wantsAudioOnly)
+                    ?: return ResolveOutcome.Unavailable
             if (result.isLive) return ResolveOutcome.Unavailable
             VideoDecoderSupport.attach(context)
             val outcome = select(request, result, avoidItags, defaults(), acceptOtherTrack) { it.playsSmoothlyHere() }
