@@ -154,4 +154,29 @@ class PlaylistQueueOrderTest {
         assertEquals(null, PlaylistQueueOrder.alignTo(listOf("a", "b"), listOf("a", "c")) { it })
         assertEquals(null, PlaylistQueueOrder.alignTo(listOf("a", "b"), listOf("a")) { it })
     }
+
+    @Test
+    fun `mixIn never takes the slot right after the current item`() {
+        repeat(50) { seed ->
+            val mixed =
+                PlaylistQueueOrder.mixIn(
+                    listOf(1, 2, 3, 4),
+                    currentIndex = 1,
+                    added = listOf(9, 8),
+                    random = kotlin.random.Random(seed),
+                )
+            assertEquals(listOf(1, 2, 3), mixed.take(3))
+            assertEquals(listOf(1, 2, 3, 4, 8, 9), mixed.sorted())
+        }
+    }
+
+    @Test
+    fun `mixIn appends when the current item is the last`() {
+        assertEquals(listOf(1, 2, 7), PlaylistQueueOrder.mixIn(listOf(1, 2), currentIndex = 1, added = listOf(7)))
+    }
+
+    @Test
+    fun `a queue with more to come does not wrap`() {
+        assertEquals(null, PlaylistQueueOrder.nextIndex(itemCount = 4, currentIndex = 3, loopEnabled = true, morePending = true))
+    }
 }

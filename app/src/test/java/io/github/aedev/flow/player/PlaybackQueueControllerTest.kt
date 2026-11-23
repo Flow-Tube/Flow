@@ -335,4 +335,63 @@ class PlaybackQueueControllerTest {
         assertThat(controller.shuffleEnabled).isFalse()
         assertThat(ids(controller.videos.value)).containsExactly("a", "b", "c").inOrder()
     }
+
+    @Test
+    fun `a playlist page joins the end in order, without videos already queued`() {
+        val controller = controllerOf("a", "b", "c")
+
+        val added = controller.appendPage(controller.generation, listOf(video("c"), video("d"), video("e")))
+
+        assertThat(added).isEqualTo(2)
+        assertThat(ids(controller.videos.value)).containsExactly("a", "b", "c", "d", "e").inOrder()
+    }
+
+    @Test
+    fun `a page for a queue since replaced is dropped`() {
+        val controller = controllerOf("a", "b")
+        val oldGeneration = controller.generation
+        controller.setQueue(listOf(video("x"), video("y")), startIndex = 0, title = "Other")
+
+        assertThat(controller.appendPage(oldGeneration, listOf(video("c")))).isEqualTo(0)
+        assertThat(ids(controller.videos.value)).containsExactly("x", "y").inOrder()
+    }
+
+    @Test
+    fun `a shuffled queue mixes a page into what is still to play and keeps up next`() {
+        val controller = PlaybackQueueController()
+        controller.setQueue(listOf("a", "b", "c", "d").map(::video), startIndex = 0, title = "Playlist", shuffle = true)
+        val before = ids(controller.videos.value)
+
+        controller.appendPage(controller.generation, listOf(video("e"), video("f")), kotlin.random.Random(7))
+
+        val after = ids(controller.videos.value)
+        assertThat(after).containsExactly("a", "b", "c", "d", "e", "f")
+        assertThat(after.take(2)).isEqualTo(before.take(2))
+        controller.setShuffleEnabled(false)
+        assertThat(ids(controller.videos.value)).containsExactly("a", "b", "c", "d", "e", "f").inOrder()
+    }
+
+    @Test
+    fun `with pages still to come the end of the loaded part neither ends nor wraps the queue`() {
+        val controller = controllerOf("a", "b", startIndex = 1)
+        controller.setLoopEnabled(true)
+        controller.morePending = true
+
+        assertThat(controller.nextIndex()).isNull()
+        assertThat(controller.hasNext).isTrue()
+
+        controller.morePending = false
+        assertThat(controller.nextIndex()).isEqualTo(0)
+    }
+
+    @Test
+    fun `replacing the queue forgets that pages were coming`() {
+        val controller = controllerOf("a", "b")
+        controller.morePending = true
+
+        controller.setQueue(listOf(video("x")), startIndex = 0, title = null)
+
+        assertThat(controller.morePending).isFalse()
+        assertThat(controller.hasNext).isFalse()
+    }
 }

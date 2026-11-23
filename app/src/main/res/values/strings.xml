@@ -2965,6 +2965,15 @@
     <string name="library_empty_body">Videos and music you watch, like, save or download will collect here.</string>
     <string name="playlist_load_failed">Could not load this playlist</string>
     <string name="playlist_unavailable_hidden">Unavailable videos are hidden</string>
+    <plurals name="playlist_loading_all">
+        <item quantity="one">Loading all %1$d video</item>
+        <item quantity="other">Loading all %1$d videos</item>
+    </plurals>
+    <string name="playlist_loading_all_unknown">Loading all videos</string>
+    <plurals name="playlist_download_new">
+        <item quantity="one">Download %1$d new video</item>
+        <item quantity="other">Download %1$d new videos</item>
+    </plurals>
     <string name="library_settings_subtitle">Playback, downloads, appearance and data</string>
     <string name="content_settings_header_library">Library</string>
     <string name="content_settings_library_previews_title">Library previews</string>

@@ -80,7 +80,7 @@ internal fun NavGraphBuilder.linkPlaybackRoutes(
         LaunchedEffect(playlistId, videoId) {
             val queue = links.videoQueue(playlistId, videoId)
             if (queue != null) {
-                playerViewModel.playPlaylist(queue.items, queue.startIndex, queue.title)
+                playerViewModel.playPlaylist(queue.items, queue.startIndex, queue.title, more = queue.more)
             } else {
                 playerViewModel.playVideo(linkedVideo(videoId))
             }

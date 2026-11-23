@@ -118,6 +118,12 @@ class DownloadedCollections
 
         suspend fun collection(id: String): DownloadCollectionEntity? = find(id)?.asPage()
 
+        /** Every video the collection of playlist [id] knows, downloaded or left out. */
+        suspend fun memberIds(id: String): Set<String> {
+            val stored = find(id) ?: return emptySet()
+            return collectionDao.itemsOf(stored.id).mapTo(HashSet()) { it.videoId }
+        }
+
         /** The videos left out of the collection of playlist [id] the last time it was downloaded. */
         suspend fun excludedIds(id: String): Set<String> {
             val stored = find(id) ?: return emptySet()

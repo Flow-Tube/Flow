@@ -1,20 +1,32 @@
 package io.github.aedev.flow.data.repository
 
+import android.app.ActivityManager
+import android.content.Context
 import android.util.Log
+import android.util.LruCache
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.VideoPlaylistPage
 import io.github.aedev.flow.innertube.pages.isMix
+import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "YouTubePlaylistRepo"
 private const val MAX_PAGES = 60
 private const val FULL_LIST_TTL_MS = 10 * 60 * 1000L
+
+// A few pages, so the playlist page and a queue playing from it read each page once.
+private const val PAGE_CACHE_SIZE = 8
+
+// Whole playlists kept for reopening, counted in videos; a low-RAM phone or TV keeps half.
+private const val COMPLETE_LIST_VIDEOS = 6_000
 
 /** A YouTube playlist as the page shows it: the first page now, the rest through [YouTubePlaylistRepository.nextPage]. */
 data class RemotePlaylistPage(
@@ -41,25 +53,53 @@ data class RemotePlaylistPage(
 @Singleton
 class YouTubePlaylistRepository
     @Inject
-    constructor() {
+    constructor(
+        @ApplicationContext context: Context,
+    ) {
         private data class CachedList(
             val page: RemotePlaylistPage,
             val loadedAtMs: Long,
         )
 
-        private val completeLists = ConcurrentHashMap<String, CachedList>()
+        private val completeLists =
+            object : LruCache<String, CachedList>(
+                if (context.getSystemService(ActivityManager::class.java)?.isLowRamDevice ==
+                    true
+                ) {
+                    COMPLETE_LIST_VIDEOS / 2
+                } else {
+                    COMPLETE_LIST_VIDEOS
+                },
+            ) {
+                override fun sizeOf(
+                    key: String,
+                    value: CachedList,
+                ): Int =
+                    value.page.videos.size
+                        .coerceAtLeast(1)
+            }
+        private val pages = LruCache<String, Pair<List<Video>, String?>>(PAGE_CACHE_SIZE)
+        private val pagesInFlight = InFlightRequestCoalescer<String, Pair<List<Video>, String?>?>(CoroutineScope(SupervisorJob()))
 
         /** The whole playlist if it was loaded recently, so the page can show it without a request. */
-        fun cachedComplete(playlistId: String): RemotePlaylistPage? =
-            completeLists[playlistId]
-                ?.takeIf { System.currentTimeMillis() - it.loadedAtMs < FULL_LIST_TTL_MS }
-                ?.page
+        fun cachedComplete(playlistId: String): RemotePlaylistPage? {
+            val cached = completeLists[playlistId] ?: return null
+            if (System.currentTimeMillis() - cached.loadedAtMs < FULL_LIST_TTL_MS) return cached.page
+            completeLists.remove(playlistId)
+            return null
+        }
+
+        /** Lets go of every kept list and page when the system runs low on memory. */
+        fun trimMemory() {
+            completeLists.evictAll()
+            pages.evictAll()
+        }
 
         fun rememberComplete(
             playlistId: String,
             page: RemotePlaylistPage,
         ) {
-            completeLists[playlistId] = CachedList(page.copy(continuation = null), System.currentTimeMillis())
+            completeLists.put(playlistId, CachedList(page.copy(continuation = null), System.currentTimeMillis()))
         }
 
         suspend fun firstPage(playlistId: String): RemotePlaylistPage? {
@@ -97,7 +137,11 @@ class YouTubePlaylistRepository
         suspend fun nextPage(
             playlistId: String,
             continuation: String,
-        ): Pair<List<Video>, String?>? = fetch { YouTube.videoPlaylistPage(playlistId, continuation) }?.let { it.videos to it.continuation }
+        ): Pair<List<Video>, String?>? =
+            pages[continuation] ?: pagesInFlight
+                .run(continuation) {
+                    fetch { YouTube.videoPlaylistPage(playlistId, continuation) }?.let { it.videos to it.continuation }
+                }?.also { pages.put(continuation, it) }
 
         /**
          * Every video, page by page, for a caller that needs the whole list (syncing a saved copy).

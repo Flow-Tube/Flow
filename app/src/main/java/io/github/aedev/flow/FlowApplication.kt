@@ -22,6 +22,7 @@ import io.github.aedev.flow.data.profile.ProfileSlices
 import io.github.aedev.flow.data.profile.ProfileWebView
 import io.github.aedev.flow.data.profile.ProfileWorkReconciler
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
+import io.github.aedev.flow.data.repository.YouTubePlaylistRepository
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.discord.DiscordPresenceRuntime
 import io.github.aedev.flow.innertube.YouTube
@@ -73,6 +74,9 @@ class FlowApplication :
 
     @Inject
     lateinit var okHttpClient: OkHttpClient
+
+    @Inject
+    lateinit var playlistRepository: YouTubePlaylistRepository
 
     @Inject
     lateinit var vpnStateMonitor: VpnStateMonitor
@@ -312,6 +316,7 @@ class FlowApplication :
     }
 
     private fun releaseVolatileMemory() {
+        if (::playlistRepository.isInitialized) playlistRepository.trimMemory()
         if (::imageLoader.isInitialized) {
             imageLoader.memoryCache?.clear()
         }

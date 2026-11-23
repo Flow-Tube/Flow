@@ -13,6 +13,7 @@ import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.profile.BeforeProfileSwitch
+import io.github.aedev.flow.data.repository.PlaylistQueueSources
 import io.github.aedev.flow.data.repository.SponsorBlockRepository
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.transcript.TranscriptRepository
@@ -25,6 +26,7 @@ import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.LifecyclePlaybackPreferences
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.player.stream.PlaybackLoadResolver
 import io.github.aedev.flow.player.stream.ResetYouTubeSession
 import io.github.aedev.flow.player.stream.UpcomingPremiereProbe
@@ -62,6 +64,7 @@ class VideoPlayerViewModel
         private val playerPreferences: PlayerPreferences,
         private val videoDownloadManager: VideoDownloadManager,
         private val videoQueueStore: VideoQueueStore,
+        private val queueSources: PlaylistQueueSources,
         private val watchLaterCleanup: WatchLaterCleanup,
         private val offlineSubtitleStore: io.github.aedev.flow.data.video.OfflineSubtitleStore,
         private val localSubtitles: io.github.aedev.flow.data.localmedia.LocalSubtitles,
@@ -120,7 +123,9 @@ class VideoPlayerViewModel
                 autoDownload = autoDownload,
                 resumePlayback = ::playVideo,
                 savedQueue = videoQueueStore::load,
-                resumeQueue = { videos, index, title -> playPlaylist(videos, index, title) },
+                resumeQueue = { saved ->
+                    playPlaylist(saved.videos, saved.index, saved.title, more = saved.source?.let(queueSources::from))
+                },
             )
 
         private val comments = collaborators.comments
@@ -208,8 +213,9 @@ class VideoPlayerViewModel
             combine(playerManager.queueVideos, playerManager.currentQueueIndexState, ::Pair)
                 .drop(1)
                 .debounce(QUEUE_SAVE_DEBOUNCE_MS)
-                .onEach { (videos, index) -> videoQueueStore.save(videos, index, playerManager.playerState.value.queueTitle) }
-                .launchIn(viewModelScope)
+                .onEach { (videos, index) ->
+                    videoQueueStore.save(videos, index, playerManager.playerState.value.queueTitle, playerManager.queueSourceSpec)
+                }.launchIn(viewModelScope)
 
             playerPreferences.liveChatEnabled.onEach(liveChat::setEnabled).launchIn(viewModelScope)
 
@@ -289,7 +295,8 @@ class VideoPlayerViewModel
             startIndex: Int,
             title: String? = null,
             shuffle: Boolean? = null,
-        ) = requests.playPlaylist(videos, startIndex, title, shuffle)
+            more: QueuePageSource? = null,
+        ) = requests.playPlaylist(videos, startIndex, title, shuffle, more)
 
         fun playNext() = requests.playNext()
 

@@ -493,7 +493,7 @@ fun NavGraphBuilder.flowAppGraph(
         val musicPlayerViewModel = sharedMusicPlayerViewModel()
         PlaylistDetailScreen(
             onNavigateBack = { navController.popBackStack() },
-            onPlayPlaylist = { videos, index, shuffle, title ->
+            onPlayPlaylist = { videos, index, shuffle, title, more ->
                 val start = videos[index]
                 if (start.isMusic) {
                     // A YouTube Music playlist plays in the music player, like any other song list.
@@ -501,7 +501,7 @@ fun NavGraphBuilder.flowAppGraph(
                     musicPlayerViewModel.loadAndPlayTrack(start.toMusicTrack(), tracks, title)
                     onMusicStarted()
                 } else {
-                    playerViewModel.playPlaylist(videos, index, title, shuffle)
+                    playerViewModel.playPlaylist(videos, index, title, shuffle, more)
                 }
             },
         )
