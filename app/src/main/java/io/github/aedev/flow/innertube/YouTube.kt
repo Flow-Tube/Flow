@@ -3,6 +3,7 @@ package io.github.aedev.flow.innertube
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.innertube.models.AccountInfo
 import io.github.aedev.flow.innertube.models.AlbumItem
@@ -129,6 +130,7 @@ import io.github.aedev.flow.innertube.pages.toTimedComments
 import io.github.aedev.flow.innertube.pages.toVideoCommentsPage
 import io.github.aedev.flow.innertube.pages.toVideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.toVideoPlaylistPage
+import io.github.aedev.flow.innertube.pages.toWatchPlaylistContinuation
 import io.github.aedev.flow.innertube.pages.videoCommentsPanelHeader
 import io.github.aedev.flow.innertube.pages.videoCommentsSection
 import io.github.aedev.flow.utils.PerformanceDispatcher
@@ -2209,9 +2211,18 @@ object YouTube {
      * The comment section, the attributed description and the related lane all read this one
      * response, so callers go through the cache that wraps it rather than requesting it each.
      */
-    suspend fun watchNextJson(videoId: String): Result<JsonElement> =
+    suspend fun watchNextJson(
+        videoId: String,
+        playlistId: String? = null,
+    ): Result<JsonElement> =
         runCatching {
-            Json.parseToJsonElement(innerTube.nextWatch(videoId = videoId).bodyAsText())
+            Json.parseToJsonElement(innerTube.nextWatch(videoId = videoId, playlistId = playlistId).bodyAsText())
+        }
+
+    /** The playlist panel's next videos after a [WatchPlaylistWindow], from its continuation [token]. */
+    suspend fun watchPlaylistContinuation(token: String): Result<Pair<List<Video>, String?>?> =
+        runCatching {
+            Json.parseToJsonElement(innerTube.nextWatch(continuation = token).bodyAsText()).toWatchPlaylistContinuation()
         }
 
     /** The next page of a watch page's related lane, from the same host and client as the first. */
