@@ -78,6 +78,7 @@ fun HomeScreen(
     onNavigateToHistory: () -> Unit = {},
     onOpenShortsFeed: () -> Unit = {},
     onPlayMix: (videos: List<Video>, title: String) -> Unit = { _, _ -> },
+    onOpenDownloads: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -222,6 +223,7 @@ fun HomeScreen(
                             onShortClick = onShortClick,
                             onNavigateToHistory = onNavigateToHistory,
                             onOpenShortsFeed = onOpenShortsFeed,
+                            onOpenDownloads = onOpenDownloads,
                             topPadding = topPadding,
                             headerOffsetPx = { headerState.headerOffsetPx },
                         )

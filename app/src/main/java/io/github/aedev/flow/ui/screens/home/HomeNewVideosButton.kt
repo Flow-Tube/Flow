@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -46,6 +47,8 @@ internal fun HomeNewVideosButton(
     visible: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    label: String = stringResource(R.string.home_new_videos),
+    icon: ImageVector = Icons.Rounded.ArrowUpward,
 ) {
     var dismissed by remember(visible) { mutableStateOf(false) }
     val positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold
@@ -78,12 +81,12 @@ internal fun HomeNewVideosButton(
                 modifier = Modifier.heightIn(min = ButtonDefaults.ExtraSmallContainerHeight),
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.ArrowUpward,
+                    imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(ButtonDefaults.ExtraSmallIconSize),
                 )
                 Spacer(Modifier.width(ButtonDefaults.ExtraSmallIconSpacing))
-                Text(text = stringResource(R.string.home_new_videos))
+                Text(text = label)
             }
         }
     }
