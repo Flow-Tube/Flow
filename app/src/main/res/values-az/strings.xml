@@ -5268,4 +5268,10 @@
     <string name="settings_video_card_style_keywords">kart, miniatür, künclər, dairəvi, tam en, kənardan kənara, kənarədək</string>
     <string name="settings_video_card_style_rounded">Dairəvi</string>
     <string name="settings_video_card_style_full_width">Tam en</string>
+    <string name="load_error_offline_hint">Yenidən onlayn olduqda təkrar yüklənir</string>
+    <string name="home_offline_downloads_hint">Yükləmələriniz hələ də oynadılır</string>
+    <string name="home_back_online_refresh">Yenidən onlayn · Yenilə</string>
+    <string name="search_showing_results_for">%1$s üçün nəticələr göstərilir</string>
+    <string name="search_instead_for">Əvəzinə %1$s axtar</string>
+    <string name="search_did_you_mean">%1$s nəzərdə tutursunuz</string>
 </resources>
