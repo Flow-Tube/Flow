@@ -20,6 +20,7 @@ class DownloadTrace(
     private val gatedDenials = AtomicInteger()
     private val resolves = AtomicInteger()
     private val stalls = AtomicInteger()
+    private val playbackWaitMs = AtomicLong()
 
     @Volatile var usedSabr = false
 
@@ -56,6 +57,10 @@ class DownloadTrace(
         stalls.incrementAndGet()
     }
 
+    fun onPlaybackWait(sinceNanos: Long) {
+        playbackWaitMs.addAndGet((nanoClock() - sinceNanos) / NANOS_PER_MS)
+    }
+
     fun line(
         outcome: String,
         settings: String,
@@ -77,6 +82,7 @@ class DownloadTrace(
             append(" gated403=").append(gatedDenials.get())
             append(" resolves=").append(resolves.get())
             append(" stalls=").append(stalls.get())
+            append(" playbackWaitMs=").append(playbackWaitMs.get())
             append(" sabr=").append(usedSabr)
             append(" remuxMs=").append(remuxMs)
             append(" placeMs=").append(placeMs)

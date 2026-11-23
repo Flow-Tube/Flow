@@ -1,8 +1,13 @@
 package io.github.aedev.flow.data.video.downloader.transfer
 
 import android.util.Log
+import androidx.annotation.OptIn
+import androidx.media3.common.C
+import androidx.media3.common.PriorityTaskManager
+import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.data.video.downloader.YouTubeStreamUrls
 import io.github.aedev.flow.network.ProxyAwareClient
+import io.github.aedev.flow.player.PlaybackPriority
 import io.github.aedev.flow.player.datasource.GoogleVideoRequestPolicy
 import io.github.aedev.flow.player.error.StreamDenialClassifier
 import kotlinx.coroutines.CoroutineDispatcher
@@ -13,6 +18,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -47,7 +53,9 @@ class RangeDownloader internal constructor(
     // Blocking socket reads run here, never on the shared IO pool, so a large download cannot
     // starve the rest of the app of IO threads.
     private val transferDispatcher: CoroutineDispatcher,
+    private val playback: PriorityTaskManager? = null,
 ) {
+    @OptIn(UnstableApi::class)
     @Inject
     constructor() : this(
         ProxyAwareClient {
@@ -57,12 +65,14 @@ class RangeDownloader internal constructor(
                 .retryOnConnectionFailure(true)
         }::get,
         Dispatchers.IO.limitedParallelism(MAX_PARALLEL_READS),
+        PlaybackPriority.tasks,
     )
 
     /**
      * Runs [job] to its end. Cancelling the caller stops the job at once: the blocking reads
      * are released by cancelling their requests, which a coroutine cancellation alone cannot do.
      */
+    @OptIn(UnstableApi::class)
     suspend fun run(job: TransferJob): TransferResult =
         withContext(transferDispatcher) {
             coroutineScope {
@@ -74,9 +84,12 @@ class RangeDownloader internal constructor(
                             job.stop()
                         }
                     }
+                // A task proceeds only while it is the highest registered one, so the download registers too.
+                playback?.add(C.PRIORITY_DOWNLOAD)
                 try {
                     transfer(client(), job)
                 } finally {
+                    playback?.remove(C.PRIORITY_DOWNLOAD)
                     releaseOnCancel.cancel()
                 }
             }
@@ -143,10 +156,31 @@ class RangeDownloader internal constructor(
                 job.fail(TransferResult.Expiring)
                 return
             }
+            yieldToPlayback(job)
+            if (!job.isRunning) return
             val start = block * BLOCK_SIZE
             val end = minOf(start + BLOCK_SIZE, stream.totalBytes) - 1
             if (!fetchBlockWithRetry(client, job, stream, block, start, end)) return
             stream.completedBlocks.add(block)
+        }
+    }
+
+    /** A player is loading, so a download mid-block steps aside rather than share the link (YouTube pre-empts the same way). */
+    @OptIn(UnstableApi::class)
+    private fun playbackWantsLink(): Boolean = playback?.proceedNonBlocking(C.PRIORITY_DOWNLOAD) == false
+
+    /** Waits while a player is loading. */
+    @OptIn(UnstableApi::class)
+    private suspend fun yieldToPlayback(job: TransferJob) {
+        val tasks = playback ?: return
+        if (tasks.proceedNonBlocking(C.PRIORITY_DOWNLOAD)) return
+        val since = job.trace?.now()
+        job.yieldingWorkers.incrementAndGet()
+        try {
+            runInterruptible { tasks.proceed(C.PRIORITY_DOWNLOAD) }
+        } finally {
+            job.yieldingWorkers.decrementAndGet()
+            since?.let { job.trace?.onPlaybackWait(it) }
         }
     }
 
@@ -159,7 +193,8 @@ class RangeDownloader internal constructor(
         end: Long,
     ): Boolean {
         var lastError: String? = null
-        repeat(MAX_ATTEMPTS) { attempt ->
+        var attempt = 0
+        while (attempt < MAX_ATTEMPTS) {
             if (!job.isRunning) return false
             when (val outcome = fetchBlock(client, job, stream, block, start, end)) {
                 BlockOutcome.Done -> {
@@ -168,6 +203,12 @@ class RangeDownloader internal constructor(
 
                 BlockOutcome.Stopped -> {
                     return false
+                }
+
+                // Cut off for playback: the block resumes from the byte it reached, without costing an attempt.
+                BlockOutcome.Yielded -> {
+                    yieldToPlayback(job)
+                    continue
                 }
 
                 is BlockOutcome.Denied -> {
@@ -183,6 +224,7 @@ class RangeDownloader internal constructor(
                         return false
                     }
                     if (attempt + 1 < MAX_ATTEMPTS) delay(retryDelayMs(attempt, outcome.retryAfterMs))
+                    attempt++
                 }
             }
         }
@@ -234,6 +276,10 @@ class RangeDownloader internal constructor(
                             if (!job.isRunning) {
                                 stream.partialBlockBytes[block] = already + written
                                 return BlockOutcome.Stopped
+                            }
+                            if (playbackWantsLink()) {
+                                stream.partialBlockBytes[block] = already + written
+                                return BlockOutcome.Yielded
                             }
                             file.write(buffer, 0, read)
                             job.trace?.onBytes(read)
@@ -351,6 +397,9 @@ class RangeDownloader internal constructor(
         data object Done : BlockOutcome
 
         data object Stopped : BlockOutcome
+
+        /** A player started loading; the block stops where it is and continues after. */
+        data object Yielded : BlockOutcome
 
         data class Denied(
             val url: String,

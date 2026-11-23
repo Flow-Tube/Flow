@@ -22,6 +22,8 @@ sealed interface DownloadPhase {
     data class Transferring(
         val downloadedBytes: Long,
         val totalBytes: Long,
+        /** Held back between blocks while something plays. */
+        val yieldingToPlayback: Boolean = false,
     ) : DownloadPhase {
         val percent: Int get() = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100) else 0
     }
@@ -111,7 +113,7 @@ class DownloadNotifier
 
         private fun signatureOf(phase: DownloadPhase): String =
             when (phase) {
-                is DownloadPhase.Transferring -> "t${phase.percent}"
+                is DownloadPhase.Transferring -> "t${phase.percent}${if (phase.yieldingToPlayback) "y" else ""}"
                 else -> phase.toString()
             }
 
@@ -139,15 +141,25 @@ class DownloadNotifier
                 }
 
                 is DownloadPhase.Transferring -> {
-                    builder
-                        .setContentText(
+                    val progress =
+                        context.getString(
+                            R.string.notification_download_progress,
+                            phase.percent,
+                            Formatter.formatShortFileSize(context, phase.downloadedBytes),
+                            Formatter.formatShortFileSize(context, phase.totalBytes),
+                        )
+                    val text =
+                        if (phase.yieldingToPlayback) {
                             context.getString(
-                                R.string.notification_download_progress,
-                                phase.percent,
-                                Formatter.formatShortFileSize(context, phase.downloadedBytes),
-                                Formatter.formatShortFileSize(context, phase.totalBytes),
-                            ),
-                        ).setProgress(100, phase.percent, phase.totalBytes <= 0)
+                                R.string.notification_download_yielding,
+                                progress,
+                            )
+                        } else {
+                            progress
+                        }
+                    builder
+                        .setContentText(text)
+                        .setProgress(100, phase.percent, phase.totalBytes <= 0)
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_PAUSE, R.string.pause))
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_CANCEL, R.string.cancel))
                 }

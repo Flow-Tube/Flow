@@ -4174,6 +4174,7 @@
     <string name="notification_download_paused_hint">tap to resume</string>
     <!-- Download notification subtitle: percent, bytes so far, total bytes -->
     <string name="notification_download_progress">%1$d%% • %2$s / %3$s</string>
+    <string name="notification_download_yielding">%1$s · Waiting while something plays</string>
     <plurals name="notification_downloads_active">
         <item quantity="one">Downloading %1$d item</item>
         <item quantity="other">Downloading %1$d items</item>

@@ -20,6 +20,7 @@ import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.util.EventLogger
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.player.PlaybackPriority
 import io.github.aedev.flow.player.analytics.PlaybackSessionStats
 import io.github.aedev.flow.player.audio.shouldHandleAudioFocus
 import io.github.aedev.flow.player.config.PlayerConfig
@@ -167,6 +168,7 @@ class PlayerFactory {
             ).setHandleAudioBecomingNoisy(true)
             .setDeviceVolumeControlEnabled(true)
             .setLoadControl(loadControl)
+            .setPriorityTaskManager(PlaybackPriority.tasks)
             .setMediaSourceFactory(DefaultMediaSourceFactory(factory))
             .build()
             .also {

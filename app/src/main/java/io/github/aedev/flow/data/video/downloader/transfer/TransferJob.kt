@@ -93,6 +93,11 @@ class TransferJob(
 
     private val activeCalls: MutableList<Call> = Collections.synchronizedList(mutableListOf())
 
+    internal val yieldingWorkers = AtomicInteger()
+
+    /** Some worker is waiting for playback to stop loading, so a still byte count is not a stall. */
+    val isYieldingToPlayback: Boolean get() = yieldingWorkers.get() > 0
+
     val downloadedBytes: Long get() = streams.sumOf { it.downloadedBytes }
     val totalBytes: Long get() = streams.sumOf { it.totalBytes }
 

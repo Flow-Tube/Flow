@@ -167,6 +167,7 @@ class DownloadTransfer
                             { job.totalBytes },
                             { saveState(staging, job) },
                             StallLimit(DIRECT_STALL_TICKS) { job.fail(TransferResult.Stalled) },
+                            { job.isYieldingToPlayback },
                         ) {
                             rangeDownloader.run(job)
                         }
@@ -309,6 +310,7 @@ class DownloadTransfer
             total: () -> Long,
             persist: (() -> Unit)?,
             stall: StallLimit,
+            yielding: () -> Boolean = { false },
             block: suspend () -> T,
         ): T =
             coroutineScope {
@@ -319,11 +321,16 @@ class DownloadTransfer
                             delay(PROGRESS_INTERVAL_MS)
                             val done = downloaded()
                             val all = total()
-                            if (stall.stillAt(done)) stall.onStall()
+                            val waiting = yielding()
+                            if (waiting) {
+                                stall.reset()
+                            } else if (stall.stillAt(done)) {
+                                stall.onStall()
+                            }
                             downloads.emitProgress(
                                 DownloadProgressUpdate(request.videoId, itemId, done, all, DownloadItemStatus.DOWNLOADING),
                             )
-                            notifier.show(request.videoId, request.tags.title, DownloadPhase.Transferring(done, all))
+                            notifier.show(request.videoId, request.tags.title, DownloadPhase.Transferring(done, all, waiting))
                             if (++ticks % PERSIST_EVERY_TICKS == 0) persist?.invoke()
                         }
                     }
