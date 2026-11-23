@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Certificates the user installs are trusted too, so networks that inspect HTTPS with their own
+    certificate (schools, workplaces) work (#2284). Cleartext stays allowed: with this file present
+    Android ignores usesCleartextTraffic, and DLNA casting, the stream proxy and WebDAV sync use HTTP.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -94,6 +94,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Flow"
         android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:resizeableActivity="true"
         android:requestLegacyExternalStorage="true"
         android:enableOnBackInvokedCallback="true">
