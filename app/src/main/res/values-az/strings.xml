@@ -5287,4 +5287,5 @@
         <item quantity="one">%1$d yeni video yüklə</item>
         <item quantity="other">%1$d yeni video yüklə</item>
     </plurals>
+    <string name="player_live_time_behind">-%1$s</string>
 </resources>
