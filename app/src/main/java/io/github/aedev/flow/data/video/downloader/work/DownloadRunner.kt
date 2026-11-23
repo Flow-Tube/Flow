@@ -173,6 +173,7 @@ class DownloadRunner
                 return "failed:UNREADABLE"
             }
             currentCoroutineContext().ensureActive()
+            withContext(Dispatchers.IO) { DownloadFiles.sync(output) }
             val size = output.length()
             val placeStarted = trace.now()
             val placed = placement.place(output, request, extension)

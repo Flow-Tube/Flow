@@ -16,6 +16,7 @@ import io.github.aedev.flow.data.video.downloader.transfer.TransferJob
 import io.github.aedev.flow.data.video.downloader.transfer.TransferResult
 import io.github.aedev.flow.data.video.downloader.transfer.TransferState
 import io.github.aedev.flow.data.video.downloader.transfer.TransferStream
+import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.innertube.models.YouTubeClient
 import io.github.aedev.flow.player.error.StreamDenialClassifier
 import io.github.aedev.flow.player.error.StreamDenialKind
@@ -291,8 +292,11 @@ class DownloadTransfer
             staging: DownloadStaging,
             job: TransferJob,
         ) {
-            runCatching { TransferState.write(staging.state, TransferState.of(job)) }
-                .onFailure { Log.w(TAG, "${job.videoId}: could not save resume state", it) }
+            runCatching {
+                val state = TransferState.of(job)
+                job.streams.filter { it.file.exists() }.forEach { DownloadFiles.sync(it.file) }
+                TransferState.write(staging.state, state)
+            }.onFailure { Log.w(TAG, "${job.videoId}: could not save resume state", it) }
         }
 
         private companion object {
