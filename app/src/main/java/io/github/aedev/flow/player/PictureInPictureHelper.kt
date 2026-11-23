@@ -9,12 +9,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Resources
 import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
 import android.util.Rational
+import android.view.View
 import androidx.annotation.RequiresApi
 import io.github.aedev.flow.MainActivity
 import io.github.aedev.flow.R
@@ -31,6 +33,8 @@ object PictureInPictureHelper {
     const val ACTION_NEXT = "io.github.aedev.flow.action.PIP_NEXT"
     const val ACTION_CLOSE = "io.github.aedev.flow.action.PIP_CLOSE"
     const val ACTION_BACKGROUND = "io.github.aedev.flow.action.PIP_BACKGROUND"
+    const val ACTION_REPLAY = "io.github.aedev.flow.action.PIP_REPLAY"
+    const val ACTION_RETRY = "io.github.aedev.flow.action.PIP_RETRY"
 
     private const val REQUEST_CODE_PLAY = 1
     private const val REQUEST_CODE_PAUSE = 2
@@ -38,6 +42,8 @@ object PictureInPictureHelper {
     private const val REQUEST_CODE_NEXT = 4
     private const val REQUEST_CODE_CLOSE = 5
     private const val REQUEST_CODE_BACKGROUND = 6
+    private const val REQUEST_CODE_REPLAY = 7
+    private const val REQUEST_CODE_RETRY = 8
     private const val ACTION_PICTURE_IN_PICTURE_SETTINGS = "android.settings.PICTURE_IN_PICTURE_SETTINGS"
 
     /** The video player view's bounds in the window; the PiP source hint is the video's part of it. */
@@ -93,6 +99,15 @@ object PictureInPictureHelper {
 
     internal fun setVideoHasNext(hasNext: Boolean) {
         videoHasNext = hasNext
+    }
+
+    /** Published by the video player: Play does nothing on an ended or failed video. */
+    @Volatile
+    internal var videoStop: PipStop? = null
+        private set
+
+    internal fun setVideoStop(stop: PipStop?) {
+        videoStop = stop
     }
 
     @Volatile
@@ -312,8 +327,15 @@ object PictureInPictureHelper {
 
         val maxActions = (context as? Activity)?.maxNumPictureInPictureActions ?: Int.MAX_VALUE
         val actions =
-            pipActionSpecs(isPlaying, navigation, maxActions, offerBackground, videoHasNext)
-                .map { createRemoteAction(context, it) }
+            pipActionSpecs(
+                isPlaying = isPlaying,
+                navigation = navigation,
+                maxActions = maxActions,
+                offerBackground = offerBackground,
+                videoHasNext = videoHasNext,
+                videoStop = videoStop,
+                systemRtl = Resources.getSystem().configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL,
+            ).map { createRemoteAction(context, it) }
 
         val builder =
             PictureInPictureParams
@@ -367,6 +389,14 @@ object PictureInPictureHelper {
                     PipButton(R.drawable.ic_pause, R.string.pause, ACTION_PAUSE, REQUEST_CODE_PAUSE)
                 }
 
+                PipControl.REPLAY -> {
+                    PipButton(R.drawable.ic_replay, R.string.player_replay, ACTION_REPLAY, REQUEST_CODE_REPLAY)
+                }
+
+                PipControl.RETRY -> {
+                    PipButton(R.drawable.ic_widget_refresh, R.string.retry, ACTION_RETRY, REQUEST_CODE_RETRY)
+                }
+
                 PipControl.NEXT -> {
                     PipButton(R.drawable.ic_next, R.string.next, ACTION_NEXT, REQUEST_CODE_NEXT)
                 }
@@ -415,6 +445,8 @@ object PictureInPictureHelper {
         onNext: () -> Unit = {},
         onClose: () -> Unit = {},
         onBackground: () -> Unit = {},
+        onReplay: () -> Unit = {},
+        onRetry: () -> Unit = {},
     ): BroadcastReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(
@@ -428,6 +460,8 @@ object PictureInPictureHelper {
                     ACTION_NEXT -> onNext()
                     ACTION_CLOSE -> onClose()
                     ACTION_BACKGROUND -> onBackground()
+                    ACTION_REPLAY -> onReplay()
+                    ACTION_RETRY -> onRetry()
                 }
             }
         }
@@ -443,5 +477,7 @@ object PictureInPictureHelper {
             addAction(ACTION_NEXT)
             addAction(ACTION_CLOSE)
             addAction(ACTION_BACKGROUND)
+            addAction(ACTION_REPLAY)
+            addAction(ACTION_RETRY)
         }
 }
