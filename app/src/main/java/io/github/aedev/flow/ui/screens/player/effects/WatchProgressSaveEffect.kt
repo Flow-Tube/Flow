@@ -7,7 +7,7 @@ import io.github.aedev.flow.ui.screens.player.state.VideoPlayerUiState
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import kotlinx.coroutines.delay
 
-internal fun VideoPlayerUiState.isCurrentLiveStream(): Boolean = !hlsUrl.isNullOrEmpty()
+internal fun VideoPlayerUiState.isCurrentLiveStream(): Boolean = isLive
 
 internal data class WatchHistoryEntry(
     val videoId: String,

@@ -208,6 +208,8 @@ internal fun PlayerControlsOverlay(
         )
 
     val fadeSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    // No duration is the bar's live-without-a-window form: a plain band with nothing to drag.
+    val barDuration = if (state.isSeekLocked) 0L else state.duration
     // A scrub, a seek swipe, a speed boost or a pinch each clear the overlay down to the bar and what sits on it:
     // whatever the gesture is showing has the picture to itself for as long as it lasts.
     val isCleared = isScrubbing || state.isGestureReadoutActive
@@ -270,7 +272,7 @@ internal fun PlayerControlsOverlay(
                 PlayerLockedControls(
                     isOverlayVisible = isLockOverlayVisible,
                     positionProvider = displayedPosition,
-                    duration = state.duration,
+                    duration = barDuration,
                     isLive = state.isLive,
                     isFullscreen = isFullscreen,
                     showRemainingTime = state.showRemainingTime,
@@ -281,6 +283,7 @@ internal fun PlayerControlsOverlay(
                     seekbarBottomPadding = fullscreenSeekbarBottomPadding,
                     onRevealUnlock = revealLockOverlay,
                     onUnlock = actions.onTouchLockToggle,
+                    isPlaying = state.isPlaying,
                 )
             } else {
                 if (!hideControlsForLoading) {
@@ -349,7 +352,7 @@ internal fun PlayerControlsOverlay(
                 if (!hideControlsForLoading) {
                     PlayerBottomBar(
                         positionProvider = displayedPosition,
-                        duration = state.duration,
+                        duration = barDuration,
                         isLive = state.isLive,
                         isFullscreen = isFullscreen,
                         isPortraitFullscreen = isPortraitFullscreen,
@@ -374,6 +377,7 @@ internal fun PlayerControlsOverlay(
                         isLayerVisible = isLayerOnScreen,
                         modifier = Modifier.align(Alignment.BottomCenter),
                         onFineScrub = fineScrub.open,
+                        isPlaying = state.isPlaying,
                     )
                 }
 
@@ -390,7 +394,7 @@ internal fun PlayerControlsOverlay(
             visible = !isVisible && !isFullscreen && !isInitialLoading && !state.isTouchLocked,
             fadeSpec = fadeSpec,
             positionProvider = displayedPosition,
-            duration = state.duration,
+            duration = barDuration,
             isLive = state.isLive,
             content = seekbarContent,
             horizontalPadding = seekbarHorizontalPadding,

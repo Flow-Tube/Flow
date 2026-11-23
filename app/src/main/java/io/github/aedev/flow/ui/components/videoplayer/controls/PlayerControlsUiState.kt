@@ -42,6 +42,8 @@ internal data class PlayerControlsUiState(
     val isSponsorBlockOffForVideo: Boolean = false,
     val isCasting: Boolean = false,
     val isLive: Boolean = false,
+    /** A live stream without DVR: the bar shows no position and cannot be dragged. */
+    val isSeekLocked: Boolean = false,
     val isLiveChatAvailable: Boolean = false,
     val isCommentsAvailable: Boolean = false,
     val isCommentsPanelOpen: Boolean = false,

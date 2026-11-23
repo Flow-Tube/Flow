@@ -8,6 +8,7 @@ import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.PlaybackResumePolicy
 import io.github.aedev.flow.player.PlayerRelatedVideosPolicy
+import io.github.aedev.flow.player.live.LivePegPolicy
 import io.github.aedev.flow.player.sabr.SabrRoutingPolicy
 import io.github.aedev.flow.player.sabr.integration.SabrStreamInfo
 import io.github.aedev.flow.player.stream.ResolvedCaption
@@ -100,6 +101,8 @@ internal class PlaybackPreparer(
         dashManifestUrl: String?,
         subtitles: List<ResolvedCaption>,
         isCurrent: () -> Boolean,
+        isDvrEnabled: Boolean = true,
+        pegRule: LivePegPolicy.Rule? = null,
     ): Boolean =
         withContext(Dispatchers.Main) {
             if (!isCurrent()) return@withContext false
@@ -119,6 +122,8 @@ internal class PlaybackPreparer(
                 startPosition = 0L,
                 preferredVideoCodec = playerPreferences.videoCodecPriority.first(),
                 preferredLiveQualityHeight = preferredDefaultQualityHeight(),
+                liveDvrEnabled = isDvrEnabled,
+                livePegRule = pegRule,
             )
             applyRememberedPlaybackSpeed(isLive = true)
 

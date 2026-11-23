@@ -117,6 +117,7 @@ internal fun PlayerBottomBar(
     modifier: Modifier = Modifier,
     isLayerVisible: () -> Boolean = { true },
     onFineScrub: (() -> Unit)? = null,
+    isPlaying: Boolean = true,
 ) {
     val accentColor = MaterialTheme.colorScheme.primary
     // Faded rather than removed: the pills hold the height the seek bar sits at, and a bar that
@@ -167,11 +168,12 @@ internal fun PlayerBottomBar(
                     duration = duration,
                     isLive = isLive,
                     showRemainingTime = showRemainingTime,
-                    onClick = { if (isLive) actions.onLiveClick() else actions.onToggleRemainingTime() },
+                    onClick = if (isLive) actions.onLiveClick else actions.onToggleRemainingTime,
                     modifier = Modifier.height(metrics.pillHeight),
                     containerColor =
                         if (isPortraitFullscreen) Color.Transparent else PlayerScrimAffordance,
                     isLayerVisible = isLayerVisible,
+                    isPlaying = isPlaying,
                 )
 
                 if (currentChapter != null) {
