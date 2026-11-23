@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlaylistSwipeAction
@@ -20,7 +21,7 @@ import io.github.aedev.flow.data.local.PlaylistSwipes
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.MediaRow
 import io.github.aedev.flow.ui.components.shared.MediaThumbnailDefaults
-import io.github.aedev.flow.ui.components.shared.ReorderHandle
+import io.github.aedev.flow.ui.components.shared.ReorderHandleCell
 import io.github.aedev.flow.ui.components.shared.card.VideoCardThumbnail
 import io.github.aedev.flow.ui.components.shared.card.rememberVideoCardState
 import io.github.aedev.flow.ui.components.shared.quickactions.VideoQuickActionsBottomSheet
@@ -45,6 +46,9 @@ internal fun PlaylistVideoRow(
     isLikes: Boolean = false,
     onMoveToTop: (() -> Unit)? = null,
     onMoveToBottom: (() -> Unit)? = null,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null,
+    positionLabel: String? = null,
     swipes: PlaylistSwipes = PlaylistSwipes(),
     swipeEnabled: Boolean = false,
     onClick: () -> Unit,
@@ -71,6 +75,8 @@ internal fun PlaylistVideoRow(
     }
     val moveToTopLabel = stringResource(R.string.playlist_move_to_top)
     val moveToBottomLabel = stringResource(R.string.playlist_move_to_bottom)
+    val moveUpLabel = stringResource(R.string.move_up)
+    val moveDownLabel = stringResource(R.string.move_down)
 
     PlaylistVideoSwipeBox(
         swipes = swipes,
@@ -93,8 +99,11 @@ internal fun PlaylistVideoRow(
             modifier =
                 Modifier.semantics {
                     if (!inSelectionMode) {
+                        positionLabel?.let { stateDescription = it }
                         customActions =
                             listOfNotNull(
+                                onMoveUp?.let { moveUpLabel to it },
+                                onMoveDown?.let { moveDownLabel to it },
                                 onMoveToTop?.let { moveToTopLabel to it },
                                 onMoveToBottom?.let { moveToBottomLabel to it },
                                 onRemoveHere?.let { removeLabel to it },
@@ -157,7 +166,7 @@ private fun PlaylistVideoRowContent(
                 }
 
                 showDragHandle -> {
-                    { ReorderHandle(modifier = dragHandleModifier) }
+                    { ReorderHandleCell(dragModifier = dragHandleModifier) }
                 }
 
                 else -> {

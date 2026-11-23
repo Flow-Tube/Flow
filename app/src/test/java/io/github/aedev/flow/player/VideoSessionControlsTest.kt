@@ -2,7 +2,6 @@ package io.github.aedev.flow.player
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.player.VideoSessionControls.LoopTarget
-import io.github.aedev.flow.player.VideoSessionControls.Repeat
 import io.github.aedev.flow.player.VideoSessionControls.State
 import org.junit.Test
 
@@ -29,14 +28,14 @@ class VideoSessionControlsTest {
 
     @Test
     fun `looping the video wins over looping the queue`() {
-        assertThat(state(videoLooping = true, queueLooping = true).repeat).isEqualTo(Repeat.ONE)
-        assertThat(state(queueLooping = true).repeat).isEqualTo(Repeat.QUEUE)
-        assertThat(state().repeat).isEqualTo(Repeat.OFF)
+        assertThat(state(videoLooping = true, queueLooping = true).repeat).isEqualTo(RepeatMode.ONE)
+        assertThat(state(queueLooping = true).repeat).isEqualTo(RepeatMode.ALL)
+        assertThat(state().repeat).isEqualTo(RepeatMode.OFF)
     }
 
     @Test
     fun `a leftover queue loop without a queue reads as off`() {
-        assertThat(state(queueLooping = true, queueSize = 0).repeat).isEqualTo(Repeat.OFF)
+        assertThat(state(queueLooping = true, queueSize = 0).repeat).isEqualTo(RepeatMode.OFF)
         assertThat(state(queueSize = 1).hasQueue).isFalse()
         assertThat(state(queueSize = 2).hasQueue).isTrue()
     }

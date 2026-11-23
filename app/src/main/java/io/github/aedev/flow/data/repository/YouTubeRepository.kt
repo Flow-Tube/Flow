@@ -19,11 +19,13 @@ import io.github.aedev.flow.innertube.pages.LiveMetadataUpdate
 import io.github.aedev.flow.innertube.pages.VideoCommentsSection
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.innertube.pages.WatchPageHeader
+import io.github.aedev.flow.innertube.pages.WatchPlaylistWindow
 import io.github.aedev.flow.innertube.pages.YouTubeCountParser
 import io.github.aedev.flow.innertube.pages.channel.ChannelHeader
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.search.resultVideos
 import io.github.aedev.flow.innertube.pages.toWatchPageHeader
+import io.github.aedev.flow.innertube.pages.toWatchPlaylistWindow
 import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -82,8 +84,11 @@ class YouTubeRepository
             WatchResponseCache<JsonElement>(
                 capacity = WATCH_NEXT_CACHE_SIZE,
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-                fetch = { videoId -> YouTube.watchNextJson(videoId).getOrNull() },
+                fetch = { videoId -> YouTube.watchNextJson(videoId, watchPlaylistFor.remove(videoId)).getOrNull() },
             )
+
+        // The playlist a video is about to play from, so its one watch request also brings the queue window.
+        private val watchPlaylistFor = java.util.concurrent.ConcurrentHashMap<String, String>()
 
         // Cache for channel avatar URLs to avoid redundant network calls
         private val channelAvatarCache = LruCache<String, String>(300)
@@ -443,6 +448,29 @@ class YouTubeRepository
          * rather than failing the surface.
          */
         suspend fun watchNextResponse(videoId: String): JsonElement? = watchResponses.forPlayer(videoId)
+
+        /**
+         * The part of [playlistId] around [videoId], read from the watch request the player makes for
+         * that video anyway. A watch response already cached without the playlist costs one request more.
+         */
+        suspend fun watchPlaylistWindow(
+            videoId: String,
+            playlistId: String,
+        ): WatchPlaylistWindow? {
+            fun JsonElement.window() = toWatchPlaylistWindow()?.takeIf { it.playlistId == null || it.playlistId == playlistId }
+            watchResponses.cached(videoId)?.window()?.let { return it }
+            if (watchResponses.cached(videoId) == null) {
+                watchPlaylistFor[videoId] = playlistId
+                val response = watchResponses.forPlayer(videoId)
+                watchPlaylistFor.remove(videoId)
+                response?.window()?.let { return it }
+            }
+            return YouTube.watchNextJson(videoId, playlistId).getOrNull()?.window()
+        }
+
+        /** The playlist panel's videos after continuation [token], and the token after them. */
+        suspend fun watchPlaylistContinuation(token: String): Pair<List<Video>, String?>? =
+            withContext(PerformanceDispatcher.networkIO) { YouTube.watchPlaylistContinuation(token).getOrNull() }
 
         /**
          * The typed watch response, off the one request the player already makes. Every watch

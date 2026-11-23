@@ -38,7 +38,9 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.innertube.models.response.VideoChapter
 import io.github.aedev.flow.player.EnhancedPlayerManager
+import io.github.aedev.flow.player.RepeatMode
 import io.github.aedev.flow.player.state.EnhancedPlayerState
+import io.github.aedev.flow.player.videoRepeatMode
 import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.components.shared.FlowDescriptionBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowNoteEditorDialog
@@ -126,9 +128,12 @@ internal fun PlayerQueueSheetHost(
         queueVideos = queueVideos,
         currentQueueIndex = currentQueueIndex,
         playlistTitle = playerState.queueTitle,
-        isLooping = playerState.isQueueLooping,
+        repeatMode = videoRepeatMode(queueLoop = playerState.isQueueLooping, videoLoop = playerState.isLooping),
         isShuffled = playerState.isQueueShuffled,
-        onLoopToggle = manager::toggleQueueLoop,
+        onRepeatModeChange = { mode ->
+            manager.toggleLoop(mode == RepeatMode.ONE)
+            if (playerState.isQueueLooping != (mode == RepeatMode.ALL)) manager.toggleQueueLoop(mode == RepeatMode.ALL)
+        },
         onShuffleToggle = manager::toggleQueueShuffle,
         onPlayVideoAtIndex = { index -> manager.playVideoAtIndex(index, loadStreamsInPlayer = loadStreamsInPlayer) },
         onRemoveVideoAtIndex = { index ->

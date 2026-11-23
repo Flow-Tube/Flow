@@ -741,6 +741,7 @@ class InnerTube {
     suspend fun nextWatch(
         videoId: String? = null,
         continuation: String? = null,
+        playlistId: String? = null,
     ) = withRetry {
         val client = YouTubeClient.WEB
         httpClient.post("https://www.youtube.com/youtubei/v1/next") {
@@ -749,7 +750,7 @@ class InnerTube {
                 NextBody(
                     context = client.toContext(locale, visitorData, null),
                     videoId = videoId,
-                    playlistId = null,
+                    playlistId = playlistId,
                     playlistSetVideoId = null,
                     index = null,
                     params = null,

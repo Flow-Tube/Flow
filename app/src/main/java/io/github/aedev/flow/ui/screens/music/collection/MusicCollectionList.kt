@@ -39,7 +39,7 @@ import io.github.aedev.flow.ui.components.music.section.MusicCollectionShelf
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowSegmentedGap
 import io.github.aedev.flow.ui.components.shared.FlowSpinner
-import io.github.aedev.flow.ui.components.shared.ReorderHandle
+import io.github.aedev.flow.ui.components.shared.ReorderHandleCell
 import io.github.aedev.flow.ui.components.shared.flowSegmentShape
 import io.github.aedev.flow.ui.components.shared.reorderHandleDrag
 import io.github.aedev.flow.ui.components.shared.reorderLift
@@ -136,7 +136,7 @@ internal fun MusicCollectionList(
                             }
 
                             mode.canReorder -> {
-                                { ReorderHandle(modifier = dragHandle) }
+                                { ReorderHandleCell(dragModifier = dragHandle) }
                             }
 
                             else -> {

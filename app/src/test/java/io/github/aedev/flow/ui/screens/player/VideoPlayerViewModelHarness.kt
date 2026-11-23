@@ -97,6 +97,7 @@ internal class VideoPlayerViewModelHarness(
     val playbackAbandonedEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val queueVideos = MutableStateFlow<List<Video>>(emptyList())
     val videoQueueStore = mockk<io.github.aedev.flow.data.video.VideoQueueStore>(relaxed = true)
+    val queueSources = mockk<io.github.aedev.flow.data.repository.PlaylistQueueSources>(relaxed = true)
     val musicCurrentTrack = MutableStateFlow<MusicTrack?>(null)
     val autoplayEnabled = MutableStateFlow(true)
     val continueWatchingEnabled = MutableStateFlow(true)
@@ -198,6 +199,7 @@ internal class VideoPlayerViewModelHarness(
             playerPreferences = playerPreferences,
             videoDownloadManager = videoDownloadManager,
             videoQueueStore = videoQueueStore,
+            queueSources = queueSources,
             watchLaterCleanup = mockk(relaxed = true),
             offlineSubtitleStore = offlineSubtitleStore,
             localSubtitles = localSubtitles,
