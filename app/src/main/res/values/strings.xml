@@ -310,6 +310,9 @@
     <string name="play">Play</string>
     <string name="next">Next</string>
     <string name="repeat">Repeat</string>
+    <string name="repeat_mode_off">Repeat off</string>
+    <string name="repeat_mode_all">Repeat all</string>
+    <string name="repeat_mode_one">Repeat one</string>
     <string name="loading_track">Loading track...</string>
     <string name="error_occurred">An error occurred</string>
     <string name="playing_from">Playing from</string>

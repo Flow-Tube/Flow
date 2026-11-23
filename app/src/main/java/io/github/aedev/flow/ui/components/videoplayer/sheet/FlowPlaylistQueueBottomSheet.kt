@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconToggleButton
@@ -31,6 +32,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.player.RepeatMode
+import io.github.aedev.flow.player.next
 import io.github.aedev.flow.ui.components.shared.FlowBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowSheetHeader
 import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
@@ -51,9 +54,9 @@ fun FlowPlaylistQueueBottomSheet(
     queueVideos: List<Video>,
     currentQueueIndex: Int,
     playlistTitle: String?,
-    isLooping: Boolean,
+    repeatMode: RepeatMode,
     isShuffled: Boolean,
-    onLoopToggle: (Boolean) -> Unit,
+    onRepeatModeChange: (RepeatMode) -> Unit,
     onShuffleToggle: (Boolean) -> Unit,
     onPlayVideoAtIndex: (Int) -> Unit,
     onRemoveVideoAtIndex: (Int) -> Unit,
@@ -134,10 +137,17 @@ fun FlowPlaylistQueueBottomSheet(
                         contentDescription = stringResource(R.string.shuffle),
                     )
                     QueueModeToggle(
-                        checked = isLooping,
-                        onCheckedChange = onLoopToggle,
-                        imageVector = Icons.Rounded.Repeat,
-                        contentDescription = stringResource(R.string.repeat),
+                        checked = repeatMode != RepeatMode.OFF,
+                        onCheckedChange = { onRepeatModeChange(repeatMode.next()) },
+                        imageVector = if (repeatMode == RepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                        contentDescription =
+                            stringResource(
+                                when (repeatMode) {
+                                    RepeatMode.OFF -> R.string.repeat_mode_off
+                                    RepeatMode.ALL -> R.string.repeat_mode_all
+                                    RepeatMode.ONE -> R.string.repeat_mode_one
+                                },
+                            ),
                     )
                 },
             )
