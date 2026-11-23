@@ -31,6 +31,7 @@ import io.github.aedev.flow.innertube.pages.renderer.FeedItem
 import io.github.aedev.flow.ui.components.PlaylistCard
 import io.github.aedev.flow.ui.components.PlaylistCardLayout
 import io.github.aedev.flow.ui.components.rememberFeedGridLayout
+import io.github.aedev.flow.ui.components.shared.FeedGridTopPadding
 import io.github.aedev.flow.ui.components.shared.FeedPagingFooter
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
@@ -38,9 +39,7 @@ import io.github.aedev.flow.ui.components.shared.MediaShortCard
 import io.github.aedev.flow.ui.components.shared.RetryWhenBackOnline
 import io.github.aedev.flow.ui.components.shared.ShortCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
-import io.github.aedev.flow.ui.theme.Dimensions
 
 /**
  * Every channel tab's list, whatever it holds.
@@ -92,20 +91,18 @@ internal fun ChannelTabItems(
                 spansOwnRow = { pagingItems.peek(it).spansRow() },
                 includeLastRun = pagingItems.loadState.append.endOfPaginationReached,
                 itemsKey = pagingItems.itemSnapshotList,
-                compactRowSpacing = Dimensions.ItemSpacing,
             )
         val sidePadding = if (isShorts) ShortCardDefaults.gridPadding(feedLayout) else plan.horizontalPadding
+        val topGap = if (feedLayout.isCompact || !hasFilterBar) FeedGridTopPadding else 0.dp
         val padding =
-            remember(contentPadding, sidePadding) {
+            remember(contentPadding, sidePadding, topGap) {
                 PaddingValues(
                     start = sidePadding,
                     end = sidePadding,
-                    top = contentPadding.calculateTopPadding(),
+                    top = contentPadding.calculateTopPadding() + topGap,
                     bottom = contentPadding.calculateBottomPadding(),
                 )
             }
-        // Even a zero-height item collects the row gutter, so a wide window with chips above adds none.
-        val topGap = if (feedLayout.isCompact || !hasFilterBar) 8.dp else null
         val append = pagingItems.loadState.append
 
         LazyVerticalGrid(
@@ -116,9 +113,6 @@ internal fun ChannelTabItems(
             horizontalArrangement = Arrangement.spacedBy(if (isShorts) ShortCardDefaults.Spacing else 0.dp),
             verticalArrangement = Arrangement.spacedBy(if (isShorts) ShortCardDefaults.Spacing else plan.rowSpacing),
         ) {
-            if (topGap != null) {
-                fullSpanItem(key = "top_gap") { Spacer(Modifier.height(topGap)) }
-            }
             items(
                 count = pagingItems.itemCount,
                 key = { index -> pagingItems.peek(index)?.itemKey() ?: "placeholder:$index" },
@@ -135,11 +129,9 @@ internal fun ChannelTabItems(
                     is FeedItem.VideoItem -> {
                         MediaVideoCard(
                             video = item.video,
-                            layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                            spec = plan.videoCard(index),
                             showChannel = false,
                             onClick = { onVideoClick(item.video) },
-                            thumbnailWidth = plan.listThumbnailWidth,
-                            density = plan.cardDensity,
                         )
                     }
 

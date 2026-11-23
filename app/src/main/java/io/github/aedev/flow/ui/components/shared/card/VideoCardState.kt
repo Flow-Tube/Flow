@@ -18,6 +18,7 @@ import io.github.aedev.flow.data.contentfilter.aislist.AiListMatcher
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ThumbnailQuality
+import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.data.local.WatchProgressStore
 import io.github.aedev.flow.data.local.dao.WatchProgress
 import io.github.aedev.flow.data.local.isImportedWatch
@@ -55,6 +56,7 @@ data class VideoCardPreferences(
     val originalTitlesEnabled: Boolean = false,
     val deArrowRandomFrame: Boolean = true,
     val deArrowThumbnailsOnly: Boolean = false,
+    val cardStyle: VideoCardStyle = VideoCardStyle.ROUNDED,
 )
 
 /**
@@ -171,6 +173,8 @@ fun ProvideVideoCardState(
                 cardPreferences.copy(deArrowRandomFrame = randomFrame)
             }.combine(playerPreferences.deArrowThumbnailsOnly) { cardPreferences, thumbnailsOnly ->
                 cardPreferences.copy(deArrowThumbnailsOnly = thumbnailsOnly)
+            }.combine(playerPreferences.videoCardStyle) { cardPreferences, cardStyle ->
+                cardPreferences.copy(cardStyle = cardStyle)
             }.distinctUntilChanged()
         }
     val preferences by preferencesFlow.collectAsStateWithLifecycle(VideoCardPreferences())

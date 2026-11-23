@@ -22,8 +22,8 @@ import io.github.aedev.flow.ui.components.library.LibraryMediaShelf
 import io.github.aedev.flow.ui.components.library.LibrarySection
 import io.github.aedev.flow.ui.components.library.LibraryShelf
 import io.github.aedev.flow.ui.components.library.LibraryShelfPlaceholder
+import io.github.aedev.flow.ui.components.library.LibraryShelfVideoCard
 import io.github.aedev.flow.ui.components.library.LibraryShortsShelf
-import io.github.aedev.flow.ui.components.library.LibraryVideoCard
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
@@ -149,7 +149,7 @@ internal fun LibraryVideoShelf(
                     key = Video::id,
                     contentType = { "video" },
                 ) { video ->
-                    LibraryVideoCard(
+                    LibraryShelfVideoCard(
                         video = video,
                         onClick = { onVideoClick(video) },
                         width = cardWidth,

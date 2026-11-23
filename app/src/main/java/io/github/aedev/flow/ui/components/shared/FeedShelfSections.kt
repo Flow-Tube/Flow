@@ -187,6 +187,8 @@ private fun LazyGridScope.shelfSection(
                     video = trailer.video,
                     showChannel = showChannelInfo,
                     onClick = { actions.onVideoClick(trailer.video) },
+                    useInternalPadding = !layout.cardsBleed,
+                    fullBleed = layout.thumbnailsBleed,
                 )
             }
         }

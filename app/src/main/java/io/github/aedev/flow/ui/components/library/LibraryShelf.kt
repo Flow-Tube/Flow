@@ -198,7 +198,7 @@ internal fun LibraryMediaShelf(
         ) { item ->
             when (item) {
                 is LibraryMediaItem.VideoItem -> {
-                    LibraryVideoCard(
+                    LibraryShelfVideoCard(
                         video = item.video,
                         onClick = { onVideoClick(item.video) },
                         width = cardWidth,
@@ -216,7 +216,7 @@ internal fun LibraryMediaShelf(
                 }
 
                 is LibraryMediaItem.DownloadedVideoItem -> {
-                    LibraryVideoCard(
+                    LibraryShelfVideoCard(
                         video = item.download.video,
                         onClick = {
                             val index =

@@ -26,7 +26,6 @@ import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
 
 @Composable
@@ -113,11 +112,9 @@ internal fun ChannelSearchResults(
                     ) { index, video ->
                         MediaVideoCard(
                             video = video,
-                            layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                            spec = plan.videoCard(index),
                             showChannel = false,
                             onClick = { onVideoClick(video) },
-                            thumbnailWidth = plan.listThumbnailWidth,
-                            density = plan.cardDensity,
                         )
                     }
                     item(key = "bottom_gap", span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(16.dp)) }

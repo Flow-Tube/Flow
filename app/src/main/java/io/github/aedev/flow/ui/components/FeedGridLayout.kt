@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.VideoCardStyle
+import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardPreferences
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 import io.github.aedev.flow.ui.theme.Dimensions
@@ -150,13 +151,14 @@ private fun cappedColumns(
     return columns
 }
 
+/** [cardStyle] defaults to the user's card style, so every feed draws the same card. */
 @Composable
 fun rememberFeedGridLayout(
     maxWidth: Dp,
     columnPreference: HomeFeedColumns = HomeFeedColumns.AUTO,
     maxAutoColumns: Int = FEED_MAX_AUTO_COLUMNS,
     minCellWidth: Dp = FeedCardMinWidth,
-    cardStyle: VideoCardStyle = VideoCardStyle.ROUNDED,
+    cardStyle: VideoCardStyle = LocalVideoCardPreferences.current.cardStyle,
 ): FeedGridLayout =
     remember(maxWidth, columnPreference, maxAutoColumns, minCellWidth, cardStyle) {
         feedGridLayoutFor(maxWidth, columnPreference, maxAutoColumns, minCellWidth, cardStyle)

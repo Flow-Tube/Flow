@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.components.shared.card
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,44 @@ object VideoCardDefaults {
 
     /** The gap between the lines under a stacked card's thumbnail. */
     val StackedTextSpacing: Dp = 4.dp
+}
+
+/**
+ * Where a feed grid puts one card: its shape, its inset and its thumbnail. A grid takes it from its
+ * [io.github.aedev.flow.ui.components.shared.FeedGridPlan] so every feed places the same card the same way.
+ */
+@Immutable
+data class FeedCardSpec(
+    val layout: VideoCardLayout,
+    val useInternalPadding: Boolean,
+    val thumbnailWidth: Dp,
+    val density: VideoCardDensity,
+    val fullBleed: Boolean,
+)
+
+@Composable
+fun MediaVideoCard(
+    video: Video,
+    spec: FeedCardSpec,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    showChannel: Boolean = true,
+    reason: String? = null,
+    whyShown: String? = null,
+) {
+    MediaVideoCard(
+        video = video,
+        onClick = onClick,
+        modifier = modifier,
+        layout = spec.layout,
+        showChannel = showChannel,
+        useInternalPadding = spec.useInternalPadding,
+        thumbnailWidth = spec.thumbnailWidth,
+        reason = reason,
+        whyShown = whyShown,
+        density = spec.density,
+        fullBleed = spec.fullBleed,
+    )
 }
 
 /**

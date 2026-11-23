@@ -1471,7 +1471,7 @@
     <string name="settings_top_bar_hide_on_scroll_summary">On Home, Subscriptions and Music</string>
     <string name="settings_top_bar_hide_on_scroll_keywords">top bar, header, chips, scroll, hide, status bar</string>
     <string name="settings_video_card_style_title">Card style</string>
-    <string name="settings_video_card_style_summary">Full width takes the corners off thumbnails on Home and Subscriptions</string>
+    <string name="settings_video_card_style_summary">Full width takes the corners off video thumbnails</string>
     <string name="settings_video_card_style_keywords">card, thumbnail, corners, rounded, full width, edge to edge, bleed</string>
     <string name="settings_video_card_style_rounded">Rounded</string>
     <string name="settings_video_card_style_full_width">Full width</string>

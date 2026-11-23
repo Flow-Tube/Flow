@@ -10,26 +10,22 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.card.VideoCardSkeleton
 
 /**
  * Placeholder cards in the exact plan the loaded feed will use, so the first page does not jump.
- * [stackedInset] matches the real stacked cards' `useInternalPadding`.
  */
 @Composable
 fun FeedGridSkeleton(
     layout: FeedGridLayout,
     listMode: Boolean,
     modifier: Modifier = Modifier,
-    stackedInset: Boolean = true,
     placeholderCount: Int = DEFAULT_PLACEHOLDER_COUNT,
     compactRows: Boolean = false,
-    compactRowSpacing: Dp = 0.dp,
     topPadding: Dp = FeedGridTopPadding,
 ) {
     val plan =
-        remember(layout, listMode, placeholderCount, compactRows, compactRowSpacing) {
+        remember(layout, listMode, placeholderCount, compactRows) {
             feedGridPlanFor(
                 layout = layout,
                 listMode = listMode,
@@ -37,7 +33,6 @@ fun FeedGridSkeleton(
                 spansOwnRow = { false },
                 includeLastRun = false,
                 compactRows = compactRows,
-                compactRowSpacing = compactRowSpacing,
             )
         }
     SkeletonSurface {
@@ -49,12 +44,13 @@ fun FeedGridSkeleton(
             userScrollEnabled = false,
         ) {
             items(count = placeholderCount, key = { "skeleton:$it" }, contentType = { "skeleton" }) { index ->
+                val card = plan.videoCard(index)
                 VideoCardSkeleton(
-                    layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
-                    useInternalPadding = stackedInset,
-                    thumbnailWidth = plan.listThumbnailWidth,
-                    density = plan.cardDensity,
-                    fullBleed = layout.thumbnailsBleed,
+                    layout = card.layout,
+                    useInternalPadding = card.useInternalPadding,
+                    thumbnailWidth = card.thumbnailWidth,
+                    density = card.density,
+                    fullBleed = card.fullBleed,
                 )
             }
         }

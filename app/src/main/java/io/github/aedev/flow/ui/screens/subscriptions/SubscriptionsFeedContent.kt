@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.local.HomeFeedColumns
-import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
@@ -31,7 +30,6 @@ import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
 import io.github.aedev.flow.ui.components.shared.MediaShortsShelf
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.dpadFocusGroup
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
 
@@ -60,7 +58,6 @@ internal fun SubscriptionsFeedContent(
     modifier: Modifier = Modifier,
     maxAutoColumns: Int = FEED_MAX_AUTO_COLUMNS,
     minCellWidth: Dp = FeedCardMinWidth,
-    cardStyle: VideoCardStyle = VideoCardStyle.ROUNDED,
     showShorts: Boolean = true,
     onPostsClick: (() -> Unit)? = null,
     pinnedCount: Int = 0,
@@ -83,7 +80,7 @@ internal fun SubscriptionsFeedContent(
         modifier = modifier.fillMaxSize(),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val feedLayout = rememberFeedGridLayout(maxWidth, columnPreference, maxAutoColumns, minCellWidth, cardStyle)
+            val feedLayout = rememberFeedGridLayout(maxWidth, columnPreference, maxAutoColumns, minCellWidth)
             val listMode = !state.isFullWidthView
             val plan =
                 rememberFeedGridPlan(
@@ -93,7 +90,6 @@ internal fun SubscriptionsFeedContent(
                     spansOwnRow = { false },
                     includeLastRun = true,
                     itemsKey = videos,
-                    compactRowSpacing = if (listMode) 0.dp else feedLayout.cardSpacing,
                 )
             LazyVerticalGrid(
                 columns = plan.cells,
@@ -166,12 +162,8 @@ internal fun SubscriptionsFeedContent(
                 ) { index, video ->
                     MediaVideoCard(
                         video = video,
-                        layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                        spec = plan.videoCard(index),
                         onClick = { onVideoClick(video) },
-                        useInternalPadding = !feedLayout.cardsBleed,
-                        thumbnailWidth = plan.listThumbnailWidth,
-                        density = plan.cardDensity,
-                        fullBleed = feedLayout.thumbnailsBleed,
                     )
                 }
             }

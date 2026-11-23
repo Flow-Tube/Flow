@@ -51,9 +51,7 @@ internal fun HomeChipContent(
             FeedGridSkeleton(
                 layout = feedLayout,
                 listMode = isListView,
-                stackedInset = !feedLayout.cardsBleed,
                 placeholderCount = SKELETON_CARDS,
-                compactRowSpacing = if (isListView) 0.dp else feedLayout.cardSpacing,
                 modifier = belowHeader,
             )
         }

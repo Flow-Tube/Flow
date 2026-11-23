@@ -5,10 +5,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.HomeFeedColumns
+import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.ui.components.FEED_MAX_AUTO_COLUMNS
 import io.github.aedev.flow.ui.components.feedGridLayoutFor
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
+import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import org.junit.Test
 
 /**
@@ -103,21 +105,13 @@ class FeedGridPlanTest {
     }
 
     @Test
-    fun `a one-column grid drops its row spacing unless a phone asks for it`() {
-        assertThat(plan(360.dp).rowSpacing).isEqualTo(0.dp)
+    fun `phone cards keep Home's gap and rows sit flush`() {
+        val layout = feedGridLayoutFor(360.dp)
+
+        assertThat(plan(360.dp).rowSpacing).isEqualTo(layout.cardSpacing)
+        assertThat(plan(360.dp, listMode = true).rowSpacing).isEqualTo(0.dp)
         assertThat(plan(1200.dp).rowSpacing).isGreaterThan(0.dp)
         assertThat(plan(1200.dp, listMode = true).rowSpacing).isEqualTo(0.dp)
-
-        val spaced =
-            feedGridPlanFor(
-                layout = feedGridLayoutFor(360.dp),
-                listMode = false,
-                itemCount = 4,
-                spansOwnRow = { false },
-                includeLastRun = true,
-                compactRowSpacing = 12.dp,
-            )
-        assertThat(spaced.rowSpacing).isEqualTo(12.dp)
     }
 
     @Test
@@ -175,5 +169,61 @@ class FeedGridPlanTest {
         assertThat(list.cardDensity).isEqualTo(VideoCardDensity.Regular)
         assertThat(list.cardInset).isEqualTo(VideoCardDefaults.Inset)
         assertThat(list.horizontalPadding).isEqualTo(0.dp)
+    }
+
+    @Test
+    fun `a phone column hands every card the edge-to-edge spec`() {
+        val layout = feedGridLayoutFor(411.dp, cardStyle = VideoCardStyle.FULL_WIDTH)
+        val card = feedGridPlanFor(layout, listMode = false, itemCount = 4, spansOwnRow = { false }, includeLastRun = true).videoCard(0)
+
+        assertThat(card.layout).isEqualTo(VideoCardLayout.Stacked)
+        assertThat(card.useInternalPadding).isFalse()
+        assertThat(card.fullBleed).isTrue()
+        assertThat(card.density).isEqualTo(VideoCardDensity.Regular)
+    }
+
+    @Test
+    fun `rounded phone cards bleed but keep their corners`() {
+        val card = plan(411.dp).videoCard(0)
+
+        assertThat(card.useInternalPadding).isFalse()
+        assertThat(card.fullBleed).isFalse()
+    }
+
+    @Test
+    fun `pinned phone columns and wide windows inset their cards`() {
+        val pinned = feedGridLayoutFor(411.dp, HomeFeedColumns.TWO, cardStyle = VideoCardStyle.FULL_WIDTH)
+        val pinnedCard =
+            feedGridPlanFor(
+                pinned,
+                listMode = false,
+                itemCount = 4,
+                spansOwnRow = { false },
+                includeLastRun = true,
+            ).videoCard(0)
+        val wideCard = plan(1200.dp).videoCard(0)
+
+        assertThat(pinnedCard.useInternalPadding).isTrue()
+        assertThat(pinnedCard.fullBleed).isFalse()
+        assertThat(wideCard.useInternalPadding).isTrue()
+        assertThat(wideCard.fullBleed).isFalse()
+    }
+
+    @Test
+    fun `list mode cards are rows with the list thumbnail`() {
+        val list = plan(411.dp, listMode = true)
+        val card = list.videoCard(0)
+
+        assertThat(card.layout).isEqualTo(VideoCardLayout.Row)
+        assertThat(card.thumbnailWidth).isEqualTo(list.listThumbnailWidth)
+    }
+
+    @Test
+    fun `a shelf card keeps the density it asks for`() {
+        val layout = feedGridLayoutFor(360.dp, HomeFeedColumns.THREE)
+        val dense = feedGridPlanFor(layout, listMode = false, itemCount = 4, spansOwnRow = { false }, includeLastRun = true)
+
+        assertThat(dense.card(asRow = false).density).isEqualTo(VideoCardDensity.Dense)
+        assertThat(dense.card(asRow = false, density = VideoCardDensity.Regular).density).isEqualTo(VideoCardDensity.Regular)
     }
 }
