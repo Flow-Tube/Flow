@@ -180,14 +180,20 @@ interface PlaylistDao {
         }
     }
 
-    /** Applies a whole new order at once, so no intermediate order with duplicate positions is emitted. */
+    /**
+     * Applies a whole new order at once, so no intermediate order with duplicate positions is emitted.
+     * Only rows whose place changed are written; see [changedPositions].
+     */
     @Transaction
     suspend fun reorderPlaylistVideos(
         playlistId: String,
         orderedVideoIds: List<String>,
     ) {
-        orderedVideoIds.forEachIndexed { index, videoId -> updatePlaylistVideoPosition(playlistId, videoId, index.toLong()) }
-        updatePlaylistThumbnail(playlistId, getFirstVideoThumbnail(playlistId).orEmpty())
+        val current = getPlaylistVideoPositions(playlistId)
+        changedPositions(current, orderedVideoIds).forEach { updatePlaylistVideoPosition(playlistId, it.videoId, it.position) }
+        if (current.firstOrNull()?.videoId != orderedVideoIds.firstOrNull()) {
+            updatePlaylistThumbnail(playlistId, getFirstVideoThumbnail(playlistId).orEmpty())
+        }
     }
 
     /**
