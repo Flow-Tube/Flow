@@ -2966,7 +2966,7 @@
     <string name="playlist_load_failed">Could not load this playlist</string>
     <string name="playlist_unavailable_hidden">Unavailable videos are hidden</string>
     <plurals name="playlist_loading_all">
-        <item quantity="one">Loading all %1$d video</item>
+        <item quantity="one">Loading %1$d video</item>
         <item quantity="other">Loading all %1$d videos</item>
     </plurals>
     <string name="playlist_loading_all_unknown">Loading all videos</string>
