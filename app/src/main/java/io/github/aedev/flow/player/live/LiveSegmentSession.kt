@@ -1,10 +1,14 @@
 package io.github.aedev.flow.player.live
 
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * One live stream played from its segments: the formats, the URL each itag is fetched from, and the
  * clock that places segment numbers on Media3's timeline.
+ *
+ * @param refreshUrls a fresh player response's URLs by itag, for when these expire.
  */
 class LiveSegmentSession internal constructor(
     val videoId: String,
@@ -14,17 +18,22 @@ class LiveSegmentSession internal constructor(
     val readaheadMs: Long,
     serverClockOffsetMs: Long,
     private val deviceNow: () -> Long = System::currentTimeMillis,
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    refreshUrls: suspend () -> Map<Int, String>? = { null },
 ) {
-    private val urls = ConcurrentHashMap(urls)
-
     @Volatile
     private var serverClockOffsetMs = serverClockOffsetMs
+
+    private val urls = LiveSegmentUrls(urls, scope, refreshUrls, serverNow = { deviceNow() + this.serverClockOffsetMs })
 
     val manifestUri: String = "$SCHEME://$MANIFEST_HOST/$videoId"
 
     fun segmentUri(itag: Int): String = "$SCHEME://$SEGMENT_HOST/$videoId/$itag/"
 
-    fun urlFor(itag: Int): String? = urls[itag]
+    fun urlFor(itag: Int): String? = urls.urlFor(itag)
+
+    /** A segment was refused, so the URLs are fetched again. */
+    fun onRefused() = urls.onRefused()
 
     fun manifest(): String = LiveSegmentManifest.build(clock, formats, ::segmentUri, deviceNow() + serverClockOffsetMs)
 

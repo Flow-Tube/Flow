@@ -26,6 +26,9 @@ import java.io.IOException
 internal object LiveSegmentMediaSource {
     private const val SEGMENT_RETRY_COUNT = 6
 
+    /** Long enough for one player request to return fresh URLs. */
+    private const val REFUSED_RETRY_DELAY_MS = 3_000L
+
     fun create(
         session: LiveSegmentSession,
         segmentDataSourceFactory: DataSource.Factory,
@@ -58,15 +61,15 @@ internal object LiveSegmentMediaSource {
     private fun manifestBytes(uri: Uri): ByteArray =
         LiveSegmentSessions.forUri(uri)?.manifest()?.toByteArray() ?: throw IOException("Live session closed: $uri")
 
-    /** Waits a half segment before asking again for a segment the CDN does not have yet. */
+    /** Waits before asking again for a segment the CDN does not have yet, or refused while its URLs are replaced. */
     private class SegmentErrorPolicy(
         private val notReadyDelayMs: Long,
     ) : DefaultLoadErrorHandlingPolicy(SEGMENT_RETRY_COUNT) {
         override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long =
-            if (loadErrorInfo.exception is LiveSegmentNotReadyException) {
-                notReadyDelayMs
-            } else {
-                super.getRetryDelayMsFor(loadErrorInfo)
+            when (loadErrorInfo.exception) {
+                is LiveSegmentNotReadyException -> notReadyDelayMs
+                is LiveSegmentRefusedException -> REFUSED_RETRY_DELAY_MS
+                else -> super.getRetryDelayMsFor(loadErrorInfo)
             }
     }
 }

@@ -7,6 +7,8 @@ import androidx.media3.datasource.TransferListener
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -23,6 +25,7 @@ class LiveSegmentDataSourceTest {
 
         override fun open(dataSpec: DataSpec): Long {
             opened = dataSpec
+            if (code >= 400) throw HttpDataSource.InvalidResponseCodeException(code, null, null, headers, dataSpec, ByteArray(0))
             return length
         }
 
@@ -54,15 +57,22 @@ class LiveSegmentDataSourceTest {
         override fun getResponseHeaders() = headers
     }
 
+    private var refreshes = 0
+
     private fun session(videoId: String) =
         LiveSegmentSession(
             videoId = videoId,
             formats = listOf(LiveSegmentFormat(140, "audio/mp4", "mp4a.40.2", 144_000)),
-            urls = mapOf(140 to "https://r1.googlevideo.com/videoplayback?itag=140&expire=1"),
+            urls = mapOf(140 to "https://r1.googlevideo.com/videoplayback?itag=140&expire=9999999999"),
             clock = LiveSegmentClock(head, 5_000, 43_200_000),
             readaheadMs = 12_000,
             serverClockOffsetMs = 0,
             deviceNow = { 1_000_000 },
+            scope = TestScope(UnconfinedTestDispatcher()),
+            refreshUrls = {
+                refreshes++
+                null
+            },
         ).also(LiveSegmentSessions::register)
 
     private fun uri(value: String): Uri =
@@ -88,7 +98,7 @@ class LiveSegmentDataSourceTest {
         val length = LiveSegmentDataSource(http, ::uri).open(spec)
 
         assertThat(length).isEqualTo(80_000)
-        assertThat(http.opened!!.uri.toString()).isEqualTo("https://r1.googlevideo.com/videoplayback?itag=140&expire=1&sq=95")
+        assertThat(http.opened!!.uri.toString()).isEqualTo("https://r1.googlevideo.com/videoplayback?itag=140&expire=9999999999&sq=95")
         assertThat(live.clock.head.sequence).isEqualTo(101)
     }
 
@@ -104,6 +114,18 @@ class LiveSegmentDataSourceTest {
 
         assertThat(error.sequence).isEqualTo(102)
         assertThat(http.closed).isTrue()
+    }
+
+    @Test
+    fun `a refused segment is retried, not dropped, and the URLs are fetched again`() {
+        session("seg3")
+        val http = FakeHttp(403, 0, emptyMap())
+
+        assertThrows(LiveSegmentRefusedException::class.java) {
+            LiveSegmentDataSource(http, ::uri).open(DataSpec(uri("flowlive://segment/seg3/140/90")))
+        }
+
+        assertThat(refreshes).isEqualTo(1)
     }
 
     @Test
