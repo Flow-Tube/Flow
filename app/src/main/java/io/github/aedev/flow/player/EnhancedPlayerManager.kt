@@ -54,6 +54,7 @@ import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.error.PlayerErrorHandler
 import io.github.aedev.flow.player.factory.BandwidthSeedRecorder
 import io.github.aedev.flow.player.factory.PlayerFactory
+import io.github.aedev.flow.player.live.LiveEdgePolicy
 import io.github.aedev.flow.player.live.LiveSessionLog
 import io.github.aedev.flow.player.live.LiveTrafficMeter
 import io.github.aedev.flow.player.media.MediaLoader
@@ -130,7 +131,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 class EnhancedPlayerManager private constructor() {
     companion object {
         private const val TAG = PlayerConfig.TAG
-        private const val LIVE_EDGE_THRESHOLD_MS = 700L
         private const val SABR_QUALITY_KEY_PREFIX = "sabr:"
         private const val LIVE_QUALITY_KEY_PREFIX = "live:"
         private const val AUTO_NEXT_TAG = "FlowVideoAutoNext"
@@ -776,7 +776,7 @@ class EnhancedPlayerManager private constructor() {
                     mediaLoader?.getActiveSabrOrchestrator()?.updatePlayhead(exoPlayer.currentPosition)
                     updateLiveEdgeState(exoPlayer)
                     val liveWindowMs = exoPlayer.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L) ?: 0L
-                    liveSessionLog.tick(liveWindowMs, (liveWindowMs - exoPlayer.currentPosition).coerceAtLeast(0L))
+                    liveSessionLog.tick(liveWindowMs, LiveEdgePolicy.behindLiveMs(liveWindowMs, exoPlayer.currentPosition))
                     if (currentIsLiveStream &&
                         _playerState.value.playbackSpeed > 1.0f &&
                         isPlayerAtLiveEdge(exoPlayer)
@@ -3611,26 +3611,7 @@ class EnhancedPlayerManager private constructor() {
 
     private fun isPlayerAtLiveEdge(player: ExoPlayer): Boolean {
         if (!currentIsLiveStream && !player.isCurrentMediaItemLive) return false
-
-        val liveOffset = player.currentLiveOffset
-        if (liveOffset != C.TIME_UNSET && liveOffset > 0L) {
-            return liveOffset <= PlayerConfig.LIVE_EDGE_GAP_MS + LIVE_EDGE_THRESHOLD_MS
-        }
-
-        val timeline = player.currentTimeline
-        val windowIndex = player.currentMediaItemIndex
-        if (!timeline.isEmpty && windowIndex >= 0 && windowIndex < timeline.windowCount) {
-            val window = Timeline.Window()
-            timeline.getWindow(windowIndex, window)
-            val defaultPosition = window.defaultPositionMs
-            if (defaultPosition != C.TIME_UNSET) {
-                return player.currentPosition + LIVE_EDGE_THRESHOLD_MS >= defaultPosition
-            }
-        }
-
-        val duration = player.duration
-        return duration > 0L && duration != C.TIME_UNSET &&
-            duration - player.currentPosition <= LIVE_EDGE_THRESHOLD_MS
+        return LiveEdgePolicy.isAtEdge(player.duration, player.currentPosition)
     }
 
     fun release() {

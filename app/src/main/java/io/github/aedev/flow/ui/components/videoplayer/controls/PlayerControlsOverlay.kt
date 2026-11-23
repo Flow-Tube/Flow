@@ -281,6 +281,7 @@ internal fun PlayerControlsOverlay(
                     seekbarBottomPadding = fullscreenSeekbarBottomPadding,
                     onRevealUnlock = revealLockOverlay,
                     onUnlock = actions.onTouchLockToggle,
+                    isPlaying = state.isPlaying,
                 )
             } else {
                 if (!hideControlsForLoading) {
@@ -374,6 +375,7 @@ internal fun PlayerControlsOverlay(
                         isLayerVisible = isLayerOnScreen,
                         modifier = Modifier.align(Alignment.BottomCenter),
                         onFineScrub = fineScrub.open,
+                        isPlaying = state.isPlaying,
                     )
                 }
 
