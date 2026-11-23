@@ -5821,4 +5821,19 @@
         <item quantity="other">جارٍ تحميل %1$d فيديو</item>
     </plurals>
     <string name="playlist_loading_all_unknown">جارٍ تحميل كل الفيديوهات</string>
+    <plurals name="playlist_download_new">
+        <item quantity="zero">تنزيل %1$d فيديو جديد</item>
+        <item quantity="one">تنزيل فيديو جديد واحد</item>
+        <item quantity="two">تنزيل %1$d فيديو جديد</item>
+        <item quantity="few">تنزيل %1$d فيديوهات جديدة</item>
+        <item quantity="many">تنزيل %1$d فيديو جديد</item>
+        <item quantity="other">تنزيل %1$d فيديو جديد</item>
+    </plurals>
+    <string name="load_error_offline_hint">يعيد التحميل عند الاتصال بالإنترنت مجددًا</string>
+    <string name="home_offline_downloads_hint">لا يزال بإمكانك تشغيل تنزيلاتك</string>
+    <string name="home_back_online_refresh">عاد الاتصال بالإنترنت · تحديث</string>
+    <string name="search_showing_results_for">عرض نتائج البحث عن %1$s</string>
+    <string name="search_instead_for">ابحث بدلًا من ذلك عن %1$s</string>
+    <string name="search_did_you_mean">هل تقصد %1$s</string>
+    <string name="player_live_time_behind">-%1$s</string>
 </resources>
