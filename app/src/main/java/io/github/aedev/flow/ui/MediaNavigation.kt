@@ -130,23 +130,10 @@ internal class FlowMediaNavigator(
         return true
     }
 
-    /**
-     * The video player stays hidden while a Shorts screen is on top, and the player route hands back
-     * to whatever is under it, so every Shorts screen has to go first or the video would play unseen.
-     */
     private fun openPlayer(navigate: () -> Unit) {
-        while (isShortsOnTop() && navController.previousBackStackEntry != null) navController.popBackStack()
-        if (isShortsOnTop()) {
-            navController.navigate(shortsExitRoute()) {
-                popUpTo(SHORTS_ROUTE_PATTERN) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
-            }
-        }
+        navController.leaveShortsForPlayer(shortsExitRoute())
         navigate()
     }
-
-    private fun isShortsOnTop() = navController.currentBackStackEntry?.destination?.route == SHORTS_ROUTE_PATTERN
 
     private fun openCollection(id: String) = open(musicCollectionRoute(id))
 

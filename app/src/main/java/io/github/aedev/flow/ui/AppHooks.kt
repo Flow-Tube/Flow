@@ -71,13 +71,17 @@ private fun openExternalPage(
 
 private const val PENDING_ROUTE_TAG = "PendingRoute"
 
-/** [asksFirst] turns a video into a question instead: [onAsk] gets it and nothing plays yet. */
+/**
+ * [asksFirst] turns a video into a question instead: [onAsk] gets it and nothing plays yet. A video
+ * linked while Shorts is open plays after leaving Shorts, at [shortsExitRoute] when Shorts is the root.
+ */
 @Composable
 fun HandleDeepLinks(
     deeplinkVideoId: String?,
     isShort: Boolean,
     navController: NavController,
     onDeeplinkConsumed: () -> Unit,
+    shortsExitRoute: () -> String,
     asksFirst: suspend () -> Boolean = { false },
     onAsk: (videoId: String) -> Unit = {},
 ) {
@@ -95,6 +99,7 @@ fun HandleDeepLinks(
             // is on top and keep its old queue instead of opening the linked short.
             navController.openShorts(ShortsQueueSource.SeededFeed(videoId))
         } else {
+            navController.leaveShortsForPlayer(shortsExitRoute())
             navController.navigate("player/$videoId") {
                 launchSingleTop = true
             }

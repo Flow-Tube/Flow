@@ -204,7 +204,15 @@ fun FlowApp(
         subscriptionRefreshOnStartup = subscriptionRefreshOnStartup,
     )
 
-    HandleIncomingVideo(deeplinkVideoId, isShort, isSharedLink, navController, preferences, onDeeplinkConsumed)
+    HandleIncomingVideo(
+        videoId = deeplinkVideoId,
+        isShort = isShort,
+        isShared = isSharedLink,
+        navController = navController,
+        preferences = preferences,
+        shortsExitRoute = { exitTab(currentNavigationTabs, FlowTab.Shorts).route },
+        onConsumed = onDeeplinkConsumed,
+    )
     HandleIncomingDownload(downloadVideoId, onDownloadConsumed)
     val networkOnline = rememberNetworkOnline(context)
     OfflineMonitor(context, networkOnline, snackbarHostState, currentRoute, openDownloads)
