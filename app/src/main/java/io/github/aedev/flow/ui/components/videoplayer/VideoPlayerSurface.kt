@@ -60,6 +60,7 @@ import io.github.aedev.flow.ui.components.shared.flowPlayerViewLayout
 import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameCaptureEffect
 import io.github.aedev.flow.ui.components.videoplayer.ambient.AmbientFrameHolder
 import io.github.aedev.flow.ui.components.videoplayer.ambient.VideoAmbientBackground
+import io.github.aedev.flow.ui.utils.rememberIsInPipMode
 import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -249,6 +250,8 @@ fun VideoPlayerSurface(
         playerView = playerView,
         active = !spherical && (ambientActive || ambientGlow),
         holder = frames,
+        // A PiP window is STARTED but has no room for bars and never shows the glow.
+        paused = rememberIsInPipMode(),
         storyboard = ambientStoryboard,
         thumbnailUrl = video.thumbnailUrl,
     )

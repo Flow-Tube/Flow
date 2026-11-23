@@ -501,6 +501,10 @@ class MainActivity : ComponentActivity() {
             io.github.aedev.flow.player.shorts.ShortsPlayerPool
                 .getInstance()
         if (!shortsPool.isPlaying()) return
+        if (PictureInPictureHelper.systemEntersPipOnLeave()) {
+            pendingAutoPip = true
+            return
+        }
         enterPlayerPictureInPictureMode(
             aspectRatio = shortsPool.activeVideoAspectRatio() ?: PORTRAIT_REEL_ASPECT_RATIO,
             isPlaying = true,
