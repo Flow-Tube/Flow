@@ -55,7 +55,7 @@ internal fun PlaylistDetailList(
     reorderState: ReorderableLazyListState,
     onVideoClick: (index: Int, video: Video) -> Unit,
     onRemove: (Video) -> Unit,
-    onMoveToEdge: (video: Video, toTop: Boolean) -> Unit,
+    onMoveVideo: (video: Video, target: Int) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = flowBottomContentPadding()),
     header: (@Composable () -> Unit)? = null,
@@ -107,6 +107,8 @@ internal fun PlaylistDetailList(
                     enabled = mode.canReorder,
                     animateItemModifier = if (mode.canReorder) Modifier.animateItem() else animateMediaListItem(),
                 ) { isDragging ->
+                    val canMoveUp = mode.canReorder && index > 0
+                    val canMoveDown = mode.canReorder && index < videos.lastIndex
                     PlaylistVideoRow(
                         modifier = Modifier.reorderLift(isDragging),
                         video = video,
@@ -121,8 +123,12 @@ internal fun PlaylistDetailList(
                         swipes = mode.swipes,
                         swipeEnabled = mode.swipeEnabled,
                         onRemove = { onRemove(video) },
-                        onMoveToTop = if (mode.canReorder && index > 0) ({ onMoveToEdge(video, true) }) else null,
-                        onMoveToBottom = if (mode.canReorder && index < videos.lastIndex) ({ onMoveToEdge(video, false) }) else null,
+                        onMoveToTop = if (canMoveUp) ({ onMoveVideo(video, 0) }) else null,
+                        onMoveToBottom = if (canMoveDown) ({ onMoveVideo(video, videos.lastIndex) }) else null,
+                        onMoveUp = if (canMoveUp) ({ onMoveVideo(video, index - 1) }) else null,
+                        onMoveDown = if (canMoveDown) ({ onMoveVideo(video, index + 1) }) else null,
+                        positionLabel =
+                            if (mode.canReorder) stringResource(R.string.playlist_video_position, index + 1, videos.size) else null,
                         onClick = { onVideoClick(index, video) },
                         thumbnailWidth = thumbnailWidth,
                     )
