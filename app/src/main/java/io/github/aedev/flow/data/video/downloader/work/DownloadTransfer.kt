@@ -1,6 +1,7 @@
 package io.github.aedev.flow.data.video.downloader.work
 
 import android.util.Log
+import io.github.aedev.flow.data.local.dao.DownloadDao
 import io.github.aedev.flow.data.local.entity.DownloadItemStatus
 import io.github.aedev.flow.data.video.DownloadProgressUpdate
 import io.github.aedev.flow.data.video.VideoDownloadManager
@@ -88,6 +89,7 @@ class DownloadTransfer
         private val downloads: VideoDownloadManager,
         private val notifier: DownloadNotifier,
         private val space: DownloadSpace,
+        private val downloadDao: DownloadDao,
     ) {
         internal suspend fun fetch(
             request: DownloadRequest,
@@ -317,6 +319,7 @@ class DownloadTransfer
                 val ticker =
                     launch {
                         var ticks = 0
+                        val gate = ProgressGate()
                         while (isActive) {
                             delay(PROGRESS_INTERVAL_MS)
                             val done = downloaded()
@@ -331,6 +334,7 @@ class DownloadTransfer
                                 DownloadProgressUpdate(request.videoId, itemId, done, all, DownloadItemStatus.DOWNLOADING),
                             )
                             notifier.show(request.videoId, request.tags.title, DownloadPhase.Transferring(done, all, waiting))
+                            if (gate.passes(done, all)) downloadDao.updateBytes(itemId, done, all)
                             if (++ticks % PERSIST_EVERY_TICKS == 0) persist?.invoke()
                         }
                     }

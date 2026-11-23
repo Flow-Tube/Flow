@@ -50,6 +50,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.AutoDownloadMode
 import io.github.aedev.flow.data.local.DownloadDialogStyle
 import io.github.aedev.flow.data.local.MAX_CONCURRENT_DOWNLOADS
+import io.github.aedev.flow.data.local.MAX_DOWNLOAD_THREADS
 import io.github.aedev.flow.data.local.MusicAudioQuality
 import io.github.aedev.flow.data.local.VideoCodec
 import io.github.aedev.flow.data.repository.MediaCacheType
@@ -79,7 +80,6 @@ import io.github.aedev.flow.ui.screens.settings.quality.videoQualityLabel
 
 private enum class DownloadPicker { QUALITY, CODEC, MUSIC_QUALITY, AUTO_DOWNLOAD }
 
-private const val MAX_THREADS = 8
 private val UsageSpacing = 8.dp
 
 /** Where downloads are saved, how they are made, and the storage access that lists them. */
@@ -224,8 +224,8 @@ internal fun DownloadSettingsScreen(
                 DownloadsIndex.threads,
                 value = threads.toFloat(),
                 onValueCommitted = { viewModel.setThreads(it.toInt()) },
-                valueRange = 1f..MAX_THREADS.toFloat(),
-                steps = MAX_THREADS - 2,
+                valueRange = 1f..MAX_DOWNLOAD_THREADS.toFloat(),
+                steps = MAX_DOWNLOAD_THREADS - 2,
                 valueLabel = { it.toInt().toString() },
             )
         }
