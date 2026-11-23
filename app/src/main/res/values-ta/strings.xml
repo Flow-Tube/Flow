@@ -58,4 +58,61 @@
     <string name="sb_category_highlight">சிறப்பம்சம்</string>
     <string name="sb_action_skip_automatically">தானாகத் தவிர்க்கவும்</string>
     <string name="sb_action_skip_once">ஒருமுறை மட்டும் தானாகத் தவிர்க்கவும்</string>
+    <string name="app_name">ஃப்ளோ</string>
+    <string name="subscriptions_search_placeholder">பின்தொடர்பவற்றைத் தேடு ...</string>
+    <string name="subscriptions_sort_label">சேனல்களை வரிசைப்படுத்து</string>
+    <string name="subscriptions_sort_default">இயல்புநிலை</string>
+    <string name="subscriptions_sort_name">பெயர் (A–Z)</string>
+    <string name="subscriptions_sort_recent">சமீபத்தில் புதுப்பிக்கப்பட்டவை</string>
+    <string name="subscriptions_sort_most_watched">அதிகம் பார்க்கப்பட்டவை</string>
+    <string name="subscriptions_pin_channel">முதலில் பொருத்து</string>
+    <string name="subscriptions_unpin_channel">பொருத்தத்தை நீக்கு</string>
+    <string name="subscriptions_open_channel">சேனலைத் திற</string>
+    <string name="subscriptions_pinned_section">பொருத்தப்பட்டவை</string>
+    <string name="top_bar_subscriptions_title">பின்தொடர்பவை</string>
+    <string name="top_bar_close_search">தேடலை மூடு</string>
+    <string name="view_all_button_label">அனைத்தும்</string>
+    <string name="subscribed">பின்தொடரப்பட்டது</string>
+    <string name="no_subscriptions_yet">இன்னும் எதையும் பின்தொடரவில்லை</string>
+    <string name="empty_subscriptions_body">புதிய வீடியோக்களைப் பார்க்க சேனல்களைப் பின்தொடரவும்</string>
+    <string name="home_refresh_feed">முகப்பைப் புதுப்பி</string>
+    <string name="home_load_more_failed">மேலும் வீடியோக்களைப் பெற முடியவில்லை</string>
+    <string name="home_load_more_failed_body">உங்கள் இணைப்பைச் சரிபார்க்கவும்</string>
+    <string name="home_refresh_failed">உங்கள் முகப்பைப் புதுப்பிக்க முடியவில்லை</string>
+    <plurals name="subscriptions_refresh_progress_template">
+        <item quantity="one">%2$d சேனலில் %1$d புதுப்பிக்கப்படுகிறது</item>
+        <item quantity="other">%2$d சேனல்களில் %1$d புதுப்பிக்கப்படுகிறது</item>
+    </plurals>
+    <plurals name="subscriptions_refresh_checks_template">
+        <item quantity="one">ஷார்ட்ஸ் மற்றும் நேரலைக்காக %2$d சேனலில் %1$d சரிபார்க்கப்படுகிறது</item>
+        <item quantity="other">ஷார்ட்ஸ் மற்றும் நேரலைக்காக %2$d சேனல்களில் %1$d சரிபார்க்கப்படுகிறது</item>
+    </plurals>
+    <plurals name="subscriptions_last_refreshed_template">
+        <item quantity="one">கடைசியாகப் புதுப்பிக்கப்பட்டது %1$s - %2$d வீடியோ சரிபார்க்கப்பட்டது</item>
+        <item quantity="other">கடைசியாகப் புதுப்பிக்கப்பட்டது %1$s - %2$d வீடியோக்கள் சரிபார்க்கப்பட்டன</item>
+    </plurals>
+    <string name="subscriptions_last_refreshed_time_only_template">கடைசியாகப் புதுப்பிக்கப்பட்டது %1$s</string>
+    <plurals name="subscriptions_failed_channels_title">
+        <item quantity="one">%d சேனலைப் பெற முடியவில்லை</item>
+        <item quantity="other">%d சேனல்களைப் பெற முடியவில்லை</item>
+    </plurals>
+    <string name="subscriptions_failed_channels_copy_logs">பதிவுகளை நகலெடு</string>
+    <string name="content_settings_channel_group_badge_title">சேனல் சுயவிவரப் படங்களில் குழுவைக் காட்டு</string>
+    <string name="content_settings_channel_group_badge_subtitle">சுயவிவரப் படங்களில் அவற்றின் பின்தொடர்புக் குழுவைக் குறி</string>
+    <string name="channel_add_to_group">குழுவில் சேர்</string>
+    <string name="channel_groups_sheet_title">சேனல் குழுக்கள்</string>
+    <string name="channel_groups_empty">இன்னும் குழுக்கள் எதுவும் இல்லை</string>
+    <string name="subscriptions_failed_channels_body">அவற்றின் சமீபத்திய வீடியோக்கள் இந்த முகப்பில் விடுபட்டுள்ளன: %1$s</string>
+    <string name="subscriptions_failed_channels_more">%1$s மற்றும் %2$d மேலும்</string>
+    <string name="retry">மீண்டும் முயற்சி</string>
+    <string name="copy_logs">பதிவுகளை நகலெடு</string>
+    <string name="logs_copied">பதிவுகள் நகலெடுக்கப்பட்டன</string>
+    <string name="logs_copy_failed">பதிவுகளை நகலெடுக்க முடியவில்லை</string>
+    <string name="channel_error_log_clip_label">ஃப்ளோ சேனல் பிழைப் பதிவு</string>
+    <string name="shorts">ஷார்ட்ஸ்</string>
+    <string name="failed_to_load_channel">சேனலைப் பெற முடியவில்லை</string>
+    <string name="subscribers">பின்தொடர்பவர்கள்</string>
+    <string name="collaborators">கூட்டுப் பங்களிப்பாளர்கள்</string>
+    <string name="collaborator">கூட்டுப் பங்களிப்பாளர்</string>
+    <string name="conjunction_and">மற்றும்</string>
 </resources>
