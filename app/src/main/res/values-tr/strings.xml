@@ -5215,4 +5215,5 @@
     <string name="search_did_you_mean">Bunu mu demek istediniz: %1$s</string>
     <string name="home_offline_downloads_hint">İndirmeleriniz hâlâ oynatılır</string>
     <string name="home_back_online_refresh">Tekrar çevrimiçi · Yenile</string>
+    <string name="premiered_date_template">İlk Gösterim %1$s</string>
 </resources>
