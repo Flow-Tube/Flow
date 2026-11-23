@@ -5264,7 +5264,7 @@
     <string name="home_preview_captions_on">Titrləri göstər</string>
     <string name="home_preview_captions_off">Titrləri gizlət</string>
     <string name="settings_video_card_style_title">Kart üslubu</string>
-    <string name="settings_video_card_style_summary">Tam en Əsas səhifə və Abunəliklərdəki miniatürlərin künclərini götürür</string>
+    <string name="settings_video_card_style_summary">Tam en video miniatürlərinin künclərini kəsir</string>
     <string name="settings_video_card_style_keywords">kart, miniatür, künclər, dairəvi, tam en, kənardan kənara, kənarədək</string>
     <string name="settings_video_card_style_rounded">Dairəvi</string>
     <string name="settings_video_card_style_full_width">Tam en</string>
@@ -5274,4 +5274,17 @@
     <string name="search_showing_results_for">%1$s üçün nəticələr göstərilir</string>
     <string name="search_instead_for">Əvəzinə %1$s axtar</string>
     <string name="search_did_you_mean">%1$s nəzərdə tutursunuz</string>
+    <string name="repeat_mode_off">Təkrarlama qapalıdır</string>
+    <string name="repeat_mode_all">Hamısını təkrarla</string>
+    <string name="repeat_mode_one">Birini təkrarla</string>
+    <string name="playlist_video_position">%2$d \'dən %1$d</string>
+    <plurals name="playlist_loading_all">
+        <item quantity="one">%1$d video yüklənir</item>
+        <item quantity="other">Bütün %1$d video yüklənir</item>
+    </plurals>
+    <string name="playlist_loading_all_unknown">Bütün videoları yükləyir</string>
+    <plurals name="playlist_download_new">
+        <item quantity="one">%1$d yeni video yüklə</item>
+        <item quantity="other">%1$d yeni video yüklə</item>
+    </plurals>
 </resources>
