@@ -47,7 +47,7 @@ internal val LibraryShelfArtworkHeight = LibraryShelfCardWidth * 9f / 16f
 internal fun libraryShelfCardWidth(availableWidth: Dp): Dp = feedStripCardWidth(availableWidth, LibraryShelfCardWidth)
 
 @Composable
-internal fun LibraryVideoCard(
+internal fun LibraryShelfVideoCard(
     video: Video,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
