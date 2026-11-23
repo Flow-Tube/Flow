@@ -28,7 +28,7 @@ import io.github.aedev.flow.ui.components.shared.FeedPagingFooter
 import io.github.aedev.flow.ui.components.shared.MediaShortCard
 import io.github.aedev.flow.ui.components.shared.ShortCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
+import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
 import io.github.aedev.flow.ui.components.shared.dismissKeyboardOnPress
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
 
@@ -84,10 +84,8 @@ fun SearchResults(
                 is SearchResultItem.VideoResult -> {
                     MediaVideoCard(
                         video = item.video,
-                        layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                        spec = plan.videoCard(index),
                         onClick = { actions.onVideoClick(item.video) },
-                        thumbnailWidth = plan.listThumbnailWidth,
-                        density = plan.cardDensity,
                     )
                 }
 
@@ -117,8 +115,7 @@ fun SearchResults(
                 is SearchResultItem.ShelfResult -> {
                     SearchShelf(
                         shelf = item,
-                        asThumbnailRows = isGridMode || !feedLayout.isCompact,
-                        thumbnailWidth = plan.listThumbnailWidth,
+                        card = plan.card(asRow = isGridMode || !feedLayout.isCompact, density = VideoCardDensity.Regular),
                         onVideoClick = actions.onVideoClick,
                         onShortsClick = actions.onShortsClick,
                         onChannelClick = { actions.onChannelClick(Channel(it, "", "", 0)) },

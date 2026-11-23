@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
@@ -35,9 +34,8 @@ import io.github.aedev.flow.data.paging.SearchResultItem
 import io.github.aedev.flow.data.paging.SearchShelfKind
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.ui.components.shared.MediaShortsShelf
+import io.github.aedev.flow.ui.components.shared.card.FeedCardSpec
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 
 /**
  * One of the strips YouTube interleaves between search results: a creator's latest uploads, an
@@ -52,13 +50,12 @@ import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 @Composable
 fun SearchShelf(
     shelf: SearchResultItem.ShelfResult,
-    asThumbnailRows: Boolean,
+    card: FeedCardSpec,
     onVideoClick: (Video) -> Unit,
     onShortsClick: (shelf: List<Video>, tapped: Video) -> Unit,
     onChannelClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     onPostClick: (CommunityPost) -> Unit = {},
-    thumbnailWidth: Dp = VideoCardDefaults.RowThumbnailWidth,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(vertical = SectionSpacing)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -70,7 +67,7 @@ fun SearchShelf(
             }
 
             SearchShelfKind.VIDEOS -> {
-                VideoStrip(shelf, asThumbnailRows, thumbnailWidth, onVideoClick)
+                VideoStrip(shelf, card, onVideoClick)
             }
 
             SearchShelfKind.POSTS -> {
@@ -95,8 +92,7 @@ private fun ShelfTitle(title: String) {
 @Composable
 private fun VideoStrip(
     shelf: SearchResultItem.ShelfResult,
-    asThumbnailRows: Boolean,
-    thumbnailWidth: Dp,
+    card: FeedCardSpec,
     onVideoClick: (Video) -> Unit,
 ) {
     var expanded by rememberSaveable(shelf.id) { mutableStateOf(false) }
@@ -109,9 +105,8 @@ private fun VideoStrip(
     shown.forEach { video ->
         MediaVideoCard(
             video = video,
-            layout = if (asThumbnailRows) VideoCardLayout.Row else VideoCardLayout.Stacked,
+            spec = card,
             onClick = { onVideoClick(video) },
-            thumbnailWidth = thumbnailWidth,
         )
     }
     if (shelf.videos.size > collapsedCount) {
