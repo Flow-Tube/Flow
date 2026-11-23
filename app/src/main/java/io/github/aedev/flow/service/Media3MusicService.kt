@@ -31,7 +31,6 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder
 import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.session.CommandButton
-import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
@@ -121,9 +120,9 @@ import kotlin.math.min
 class Media3MusicService : MediaLibraryService() {
     companion object {
         private const val TAG = "Media3MusicService"
-        private const val ACTION_TOGGLE_SHUFFLE = "ACTION_TOGGLE_SHUFFLE"
-        private const val ACTION_TOGGLE_REPEAT = "ACTION_TOGGLE_REPEAT"
-        private const val ACTION_STOP = "ACTION_STOP"
+        internal const val ACTION_TOGGLE_SHUFFLE = "ACTION_TOGGLE_SHUFFLE"
+        internal const val ACTION_TOGGLE_REPEAT = "ACTION_TOGGLE_REPEAT"
+        internal const val ACTION_STOP = "ACTION_STOP"
         private const val ACTION_SKIP_TO = "ACTION_SKIP_TO"
         private const val EXTRA_SKIP_INDEX = "index"
         private const val EXTRA_SKIP_MEDIA_ID = "mediaId"
@@ -1446,7 +1445,7 @@ class Media3MusicService : MediaLibraryService() {
                 .setBitmapLoader(sessionArtworkBitmapLoader(this))
                 .build()
 
-        setMediaNotificationProvider(CustomNotificationProvider())
+        setMediaNotificationProvider(MusicNotificationProvider(this))
 
         updateNotification()
     }
@@ -2101,72 +2100,6 @@ class Media3MusicService : MediaLibraryService() {
             }
 
             return super.onCustomCommand(session, controller, customCommand, args)
-        }
-    }
-
-    @OptIn(UnstableApi::class)
-    private inner class CustomNotificationProvider : DefaultMediaNotificationProvider(this@Media3MusicService) {
-        override fun getMediaButtons(
-            session: MediaSession,
-            playerCommands: Player.Commands,
-            customLayout: ImmutableList<CommandButton>,
-            showPauseButton: Boolean,
-        ): ImmutableList<CommandButton> {
-            val playPauseButton =
-                CommandButton
-                    .Builder(if (showPauseButton) CommandButton.ICON_PAUSE else CommandButton.ICON_PLAY)
-                    .setPlayerCommand(Player.COMMAND_PLAY_PAUSE)
-                    .setCustomIconResId(if (showPauseButton) R.drawable.ic_pause else R.drawable.ic_play)
-                    .setDisplayName(getString(if (showPauseButton) R.string.pause else R.string.play))
-                    .setEnabled(playerCommands.contains(Player.COMMAND_PLAY_PAUSE))
-                    .build()
-
-            val prevButton =
-                CommandButton
-                    .Builder(CommandButton.ICON_PREVIOUS)
-                    .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS)
-                    .setCustomIconResId(R.drawable.ic_previous)
-                    .setDisplayName(getString(R.string.previous))
-                    .setEnabled(playerCommands.contains(Player.COMMAND_SEEK_TO_PREVIOUS))
-                    .build()
-
-            val nextButton =
-                CommandButton
-                    .Builder(CommandButton.ICON_NEXT)
-                    .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT)
-                    .setCustomIconResId(R.drawable.ic_next)
-                    .setDisplayName(getString(R.string.next))
-                    .setEnabled(playerCommands.contains(Player.COMMAND_SEEK_TO_NEXT))
-                    .build()
-
-            var shuffleButton: CommandButton? = null
-            var repeatButton: CommandButton? = null
-            var likeButton: CommandButton? = null
-            var closeButton: CommandButton? = null
-
-            for (button in customLayout) {
-                if (button.sessionCommand?.customAction == ACTION_TOGGLE_SHUFFLE) {
-                    shuffleButton = button
-                } else if (button.sessionCommand?.customAction == ACTION_TOGGLE_REPEAT) {
-                    repeatButton = button
-                } else if (button.sessionCommand?.customAction == ACTION_TOGGLE_LIKE) {
-                    likeButton = button
-                } else if (button.sessionCommand?.customAction == ACTION_STOP) {
-                    closeButton = button
-                }
-            }
-
-            val builder = ImmutableList.builder<CommandButton>()
-
-            likeButton?.let { builder.add(it) }
-            shuffleButton?.let { builder.add(it) }
-            builder.add(prevButton)
-            builder.add(playPauseButton)
-            builder.add(nextButton)
-            repeatButton?.let { builder.add(it) }
-            closeButton?.let { builder.add(it) }
-
-            return builder.build()
         }
     }
 }
