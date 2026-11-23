@@ -31,8 +31,14 @@ data class PlaylistDetailUiState(
     /** Read through YouTube Music, so saving it puts it in the music library. */
     val isFromMusic: Boolean = false,
     val isLoading: Boolean = true,
-    /** Later pages of a YouTube playlist are still arriving. */
+    /** YouTube's count for the whole playlist, unavailable videos included. */
+    val videoCount: Int? = null,
+    /** A YouTube playlist has pages not loaded yet. */
+    val hasMorePages: Boolean = false,
+    /** The next page is loading. */
     val isLoadingMore: Boolean = false,
+    /** Every page left is loading, for a sort, a search, a save or a download. */
+    val isLoadingAll: Boolean = false,
     /** Every page arrived and YouTube's count is higher: it left out unavailable videos. */
     val hidesUnavailable: Boolean = false,
     val errorMessage: String? = null,

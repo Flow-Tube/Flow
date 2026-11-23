@@ -3,17 +3,22 @@ package io.github.aedev.flow.ui.screens.playlists
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.dao.DownloadCollectionSummary
 import io.github.aedev.flow.data.local.entity.DownloadCollectionKind
+import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.repository.YouTubePlaylistRepository
 import io.github.aedev.flow.data.video.BackgroundDownloadQueuer
 import io.github.aedev.flow.data.video.DownloadBatch
 import io.github.aedev.flow.data.video.downloader.collection.CollectionSpec
 import io.github.aedev.flow.data.video.downloader.collection.DownloadedCollections
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -33,6 +38,23 @@ internal class PlaylistDownloads(
 
     /** The running or just-finished "Download all" for this playlist. */
     val batch: StateFlow<DownloadBatch?> = queuer.batches.map { it[playlistId] }.stateIn(scope, sharing, null)
+
+    /** Videos the whole list holds that the download has never seen; 0 until the list is whole. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun newVideos(wholeList: Flow<List<Video>?>): StateFlow<Int> =
+        combine(downloaded, wholeList) { summary, videos -> summary?.let { videos } }
+            .mapLatest { videos ->
+                if (videos.isNullOrEmpty()) return@mapLatest 0
+                val known = collections.memberIds(playlistId)
+                if (known.isEmpty()) 0 else videos.count { it.id !in known }
+            }.stateIn(scope, sharing, 0)
+
+    /** Downloads what joined the playlist since its last download, leaving out what was left out then. */
+    suspend fun downloadNew(state: PlaylistDetailUiState) =
+        download(
+            state,
+            state.videos.mapTo(HashSet()) { it.id } - collections.excludedIds(playlistId),
+        )
 
     init {
         scope.launch {

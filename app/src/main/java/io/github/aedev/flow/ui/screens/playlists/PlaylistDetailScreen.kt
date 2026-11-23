@@ -75,6 +75,7 @@ fun PlaylistDetailScreen(
     val downloadedCollection by viewModel.downloadedCollection.collectAsStateWithLifecycle()
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
     val swipes by viewModel.playlistSwipes.collectAsStateWithLifecycle()
+    val newSinceDownload by viewModel.newSinceDownload.collectAsStateWithLifecycle()
     val mergeTargets by viewModel.userCreatedPlaylists.collectAsStateWithLifecycle()
     val quickActions = sharedQuickActionsViewModel()
     val context = LocalContext.current
@@ -165,7 +166,10 @@ fun PlaylistDetailScreen(
     }
 
     LaunchedEffect(searchQuery) {
-        if (isSearching) listState.scrollToItem(0)
+        if (isSearching) {
+            viewModel.loadAll()
+            listState.scrollToItem(0)
+        }
     }
 
     LaunchedEffect(viewModel) {
@@ -183,6 +187,7 @@ fun PlaylistDetailScreen(
             downloadBatch,
             isDownloaded =
                 downloadedCollection?.isComplete == true,
+            newSinceDownload = newSinceDownload,
         )
     val headerActions =
         PlaylistHeaderActions(
@@ -216,6 +221,7 @@ fun PlaylistDetailScreen(
             onEdit = { dialog = PlaylistDialog.Edit },
             onDelete = { dialog = PlaylistDialog.Delete },
             onMoveLibrary = viewModel::moveToOtherLibrary,
+            onDownloadNew = viewModel::downloadNew,
         )
 
     Scaffold(
@@ -282,7 +288,7 @@ fun PlaylistDetailScreen(
                                     swipes = swipes,
                                     swipeEnabled = !selectionMode && !reorderState.isAnyItemDragging,
                                 ),
-                            isLoadingMore = uiState.isLoadingMore,
+                            hasMorePages = uiState.hasMorePages,
                             listState = listState,
                             reorderState = reorderState,
                             onVideoClick = { index, video ->
@@ -294,6 +300,7 @@ fun PlaylistDetailScreen(
                             },
                             onRemove = { viewModel.removeVideo(it.id) },
                             onMoveVideo = ::moveVideo,
+                            onNearEnd = viewModel::loadMore,
                             header = header,
                         )
                     }

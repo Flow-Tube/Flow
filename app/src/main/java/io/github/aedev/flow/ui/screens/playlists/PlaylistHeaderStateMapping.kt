@@ -20,18 +20,21 @@ internal fun rememberPlaylistHeaderState(
     videos: List<Video>,
     downloadBatch: DownloadBatch?,
     isDownloaded: Boolean,
+    newSinceDownload: Int = 0,
 ): PlaylistHeaderState {
     val isUserCreated = uiState.isLocalPlaylist && !uiState.isSaved
     val totalSeconds = remember(videos) { videos.sumOf { it.duration.coerceAtLeast(0).toLong() } }
+    // While pages are still to load, YouTube's own count says how long the playlist is.
+    val count = uiState.videoCount?.takeIf { uiState.hasMorePages && it > videos.size } ?: videos.size
     val parts =
         listOfNotNull(
             uiState.ownerName?.takeIf(String::isNotBlank),
             if (uiState.isCourse) {
-                pluralStringResource(R.plurals.course_lessons_count, videos.size, videos.size)
+                pluralStringResource(R.plurals.course_lessons_count, count, count)
             } else {
-                pluralStringResource(R.plurals.videos_count_template, videos.size, videos.size)
+                pluralStringResource(R.plurals.videos_count_template, count, count)
             },
-            mediaLengthLabel(totalSeconds).takeUnless { uiState.isLoadingMore },
+            mediaLengthLabel(totalSeconds).takeUnless { uiState.hasMorePages },
             when {
                 uiState.isWatchLater || uiState.isLikes -> stringResource(R.string.playlist_type_builtin)
                 isUserCreated -> stringResource(R.string.playlist_type_yours)
@@ -63,5 +66,7 @@ internal fun rememberPlaylistHeaderState(
             },
         isDownloaded = isDownloaded,
         isInMusicLibrary = uiState.isInMusicLibrary,
+        loadingAllOf = if (uiState.isLoadingAll) uiState.videoCount ?: 0 else null,
+        newSinceDownload = newSinceDownload,
     )
 }
