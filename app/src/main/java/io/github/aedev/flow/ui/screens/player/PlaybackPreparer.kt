@@ -100,6 +100,7 @@ internal class PlaybackPreparer(
         dashManifestUrl: String?,
         subtitles: List<ResolvedCaption>,
         isCurrent: () -> Boolean,
+        isDvrEnabled: Boolean = true,
     ): Boolean =
         withContext(Dispatchers.Main) {
             if (!isCurrent()) return@withContext false
@@ -119,6 +120,7 @@ internal class PlaybackPreparer(
                 startPosition = 0L,
                 preferredVideoCodec = playerPreferences.videoCodecPriority.first(),
                 preferredLiveQualityHeight = preferredDefaultQualityHeight(),
+                liveDvrEnabled = isDvrEnabled,
             )
             applyRememberedPlaybackSpeed(isLive = true)
 

@@ -58,6 +58,7 @@ internal class PlaybackStreamPreparer(
         val hlsUrl: String?,
         val dashManifestUrl: String?,
         val subtitles: List<ResolvedCaption>,
+        val isDvrEnabled: Boolean,
     )
 
     fun assembleVod(
@@ -110,6 +111,7 @@ internal class PlaybackStreamPreparer(
             hlsUrl = result.liveHlsUrl,
             dashManifestUrl = result.liveDashUrl,
             subtitles = captionStreams(result, CaptionTrackResolver.NO_PREFERRED_LANGUAGE),
+            isDvrEnabled = result.playerResponse.videoDetails?.isLiveDvrEnabled != false,
         )
 
     private fun identity(

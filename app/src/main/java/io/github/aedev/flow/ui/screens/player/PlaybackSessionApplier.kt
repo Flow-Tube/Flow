@@ -318,6 +318,7 @@ internal class PlaybackSessionApplier(
                 dashManifestUrl = streams.dashManifestUrl,
                 subtitles = streams.subtitles,
                 isCurrent = { isLoadCurrent(load.token) },
+                isDvrEnabled = streams.isDvrEnabled,
             )
         if (!liveStarted) return@withContext
 

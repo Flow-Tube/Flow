@@ -131,6 +131,7 @@ internal fun VideoStageControls(
             isSponsorBlockOffForVideo = sponsorBlockOffForVideo,
             isCasting = DlnaCastManager.isCasting,
             isLive = isLive,
+            isSeekLocked = playerState.isSeekLocked,
             isLiveChatAvailable = playerUiState.isLiveChatAvailable,
             isCommentsAvailable = isCommentsAvailable,
             isCommentsPanelOpen = screenState.activeSheet is PlayerSheet.Comments,
