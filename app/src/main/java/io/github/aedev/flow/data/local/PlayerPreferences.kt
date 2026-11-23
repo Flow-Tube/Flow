@@ -3566,7 +3566,7 @@ class PlayerPreferences(
     val subsFullWidthView: Flow<Boolean> =
         context.playerPreferencesDataStore.data
             .map { preferences ->
-                preferences[Keys.SUBS_FULL_WIDTH_VIEW] ?: false
+                screenLayoutFlag(preferences[Keys.SUBS_FULL_WIDTH_VIEW], preferences[Keys.HOME_VIEW_MODE], flagMeansList = false)
             }
 
     suspend fun setSubsFullWidthView(enabled: Boolean) {
@@ -4412,7 +4412,9 @@ class PlayerPreferences(
     // Screen-level view mode toggles
     val searchIsGridMode: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.SEARCH_IS_GRID_MODE] ?: false }
+            .map { preferences ->
+                screenLayoutFlag(preferences[Keys.SEARCH_IS_GRID_MODE], preferences[Keys.HOME_VIEW_MODE], flagMeansList = true)
+            }
 
     suspend fun setSearchIsGridMode(isGrid: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
@@ -4422,7 +4424,9 @@ class PlayerPreferences(
 
     val channelIsGridView: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.CHANNEL_IS_GRID_VIEW] ?: false }
+            .map { preferences ->
+                screenLayoutFlag(preferences[Keys.CHANNEL_IS_GRID_VIEW], preferences[Keys.HOME_VIEW_MODE], flagMeansList = false)
+            }
 
     suspend fun setChannelIsGridView(isGrid: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
@@ -4432,7 +4436,9 @@ class PlayerPreferences(
 
     val categoriesIsListView: Flow<Boolean> =
         context.playerPreferencesDataStore.data
-            .map { preferences -> preferences[Keys.CATEGORIES_IS_LIST_VIEW] ?: false }
+            .map { preferences ->
+                screenLayoutFlag(preferences[Keys.CATEGORIES_IS_LIST_VIEW], preferences[Keys.HOME_VIEW_MODE], flagMeansList = true)
+            }
 
     suspend fun setCategoriesIsListView(isList: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
