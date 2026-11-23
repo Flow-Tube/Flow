@@ -38,7 +38,6 @@ import io.github.aedev.flow.ui.components.shared.MediaShortCard
 import io.github.aedev.flow.ui.components.shared.RetryWhenBackOnline
 import io.github.aedev.flow.ui.components.shared.ShortCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
 import io.github.aedev.flow.ui.theme.Dimensions
 
@@ -135,11 +134,9 @@ internal fun ChannelTabItems(
                     is FeedItem.VideoItem -> {
                         MediaVideoCard(
                             video = item.video,
-                            layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                            spec = plan.videoCard(index),
                             showChannel = false,
                             onClick = { onVideoClick(item.video) },
-                            thumbnailWidth = plan.listThumbnailWidth,
-                            density = plan.cardDensity,
                         )
                     }
 
