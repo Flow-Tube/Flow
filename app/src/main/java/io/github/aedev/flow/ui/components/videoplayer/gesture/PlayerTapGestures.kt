@@ -88,6 +88,7 @@ internal fun Modifier.playerTapGestures(
 
         fun applyZoneSeek(forward: Boolean) {
             val manager = EnhancedPlayerManager.getInstance()
+            if (manager.playerState.value.isSeekLocked) return
             val player = manager.getPlayer()
             val isLive = manager.playerState.value.isLive || player?.isCurrentMediaItemLive == true
             val playerPosition = player?.currentPosition ?: currentPositionProvider()
