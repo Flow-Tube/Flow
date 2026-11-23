@@ -984,6 +984,14 @@ class EnhancedPlayerManager private constructor() {
                         )
                     }
 
+                    if (playbackState == Player.STATE_ENDED && !isRecoveringFromBackground && currentIsLiveStream &&
+                        LiveSegmentSessions.hasEnded(currentVideoId)
+                    ) {
+                        autoNextLog("STATE_ENDED on a live stream whose broadcast ended")
+                        _playerState.value = _playerState.value.copy(hasEnded = true)
+                        return
+                    }
+
                     if (playbackState == Player.STATE_ENDED && !isRecoveringFromBackground && exoLive) {
                         val now = System.currentTimeMillis()
                         if (now - lastLiveEdgeRecoveryMs < 2500L) {

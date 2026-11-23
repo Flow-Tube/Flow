@@ -1,10 +1,14 @@
 package io.github.aedev.flow.player.live
 
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * One live stream played from its segments: the formats, the URL each itag is fetched from, and the
  * clock that places segment numbers on Media3's timeline.
+ *
+ * @param refreshUrls a fresh player response's URLs by itag, for when these expire.
  */
 class LiveSegmentSession internal constructor(
     val videoId: String,
@@ -14,25 +18,44 @@ class LiveSegmentSession internal constructor(
     val readaheadMs: Long,
     serverClockOffsetMs: Long,
     private val deviceNow: () -> Long = System::currentTimeMillis,
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    refreshUrls: suspend () -> Map<Int, String>? = { null },
+    isStillLive: suspend () -> Boolean? = { null },
 ) {
-    private val urls = ConcurrentHashMap(urls)
-
     @Volatile
     private var serverClockOffsetMs = serverClockOffsetMs
+
+    private val urls = LiveSegmentUrls(urls, scope, refreshUrls, serverNow = { deviceNow() + this.serverClockOffsetMs })
+    private val end = LiveStreamEnd(clock.segmentDurationUs / 1_000, scope, isStillLive)
+
+    /** The broadcast has ended; playback runs to its last segment and stops there. */
+    val hasEnded: Boolean
+        get() = end.lastSequenceOfEndedStream != null
 
     val manifestUri: String = "$SCHEME://$MANIFEST_HOST/$videoId"
 
     fun segmentUri(itag: Int): String = "$SCHEME://$SEGMENT_HOST/$videoId/$itag/"
 
-    fun urlFor(itag: Int): String? = urls[itag]
+    fun urlFor(itag: Int): String? = urls.urlFor(itag)
 
-    fun manifest(): String = LiveSegmentManifest.build(clock, formats, ::segmentUri, deviceNow() + serverClockOffsetMs)
+    /** A segment was refused, so the URLs are fetched again. */
+    fun onRefused() = urls.onRefused()
+
+    fun manifest(): String =
+        LiveSegmentManifest.build(
+            clock = clock,
+            formats = formats,
+            segmentUri = ::segmentUri,
+            serverNowMs = deviceNow() + serverClockOffsetMs,
+            lastSequence = end.lastSequenceOfEndedStream,
+        )
 
     /** Feeds the head a segment response reported back into the clock. */
     fun observe(headers: Map<String, List<String>>) {
         val head = LiveHeadHeaders.parse(headers) ?: return
         serverClockOffsetMs = head.serverTimeMs - deviceNow()
         clock.observe(head)
+        end.observe(head)
     }
 
     companion object {

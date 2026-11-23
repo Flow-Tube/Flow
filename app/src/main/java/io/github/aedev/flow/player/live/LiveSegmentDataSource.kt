@@ -8,6 +8,12 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.TransferListener
 import java.io.IOException
 
+/** The CDN refused a segment, most likely because its URL expired; Media3 retries once the URLs are fetched again. */
+class LiveSegmentRefusedException(
+    val sequence: Long,
+    cause: IOException,
+) : IOException("Live segment $sequence was refused", cause)
+
 /** The CDN has no segment [sequence] yet; Media3 retries the load. */
 class LiveSegmentNotReadyException(
     val sequence: Long,
@@ -47,7 +53,16 @@ class LiveSegmentDataSource(
         val sequence = segments.getOrNull(2)?.toLongOrNull()
         val base = itag?.let(session::urlFor)
         if (base == null || sequence == null) throw IOException("Unknown live segment ${dataSpec.uri}")
-        val length = upstream.open(dataSpec.withUri(parseUri("$base&sq=$sequence")))
+        val length =
+            try {
+                upstream.open(dataSpec.withUri(parseUri("$base&sq=$sequence")))
+            } catch (e: HttpDataSource.InvalidResponseCodeException) {
+                if (e.responseCode != HTTP_FORBIDDEN) throw e
+                // Raised as its own error so Media3 retries the segment rather than excluding the
+                // track, which it does for a plain 403.
+                session.onRefused()
+                throw LiveSegmentRefusedException(sequence, e)
+            }
         session.observe(upstream.responseHeaders)
         if (upstream.responseCode == HTTP_NO_CONTENT || length == 0L) {
             upstream.close()
@@ -73,5 +88,6 @@ class LiveSegmentDataSource(
 
     private companion object {
         const val HTTP_NO_CONTENT = 204
+        const val HTTP_FORBIDDEN = 403
     }
 }

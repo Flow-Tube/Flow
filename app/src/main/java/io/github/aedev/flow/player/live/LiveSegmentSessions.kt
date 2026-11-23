@@ -8,9 +8,12 @@ import androidx.media3.datasource.HttpDataSource
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
 import io.github.aedev.flow.player.error.PlayerDiagnostics
+import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
 
 /**
@@ -28,8 +31,13 @@ object LiveSegmentSessions {
     private const val PROBE_RANGE_BYTES = 1L
 
     private val sessions = LinkedHashMap<String, LiveSegmentSession>()
+    private val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun isSessionUri(uri: String?): Boolean = uri?.startsWith("${LiveSegmentSession.SCHEME}://") == true
+
+    /** Whether [videoId] was played from segments and its broadcast has since ended. */
+    @Synchronized
+    fun hasEnded(videoId: String?): Boolean = videoId != null && sessions[videoId]?.hasEnded == true
 
     @Synchronized
     fun forUri(uri: Uri): LiveSegmentSession? {
@@ -74,6 +82,14 @@ object LiveSegmentSessions {
                 clock = LiveSegmentClock(head, targetDurationMs, windowMs),
                 readaheadMs = readaheadMs,
                 serverClockOffsetMs = serverOffsetMs,
+                scope = refreshScope,
+                refreshUrls = { refreshedUrls(videoId) },
+                isStillLive = {
+                    InnerTubeVideoStreamExtractor.extract(videoId)?.let {
+                        it.isLive ||
+                            it.playerResponse.videoDetails?.isLive == true
+                    }
+                },
             )
         register(session)
         PlayerDiagnostics.logWarning(
@@ -107,6 +123,13 @@ object LiveSegmentSessions {
                     sampleRate = format.audioSampleRate,
                 ) to url
             }
+
+    private suspend fun refreshedUrls(videoId: String): Map<Int, String>? {
+        val result = InnerTubeVideoStreamExtractor.extract(videoId) ?: return null
+        val urls = segmentFormats(result.playerResponse).associate { it.first.itag to it.second }
+        PlayerDiagnostics.logWarning(TAG, "live URLs refreshed for $videoId via ${result.usedClient.clientName}: ${urls.size} formats")
+        return urls
+    }
 
     private suspend fun probeHead(url: String): LiveHead? =
         withContext(Dispatchers.IO) {
