@@ -4376,6 +4376,8 @@
     <string name="error_video_decoder_failed">The video decoder stopped working</string>
     <string name="error_video_decoder_failed_hint">Tap Retry to load the video again.</string>
     <string name="download_waiting_for_wifi">Waiting for WiFi</string>
+    <string name="download_waiting_network">Waiting for network</string>
+    <string name="notification_download_waiting_network">Waiting for network. It resumes on its own.</string>
     <string name="notification_download_saved_elsewhere">Saved to %1$s. The chosen folder can\'t be used.</string>
     <string name="download_failed_try_again">Download failed. Please try again.</string>
     <string name="download_failed_unavailable">This video can\'t be downloaded right now</string>

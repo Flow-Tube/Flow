@@ -19,6 +19,7 @@ import io.github.aedev.flow.data.local.entity.DownloadWithItems
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.work.DownloadStaging
+import io.github.aedev.flow.data.video.downloader.work.DownloadWaitReason
 import io.github.aedev.flow.data.video.storage.DownloadDestination
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadLocation
@@ -50,6 +51,7 @@ data class DownloadProgressUpdate(
     val totalBytes: Long,
     val status: DownloadItemStatus,
     val isMerging: Boolean = false,
+    val waitingFor: DownloadWaitReason? = null,
 ) {
     val progress: Float
         get() = if (totalBytes > 0) downloadedBytes.toFloat() / totalBytes.toFloat() else 0f

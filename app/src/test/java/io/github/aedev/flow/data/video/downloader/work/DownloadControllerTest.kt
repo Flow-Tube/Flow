@@ -56,7 +56,7 @@ class DownloadControllerTest {
         every { WorkManager.getInstance(any()) } returns workManager
         every { downloads.stagingDirectory() } returns folder.root
         every { preferences.downloadOverWifiOnly } returns flowOf(false)
-        controller = DownloadController(context, dao, downloads, preferences)
+        controller = DownloadController(context, dao, downloads, preferences, DownloadWaits())
     }
 
     @After

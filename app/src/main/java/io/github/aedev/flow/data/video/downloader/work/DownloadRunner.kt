@@ -71,6 +71,7 @@ class DownloadRunner
         private val sponsorBlock: SponsorBlockRepository,
         private val subtitles: OfflineSubtitleStore,
         private val subtitleFile: DownloadSubtitleFile,
+        private val waits: DownloadWaits,
     ) {
         suspend fun run(videoId: String) {
             val row = downloadDao.getDownloadWithItems(videoId) ?: return
@@ -80,6 +81,7 @@ class DownloadRunner
                     ?: LegacyDownloadRequest.from(row).also { LegacyDownloadRequest.discardPartialFiles(row) }
             val staging = DownloadStaging(downloads.stagingDirectory(), videoId)
             downloadDao.updateAllItemsStatus(videoId, DownloadItemStatus.DOWNLOADING)
+            waits.stoppedForNetwork = false
             notifier.show(videoId, stored.tags.title, DownloadPhase.Transferring(0L, 0L))
             val trace = DownloadTrace(videoId)
             var outcome = "stopped"
@@ -93,8 +95,9 @@ class DownloadRunner
                     when (val fetched = transfer.fetch(request, staging, item.id, threads, trace)) {
                         is FetchOutcome.Failed -> {
                             withLyrics.cancel()
-                            outcome = "failed:${fetched.reason}"
-                            fail(request, staging, messageFor(fetched.reason), keepParts = true)
+                            val wait = waitFor(fetched.reason)?.let { holdOrNull(request, item.id, it, fetched, trace) }
+                            outcome = wait?.let { "waiting:${it.reason}:${it.attempt}" } ?: "failed:${fetched.reason}"
+                            if (wait == null) fail(request, staging, messageFor(fetched.reason), keepParts = true)
                         }
 
                         is FetchOutcome.Fetched -> {
@@ -103,11 +106,41 @@ class DownloadRunner
                     }
                 }
             } catch (e: CancellationException) {
-                withContext(NonCancellable) { onStopped(videoId, stored, staging) }
+                withContext(NonCancellable) { onStopped(videoId, item.id, stored, staging) }
                 throw e
             } finally {
                 withContext(NonCancellable) { Log.i(TRACE_TAG, trace.line(outcome, settingsOf(threads))) }
             }
+        }
+
+        /**
+         * Puts a download whose failure should pass on its own back in the queue for a later retry. A
+         * run that moved bytes before failing starts the backoff over: the network came back meanwhile.
+         */
+        private suspend fun holdOrNull(
+            request: DownloadRequest,
+            itemId: Int,
+            reason: DownloadWaitReason,
+            failed: FetchOutcome.Failed,
+            trace: DownloadTrace,
+        ): DownloadWait? {
+            if (trace.bytesFetched > 0L) waits.clear(request.videoId)
+            val wait = waits.hold(request.videoId, reason) ?: return null
+            withContext(NonCancellable) {
+                downloadDao.updateAllItemsStatus(request.videoId, DownloadItemStatus.PENDING)
+                downloads.emitProgress(
+                    DownloadProgressUpdate(
+                        request.videoId,
+                        itemId,
+                        failed.downloadedBytes,
+                        failed.totalBytes,
+                        DownloadItemStatus.PENDING,
+                        waitingFor = reason,
+                    ),
+                )
+                notifier.show(request.videoId, request.tags.title, DownloadPhase.Waiting(reason))
+            }
+            return wait
         }
 
         private suspend fun settingsOf(threads: Int): String =
@@ -116,7 +149,7 @@ class DownloadRunner
 
         private fun networkKind(): String {
             val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return "unknown"
-            val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return "none"
+            val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return NO_NETWORK
             return when {
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
@@ -228,6 +261,7 @@ class DownloadRunner
             downloads.emitProgress(DownloadProgressUpdate(request.videoId, itemId, size, size, DownloadItemStatus.COMPLETED))
             notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo, swappedTrack))
             staging.clear()
+            waits.clear(request.videoId)
             if (request.kind != DownloadKind.MUSIC && !request.wantsAudioOnly) {
                 saveSponsorBlockSegments(request.videoId)
                 runCatching { subtitles.saveForVideo(request.videoId, captions) }.onFailure { Log.w(TAG, "captions not saved", it) }
@@ -259,6 +293,7 @@ class DownloadRunner
             keepParts: Boolean,
         ) {
             withContext(NonCancellable) {
+                waits.clear(request.videoId)
                 if (keepParts) staging.clearOutputs() else staging.clear()
                 downloadDao.updateAllItemsStatus(request.videoId, DownloadItemStatus.FAILED)
                 notifier.show(request.videoId, request.tags.title, DownloadPhase.Failed(message))
@@ -272,6 +307,7 @@ class DownloadRunner
          */
         private suspend fun onStopped(
             videoId: String,
+            itemId: Int,
             request: DownloadRequest,
             staging: DownloadStaging,
         ) {
@@ -291,7 +327,26 @@ class DownloadRunner
 
                 StopAction.WAIT -> {
                     downloadDao.updateAllItemsStatus(videoId, DownloadItemStatus.PENDING)
-                    notifier.show(videoId, request.tags.title, DownloadPhase.Queued)
+                    // The system stops the queue when the network goes; say so rather than "Queued".
+                    val offline = waits.stoppedForNetwork || networkKind() == NO_NETWORK
+                    if (offline) {
+                        val saved = downloadDao.getItemById(itemId)
+                        downloads.emitProgress(
+                            DownloadProgressUpdate(
+                                videoId,
+                                itemId,
+                                saved?.downloadedBytes ?: 0L,
+                                saved?.totalBytes ?: 0L,
+                                DownloadItemStatus.PENDING,
+                                waitingFor = DownloadWaitReason.NETWORK,
+                            ),
+                        )
+                    }
+                    notifier.show(
+                        videoId,
+                        request.tags.title,
+                        if (offline) DownloadPhase.Waiting(DownloadWaitReason.NETWORK) else DownloadPhase.Queued,
+                    )
                 }
             }
         }
@@ -310,8 +365,16 @@ class DownloadRunner
         private companion object {
             const val TAG = "DownloadRunner"
             const val TRACE_TAG = "DownloadTrace"
+            const val NO_NETWORK = "none"
             const val NANOS_PER_MS = 1_000_000L
         }
+    }
+
+/** The wait a failure earns instead of failing the download, or null when it is final. */
+internal fun waitFor(reason: FetchFailure): DownloadWaitReason? =
+    when (reason) {
+        FetchFailure.NETWORK, FetchFailure.LENGTH_UNKNOWN -> DownloadWaitReason.NETWORK
+        FetchFailure.UNAVAILABLE, FetchFailure.NO_COMPATIBLE_AUDIO, FetchFailure.REFUSED, FetchFailure.DISK_FULL -> null
     }
 
 /** What a download stopped from outside leaves behind, by the state its row is in. */

@@ -30,6 +30,10 @@ sealed interface DownloadPhase {
 
     data object Paused : DownloadPhase
 
+    data class Waiting(
+        val reason: DownloadWaitReason,
+    ) : DownloadPhase
+
     data class Failed(
         val message: String,
     ) : DownloadPhase
@@ -158,6 +162,13 @@ class DownloadNotifier
                                 context.getString(R.string.notification_download_paused_hint),
                             ),
                         ).addAction(action(videoId, DownloadActionReceiver.ACTION_RESUME, R.string.resume))
+                        .addAction(action(videoId, DownloadActionReceiver.ACTION_CANCEL, R.string.cancel))
+                }
+
+                is DownloadPhase.Waiting -> {
+                    builder
+                        .setContentText(context.getString(R.string.notification_download_waiting_network))
+                        .addAction(action(videoId, DownloadActionReceiver.ACTION_PAUSE, R.string.pause))
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_CANCEL, R.string.cancel))
                 }
 

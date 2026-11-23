@@ -29,6 +29,8 @@ class DownloadTrace(
 
     @Volatile var peakStagingBytes = 0L
 
+    val bytesFetched: Long get() = networkBytes.get()
+
     fun now(): Long = nanoClock()
 
     fun onResponse(sentAtNanos: Long) {

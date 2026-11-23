@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,6 +51,7 @@ class DownloadController
         private val downloadDao: DownloadDao,
         private val downloads: VideoDownloadManager,
         private val preferences: PlayerPreferences,
+        private val waits: DownloadWaits,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -94,12 +96,12 @@ class DownloadController
             onResult: (EnqueueOutcome) -> Unit = {},
         ): Job = scope.launch { onResult(enqueue(request, replaceExisting)) }
 
-        fun pause(videoId: String) = setStatus(videoId, DownloadItemStatus.PAUSED)
+        fun pause(videoId: String) = setStatus(videoId, DownloadItemStatus.PAUSED).also { waits.clear(videoId) }
 
-        fun resume(videoId: String) = setStatus(videoId, DownloadItemStatus.PENDING)
+        fun resume(videoId: String) = setStatus(videoId, DownloadItemStatus.PENDING).also { waits.clear(videoId) }
 
         /** Starts a failed download again from its stored request; blocks already on disk are reused. */
-        fun retry(videoId: String) = setStatus(videoId, DownloadItemStatus.PENDING)
+        fun retry(videoId: String) = setStatus(videoId, DownloadItemStatus.PENDING).also { waits.clear(videoId) }
 
         /**
          * Stops [videoId] and removes it with everything it wrote. The queue sees the row go and stops
@@ -107,6 +109,7 @@ class DownloadController
          */
         fun cancel(videoId: String): Job =
             scope.launch {
+                waits.clear(videoId)
                 downloadDao.updateAllItemsStatus(videoId, DownloadItemStatus.CANCELLED)
                 downloads.deleteDownload(videoId)
             }
@@ -130,17 +133,33 @@ class DownloadController
 
         /** Runs the queue work unless it is running already, with the network the settings allow. */
         suspend fun kick() {
-            val wifiOnly = preferences.downloadOverWifiOnly.first()
             val work =
                 OneTimeWorkRequestBuilder<DownloadQueueWorker>()
-                    .setConstraints(
-                        Constraints
-                            .Builder()
-                            .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
-                            .build(),
-                    ).addTag(DownloadQueueWorker.TAG)
+                    .setConstraints(networkConstraint())
+                    .addTag(DownloadQueueWorker.TAG)
                     .build()
             WorkManager.getInstance(context).enqueueUniqueWork(DownloadQueueWorker.UNIQUE_NAME, ExistingWorkPolicy.KEEP, work)
+        }
+
+        /**
+         * Kicks the queue after [delayMs], once the network allows: the run that holds a download back
+         * calls this on its way out, so nothing keeps the queue work alive while it waits.
+         */
+        suspend fun kickAfter(delayMs: Long) {
+            val wake =
+                OneTimeWorkRequestBuilder<DownloadWakeWorker>()
+                    .setConstraints(networkConstraint())
+                    .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+                    .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(DownloadWakeWorker.UNIQUE_NAME, ExistingWorkPolicy.REPLACE, wake)
+        }
+
+        private suspend fun networkConstraint(): Constraints {
+            val wifiOnly = preferences.downloadOverWifiOnly.first()
+            return Constraints
+                .Builder()
+                .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
+                .build()
         }
 
         /** A changed Wi-Fi-only setting has to reach work that is already waiting on the old constraint. */

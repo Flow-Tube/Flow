@@ -43,6 +43,7 @@ import io.github.aedev.flow.data.local.entity.DownloadWithItems
 import io.github.aedev.flow.data.music.DownloadedTrack
 import io.github.aedev.flow.data.video.DownloadProgressUpdate
 import io.github.aedev.flow.data.video.DownloadedVideo
+import io.github.aedev.flow.data.video.downloader.work.DownloadWaitReason
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.shared.ArtworkThumbnail
 import io.github.aedev.flow.ui.components.shared.ExplicitBadge
@@ -206,9 +207,11 @@ internal fun ActiveDownloadRow(
                     Formatter.formatShortFileSize(context, it.totalBytes),
                 )
             }
+    val waitingForNetwork = progress?.waitingFor == DownloadWaitReason.NETWORK
     val statusText =
         when {
             isMerging -> stringResource(R.string.download_merging_audio_video)
+            status == DownloadItemStatus.PENDING && waitingForNetwork -> stringResource(R.string.download_waiting_network)
             status == DownloadItemStatus.PENDING -> stringResource(R.string.download_status_queued)
             isPaused -> stringResource(R.string.download_status_paused_template, percent, stringResource(R.string.download_status_paused))
             status == DownloadItemStatus.FAILED -> stringResource(R.string.download_status_failed)

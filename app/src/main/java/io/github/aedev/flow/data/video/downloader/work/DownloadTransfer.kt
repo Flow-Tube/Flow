@@ -56,6 +56,9 @@ sealed interface FetchOutcome {
     data class Failed(
         val reason: FetchFailure,
         val detail: String? = null,
+        /** How far the transfer got, for the row of a download that waits and resumes. */
+        val downloadedBytes: Long = 0L,
+        val totalBytes: Long = 0L,
     ) : FetchOutcome
 }
 
@@ -153,7 +156,7 @@ class DownloadTransfer
 
                     TransferResult.Stopped -> {
                         currentCoroutineContext().ensureActive()
-                        return FetchOutcome.Failed(FetchFailure.NETWORK)
+                        return FetchOutcome.Failed(FetchFailure.NETWORK, null, job.downloadedBytes, job.totalBytes)
                     }
 
                     TransferResult.Stalled -> {
@@ -175,6 +178,8 @@ class DownloadTransfer
                                 TransferFailure.BLOCK_FAILED -> FetchFailure.NETWORK
                             },
                             result.detail,
+                            job.downloadedBytes,
+                            job.totalBytes,
                         )
                     }
                 }
