@@ -88,7 +88,7 @@ internal fun VideoStageControls(
     val playerManager = EnhancedPlayerManager.getInstance()
     val sponsorSegments by playerManager.sponsorSegments.collectAsState()
     val sponsorBlockOffForVideo by playerManager.sponsorBlockOffForVideo.collectAsState()
-    val isLive = !playerUiState.hlsUrl.isNullOrEmpty()
+    val isLive = playerUiState.isLive
     val controlsState =
         PlayerControlsUiState(
             isVisible = screenState.showControls || screenState.isTouchLocked,
