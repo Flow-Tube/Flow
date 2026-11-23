@@ -63,6 +63,10 @@ import io.github.aedev.flow.player.quality.LiveQualitySelection
 import io.github.aedev.flow.player.quality.PlayerViewport
 import io.github.aedev.flow.player.quality.QualityManager
 import io.github.aedev.flow.player.quality.VideoDecoderSupport
+import io.github.aedev.flow.player.queue.QueuePage
+import io.github.aedev.flow.player.queue.QueuePageLoader
+import io.github.aedev.flow.player.queue.QueuePageSource
+import io.github.aedev.flow.player.queue.QueueSourceSpec
 import io.github.aedev.flow.player.recovery.ClearedMediaRecoveryState
 import io.github.aedev.flow.player.recovery.StreamDenialReloader
 import io.github.aedev.flow.player.resolver.AdaptiveDashManifest
@@ -247,6 +251,11 @@ class EnhancedPlayerManager private constructor() {
     // Coroutine scope
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val buildScope = PlayerBuildScope(scope)
+
+    private val queuePages = QueuePageLoader(scope, ::onQueuePage)
+
+    /** A skip or auto-advance that reached the end of what had loaded, waiting for the next page. */
+    private var advanceAfterPage: (() -> Unit)? = null
 
     private val autoplayCountdownController =
         AutoplayCountdownController(
@@ -1614,14 +1623,18 @@ class EnhancedPlayerManager private constructor() {
         title: String? = null,
         shuffle: Boolean? = null,
         startPlayback: Boolean = true,
+        more: QueuePageSource? = null,
     ) {
         if (!isOnMainThread()) {
             autoNextLog("setQueue posted to main size=${videos.size} start=$startIndex from=${Thread.currentThread().name}")
-            mainHandler.post { setQueue(videos, startIndex, title, shuffle, startPlayback) }
+            mainHandler.post { setQueue(videos, startIndex, title, shuffle, startPlayback, more) }
             return
         }
         val startVideo = queue.setQueue(videos, startIndex, title, shuffle)
-        autoNextLog("setQueue size=${videos.size} start=${queue.currentIndex} title=$title")
+        advanceAfterPage = null
+        queuePages.attach(more, queue.generation)
+        queue.morePending = more != null && videos.isNotEmpty()
+        autoNextLog("setQueue size=${videos.size} start=${queue.currentIndex} title=$title more=${more != null}")
 
         updateQueueState()
 
@@ -1634,6 +1647,11 @@ class EnhancedPlayerManager private constructor() {
     fun playNext(loadStreamsInPlayer: Boolean = true): Boolean {
         val nextIndex =
             queue.nextIndex() ?: run {
+                if (queue.morePending && queuePages.load()) {
+                    autoNextLog("playNext waiting for the next queue page")
+                    advanceAfterPage = { playNext(loadStreamsInPlayer) }
+                    return true
+                }
                 autoNextLog("playNext queue unavailable")
                 return false
             }
@@ -1654,6 +1672,7 @@ class EnhancedPlayerManager private constructor() {
     }
 
     fun playPrevious(loadStreamsInPlayer: Boolean = true): Boolean {
+        advanceAfterPage = null
         val previousVideo = queue.movePrevious() ?: return false
         startPlaybackFromQueue(previousVideo, loadStreamsInPlayer)
         updateQueueState()
@@ -1771,6 +1790,7 @@ class EnhancedPlayerManager private constructor() {
         loadStreamsInPlayer: Boolean = true,
     ) {
         if (index == queue.currentIndex) return
+        advanceAfterPage = null
         val video = queue.moveTo(index) ?: return
         startPlaybackFromQueue(video, loadStreamsInPlayer)
         updateQueueState()
@@ -1846,7 +1866,36 @@ class EnhancedPlayerManager private constructor() {
         }
     }
 
+    /** Where the queue's later pages will come from, saved with the queue so a restore carries on. */
+    val queueSourceSpec: QueueSourceSpec? get() = queuePages.spec
+
+    private fun onQueuePage(
+        generation: Int,
+        page: QueuePage?,
+    ) {
+        if (generation != queue.generation) return
+        val waiting = advanceAfterPage
+        advanceAfterPage = null
+        if (page != null) {
+            val added = queue.appendPage(generation, page.videos)
+            queue.morePending = queuePages.hasMore
+            autoNextLog("queue page added=$added more=${queuePages.hasMore}")
+            onQueueMutated("queue-page")
+            waiting?.invoke()
+            return
+        }
+        autoNextLog("queue page failed waiting=${waiting != null}")
+        if (waiting == null) return
+        // The advance can't wait for a page that didn't come; it goes on as if the queue ended here,
+        // and the next position change asks for the page again.
+        queue.morePending = false
+        waiting()
+        queue.morePending = queuePages.hasMore
+        updateQueueState()
+    }
+
     private fun updateQueueState() {
+        if (!queue.isEmpty) queuePages.onPosition(queue.remainingAfterCurrent)
         _playerState.value =
             _playerState.value.copy(
                 hasNext = hasNext(),
@@ -1998,6 +2047,11 @@ class EnhancedPlayerManager private constructor() {
             // Queue autoplay can be disabled independently; manual next still works.
             if (!queueAutoplayEnabled) {
                 autoNextLog("auto-advance queue disabled")
+                return
+            }
+            if (queue.nextIndex() == null && queue.morePending && queuePages.load()) {
+                autoNextLog("auto-advance waiting for the next queue page")
+                advanceAfterPage = ::performAutoAdvance
                 return
             }
             autoNextLog("auto-advance queue playNext")
@@ -3515,6 +3569,8 @@ class EnhancedPlayerManager private constructor() {
         manualLoopEnabled = false
         autoplayCandidates = emptyList()
         autoplaySourceVideoId = null
+        advanceAfterPage = null
+        queuePages.clear()
         queue.clear()
         _playerState.value =
             _playerState.value.copy(

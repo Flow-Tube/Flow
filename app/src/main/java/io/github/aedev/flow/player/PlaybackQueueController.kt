@@ -4,6 +4,7 @@ import io.github.aedev.flow.data.model.Video
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.random.Random
 
 /**
  * What adding a single video did, so the caller can run the follow-up it owns.
@@ -62,8 +63,12 @@ internal class PlaybackQueueController {
     /** The video picked when the queue was set; cleared once playback moves to another item. */
     private var pickedVideoId: String? = null
 
-    /** Bumped whenever the queue is replaced, so an undo from an older queue does nothing. */
-    private var generation = 0
+    /** Bumped whenever the queue is replaced, so an undo or a page from an older queue does nothing. */
+    var generation = 0
+        private set
+
+    /** Later videos of this queue's playlist are still to be loaded. */
+    var morePending: Boolean = false
 
     private val items: List<Video>
         get() = _videos.value
@@ -84,7 +89,11 @@ internal class PlaybackQueueController {
         get() = currentIndex > 0
 
     val hasNext: Boolean
-        get() = nextIndex() != null
+        get() = nextIndex() != null || morePending
+
+    /** How many videos follow the current one in what has loaded. */
+    val remainingAfterCurrent: Int
+        get() = (items.size - 1 - currentIndex).coerceAtLeast(0)
 
     fun videoAt(index: Int): Video? = items.getOrNull(index)
 
@@ -98,6 +107,7 @@ internal class PlaybackQueueController {
             itemCount = items.size,
             currentIndex = currentIndex,
             loopEnabled = loopEnabled,
+            morePending = morePending,
         )
 
     fun nextVideo(): Video? = nextIndex()?.let(items::getOrNull)
@@ -114,6 +124,7 @@ internal class PlaybackQueueController {
         shuffle: Boolean? = null,
     ): Video? {
         shuffle?.let { shuffleEnabled = it }
+        morePending = false
         originalItems = videos
         val normalizedStartIndex = startIndex.coerceIn(0, videos.lastIndex.coerceAtLeast(0))
         val ordered =
@@ -163,6 +174,27 @@ internal class PlaybackQueueController {
             }
         _videos.value = items.toMutableList().apply { add(currentIndex + 1, video) }
         return QueueAddOutcome.Inserted
+    }
+
+    /**
+     * Appends the next page of the queue's playlist, leaving out videos already in it. While
+     * shuffled the page is mixed into what is still to play.
+     *
+     * @return how many videos joined, 0 when [pageGeneration] belongs to a queue since replaced.
+     */
+    fun appendPage(
+        pageGeneration: Int,
+        videos: List<Video>,
+        random: Random = Random.Default,
+    ): Int {
+        if (pageGeneration != generation || isEmpty) return 0
+        val known = originalItems.mapTo(HashSet()) { it.id }
+        items.mapTo(known) { it.id }
+        val fresh = videos.filter { known.add(it.id) }
+        if (fresh.isEmpty()) return 0
+        originalItems = originalItems + fresh
+        _videos.value = if (shuffleEnabled) PlaylistQueueOrder.mixIn(items, currentIndex, fresh, random) else items + fresh
+        return fresh.size
     }
 
     /** Appends [video] to the end of the queue. */
@@ -261,6 +293,7 @@ internal class PlaybackQueueController {
         title = null
         loopEnabled = false
         shuffleEnabled = false
+        morePending = false
         pickedVideoId = null
         publish(emptyList(), currentIndex = -1)
     }
@@ -271,6 +304,7 @@ internal class PlaybackQueueController {
     ): QueueAddOutcome {
         if (currentlyPlaying == null) return QueueAddOutcome.NoActiveQueue
         generation++
+        morePending = false
         originalItems = listOf(currentlyPlaying, video)
         publish(originalItems, currentIndex = 0)
         return QueueAddOutcome.QueueCreated

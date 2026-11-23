@@ -44,6 +44,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -99,6 +101,10 @@ internal data class PlaylistHeaderState(
     val isDownloaded: Boolean = false,
     /** The library a stored playlist sits in, offered a move to the other; null hides the move. */
     val isInMusicLibrary: Boolean? = null,
+    /** Every page left is loading: the count when YouTube gave one, 0 when it didn't; null when not loading. */
+    val loadingAllOf: Int? = null,
+    /** Videos added since this downloaded playlist was last downloaded. */
+    val newSinceDownload: Int = 0,
 )
 
 /** What the header's buttons do; a missing capability in [PlaylistHeaderState] hides its button. */
@@ -113,6 +119,7 @@ internal class PlaylistHeaderActions(
     val onEdit: () -> Unit,
     val onDelete: () -> Unit,
     val onMoveLibrary: () -> Unit,
+    val onDownloadNew: () -> Unit = {},
 )
 
 /** The header at the top of the list, on windows too narrow for a side pane. */
@@ -130,6 +137,7 @@ internal fun PlaylistHeader(
         PlaylistArtwork(url = state.thumbnailUrl, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.size(4.dp))
         PlaylistTitleBlock(state)
+        PlaylistListProgress(state, actions)
         PlaylistPrimaryActions(actions)
         Row(verticalAlignment = Alignment.CenterVertically) {
             PlaylistSecondaryActions(state, actions)
@@ -153,6 +161,7 @@ internal fun PlaylistHeaderPane(
         PlaylistArtwork(url = state.thumbnailUrl, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.size(4.dp))
         PlaylistTitleBlock(state)
+        PlaylistListProgress(state, actions)
         Spacer(Modifier.weight(1f))
         PlaylistSecondaryActions(state, actions)
         PlaylistPrimaryActions(actions)
@@ -211,6 +220,36 @@ private fun ColumnScope.PlaylistTitleBlock(state: PlaylistHeaderState) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.clip(MaterialTheme.shapes.small).clickable { expanded = !expanded },
         )
+    }
+}
+
+/** The whole list loading for a sort, search, save or download, and new videos a download hasn't got. */
+@Composable
+private fun PlaylistListProgress(
+    state: PlaylistHeaderState,
+    actions: PlaylistHeaderActions,
+) {
+    state.loadingAllOf?.let { total ->
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text =
+                    if (total > 0) {
+                        pluralStringResource(R.plurals.playlist_loading_all, total, total)
+                    } else {
+                        stringResource(R.string.playlist_loading_all_unknown)
+                    },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+    }
+    if (state.newSinceDownload > 0) {
+        FilledTonalButton(onClick = actions.onDownloadNew) {
+            Icon(Icons.Outlined.Download, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+            Text(pluralStringResource(R.plurals.playlist_download_new, state.newSinceDownload, state.newSinceDownload))
+        }
     }
 }
 

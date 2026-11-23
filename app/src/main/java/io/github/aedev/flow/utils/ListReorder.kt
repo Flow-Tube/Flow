@@ -12,14 +12,12 @@ fun <T> List<T>.movedByKey(
     return toMutableList().apply { add(to, removeAt(from)) }
 }
 
-/** The list with the item at [index] moved to the start or to the end, or null when it is already there. */
-fun <T> List<T>.movedToEdge(
+/** The list with the item at [index] moved to [target], or null when either is out of range or they match. */
+fun <T> List<T>.movedTo(
     index: Int,
-    toStart: Boolean,
+    target: Int,
 ): List<T>? {
-    if (index !in indices) return null
-    val target = if (toStart) 0 else lastIndex
-    if (index == target) return null
+    if (index !in indices || target !in indices || index == target) return null
     return toMutableList().apply { add(target, removeAt(index)) }
 }
 

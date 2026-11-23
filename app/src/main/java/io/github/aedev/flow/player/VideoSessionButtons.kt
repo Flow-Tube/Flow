@@ -14,8 +14,6 @@ import io.github.aedev.flow.R
 
 /** What the video notification's repeat and shuffle buttons show and do. */
 internal object VideoSessionControls {
-    enum class Repeat { OFF, QUEUE, ONE }
-
     data class State(
         val videoLooping: Boolean,
         val queueLooping: Boolean,
@@ -24,13 +22,8 @@ internal object VideoSessionControls {
     ) {
         val hasQueue: Boolean get() = queueSize > 1
 
-        val repeat: Repeat
-            get() =
-                when {
-                    videoLooping -> Repeat.ONE
-                    queueLooping && hasQueue -> Repeat.QUEUE
-                    else -> Repeat.OFF
-                }
+        val repeat: RepeatMode
+            get() = videoRepeatMode(queueLoop = queueLooping && hasQueue, videoLoop = videoLooping)
     }
 
     data class LoopTarget(
@@ -39,27 +32,10 @@ internal object VideoSessionControls {
     )
 
     /** Off, then the whole queue, then this video; a single video goes straight to looping itself. */
-    fun nextLoop(state: State): LoopTarget =
-        when (state.repeat) {
-            Repeat.OFF -> {
-                if (state.hasQueue) {
-                    LoopTarget(
-                        videoLoop = false,
-                        queueLoop = true,
-                    )
-                } else {
-                    LoopTarget(videoLoop = true, queueLoop = false)
-                }
-            }
-
-            Repeat.QUEUE -> {
-                LoopTarget(videoLoop = true, queueLoop = false)
-            }
-
-            Repeat.ONE -> {
-                LoopTarget(videoLoop = false, queueLoop = false)
-            }
-        }
+    fun nextLoop(state: State): LoopTarget {
+        val next = state.repeat.next().let { if (it == RepeatMode.ALL && !state.hasQueue) RepeatMode.ONE else it }
+        return LoopTarget(videoLoop = next == RepeatMode.ONE, queueLoop = next == RepeatMode.ALL)
+    }
 }
 
 /**
@@ -112,9 +88,9 @@ internal class VideoSessionButtons(
     fun buttons(state: VideoSessionControls.State): List<CommandButton> {
         val (repeatIcon, repeatIconRes) =
             when (state.repeat) {
-                VideoSessionControls.Repeat.ONE -> CommandButton.ICON_REPEAT_ONE to R.drawable.ic_repeat_one_on
-                VideoSessionControls.Repeat.QUEUE -> CommandButton.ICON_REPEAT_ALL to R.drawable.ic_repeat_on
-                VideoSessionControls.Repeat.OFF -> CommandButton.ICON_REPEAT_OFF to R.drawable.ic_repeat
+                RepeatMode.ONE -> CommandButton.ICON_REPEAT_ONE to R.drawable.ic_repeat_one_on
+                RepeatMode.ALL -> CommandButton.ICON_REPEAT_ALL to R.drawable.ic_repeat_on
+                RepeatMode.OFF -> CommandButton.ICON_REPEAT_OFF to R.drawable.ic_repeat
             }
         val repeat =
             CommandButton

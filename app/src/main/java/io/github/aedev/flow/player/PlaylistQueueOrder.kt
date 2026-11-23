@@ -13,16 +13,34 @@ internal data class QueueRemoval<T>(
 )
 
 internal object PlaylistQueueOrder {
+    /** A queue whose later pages are still to come never wraps: its end isn't the end of the list. */
     fun nextIndex(
         itemCount: Int,
         currentIndex: Int,
         loopEnabled: Boolean,
+        morePending: Boolean = false,
     ): Int? =
         when {
             currentIndex < itemCount - 1 -> currentIndex + 1
-            loopEnabled && itemCount > 0 -> 0
+            loopEnabled && itemCount > 0 && !morePending -> 0
             else -> null
         }
+
+    /**
+     * [added] spread at random through the part of a shuffled queue not yet played. The video right
+     * after the current one keeps its place, since it may already be preloaded.
+     */
+    fun <T> mixIn(
+        items: List<T>,
+        currentIndex: Int,
+        added: List<T>,
+        random: Random = Random.Default,
+    ): List<T> {
+        val result = items.toMutableList()
+        val firstSlot = (currentIndex + 2).coerceIn(0, result.size)
+        added.forEach { item -> result.add(random.nextInt(firstSlot, result.size + 1), item) }
+        return result
+    }
 
     fun <T> shuffleFromCurrent(
         items: List<T>,

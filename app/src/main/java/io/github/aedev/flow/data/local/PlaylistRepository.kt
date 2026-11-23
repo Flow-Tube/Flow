@@ -357,24 +357,8 @@ class PlaylistRepository
         ) {
             if (videos.isEmpty()) return
             try {
-                val alreadyInPlaylist = playlistDao.getVideoIdsInPlaylist(targetPlaylistId).toHashSet()
-                var nextPosition = (playlistDao.getMaxPlaylistPosition(targetPlaylistId) ?: -1L) + 1L
-
                 videoDao.mergeMetadata(videos.map(::normalizedEntity))
-                videos.forEach { video ->
-                    // Re-adding a track already in the playlist must not move it.
-                    if (!alreadyInPlaylist.add(video.id)) return@forEach
-                    playlistDao.insertPlaylistVideoCrossRef(
-                        PlaylistVideoCrossRef(
-                            playlistId = targetPlaylistId,
-                            videoId = video.id,
-                            position = nextPosition++,
-                        ),
-                    )
-                }
-
-                val newThumb = playlistDao.getFirstVideoThumbnail(targetPlaylistId) ?: videos.first().thumbnailUrl
-                playlistDao.updatePlaylistThumbnail(targetPlaylistId, newThumb)
+                playlistDao.appendPlaylistVideos(targetPlaylistId, videos.map { it.id }, videos.first().thumbnailUrl)
             } catch (e: Exception) {
                 android.util.Log.e("PlaylistRepository", "Failed to add to playlist $targetPlaylistId", e)
                 throw e
@@ -457,6 +441,10 @@ class PlaylistRepository
             videoDao.mergeMetadata(remoteVideos.map(::normalizedEntity))
             playlistDao.replacePlaylistVideos(playlistId, remoteVideos.map { it.id }.distinct())
         }
+
+        /** The playlist's video ids in stored order. */
+        suspend fun getPlaylistVideoIds(playlistId: String): List<String> =
+            playlistDao.getPlaylistVideoPositions(playlistId).map { it.videoId }
 
         suspend fun getPlaylistEntity(playlistId: String): PlaylistEntity? = playlistDao.getPlaylist(playlistId)
 

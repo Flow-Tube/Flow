@@ -70,7 +70,7 @@ internal class PlayerCollaborators(
     autoDownload: AutoDownloadTrigger,
     resumePlayback: (Video) -> Unit,
     savedQueue: suspend () -> SavedVideoQueue?,
-    resumeQueue: (videos: List<Video>, index: Int, title: String?) -> Unit,
+    resumeQueue: (SavedVideoQueue) -> Unit,
 ) {
     private val isLoadCurrent: (Long) -> Boolean = { loads.isCurrent(it) }
 

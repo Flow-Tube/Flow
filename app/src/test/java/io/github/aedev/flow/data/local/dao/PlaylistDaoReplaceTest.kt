@@ -30,21 +30,37 @@ class PlaylistDaoReplaceTest {
         }
 
     @Test
-    fun `a saved playlist drops stale videos, links the new order and updates its thumbnail`() =
+    fun `a saved playlist drops stale videos, moves kept ones, links only new ones and updates its thumbnail`() =
         runTest {
             coEvery { dao.getPlaylist("p") } returns playlist("p")
-            coEvery { dao.getVideoIdsInPlaylist("p") } returns listOf("old", "a")
+            coEvery { dao.getPlaylistVideoPositions("p") } returns listOf(PlaylistVideoPosition("old", 0), PlaylistVideoPosition("a", 1))
             coEvery { dao.getFirstVideoThumbnail("p") } returns "thumb"
 
             dao.replacePlaylistVideos("p", listOf("a", "b"))
 
             coVerifyOrder {
                 dao.removeVideoFromPlaylist("p", "old")
-                dao.insertPlaylistVideoCrossRef(link("a", 0))
+                dao.updatePlaylistVideoPosition("p", "a", 0)
                 dao.insertPlaylistVideoCrossRef(link("b", 1))
                 dao.updatePlaylistThumbnail("p", "thumb")
             }
             coVerify(exactly = 0) { dao.removeVideoFromPlaylist("p", "a") }
+            coVerify(exactly = 0) { dao.insertPlaylistVideoCrossRef(match { it.videoId == "a" }) }
+        }
+
+    @Test
+    fun `an unchanged saved playlist is not written`() =
+        runTest {
+            coEvery { dao.getPlaylist("p") } returns playlist("p").copy(thumbnailUrl = "thumb")
+            coEvery { dao.getPlaylistVideoPositions("p") } returns listOf(PlaylistVideoPosition("a", 0), PlaylistVideoPosition("b", 1))
+            coEvery { dao.getFirstVideoThumbnail("p") } returns "thumb"
+
+            dao.replacePlaylistVideos("p", listOf("a", "b"))
+
+            coVerify(exactly = 0) { dao.removeVideoFromPlaylist(any(), any()) }
+            coVerify(exactly = 0) { dao.updatePlaylistVideoPosition(any(), any(), any()) }
+            coVerify(exactly = 0) { dao.insertPlaylistVideoCrossRef(any()) }
+            coVerify(exactly = 0) { dao.updatePlaylistThumbnail(any(), any()) }
         }
 
     private fun MockKMatcherScope.link(

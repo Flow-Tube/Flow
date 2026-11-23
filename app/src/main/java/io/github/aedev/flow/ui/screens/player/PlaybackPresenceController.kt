@@ -35,7 +35,7 @@ internal class PlaybackPresenceController(
     private val ioDispatcher: CoroutineDispatcher,
     private val resumePlayback: (Video) -> Unit,
     private val savedQueue: suspend () -> SavedVideoQueue?,
-    private val resumeQueue: (videos: List<Video>, index: Int, title: String?) -> Unit,
+    private val resumeQueue: (SavedVideoQueue) -> Unit,
 ) {
     // The queue the restored video was playing in, so resuming it carries on with the rest.
     private var restoredQueue: SavedVideoQueue? = null
@@ -96,7 +96,7 @@ internal class PlaybackPresenceController(
         }
         val queue = restoredQueue
         restoredQueue = null
-        if (queue != null) resumeQueue(queue.videos, queue.index, queue.title) else resumePlayback(video)
+        if (queue != null) resumeQueue(queue) else resumePlayback(video)
         armFullscreenOpen(null)
     }
 

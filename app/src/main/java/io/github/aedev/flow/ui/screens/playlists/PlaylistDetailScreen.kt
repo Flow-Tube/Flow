@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.ui.components.library.PlaylistDetailTopBar
 import io.github.aedev.flow.ui.components.library.PlaylistHeader
 import io.github.aedev.flow.ui.components.library.PlaylistHeaderActions
@@ -55,7 +56,7 @@ import io.github.aedev.flow.utils.PLAYLIST_FILE_MIME_TYPE
 import io.github.aedev.flow.utils.filterBySearch
 import io.github.aedev.flow.utils.holdsPendingOrder
 import io.github.aedev.flow.utils.movedByKey
-import io.github.aedev.flow.utils.movedToEdge
+import io.github.aedev.flow.utils.movedTo
 import io.github.aedev.flow.utils.sharePlaylist
 import io.github.aedev.flow.utils.sharePlaylistFile
 import kotlinx.coroutines.launch
@@ -64,7 +65,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun PlaylistDetailScreen(
     onNavigateBack: () -> Unit,
-    onPlayPlaylist: (videos: List<Video>, startIndex: Int, shuffle: Boolean, title: String) -> Unit,
+    onPlayPlaylist: (videos: List<Video>, startIndex: Int, shuffle: Boolean, title: String, more: QueuePageSource?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlaylistDetailViewModel = hiltViewModel(),
 ) {
@@ -74,6 +75,7 @@ fun PlaylistDetailScreen(
     val downloadedCollection by viewModel.downloadedCollection.collectAsStateWithLifecycle()
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
     val swipes by viewModel.playlistSwipes.collectAsStateWithLifecycle()
+    val newSinceDownload by viewModel.newSinceDownload.collectAsStateWithLifecycle()
     val mergeTargets by viewModel.userCreatedPlaylists.collectAsStateWithLifecycle()
     val quickActions = sharedQuickActionsViewModel()
     val context = LocalContext.current
@@ -103,6 +105,11 @@ fun PlaylistDetailScreen(
     val twoPane = panes.showsSidePane
 
     val isUserCreated = uiState.isLocalPlaylist && !uiState.isSaved
+    // A queue in the playlist's own order keeps loading it; a sorted one holds what is shown.
+    val play = { startIndex: Int, shuffle: Boolean ->
+        val more = if (sortOrder == PlaylistSortOrder.MANUAL) viewModel.queueSource(displayVideos.size) else null
+        onPlayPlaylist(displayVideos, startIndex, shuffle, uiState.playlistName, more)
+    }
     val canReorder = isUserCreated && sortOrder == PlaylistSortOrder.MANUAL && !isSearching
     // A saved YouTube playlist mirrors the original; its next sync would bring removed videos back.
     val canModify = uiState.isLocalPlaylist && !uiState.isSaved
@@ -147,11 +154,11 @@ fun PlaylistDetailScreen(
         if (sortedVideos.isEmpty()) exitSelection()
     }
 
-    fun moveToEdge(
+    fun moveVideo(
         video: Video,
-        toTop: Boolean,
+        target: Int,
     ) {
-        val moved = displayVideos.movedToEdge(displayVideos.indexOfFirst { it.id == video.id }, toTop) ?: return
+        val moved = displayVideos.movedTo(displayVideos.indexOfFirst { it.id == video.id }, target) ?: return
         displayVideos = moved
         val order = moved.map { it.id }
         pendingOrder = order
@@ -159,7 +166,10 @@ fun PlaylistDetailScreen(
     }
 
     LaunchedEffect(searchQuery) {
-        if (isSearching) listState.scrollToItem(0)
+        if (isSearching) {
+            viewModel.loadAll()
+            listState.scrollToItem(0)
+        }
     }
 
     LaunchedEffect(viewModel) {
@@ -177,20 +187,12 @@ fun PlaylistDetailScreen(
             downloadBatch,
             isDownloaded =
                 downloadedCollection?.isComplete == true,
+            newSinceDownload = newSinceDownload,
         )
     val headerActions =
         PlaylistHeaderActions(
-            onPlayAll = { if (displayVideos.isNotEmpty()) onPlayPlaylist(displayVideos, 0, false, uiState.playlistName) },
-            onShuffle = {
-                if (displayVideos.isNotEmpty()) {
-                    onPlayPlaylist(
-                        displayVideos,
-                        displayVideos.indices.random(),
-                        true,
-                        uiState.playlistName,
-                    )
-                }
-            },
+            onPlayAll = { if (displayVideos.isNotEmpty()) play(0, false) },
+            onShuffle = { if (displayVideos.isNotEmpty()) play(displayVideos.indices.random(), true) },
             onDownloadAll = {
                 scope.launch {
                     val left = viewModel.downloadLeftOut() ?: return@launch
@@ -219,6 +221,7 @@ fun PlaylistDetailScreen(
             onEdit = { dialog = PlaylistDialog.Edit },
             onDelete = { dialog = PlaylistDialog.Delete },
             onMoveLibrary = viewModel::moveToOtherLibrary,
+            onDownloadNew = viewModel::downloadNew,
         )
 
     Scaffold(
@@ -285,18 +288,19 @@ fun PlaylistDetailScreen(
                                     swipes = swipes,
                                     swipeEnabled = !selectionMode && !reorderState.isAnyItemDragging,
                                 ),
-                            isLoadingMore = uiState.isLoadingMore,
+                            hasMorePages = uiState.hasMorePages,
                             listState = listState,
                             reorderState = reorderState,
                             onVideoClick = { index, video ->
                                 if (selectionMode) {
                                     toggleSelected(setOf(video.id), video.id !in selectedIds)
                                 } else {
-                                    onPlayPlaylist(displayVideos, positions[video.id]?.minus(1) ?: index, false, uiState.playlistName)
+                                    play(positions[video.id]?.minus(1) ?: index, false)
                                 }
                             },
                             onRemove = { viewModel.removeVideo(it.id) },
-                            onMoveToEdge = ::moveToEdge,
+                            onMoveVideo = ::moveVideo,
+                            onNearEnd = viewModel::loadMore,
                             header = header,
                         )
                     }

@@ -28,16 +28,24 @@ class ListReorderTest {
 
     @Test
     fun `moves an item to the top or the bottom`() {
-        assertEquals(listOf("c", "a", "b", "d"), list.movedToEdge(2, toStart = true))
-        assertEquals(listOf("a", "c", "d", "b"), list.movedToEdge(1, toStart = false))
+        assertEquals(listOf("c", "a", "b", "d"), list.movedTo(2, target = 0))
+        assertEquals(listOf("a", "c", "d", "b"), list.movedTo(1, target = list.lastIndex))
     }
 
     @Test
-    fun `ignores a move to where the item already is`() {
-        assertNull(list.movedToEdge(0, toStart = true))
-        assertNull(list.movedToEdge(3, toStart = false))
-        assertNull(list.movedToEdge(-1, toStart = true))
-        assertNull(list.movedToEdge(4, toStart = false))
+    fun `moves an item one place up or down`() {
+        assertEquals(listOf("a", "c", "b", "d"), list.movedTo(2, target = 1))
+        assertEquals(listOf("a", "c", "b", "d"), list.movedTo(1, target = 2))
+    }
+
+    @Test
+    fun `ignores a move to where the item already is or out of the list`() {
+        assertNull(list.movedTo(0, target = 0))
+        assertNull(list.movedTo(3, target = 3))
+        assertNull(list.movedTo(-1, target = 0))
+        assertNull(list.movedTo(4, target = 3))
+        assertNull(list.movedTo(0, target = -1))
+        assertNull(list.movedTo(3, target = 4))
     }
 
     @Test

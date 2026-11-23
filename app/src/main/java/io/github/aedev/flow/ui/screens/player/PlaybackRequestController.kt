@@ -12,6 +12,7 @@ import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.LifecyclePlaybackPreferences
 import io.github.aedev.flow.player.MiniPlayerExpansionState
 import io.github.aedev.flow.player.PlaybackTarget
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.player.state.EnhancedPlayerState
 import io.github.aedev.flow.player.stream.ResetYouTubeSession
 import io.github.aedev.flow.ui.screens.player.state.*
@@ -183,6 +184,7 @@ internal class PlaybackRequestController(
         startIndex: Int,
         title: String?,
         shuffle: Boolean?,
+        more: QueuePageSource? = null,
     ) {
         if (videos.isEmpty()) return
         val startVideo = videos.getOrNull(startIndex) ?: videos.first()
@@ -202,7 +204,7 @@ internal class PlaybackRequestController(
 
         playerManager.armStartPaused(null)
         presence.armFullscreenOpen(startVideo.id.takeIf { lifecyclePlayback.settings.openVideosFullscreen })
-        playerManager.setQueue(videos, startIndex, title, shuffle)
+        playerManager.setQueue(videos, startIndex, title, shuffle, more = more)
 
         uiState.update { it.resetForVideo(startVideo).copy(queueTitle = title) }
         watchSessions.saveHistoryEntry(startVideo)

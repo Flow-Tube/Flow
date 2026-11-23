@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.ui.components.music.common.ProvideMusicPlaybackState
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.music.sheet.MusicMenuSheets
@@ -96,12 +97,13 @@ fun FlowTvApp(
         startIndex: Int,
         title: String,
         shuffle: Boolean,
+        more: QueuePageSource? = null,
     ) {
         val start = videos.getOrNull(startIndex) ?: return
         returnFocus.key = start.id
         EnhancedMusicPlayerManager.pause()
         GlobalPlayerState.setCurrentVideo(start)
-        playerViewModel.playPlaylist(videos, startIndex, title, shuffle)
+        playerViewModel.playPlaylist(videos, startIndex, title, shuffle, more)
     }
 
     // Metadata is resolved by playVideo -> loadVideoInfo; the stub only seeds the id.
