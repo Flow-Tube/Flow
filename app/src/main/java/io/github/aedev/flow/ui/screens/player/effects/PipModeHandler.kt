@@ -12,6 +12,7 @@ import io.github.aedev.flow.player.BackgroundPlaybackPolicy
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.PictureInPictureHelper
+import io.github.aedev.flow.player.PipStop
 import io.github.aedev.flow.player.videoHandlesPipNext
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 
@@ -25,9 +26,11 @@ private fun PipBroadcastReceiverEffect(
     context: Context,
     onNext: () -> Unit,
     onBackground: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     val currentOnNext by rememberUpdatedState(onNext)
     val currentOnBackground by rememberUpdatedState(onBackground)
+    val currentOnRetry by rememberUpdatedState(onRetry)
     DisposableEffect(Unit) {
         val receiver =
             PictureInPictureHelper.createPipActionReceiver(
@@ -40,6 +43,8 @@ private fun PipBroadcastReceiverEffect(
                     EnhancedPlayerManager.getInstance().stopBackgroundService()
                 },
                 onBackground = { currentOnBackground() },
+                onReplay = { EnhancedPlayerManager.getInstance().replay() },
+                onRetry = { currentOnRetry() },
             )
 
         ContextCompat.registerReceiver(
@@ -69,11 +74,13 @@ private fun PipParamsUpdateEffect(
     isBackgroundPlaybackMode: Boolean,
     videoAspectRatio: Float,
     hasNext: Boolean,
+    stop: PipStop?,
     activity: Activity?,
 ) {
-    LaunchedEffect(isPlaying, autoPipEnabled, isBackgroundPlaybackMode, videoAspectRatio, hasNext) {
+    LaunchedEffect(isPlaying, autoPipEnabled, isBackgroundPlaybackMode, videoAspectRatio, hasNext, stop) {
         val nextChanged = PictureInPictureHelper.videoHasNext != hasNext
         PictureInPictureHelper.setVideoHasNext(hasNext)
+        PictureInPictureHelper.setVideoStop(stop)
         // Related videos landing for a video behind Shorts must not overwrite the Shorts window's buttons.
         if (nextChanged && !videoHandlesPipNext(PictureInPictureHelper.shortsNavigation)) return@LaunchedEffect
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && activity != null) {
@@ -97,6 +104,7 @@ private fun PipParamsUpdateEffect(
     DisposableEffect(activity) {
         onDispose {
             PictureInPictureHelper.setVideoHasNext(false)
+            PictureInPictureHelper.setVideoStop(null)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && activity != null) {
                 PictureInPictureHelper.updatePipParams(
                     activity = activity,
@@ -144,6 +152,7 @@ internal fun SetupPipEffects(
     videoAspectRatio: Float,
     pipPreferences: PipPreferences,
     hasNext: Boolean,
+    stop: PipStop?,
     playerViewModel: VideoPlayerViewModel,
 ) {
     // Register broadcast receiver
@@ -155,6 +164,7 @@ internal fun SetupPipEffects(
             playerViewModel.startBackgroundPlayback()
             activity?.finish()
         },
+        onRetry = { playerViewModel.retryLoadVideo() },
     )
 
     // Update PiP params
@@ -164,6 +174,7 @@ internal fun SetupPipEffects(
         isBackgroundPlaybackMode = isBackgroundPlaybackMode,
         videoAspectRatio = videoAspectRatio,
         hasNext = hasNext,
+        stop = stop,
         activity = activity,
     )
 }
