@@ -17,6 +17,7 @@ import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.audio.LoudnessGain
 import io.github.aedev.flow.player.error.VideoErrorMapper
+import io.github.aedev.flow.player.live.LiveSegmentSessions
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.PlayabilityVerdict
 import io.github.aedev.flow.player.stream.PlaybackFailure
@@ -29,6 +30,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -301,6 +303,8 @@ internal class PlaybackSessionApplier(
         if (!isLoadCurrent(load.token)) return@withContext
 
         val videoId = load.videoId
+        // One request for the newest segment's headers; it runs while the session is armed.
+        val liveSegments = async { LiveSegmentSessions.open(videoId, result.playerResponse) }
         val streams = streamPreparer.assembleLive(videoId, uiState.value.cachedVideo, result)
         val identity = streams.identity
         GlobalPlayerState.setCurrentVideo(identity.enrichedVideo)
@@ -315,7 +319,7 @@ internal class PlaybackSessionApplier(
             playbackPreparer.prepareLiveStreams(
                 videoId = videoId,
                 hlsUrl = streams.hlsUrl,
-                dashManifestUrl = streams.dashManifestUrl,
+                dashManifestUrl = liveSegments.await() ?: streams.dashManifestUrl,
                 subtitles = streams.subtitles,
                 isCurrent = { isLoadCurrent(load.token) },
                 isDvrEnabled = streams.isDvrEnabled,

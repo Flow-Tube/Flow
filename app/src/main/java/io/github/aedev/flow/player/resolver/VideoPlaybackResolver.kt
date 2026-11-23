@@ -10,6 +10,8 @@ import androidx.media3.exoplayer.hls.playlist.DefaultHlsPlaylistTracker
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import io.github.aedev.flow.player.config.PlayerConfig
+import io.github.aedev.flow.player.live.LiveSegmentMediaSource
+import io.github.aedev.flow.player.live.LiveSegmentSessions
 import io.github.aedev.flow.player.stream.StreamProcessor
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.player.stream.model.AudioStream
@@ -33,6 +35,7 @@ class VideoPlaybackResolver(
     private val progressiveDataSourceFactory: DataSource.Factory,
     private val liveDashDataSourceFactory: DataSource.Factory = dashDataSourceFactory,
     private val liveHlsDataSourceFactory: DataSource.Factory = progressiveDataSourceFactory,
+    private val liveSegmentDataSourceFactory: DataSource.Factory? = null,
     private val mediaId: String = "",
     private val mediaMetadata: MediaMetadata = MediaMetadata.EMPTY,
 ) {
@@ -60,6 +63,12 @@ class VideoPlaybackResolver(
             "Resolving playback: ${videoStreams.size} video streams, audio=${audioStream != null}, " +
                 "dash=${!dashManifestUrl.isNullOrEmpty()}, hls=${!hlsUrl.isNullOrEmpty()}, duration=${durationSeconds}s",
         )
+
+        val liveSession = dashManifestUrl?.takeIf { isLiveStream }?.let { LiveSegmentSessions.forUri(Uri.parse(it)) }
+        if (liveSession != null && liveSegmentDataSourceFactory != null) {
+            Log.d(TAG, "Using live segments for ${liveSession.videoId}: ${liveSession.formats.size} formats")
+            return LiveSegmentMediaSource.create(liveSession, liveSegmentDataSourceFactory, mediaId, mediaMetadata)
+        }
 
         if (isLiveStream && !hlsUrl.isNullOrEmpty()) {
             try {
@@ -99,7 +108,7 @@ class VideoPlaybackResolver(
             }
         }
 
-        if (isLiveStream && !dashManifestUrl.isNullOrEmpty()) {
+        if (isLiveStream && !dashManifestUrl.isNullOrEmpty() && !LiveSegmentSessions.isSessionUri(dashManifestUrl)) {
             try {
                 Log.d(TAG, "Using YouTube DASH manifest for live DVR playback: ${dashManifestUrl.take(80)}...")
 

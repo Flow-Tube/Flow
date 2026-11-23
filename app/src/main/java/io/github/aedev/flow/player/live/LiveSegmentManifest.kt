@@ -40,6 +40,7 @@ internal object LiveSegmentManifest {
         formats: List<LiveSegmentFormat>,
         segmentUri: (itag: Int) -> String,
         serverNowMs: Long,
+        lastSequence: Long? = null,
     ): String {
         val segmentMs = clock.segmentDurationUs / 1_000
         val groups = formats.groupBy { if (it.isAudio) "audio" else MimeTypes.getVideoMediaMimeType(it.codecs) ?: it.codecs }.values
@@ -48,7 +49,13 @@ internal object LiveSegmentManifest {
             append("""<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" profiles="urn:mpeg:dash:profile:isoff-live:2011" type="dynamic"""")
             attribute("availabilityStartTime", dateTime(clock.availabilityStartTimeMs))
             attribute("publishTime", dateTime(serverNowMs))
-            attribute("minimumUpdatePeriod", duration(segmentMs))
+            // An ended stream's manifest gets its length and stops being refreshed: Media3 then plays
+            // to the last segment and ends, where a live period would wait for one more.
+            if (lastSequence == null) {
+                attribute("minimumUpdatePeriod", duration(segmentMs))
+            } else {
+                attribute("mediaPresentationDuration", duration((lastSequence + 1) * clock.segmentDurationUs / 1_000))
+            }
             attribute("timeShiftBufferDepth", duration(clock.timeShiftBufferDepthMs))
             attribute("minBufferTime", duration(segmentMs))
             append("><Period")

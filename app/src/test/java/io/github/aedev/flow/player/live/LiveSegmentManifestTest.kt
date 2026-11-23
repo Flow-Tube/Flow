@@ -89,4 +89,18 @@ class LiveSegmentManifestTest {
         assertThat(audio.getAttribute("audioSamplingRate")).isEqualTo("48000")
         assertThat(audio.children("AudioChannelConfiguration").single().getAttribute("value")).isEqualTo("2")
     }
+
+    @Test
+    fun `an ended stream gets its length and is no longer refreshed`() {
+        val xml = LiveSegmentManifest.build(clock, formats, { "flowlive://segment/vid/$it/" }, 1_795_449_850_000, lastSequence = 719)
+        val ended =
+            DocumentBuilderFactory
+                .newInstance()
+                .newDocumentBuilder()
+                .parse(ByteArrayInputStream(xml.toByteArray()))
+                .documentElement
+
+        assertThat(ended.hasAttribute("minimumUpdatePeriod")).isFalse()
+        assertThat(ended.getAttribute("mediaPresentationDuration")).isEqualTo("PT59M42.862S")
+    }
 }
