@@ -33,8 +33,10 @@ internal fun FullscreenEffect(
     suppressFullscreenRequest: Boolean = false,
     isPortrait: Boolean = false,
     isLargeWindow: Boolean = false,
+    isSheetCollapsed: Boolean = false,
     hideSystemBars: Boolean,
 ) {
+    val currentIsSheetCollapsed by rememberUpdatedState(isSheetCollapsed)
     var resumeTrigger by remember { mutableIntStateOf(0) }
     val currentIsLargeWindow by rememberUpdatedState(isLargeWindow)
     var forcePortraitLock by remember { mutableStateOf(false) }
@@ -94,15 +96,26 @@ internal fun FullscreenEffect(
                 // Only an actual fullscreen exit may pin: this effect also re-runs on every resume
                 // and on the first composition, where pinning locks an app that was merely
                 // backgrounded in landscape into portrait until it is force-restarted (#841).
-                when {
-                    leavingFullscreen && cfgLandscape && autoRotateOn && !currentIsLargeWindow -> {
+                when (
+                    orientationAfterFullscreen(
+                        leavingFullscreen = leavingFullscreen,
+                        isLandscape = cfgLandscape,
+                        autoRotateOn = autoRotateOn,
+                        isLargeWindow = currentIsLargeWindow,
+                        isSheetCollapsed = currentIsSheetCollapsed,
+                        portraitLockHeld = forcePortraitLock,
+                    )
+                ) {
+                    FullscreenExitOrientation.PIN_PORTRAIT -> {
                         act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                         forcePortraitLock = true
                     }
 
-                    !forcePortraitLock -> {
+                    FullscreenExitOrientation.RELEASE -> {
                         act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                     }
+
+                    FullscreenExitOrientation.KEEP -> {}
                 }
 
                 // Reset screen brightness to default when exiting fullscreen
@@ -110,6 +123,16 @@ internal fun FullscreenEffect(
                 layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                 act.window.attributes = layoutParams
             }
+        }
+    }
+
+    // The pin only keeps the expanded player from turning straight back to fullscreen; the mini
+    // player and the app have landscape layouts of their own (#2316).
+    LaunchedEffect(isSheetCollapsed) {
+        val act = activity ?: return@LaunchedEffect
+        if (isSheetCollapsed && forcePortraitLock) {
+            forcePortraitLock = false
+            act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 
@@ -148,6 +171,27 @@ internal fun FullscreenEffect(
         }
     }
 }
+
+internal enum class FullscreenExitOrientation { PIN_PORTRAIT, RELEASE, KEEP }
+
+/**
+ * What leaving fullscreen does to the window's orientation. Leaving it sideways on a phone holds
+ * portrait until the phone is turned upright, or the expanded player would go straight back to
+ * fullscreen; a collapse to the mini player leaves nothing expanded, so it follows the sensor (#2316).
+ */
+internal fun orientationAfterFullscreen(
+    leavingFullscreen: Boolean,
+    isLandscape: Boolean,
+    autoRotateOn: Boolean,
+    isLargeWindow: Boolean,
+    isSheetCollapsed: Boolean,
+    portraitLockHeld: Boolean,
+): FullscreenExitOrientation =
+    when {
+        leavingFullscreen && isLandscape && autoRotateOn && !isLargeWindow && !isSheetCollapsed -> FullscreenExitOrientation.PIN_PORTRAIT
+        portraitLockHeld -> FullscreenExitOrientation.KEEP
+        else -> FullscreenExitOrientation.RELEASE
+    }
 
 @Composable
 internal fun KeepScreenOnEffect(

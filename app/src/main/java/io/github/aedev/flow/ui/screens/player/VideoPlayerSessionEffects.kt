@@ -60,6 +60,7 @@ internal fun VideoPlayerSessionEffects(
         suppressFullscreenRequest = pipForcedFullscreen.value,
         isPortrait = screenState.isFullscreenPortrait,
         isLargeWindow = isLargeWindow,
+        isSheetCollapsed = playerSheetState.currentValue == PlayerSheetValue.Collapsed,
         hideSystemBars =
             isImmersivePlayer(
                 isExpanded = playerSheetState.currentValue == PlayerSheetValue.Expanded,
