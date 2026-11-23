@@ -106,6 +106,14 @@ class YouTubePlaylistRepository
         suspend fun complete(playlistId: String): RemotePlaylistPage? {
             cachedComplete(playlistId)?.let { return it }
             val first = firstPage(playlistId) ?: return null
+            return completeFrom(playlistId, first)
+        }
+
+        /** Like [complete], for a caller that already holds the [first] page, so it is not requested again. */
+        suspend fun completeFrom(
+            playlistId: String,
+            first: RemotePlaylistPage,
+        ): RemotePlaylistPage? {
             val walk = walkPlaylistPages(first.videos, first.continuation, MAX_PAGES, { nextPage(playlistId, it) })
             if (!walk.finished) return null
             val complete = first.copy(videos = walk.videos, continuation = null)

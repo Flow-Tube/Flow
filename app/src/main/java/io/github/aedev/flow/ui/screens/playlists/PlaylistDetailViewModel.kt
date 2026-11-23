@@ -2,7 +2,6 @@ package io.github.aedev.flow.ui.screens.playlists
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,6 +14,7 @@ import io.github.aedev.flow.data.local.LikedVideosRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PlaylistRepository
 import io.github.aedev.flow.data.local.PlaylistSwipes
+import io.github.aedev.flow.data.local.SavedPlaylistSyncStore
 import io.github.aedev.flow.data.local.WatchLaterCleanup
 import io.github.aedev.flow.data.local.dao.DownloadCollectionSummary
 import io.github.aedev.flow.data.migration.WatchLaterMetadataMigrator
@@ -34,7 +34,6 @@ import io.github.aedev.flow.ui.components.library.PlaylistSortOrder
 import io.github.aedev.flow.ui.components.library.sortedForPlaylist
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionUndo
 import io.github.aedev.flow.utils.PerformanceDispatcher
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -53,8 +52,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import javax.inject.Inject
-
-private const val TAG = "PlaylistDetailVM"
 
 private const val ENRICHMENT_STUB_LIMIT = 50
 private const val ENRICHMENT_CHUNK_SIZE = 5
@@ -77,6 +74,7 @@ class PlaylistDetailViewModel
         private val likedVideos: LikedVideosRepository,
         private val likedMedia: LikedMediaUseCase,
         private val collections: DownloadedCollections,
+        savedPlaylistChecks: SavedPlaylistSyncStore,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val playlistId: String = checkNotNull(savedStateHandle["playlistId"])
@@ -120,6 +118,8 @@ class PlaylistDetailViewModel
 
         private val downloads =
             PlaylistDownloads(viewModelScope, playlistId, downloadQueuer, playlistRepository, collections) { _messages.send(it) }
+
+        private val savedRefresh = SavedPlaylistRefresh(playlistId, repository, playlistRepository, savedPlaylistChecks)
 
         /** This playlist as a downloaded collection, or null when it was never downloaded as one. */
         val downloadedCollection: StateFlow<DownloadCollectionSummary?> get() = downloads.downloaded
@@ -509,22 +509,14 @@ class PlaylistDetailViewModel
 
         private fun refreshSavedPlaylist() {
             viewModelScope.launch {
-                val details = playlistRepository.complete(playlistId) ?: return@launch
-                try {
-                    repository.syncSavedPlaylistVideos(playlistId, details.videos)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Log.w(TAG, "Saved copy of $playlistId not refreshed", e)
-                    return@launch
-                }
+                val header = savedRefresh.run() ?: return@launch
                 _uiState.update { state ->
                     state.copy(
-                        playlistName = details.title.ifBlank { state.playlistName },
-                        ownerName = details.ownerName ?: state.ownerName,
-                        description = details.description.ifBlank { state.description },
-                        thumbnailUrl = details.thumbnailUrl.ifBlank { state.thumbnailUrl },
-                        hidesUnavailable = details.hidesUnavailable(),
+                        playlistName = header.title.ifBlank { state.playlistName },
+                        ownerName = header.ownerName ?: state.ownerName,
+                        description = header.description.ifBlank { state.description },
+                        thumbnailUrl = header.thumbnailUrl.ifBlank { state.thumbnailUrl },
+                        hidesUnavailable = header.hidesUnavailable,
                     )
                 }
             }

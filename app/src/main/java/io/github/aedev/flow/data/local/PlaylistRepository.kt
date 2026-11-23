@@ -442,6 +442,10 @@ class PlaylistRepository
             playlistDao.replacePlaylistVideos(playlistId, remoteVideos.map { it.id }.distinct())
         }
 
+        /** The playlist's video ids in stored order. */
+        suspend fun getPlaylistVideoIds(playlistId: String): List<String> =
+            playlistDao.getPlaylistVideoPositions(playlistId).map { it.videoId }
+
         suspend fun getPlaylistEntity(playlistId: String): PlaylistEntity? = playlistDao.getPlaylist(playlistId)
 
         fun observePlaylistEntity(playlistId: String): Flow<PlaylistEntity?> = playlistDao.observePlaylist(playlistId)
