@@ -56,6 +56,7 @@ import io.github.aedev.flow.player.factory.BandwidthSeedRecorder
 import io.github.aedev.flow.player.factory.PlayerFactory
 import io.github.aedev.flow.player.live.LiveEdgePolicy
 import io.github.aedev.flow.player.live.LivePegPolicy
+import io.github.aedev.flow.player.live.LiveSegmentSessions
 import io.github.aedev.flow.player.live.LiveSessionLog
 import io.github.aedev.flow.player.live.LiveTrafficMeter
 import io.github.aedev.flow.player.media.MediaLoader
@@ -983,6 +984,14 @@ class EnhancedPlayerManager private constructor() {
                         )
                     }
 
+                    if (playbackState == Player.STATE_ENDED && !isRecoveringFromBackground && currentIsLiveStream &&
+                        LiveSegmentSessions.hasEnded(currentVideoId)
+                    ) {
+                        autoNextLog("STATE_ENDED on a live stream whose broadcast ended")
+                        _playerState.value = _playerState.value.copy(hasEnded = true)
+                        return
+                    }
+
                     if (playbackState == Player.STATE_ENDED && !isRecoveringFromBackground && exoLive) {
                         val now = System.currentTimeMillis()
                         if (now - lastLiveEdgeRecoveryMs < 2500L) {
@@ -1297,7 +1306,13 @@ class EnhancedPlayerManager private constructor() {
         liveRebuffering = false
         pendingInitialLiveEdgeSeek = streamType == StreamType.LIVE_STREAM
         if (isLiveStream) {
-            liveSessionLog.start(videoId, if (!currentHlsUrl.isNullOrEmpty()) "hls" else "dash")
+            val source =
+                when {
+                    LiveSegmentSessions.isSessionUri(currentDashManifestUrl) -> "segments"
+                    !currentHlsUrl.isNullOrEmpty() -> "hls"
+                    else -> "dash"
+                }
+            liveSessionLog.start(videoId, source)
         } else {
             liveSessionLog.stop()
         }
@@ -2332,7 +2347,9 @@ class EnhancedPlayerManager private constructor() {
                         translateTo = preferredSubtitleLanguage,
                     ),
             durationSeconds = InnerTubeVideoMapper.durationSeconds(extraction),
-            dashManifestUrl = extraction.liveDashUrl,
+            dashManifestUrl =
+                extraction.takeIf { it.isLive }?.let { LiveSegmentSessions.open(videoId, it.playerResponse) }
+                    ?: extraction.liveDashUrl,
             hlsUrl = extraction.liveHlsUrl,
             streamType = InnerTubeVideoMapper.streamType(extraction),
             startPosition = startPositionMs,
