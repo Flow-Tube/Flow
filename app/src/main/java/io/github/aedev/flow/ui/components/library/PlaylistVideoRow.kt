@@ -19,10 +19,10 @@ import io.github.aedev.flow.data.local.PlaylistSwipeAction
 import io.github.aedev.flow.data.local.PlaylistSwipes
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.MediaRow
-import io.github.aedev.flow.ui.components.shared.MediaThumbnail
 import io.github.aedev.flow.ui.components.shared.MediaThumbnailDefaults
 import io.github.aedev.flow.ui.components.shared.ReorderHandle
-import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardPreferences
+import io.github.aedev.flow.ui.components.shared.card.VideoCardThumbnail
+import io.github.aedev.flow.ui.components.shared.card.rememberVideoCardState
 import io.github.aedev.flow.ui.components.shared.quickactions.VideoQuickActionsBottomSheet
 import io.github.aedev.flow.ui.components.shared.videoMetadataLine
 import io.github.aedev.flow.utils.formatYouTubeRelativeTime
@@ -135,8 +135,9 @@ private fun PlaylistVideoRowContent(
     thumbnailWidth: Dp,
     modifier: Modifier = Modifier,
 ) {
+    val state = rememberVideoCardState(video)
     MediaRow(
-        title = video.title,
+        title = state.title,
         modifier = modifier,
         subtitle = video.channelName,
         supporting = video.playlistMetadataLine(showAddedDate, isLikes),
@@ -164,11 +165,10 @@ private fun PlaylistVideoRowContent(
                 }
             },
     ) {
-        MediaThumbnail(
-            videoId = video.id,
-            thumbnailUrl = video.thumbnailUrl,
-            durationSeconds = video.duration,
-            showWatchProgress = LocalVideoCardPreferences.current.showWatchProgress,
+        VideoCardThumbnail(
+            state = state,
+            isUpcoming = false,
+            shape = MaterialTheme.shapes.small,
             width = thumbnailWidth,
         )
     }

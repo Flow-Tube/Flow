@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.library
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,9 +14,10 @@ import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.components.music.item.MusicTrackItem
 import io.github.aedev.flow.ui.components.music.sheet.LocalMusicMenus
 import io.github.aedev.flow.ui.components.shared.MediaRow
-import io.github.aedev.flow.ui.components.shared.MediaThumbnail
 import io.github.aedev.flow.ui.components.shared.MediaThumbnailDefaults
 import io.github.aedev.flow.ui.components.shared.card.LocalVideoCardPreferences
+import io.github.aedev.flow.ui.components.shared.card.VideoCardThumbnail
+import io.github.aedev.flow.ui.components.shared.card.rememberVideoCardState
 import io.github.aedev.flow.ui.components.shared.quickactions.VideoQuickActionsBottomSheet
 
 /**
@@ -36,7 +38,6 @@ internal fun LibraryMediaListRow(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    thumbnailUrl: String? = null,
     durationSeconds: Int? = null,
     thumbnailWidth: Dp = MediaThumbnailDefaults.VideoWidth,
     showWatchProgress: Boolean = LocalVideoCardPreferences.current.showWatchProgress,
@@ -55,20 +56,22 @@ internal fun LibraryMediaListRow(
         )
     } else {
         var showMenu by remember { mutableStateOf(false) }
+        val state = rememberVideoCardState(video)
         MediaRow(
-            title = title,
+            title = state.title.ifBlank { title },
             modifier = modifier,
             subtitle = subtitle,
             onClick = onVideoClick,
             onLongClick = if (isLocal) null else ({ showMenu = true }),
             trailing = { action() },
         ) {
-            MediaThumbnail(
-                videoId = track.videoId,
-                thumbnailUrl = thumbnailUrl,
-                durationSeconds = durationSeconds,
-                showWatchProgress = showWatchProgress,
+            VideoCardThumbnail(
+                state = state,
+                isUpcoming = false,
+                shape = MaterialTheme.shapes.small,
                 width = thumbnailWidth,
+                durationSeconds = durationSeconds ?: 0,
+                showWatchProgress = showWatchProgress,
             )
         }
         if (showMenu) {
