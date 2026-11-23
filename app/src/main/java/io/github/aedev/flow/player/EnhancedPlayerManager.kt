@@ -54,6 +54,8 @@ import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.error.PlayerErrorHandler
 import io.github.aedev.flow.player.factory.BandwidthSeedRecorder
 import io.github.aedev.flow.player.factory.PlayerFactory
+import io.github.aedev.flow.player.live.LiveSessionLog
+import io.github.aedev.flow.player.live.LiveTrafficMeter
 import io.github.aedev.flow.player.media.MediaLoader
 import io.github.aedev.flow.player.preload.GaplessPreloadController
 import io.github.aedev.flow.player.preload.PreloadTarget
@@ -206,6 +208,7 @@ class EnhancedPlayerManager private constructor() {
     private var pendingLiveDisplaySeekPositionMs: Long? = null
     private var pendingLiveDisplaySeekAtMs: Long = 0L
     private var pendingInitialLiveEdgeSeek = false
+    private val liveSessionLog = LiveSessionLog(LiveTrafficMeter::snapshot)
 
     private var currentSabrInfo: SabrStreamInfo? = null
     private var sabrPreferred = false
@@ -772,6 +775,8 @@ class EnhancedPlayerManager private constructor() {
                 onLivePlaybackTick = { exoPlayer ->
                     mediaLoader?.getActiveSabrOrchestrator()?.updatePlayhead(exoPlayer.currentPosition)
                     updateLiveEdgeState(exoPlayer)
+                    val liveWindowMs = exoPlayer.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L) ?: 0L
+                    liveSessionLog.tick(liveWindowMs, (liveWindowMs - exoPlayer.currentPosition).coerceAtLeast(0L))
                     if (currentIsLiveStream &&
                         _playerState.value.playbackSpeed > 1.0f &&
                         isPlayerAtLiveEdge(exoPlayer)
@@ -1003,9 +1008,11 @@ class EnhancedPlayerManager private constructor() {
 
                     if (playbackState == Player.STATE_BUFFERING) {
                         logBandwidthInfo()
+                        liveSessionLog.onBuffering()
                     }
 
                     if (playbackState == Player.STATE_READY) {
+                        liveSessionLog.onReady()
                         releaseAdvanceWakeLock()
                         autoNextLog("STATE_READY scheduling preload")
                         preload.schedule()
@@ -1271,6 +1278,11 @@ class EnhancedPlayerManager private constructor() {
         if (isLiveStream) applyLiveCodecPreference()
         updateLivePlaybackMode(isLive = isLiveStream, forceLiveSpeedReset = true)
         pendingInitialLiveEdgeSeek = streamType == StreamType.LIVE_STREAM
+        if (isLiveStream) {
+            liveSessionLog.start(videoId, if (!currentHlsUrl.isNullOrEmpty()) "hls" else "dash")
+        } else {
+            liveSessionLog.stop()
+        }
         currentVideoId = videoId
 
         // Process streams using StreamProcessor
@@ -2764,6 +2776,7 @@ class EnhancedPlayerManager private constructor() {
     }
 
     private fun markLiveDisplaySeek(positionMs: Long) {
+        liveSessionLog.onSeek()
         pendingLiveDisplaySeekPositionMs = positionMs.coerceAtLeast(0L)
         pendingLiveDisplaySeekAtMs = SystemClock.elapsedRealtime()
     }
