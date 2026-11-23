@@ -20,7 +20,7 @@ import io.github.aedev.flow.data.local.PlaylistSwipes
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.MediaRow
 import io.github.aedev.flow.ui.components.shared.MediaThumbnailDefaults
-import io.github.aedev.flow.ui.components.shared.ReorderHandle
+import io.github.aedev.flow.ui.components.shared.ReorderHandleCell
 import io.github.aedev.flow.ui.components.shared.card.VideoCardThumbnail
 import io.github.aedev.flow.ui.components.shared.card.rememberVideoCardState
 import io.github.aedev.flow.ui.components.shared.quickactions.VideoQuickActionsBottomSheet
@@ -157,7 +157,7 @@ private fun PlaylistVideoRowContent(
                 }
 
                 showDragHandle -> {
-                    { ReorderHandle(modifier = dragHandleModifier) }
+                    { ReorderHandleCell(dragModifier = dragHandleModifier) }
                 }
 
                 else -> {
