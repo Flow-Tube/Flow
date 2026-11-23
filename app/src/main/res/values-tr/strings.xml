@@ -5209,4 +5209,8 @@
     <string name="ai_music_attribution_blocker_summary">MIT, © CennoxX</string>
     <string name="ai_list_source_default">Flow</string>
     <string name="lyrics_repeat_count">(×%1$d)</string>
+    <string name="load_error_offline_hint">Tekrar çevrimiçi olduğunuzda yeniden yüklenir</string>
+    <string name="search_showing_results_for">%1$s için sonuçlar gösteriliyor</string>
+    <string name="search_instead_for">Bunun yerine %1$s için ara</string>
+    <string name="search_did_you_mean">Bunu mu demek istediniz: %1$s</string>
 </resources>
