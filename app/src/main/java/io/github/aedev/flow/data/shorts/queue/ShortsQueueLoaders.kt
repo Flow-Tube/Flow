@@ -21,6 +21,8 @@ class AlgorithmicFeedLoader(
     private val repository: ShortsFeedRepository,
     private val seedVideoId: String? = null,
 ) : ShortsQueueLoader {
+    override val leadsWithStart: Boolean = seedVideoId != null
+
     override suspend fun initial(): ShortsQueuePage = page(repository.openFeed(seedVideoId))
 
     override suspend fun more(cursor: String?): ShortsQueuePage = page(repository.nextPage())

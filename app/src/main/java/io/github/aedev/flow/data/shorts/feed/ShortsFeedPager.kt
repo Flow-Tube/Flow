@@ -7,11 +7,17 @@ import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.data.recommendation.ShortsSeedInput
 import io.github.aedev.flow.data.recommendation.ShortsSeedSource
 import io.github.aedev.flow.innertube.pages.reel.reelPosterUrl
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicInteger
 
 /** The engine calls the pager makes, behind an interface so the offline benchmark can fake them. */
@@ -56,6 +62,10 @@ internal class ShortsFeedPager(
     private val context: ShortsFeedContext,
     private val pageSize: Int = PAGE_SIZE,
     private val nowMillis: () -> Long = System::currentTimeMillis,
+    /** How long [open] waits for the opening round before building the page from the lanes that answered. */
+    private val openingWaitMs: Long = OPENING_WAIT_MS,
+    /** Runs the opening round, which outlives [open] when a lane is slower than [openingWaitMs]; null runs it on the caller's dispatcher. */
+    private val roundScope: CoroutineScope? = null,
 ) {
     private class SeedChain(
         val seedId: String,
@@ -69,8 +79,12 @@ internal class ShortsFeedPager(
     }
 
     private val lock = Mutex()
+
+    /** Guards [pools] and [usedIds]: a lane still out from the opening round offers while pages assemble. */
+    private val poolLock = Any()
     private val pools = ShortsFeedLane.entries.associateWith { ArrayDeque<ShortsLaneItem>() }
     private val usedIds = LinkedHashSet<String>()
+    private var openingRound: Deferred<Unit>? = null
     private var recentChannels: List<String> = emptyList()
     private var profile = ShortsFeedProfile(emptySet(), isColdStart = true)
 
@@ -102,25 +116,35 @@ internal class ShortsFeedPager(
             profile = context.profile()
             val seedInputs = context.seedInputs() + sessionSeeds.values
             requestCounter.set(0)
-            coroutineScope {
-                listOf(
-                    async { refillExplore() },
-                    async { openChains(startVideoId, seedInputs) },
-                    async { refillDiscovery(resetDepth = true, queriesToRun = OPENING_QUERIES) },
-                    async { refillSubscriptions(channelsToVisit = OPENING_CHANNELS) },
-                ).awaitAll()
-            }
+            val scope = roundScope ?: CoroutineScope(currentCoroutineContext().minusKey(Job) + SupervisorJob())
+            val round =
+                scope.async {
+                    coroutineScope {
+                        listOf(
+                            async { refillExplore() },
+                            async { openChains(startVideoId, seedInputs) },
+                            async { refillDiscovery(resetDepth = true, queriesToRun = OPENING_QUERIES) },
+                            async { refillSubscriptions(channelsToVisit = OPENING_CHANNELS) },
+                        ).awaitAll()
+                    }
+                    Unit
+                }
+            openingRound = round
+            // The first page is what the screen waits on: on a slow connection one lane timing out
+            // held it for twenty seconds. A lane still out at the deadline fills the next page.
+            if (withTimeoutOrNull(openingWaitMs) { round.await() } == null && poolsEmpty()) round.await()
             val page = assemble()
             if (startVideoId == null) return@withLock page
             // The tapped reel opens the queue even when no lane returned it.
             val tapped =
                 page.firstOrNull { it.id == startVideoId } ?: ShortVideo(id = startVideoId, thumbnailUrl = reelPosterUrl(startVideoId))
-            usedIds += startVideoId
+            synchronized(poolLock) { usedIds += startVideoId }
             listOf(tapped) + page.filterNot { it.id == startVideoId }
         }
 
     suspend fun nextPage(): List<ShortVideo> =
         lock.withLock {
+            openingRound?.join()
             requestCounter.set(0)
             refill()
             val page = assemble()
@@ -133,15 +157,18 @@ internal class ShortsFeedPager(
     /** Opens a chain from [short] now and returns its first page, for the caller to interleave. */
     suspend fun chainFrom(short: ShortVideo): List<ShortVideo> =
         lock.withLock {
+            openingRound?.join()
             sessionSeeds[short.id] = ShortsSeedInput(short.id, short.channelId, ShortsSeedSource.WANT_MORE, nowMillis())
             val chain = SeedChain(short.id)
             chains.addFirst(chain)
             val batch = advance(chain) ?: return@withLock emptyList()
             val filters = context.filters()
-            batch
-                .filter { it.id !in usedIds && it.id !in filters.watchedIds && it.id !in filters.suppressedIds }
-                .take(pageSize)
-                .also { page -> usedIds += page.map { it.id } }
+            synchronized(poolLock) {
+                batch
+                    .filter { it.id !in usedIds && it.id !in filters.watchedIds && it.id !in filters.suppressedIds }
+                    .take(pageSize)
+                    .also { page -> usedIds += page.map { it.id } }
+            }
         }
 
     /** A reel the user dwelt on: a weak seed for later chains this session. */
@@ -153,20 +180,26 @@ internal class ShortsFeedPager(
 
     /** The unserved lane heads, for a persistent reserve that opens the next session instantly. */
     fun reserveTail(max: Int): List<ShortsLaneItem> =
-        ShortsFeedLane.entries
-            .flatMap { lane -> pools.getValue(lane).take(max / ShortsFeedLane.entries.size) }
-            .take(max)
+        synchronized(poolLock) {
+            ShortsFeedLane.entries
+                .flatMap { lane -> pools.getValue(lane).take(max / ShortsFeedLane.entries.size) }
+                .take(max)
+        }
 
     fun restoreReserve(items: List<ShortsLaneItem>) {
-        items.forEach { item -> if (item.short.id !in usedIds) pools.getValue(item.lane).addLast(item) }
+        synchronized(poolLock) {
+            items.forEach { item -> if (item.short.id !in usedIds) pools.getValue(item.lane).addLast(item) }
+        }
     }
 
-    fun poolSizes(): Map<ShortsFeedLane, Int> = pools.mapValues { (_, pool) -> pool.size }
+    fun poolSizes(): Map<ShortsFeedLane, Int> = synchronized(poolLock) { pools.mapValues { (_, pool) -> pool.size } }
 
     fun evictChannel(channelId: String) {
         if (channelId.isBlank()) return
-        pools.values.forEach { pool -> pool.removeAll { it.short.channelId == channelId } }
+        synchronized(poolLock) { pools.values.forEach { pool -> pool.removeAll { it.short.channelId == channelId } } }
     }
+
+    private fun poolsEmpty(): Boolean = synchronized(poolLock) { pools.values.all { it.isEmpty() } }
 
     private suspend fun refill() {
         profile = context.profile()
@@ -193,16 +226,19 @@ internal class ShortsFeedPager(
     private suspend fun assemble(): List<ShortVideo> {
         val filters = context.filters()
         val assembly =
-            assembleShortsPage(
-                pools = pools.mapValues { (_, pool) -> pool.toList() },
-                quotas = shortsFeedQuotas(pageSize, profile),
-                targetSize = pageSize,
-                filters = filters,
-                usedIds = usedIds,
-                recentChannels = recentChannels,
-            )
-        pools.values.forEach { pool -> pool.removeAll { it.short.id in assembly.consumed } }
-        usedIds += assembly.consumed
+            synchronized(poolLock) {
+                assembleShortsPage(
+                    pools = pools.mapValues { (_, pool) -> pool.toList() },
+                    quotas = shortsFeedQuotas(pageSize, profile),
+                    targetSize = pageSize,
+                    filters = filters,
+                    usedIds = usedIds.toSet(),
+                    recentChannels = recentChannels,
+                ).also { assembly ->
+                    pools.values.forEach { pool -> pool.removeAll { it.short.id in assembly.consumed } }
+                    usedIds += assembly.consumed
+                }
+            }
         val page = assembly.page.map { it.short }
         if (page.isNotEmpty()) {
             pagesServed++
@@ -336,14 +372,13 @@ internal class ShortsFeedPager(
         return engine.rank(reels.map { it.toVideo() }, profile.subscribedChannelIds).mapNotNull { byId[it.id] }
     }
 
-    /** Lanes refill in parallel, so the pool is the unit of exclusion. */
     private fun offer(
         lane: ShortsFeedLane,
         reels: List<ShortVideo>,
         seedId: String? = null,
     ) {
         val pool = pools.getValue(lane)
-        synchronized(pool) {
+        synchronized(poolLock) {
             val queued = pool.mapTo(HashSet()) { it.short.id }
             reels.forEach { reel ->
                 if (reel.id.isNotBlank() && reel.id !in usedIds && queued.add(reel.id)) pool.addLast(ShortsLaneItem(reel, lane, seedId))
@@ -360,6 +395,7 @@ internal class ShortsFeedPager(
         const val OPENING_SEEDS = 2
         const val OPENING_QUERIES = 3
         const val OPENING_CHANNELS = 4
+        const val OPENING_WAIT_MS = 2_500L
         const val QUERIES_PER_PAGE = 2
         const val CHANNELS_PER_PAGE = 2
         const val PAGES_PER_CHAIN = 3

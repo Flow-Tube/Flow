@@ -79,6 +79,20 @@ class ShortsQueueController(
         get() = _items.value.getOrNull(_currentIndex.value)
 
     /**
+     * Puts [startVideoId] on screen before [loadInitial] has its page, when [primary] will lead
+     * with it anyway, so the short the user opened plays while the rest of the queue is fetched.
+     * The page then lands behind it at the same position. Returns whether it opened.
+     */
+    fun openOnStartEarly(startVideoId: String?): Boolean {
+        val anchor = startVideoId?.takeIf { it.isNotBlank() } ?: return false
+        if (!primary.leadsWithStart || _items.value.isNotEmpty()) return false
+        anchorId = anchor
+        _items.value = listOf(ShortVideo(id = anchor, thumbnailUrl = reelPosterUrl(anchor)))
+        _currentIndex.value = 0
+        return true
+    }
+
+    /**
      * Loads the first page and opens on [startVideoId] when the source names one.
      *
      * The list keeps the order the user was just looking at and the position moves instead — so
@@ -89,7 +103,9 @@ class ShortsQueueController(
         val page = primary.initial()
         consume(page)
 
-        val items = page.items.distinctById()
+        // `/player` may already have named the short opened early; a bare copy must not undo that.
+        val early = _items.value.singleOrNull()
+        val items = page.items.distinctById().map { if (early != null && it.id == early.id && it.title.isBlank()) early else it }
         seenIds += items.map { it.id }
         _items.value = items
 
