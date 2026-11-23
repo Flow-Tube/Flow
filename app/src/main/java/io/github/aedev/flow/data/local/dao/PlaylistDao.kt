@@ -17,6 +17,12 @@ data class PlaylistVideoWithMeta(
     @ColumnInfo(name = "addedAt") val addedAt: Long,
 )
 
+/** Where one video sits in a playlist, read to work out which rows a change has to write. */
+data class PlaylistVideoPosition(
+    val videoId: String,
+    val position: Long,
+)
+
 @Dao
 interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -185,22 +191,28 @@ interface PlaylistDao {
     }
 
     /**
-     * Makes the playlist hold exactly [orderedVideoIds], in that order, as one change. A playlist
-     * removed while its refresh was loading is left gone (#2232).
+     * Makes the playlist hold exactly [orderedVideoIds], in that order, as one change. Videos it
+     * already holds keep their date added, and an unchanged playlist is not written at all, so its
+     * observers do not re-query. A playlist removed while its refresh was loading is left gone (#2232).
      */
     @Transaction
     suspend fun replacePlaylistVideos(
         playlistId: String,
         orderedVideoIds: List<String>,
     ) {
-        if (getPlaylist(playlistId) == null) return
-        val wanted = orderedVideoIds.toSet()
-        getVideoIdsInPlaylist(playlistId).filterNot { it in wanted }.forEach { removeVideoFromPlaylist(playlistId, it) }
-        orderedVideoIds.forEachIndexed { index, videoId ->
-            insertPlaylistVideoCrossRef(PlaylistVideoCrossRef(playlistId = playlistId, videoId = videoId, position = index.toLong()))
+        val playlist = getPlaylist(playlistId) ?: return
+        val plan = planPlaylistSync(getPlaylistVideoPositions(playlistId), orderedVideoIds)
+        plan.remove.forEach { removeVideoFromPlaylist(playlistId, it) }
+        plan.move.forEach { updatePlaylistVideoPosition(playlistId, it.videoId, it.position) }
+        plan.insert.forEach {
+            insertPlaylistVideoCrossRef(PlaylistVideoCrossRef(playlistId = playlistId, videoId = it.videoId, position = it.position))
         }
-        updatePlaylistThumbnail(playlistId, getFirstVideoThumbnail(playlistId).orEmpty())
+        val thumbnail = getFirstVideoThumbnail(playlistId).orEmpty()
+        if (thumbnail != playlist.thumbnailUrl) updatePlaylistThumbnail(playlistId, thumbnail)
     }
+
+    @Query("SELECT videoId, position FROM playlist_video_cross_ref WHERE playlistId = :playlistId ORDER BY position ASC")
+    suspend fun getPlaylistVideoPositions(playlistId: String): List<PlaylistVideoPosition>
 
     @Query("UPDATE playlist_video_cross_ref SET position = :position WHERE playlistId = :playlistId AND videoId = :videoId")
     suspend fun updatePlaylistVideoPosition(
