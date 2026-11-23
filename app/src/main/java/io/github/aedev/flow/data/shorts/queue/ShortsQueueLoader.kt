@@ -24,6 +24,10 @@ data class ShortsQueuePage(
  * restating it.
  */
 interface ShortsQueueLoader {
+    /** True when [initial] always puts the start short first, so the queue can open on it before the page arrives. */
+    val leadsWithStart: Boolean
+        get() = false
+
     suspend fun initial(): ShortsQueuePage
 
     /** Returns an exhausted, empty page when there is nothing more — never throws for that case. */

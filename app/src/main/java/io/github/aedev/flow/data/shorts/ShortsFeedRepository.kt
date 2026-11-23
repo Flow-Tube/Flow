@@ -77,7 +77,13 @@ class ShortsFeedRepository
                         val page = existing.nextPage()
                         if (page.isNotEmpty()) return@withLock page
                     }
-                    val fresh = ShortsFeedPager(sources, engine, feedContext)
+                    val fresh =
+                        ShortsFeedPager(
+                            sources = sources,
+                            engine = engine,
+                            context = feedContext,
+                            roundScope = CoroutineScope(scope.coroutineContext + PerformanceDispatcher.networkIO),
+                        )
                     fresh.restoreReserve(loadReserve())
                     pager = fresh
                     openedAtMillis = System.currentTimeMillis()

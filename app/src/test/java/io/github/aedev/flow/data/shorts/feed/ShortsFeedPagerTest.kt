@@ -1,6 +1,9 @@
 package io.github.aedev.flow.data.shorts.feed
 
 import io.github.aedev.flow.data.model.ShortVideo
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -75,5 +78,68 @@ class ShortsFeedPagerTest {
 
             val restored = next.reserveTail(200).map { it.short.id }
             assertTrue(restored.containsAll(tail.map { it.short.id }))
+        }
+
+    @Test
+    fun `a slow lane does not hold the first page and fills a later one`() =
+        runBlocking {
+            val bench = ShortsFeedBenchmark()
+            val gate = CompletableDeferred<Unit>()
+            val slowDiscovery =
+                object : ShortsFeedSources by bench.sources {
+                    override suspend fun discovery(query: String): List<ShortVideo> {
+                        gate.await()
+                        return bench.sources.discovery(query)
+                    }
+                }
+            val pager = ShortsFeedPager(slowDiscovery, bench.engine, bench.context, openingWaitMs = 50)
+
+            val first = pager.open(null)
+            assertTrue(first.isNotEmpty())
+            assertTrue(first.none { it.id.startsWith("d-") })
+
+            gate.complete(Unit)
+            val later = pager.nextPage() + pager.nextPage()
+            assertTrue(later.any { it.id.startsWith("d-") })
+        }
+
+    @Test
+    fun `with nothing in any pool the first page waits for the round`() =
+        runBlocking {
+            val bench = ShortsFeedBenchmark()
+            val gate = CompletableDeferred<Unit>()
+            val allSlow =
+                object : ShortsFeedSources by bench.sources {
+                    override suspend fun explore(continuation: String?): ShortsSourceBatch? {
+                        gate.await()
+                        return bench.sources.explore(continuation)
+                    }
+
+                    override suspend fun related(
+                        seedId: String,
+                        continuation: String?,
+                    ): ShortsSourceBatch? {
+                        gate.await()
+                        return bench.sources.related(seedId, continuation)
+                    }
+
+                    override suspend fun discovery(query: String): List<ShortVideo> {
+                        gate.await()
+                        return bench.sources.discovery(query)
+                    }
+
+                    override suspend fun subscriptionReels(): List<ShortVideo> {
+                        gate.await()
+                        return bench.sources.subscriptionReels()
+                    }
+                }
+            val pager = ShortsFeedPager(allSlow, bench.engine, bench.context, openingWaitMs = 50)
+
+            val opening = async { pager.open(null) }
+            delay(200)
+            assertFalse(opening.isCompleted)
+
+            gate.complete(Unit)
+            assertTrue(opening.await().isNotEmpty())
         }
 }

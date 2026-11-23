@@ -166,6 +166,8 @@ class ShortsViewModel
             // Resolving the tapped short's streams starts now rather than after the queue loads, so
             // playback is not gated on whichever network call the source happens to need.
             resolved.openAtVideoId?.let { prefetchPlaybackStreams(listOf(it)) }
+            val openedEarly = controller.openOnStartEarly(resolved.openAtVideoId)
+            if (openedEarly) publishQueue()
 
             loadJob =
                 viewModelScope.launch(PerformanceDispatcher.networkIO) {
@@ -182,6 +184,11 @@ class ShortsViewModel
                         throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "Error loading shorts queue", e)
+                        if (openedEarly) {
+                            // The opened short is already playing; paging retries the feed later.
+                            _uiState.value = _uiState.value.copy(isLoading = false)
+                            return@launch
+                        }
                         queue = null
                         _uiState.value =
                             _uiState.value.copy(
@@ -201,7 +208,8 @@ class ShortsViewModel
 
         fun loadMoreShorts() {
             val controller = queue ?: return
-            if (!controller.hasMore || controller.isLoadingMore.value) return
+            // A short opened early is on screen while the first page loads; paging waits for that page.
+            if (_uiState.value.isLoading || !controller.hasMore || controller.isLoadingMore.value) return
 
             viewModelScope.launch(PerformanceDispatcher.networkIO) {
                 _uiState.value = _uiState.value.copy(isLoadingMore = true)

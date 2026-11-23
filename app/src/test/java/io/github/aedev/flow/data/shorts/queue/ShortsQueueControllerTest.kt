@@ -492,4 +492,54 @@ class ShortsQueueControllerTest {
             assertEquals(0, controller.currentIndex.value)
             assertEquals(listOf("zzz", "a", "b", "c", "d"), ids(controller))
         }
+
+    private class LeadingLoader(
+        private val page: List<ShortVideo>,
+    ) : ShortsQueueLoader {
+        override val leadsWithStart = true
+
+        override suspend fun initial() = ShortsQueuePage(items = page, cursor = null, exhausted = true)
+
+        override suspend fun more(cursor: String?) = ShortsQueuePage(emptyList(), exhausted = true)
+    }
+
+    @Test
+    fun `a loader that leads with the start opens on it before the page`() =
+        runTest {
+            val controller = ShortsQueueController(primary = LeadingLoader(shorts("tapped", "a", "b")))
+
+            assertTrue(controller.openOnStartEarly("tapped"))
+            assertEquals(listOf("tapped"), ids(controller))
+
+            controller.loadInitial("tapped")
+            assertEquals(listOf("tapped", "a", "b"), ids(controller))
+            assertEquals(0, controller.currentIndex.value)
+        }
+
+    @Test
+    fun `a title learned before the page survives the bare copy in it`() =
+        runTest {
+            val bare = ShortVideo(id = "tapped", thumbnailUrl = "", timestamp = 0L)
+            val controller = ShortsQueueController(primary = LeadingLoader(listOf(bare) + shorts("a")))
+            controller.openOnStartEarly("tapped")
+            controller.applyEnrichment(listOf(short("tapped")))
+
+            controller.loadInitial("tapped")
+
+            assertEquals(
+                "t-tapped",
+                controller.items.value
+                    .first()
+                    .title,
+            )
+        }
+
+    @Test
+    fun `a loader that keeps its own order never opens early`() =
+        runTest {
+            val controller = ShortsQueueController(primary = FakeLoader(listOf(shorts("a", "tapped"))))
+
+            assertFalse(controller.openOnStartEarly("tapped"))
+            assertTrue(controller.items.value.isEmpty())
+        }
 }
