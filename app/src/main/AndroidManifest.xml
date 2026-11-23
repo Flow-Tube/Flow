@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Fallback popup player for devices whose ROM does not expose native Android PiP. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -267,6 +268,12 @@
         <receiver
             android:name=".data.video.downloader.work.DownloadActionReceiver"
             android:exported="false" />
+
+        <!-- Android 14+: the download queue as a user-initiated data transfer job. -->
+        <service
+            android:name=".data.video.downloader.work.DownloadJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <!-- Device Sync (FLOW-SYNC/1) foreground service: keeps the LAN WebSocket
              transfer alive while the screen is off / app is backgrounded. -->

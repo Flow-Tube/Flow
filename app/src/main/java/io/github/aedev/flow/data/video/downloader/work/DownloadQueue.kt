@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +38,19 @@ class DownloadQueue
         /** How many downloads are transferring right now, for the queue's foreground notification. */
         val active = MutableStateFlow(0)
 
+        // Two hosts can run the queue (the user-initiated job and the worker); only one drains it.
+        private val draining = Mutex()
+
         suspend fun drain() {
+            if (!draining.tryLock()) return
+            try {
+                drainOnce()
+            } finally {
+                draining.unlock()
+            }
+        }
+
+        private suspend fun drainOnce() {
             downloadDao.requeueInterrupted()
             coroutineScope {
                 val running = mutableMapOf<String, Job>()
