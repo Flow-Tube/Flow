@@ -21,6 +21,7 @@ import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
 import io.github.aedev.flow.data.video.downloader.tags.Mp4ProjectionCopier
 import io.github.aedev.flow.data.video.downloader.tags.Mp4Remuxer
 import io.github.aedev.flow.data.video.downloader.tags.Mp4TagWriter
+import io.github.aedev.flow.data.video.downloader.tags.indexRoomBytes
 import io.github.aedev.flow.data.video.downloader.transfer.DownloadTrace
 import io.github.aedev.flow.data.video.downloader.transfer.RangeDownloader
 import io.github.aedev.flow.data.video.storage.DownloadCovers
@@ -197,6 +198,12 @@ class DownloadRunner
                         audioPath = fetched.audioPart.path,
                         outputPath = output.path,
                         tags = request.tags,
+                        tagRoomBytes =
+                            indexRoomBytes(
+                                durationMs = fetched.durationMs,
+                                videoFps = if (request.wantsAudioOnly) 0 else fetched.streams?.video?.fps ?: ASSUMED_FPS,
+                                coverBytes = cover?.size ?: 0,
+                            ),
                         isCancelled = { !runJob.isActive },
                     )
                 }
@@ -427,6 +434,9 @@ class DownloadRunner
             const val TRACE_TAG = "DownloadTrace"
             const val NO_NETWORK = "none"
             const val NANOS_PER_MS = 1_000_000L
+
+            // A SABR download does not say its frame rate; most videos are 30 fps.
+            const val ASSUMED_FPS = 30
         }
     }
 

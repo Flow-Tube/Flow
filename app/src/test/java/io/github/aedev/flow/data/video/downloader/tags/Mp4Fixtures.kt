@@ -94,17 +94,22 @@ internal object Mp4Fixtures {
         return Layout(ftyp + mdat + moov, MDAT_PAYLOAD)
     }
 
-    /** `ftyp | moov | mdat`, a "fast start" file; [openEndedMdat] leaves the mdat size at 0. */
+    /**
+     * `ftyp | moov | mdat`, a "fast start" file; [openEndedMdat] leaves the mdat size at 0, and
+     * [freeAfterMoov] puts a `free` box of that size between `moov` and `mdat`, as Mp4Muxer reserves.
+     */
     fun moovFirst(
         openEndedMdat: Boolean = false,
         vararg moovExtras: ByteArray,
+        freeAfterMoov: Int = 0,
     ): Layout {
         val ftyp = ftyp()
+        val free = if (freeAfterMoov > 0) box("free", ByteArray(freeAfterMoov - 8)) else ByteArray(0)
         val moovSize = moov(sampleOffsets(0), *moovExtras).size
-        val mdatPayloadStart = ftyp.size + moovSize + 8
+        val mdatPayloadStart = ftyp.size + moovSize + free.size + 8
         val moov = moov(sampleOffsets(mdatPayloadStart.toLong()), *moovExtras)
         val mdat = if (openEndedMdat) openEndedBox("mdat", MDAT_PAYLOAD) else box("mdat", MDAT_PAYLOAD)
-        return Layout(ftyp + moov + mdat, MDAT_PAYLOAD)
+        return Layout(ftyp + moov + free + mdat, MDAT_PAYLOAD)
     }
 
     fun parse(

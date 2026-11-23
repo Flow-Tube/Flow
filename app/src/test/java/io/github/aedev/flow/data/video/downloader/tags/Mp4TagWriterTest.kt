@@ -106,6 +106,18 @@ class Mp4TagWriterTest {
     }
 
     @Test
+    fun `moov before mdat with room beside it is tagged in place and stays at the front`() {
+        val layout = Mp4Fixtures.moovFirst(freeAfterMoov = 64 * 1024)
+        val bytes = write(layout, cover = jpeg).readBytes()
+
+        assertLayoutIntact(layout, bytes)
+        val boxes = Mp4Fixtures.parse(bytes)
+        assertThat(boxes.map { it.type }).containsExactly("ftyp", "moov", "free", "mdat").inOrder()
+        assertThat(boxes.last().start).isEqualTo(Mp4Fixtures.parse(layout.bytes).last().start)
+        assertThat(Mp4Fixtures.ilstData(ilst(bytes), "covr")!!.second).isEqualTo(jpeg)
+    }
+
+    @Test
     fun `open-ended mdat is given an explicit size before moov is appended`() {
         val layout = Mp4Fixtures.moovFirst(openEndedMdat = true)
         val bytes = write(layout).readBytes()

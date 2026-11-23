@@ -20,8 +20,9 @@ import java.nio.ByteBuffer
 import javax.inject.Inject
 
 /**
- * Copies YouTube DASH streams (fragmented MP4 or WebM) into one plain MP4 with the `moov` box at
- * the end, interleaving samples by timestamp and embedding the Flow ids as `mdta` entries.
+ * Copies YouTube DASH streams (fragmented MP4 or WebM) into one plain MP4, its `moov` box first
+ * when the reserved room holds it, interleaving samples by timestamp and embedding the Flow ids as
+ * `mdta` entries.
  * Accepts H.264, HEVC, VP9 and AV1 video and AAC audio only; Opus/Vorbis in MP4 is refused
  * (Media3 mis-reads Opus pre-skip in MP4, androidx/media#3431), so callers must pick AAC.
  */
@@ -65,6 +66,7 @@ class Mp4Remuxer
             audioPath: String,
             outputPath: String,
             tags: DownloadTags? = null,
+            tagRoomBytes: Int = 0,
             isCancelled: () -> Boolean = { false },
             onProgress: ((Float) -> Unit)? = null,
         ): Result {
@@ -76,7 +78,14 @@ class Mp4Remuxer
                 inputs += open(audioPath, isVideo = false)
                 output.parentFile?.mkdirs()
                 FileOutputStream(output).use { stream ->
-                    val muxer = Mp4Muxer.Builder(SeekableMuxerOutput.of(stream)).setAttemptStreamableOutputEnabled(false).build()
+                    // The index goes first when it fits, so a cast receiver or a network share can start
+                    // playing without reading to the end; tagRoomBytes leaves the tag writer space beside it.
+                    val muxer =
+                        Mp4Muxer
+                            .Builder(SeekableMuxerOutput.of(stream))
+                            .setAttemptStreamableOutputEnabled(true)
+                            .experimentalSetFreeSpaceAfterFileTypeBox(tagRoomBytes)
+                            .build()
                     var closed = false
                     try {
                         inputs.forEach { it.muxerTrack = muxer.addTrack(MediaFormatUtil.createFormatFromMediaFormat(it.format)) }
@@ -220,3 +229,24 @@ class Mp4Remuxer
                 setOf(MimeTypes.VIDEO_H264, MimeTypes.VIDEO_H265, MimeTypes.VIDEO_VP9, MimeTypes.VIDEO_AV1)
         }
     }
+
+/**
+ * Room to reserve ahead of `mdat` so the tagged index can sit at the front: Mp4Muxer spends about
+ * 20 bytes of `moov` per sample (measured 17.5 with a cover on a 10-minute 60 fps file), plus the
+ * cover and text tags, less the 400,000 bytes the muxer already reserves for its own index.
+ */
+internal fun indexRoomBytes(
+    durationMs: Long,
+    videoFps: Int,
+    coverBytes: Int,
+): Int {
+    val samples = durationMs / 1000.0 * (videoFps + AUDIO_FRAMES_PER_SECOND)
+    val needed = (samples * BYTES_PER_SAMPLE).toLong() + coverBytes + TEXT_TAG_BYTES
+    return (needed - MUXER_RESERVED_BYTES).coerceIn(0L, MAX_INDEX_ROOM_BYTES).toInt()
+}
+
+private const val AUDIO_FRAMES_PER_SECOND = 48
+private const val BYTES_PER_SAMPLE = 20
+private const val TEXT_TAG_BYTES = 64 * 1024
+private const val MUXER_RESERVED_BYTES = 400_000L
+private const val MAX_INDEX_ROOM_BYTES = 32L * 1024 * 1024
