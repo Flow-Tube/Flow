@@ -138,12 +138,13 @@ fun AmbientFrameCaptureEffect(
     isPlaying: Flow<Boolean> = mainPlayerIsPlaying(),
     storyboard: List<StoryboardLevel> = emptyList(),
     thumbnailUrl: String? = null,
+    paused: Boolean = false,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current.applicationContext
     val currentHot by rememberUpdatedState(if (active) rememberThermalThrottling() else false)
 
-    LaunchedEffect(active, playerView, lifecycleOwner, holder, isPlaying, storyboard, thumbnailUrl) {
+    LaunchedEffect(active, paused, playerView, lifecycleOwner, holder, isPlaying, storyboard, thumbnailUrl) {
         if (!active) {
             holder.pipeline.reset()
             holder.seededUrl = null
@@ -151,6 +152,8 @@ fun AmbientFrameCaptureEffect(
             holder.fade = 1f
             return@LaunchedEffect
         }
+        // Keeps the last frames, so the glow is unchanged when capture resumes.
+        if (paused) return@LaunchedEffect
         val pipeline = holder.pipeline
         val load: suspend (String) -> Bitmap? = { loadAmbientBitmap(context, it, thumbnail = false) }
         // Gated on STARTED. Background audio keeps the composition alive and the player playing, so
