@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.local.dao.VideoDao
 import io.github.aedev.flow.data.local.entity.PlaylistVideoCrossRef
 import io.github.aedev.flow.data.model.Video
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.unmockkAll
@@ -24,6 +25,7 @@ class PlaylistOrderingTest {
             coEvery { dao.getMaxPlaylistPosition(any()) } answers { inserted.maxOfOrNull { it.position } }
             val crossRef = slot<PlaylistVideoCrossRef>()
             coEvery { dao.insertPlaylistVideoCrossRef(capture(crossRef)) } answers { inserted += crossRef.captured }
+            coEvery { dao.appendPlaylistVideos(any(), any(), any()) } answers { callOriginal() }
         }
 
     private val repository = PlaylistRepository(playlistDao, mockk<VideoDao>(relaxed = true))
@@ -74,5 +76,14 @@ class PlaylistOrderingTest {
             repository.addVideoToPlaylist("album", video("t1"))
 
             assertThat(inserted.map { it.videoId }).isEqualTo(listOf("t1", "t2"))
+        }
+
+    @Test
+    fun `bulk add is one playlist change`() =
+        runTest {
+            repository.addVideosToPlaylist("album", listOf("t1", "t2", "t3").map(::video))
+
+            coVerify(exactly = 1) { playlistDao.appendPlaylistVideos("album", listOf("t1", "t2", "t3"), any()) }
+            coVerify(exactly = 1) { playlistDao.updatePlaylistThumbnail("album", any()) }
         }
 }

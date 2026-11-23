@@ -145,6 +145,26 @@ interface PlaylistDao {
         entries.forEach { insertPlaylistVideoCrossRef(it) }
     }
 
+    /**
+     * Appends [videoIds] after the playlist's last position as one change, so observers re-query once
+     * and never see a half-added list. A video already in the playlist keeps its place.
+     */
+    @Transaction
+    suspend fun appendPlaylistVideos(
+        playlistId: String,
+        videoIds: List<String>,
+        fallbackThumbnail: String,
+    ) {
+        val alreadyInPlaylist = getVideoIdsInPlaylist(playlistId).toHashSet()
+        var nextPosition = (getMaxPlaylistPosition(playlistId) ?: -1L) + 1L
+        videoIds.forEach { videoId ->
+            if (alreadyInPlaylist.add(videoId)) {
+                insertPlaylistVideoCrossRef(PlaylistVideoCrossRef(playlistId = playlistId, videoId = videoId, position = nextPosition++))
+            }
+        }
+        updatePlaylistThumbnail(playlistId, getFirstVideoThumbnail(playlistId) ?: fallbackThumbnail)
+    }
+
     /** Puts entries back where they were, with their original position and date added. */
     @Transaction
     suspend fun restorePlaylistVideos(entries: List<PlaylistVideoCrossRef>) {
