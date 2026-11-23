@@ -1386,7 +1386,7 @@
     <string name="content_settings_header_display">Display</string>
     <string name="content_settings_header_home_layout">Home Layout</string>
     <string name="content_settings_home_layout_title">Home Display Mode</string>
-    <string name="content_settings_home_layout_subtitle">Choose how videos are displayed on the home screen</string>
+    <string name="content_settings_home_layout_subtitle">Other feeds follow it until you switch theirs</string>
     <string name="content_settings_home_columns_title">Cards per row</string>
     <string name="content_settings_home_columns_subtitle">Auto fits your screen. Pick a number to fix it.</string>
     <string name="content_settings_home_columns_auto">Auto</string>
