@@ -18,6 +18,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.dlna.DlnaCastManager
+import io.github.aedev.flow.player.pipStopOf
 import io.github.aedev.flow.ui.components.layout.flowWindowAdaptiveInfo
 import io.github.aedev.flow.ui.components.videoplayer.DraggablePlayerLayout
 import io.github.aedev.flow.ui.components.videoplayer.MiniPlayerDock
@@ -266,6 +267,7 @@ fun VideoPlayerHost(
         videoAspectRatio = videoAspectRatio,
         pipPreferences = pipPreferences,
         hasNext = playerState.hasNext || playerUiState.relatedVideos.isNotEmpty(),
+        stop = pipStopOf(ended = playerState.hasEnded, failed = playerUiState.error != null && !playerUiState.isUpcoming),
         playerViewModel = playerViewModel,
     )
 
