@@ -294,7 +294,7 @@
     <string name="content_settings_header_display">العرض</string>
     <string name="content_settings_header_home_layout">تخطيط الشاشة الرئيسية</string>
     <string name="content_settings_home_layout_title">وضع عرض الشاشة الرئيسية</string>
-    <string name="content_settings_home_layout_subtitle">اختر كيفية عرض مقاطع الفيديو على الشاشة الرئيسية</string>
+    <string name="content_settings_home_layout_subtitle">تتبع الخلاصات الأخرى هذا الإعداد حتى تغيّره لكل منها على حدة</string>
     <string name="content_settings_layout_grid">شبكة</string>
     <string name="content_settings_layout_list">قائمة</string>
     <string name="content_settings_grid_size_title">حجم عنصر الشبكة</string>
@@ -5789,4 +5789,21 @@
     <string name="settings_related_collections_title">قوائم التشغيل وفيديوهات Shorts ذات الصلة</string>
     <string name="settings_related_collections_subtitle">إظهار قوائم التشغيل والمزيج الموسيقي وفيديوهات Shorts ضمن الفيديوهات ذات الصلة</string>
     <string name="settings_keywords_related_collections">مزيج موسيقي، أمزجة موسيقية، قائمة تشغيل، فيديوهات Shorts، رف، التالي</string>
+    <string name="premiered_date_template">عُرض لأول مرة في %1$s</string>
+    <string name="repeat_mode_off">‎التكرار متوقف</string>
+    <string name="repeat_mode_all">تكرار الكل</string>
+    <string name="repeat_mode_one">تكرار المقطع الحالي</string>
+    <string name="playlist_video_position">%1$d من %2$d</string>
+    <string name="content_settings_feed_autoplay_title">التشغيل التلقائي في الصفحة الرئيسية</string>
+    <string name="content_settings_feed_autoplay_dialog_body">يشغّل الفيديو الذي تتوقف عنده، دون صوت، مباشرةً في الخلاصة.</string>
+    <string name="content_settings_feed_autoplay_off">معطّل</string>
+    <string name="content_settings_feed_autoplay_wifi">عبر Wi-Fi فقط</string>
+    <string name="content_settings_feed_autoplay_always">دائمًا</string>
+    <string name="content_settings_feed_autoplay_keywords">التشغيل التلقائي، معاينة، داخل القائمة، مكتوم الصوت، التشغيل في قوائم المحتوى</string>
+    <string name="home_preview_mute">كتم صوت المعاينة</string>
+    <string name="home_preview_unmute">إلغاء كتم صوت المعاينة</string>
+    <string name="home_preview_captions_on">إظهار الترجمة النصية</string>
+    <string name="home_preview_captions_off">إخفاء الترجمة النصية</string>
+    <string name="settings_top_bar_hide_on_scroll_title">إخفاء الشريط العلوي عند التمرير</string>
+    <string name="settings_top_bar_hide_on_scroll_summary">في الصفحة الرئيسية والاشتراكات والموسيقى</string>
 </resources>
