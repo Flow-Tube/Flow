@@ -25,4 +25,14 @@ object LiveDetectionRules {
         if (hasLiveStreamability) return true
         return hasHlsManifest && !hasAdaptiveFormats
     }
+
+    /**
+     * A client that refuses a live broadcast still describes it: TV_TIZEN answers UNPLAYABLE with
+     * `videoDetails.isLive` set. That refusal is the ladder's only sign of a live stream while the
+     * fast client is walled, so it must send the video to the live clients rather than to SABR.
+     */
+    fun refusedBroadcast(
+        status: String,
+        isLive: Boolean?,
+    ): Boolean = status != "OK" && isLive == true
 }

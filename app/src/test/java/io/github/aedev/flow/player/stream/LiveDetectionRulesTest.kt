@@ -61,4 +61,17 @@ class LiveDetectionRulesTest {
     fun `a plain VOD with neither manifest nor live flags is not live`() {
         assertFalse(rule(hasAdaptiveFormats = true))
     }
+
+    @Test
+    fun `a refusal that names the video live routes it to the live clients`() {
+        // TV_TIZEN's answer for LiveNOW FOX on 23 Nov: UNPLAYABLE, videoDetails.isLive true.
+        assertTrue(LiveDetectionRules.refusedBroadcast(status = "UNPLAYABLE", isLive = true))
+    }
+
+    @Test
+    fun `a refusal of a VOD or a playable answer is not a refused broadcast`() {
+        assertFalse(LiveDetectionRules.refusedBroadcast(status = "UNPLAYABLE", isLive = null))
+        assertFalse(LiveDetectionRules.refusedBroadcast(status = "LOGIN_REQUIRED", isLive = false))
+        assertFalse(LiveDetectionRules.refusedBroadcast(status = "OK", isLive = true))
+    }
 }
