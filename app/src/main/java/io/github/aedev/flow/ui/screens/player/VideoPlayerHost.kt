@@ -95,7 +95,7 @@ fun VideoPlayerHost(
     val rememberSubtitleLanguage: (String) -> Unit = { language ->
         scope.launch { prefs.preferences.setPreferredSubtitleLanguage(language) }
     }
-    val isCommentsAvailable = prefs.commentsEnabled && playerUiState.hlsUrl.isNullOrEmpty()
+    val isCommentsAvailable = prefs.commentsEnabled && !playerUiState.isLive
 
     PlayerVolumeEffects(
         videoId = video.id,

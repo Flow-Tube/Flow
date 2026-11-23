@@ -498,8 +498,17 @@ internal fun Modifier.playerDragGestures(
                 },
                 onAxisAccepted = { axis ->
                     when (axis) {
-                        PlayerDragAxis.HORIZONTAL -> currentSeekSwipeGesturesEnabled && currentDuration > 0L
-                        PlayerDragAxis.VERTICAL -> currentIsFullscreen
+                        PlayerDragAxis.HORIZONTAL -> {
+                            currentSeekSwipeGesturesEnabled &&
+                                currentDuration > 0L &&
+                                !EnhancedPlayerManager
+                                    .getInstance()
+                                    .playerState.value.isSeekLocked
+                        }
+
+                        PlayerDragAxis.VERTICAL -> {
+                            currentIsFullscreen
+                        }
                     }
                 },
                 onDrag = { change, delta, axis ->

@@ -66,7 +66,7 @@ class WatchHistoryEntryTest {
 
     @Test
     fun `a live stream is never written`() {
-        assertThat(entry(VideoPlayerUiState(hlsUrl = "https://example.invalid/manifest.m3u8"))).isNull()
+        assertThat(entry(VideoPlayerUiState(isLive = true))).isNull()
     }
 
     @Test

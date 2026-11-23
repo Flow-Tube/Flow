@@ -24,10 +24,15 @@ internal object TizenStreamResolver {
     private const val TAG = "TizenStreams"
     private const val PLAYER_TIMEOUT_MS = 8_000L
 
-    /** @param failureReasons the ladder's list, so a refusal here counts toward its verdicts. */
+    /**
+     * @param failureReasons the ladder's list, so a refusal here counts toward its verdicts.
+     * @param liveDetected set when TV_TIZEN refuses the video as a live broadcast, which it does
+     *   for every live stream.
+     */
     suspend fun resolve(
         videoId: String,
         failureReasons: MutableList<String>? = null,
+        liveDetected: BooleanArray? = null,
     ): InnerTubeVideoStreamExtractor.VideoExtractionResult? =
         withContext(Dispatchers.IO) {
             val refuse = { why: String -> fail(videoId, why, failureReasons) }
@@ -45,6 +50,10 @@ internal object TizenStreamResolver {
                         ).getOrNull()
                 } ?: return@withContext refuse("timeout or null response")
             val answeredAtMs = SystemClock.elapsedRealtime()
+            if (LiveDetectionRules.refusedBroadcast(response.playabilityStatus.status, response.videoDetails?.isLive)) {
+                liveDetected?.set(0, true)
+                return@withContext refuse("live broadcast, ${response.playabilityStatus.status}")
+            }
             if (response.playabilityStatus.status != "OK") {
                 return@withContext refuse(PlayabilityVerdict.refusal(response.playabilityStatus, response.videoDetails != null))
             }

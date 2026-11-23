@@ -100,12 +100,14 @@ object InnerTubeVideoStreamExtractor {
             YouTubeClient.WEB,
         )
 
-    // ANDROID_VR leads: on a live broadcast it is the only client that returns a DASH manifest
-    // alongside the HLS one, and VISIONOS returns HLS only.
+    // Asked whatever their VOD demotion says: the wall that demotes them is bound to the byte offset
+    // of VOD files, and live segments are fetched whole. VISIONOS leads because its live response
+    // carries every format with a direct URL; ANDROID_VR's live HLS segments were refused with 403
+    // on 12 Nov.
     private val LIVE_MANIFEST_CLIENTS: List<YouTubeClient> =
         listOf(
-            YouTubeClient.ANDROID_VR_1_65_10,
             YouTubeClient.VISIONOS,
+            YouTubeClient.ANDROID_VR_1_65_10,
         )
 
     data class VideoExtractionResult(
@@ -209,7 +211,7 @@ object InnerTubeVideoStreamExtractor {
             )
             // The walled visitor's other app clients and token-backed web clients stop at the
             // same minute; TV_TIZEN is the measured way past it (#921).
-            TizenStreamResolver.resolve(videoId, failureReasons)?.let {
+            TizenStreamResolver.resolve(videoId, failureReasons, liveDetected)?.let {
                 Log.w(TAG, "Extraction OK for $videoId via TV_TIZEN (mode=DIRECT/walled)")
                 PlayerDiagnostics.logWarning(TAG, "extract OK $videoId via TV_TIZEN mode=DIRECT/walled")
                 return it
@@ -234,6 +236,7 @@ object InnerTubeVideoStreamExtractor {
         if (liveDetected[0]) {
             tryLiveClients(videoId, failureReasons)?.let {
                 Log.w(TAG, "Live manifest for $videoId via ${it.usedClient.clientName} (live-clients)")
+                PlayerDiagnostics.logWarning(TAG, "extract OK $videoId via ${it.usedClient.clientName} mode=LIVE/live-clients")
                 return it
             }
         }
@@ -242,6 +245,15 @@ object InnerTubeVideoStreamExtractor {
         // direct client because it is the only other path whose token Flow can actually mint —
         // the clients below it are all served unattested and can be cut off mid-playback.
         trySabrClients(videoId, failureReasons)?.let {
+            // Flow's SABR session plays a broadcast as a fixed-length video, so the live clients
+            // get the first go even when this answer is the first to say the video is live.
+            if (!liveDetected[0] && it.playerResponse.videoDetails?.isLive == true) {
+                liveDetected[0] = true
+                tryLiveClients(videoId, failureReasons)?.let { live ->
+                    PlayerDiagnostics.logWarning(TAG, "extract OK $videoId via ${live.usedClient.clientName} mode=LIVE/after-sabr")
+                    return live
+                }
+            }
             Log.w(TAG, "Extraction OK for $videoId via ${it.usedClient.clientName} (mode=SABR)")
             PlayerDiagnostics.logWarning(TAG, "extract OK $videoId mode=SABR (durable) via ${it.usedClient.clientName}")
             return if (liveDetected[0] && !it.isLive) it.copy(isLive = true) else it
