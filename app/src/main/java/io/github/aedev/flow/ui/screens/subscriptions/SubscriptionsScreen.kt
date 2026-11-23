@@ -48,7 +48,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.PlayerPreferences
-import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.data.model.Channel
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
@@ -78,7 +77,6 @@ fun SubscriptionsScreen(
     val preferences = remember(context) { PlayerPreferences(context) }
     val columnPreference by preferences.homeFeedColumns.collectAsStateWithLifecycle(HomeFeedColumns.AUTO)
     val topBarHideOnScroll by preferences.topBarHideOnScroll.collectAsStateWithLifecycle(initialValue = true)
-    val videoCardStyle by preferences.videoCardStyle.collectAsStateWithLifecycle(initialValue = VideoCardStyle.ROUNDED)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val feedGridState = rememberLazyGridState()
@@ -286,7 +284,6 @@ fun SubscriptionsScreen(
                                 topChannels = topChannels,
                                 gridState = feedGridState,
                                 columnPreference = columnPreference,
-                                cardStyle = videoCardStyle,
                                 onRefresh = viewModel::refreshFeed,
                                 onVideoClick = onVideoClick,
                                 onShortClick = onShortClick,
