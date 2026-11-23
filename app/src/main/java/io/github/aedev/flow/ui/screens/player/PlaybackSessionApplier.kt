@@ -319,6 +319,7 @@ internal class PlaybackSessionApplier(
                 subtitles = streams.subtitles,
                 isCurrent = { isLoadCurrent(load.token) },
                 isDvrEnabled = streams.isDvrEnabled,
+                pegRule = streams.pegRule,
             )
         if (!liveStarted) return@withContext
 
