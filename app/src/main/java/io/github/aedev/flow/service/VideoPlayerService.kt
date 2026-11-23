@@ -1,10 +1,7 @@
 package io.github.aedev.flow.service
 
-import android.content.Context
 import android.content.Intent
-import android.net.wifi.WifiManager
 import android.os.Build
-import android.os.PowerManager
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
@@ -20,9 +17,6 @@ import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.PopupPlayerWindow
 import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.utils.FlowCrashHandler
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -32,7 +26,6 @@ import kotlinx.coroutines.launch
 class VideoPlayerService : MediaSessionService() {
     companion object {
         private const val TAG = "VideoPlayerService"
-        private const val LOCK_RELEASE_DELAY_MS = 30_000L
         const val ACTION_SHOW_POPUP = "io.github.aedev.flow.action.SHOW_POPUP_PLAYER"
         const val ACTION_HIDE_POPUP = "io.github.aedev.flow.action.HIDE_POPUP_PLAYER"
 
@@ -42,10 +35,6 @@ class VideoPlayerService : MediaSessionService() {
         const val EXTRA_VIDEO_THUMBNAIL = "video_thumbnail"
     }
 
-    private var wakeLock: PowerManager.WakeLock? = null
-    private var wifiLock: WifiManager.WifiLock? = null
-
-    private var lockReleaseJob: Job? = null
     private var popupPlayerWindow: PopupPlayerWindow? = null
 
     private fun serviceSnapshot(): String {
@@ -62,9 +51,7 @@ class VideoPlayerService : MediaSessionService() {
         return "exo=$state pwr=${player?.playWhenReady} playing=${player?.isPlaying} " +
             "pos=${player?.currentPosition}/${player?.duration} " +
             "idx=${player?.currentMediaItemIndex} count=${player?.mediaItemCount} " +
-            "wakeHeld=${wakeLock?.isHeld} wifiHeld=${wifiLock?.isHeld} " +
-            "ongoing=${runCatching { isPlaybackOngoing() }.getOrDefault(false)} " +
-            "activeForLocks=${isPlaybackActiveForLocks()}"
+            "ongoing=${runCatching { isPlaybackOngoing() }.getOrDefault(false)}"
     }
 
     private fun serviceLog(message: String) {
@@ -89,27 +76,8 @@ class VideoPlayerService : MediaSessionService() {
         FlowCrashHandler.recordPhase("video-service", "onCreate")
         serviceLog("onCreate")
 
-        try {
-            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Flow:VideoPlayerWakeLock")
-            wakeLock?.setReferenceCounted(false)
-
-            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            @Suppress("DEPRECATION")
-            wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "Flow:VideoPlayerWifiLock")
-            wifiLock?.setReferenceCounted(false)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to create locks", e)
-        }
-
         EnhancedPlayerManager.getInstance().initialize(applicationContext)
 
-        lifecycleScope.launch {
-            EnhancedPlayerManager.getInstance().playerState.collectLatest {
-                serviceLog("playerState collect update")
-                updateLocks(isPlaybackActiveForLocks())
-            }
-        }
         lifecycleScope.launch {
             // A headphone Play after a video must not start the saved music queue (#1450).
             EnhancedPlayerManager
@@ -147,7 +115,6 @@ class VideoPlayerService : MediaSessionService() {
             ACTION_HIDE_POPUP -> popupPlayerWindow?.dismiss()
         }
 
-        updateLocks(isPlaybackActiveForLocks())
         return startResult
     }
 
@@ -161,7 +128,6 @@ class VideoPlayerService : MediaSessionService() {
         if (GlobalPlayerState.isInPipMode.value) {
             GlobalPlayerState.requestDismiss()
             EnhancedPlayerManager.getInstance().stop()
-            releaseLocks()
             stopSelf()
             return
         }
@@ -175,7 +141,6 @@ class VideoPlayerService : MediaSessionService() {
         if (player?.keepsPlayingOnTaskRemoved(keepPlayingAfterSwipe, isPlaybackOngoing()) == true) return
 
         EnhancedPlayerManager.getInstance().stop()
-        releaseLocks()
         // Unlike a bare stopSelf(), this clears Media3's user-engaged state, so the pause cannot put
         // the stopped service back into the foreground (#1025).
         pauseAllPlayersAndStopSelf()
@@ -185,9 +150,6 @@ class VideoPlayerService : MediaSessionService() {
         serviceLog("onDestroy")
         popupPlayerWindow?.dismiss()
         popupPlayerWindow = null
-        lockReleaseJob?.cancel()
-        lockReleaseJob = null
-        releaseLocks()
         // lifecycleScope is cancelled by super.onDestroy() dispatching ON_DESTROY.
         super.onDestroy()
     }
@@ -204,51 +166,5 @@ class VideoPlayerService : MediaSessionService() {
                 }
         }
         popupPlayerWindow?.show(player)
-    }
-
-    private fun acquireLocks() {
-        serviceLog("acquireLocks")
-        if (wakeLock?.isHeld != true) wakeLock?.acquire()
-        if (wifiLock?.isHeld != true) wifiLock?.acquire()
-    }
-
-    private fun updateLocks(isPlaybackActive: Boolean) {
-        serviceLog("updateLocks active=$isPlaybackActive")
-        lockReleaseJob?.cancel()
-        lockReleaseJob = null
-
-        if (isPlaybackActive) {
-            acquireLocks()
-            return
-        }
-
-        lockReleaseJob =
-            lifecycleScope.launch {
-                delay(LOCK_RELEASE_DELAY_MS)
-                releaseLocks()
-            }
-    }
-
-    private fun isPlaybackActiveForLocks(): Boolean {
-        val player = EnhancedPlayerManager.getInstance().getPlayer() ?: return false
-        return player.isPlaying ||
-            (
-                player.playWhenReady &&
-                    player.playbackState != Player.STATE_IDLE &&
-                    player.playbackState != Player.STATE_ENDED
-            )
-    }
-
-    private fun releaseLocks() {
-        try {
-            if (wakeLock?.isHeld == true) wakeLock?.release()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to release wake lock", e)
-        }
-        try {
-            if (wifiLock?.isHeld == true) wifiLock?.release()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to release wifi lock", e)
-        }
     }
 }
