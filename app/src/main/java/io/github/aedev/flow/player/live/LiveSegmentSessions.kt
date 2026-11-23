@@ -35,6 +35,10 @@ object LiveSegmentSessions {
 
     fun isSessionUri(uri: String?): Boolean = uri?.startsWith("${LiveSegmentSession.SCHEME}://") == true
 
+    /** Whether [videoId] was played from segments and its broadcast has since ended. */
+    @Synchronized
+    fun hasEnded(videoId: String?): Boolean = videoId != null && sessions[videoId]?.hasEnded == true
+
     @Synchronized
     fun forUri(uri: Uri): LiveSegmentSession? {
         if (uri.scheme != LiveSegmentSession.SCHEME) return null
@@ -80,6 +84,12 @@ object LiveSegmentSessions {
                 serverClockOffsetMs = serverOffsetMs,
                 scope = refreshScope,
                 refreshUrls = { refreshedUrls(videoId) },
+                isStillLive = {
+                    InnerTubeVideoStreamExtractor.extract(videoId)?.let {
+                        it.isLive ||
+                            it.playerResponse.videoDetails?.isLive == true
+                    }
+                },
             )
         register(session)
         PlayerDiagnostics.logWarning(
