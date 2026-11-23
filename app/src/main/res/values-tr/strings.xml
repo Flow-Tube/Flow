@@ -741,7 +741,7 @@
     <string name="content_settings_header_display">Ekran</string>
     <string name="content_settings_header_home_layout">Ana Sayfa Düzeni</string>
     <string name="content_settings_home_layout_title">Ana Sayfa Görüntüleme Modu</string>
-    <string name="content_settings_home_layout_subtitle">Videoların ana ekranda nasıl görüntüleneceğini seç</string>
+    <string name="content_settings_home_layout_subtitle">Siz diğer akışları değiştirene kadar onlar da buna uyar</string>
     <string name="content_settings_layout_grid">Izgara</string>
     <string name="content_settings_layout_list">Liste</string>
     <string name="content_settings_grid_size_title">Izgara Öğesi Boyutu</string>
@@ -5196,7 +5196,7 @@
     <string name="home_preview_captions_on">Altyazıları göster</string>
     <string name="home_preview_captions_off">Altyazıları gizle</string>
     <string name="settings_video_card_style_title">Kart stili</string>
-    <string name="settings_video_card_style_summary">Tam genişlik, Ana Sayfa ve Abonelikler\'de küçük resimlerin köşelerini kaldırır</string>
+    <string name="settings_video_card_style_summary">Tam genişlik, video küçük resimlerinin köşelerini kaldırır</string>
     <string name="settings_video_card_style_keywords">kart, küçük resim, köşeler, yuvarlatılmış, tam genişlik, kenardan kenara, taşma</string>
     <string name="settings_video_card_style_rounded">Yuvarlatılmış</string>
     <string name="settings_video_card_style_full_width">Tam genişlik</string>
@@ -5213,4 +5213,6 @@
     <string name="search_showing_results_for">%1$s için sonuçlar gösteriliyor</string>
     <string name="search_instead_for">Bunun yerine %1$s için ara</string>
     <string name="search_did_you_mean">Bunu mu demek istediniz: %1$s</string>
+    <string name="home_offline_downloads_hint">İndirmeleriniz hâlâ oynatılır</string>
+    <string name="home_back_online_refresh">Tekrar çevrimiçi · Yenile</string>
 </resources>
