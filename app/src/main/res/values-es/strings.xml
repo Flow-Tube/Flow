@@ -27,8 +27,8 @@
     <string name="about">Acerca de</string>
     <string name="empty_description">No hay descripción disponible</string>
     <string name="clear_all">Borrar todo</string>
-    <string name="clear_watch_history_alert_title">¿Borrar historial de visualización?</string>
-    <string name="clear_watch_history_alert_body">Esto eliminará todos los vídeos de tu historial de visualización. Esta acción es irreversible.</string>
+    <string name="clear_watch_history_alert_title">¿Borrar historial de reproducción?</string>
+    <string name="clear_watch_history_alert_body">Esto eliminará todos los vídeos de tu historial de reproducción. Esta acción es irreversible.</string>
     <string name="clear">Limpiar</string>
     <string name="cancel">Cancelar</string>
     <string name="empty_watch_history">Sin historial de reproducción</string>
@@ -595,7 +595,7 @@
     <string name="content_settings_header_display">Visualización</string>
     <string name="content_settings_header_home_layout">Diseño de inicio</string>
     <string name="content_settings_title">Ajustes de Contenido</string>
-    <string name="content_settings_home_layout_subtitle">Elija cómo se muestran los videos en la pantalla de inicio</string>
+    <string name="content_settings_home_layout_subtitle">El resto de feeds lo siguen hasta que cambies el suyo</string>
     <string name="content_settings_layout_list">Lista</string>
     <string name="content_settings_grid_size_subtitle">Controla el tamaño de la carátula del álbum y las tarjetas de contenido</string>
     <string name="content_settings_layout_grid">Cuadrícula</string>
@@ -5489,4 +5489,6 @@
     <string name="search_showing_results_for">Mostrando resultados para %1$s</string>
     <string name="search_did_you_mean">¿Quisiste decir %1$s?</string>
     <string name="search_instead_for">Buscar %1$s en su lugar</string>
+    <string name="home_offline_downloads_hint">Tus descargas se siguen reproduciendo</string>
+    <string name="home_back_online_refresh">Conexión restablecida · Actualizar</string>
 </resources>
