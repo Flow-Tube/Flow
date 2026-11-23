@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.ui.components.library.PlaylistDetailTopBar
 import io.github.aedev.flow.ui.components.library.PlaylistHeader
 import io.github.aedev.flow.ui.components.library.PlaylistHeaderActions
@@ -64,7 +65,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun PlaylistDetailScreen(
     onNavigateBack: () -> Unit,
-    onPlayPlaylist: (videos: List<Video>, startIndex: Int, shuffle: Boolean, title: String) -> Unit,
+    onPlayPlaylist: (videos: List<Video>, startIndex: Int, shuffle: Boolean, title: String, more: QueuePageSource?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlaylistDetailViewModel = hiltViewModel(),
 ) {
@@ -103,6 +104,11 @@ fun PlaylistDetailScreen(
     val twoPane = panes.showsSidePane
 
     val isUserCreated = uiState.isLocalPlaylist && !uiState.isSaved
+    // A queue in the playlist's own order keeps loading it; a sorted one holds what is shown.
+    val play = { startIndex: Int, shuffle: Boolean ->
+        val more = if (sortOrder == PlaylistSortOrder.MANUAL) viewModel.queueSource(displayVideos.size) else null
+        onPlayPlaylist(displayVideos, startIndex, shuffle, uiState.playlistName, more)
+    }
     val canReorder = isUserCreated && sortOrder == PlaylistSortOrder.MANUAL && !isSearching
     // A saved YouTube playlist mirrors the original; its next sync would bring removed videos back.
     val canModify = uiState.isLocalPlaylist && !uiState.isSaved
@@ -180,17 +186,8 @@ fun PlaylistDetailScreen(
         )
     val headerActions =
         PlaylistHeaderActions(
-            onPlayAll = { if (displayVideos.isNotEmpty()) onPlayPlaylist(displayVideos, 0, false, uiState.playlistName) },
-            onShuffle = {
-                if (displayVideos.isNotEmpty()) {
-                    onPlayPlaylist(
-                        displayVideos,
-                        displayVideos.indices.random(),
-                        true,
-                        uiState.playlistName,
-                    )
-                }
-            },
+            onPlayAll = { if (displayVideos.isNotEmpty()) play(0, false) },
+            onShuffle = { if (displayVideos.isNotEmpty()) play(displayVideos.indices.random(), true) },
             onDownloadAll = {
                 scope.launch {
                     val left = viewModel.downloadLeftOut() ?: return@launch
@@ -292,7 +289,7 @@ fun PlaylistDetailScreen(
                                 if (selectionMode) {
                                     toggleSelected(setOf(video.id), video.id !in selectedIds)
                                 } else {
-                                    onPlayPlaylist(displayVideos, positions[video.id]?.minus(1) ?: index, false, uiState.playlistName)
+                                    play(positions[video.id]?.minus(1) ?: index, false)
                                 }
                             },
                             onRemove = { viewModel.removeVideo(it.id) },

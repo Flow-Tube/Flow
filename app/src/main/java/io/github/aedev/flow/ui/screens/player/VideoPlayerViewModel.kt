@@ -25,6 +25,7 @@ import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.innertube.pages.VideoDescriptionPage
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.LifecyclePlaybackPreferences
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.player.stream.PlaybackLoadResolver
 import io.github.aedev.flow.player.stream.ResetYouTubeSession
 import io.github.aedev.flow.player.stream.UpcomingPremiereProbe
@@ -289,7 +290,8 @@ class VideoPlayerViewModel
             startIndex: Int,
             title: String? = null,
             shuffle: Boolean? = null,
-        ) = requests.playPlaylist(videos, startIndex, title, shuffle)
+            more: QueuePageSource? = null,
+        ) = requests.playPlaylist(videos, startIndex, title, shuffle, more)
 
         fun playNext() = requests.playNext()
 

@@ -1,12 +1,16 @@
 package io.github.aedev.flow.data.repository
 
 import android.util.Log
+import android.util.LruCache
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.pages.VideoPlaylistPage
 import io.github.aedev.flow.innertube.pages.isMix
+import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -15,6 +19,9 @@ import javax.inject.Singleton
 private const val TAG = "YouTubePlaylistRepo"
 private const val MAX_PAGES = 60
 private const val FULL_LIST_TTL_MS = 10 * 60 * 1000L
+
+// A few pages, so the playlist page and a queue playing from it read each page once.
+private const val PAGE_CACHE_SIZE = 8
 
 /** A YouTube playlist as the page shows it: the first page now, the rest through [YouTubePlaylistRepository.nextPage]. */
 data class RemotePlaylistPage(
@@ -48,6 +55,8 @@ class YouTubePlaylistRepository
         )
 
         private val completeLists = ConcurrentHashMap<String, CachedList>()
+        private val pages = LruCache<String, Pair<List<Video>, String?>>(PAGE_CACHE_SIZE)
+        private val pagesInFlight = InFlightRequestCoalescer<String, Pair<List<Video>, String?>?>(CoroutineScope(SupervisorJob()))
 
         /** The whole playlist if it was loaded recently, so the page can show it without a request. */
         fun cachedComplete(playlistId: String): RemotePlaylistPage? =
@@ -97,7 +106,11 @@ class YouTubePlaylistRepository
         suspend fun nextPage(
             playlistId: String,
             continuation: String,
-        ): Pair<List<Video>, String?>? = fetch { YouTube.videoPlaylistPage(playlistId, continuation) }?.let { it.videos to it.continuation }
+        ): Pair<List<Video>, String?>? =
+            pages[continuation] ?: pagesInFlight
+                .run(continuation) {
+                    fetch { YouTube.videoPlaylistPage(playlistId, continuation) }?.let { it.videos to it.continuation }
+                }?.also { pages.put(continuation, it) }
 
         /**
          * Every video, page by page, for a caller that needs the whole list (syncing a saved copy).

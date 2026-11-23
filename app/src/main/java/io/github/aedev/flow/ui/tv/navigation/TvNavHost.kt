@@ -16,6 +16,7 @@ import io.github.aedev.flow.data.music.DownloadedTrack
 import io.github.aedev.flow.data.music.model.toMusicTrack
 import io.github.aedev.flow.data.music.model.toVideo
 import io.github.aedev.flow.data.video.DownloadedVideo
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.shared.MediaKind
 import io.github.aedev.flow.ui.screens.channel.ChannelScreen
@@ -46,7 +47,7 @@ fun TvNavHost(
     subscriptionsViewModel: SubscriptionsViewModel,
     searchViewModel: SearchViewModel,
     onPlayVideo: (Video) -> Unit,
-    onPlayPlaylist: (videos: List<Video>, startIndex: Int, title: String, shuffle: Boolean) -> Unit,
+    onPlayPlaylist: (videos: List<Video>, startIndex: Int, title: String, shuffle: Boolean, more: QueuePageSource?) -> Unit,
     onPlayVideoId: (String) -> Unit,
     onSelectRoot: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -56,7 +57,7 @@ fun TvNavHost(
     }
     val downloadsTitle = stringResource(R.string.library_downloads_label)
     val playDownloadedVideos: (List<DownloadedVideo>, Int) -> Unit = { videos, index ->
-        onPlayPlaylist(videos.map { it.video }, index, downloadsTitle, false)
+        onPlayPlaylist(videos.map { it.video }, index, downloadsTitle, false, null)
     }
     val playDownloadedMusic: (List<DownloadedTrack>, Int) -> Unit = { tracks, index ->
         val queue = tracks.map { it.track }
@@ -72,7 +73,7 @@ fun TvNavHost(
             TvHomeScreen(
                 viewModel = homeViewModel,
                 onVideoClick = onPlayVideo,
-                onPlayPlaylist = { videos, title -> onPlayPlaylist(videos, 0, title, false) },
+                onPlayPlaylist = { videos, title -> onPlayPlaylist(videos, 0, title, false, null) },
                 onOpenLibrary = { onSelectRoot(FlowTab.Library.route) },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -200,13 +201,13 @@ fun TvNavHost(
             TvScreenFrame {
                 PlaylistDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onPlayPlaylist = { videos, index, shuffle, title ->
+                    onPlayPlaylist = { videos, index, shuffle, title, more ->
                         val start = videos[index]
                         if (start.isMusic) {
                             val tracks = videos.filter { it.isMusic }.map { it.toMusicTrack() }
                             musicPlayerViewModel.loadAndPlayTrack(start.toMusicTrack(), tracks, title)
                         } else {
-                            onPlayPlaylist(videos, index, title, shuffle)
+                            onPlayPlaylist(videos, index, title, shuffle, more)
                         }
                     },
                 )

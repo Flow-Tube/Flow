@@ -23,6 +23,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.music.YouTubeMusicService
 import io.github.aedev.flow.data.playlist.PlaylistFileCodec
 import io.github.aedev.flow.data.playlist.PlaylistTransfer
+import io.github.aedev.flow.data.repository.PlaylistQueueSources
 import io.github.aedev.flow.data.repository.RemotePlaylistPage
 import io.github.aedev.flow.data.repository.YouTubePlaylistRepository
 import io.github.aedev.flow.data.repository.YouTubeRepository
@@ -30,6 +31,7 @@ import io.github.aedev.flow.data.repository.walkPlaylistPages
 import io.github.aedev.flow.data.video.BackgroundDownloadQueuer
 import io.github.aedev.flow.data.video.DownloadBatch
 import io.github.aedev.flow.data.video.downloader.collection.DownloadedCollections
+import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.ui.components.library.PlaylistSortOrder
 import io.github.aedev.flow.ui.components.library.sortedForPlaylist
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionUndo
@@ -75,12 +77,16 @@ class PlaylistDetailViewModel
         private val likedMedia: LikedMediaUseCase,
         private val collections: DownloadedCollections,
         savedPlaylistChecks: SavedPlaylistSyncStore,
+        private val queueSources: PlaylistQueueSources,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val playlistId: String = checkNotNull(savedStateHandle["playlistId"])
         private val sharing = SharingStarted.WhileSubscribed(stopTimeoutMillis = SHARING_TIMEOUT_MS)
         private val attemptedEnrichment = HashSet<String>()
         private val enrichSemaphore = Semaphore(1)
+
+        // The page token after the first N videos of a YouTube playlist still loading, keyed by N.
+        private val tokenAfter = java.util.concurrent.ConcurrentHashMap<Int, String>()
 
         private val _uiState = MutableStateFlow(PlaylistDetailUiState())
         val uiState: StateFlow<PlaylistDetailUiState> = _uiState.asStateFlow()
@@ -285,6 +291,12 @@ class PlaylistDetailViewModel
         fun downloadVideos(picked: Set<String>) {
             viewModelScope.launch { downloads.download(loadedState(), picked) }
         }
+
+        /**
+         * Where a queue started from the first [loadedCount] videos finds the rest, or null when it
+         * already holds the whole playlist.
+         */
+        fun queueSource(loadedCount: Int): QueuePageSource? = tokenAfter[loadedCount]?.let { queueSources.playlistPages(playlistId, it) }
 
         private suspend fun loadedState(): PlaylistDetailUiState = _uiState.first { !it.isLoading && !it.isLoadingMore }
 
@@ -493,18 +505,26 @@ class PlaylistDetailViewModel
             first: RemotePlaylistPage,
             firstToken: String,
         ) {
+            tokenAfter[first.videos.distinctBy { it.id }.size] = firstToken
+            var latestToken: String? = null
             val walk =
                 walkPlaylistPages(
                     firstVideos = first.videos,
                     firstToken = firstToken,
                     maxPages = YouTubePlaylistRepository.PAGE_LIMIT,
-                    nextPage = { playlistRepository.nextPage(playlistId, it) },
-                    onPage = { videos -> _uiState.update { it.copy(videos = videos) } },
+                    nextPage = { token -> playlistRepository.nextPage(playlistId, token)?.also { latestToken = it.second } },
+                    onPage = { videos ->
+                        latestToken?.let { tokenAfter[videos.size] = it }
+                        _uiState.update { it.copy(videos = videos) }
+                    },
                 )
             _uiState.update {
                 it.copy(isLoadingMore = false, hidesUnavailable = walk.finished && first.hidesUnavailable(walk.videos.size))
             }
-            if (walk.finished) playlistRepository.rememberComplete(playlistId, first.copy(videos = walk.videos))
+            if (walk.finished) {
+                tokenAfter.clear()
+                playlistRepository.rememberComplete(playlistId, first.copy(videos = walk.videos))
+            }
         }
 
         private fun refreshSavedPlaylist() {
