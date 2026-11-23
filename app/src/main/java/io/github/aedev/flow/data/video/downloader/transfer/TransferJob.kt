@@ -26,6 +26,9 @@ class TransferStream(
     var totalBytes: Long = totalBytes
         internal set
 
+    /** When [url] is minted again before the next block, on the monotonic clock; see [RangeDownloader.refreshDeadlineNanos]. */
+    internal val refreshAtNanos: Long? = RangeDownloader.refreshDeadlineNanos(url)
+
     val completedBlocks: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     val partialBlockBytes: ConcurrentHashMap<Int, Long> = ConcurrentHashMap()
     internal val downloaded = AtomicLong(0L)
@@ -56,6 +59,9 @@ sealed interface TransferResult {
 
     /** No bytes arrived for a while; the stream is resolved again without blaming its client. */
     data object Stalled : TransferResult
+
+    /** A URL was about to expire, or had; it is minted again and the transfer continues. */
+    data object Expiring : TransferResult
 
     data class Failed(
         val reason: TransferFailure,

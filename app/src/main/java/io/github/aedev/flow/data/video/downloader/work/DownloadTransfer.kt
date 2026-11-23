@@ -18,6 +18,7 @@ import io.github.aedev.flow.data.video.downloader.transfer.TransferState
 import io.github.aedev.flow.data.video.downloader.transfer.TransferStream
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.innertube.models.YouTubeClient
+import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
 import io.github.aedev.flow.player.error.StreamDenialClassifier
 import io.github.aedev.flow.player.error.StreamDenialKind
 import io.github.aedev.flow.player.sabr.integration.SabrDownloadEngine
@@ -53,6 +54,8 @@ sealed interface FetchOutcome {
         val durationMs: Long,
         /** The streams it came from, for the quality the row shows; null after a SABR fallback. */
         val streams: ResolvedStreams? = null,
+        /** The video stream first chosen, when a refusal made the download settle for another one. */
+        val substitutedFor: Format? = null,
     ) : FetchOutcome
 
     data class Failed(
@@ -96,8 +99,12 @@ class DownloadTransfer
             var avoid = emptySet<Int>()
             var acceptOtherTrack = false
             val refusals = mutableMapOf<Int, Int>()
-            repeat(MAX_RESOLVES) {
+            var wanted: Format? = null
+            var resolves = 0
+            var refreshes = 0
+            while (resolves < MAX_RESOLVES) {
                 trace.onResolve()
+                resolves++
                 val streams =
                     when (val resolved = resolver.resolve(request, avoid, acceptOtherTrack)) {
                         is ResolveOutcome.Resolved -> {
@@ -117,10 +124,11 @@ class DownloadTransfer
                             if (sabr is FetchOutcome.Fetched) return sabr
                             currentCoroutineContext().ensureActive()
                             acceptOtherTrack = true
-                            return@repeat
+                            continue
                         }
                     }
                 val video = streams.video
+                if (wanted == null) wanted = video
                 val parts =
                     listOfNotNull(
                         video?.let {
@@ -167,7 +175,19 @@ class DownloadTransfer
                     }
                 when (result) {
                     TransferResult.Completed -> {
-                        return FetchOutcome.Fetched(video?.let { staging.videoPart }, staging.audioPart, streams.durationMs, streams)
+                        return FetchOutcome.Fetched(
+                            video?.let { staging.videoPart },
+                            staging.audioPart,
+                            streams.durationMs,
+                            streams,
+                            wanted?.takeIf { it.itag != video?.itag },
+                        )
+                    }
+
+                    TransferResult.Expiring -> {
+                        // A URL running out is not a refusal: it is minted again without using up a resolve.
+                        if (++refreshes <= MAX_REFRESHES) resolves--
+                        Log.i(TAG, "${request.videoId}: stream URL about to expire, resolving again")
                     }
 
                     TransferResult.Stopped -> {
@@ -181,9 +201,14 @@ class DownloadTransfer
                     }
 
                     is TransferResult.Denied -> {
-                        val itag = StreamDenialClassifier.itagOf(result.url)?.toIntOrNull()
-                        trace.onDenied(expired = ClientGateTracker.reportDenied(result.url) == StreamDenialKind.URL_EXPIRED)
-                        if (itag != null && (refusals.merge(itag, 1, Int::plus) ?: 0) >= 2) avoid = avoid + itag
+                        val expired = ClientGateTracker.reportDenied(result.url) == StreamDenialKind.URL_EXPIRED
+                        trace.onDenied(expired)
+                        if (expired) {
+                            if (++refreshes <= MAX_REFRESHES) resolves--
+                        } else {
+                            val itag = StreamDenialClassifier.itagOf(result.url)?.toIntOrNull()
+                            if (itag != null && (refusals.merge(itag, 1, Int::plus) ?: 0) >= 2) avoid = avoid + itag
+                        }
                     }
 
                     is TransferResult.Failed -> {
@@ -323,6 +348,7 @@ class DownloadTransfer
         private companion object {
             const val TAG = "DownloadTransfer"
             const val MAX_RESOLVES = 4
+            const val MAX_REFRESHES = 8
             const val PROGRESS_INTERVAL_MS = 1_000L
             const val PERSIST_EVERY_TICKS = 5
             const val DIRECT_STALL_TICKS = 45

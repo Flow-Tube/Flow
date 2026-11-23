@@ -44,6 +44,8 @@ sealed interface DownloadPhase {
         val savedElsewhere: String?,
         /** The track saved in place of the chosen one, which wasn't available. */
         val savedAudioTrack: String? = null,
+        /** The quality saved and the one first chosen, when that one was refused. */
+        val savedQualityInstead: Pair<String, String>? = null,
     ) : DownloadPhase
 }
 
@@ -185,6 +187,9 @@ class DownloadNotifier
                 is DownloadPhase.Complete -> {
                     val text =
                         phase.savedAudioTrack?.let { context.getString(R.string.notification_download_other_audio_track, it) }
+                            ?: phase.savedQualityInstead?.let { (saved, wanted) ->
+                                context.getString(R.string.notification_download_other_quality, saved, wanted)
+                            }
                             ?: phase.savedElsewhere?.let { context.getString(R.string.notification_download_saved_elsewhere, it) }
                             ?: context.getString(R.string.notification_download_complete)
                     builder

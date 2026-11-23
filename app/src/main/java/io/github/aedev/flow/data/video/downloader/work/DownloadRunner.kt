@@ -221,7 +221,12 @@ class DownloadRunner
                 return "failed:PLACE"
             }
             withContext(NonCancellable) {
-                commit(request, staging, itemId, placed, extension, size, qualityOf(fetched), cover, fetched.streams)
+                val quality = qualityOf(fetched)
+                val instead =
+                    fetched.substitutedFor?.let { wanted ->
+                        quality to DownloadStreamPolicy.videoQualityLabel(wanted, context.getString(R.string.download_quality_hdr))
+                    }
+                commit(request, staging, itemId, placed, extension, size, quality, cover, fetched.streams, instead)
             }
             return "completed"
         }
@@ -252,6 +257,7 @@ class DownloadRunner
             quality: String,
             cover: ByteArray?,
             streams: ResolvedStreams?,
+            qualityInstead: Pair<String, String>?,
         ) {
             val captions = streams?.captions.orEmpty()
             val swappedTrack =
@@ -264,7 +270,7 @@ class DownloadRunner
             cover?.let { DownloadCovers.save(context, request.videoId, it) }?.let { downloadDao.updateThumbnailPath(request.videoId, it) }
             if (!DownloadFiles.isDocument(path)) downloads.scanFile(path, mimeType)
             downloads.emitProgress(DownloadProgressUpdate(request.videoId, itemId, size, size, DownloadItemStatus.COMPLETED))
-            notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo, swappedTrack))
+            notifier.show(request.videoId, request.tags.title, DownloadPhase.Complete(placed.fellBackTo, swappedTrack, qualityInstead))
             staging.clear()
             waits.clear(request.videoId)
             if (request.kind != DownloadKind.MUSIC && !request.wantsAudioOnly) {

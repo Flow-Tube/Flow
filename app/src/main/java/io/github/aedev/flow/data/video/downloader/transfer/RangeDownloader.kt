@@ -139,6 +139,10 @@ class RangeDownloader internal constructor(
             val block = stream.nextBlock.getAndIncrement()
             if (block >= blockCount) return
             if (block in stream.completedBlocks) continue
+            if (stream.refreshAtNanos?.let { System.nanoTime() >= it } == true) {
+                job.fail(TransferResult.Expiring)
+                return
+            }
             val start = block * BLOCK_SIZE
             val end = minOf(start + BLOCK_SIZE, stream.totalBytes) - 1
             if (!fetchBlockWithRetry(client, job, stream, block, start, end)) return
@@ -367,6 +371,24 @@ class RangeDownloader internal constructor(
         private const val INITIAL_RETRY_DELAY_MS = 2_000L
         private const val MAX_RETRY_AFTER_MS = 60_000L
         private const val MAX_PARALLEL_READS = 16
+
+        /** A URL this close to its deadline is minted again before the next block rather than refused mid-block. */
+        const val EXPIRY_MARGIN_SECONDS = 5 * 60L
+        private const val NANOS_PER_SECOND = 1_000_000_000L
+
+        /**
+         * When a URL is minted again, measured from when it was resolved on the monotonic clock, so a
+         * clock change mid-download cannot move it. Null when the URL has no deadline, or already
+         * looks close to it: then the device clock is off and the 403 path is the only safe signal.
+         */
+        fun refreshDeadlineNanos(
+            url: String,
+            nowSeconds: Long = System.currentTimeMillis() / 1000,
+            nowNanos: Long = System.nanoTime(),
+        ): Long? {
+            val left = StreamDenialClassifier.expiresInSeconds(url, nowSeconds)?.takeIf { it > EXPIRY_MARGIN_SECONDS } ?: return null
+            return nowNanos + (left - EXPIRY_MARGIN_SECONDS) * NANOS_PER_SECOND
+        }
 
         fun blockCount(totalBytes: Long): Int = ((totalBytes + BLOCK_SIZE - 1) / BLOCK_SIZE).toInt()
 
