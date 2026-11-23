@@ -375,6 +375,7 @@ class MediaLoader(
                         cacheManager?.getLiveHlsDataSourceFactory()
                             ?: cacheManager?.getHlsDataSourceFactory()
                             ?: dataSourceFactory,
+                        liveSegmentDataSourceFactory = cacheManager?.getLiveSegmentDataSourceFactory(),
                         mediaId = mediaId,
                         mediaMetadata = mediaMetadata,
                     )
