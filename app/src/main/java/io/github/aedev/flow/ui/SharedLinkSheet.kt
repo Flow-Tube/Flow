@@ -46,6 +46,7 @@ internal fun HandleIncomingVideo(
     isShared: Boolean,
     navController: NavController,
     preferences: PlayerPreferences,
+    shortsExitRoute: () -> String,
     onConsumed: () -> Unit,
 ) {
     var sharedVideoId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -55,6 +56,7 @@ internal fun HandleIncomingVideo(
         isShort = isShort,
         navController = navController,
         onDeeplinkConsumed = onConsumed,
+        shortsExitRoute = shortsExitRoute,
         asksFirst = { isShared && sharedLinkAsks(preferences.sharedLinkAction.first(), mediaLoaded()) },
         onAsk = { sharedVideoId = it },
     )
@@ -64,6 +66,7 @@ internal fun HandleIncomingVideo(
             onPlayNow = {
                 scope.launch {
                     navController.awaitGraph()
+                    navController.leaveShortsForPlayer(shortsExitRoute())
                     navController.navigate("player/$id") { launchSingleTop = true }
                 }
             },

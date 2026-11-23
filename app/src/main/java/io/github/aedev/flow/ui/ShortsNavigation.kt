@@ -22,6 +22,24 @@ fun NavController.openShorts(
 }
 
 /**
+ * Clears every Shorts screen off the top before a video opens. The video player stays hidden while
+ * a Shorts screen is on top, and the player route hands back to whatever is under it, so a video
+ * opened over Shorts would play unseen behind a reel that keeps playing. A Shorts screen at the root
+ * of the back stack gives way to [exitRoute].
+ */
+fun NavController.leaveShortsForPlayer(exitRoute: String) {
+    while (isShortsOnTop() && previousBackStackEntry != null) popBackStack()
+    if (!isShortsOnTop()) return
+    navigate(exitRoute) {
+        popUpTo(SHORTS_ROUTE_PATTERN) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+private fun NavController.isShortsOnTop() = currentBackStackEntry?.destination?.route == SHORTS_ROUTE_PATTERN
+
+/**
  * Opens [source] in the Shorts player, or the tapped reel in the video player when the user has
  * switched the Shorts player off. Every Shorts entry point takes this one decision.
  */
