@@ -207,11 +207,14 @@ internal fun ActiveDownloadRow(
                     Formatter.formatShortFileSize(context, it.totalBytes),
                 )
             }
-    val waitingForNetwork = progress?.waitingFor == DownloadWaitReason.NETWORK
+    val waitingFor = progress?.waitingFor?.takeIf { status == DownloadItemStatus.PENDING }
+    val shortBy = progress?.storageShortBy?.takeIf { it > 0L }?.let { Formatter.formatShortFileSize(context, it) }
     val statusText =
         when {
             isMerging -> stringResource(R.string.download_merging_audio_video)
-            status == DownloadItemStatus.PENDING && waitingForNetwork -> stringResource(R.string.download_waiting_network)
+            waitingFor == DownloadWaitReason.NETWORK -> stringResource(R.string.download_waiting_network)
+            waitingFor == DownloadWaitReason.STORAGE && shortBy != null -> stringResource(R.string.download_waiting_storage_amount, shortBy)
+            waitingFor == DownloadWaitReason.STORAGE -> stringResource(R.string.download_waiting_storage)
             status == DownloadItemStatus.PENDING -> stringResource(R.string.download_status_queued)
             isPaused -> stringResource(R.string.download_status_paused_template, percent, stringResource(R.string.download_status_paused))
             status == DownloadItemStatus.FAILED -> stringResource(R.string.download_status_failed)

@@ -47,7 +47,7 @@ class DownloadQueue
                 val limitWatch =
                     launch { preferences.concurrentDownloads.collect { limit.value = it.coerceIn(MIN_PARALLEL, MAX_PARALLEL) } }
                 try {
-                    combine(downloadDao.observeQueue(), limit, finished) { rows, max, _ -> rows to max }
+                    combine(downloadDao.observeQueue(), limit, finished, waits.released) { rows, max, _, _ -> rows to max }
                         .first { (rows, max) ->
                             synchronized(running) {
                                 val held = waits.held()

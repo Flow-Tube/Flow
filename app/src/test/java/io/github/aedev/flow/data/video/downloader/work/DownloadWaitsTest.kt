@@ -45,9 +45,28 @@ class DownloadWaitsTest {
     }
 
     @Test
+    fun `storage is checked again at least every 15 minutes`() {
+        repeat(9) { waits.hold("a", DownloadWaitReason.STORAGE) }
+
+        assertThat(waits.nextRetryInMs()).isEqualTo(DownloadWaits.STORAGE_MAX_DELAY_MS)
+    }
+
+    @Test
+    fun `freed space lets storage waits go but not network waits`() {
+        waits.hold("a", DownloadWaitReason.STORAGE)
+        waits.hold("b", DownloadWaitReason.NETWORK)
+
+        waits.releaseStorage()
+
+        assertThat(waits.held()).containsExactly("b")
+        assertThat(waits.released.value).isEqualTo(1)
+    }
+
+    @Test
     fun `only failures that pass on their own wait`() {
         assertThat(waitFor(FetchFailure.NETWORK)).isEqualTo(DownloadWaitReason.NETWORK)
         assertThat(waitFor(FetchFailure.LENGTH_UNKNOWN)).isEqualTo(DownloadWaitReason.NETWORK)
+        assertThat(waitFor(FetchFailure.DISK_FULL)).isEqualTo(DownloadWaitReason.STORAGE)
         assertThat(waitFor(FetchFailure.REFUSED)).isNull()
         assertThat(waitFor(FetchFailure.UNAVAILABLE)).isNull()
     }

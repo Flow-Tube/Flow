@@ -343,12 +343,6 @@ class RangeDownloader internal constructor(
         RandomAccessFile(file, "rw").use { raf -> if (raf.length() != size) raf.setLength(size) }
     }
 
-    private fun restoredBytes(stream: TransferStream): Long =
-        stream.completedBlocks.sumOf { block ->
-            val start = block * BLOCK_SIZE
-            minOf(start + BLOCK_SIZE, stream.totalBytes) - start
-        } + stream.partialBlockBytes.values.sum()
-
     private sealed interface BlockOutcome {
         data object Done : BlockOutcome
 
@@ -375,6 +369,13 @@ class RangeDownloader internal constructor(
         private const val MAX_PARALLEL_READS = 16
 
         fun blockCount(totalBytes: Long): Int = ((totalBytes + BLOCK_SIZE - 1) / BLOCK_SIZE).toInt()
+
+        /** The bytes of [stream] already on disk from its restored block map. */
+        fun restoredBytes(stream: TransferStream): Long =
+            stream.completedBlocks.sumOf { block ->
+                val start = block * BLOCK_SIZE
+                minOf(start + BLOCK_SIZE, stream.totalBytes) - start
+            } + stream.partialBlockBytes.values.sum()
 
         fun retryDelayMs(
             attempt: Int,

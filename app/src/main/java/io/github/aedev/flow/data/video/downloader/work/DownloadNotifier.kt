@@ -32,6 +32,8 @@ sealed interface DownloadPhase {
 
     data class Waiting(
         val reason: DownloadWaitReason,
+        /** For a storage wait: how much more space the download needs, 0 when unknown. */
+        val shortByBytes: Long = 0L,
     ) : DownloadPhase
 
     data class Failed(
@@ -167,7 +169,7 @@ class DownloadNotifier
 
                 is DownloadPhase.Waiting -> {
                     builder
-                        .setContentText(context.getString(R.string.notification_download_waiting_network))
+                        .setContentText(waitingText(phase))
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_PAUSE, R.string.pause))
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_CANCEL, R.string.cancel))
                 }
@@ -194,6 +196,24 @@ class DownloadNotifier
             }
             return builder.build()
         }
+
+        private fun waitingText(phase: DownloadPhase.Waiting): String =
+            when {
+                phase.reason == DownloadWaitReason.NETWORK -> {
+                    context.getString(R.string.notification_download_waiting_network)
+                }
+
+                phase.shortByBytes > 0L -> {
+                    context.getString(
+                        R.string.notification_download_waiting_storage_amount,
+                        Formatter.formatShortFileSize(context, phase.shortByBytes),
+                    )
+                }
+
+                else -> {
+                    context.getString(R.string.notification_download_waiting_storage)
+                }
+            }
 
         private fun action(
             videoId: String,

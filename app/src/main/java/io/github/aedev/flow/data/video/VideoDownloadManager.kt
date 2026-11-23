@@ -20,6 +20,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.work.DownloadStaging
 import io.github.aedev.flow.data.video.downloader.work.DownloadWaitReason
+import io.github.aedev.flow.data.video.downloader.work.DownloadWaits
 import io.github.aedev.flow.data.video.storage.DownloadDestination
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadLocation
@@ -52,6 +53,7 @@ data class DownloadProgressUpdate(
     val status: DownloadItemStatus,
     val isMerging: Boolean = false,
     val waitingFor: DownloadWaitReason? = null,
+    val storageShortBy: Long = 0L,
 ) {
     val progress: Float
         get() = if (totalBytes > 0) downloadedBytes.toFloat() / totalBytes.toFloat() else 0f
@@ -82,6 +84,7 @@ class VideoDownloadManager
         private val downloadDao: DownloadDao,
         private val offlineSubtitleStore: OfflineSubtitleStore,
         private val preferences: PlayerPreferences,
+        private val waits: DownloadWaits,
     ) {
         companion object {
             private const val TAG = "VideoDownloadManager"
@@ -401,6 +404,7 @@ class VideoDownloadManager
                             }
                         }
                         offlineSubtitleStore.delete(videoId)
+                        waits.releaseStorage()
                     }
                     true
                 } catch (e: Exception) {

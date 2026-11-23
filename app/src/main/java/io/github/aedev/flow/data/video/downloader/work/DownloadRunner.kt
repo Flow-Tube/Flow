@@ -136,9 +136,10 @@ class DownloadRunner
                         failed.totalBytes,
                         DownloadItemStatus.PENDING,
                         waitingFor = reason,
+                        storageShortBy = failed.missingBytes,
                     ),
                 )
-                notifier.show(request.videoId, request.tags.title, DownloadPhase.Waiting(reason))
+                notifier.show(request.videoId, request.tags.title, DownloadPhase.Waiting(reason, failed.missingBytes))
             }
             return wait
         }
@@ -190,9 +191,13 @@ class DownloadRunner
             if (remuxed is Mp4Remuxer.Result.Failure) {
                 currentCoroutineContext().ensureActive()
                 Log.w(TAG, "${request.videoId}: remux failed (${remuxed.reason}): ${remuxed.message}")
-                val diskFull = remuxed.reason == Mp4Remuxer.Reason.DISK_FULL
-                val message = if (diskFull) R.string.download_failed_disk_full else R.string.download_failed_merge
-                fail(request, staging, context.getString(message), keepParts = diskFull)
+                if (remuxed.reason == Mp4Remuxer.Reason.DISK_FULL) {
+                    staging.clearOutputs()
+                    val partBytes = (fetched.videoPart?.length() ?: 0L) + fetched.audioPart.length()
+                    val failed = FetchOutcome.Failed(FetchFailure.DISK_FULL, remuxed.message, partBytes, partBytes)
+                    holdOrNull(request, itemId, DownloadWaitReason.STORAGE, failed, trace)?.let { return "waiting:STORAGE:${it.attempt}" }
+                }
+                fail(request, staging, context.getString(R.string.download_failed_merge), keepParts = false)
                 return "failed:REMUX_${remuxed.reason}"
             }
             fetched.videoPart?.let { keepProjection(request.videoId, it, output) }
@@ -374,7 +379,8 @@ class DownloadRunner
 internal fun waitFor(reason: FetchFailure): DownloadWaitReason? =
     when (reason) {
         FetchFailure.NETWORK, FetchFailure.LENGTH_UNKNOWN -> DownloadWaitReason.NETWORK
-        FetchFailure.UNAVAILABLE, FetchFailure.NO_COMPATIBLE_AUDIO, FetchFailure.REFUSED, FetchFailure.DISK_FULL -> null
+        FetchFailure.DISK_FULL -> DownloadWaitReason.STORAGE
+        FetchFailure.UNAVAILABLE, FetchFailure.NO_COMPATIBLE_AUDIO, FetchFailure.REFUSED -> null
     }
 
 /** What a download stopped from outside leaves behind, by the state its row is in. */

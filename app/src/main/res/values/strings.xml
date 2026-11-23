@@ -4378,6 +4378,10 @@
     <string name="download_waiting_for_wifi">Waiting for WiFi</string>
     <string name="download_waiting_network">Waiting for network</string>
     <string name="notification_download_waiting_network">Waiting for network. It resumes on its own.</string>
+    <string name="download_waiting_storage">Waiting for storage</string>
+    <string name="download_waiting_storage_amount">Needs %1$s more storage</string>
+    <string name="notification_download_waiting_storage">Waiting for storage. Free up space to continue.</string>
+    <string name="notification_download_waiting_storage_amount">Waiting for storage. Free up %1$s to continue.</string>
     <string name="notification_download_saved_elsewhere">Saved to %1$s. The chosen folder can\'t be used.</string>
     <string name="download_failed_try_again">Download failed. Please try again.</string>
     <string name="download_failed_unavailable">This video can\'t be downloaded right now</string>

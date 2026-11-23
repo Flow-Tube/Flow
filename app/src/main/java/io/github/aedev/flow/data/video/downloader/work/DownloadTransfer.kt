@@ -24,12 +24,14 @@ import io.github.aedev.flow.player.sabr.integration.SabrDownloadEngine
 import io.github.aedev.flow.player.stream.ClientGateTracker
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -59,8 +61,14 @@ sealed interface FetchOutcome {
         /** How far the transfer got, for the row of a download that waits and resumes. */
         val downloadedBytes: Long = 0L,
         val totalBytes: Long = 0L,
+        /** For a download that does not fit: how much more space it needs, when known. */
+        val missingBytes: Long = 0L,
     ) : FetchOutcome
 }
+
+/** Bytes a download still needs on its staging volume: the parts left to fetch, then the joined file beside them. */
+internal fun bytesToFit(parts: List<TransferStream>): Long =
+    parts.sumOf { part -> 2 * part.totalBytes - RangeDownloader.restoredBytes(part) }
 
 /**
  * Gets a request's streams into staging. A refused URL is read the way playback reads it: an
@@ -76,6 +84,7 @@ class DownloadTransfer
         private val rangeDownloader: RangeDownloader,
         private val downloads: VideoDownloadManager,
         private val notifier: DownloadNotifier,
+        private val space: DownloadSpace,
     ) {
         internal suspend fun fetch(
             request: DownloadRequest,
@@ -133,6 +142,13 @@ class DownloadTransfer
                         ),
                     )
                 if (TransferState.read(staging.state)?.restoreInto(parts) == true) Log.d(TAG, "${request.videoId}: resuming saved blocks")
+                val restored = parts.sumOf(RangeDownloader::restoredBytes)
+                val total = parts.sumOf { it.totalBytes }
+                val shortBy = withContext(Dispatchers.IO) { space.shortBy(staging.videoPart.absoluteFile.parentFile, bytesToFit(parts)) }
+                if (shortBy > 0L) {
+                    Log.w(TAG, "${request.videoId}: needs $shortBy more bytes of storage")
+                    return FetchOutcome.Failed(FetchFailure.DISK_FULL, null, restored, total, shortBy)
+                }
                 val job = TransferJob(request.videoId, parts, threads, YouTubeClient.USER_AGENT_WEB, trace)
                 val result =
                     try {
