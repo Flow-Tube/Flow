@@ -37,11 +37,17 @@ data class EnhancedPlayerState(
     val isLive: Boolean = false,
     val isAtLiveEdge: Boolean = false,
     val liveDurationMs: Long = 0L,
+    /** False for a live stream its creator broadcast without DVR: it can only be watched at the edge. */
+    val isLiveDvrEnabled: Boolean = true,
     /** The playing video is a 360 video, shown in a view the viewer can look around in (#1295). */
     val isSphericalVideo: Boolean = false,
     /** The viewer's own 360 view choice for this video, or null to follow [isSphericalVideo] (#1967). */
     val sphericalOverride: Boolean? = null,
 ) {
+    /** A live stream without DVR: no seek bar, no seek gestures, YouTube's own LIVE state. */
+    val isSeekLocked: Boolean
+        get() = isLive && !isLiveDvrEnabled
+
     /** Whether the video is shown in the 360 view: detected from the stream, or turned on or off by hand. */
     val showsSpherical: Boolean get() = sphericalOverride ?: isSphericalVideo
 }

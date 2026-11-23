@@ -20,6 +20,8 @@ import io.github.aedev.flow.player.datasource.RefusedStreamSwapper
 import io.github.aedev.flow.player.datasource.StreamSwapTable
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
 import io.github.aedev.flow.player.error.StreamDenialKind
+import io.github.aedev.flow.player.live.LiveSegmentDataSource
+import io.github.aedev.flow.player.live.LiveTrafficMeter
 import io.github.aedev.flow.player.stream.ClientGateTracker
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.TizenStreamResolver
@@ -97,6 +99,8 @@ class PlayerCacheManager(
     private var sharedHlsDataSourceFactory: DataSource.Factory? = null
     private var sharedLiveDashDataSourceFactory: DataSource.Factory? = null
     private var sharedLiveHlsDataSourceFactory: DataSource.Factory? = null
+    private val liveSegmentDataSourceFactory: DataSource.Factory =
+        LiveSegmentDataSource.Factory(YouTubeHttpDataSource.Factory(), LiveTrafficMeter)
 
     /**
      * Initialize cache and data source factories.
@@ -108,12 +112,13 @@ class PlayerCacheManager(
         val hlsHttpFactory = YouTubeHttpDataSource.Factory()
 
         val fakeWall = if (BuildConfig.DEBUG) FakeStreamWall.forDebugBuild(context) else null
-        val liveDashUpstream = DefaultDataSource.Factory(context, dashHttpFactory)
+        val liveDashUpstream = DefaultDataSource.Factory(context, dashHttpFactory).setTransferListener(LiveTrafficMeter)
         val dashUpstream = DefaultDataSource.Factory(context, fakeWall.around(dashHttpFactory)).swappingRefusals()
         val progressiveUpstream = DefaultDataSource.Factory(context, fakeWall.around(progressiveHttpFactory)).swappingRefusals()
         val hlsUpstream = DefaultDataSource.Factory(context, hlsHttpFactory)
+        val liveHlsUpstream = DefaultDataSource.Factory(context, YouTubeHttpDataSource.Factory()).setTransferListener(LiveTrafficMeter)
         sharedLiveDashDataSourceFactory = liveDashUpstream
-        sharedLiveHlsDataSourceFactory = hlsUpstream
+        sharedLiveHlsDataSourceFactory = liveHlsUpstream
 
         // Legacy/Fallback
         val legacyHttpFactory = YouTubeHttpDataSource.Factory()
@@ -165,7 +170,7 @@ class PlayerCacheManager(
             sharedProgressiveDataSourceFactory = progressiveUpstream
             sharedHlsDataSourceFactory = hlsUpstream
             sharedLiveDashDataSourceFactory = liveDashUpstream
-            sharedLiveHlsDataSourceFactory = hlsUpstream
+            sharedLiveHlsDataSourceFactory = liveHlsUpstream
             return false
         }
     }
@@ -206,6 +211,9 @@ class PlayerCacheManager(
      * Live HLS playlists move constantly, so use an uncached upstream source for them.
      */
     fun getLiveHlsDataSourceFactory(): DataSource.Factory? = sharedLiveHlsDataSourceFactory
+
+    /** Live segments are fetched by number from a live session's current URLs, never from the cache. */
+    fun getLiveSegmentDataSourceFactory(): DataSource.Factory = liveSegmentDataSourceFactory
 
     /**
      * Get cache size in bytes.

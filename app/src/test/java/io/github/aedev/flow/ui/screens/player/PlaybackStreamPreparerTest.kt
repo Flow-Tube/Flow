@@ -151,6 +151,15 @@ class PlaybackStreamPreparerTest {
     }
 
     @Test
+    fun `a live stream is seekable unless its creator turned DVR off`() {
+        val base = playerResponse(title = "t", author = "a", channelId = "c", lengthSeconds = "0", thumbnailUrl = null)
+        val noDvr = base.copy(videoDetails = base.videoDetails!!.copy(isLive = true, isLiveDvrEnabled = false))
+
+        assertThat(preparer.assembleLive(VIDEO_ID, null, extraction(playerResponse = base, isLive = true)).isDvrEnabled).isTrue()
+        assertThat(preparer.assembleLive(VIDEO_ID, null, extraction(playerResponse = noDvr, isLive = true)).isDvrEnabled).isFalse()
+    }
+
+    @Test
     fun `a live extraction still prefers the cached title over the Live placeholder`() {
         val result =
             extraction(

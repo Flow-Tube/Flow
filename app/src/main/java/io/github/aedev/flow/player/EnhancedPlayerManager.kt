@@ -54,6 +54,11 @@ import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.error.PlayerErrorHandler
 import io.github.aedev.flow.player.factory.BandwidthSeedRecorder
 import io.github.aedev.flow.player.factory.PlayerFactory
+import io.github.aedev.flow.player.live.LiveEdgePolicy
+import io.github.aedev.flow.player.live.LivePegPolicy
+import io.github.aedev.flow.player.live.LiveSegmentSessions
+import io.github.aedev.flow.player.live.LiveSessionLog
+import io.github.aedev.flow.player.live.LiveTrafficMeter
 import io.github.aedev.flow.player.media.MediaLoader
 import io.github.aedev.flow.player.preload.GaplessPreloadController
 import io.github.aedev.flow.player.preload.PreloadTarget
@@ -128,7 +133,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 class EnhancedPlayerManager private constructor() {
     companion object {
         private const val TAG = PlayerConfig.TAG
-        private const val LIVE_EDGE_THRESHOLD_MS = 700L
         private const val SABR_QUALITY_KEY_PREFIX = "sabr:"
         private const val LIVE_QUALITY_KEY_PREFIX = "live:"
         private const val AUTO_NEXT_TAG = "FlowVideoAutoNext"
@@ -206,6 +210,10 @@ class EnhancedPlayerManager private constructor() {
     private var pendingLiveDisplaySeekPositionMs: Long? = null
     private var pendingLiveDisplaySeekAtMs: Long = 0L
     private var pendingInitialLiveEdgeSeek = false
+    private val liveSessionLog = LiveSessionLog(LiveTrafficMeter::snapshot)
+    private var livePegRule: LivePegPolicy.Rule? = null
+    private var liveHasPlayed = false
+    private var liveRebuffering = false
 
     private var currentSabrInfo: SabrStreamInfo? = null
     private var sabrPreferred = false
@@ -772,6 +780,8 @@ class EnhancedPlayerManager private constructor() {
                 onLivePlaybackTick = { exoPlayer ->
                     mediaLoader?.getActiveSabrOrchestrator()?.updatePlayhead(exoPlayer.currentPosition)
                     updateLiveEdgeState(exoPlayer)
+                    val liveWindowMs = exoPlayer.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L) ?: 0L
+                    liveSessionLog.tick(liveWindowMs, LiveEdgePolicy.behindLiveMs(liveWindowMs, exoPlayer.currentPosition))
                     if (currentIsLiveStream &&
                         _playerState.value.playbackSpeed > 1.0f &&
                         isPlayerAtLiveEdge(exoPlayer)
@@ -974,6 +984,14 @@ class EnhancedPlayerManager private constructor() {
                         )
                     }
 
+                    if (playbackState == Player.STATE_ENDED && !isRecoveringFromBackground && currentIsLiveStream &&
+                        LiveSegmentSessions.hasEnded(currentVideoId)
+                    ) {
+                        autoNextLog("STATE_ENDED on a live stream whose broadcast ended")
+                        _playerState.value = _playerState.value.copy(hasEnded = true)
+                        return
+                    }
+
                     if (playbackState == Player.STATE_ENDED && !isRecoveringFromBackground && exoLive) {
                         val now = System.currentTimeMillis()
                         if (now - lastLiveEdgeRecoveryMs < 2500L) {
@@ -1003,9 +1021,17 @@ class EnhancedPlayerManager private constructor() {
 
                     if (playbackState == Player.STATE_BUFFERING) {
                         logBandwidthInfo()
+                        liveSessionLog.onBuffering()
+                        if (currentIsLiveStream && liveHasPlayed) liveRebuffering = true
                     }
 
                     if (playbackState == Player.STATE_READY) {
+                        liveSessionLog.onReady()
+                        liveHasPlayed = true
+                        if (liveRebuffering) {
+                            liveRebuffering = false
+                            player?.let(::pegToLiveAfterStall)
+                        }
                         releaseAdvanceWakeLock()
                         autoNextLog("STATE_READY scheduling preload")
                         preload.schedule()
@@ -1196,6 +1222,8 @@ class EnhancedPlayerManager private constructor() {
         keepAudioOnly: Boolean = false,
         preferSabr: Boolean = false,
         preferredLiveQualityHeight: Int = 0,
+        liveDvrEnabled: Boolean = true,
+        livePegRule: LivePegPolicy.Rule? = null,
     ) {
         if (!isOnMainThread()) {
             autoNextLog("setStreams switching to main id=$videoId from=${Thread.currentThread().name}")
@@ -1220,6 +1248,8 @@ class EnhancedPlayerManager private constructor() {
                     keepAudioOnly = keepAudioOnly,
                     preferSabr = preferSabr,
                     preferredLiveQualityHeight = preferredLiveQualityHeight,
+                    liveDvrEnabled = liveDvrEnabled,
+                    livePegRule = livePegRule,
                 )
             }
             return
@@ -1270,7 +1300,22 @@ class EnhancedPlayerManager private constructor() {
             if (isLiveStream) LiveQualitySelection.targetHeight(videoId, liveQualityPick, preferredLiveQualityHeight) else 0
         if (isLiveStream) applyLiveCodecPreference()
         updateLivePlaybackMode(isLive = isLiveStream, forceLiveSpeedReset = true)
+        _playerState.value = _playerState.value.copy(isLiveDvrEnabled = !isLiveStream || liveDvrEnabled)
+        this.livePegRule = livePegRule.takeIf { isLiveStream }
+        liveHasPlayed = false
+        liveRebuffering = false
         pendingInitialLiveEdgeSeek = streamType == StreamType.LIVE_STREAM
+        if (isLiveStream) {
+            val source =
+                when {
+                    LiveSegmentSessions.isSessionUri(currentDashManifestUrl) -> "segments"
+                    !currentHlsUrl.isNullOrEmpty() -> "hls"
+                    else -> "dash"
+                }
+            liveSessionLog.start(videoId, source)
+        } else {
+            liveSessionLog.stop()
+        }
         currentVideoId = videoId
 
         // Process streams using StreamProcessor
@@ -1400,6 +1445,7 @@ class EnhancedPlayerManager private constructor() {
                 playWhenReady = player?.playWhenReady ?: true,
                 isAtLiveEdge = false,
                 liveDurationMs = 0L,
+                isLiveDvrEnabled = true,
                 availableSubtitles = emptyList(),
                 selectedSubtitleUrl = null,
                 sphericalOverride = null,
@@ -2301,7 +2347,9 @@ class EnhancedPlayerManager private constructor() {
                         translateTo = preferredSubtitleLanguage,
                     ),
             durationSeconds = InnerTubeVideoMapper.durationSeconds(extraction),
-            dashManifestUrl = extraction.liveDashUrl,
+            dashManifestUrl =
+                extraction.takeIf { it.isLive }?.let { LiveSegmentSessions.open(videoId, it.playerResponse) }
+                    ?: extraction.liveDashUrl,
             hlsUrl = extraction.liveHlsUrl,
             streamType = InnerTubeVideoMapper.streamType(extraction),
             startPosition = startPositionMs,
@@ -2310,6 +2358,8 @@ class EnhancedPlayerManager private constructor() {
             itAudioFormats = extraction.audioFormats,
             preferredVideoCodec = preferredCodecKey,
             keepAudioOnly = keepAudioOnly,
+            liveDvrEnabled = extraction.playerResponse.videoDetails?.isLiveDvrEnabled != false,
+            livePegRule = LivePegPolicy.ruleFor(extraction.playerResponse),
         )
         return true
     }
@@ -2721,6 +2771,7 @@ class EnhancedPlayerManager private constructor() {
 
     fun seekToLiveTimeline(position: Long) {
         val p = player ?: return
+        if (_playerState.value.isSeekLocked) return
         val isLive = currentIsLiveStream || p.isCurrentMediaItemLive
         val target = resolveSeekTarget(p, position)
         if (isLive) {
@@ -2763,7 +2814,15 @@ class EnhancedPlayerManager private constructor() {
         updateLiveEdgeState(p)
     }
 
+    private fun pegToLiveAfterStall(exoPlayer: ExoPlayer) {
+        val behindLiveMs = LiveEdgePolicy.behindLiveMs(exoPlayer.duration, exoPlayer.currentPosition)
+        if (!LivePegPolicy.shouldPeg(livePegRule, behindLiveMs)) return
+        autoNextLog("live stall left playback ${behindLiveMs}ms behind on a stream without DVR -> seekToLiveEdge")
+        seekToLiveEdge(resetSpeed = false)
+    }
+
     private fun markLiveDisplaySeek(positionMs: Long) {
+        liveSessionLog.onSeek()
         pendingLiveDisplaySeekPositionMs = positionMs.coerceAtLeast(0L)
         pendingLiveDisplaySeekAtMs = SystemClock.elapsedRealtime()
     }
@@ -3598,26 +3657,7 @@ class EnhancedPlayerManager private constructor() {
 
     private fun isPlayerAtLiveEdge(player: ExoPlayer): Boolean {
         if (!currentIsLiveStream && !player.isCurrentMediaItemLive) return false
-
-        val liveOffset = player.currentLiveOffset
-        if (liveOffset != C.TIME_UNSET && liveOffset > 0L) {
-            return liveOffset <= PlayerConfig.LIVE_EDGE_GAP_MS + LIVE_EDGE_THRESHOLD_MS
-        }
-
-        val timeline = player.currentTimeline
-        val windowIndex = player.currentMediaItemIndex
-        if (!timeline.isEmpty && windowIndex >= 0 && windowIndex < timeline.windowCount) {
-            val window = Timeline.Window()
-            timeline.getWindow(windowIndex, window)
-            val defaultPosition = window.defaultPositionMs
-            if (defaultPosition != C.TIME_UNSET) {
-                return player.currentPosition + LIVE_EDGE_THRESHOLD_MS >= defaultPosition
-            }
-        }
-
-        val duration = player.duration
-        return duration > 0L && duration != C.TIME_UNSET &&
-            duration - player.currentPosition <= LIVE_EDGE_THRESHOLD_MS
+        return LiveEdgePolicy.isAtEdge(player.duration, player.currentPosition)
     }
 
     fun release() {
