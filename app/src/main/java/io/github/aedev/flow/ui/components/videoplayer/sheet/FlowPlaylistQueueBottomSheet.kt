@@ -104,10 +104,18 @@ fun FlowPlaylistQueueBottomSheet(
         if (fromIndex != null && toIndex >= 0 && fromIndex != toIndex) onMoveVideoAtIndex(fromIndex, toIndex)
     }
 
-    LaunchedEffect(currentQueueIndex) {
-        if (currentQueueIndex >= 0 && currentQueueIndex < queueVideos.size) {
-            listState.scrollToItem(currentQueueIndex)
+    var positioned by remember { mutableStateOf(false) }
+    val currentInQueue = currentQueueIndex in queueVideos.indices
+    LaunchedEffect(currentQueueIndex, currentInQueue) {
+        if (!currentInQueue) return@LaunchedEffect
+        val target = queueScrollTarget(currentQueueIndex)
+        if (!positioned) {
+            listState.scrollToItem(target)
+            positioned = true
+            return@LaunchedEffect
         }
+        queueScrollJump(target, listState.firstVisibleItemIndex)?.let { listState.scrollToItem(it) }
+        listState.animateScrollToItem(target)
     }
 
     FlowBottomSheet(
