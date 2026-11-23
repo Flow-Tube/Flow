@@ -54,6 +54,7 @@ class RangeDownloader internal constructor(
     // starve the rest of the app of IO threads.
     private val transferDispatcher: CoroutineDispatcher,
     private val playback: PriorityTaskManager? = null,
+    private val cached: CachedBlocks? = null,
 ) {
     @OptIn(UnstableApi::class)
     @Inject
@@ -66,6 +67,7 @@ class RangeDownloader internal constructor(
         }::get,
         Dispatchers.IO.limitedParallelism(MAX_PARALLEL_READS),
         PlaybackPriority.tasks,
+        PlayerCacheBlocks(),
     )
 
     /**
@@ -246,6 +248,7 @@ class RangeDownloader internal constructor(
             stream.partialBlockBytes.remove(block)
             return BlockOutcome.Done
         }
+        if (already == 0L && copyFromCache(job, stream, from, end)) return BlockOutcome.Done
         val call = client.newCall(blockRequest(stream.url, from, end, job.fallbackUserAgent))
         job.track(call)
         var written = 0L
@@ -302,6 +305,35 @@ class RangeDownloader internal constructor(
         } finally {
             job.untrack(call)
         }
+    }
+
+    /** A whole block the player already cached is copied from there instead of fetched. */
+    private fun copyFromCache(
+        job: TransferJob,
+        stream: TransferStream,
+        from: Long,
+        end: Long,
+    ): Boolean {
+        val source = cached ?: return false
+        var written = 0L
+        val copied =
+            try {
+                RandomAccessFile(stream.file, "rw").use { file ->
+                    file.seek(from)
+                    source.copy(stream.url, from, end) { buffer, count ->
+                        file.write(buffer, 0, count)
+                        written += count
+                    }
+                }
+            } catch (e: IOException) {
+                Log.w(TAG, "${job.videoId} ${stream.role}: cached block not copied: ${e.message}")
+                false
+            }
+        if (copied) {
+            stream.downloaded.addAndGet(written)
+            job.trace?.onCacheBytes(written)
+        }
+        return copied
     }
 
     private fun failedResponse(

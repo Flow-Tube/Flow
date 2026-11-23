@@ -16,6 +16,7 @@ class DownloadTrace(
     private val firstByteTotalMs = AtomicLong()
     private val firstByteMaxMs = AtomicLong()
     private val networkBytes = AtomicLong()
+    private val cacheBytes = AtomicLong()
     private val expiredDenials = AtomicInteger()
     private val gatedDenials = AtomicInteger()
     private val resolves = AtomicInteger()
@@ -43,6 +44,10 @@ class DownloadTrace(
 
     fun onBytes(count: Int) {
         networkBytes.addAndGet(count.toLong())
+    }
+
+    fun onCacheBytes(count: Long) {
+        cacheBytes.addAndGet(count)
     }
 
     fun onDenied(expired: Boolean) {
@@ -75,6 +80,7 @@ class DownloadTrace(
             append(" bytes=").append(bytes)
             append(" wallMs=").append(wallMs)
             append(" mbps=").append("%.2f".format(java.util.Locale.ROOT, mbps))
+            append(" cacheMB=").append(cacheBytes.get() / BYTES_PER_MB)
             append(" requests=").append(count)
             append(" ttfbAvgMs=").append(if (count > 0) firstByteTotalMs.get() / count else 0)
             append(" ttfbMaxMs=").append(firstByteMaxMs.get())

@@ -149,6 +149,31 @@ class RangeDownloaderTest {
         }
 
     @Test
+    fun `a block the player already cached is copied, not fetched`() =
+        runTest(dispatcher) {
+            val cdn = FakeCdn(content)
+            val job = job()
+            val firstBlock =
+                CachedBlocks { _, from, to, sink ->
+                    if (from != 0L) return@CachedBlocks false
+                    val bytes = content.copyOfRange(0, (to + 1).toInt())
+                    sink(bytes, bytes.size)
+                    true
+                }
+            val downloader = RangeDownloader({ OkHttpClient.Builder().addInterceptor(cdn).build() }, dispatcher, cached = firstBlock)
+
+            assertThat(downloader.run(job)).isEqualTo(TransferResult.Completed)
+            assertThat(
+                job.streams
+                    .single()
+                    .file
+                    .readBytes(),
+            ).isEqualTo(content)
+            assertThat(cdn.requests.get()).isEqualTo(RangeDownloader.blockCount(content.size.toLong()) - 1)
+            assertThat(job.downloadedBytes).isEqualTo(content.size.toLong())
+        }
+
+    @Test
     fun `a resumed stream fetches only the blocks it is missing`() =
         runTest(dispatcher) {
             val cdn = FakeCdn(content)

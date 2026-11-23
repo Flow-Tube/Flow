@@ -35,9 +35,16 @@ private fun isGoogleVideoHost(url: String): Boolean {
 
 private val IdentityParams = setOf("itag", "lmt", "clen", "xtags")
 
-/** [CacheKeyFactory.DEFAULT], except googlevideo streams use [googleVideoStreamKey]. */
+/**
+ * [CacheKeyFactory.DEFAULT], except googlevideo streams use [googleVideoStreamKey]. DASH sets every
+ * segment's key to its representation's signed URL, so a key that is such a URL is read for its
+ * identity too; otherwise each re-extraction cached the same stream again under a new key.
+ */
 @UnstableApi
 internal object StreamIdentityCacheKeyFactory : CacheKeyFactory {
-    override fun buildCacheKey(dataSpec: DataSpec): String =
-        dataSpec.key ?: googleVideoStreamKey(dataSpec.uri.toString()) ?: dataSpec.uri.toString()
+    override fun buildCacheKey(dataSpec: DataSpec): String {
+        val key = dataSpec.key
+        val uri = dataSpec.uri.toString()
+        return key?.let(::googleVideoStreamKey) ?: key ?: googleVideoStreamKey(uri) ?: uri
+    }
 }
