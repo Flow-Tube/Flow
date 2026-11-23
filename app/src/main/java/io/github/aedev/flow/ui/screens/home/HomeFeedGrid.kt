@@ -24,7 +24,6 @@ import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
 import io.github.aedev.flow.ui.components.shared.FlowFeedProgress
 import io.github.aedev.flow.ui.components.shared.MediaShortsShelf
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.dpadFocusGroup
 import io.github.aedev.flow.ui.components.shared.feedStripCardWidth
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
@@ -108,12 +107,8 @@ internal fun HomeFeedGrid(
                     }
                     MediaVideoCard(
                         video = row.video,
-                        layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                        spec = plan.videoCard(index),
                         onClick = { onVideoClick(row.video) },
-                        useInternalPadding = !feedLayout.cardsBleed,
-                        thumbnailWidth = plan.listThumbnailWidth,
-                        density = plan.cardDensity,
-                        fullBleed = feedLayout.thumbnailsBleed,
                         reason = channelMemoryReason.takeIf { uiState.origins[row.video.id]?.kind == HomeCardOrigin.Kind.CHANNEL_MEMORY },
                         whyShown = uiState.origins[row.video.id]?.label(),
                         modifier = Modifier.testTag("home_video_card"),

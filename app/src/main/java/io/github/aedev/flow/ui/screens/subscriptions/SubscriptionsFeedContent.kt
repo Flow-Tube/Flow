@@ -31,7 +31,6 @@ import io.github.aedev.flow.ui.components.rememberFeedGridLayout
 import io.github.aedev.flow.ui.components.shared.FlowPullToRefreshBox
 import io.github.aedev.flow.ui.components.shared.MediaShortsShelf
 import io.github.aedev.flow.ui.components.shared.card.MediaVideoCard
-import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.dpadFocusGroup
 import io.github.aedev.flow.ui.components.shared.rememberFeedGridPlan
 
@@ -166,12 +165,8 @@ internal fun SubscriptionsFeedContent(
                 ) { index, video ->
                     MediaVideoCard(
                         video = video,
-                        layout = if (plan.isListCard(index)) VideoCardLayout.Row else VideoCardLayout.Stacked,
+                        spec = plan.videoCard(index),
                         onClick = { onVideoClick(video) },
-                        useInternalPadding = !feedLayout.cardsBleed,
-                        thumbnailWidth = plan.listThumbnailWidth,
-                        density = plan.cardDensity,
-                        fullBleed = feedLayout.thumbnailsBleed,
                     )
                 }
             }

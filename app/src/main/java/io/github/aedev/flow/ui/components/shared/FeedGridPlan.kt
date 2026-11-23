@@ -10,8 +10,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.partialRowIndices
+import io.github.aedev.flow.ui.components.shared.card.FeedCardSpec
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardDensity
+import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 
 /**
  * The per-index decisions a vertical feed grid makes once its [FeedGridLayout] and its item list are
@@ -46,8 +48,28 @@ data class FeedGridPlan(
     private val listMode: Boolean,
     private val isCompact: Boolean,
     private val compactRows: Boolean,
+    /** [FeedGridLayout.cardsBleed]: stacked cards drop their inset and run edge to edge. */
+    private val cardsBleed: Boolean = false,
+    /** [FeedGridLayout.thumbnailsBleed]: stacked thumbnails drop their corners too. */
+    private val thumbnailsBleed: Boolean = false,
 ) {
     fun isListCard(index: Int): Boolean = listMode || index in partialRows || (columns == 1 && (!isCompact || compactRows))
+
+    /** How the video card at [index] sits in this grid. */
+    fun videoCard(index: Int): FeedCardSpec = card(asRow = isListCard(index))
+
+    /** A card spanning a whole row of this grid, such as one inside a shelf. */
+    fun card(
+        asRow: Boolean,
+        density: VideoCardDensity = cardDensity,
+    ): FeedCardSpec =
+        FeedCardSpec(
+            layout = if (asRow) VideoCardLayout.Row else VideoCardLayout.Stacked,
+            useInternalPadding = !cardsBleed,
+            thumbnailWidth = listThumbnailWidth,
+            density = density,
+            fullBleed = thumbnailsBleed,
+        )
 
     fun span(
         index: Int,
@@ -99,6 +121,8 @@ fun feedGridPlanFor(
         listMode = listMode,
         isCompact = layout.isCompact,
         compactRows = compactRows,
+        cardsBleed = layout.cardsBleed,
+        thumbnailsBleed = layout.thumbnailsBleed,
     )
 }
 
