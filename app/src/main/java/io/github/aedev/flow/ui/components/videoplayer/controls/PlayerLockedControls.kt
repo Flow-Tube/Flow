@@ -52,6 +52,7 @@ internal fun BoxScope.PlayerLockedControls(
     seekbarBottomPadding: () -> Dp,
     onRevealUnlock: () -> Unit,
     onUnlock: () -> Unit,
+    isPlaying: Boolean = true,
 ) {
     LockModeTouchShield(
         onRevealUnlock = onRevealUnlock,
@@ -104,6 +105,7 @@ internal fun BoxScope.PlayerLockedControls(
                     Modifier
                         .height(pillHeight)
                         .align(Alignment.Start),
+                isPlaying = isPlaying,
             )
             LockedSeekbar(
                 positionProvider = positionProvider,

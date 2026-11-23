@@ -159,7 +159,14 @@ data class PlayerResponse(
     data class PlayerConfig(
         val audioConfig: AudioConfig? = null,
         val mediaCommonConfig: MediaCommonConfig? = null,
+        val livePlayerConfig: LivePlayerConfig? = null,
     ) {
+        /** How far behind the newest segment a live stream starts playing. */
+        @Serializable
+        data class LivePlayerConfig(
+            val liveReadaheadSeconds: Double? = null,
+        )
+
         @Serializable
         data class AudioConfig(
             val loudnessDb: Double?,
@@ -227,6 +234,9 @@ data class PlayerResponse(
             val initRange: Range? = null,
             val indexRange: Range? = null,
             val colorInfo: ColorInfo? = null,
+            // Live formats only: the length of one segment and how far back the stream can be played.
+            val targetDurationSec: Double? = null,
+            val maxDvrDurationSec: Long? = null,
         ) {
             /** A live stream's auto-caption track (`text/mp4`), listed with the formats but neither audio nor video. */
             val isText: Boolean
@@ -313,6 +323,7 @@ data class PlayerResponse(
         val isLiveDvrEnabled: Boolean? = null,
         val isPostLiveDvr: Boolean? = null,
         val keywords: List<String>? = null,
+        val latencyClass: String? = null,
     )
 
     @Serializable

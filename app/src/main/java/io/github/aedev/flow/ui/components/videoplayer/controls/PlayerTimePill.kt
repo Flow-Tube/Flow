@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.aedev.flow.R
+import io.github.aedev.flow.player.live.LiveEdgePolicy
 import io.github.aedev.flow.ui.theme.PlayerLiveIndicator
 import io.github.aedev.flow.ui.theme.PlayerScrimAffordance
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
@@ -65,15 +66,22 @@ fun PlayerTimePill(
      * with its layer rather than with its composition.
      */
     isLayerVisible: () -> Boolean = { true },
+    isPlaying: Boolean = true,
 ) {
+    // Within 15 seconds of the end of the window the badge is red and a tap has nothing to do;
+    // behind it, the badge greys, shows how far behind, and a tap goes back to live.
+    val isAtLiveEdge by remember(positionProvider, duration) {
+        derivedStateOf { LiveEdgePolicy.isAtEdge(duration, positionProvider()) }
+    }
     if (onClick != null) {
         Surface(
             onClick = onClick,
+            enabled = !(isLive && isAtLiveEdge),
             color = containerColor,
             shape = CircleShape,
             modifier = modifier,
         ) {
-            PillRow(positionProvider, duration, isLive, showRemainingTime, isLayerVisible)
+            PillRow(positionProvider, duration, isLive, showRemainingTime, isLayerVisible, isAtLiveEdge, isPlaying)
         }
     } else {
         Surface(
@@ -81,7 +89,7 @@ fun PlayerTimePill(
             shape = CircleShape,
             modifier = modifier,
         ) {
-            PillRow(positionProvider, duration, isLive, showRemainingTime, isLayerVisible)
+            PillRow(positionProvider, duration, isLive, showRemainingTime, isLayerVisible, isAtLiveEdge, isPlaying)
         }
     }
 }
@@ -93,6 +101,8 @@ private fun PillRow(
     isLive: Boolean,
     showRemainingTime: Boolean,
     isLayerVisible: () -> Boolean,
+    isAtLiveEdge: Boolean,
+    isPlaying: Boolean,
 ) {
     val elapsedSeconds by remember(positionProvider) {
         derivedStateOf { positionProvider() / 1000L }
@@ -106,14 +116,21 @@ private fun PillRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (isLive) {
-            ElapsedText(elapsedSeconds)
-            TimeSeparator()
-            LiveDot(isLayerVisible = isLayerVisible)
+            if (!isAtLiveEdge) {
+                BehindLiveText(positionProvider, duration)
+                TimeSeparator()
+            }
+            val badgeColor = if (isAtLiveEdge) PlayerLiveIndicator else PlayerScrimContentSecondary
+            LiveDot(
+                color = badgeColor,
+                isPulsing = isAtLiveEdge && isPlaying,
+                isLayerVisible = isLayerVisible,
+            )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = stringResource(R.string.player_live_label),
                 style = MaterialTheme.typography.labelMedium,
-                color = PlayerLiveIndicator,
+                color = badgeColor,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
             )
@@ -141,6 +158,24 @@ private fun PillRow(
     }
 }
 
+/** How far behind live the playhead is, counted from the end of the window rather than its start, which slides. */
+@Composable
+private fun BehindLiveText(
+    positionProvider: () -> Long,
+    windowDuration: Long,
+) {
+    val behindSeconds by remember(positionProvider, windowDuration) {
+        derivedStateOf { LiveEdgePolicy.behindLiveMs(windowDuration, positionProvider()) / 1000L }
+    }
+    val formatted = remember(behindSeconds) { formatDuration(behindSeconds.toInt(), padMinutes = true) }
+    Text(
+        text = stringResource(R.string.player_live_time_behind, formatted),
+        style = MaterialTheme.typography.labelMedium,
+        color = PlayerScrimContent,
+        fontWeight = FontWeight.Bold,
+    )
+}
+
 @Composable
 private fun ElapsedText(elapsedSeconds: Long) {
     Text(
@@ -152,17 +187,21 @@ private fun ElapsedText(elapsedSeconds: Long) {
 }
 
 /**
- * The pulsing red dot beside the LIVE badge.
+ * The dot beside the LIVE badge. It pulses only while live playback is running at the edge.
  *
- * The transition only exists while the layer is on screen, so leaving it cancels the animation
- * instead of leaving it driving the frame clock behind a hidden overlay. The alpha is read in
- * `graphicsLayer`, so the pulse repaints without recomposing the pill.
+ * The transition only exists while the layer is on screen and the dot pulses, so pausing, falling
+ * behind or hiding the layer cancels the animation instead of leaving it driving the frame clock.
+ * The alpha is read in `graphicsLayer`, so the pulse repaints without recomposing the pill.
  */
 @Composable
-private fun LiveDot(isLayerVisible: () -> Boolean) {
+private fun LiveDot(
+    color: Color,
+    isPulsing: Boolean,
+    isLayerVisible: () -> Boolean,
+) {
     val visible by remember(isLayerVisible) { derivedStateOf { isLayerVisible() } }
 
-    if (visible) {
+    if (visible && isPulsing) {
         val transition = rememberInfiniteTransition(label = "liveDot")
         val dotAlpha: State<Float> =
             transition.animateFloat(
@@ -175,20 +214,23 @@ private fun LiveDot(isLayerVisible: () -> Boolean) {
                     ),
                 label = "dotAlpha",
             )
-        LiveDotShape(alphaProvider = { dotAlpha.value })
+        LiveDotShape(color, alphaProvider = { dotAlpha.value })
     } else {
-        LiveDotShape(alphaProvider = { 1f })
+        LiveDotShape(color, alphaProvider = { 1f })
     }
 }
 
 @Composable
-private fun LiveDotShape(alphaProvider: () -> Float) {
+private fun LiveDotShape(
+    color: Color,
+    alphaProvider: () -> Float,
+) {
     Box(
         modifier =
             Modifier
                 .size(LiveDotSize)
                 .graphicsLayer { alpha = alphaProvider() }
-                .background(PlayerLiveIndicator, CircleShape),
+                .background(color, CircleShape),
     )
 }
 
