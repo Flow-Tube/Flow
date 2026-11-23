@@ -5224,4 +5224,6 @@
     <string name="search_instead_for">改為搜尋「%1$s」</string>
     <string name="search_did_you_mean">你是不是要搜尋「%1$s」</string>
     <string name="load_error_offline_hint">重新連上網路後會再次載入</string>
+    <string name="home_offline_downloads_hint">你的下載內容仍可播放</string>
+    <string name="home_back_online_refresh">已重新連上網路 · 重新整理</string>
 </resources>
