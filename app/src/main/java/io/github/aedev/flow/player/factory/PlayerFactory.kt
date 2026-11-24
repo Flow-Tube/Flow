@@ -25,6 +25,7 @@ import io.github.aedev.flow.player.analytics.PlaybackSessionStats
 import io.github.aedev.flow.player.audio.shouldHandleAudioFocus
 import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
+import io.github.aedev.flow.player.quality.ViewportTrackSelection
 import io.github.aedev.flow.player.renderer.CustomRenderersFactory
 import io.github.aedev.flow.player.subtitle.SubtitleDelay
 import io.github.aedev.flow.utils.NetworkState
@@ -91,7 +92,7 @@ class PlayerFactory {
         videoSizeCap: VideoSizeCap,
     ): DefaultTrackSelector {
         val trackSelectionFactory =
-            AdaptiveTrackSelection.Factory(
+            ViewportTrackSelection.Factory(
                 PlayerConfig.ABR_MIN_BUFFER_FOR_QUALITY_INCREASE_MS,
                 PlayerConfig.ABR_MAX_BUFFER_FOR_QUALITY_DECREASE_MS,
                 AdaptiveTrackSelection.DEFAULT_MIN_DURATION_TO_RETAIN_AFTER_DISCARD_MS,

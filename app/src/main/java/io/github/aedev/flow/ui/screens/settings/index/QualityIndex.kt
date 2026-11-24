@@ -38,6 +38,14 @@ internal object QualityIndex {
             R.string.settings_quality_tab_video,
             summary = R.string.settings_quality_remember_summary,
         )
+    val lowerWhenSmall =
+        entry(
+            "video.lower_when_small",
+            R.string.settings_quality_lower_when_small,
+            SettingsTabs.QUALITY_VIDEO,
+            R.string.settings_quality_tab_video,
+            summary = R.string.settings_quality_lower_when_small_summary,
+        )
     val codec =
         entry(
             "video.codec",
@@ -81,6 +89,7 @@ internal object QualityIndex {
             videoWifi,
             videoMobile,
             rememberVideo,
+            lowerWhenSmall,
             codec,
             fallbackCodec,
             thumbnailsWifi,

@@ -660,9 +660,13 @@ class EnhancedPlayerManager private constructor() {
         trackSelector = playerFactory.createTrackSelector(context, videoSizeCap)
         VideoDecoderSupport.attach(context)
         viewportJob =
-            combine(GlobalPlayerState.miniPlayerExpansionState, GlobalPlayerState.isInPipMode, PlayerViewport::isSmall)
-                .distinctUntilChanged()
-                .onEach { small -> trackSelector?.let { PlayerViewport.apply(it, small) } }
+            combine(
+                GlobalPlayerState.miniPlayerExpansionState,
+                GlobalPlayerState.isInPipMode,
+                PlayerPreferences(context).lowerQualityWhenSmall,
+                PlayerViewport::isSmall,
+            ).distinctUntilChanged()
+                .onEach(PlayerViewport::apply)
                 .launchIn(scope)
 
         // Initialize media loader

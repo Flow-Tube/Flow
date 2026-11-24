@@ -138,6 +138,7 @@ internal fun QualitySettingsScreen(
                             QualityPicker.VIDEO_MOBILE
                     })
                     switch(QualityIndex.rememberVideo, viewModel.rememberVideo, viewModel::setRememberVideo)
+                    switch(QualityIndex.lowerWhenSmall, viewModel.lowerWhenSmall, viewModel::setLowerWhenSmall)
                 }
                 group(key = "quality.video.codec", header = R.string.settings_section_codec) {
                     nav(QualityIndex.codec, value = codecLabel, showChevron = false, onClick = { picker = QualityPicker.CODEC })

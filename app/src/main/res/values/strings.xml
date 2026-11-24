@@ -4707,6 +4707,8 @@
     <string name="settings_quality_preferred_codec">Preferred codec</string>
     <string name="settings_quality_remember">Remember video quality</string>
     <string name="settings_quality_remember_summary">A quality picked in the player becomes the default</string>
+    <string name="settings_quality_lower_when_small">Lower quality in mini player and PiP</string>
+    <string name="settings_quality_lower_when_small_summary">Auto uses up to 480p while the video is small</string>
     <string name="settings_section_home">Home</string>
     <string name="settings_section_subscriptions">Subscriptions</string>
     <string name="settings_section_watched">Watched videos</string>
