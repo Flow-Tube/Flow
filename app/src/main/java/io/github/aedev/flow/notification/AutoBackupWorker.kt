@@ -23,6 +23,7 @@ import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.profile.ActiveProfile
 import io.github.aedev.flow.data.profile.ProfileSlices
+import io.github.aedev.flow.utils.FlowCrashHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -130,6 +131,7 @@ class AutoBackupWorker(
             val dependencies = EntryPointAccessors.fromApplication(appContext, AutoBackupEntryPoint::class.java)
             val backupRepo = dependencies.backupRepository()
 
+            FlowCrashHandler.recordPhase("backup", "auto $type start")
             val result =
                 when (type) {
                     LocalDataManager.AutoBackupType.APP_DATA -> {
@@ -145,6 +147,7 @@ class AutoBackupWorker(
                     }
                 }
 
+            FlowCrashHandler.recordPhase("backup", "auto $type ${if (result.isSuccess) "done" else "failed"}")
             return@withContext if (result.isSuccess) {
                 ldm.setAutoBackupLastRun(System.currentTimeMillis())
                 showNotification(appContext, success = true)

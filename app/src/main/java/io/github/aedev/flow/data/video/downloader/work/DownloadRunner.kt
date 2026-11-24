@@ -29,6 +29,7 @@ import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadPlacement
 import io.github.aedev.flow.data.video.storage.PlacedFile
 import io.github.aedev.flow.player.stream.ResolvedCaption
+import io.github.aedev.flow.utils.FlowCrashHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -85,6 +86,7 @@ class DownloadRunner
             waits.stoppedForNetwork = false
             notifier.show(videoId, stored.tags.title, DownloadPhase.Transferring(0L, 0L))
             val trace = DownloadTrace(videoId)
+            FlowCrashHandler.recordPhase("download", "start $videoId")
             var outcome = "stopped"
             var threads = 0
             try {
@@ -124,7 +126,10 @@ class DownloadRunner
                 withContext(NonCancellable) { onStopped(videoId, item.id, stored, staging) }
                 throw e
             } finally {
-                withContext(NonCancellable) { Log.i(TRACE_TAG, trace.line(outcome, settingsOf(threads))) }
+                withContext(NonCancellable) {
+                    Log.i(TRACE_TAG, trace.line(outcome, settingsOf(threads)))
+                    FlowCrashHandler.recordPhase("download", "end $videoId $outcome")
+                }
             }
         }
 
@@ -191,6 +196,7 @@ class DownloadRunner
             val output = staging.output(extension)
             val runJob = currentCoroutineContext().job
             val remuxStarted = trace.now()
+            FlowCrashHandler.recordPhase("download", "remux ${request.videoId}")
             val remuxed =
                 withContext(Dispatchers.IO) {
                     remuxer.remux(

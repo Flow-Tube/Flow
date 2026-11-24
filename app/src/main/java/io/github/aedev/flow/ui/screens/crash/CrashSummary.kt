@@ -8,6 +8,9 @@ private const val NEW_ISSUE_URL = "https://github.com/Flow-Tube/Flow/issues/new"
 private const val APP_PACKAGE = "io.github.aedev.flow"
 private const val MAX_URL_LOG_CHARS = 1_500
 private const val MAX_URL_ACTUAL_CHARS = 300
+private const val MAX_URL_CONTEXT_CHARS = 700
+private const val CONTEXT_STEPS = 5
+private const val STEPS_HEADER = "State/Cache Updates Before Crash"
 private const val UNKNOWN_STEPS = "Not known. Flow crashed during normal use; the stack trace is under Logs."
 private const val EXPECTED = "Flow keeps running."
 private const val TOP_FRAMES = 6
@@ -35,6 +38,10 @@ data class CrashSummary(
     val topFrames: List<String>,
     /** The innermost `Caused by` of a wrapped crash, its header line first, then its frames. */
     val rootCause: List<String> = emptyList(),
+    val thread: String? = null,
+    val heap: String? = null,
+    /** The last steps recorded before the crash, oldest first. */
+    val lastSteps: List<String> = emptyList(),
 ) {
     /**
      * The class a title names. Android rethrows some failures as `RuntimeException(cause)`, so the
@@ -75,6 +82,15 @@ fun parseCrashSummary(report: String): CrashSummary {
             ?: rootFrames.firstOrNull()
             ?: frames.firstOrNull()
     val manufacturer = value("Manufacturer")
+    val steps =
+        lines
+            .indexOf(STEPS_HEADER)
+            .takeIf { it >= 0 }
+            ?.let { start -> lines.drop(start + 1).takeWhile { it.isNotEmpty() } }
+            .orEmpty()
+            .filterNot { it.startsWith("No lifecycle") }
+    val usedHeap = value("Used heap")
+    val maxHeap = value("Max heap")
     val model = value("Model")
     return CrashSummary(
         exception = value("Exception")?.substringAfterLast('.') ?: "Crash",
@@ -89,6 +105,9 @@ fun parseCrashSummary(report: String): CrashSummary {
             },
         topFrames = frames.headKeepingOwnFrame(TOP_FRAMES),
         rootCause = rootCause,
+        thread = value("Thread"),
+        heap = if (usedHeap != null && maxHeap != null) "$usedHeap of $maxHeap" else null,
+        lastSteps = steps.takeLast(CONTEXT_STEPS),
     )
 }
 
@@ -116,6 +135,14 @@ private fun isThrowHelper(frame: String): Boolean {
 private fun List<String>.headKeepingOwnFrame(count: Int): List<String> {
     val own = drop(count).firstOrNull { APP_PACKAGE in it } ?: return take(count)
     return take(count) + SKIPPED_FRAMES + own
+}
+
+/** The thread, the heap and the last steps, which tell a memory crash's cause apart from where it surfaced (#2258). */
+private fun CrashSummary.crashContext(): String? {
+    val lines =
+        listOfNotNull(thread?.let { "Thread: $it" }, heap?.let { "Heap: $it" }) +
+            lastSteps.takeIf { it.isNotEmpty() }?.let { listOf("Before the crash:") + it }.orEmpty()
+    return lines.takeIf { it.isNotEmpty() }?.joinToString("\n")?.take(MAX_URL_CONTEXT_CHARS)
 }
 
 private fun exceptionName(header: String): String? =
@@ -158,6 +185,7 @@ fun CrashSummary.issueUrl(): String {
             "steps" to UNKNOWN_STEPS,
             "expected" to EXPECTED,
             "actual" to "Flow crashed with $error".take(MAX_URL_ACTUAL_CHARS),
+            crashContext()?.let { "context" to it },
             "logs" to log,
         )
     return NEW_ISSUE_URL + "?" +
