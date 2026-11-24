@@ -47,6 +47,7 @@ import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.MediaSheetSlot
 import io.github.aedev.flow.ui.components.shared.applyVideoCommentFilters
 import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
+import io.github.aedev.flow.ui.components.shared.oldestCommentsNote
 import io.github.aedev.flow.ui.components.shared.rememberVideoShareAction
 import io.github.aedev.flow.ui.components.shared.timedCommentOrders
 import io.github.aedev.flow.ui.components.shared.videoCommentSortFor
@@ -118,6 +119,7 @@ fun ShortsScreen(
     val hasMoreComments by viewModel.hasMoreComments.collectAsState()
     val commentTotalText by viewModel.commentTotalText.collectAsState()
     val commentsDisabled by viewModel.commentsDisabled.collectAsState()
+    val oldestCommentsCapped by viewModel.oldestCommentsCapped.collectAsState()
     val descriptionPages by viewModel.shortDescriptionPages.collectAsState()
     val visibleComments =
         remember(comments, commentSortFilter) {
@@ -252,6 +254,8 @@ fun ShortsScreen(
                 comments = visibleComments,
                 isLoading = isLoadingComments,
                 selectedFilter = commentSortFilter,
+                sortOptions = commentSortOptions,
+                sortNote = oldestCommentsNote(commentSortFilter, oldestCommentsCapped, comments.size),
                 totalText = commentTotalText,
                 showTimed = true,
                 onFilterChanged = { filter ->
@@ -261,7 +265,11 @@ fun ShortsScreen(
                             viewModel.selectTimedComments(videoId, timedCommentOrders(commentSortOptions))
                         } else {
                             videoCommentSortFor(commentSortOptions, filter)?.let { sort ->
-                                viewModel.selectCommentSort(videoId, sort, filter.readsAhead)
+                                if (filter == CommentSortFilter.OLDEST) {
+                                    viewModel.selectOldestComments(videoId, sort)
+                                } else {
+                                    viewModel.selectCommentSort(videoId, sort)
+                                }
                             }
                         }
                     }

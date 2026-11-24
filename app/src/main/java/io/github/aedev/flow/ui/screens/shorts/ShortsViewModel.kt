@@ -96,6 +96,8 @@ class ShortsViewModel
         val commentTotalText: StateFlow<String?> = comments.totalText
         val commentsDisabled: StateFlow<Boolean> = comments.isDisabled
 
+        val oldestCommentsCapped: StateFlow<Boolean> = comments.oldestCapped
+
         private val enricher =
             ShortsReelEnricher(
                 scope = viewModelScope,
@@ -330,8 +332,12 @@ class ShortsViewModel
         fun selectCommentSort(
             videoId: String,
             sort: VideoCommentSort,
-            readAhead: Boolean,
-        ) = comments.selectSort(videoId, sort, readAhead)
+        ) = comments.selectSort(videoId, sort)
+
+        fun selectOldestComments(
+            videoId: String,
+            newest: VideoCommentSort,
+        ) = comments.selectOldest(videoId, newest)
 
         fun selectTimedComments(
             videoId: String,

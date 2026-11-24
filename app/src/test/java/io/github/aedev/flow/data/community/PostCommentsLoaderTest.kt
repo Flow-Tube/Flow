@@ -2,6 +2,7 @@ package io.github.aedev.flow.data.community
 
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.innertube.pages.renderer.CommunityCommentsPage
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import kotlinx.coroutines.CompletableDeferred
@@ -126,6 +127,69 @@ class PostCommentsLoaderTest {
             loader.close()
 
             assertThat(loader.state.value).isEqualTo(PostCommentsState())
+        }
+
+    @Test
+    fun `a sort from the post's menu reloads its comments in that order`() =
+        runTest(dispatcher) {
+            val loader = loader()
+            val top = VideoCommentSort("Top", "top", selected = true)
+            val newest = VideoCommentSort("Newest", "newest", selected = false)
+            firstPages["p1"] =
+                CompletableDeferred(Result.success(page(listOf(comment("top1")), "t1").copy(sortOptions = listOf(top, newest))))
+            continuations["newest"] = Result.success(page(listOf(comment("new1")), "n2"))
+
+            loader.open(post("p1"))
+            advanceUntilIdle()
+            assertThat(loader.state.value.sortOptions).containsExactly(top, newest).inOrder()
+
+            loader.selectSort(newest)
+            assertThat(loader.state.value.isLoading).isTrue()
+            advanceUntilIdle()
+
+            assertThat(loader.commentIds()).containsExactly("new1")
+            assertThat(loader.state.value.continuation).isEqualTo("n2")
+            assertThat(loader.state.value.sortOptions).containsExactly(top, newest).inOrder()
+            loader.selectSort(newest)
+            assertThat(requestedContinuations).containsExactly("newest")
+        }
+
+    @Test
+    fun `a page of the old order that lands after a sort change is dropped`() =
+        runTest(dispatcher) {
+            val loader = loader()
+            val newest = VideoCommentSort("Newest", "newest", selected = false)
+            firstPages["p1"] = CompletableDeferred(Result.success(page(listOf(comment("top1")), "t1")))
+            continuations["t1"] = Result.success(page(listOf(comment("top2"))))
+            continuations["newest"] = Result.success(page(listOf(comment("new1"))))
+
+            loader.open(post("p1"))
+            advanceUntilIdle()
+            loader.loadMore()
+            loader.selectSort(newest)
+            advanceUntilIdle()
+
+            assertThat(loader.commentIds()).containsExactly("new1")
+        }
+
+    @Test
+    fun `oldest reads the post's newest order to its end before showing it`() =
+        runTest(dispatcher) {
+            val loader = loader()
+            firstPages["p1"] = CompletableDeferred(Result.success(page(listOf(comment("top1")), "t1")))
+            continuations["newest"] = Result.success(page(listOf(comment("n1")), "n2"))
+            continuations["n2"] = Result.success(page(listOf(comment("n2"))))
+
+            loader.open(post("p1"))
+            advanceUntilIdle()
+            loader.selectOldest(VideoCommentSort("Newest", "newest", selected = false))
+            assertThat(loader.state.value.isLoading).isTrue()
+            advanceUntilIdle()
+
+            assertThat(loader.commentIds()).containsExactly("n1", "n2").inOrder()
+            assertThat(loader.state.value.continuation).isNull()
+            assertThat(loader.state.value.oldestCapped).isFalse()
+            assertThat(loader.state.value.isLoading).isFalse()
         }
 
     private fun PostCommentsLoader.commentIds() = state.value.comments.map(Comment::id)

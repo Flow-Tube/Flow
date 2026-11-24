@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube.pages.renderer
 
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.innertube.pages.accessibilityLabel
 import io.github.aedev.flow.innertube.pages.arrayOrNull
 import io.github.aedev.flow.innertube.pages.bestThumbnailUrl
@@ -13,6 +14,7 @@ import io.github.aedev.flow.innertube.pages.objectOrNull
 import io.github.aedev.flow.innertube.pages.stringOrNull
 import io.github.aedev.flow.innertube.pages.toLegacyComment
 import io.github.aedev.flow.innertube.pages.toModernComment
+import io.github.aedev.flow.innertube.pages.toSortOptions
 import io.github.aedev.flow.innertube.pages.youtubeText
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -39,6 +41,7 @@ data class CommunityCommentsPage(
     val comments: List<Comment>,
     val continuation: String?,
     val commentCountText: String? = null,
+    val sortOptions: List<VideoCommentSort> = emptyList(),
 )
 
 internal fun JsonElement.toCommunityPostsPage(
@@ -100,6 +103,7 @@ internal fun JsonElement.toCommunityCommentsPage(): CommunityCommentsPage {
 
     val comments = mutableListOf<Comment>()
     var continuation: String? = null
+    var sortOptions = emptyList<VideoCommentSort>()
 
     fun collect(element: JsonElement?) {
         when (element) {
@@ -148,6 +152,15 @@ internal fun JsonElement.toCommunityCommentsPage(): CommunityCommentsPage {
                         return
                     }
 
+                if (sortOptions.isEmpty()) {
+                    sortOptions =
+                        element["commentsHeaderRenderer"]
+                            .objectOrNull()
+                            ?.get("sortMenu")
+                            .objectOrNull()
+                            ?.toSortOptions()
+                            .orEmpty()
+                }
                 if (continuation == null) {
                     continuation =
                         element["continuationItemRenderer"]
@@ -168,6 +181,7 @@ internal fun JsonElement.toCommunityCommentsPage(): CommunityCommentsPage {
         comments = comments.distinctBy(Comment::id),
         continuation = continuation,
         commentCountText = findCommentCountText(root),
+        sortOptions = sortOptions,
     )
 }
 

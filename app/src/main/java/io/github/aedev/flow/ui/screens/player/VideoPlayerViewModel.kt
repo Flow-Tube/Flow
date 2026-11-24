@@ -149,6 +149,8 @@ class VideoPlayerViewModel
         val commentSortOptions: StateFlow<List<VideoCommentSort>> = comments.sortOptions
         val commentTotalText: StateFlow<String?> = comments.totalText
         val commentsDisabled: StateFlow<Boolean> = comments.isDisabled
+
+        val oldestCommentsCapped: StateFlow<Boolean> = comments.oldestCapped
         val descriptionState: StateFlow<VideoDescriptionPage?> = descriptions.description
         val transcriptState: StateFlow<TranscriptState> = transcripts.state
 
@@ -423,8 +425,12 @@ class VideoPlayerViewModel
         fun selectCommentSort(
             videoId: String,
             sort: VideoCommentSort,
-            readAhead: Boolean,
-        ) = comments.selectSort(videoId, sort, readAhead)
+        ) = comments.selectSort(videoId, sort)
+
+        fun selectOldestComments(
+            videoId: String,
+            newest: VideoCommentSort,
+        ) = comments.selectOldest(videoId, newest)
 
         val timedCommentsFollow: StateFlow<Boolean> =
             playerPreferences.timedCommentsFollow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)

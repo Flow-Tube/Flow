@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.ui.components.shared.FlowBottomSheet
 import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
 import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
@@ -43,6 +44,8 @@ fun FlowCommentsBottomSheet(
     onLoadReplies: (Comment) -> Unit = {},
     onLoadMoreReplies: (Comment) -> Unit = {},
     selectedFilter: CommentSortFilter = CommentSortFilter.TOP,
+    sortOptions: List<VideoCommentSort> = emptyList(),
+    sortNote: String? = null,
     totalText: String? = null,
     artworkUrl: String? = null,
     showTimed: Boolean = false,
@@ -79,6 +82,8 @@ fun FlowCommentsBottomSheet(
             // and above the divider, which no header parameter can express.
             CommentsSheetHeader(
                 selectedFilter = selectedFilter,
+                sortOptions = sortOptions,
+                sortNote = sortNote,
                 totalText = totalText,
                 showTimed = showTimed,
                 timedFollow = timedFollow,
@@ -117,6 +122,8 @@ fun FlowCommentsBottomSheet(
 @Composable
 private fun CommentsSheetHeader(
     selectedFilter: CommentSortFilter,
+    sortOptions: List<VideoCommentSort>,
+    sortNote: String?,
     totalText: String?,
     showTimed: Boolean,
     timedFollow: CommentsTimedFollow?,
@@ -170,7 +177,9 @@ private fun CommentsSheetHeader(
             CommentSortChips(
                 selected = selectedFilter,
                 onSelect = onFilterChanged,
+                sortOptions = sortOptions,
                 showTimed = showTimed,
+                note = sortNote,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }

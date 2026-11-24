@@ -49,6 +49,7 @@ import io.github.aedev.flow.ui.components.shared.MediaSheetSlot
 import io.github.aedev.flow.ui.components.shared.MediaSleepTimerSheet
 import io.github.aedev.flow.ui.components.shared.commentTimestampToMs
 import io.github.aedev.flow.ui.components.shared.defaultSheetExpandedHeight
+import io.github.aedev.flow.ui.components.shared.oldestCommentsNote
 import io.github.aedev.flow.ui.components.shared.quickactions.QuickActionUndo
 import io.github.aedev.flow.ui.components.shared.quickactions.sharedQuickActionsViewModel
 import io.github.aedev.flow.ui.components.shared.rememberDateDisplaySettings
@@ -328,6 +329,8 @@ internal fun PlayerCommentsPanelHost(
         isLoadingMore = commentsUiState.isLoadingMore,
         hasMore = commentsUiState.hasMore,
         selectedFilter = screenState.commentSortFilter,
+        sortOptions = commentsUiState.sortOptions,
+        sortNote = oldestCommentsNote(screenState.commentSortFilter, commentsUiState.oldestCapped, commentsUiState.comments.size),
         totalText = commentsUiState.totalText,
         artworkUrl = artworkUrl,
         showTimed = true,

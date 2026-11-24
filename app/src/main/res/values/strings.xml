@@ -506,6 +506,10 @@
     <string name="filter_top">Top</string>
     <string name="filter_newest">Newest</string>
     <string name="filter_oldest">Oldest</string>
+    <plurals name="comments_oldest_capped">
+        <item quantity="one">Oldest of the latest %1$d comment</item>
+        <item quantity="other">Oldest of the latest %1$d comments</item>
+    </plurals>
     <string name="filter_timed">Timed</string>
     <string name="no_timed_comments">No comments with a timestamp yet</string>
     <string name="comments_load_more">Load more comments</string>

@@ -205,6 +205,40 @@ class CommunityPostsPageTest {
     }
 
     @Test
+    fun `reads the post's own sort menu, names and tokens as the server sent them`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {
+                  "onResponseReceivedEndpoints": [{
+                    "reloadContinuationItemsCommand": {
+                      "continuationItems": [{
+                        "commentsHeaderRenderer": {
+                          "sortMenu": {
+                            "sortFilterSubMenuRenderer": {
+                              "subMenuItems": [
+                                {"title": "Destacados", "selected": true,
+                                 "serviceEndpoint": {"continuationCommand": {"token": "top-token"}}},
+                                {"title": "Más recientes", "selected": false,
+                                 "serviceEndpoint": {"continuationCommand": {"token": "newest-token"}}}
+                              ]
+                            }
+                          }
+                        }
+                      }]
+                    }
+                  }]
+                }
+                """.trimIndent(),
+            )
+
+        val page = response.toCommunityCommentsPage()
+        assertEquals(listOf("Destacados", "Más recientes"), page.sortOptions.map { it.title })
+        assertEquals(listOf("top-token", "newest-token"), page.sortOptions.map { it.token })
+        assertEquals(null, page.continuation)
+    }
+
+    @Test
     fun `parses legacy comment renderer`() {
         val response =
             Json.parseToJsonElement(

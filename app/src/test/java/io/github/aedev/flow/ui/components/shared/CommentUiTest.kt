@@ -3,10 +3,12 @@ package io.github.aedev.flow.ui.components.shared
 import android.app.Application
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,6 +20,7 @@ import io.github.aedev.flow.data.model.Comment
 import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.data.model.RichTextSpan
 import io.github.aedev.flow.data.model.RichTextTarget
+import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -154,9 +157,33 @@ class CommentUiTest {
         rule.onNodeWithText(string(R.string.filter_newest)).performClick()
         assertThat(selected).isEqualTo(CommentSortFilter.NEWEST)
 
-        rule.onNodeWithText(string(R.string.filter_oldest)).assertIsDisplayed()
+        rule.onNodeWithText(string(R.string.filter_oldest)).performClick()
+        assertThat(selected).isEqualTo(CommentSortFilter.OLDEST)
         rule.onNodeWithText(string(R.string.filter_timed)).performClick()
         assertThat(selected).isEqualTo(CommentSortFilter.TIMED)
+    }
+
+    @Test
+    fun theChipsUseTheNamesTheSectionSent() {
+        rule.setContent {
+            MaterialTheme {
+                CommentSortChips(
+                    selected = CommentSortFilter.TOP,
+                    onSelect = {},
+                    sortOptions =
+                        listOf(
+                            VideoCommentSort("Destacados", "top", selected = true),
+                            VideoCommentSort("Más recientes", "newest", selected = false),
+                        ),
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Destacados").assertIsSelected()
+        rule.onNodeWithText("Más recientes").assertIsDisplayed()
+        rule.onNodeWithText(string(R.string.filter_oldest)).assertIsDisplayed()
+        rule.onAllNodesWithText(string(R.string.filter_top)).assertCountEquals(0)
     }
 
     @Test

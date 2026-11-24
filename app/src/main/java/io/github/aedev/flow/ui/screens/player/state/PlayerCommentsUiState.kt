@@ -31,6 +31,7 @@ data class PlayerCommentsUiState(
     val totalText: String? = null,
     val sortOptions: List<VideoCommentSort> = emptyList(),
     val isDisabled: Boolean = false,
+    val oldestCapped: Boolean = false,
 )
 
 @Composable
@@ -42,7 +43,8 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
     val totalText by viewModel.commentTotalText.collectAsStateWithLifecycle()
     val sortOptions by viewModel.commentSortOptions.collectAsStateWithLifecycle()
     val isDisabled by viewModel.commentsDisabled.collectAsStateWithLifecycle()
-    return remember(comments, isLoading, isLoadingMore, hasMore, totalText, sortOptions, isDisabled) {
+    val oldestCapped by viewModel.oldestCommentsCapped.collectAsStateWithLifecycle()
+    return remember(comments, isLoading, isLoadingMore, hasMore, totalText, sortOptions, isDisabled, oldestCapped) {
         PlayerCommentsUiState(
             comments = comments,
             isLoading = isLoading,
@@ -51,6 +53,7 @@ fun rememberPlayerCommentsUiState(viewModel: VideoPlayerViewModel): PlayerCommen
             totalText = totalText,
             sortOptions = sortOptions,
             isDisabled = isDisabled,
+            oldestCapped = oldestCapped,
         )
     }
 }
@@ -103,8 +106,7 @@ fun PlayerCommentsUiState.seekBarCommentMarks(
  * Applies a chip.
  *
  * Top and Newest are separate continuations, so picking one re-requests the section. Oldest reads
- * the chronological continuation and reverses it locally, which is why it selects the same one as
- * Newest. Timed reads both.
+ * Newest to its end, and Timed asks YouTube for its Timed list.
  */
 fun PlayerCommentsUiState.selectCommentSort(
     filter: CommentSortFilter,
@@ -117,7 +119,6 @@ fun PlayerCommentsUiState.selectCommentSort(
         viewModel.selectTimedComments(videoId, timedCommentOrders(sortOptions))
         return
     }
-    videoCommentSortFor(sortOptions, filter)?.let { sort ->
-        viewModel.selectCommentSort(videoId, sort, filter.readsAhead)
-    }
+    val sort = videoCommentSortFor(sortOptions, filter) ?: return
+    if (filter == CommentSortFilter.OLDEST) viewModel.selectOldestComments(videoId, sort) else viewModel.selectCommentSort(videoId, sort)
 }

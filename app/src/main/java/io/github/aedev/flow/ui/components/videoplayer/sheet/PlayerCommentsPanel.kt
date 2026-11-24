@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.ui.components.shared.CommentSortChips
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
 import io.github.aedev.flow.ui.components.shared.CommentThreadState
@@ -52,6 +53,8 @@ fun PlayerCommentsPanel(
     modifier: Modifier = Modifier,
     totalText: String? = null,
     artworkUrl: String? = null,
+    sortOptions: List<VideoCommentSort> = emptyList(),
+    sortNote: String? = null,
     showTimed: Boolean = false,
     timedFollow: CommentsTimedFollow? = null,
     listState: LazyListState = rememberLazyListState(),
@@ -92,7 +95,9 @@ fun PlayerCommentsPanel(
         CommentSortChips(
             selected = selectedFilter,
             onSelect = onFilterChanged,
+            sortOptions = sortOptions,
             showTimed = showTimed,
+            note = sortNote,
             modifier = Modifier.padding(start = 16.dp, bottom = 6.dp),
         )
         if (selectedFilter == CommentSortFilter.TIMED && timedFollow != null) {

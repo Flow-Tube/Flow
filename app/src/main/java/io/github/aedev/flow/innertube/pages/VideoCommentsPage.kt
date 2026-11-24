@@ -263,7 +263,7 @@ private fun JsonObject.toVideoComment(
 }
 
 /** The entries of a menu object that holds a `sortFilterSubMenuRenderer`. */
-private fun JsonObject.toSortOptions(): List<VideoCommentSort> =
+internal fun JsonObject.toSortOptions(): List<VideoCommentSort> =
     this["sortFilterSubMenuRenderer"]
         .objectOrNull()
         ?.get("subMenuItems")

@@ -18,14 +18,23 @@ fun MediaPostCommentsSheet(
     val state by loader.state.collectAsStateWithLifecycle()
     val post = state.activePost ?: return
     var sort by rememberSaveable(post.id) { mutableStateOf(CommentSortFilter.TOP) }
-    val sortedComments = remember(state.comments, sort) { sortCommentsByFilter(state.comments, sort) }
+    val comments = remember(state.comments, sort) { if (sort == CommentSortFilter.OLDEST) oldestFirst(state.comments) else state.comments }
 
     FlowCommentsBottomSheet(
-        comments = sortedComments,
+        comments = comments,
         isLoading = state.isLoading,
         onDismiss = loader::close,
         selectedFilter = sort,
-        onFilterChanged = { sort = it },
+        sortOptions = state.sortOptions,
+        sortNote = oldestCommentsNote(sort, state.oldestCapped, state.comments.size),
+        onFilterChanged = { filter ->
+            if (filter != sort) {
+                videoCommentSortFor(state.sortOptions, filter)?.let { order ->
+                    sort = filter
+                    if (filter == CommentSortFilter.OLDEST) loader.selectOldest(order) else loader.selectSort(order)
+                }
+            }
+        },
         isLoadingMore = state.isLoadingMore,
         onLoadMore = loader::loadMore,
         hasMore = state.continuation != null,
