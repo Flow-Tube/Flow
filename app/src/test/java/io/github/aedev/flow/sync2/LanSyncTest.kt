@@ -44,9 +44,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -639,6 +641,9 @@ class LanSyncTest {
                 val port = first.start()
                 assertFalse(portFree(port))
                 first.stop()
+                // Ktor closes the socket after stop() returns; listenOnLastPort waits for it the same way.
+                val freed = withTimeoutOrNull(5_000) { while (!portFree(port)) delay(50) }
+                assertTrue(freed != null)
                 val second = WsServer(SESSION_PATH)
                 assertEquals(port, second.start(port))
                 second.stop()
