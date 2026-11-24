@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 private const val DURATION_ENRICHMENT_BATCH_SIZE = 3
 private const val DURATION_METADATA_TIMEOUT_MS = 4_000L
 private const val DURATION_RETRY_AFTER_MS = 30 * 60 * 1_000L
+private const val LIVE_RECHECK_AFTER_MS = 15 * 60 * 1_000L
 
 /**
  * Fills in durations for the feed rows on screen, which RSS leaves out, a few lookups at a time. One run at a time;
@@ -62,6 +63,7 @@ internal class SubscriptionDurationEnricher(
                 attemptedAtMillis = attemptedAt,
                 nowMillis = nowMillis,
                 retryAfterMillis = DURATION_RETRY_AFTER_MS,
+                liveRecheckMillis = LIVE_RECHECK_AFTER_MS,
             )
         if (candidates.isEmpty()) return
 

@@ -24,6 +24,8 @@ private const val LOCKUP_CONTENT_TYPE_COURSE = "LOCKUP_CONTENT_TYPE_COURSE"
 // A channel's Home tab lists the reels it collaborated on as plain video lockups of this type.
 private const val LOCKUP_CONTENT_TYPE_SHORT = "LOCKUP_CONTENT_TYPE_SHORT"
 
+private const val LIVE_BADGE_STYLE = "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE"
+
 internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
     val contentId = this["contentId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
     val metadata = this["metadata"].objectOrNull()?.get("lockupMetadataViewModel").objectOrNull()
@@ -94,7 +96,11 @@ private fun JsonObject.lockupVideo(
 ): Video {
     val (viewsText, uploadText, uploadTimestamp) = lockupDateAndViews(parts, YouTube.locale.hl)
     val duration = badges.firstNotNullOfOrNull(::parseDurationText) ?: 0
-    val isLive = viewsText?.contains("watching", ignoreCase = true) == true || badges.any { it.marksLive() }
+    // The badge's style says live in every language; its text ("LIVE", "EN DIRECTO") is translated.
+    val isLive =
+        lockupBadgeModels().any { it["badgeStyle"].stringOrNull() == LIVE_BADGE_STYLE } ||
+            viewsText?.contains("watching", ignoreCase = true) == true ||
+            badges.any { it.marksLive() }
     // A stream that has not started carries a badge that is neither a duration nor LIVE ("Upcoming"),
     // and its date row is the scheduled start, already rendered by the server.
     val isUpcoming = !isLive && duration == 0 && badges.any { it.marksUpcoming() }

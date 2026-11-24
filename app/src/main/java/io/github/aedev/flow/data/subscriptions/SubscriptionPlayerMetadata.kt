@@ -62,9 +62,10 @@ private fun enrichedRow(
     val isUpcoming =
         scheduledStartMs != null ||
             response.playabilityStatus.status.equals("LIVE_STREAM_OFFLINE", ignoreCase = true)
-    val isLive = !isUpcoming && (details.isLive == true || details.isLiveContent == true)
+    // isLiveContent stays true once a stream has ended; only isLive says it is on air now.
+    val isLive = !isUpcoming && details.isLive == true
     val duration = details.lengthSeconds.toIntOrNull()?.takeIf { it > 0 } ?: 0
-    if (!isUpcoming && !isLive && duration <= 0) return null
+    if (!isUpcoming && !isLive && duration <= 0 && !video.isLive) return null
 
     val bestThumbnail =
         details.thumbnail
@@ -81,7 +82,7 @@ private fun enrichedRow(
         thumbnailUrl = bestThumbnail,
         duration = if (isLive || isUpcoming) 0 else duration,
         viewCount = maxOf(video.viewCount, details.viewCount?.toLongOrNull() ?: 0L),
-        isLive = isLive || (!isUpcoming && video.isLive),
+        isLive = isLive,
         isUpcoming = isUpcoming,
         isScheduledLive = isUpcoming && details.isLiveContent == true,
         timestamp = scheduledStartMs ?: video.timestamp,
@@ -98,7 +99,7 @@ internal fun Video.withPlayerMetadata(enriched: Video): Video =
         thumbnailUrl = enriched.thumbnailUrl.takeIf { it.isNotBlank() } ?: thumbnailUrl,
         duration = enriched.duration.takeIf { it > 0 } ?: duration,
         viewCount = maxOf(viewCount, enriched.viewCount),
-        isLive = enriched.isLive || (!enriched.isUpcoming && isLive),
+        isLive = enriched.isLive,
         isUpcoming = enriched.isUpcoming,
         isScheduledLive = enriched.isScheduledLive,
         timestamp = if (enriched.isUpcoming) enriched.timestamp else timestamp,
