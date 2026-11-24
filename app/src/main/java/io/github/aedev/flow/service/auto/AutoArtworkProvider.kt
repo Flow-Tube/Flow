@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import coil3.SingletonImageLoader
@@ -119,7 +120,17 @@ class AutoArtworkProvider : ContentProvider() {
          * The artwork a session item carries: the car only loads `content://` artwork, also on its
          * Now Playing screen, so web artwork goes through this provider. Anything else stays as it is.
          */
-        fun sessionArtworkUri(url: String): Uri? = uriFor(url) ?: Uri.parse(url)
+        fun sessionArtworkUri(url: String): Uri? = Uri.parse(sessionArtworkUriString(url, Build.VERSION.SDK_INT))
+
+        /**
+         * Android 11's System UI opens a session's artwork URI itself and catches only IOException, so the
+         * SecurityException from this provider (it has no grant) crashes it (#2160). There the web address
+         * goes as it is; System UI skips it and shows the bitmap the session sends.
+         */
+        internal fun sessionArtworkUriString(
+            url: String,
+            sdkInt: Int,
+        ): String = if (sdkInt == Build.VERSION_CODES.R) url else artworkUriString(url) ?: url
 
         /**
          * The web address behind one of this provider's URIs, for code that reads artwork back from
