@@ -1,8 +1,15 @@
+// Maven Central is read through Google's copy of it first: Maven Central answers GitHub's shared runner
+// addresses with HTTP 429, which failed Lint, CodeQL and Unit tests on main. The copy only lags new
+// releases by hours, and anything it lacks still comes from Maven Central itself.
 pluginManagement {
     repositories {
         google()
-        mavenCentral()
+        maven {
+            name = "MavenCentralGoogleMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+        }
         gradlePluginPortal()
+        mavenCentral()
     }
 }
 
@@ -10,16 +17,9 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
-        // Robolectric's 150 MB Android image comes from Google's copy of Maven Central: Maven Central
-        // itself answered CI runners' downloads of it with HTTP 429.
-        exclusiveContent {
-            forRepository {
-                maven {
-                    name = "MavenCentralGoogleMirror"
-                    url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
-                }
-            }
-            filter { includeModule("org.robolectric", "android-all-instrumented") }
+        maven {
+            name = "MavenCentralGoogleMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
         }
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
