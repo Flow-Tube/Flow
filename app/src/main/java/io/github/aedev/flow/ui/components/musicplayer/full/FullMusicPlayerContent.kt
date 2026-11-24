@@ -242,7 +242,7 @@ internal fun FullMusicPlayerContent(
                 artwork = { modifier ->
                     NowPlayingArtwork(
                         immersive = immersiveBackground,
-                        isPlaying = uiState.isPlaying,
+                        isPlaying = uiState.isPlaybackActive,
                         thumbnailUrl = thumbnailUrl,
                         previousTrack = previousTrack,
                         nextTrack = nextTrack,
@@ -265,7 +265,7 @@ internal fun FullMusicPlayerContent(
                         artist = displayArtist,
                         track = previewTrack ?: uiState.currentTrack,
                         uiState = uiState,
-                        animateTrackText = isPlayerSheetExpanded && uiState.isPlaying && !showLyricsSheet && !queueCoversArtwork,
+                        animateTrackText = isPlayerSheetExpanded && uiState.isPlaybackActive && !showLyricsSheet && !queueCoversArtwork,
                         controlScheme = controlScheme,
                         viewModel = viewModel,
                         sheets = sheets,
@@ -346,7 +346,7 @@ internal fun FullMusicPlayerContent(
                     .takeIf { immersiveBackground && isPlayerSheetExpanded }
                     .orEmpty(),
             trackId = track.videoId,
-            motionRunning = isPlayerSheetExpanded && uiState.isPlaying && !showLyricsSheet && !queueCoversArtwork,
+            motionRunning = isPlayerSheetExpanded && uiState.isPlaybackActive && !showLyricsSheet && !queueCoversArtwork,
             dim = { lyricsDim.value },
         )
 

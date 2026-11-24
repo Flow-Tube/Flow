@@ -158,6 +158,7 @@ class MusicPlayerViewModel
                         it.copy(
                             isPlaying = playerState.isPlaying,
                             isBuffering = playerState.isBuffering,
+                            playWhenReady = playerState.playWhenReady,
                             duration = playerState.duration,
                         )
                     }
