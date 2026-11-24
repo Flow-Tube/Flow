@@ -37,6 +37,12 @@ class DownloadPlacement
         // Picking a free name and taking it must not interleave between two downloads finishing together.
         private val naming = Mutex()
 
+        /** Whether placing [request]'s file copies it (a picked folder) rather than moving it within one volume. */
+        suspend fun copiesInto(request: DownloadRequest): Boolean {
+            val fileType = if (request.wantsAudioOnly) DownloadFileType.AUDIO else DownloadFileType.VIDEO
+            return downloads.resolveDestination(fileType, downloads.savedLocation(request.isMusic)).exportTreeUri != null
+        }
+
         suspend fun place(
             staged: File,
             request: DownloadRequest,

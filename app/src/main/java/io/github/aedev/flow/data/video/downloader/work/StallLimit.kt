@@ -19,4 +19,10 @@ internal class StallLimit(
         }
         return ++stillTicks >= ticks
     }
+
+    /** Starts the count over, for a pause that is not a stall. */
+    fun reset() {
+        lastBytes = Long.MIN_VALUE
+        stillTicks = 0
+    }
 }

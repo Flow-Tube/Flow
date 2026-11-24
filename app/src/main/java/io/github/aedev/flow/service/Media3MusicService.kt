@@ -74,6 +74,7 @@ import io.github.aedev.flow.player.MusicQueuePlanner
 import io.github.aedev.flow.player.MusicRadioPlanner
 import io.github.aedev.flow.player.MusicResumeTracker
 import io.github.aedev.flow.player.MutePausePolicy
+import io.github.aedev.flow.player.PlaybackPriority
 import io.github.aedev.flow.player.PlaylistQueueOrder
 import io.github.aedev.flow.player.audio.AudioSessionAnnouncer
 import io.github.aedev.flow.player.audio.AudioSessionRegistry
@@ -406,6 +407,7 @@ class Media3MusicService : MediaLibraryService() {
             .setRenderersFactory(musicRenderers(tailEqualizer))
             .setAudioAttributes(musicAudioAttributes, false)
             .setLoadControl(skipOverlapMs?.let(LoadControlFactory::forSkipTail) ?: LoadControlFactory.forMusic())
+            .setPriorityTaskManager(PlaybackPriority.tasks)
             .build()
             .also { tail ->
                 tail.trackSelectionParameters =
@@ -561,6 +563,7 @@ class Media3MusicService : MediaLibraryService() {
                 // CPU sleep, which a service-held lock used to defeat.
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setLoadControl(loadControl)
+                .setPriorityTaskManager(PlaybackPriority.tasks)
                 .setSeekBackIncrementMs(5000)
                 .setSeekForwardIncrementMs(5000)
                 // Reports device volume changes, which the pause-when-muted setting listens for.

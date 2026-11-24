@@ -21,6 +21,13 @@ class DownloadQueuePlanTest {
     }
 
     @Test
+    fun `a download waiting out a failure is skipped and its slot goes to the next one`() {
+        val plan = DownloadQueuePlan.of(listOf(row("a"), row("b")), running = emptySet(), limit = 1, held = setOf("a"))
+
+        assertThat(plan.toStart).containsExactly("b")
+    }
+
+    @Test
     fun `running downloads count against the limit`() {
         val plan =
             DownloadQueuePlan.of(

@@ -82,6 +82,18 @@ class DownloadStreamResolverTest {
     }
 
     @Test
+    fun `left to choose, a download keeps to what the device plays smoothly`() {
+        val smooth = setOf(136, 247)
+        val choose = { req: DownloadRequest ->
+            streams(DownloadStreamResolver.select(req, result(LADDER, listOf(AAC)), emptySet(), defaults) { it.itag in smooth })
+        }
+
+        assertThat(choose(request(targetHeight = 1080)).video?.itag).isEqualTo(247)
+        assertThat(choose(request(targetHeight = 720, videoCodec = "h264")).video?.itag).isEqualTo(136)
+        assertThat(choose(request(videoItag = 399)).video?.itag).isEqualTo(399)
+    }
+
+    @Test
     fun `a dialog's exact streams are kept while the extraction still offers them`() {
         val picked = streams(select(request(videoItag = 399, audioItag = 140)))
 

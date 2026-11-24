@@ -52,15 +52,20 @@ internal object DownloadSheetChoices {
             ?: qualities.minByOrNull { it.height }
     }
 
-    /** The option [quality] downloads in: [current] when it has it, else [preferredCodec] in SDR, else its first. */
+    /**
+     * The option [quality] downloads in: [current] when it has it, else [preferredCodec] in SDR, else its
+     * first; among the options that [playsSmoothly] when there are any, as playback's Auto chooses.
+     */
     fun option(
         quality: DownloadQuality,
         current: DownloadFormatOption?,
         preferredCodec: String?,
-    ): DownloadFormatOption? =
-        quality.options.firstOrNull { it == current }
-            ?: quality.options.firstOrNull { it.codecKey == preferredCodec && !it.hdr }
-            ?: quality.options.firstOrNull()
+        playsSmoothly: (DownloadFormatOption) -> Boolean = { true },
+    ): DownloadFormatOption? {
+        quality.options.firstOrNull { it == current }?.let { return it }
+        val candidates = quality.options.filter(playsSmoothly).ifEmpty { quality.options }
+        return candidates.firstOrNull { it.codecKey == preferredCodec && !it.hdr } ?: candidates.firstOrNull()
+    }
 
     /** The audio tiles shown before All languages: the original track and the one in the viewer's language. */
     fun primaryAudio(

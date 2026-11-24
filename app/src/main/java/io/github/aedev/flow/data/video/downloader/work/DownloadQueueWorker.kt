@@ -30,6 +30,10 @@ class DownloadQueueWorker(
         fun downloadQueue(): DownloadQueue
 
         fun downloadNotifier(): DownloadNotifier
+
+        fun downloadWaits(): DownloadWaits
+
+        fun downloadController(): DownloadController
     }
 
     private val dependencies by lazy { EntryPointAccessors.fromApplication(applicationContext, Dependencies::class.java) }
@@ -47,6 +51,7 @@ class DownloadQueueWorker(
                 summary.cancel()
             }
         }
+        dependencies.downloadWaits().nextRetryInMs()?.let { dependencies.downloadController().kickAfter(it) }
         return Result.success()
     }
 

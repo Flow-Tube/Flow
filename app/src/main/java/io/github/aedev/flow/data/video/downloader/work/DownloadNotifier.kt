@@ -22,6 +22,8 @@ sealed interface DownloadPhase {
     data class Transferring(
         val downloadedBytes: Long,
         val totalBytes: Long,
+        /** Held back between blocks while something plays. */
+        val yieldingToPlayback: Boolean = false,
     ) : DownloadPhase {
         val percent: Int get() = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100) else 0
     }
@@ -29,6 +31,12 @@ sealed interface DownloadPhase {
     data object Finishing : DownloadPhase
 
     data object Paused : DownloadPhase
+
+    data class Waiting(
+        val reason: DownloadWaitReason,
+        /** For a storage wait: how much more space the download needs, 0 when unknown. */
+        val shortByBytes: Long = 0L,
+    ) : DownloadPhase
 
     data class Failed(
         val message: String,
@@ -38,6 +46,8 @@ sealed interface DownloadPhase {
         val savedElsewhere: String?,
         /** The track saved in place of the chosen one, which wasn't available. */
         val savedAudioTrack: String? = null,
+        /** The quality saved and the one first chosen, when that one was refused. */
+        val savedQualityInstead: Pair<String, String>? = null,
     ) : DownloadPhase
 }
 
@@ -103,7 +113,7 @@ class DownloadNotifier
 
         private fun signatureOf(phase: DownloadPhase): String =
             when (phase) {
-                is DownloadPhase.Transferring -> "t${phase.percent}"
+                is DownloadPhase.Transferring -> "t${phase.percent}${if (phase.yieldingToPlayback) "y" else ""}"
                 else -> phase.toString()
             }
 
@@ -131,15 +141,25 @@ class DownloadNotifier
                 }
 
                 is DownloadPhase.Transferring -> {
-                    builder
-                        .setContentText(
+                    val progress =
+                        context.getString(
+                            R.string.notification_download_progress,
+                            phase.percent,
+                            Formatter.formatShortFileSize(context, phase.downloadedBytes),
+                            Formatter.formatShortFileSize(context, phase.totalBytes),
+                        )
+                    val text =
+                        if (phase.yieldingToPlayback) {
                             context.getString(
-                                R.string.notification_download_progress,
-                                phase.percent,
-                                Formatter.formatShortFileSize(context, phase.downloadedBytes),
-                                Formatter.formatShortFileSize(context, phase.totalBytes),
-                            ),
-                        ).setProgress(100, phase.percent, phase.totalBytes <= 0)
+                                R.string.notification_download_yielding,
+                                progress,
+                            )
+                        } else {
+                            progress
+                        }
+                    builder
+                        .setContentText(text)
+                        .setProgress(100, phase.percent, phase.totalBytes <= 0)
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_PAUSE, R.string.pause))
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_CANCEL, R.string.cancel))
                 }
@@ -161,6 +181,13 @@ class DownloadNotifier
                         .addAction(action(videoId, DownloadActionReceiver.ACTION_CANCEL, R.string.cancel))
                 }
 
+                is DownloadPhase.Waiting -> {
+                    builder
+                        .setContentText(waitingText(phase))
+                        .addAction(action(videoId, DownloadActionReceiver.ACTION_PAUSE, R.string.pause))
+                        .addAction(action(videoId, DownloadActionReceiver.ACTION_CANCEL, R.string.cancel))
+                }
+
                 is DownloadPhase.Failed -> {
                     builder
                         .setContentText(phase.message)
@@ -172,6 +199,9 @@ class DownloadNotifier
                 is DownloadPhase.Complete -> {
                     val text =
                         phase.savedAudioTrack?.let { context.getString(R.string.notification_download_other_audio_track, it) }
+                            ?: phase.savedQualityInstead?.let { (saved, wanted) ->
+                                context.getString(R.string.notification_download_other_quality, saved, wanted)
+                            }
                             ?: phase.savedElsewhere?.let { context.getString(R.string.notification_download_saved_elsewhere, it) }
                             ?: context.getString(R.string.notification_download_complete)
                     builder
@@ -183,6 +213,24 @@ class DownloadNotifier
             }
             return builder.build()
         }
+
+        private fun waitingText(phase: DownloadPhase.Waiting): String =
+            when {
+                phase.reason == DownloadWaitReason.NETWORK -> {
+                    context.getString(R.string.notification_download_waiting_network)
+                }
+
+                phase.shortByBytes > 0L -> {
+                    context.getString(
+                        R.string.notification_download_waiting_storage_amount,
+                        Formatter.formatShortFileSize(context, phase.shortByBytes),
+                    )
+                }
+
+                else -> {
+                    context.getString(R.string.notification_download_waiting_storage)
+                }
+            }
 
         private fun action(
             videoId: String,

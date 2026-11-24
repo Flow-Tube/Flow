@@ -1,9 +1,17 @@
 package io.github.aedev.flow.data.video.downloader.transfer
 
+import androidx.media3.common.C
+import androidx.media3.common.PriorityTaskManager
+import androidx.media3.common.util.UnstableApi
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -87,6 +95,81 @@ class RangeDownloaderTest {
                     .readBytes(),
             ).isEqualTo(content)
             assertThat(cdn.requests.get()).isEqualTo(RangeDownloader.blockCount(content.size.toLong()))
+            assertThat(job.downloadedBytes).isEqualTo(content.size.toLong())
+        }
+
+    @androidx.annotation.OptIn(UnstableApi::class)
+    @Test
+    fun `a download waits between blocks while a player loads`() =
+        runBlocking {
+            val playback = PriorityTaskManager().apply { add(C.PRIORITY_PLAYBACK) }
+            val cdn = FakeCdn(content)
+            val job = job()
+            val downloader = RangeDownloader({ OkHttpClient.Builder().addInterceptor(cdn).build() }, Dispatchers.IO, playback)
+
+            val run = async(Dispatchers.IO) { downloader.run(job) }
+            withTimeout(5_000) { while (!job.isYieldingToPlayback) delay(10) }
+            assertThat(cdn.requests.get()).isEqualTo(0)
+            playback.remove(C.PRIORITY_PLAYBACK)
+
+            assertThat(withTimeout(10_000) { run.await() }).isEqualTo(TransferResult.Completed)
+            assertThat(job.isYieldingToPlayback).isFalse()
+        }
+
+    @androidx.annotation.OptIn(UnstableApi::class)
+    @Test
+    fun `a block cut off for playback resumes from the byte it reached`() =
+        runBlocking {
+            val playback = PriorityTaskManager()
+            val first =
+                java.util.concurrent.atomic
+                    .AtomicBoolean(true)
+            val cdn =
+                FakeCdn(content, respond = { _, _ ->
+                    if (first.getAndSet(false)) {
+                        playback.add(C.PRIORITY_PLAYBACK)
+                        Thread {
+                            Thread.sleep(300)
+                            playback.remove(C.PRIORITY_PLAYBACK)
+                        }.start()
+                    }
+                    200
+                })
+            val job = job(threads = 1)
+            val downloader = RangeDownloader({ OkHttpClient.Builder().addInterceptor(cdn).build() }, Dispatchers.IO, playback)
+
+            assertThat(withTimeout(10_000) { async(Dispatchers.IO) { downloader.run(job) }.await() }).isEqualTo(TransferResult.Completed)
+            assertThat(
+                job.streams
+                    .single()
+                    .file
+                    .readBytes(),
+            ).isEqualTo(content)
+            assertThat(cdn.requests.get()).isGreaterThan(RangeDownloader.blockCount(content.size.toLong()))
+        }
+
+    @Test
+    fun `a block the player already cached is copied, not fetched`() =
+        runTest(dispatcher) {
+            val cdn = FakeCdn(content)
+            val job = job()
+            val firstBlock =
+                CachedBlocks { _, from, to, sink ->
+                    if (from != 0L) return@CachedBlocks false
+                    val bytes = content.copyOfRange(0, (to + 1).toInt())
+                    sink(bytes, bytes.size)
+                    true
+                }
+            val downloader = RangeDownloader({ OkHttpClient.Builder().addInterceptor(cdn).build() }, dispatcher, cached = firstBlock)
+
+            assertThat(downloader.run(job)).isEqualTo(TransferResult.Completed)
+            assertThat(
+                job.streams
+                    .single()
+                    .file
+                    .readBytes(),
+            ).isEqualTo(content)
+            assertThat(cdn.requests.get()).isEqualTo(RangeDownloader.blockCount(content.size.toLong()) - 1)
             assertThat(job.downloadedBytes).isEqualTo(content.size.toLong())
         }
 

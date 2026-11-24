@@ -602,6 +602,7 @@
     <string name="download_already_running">This video is already downloading</string>
     <string name="download_replaces_existing">Replaces the copy you already downloaded</string>
     <string name="notification_download_other_audio_track">Your audio track wasn\'t available. Saved %1$s instead</string>
+    <string name="notification_download_other_quality">%2$s wasn\'t available. Saved %1$s instead</string>
     <string name="download_started_toast">Download started…</string>
     <string name="download_error_toast">Download error: %1$s</string>
     <string name="audio_effects">Audio Effects</string>
@@ -2924,6 +2925,7 @@
     <string name="audio_format_unknown">Audio</string>
     <!-- Approximate download size shown beside a quality; %1$s is a platform-formatted file size -->
     <string name="download_size_estimate">~%1$s</string>
+    <string name="download_may_stutter">May stutter here</string>
     <!-- Download dialog style (Content settings) -->
     <string name="download_menu_style_title">Download menu style</string>
     <string name="download_menu_style_subtitle">Choose how the download sheet looks</string>
@@ -4172,6 +4174,7 @@
     <string name="notification_download_paused_hint">tap to resume</string>
     <!-- Download notification subtitle: percent, bytes so far, total bytes -->
     <string name="notification_download_progress">%1$d%% • %2$s / %3$s</string>
+    <string name="notification_download_yielding">%1$s · Waiting while something plays</string>
     <plurals name="notification_downloads_active">
         <item quantity="one">Downloading %1$d item</item>
         <item quantity="other">Downloading %1$d items</item>
@@ -4376,6 +4379,12 @@
     <string name="error_video_decoder_failed">The video decoder stopped working</string>
     <string name="error_video_decoder_failed_hint">Tap Retry to load the video again.</string>
     <string name="download_waiting_for_wifi">Waiting for WiFi</string>
+    <string name="download_waiting_network">Waiting for network</string>
+    <string name="notification_download_waiting_network">Waiting for network. It resumes on its own.</string>
+    <string name="download_waiting_storage">Waiting for storage</string>
+    <string name="download_waiting_storage_amount">Needs %1$s more storage</string>
+    <string name="notification_download_waiting_storage">Waiting for storage. Free up space to continue.</string>
+    <string name="notification_download_waiting_storage_amount">Waiting for storage. Free up %1$s to continue.</string>
     <string name="notification_download_saved_elsewhere">Saved to %1$s. The chosen folder can\'t be used.</string>
     <string name="download_failed_try_again">Download failed. Please try again.</string>
     <string name="download_failed_unavailable">This video can\'t be downloaded right now</string>

@@ -22,6 +22,7 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.player.MediaButtonSessionCallback
+import io.github.aedev.flow.player.PlaybackPriority
 import io.github.aedev.flow.player.analytics.PlaybackAnalyticsLogger
 import io.github.aedev.flow.player.analytics.PlaybackSessionStats
 import io.github.aedev.flow.player.audio.eq.EqualizerAudioProcessor
@@ -127,6 +128,7 @@ internal object ShortsPlayerFactory {
                 false,
             ).setHandleAudioBecomingNoisy(true)
             .setLoadControl(loadControl)
+            .setPriorityTaskManager(PlaybackPriority.tasks)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .build()
             .apply {

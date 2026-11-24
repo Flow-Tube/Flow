@@ -92,6 +92,14 @@ interface DownloadDao {
         status: DownloadItemStatus,
     )
 
+    /** A running download's progress, leaving its status alone so a pause written meanwhile stands. */
+    @Query("UPDATE download_items SET downloadedBytes = :downloadedBytes, totalBytes = :totalBytes WHERE id = :itemId")
+    suspend fun updateBytes(
+        itemId: Int,
+        downloadedBytes: Long,
+        totalBytes: Long,
+    )
+
     @Query("UPDATE download_items SET downloadedBytes = :downloadedBytes, totalBytes = :totalBytes, status = :status WHERE id = :itemId")
     suspend fun updateItemFull(
         itemId: Int,

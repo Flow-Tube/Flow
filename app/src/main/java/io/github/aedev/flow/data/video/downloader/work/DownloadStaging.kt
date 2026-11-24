@@ -16,12 +16,27 @@ internal class DownloadStaging(
     val audioPart = File("$stem.audio.part")
     val state = File("$stem.state.json")
 
+    /** SABR writes beside the direct parts, so a failed fallback never costs the blocks already fetched. */
+    val sabrVideoPart = File("$stem.sabr.video.part")
+    val sabrAudioPart = File("$stem.sabr.audio.part")
+
+    /** Marks the output as joined and checked, see [ReadyOutput]. */
+    val ready = File("$stem.ready.json")
+
     fun output(extension: String) = File("$stem.out.$extension")
 
     /** Everything this download wrote to staging, including a half-made output. */
     fun clear() {
         listOf(videoPart, audioPart, state, File("${state.path}.tmp"), output("mp4"), output("m4a"), output("webm"))
             .forEach { it.delete() }
+        ready.delete()
+        clearSabrParts()
+    }
+
+    /** What the output was made from, once the output itself is checked and on disk. */
+    fun clearInputs() {
+        listOf(videoPart, audioPart, state, File("${state.path}.tmp")).forEach { it.delete() }
+        clearSabrParts()
     }
 
     /** A half-made output, keeping the fetched parts for a retry. */
@@ -29,9 +44,9 @@ internal class DownloadStaging(
         listOf(output("mp4"), output("m4a"), output("webm")).forEach { it.delete() }
     }
 
-    /** The part files only, for a transfer that has to start over rather than resume. */
-    fun clearParts() {
-        listOf(videoPart, audioPart, state).forEach { it.delete() }
+    /** SABR cannot resume, so each fallback starts from empty files. */
+    fun clearSabrParts() {
+        listOf(sabrVideoPart, sabrAudioPart).forEach { it.delete() }
     }
 
     private companion object {

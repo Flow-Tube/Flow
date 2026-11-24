@@ -9,11 +9,13 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,23 +33,38 @@ class DownloadQueue
         private val downloadDao: DownloadDao,
         private val runner: DownloadRunner,
         private val preferences: PlayerPreferences,
+        private val waits: DownloadWaits,
     ) {
         /** How many downloads are transferring right now, for the queue's foreground notification. */
         val active = MutableStateFlow(0)
 
+        // Two hosts can run the queue (the user-initiated job and the worker); only one drains it.
+        private val draining = Mutex()
+
         suspend fun drain() {
+            if (!draining.tryLock()) return
+            try {
+                drainOnce()
+            } finally {
+                draining.unlock()
+            }
+        }
+
+        private suspend fun drainOnce() {
             downloadDao.requeueInterrupted()
             coroutineScope {
                 val running = mutableMapOf<String, Job>()
                 val finished = MutableStateFlow(0)
+                var wake: Job? = null
                 val limit = MutableStateFlow(preferences.concurrentDownloads.first().coerceIn(MIN_PARALLEL, MAX_PARALLEL))
                 val limitWatch =
                     launch { preferences.concurrentDownloads.collect { limit.value = it.coerceIn(MIN_PARALLEL, MAX_PARALLEL) } }
                 try {
-                    combine(downloadDao.observeQueue(), limit, finished) { rows, max, _ -> rows to max }
+                    combine(downloadDao.observeQueue(), limit, finished, waits.released) { rows, max, _, _ -> rows to max }
                         .first { (rows, max) ->
                             synchronized(running) {
-                                reconcile(rows, max, running) { videoId ->
+                                val held = waits.held()
+                                reconcile(rows, max, running, held) { videoId ->
                                     launch {
                                         try {
                                             runner.run(videoId)
@@ -65,10 +82,22 @@ class DownloadQueue
                                     }
                                 }
                                 active.value = running.size
-                                running.isEmpty() && rows.none { it.status == DownloadItemStatus.PENDING }
+                                val idle = running.isEmpty() && rows.none { it.status == DownloadItemStatus.PENDING && it.videoId !in held }
+                                // A short wait is sat out here; a long one ends the work, which the worker re-schedules.
+                                val next = waits.nextRetryInMs()?.takeIf { !idle || it <= IN_PROCESS_WAIT_MS }
+                                wake?.cancel()
+                                wake =
+                                    next?.let { delayMs ->
+                                        launch {
+                                            delay(delayMs)
+                                            finished.update { it + 1 }
+                                        }
+                                    }
+                                idle && next == null
                             }
                         }
                 } finally {
+                    wake?.cancel()
                     limitWatch.cancel()
                     active.value = 0
                 }
@@ -79,9 +108,10 @@ class DownloadQueue
             rows: List<QueuedDownload>,
             limit: Int,
             running: MutableMap<String, Job>,
+            held: Set<String>,
             start: (String) -> Job,
         ) {
-            val plan = DownloadQueuePlan.of(rows, running.keys, limit)
+            val plan = DownloadQueuePlan.of(rows, running.keys, limit, held)
             plan.toStop.forEach { videoId -> running.remove(videoId)?.cancel() }
             plan.toStart.forEach { videoId -> running[videoId] = start(videoId) }
         }
@@ -90,6 +120,7 @@ class DownloadQueue
             const val TAG = "DownloadQueue"
             const val MIN_PARALLEL = 1
             const val MAX_PARALLEL = 5
+            const val IN_PROCESS_WAIT_MS = 60_000L
         }
     }
 
@@ -106,6 +137,7 @@ internal data class DownloadQueuePlan(
             rows: List<QueuedDownload>,
             running: Set<String>,
             limit: Int,
+            held: Set<String> = emptySet(),
         ): DownloadQueuePlan {
             val statuses = rows.associate { it.videoId to it.status }
             val toStop = running.filter { statuses[it] == null || statuses[it] in STOP_REQUESTS }
@@ -113,7 +145,7 @@ internal data class DownloadQueuePlan(
             val toStart =
                 rows
                     .asSequence()
-                    .filter { it.status == DownloadItemStatus.PENDING && it.videoId !in running }
+                    .filter { it.status == DownloadItemStatus.PENDING && it.videoId !in running && it.videoId !in held }
                     .map { it.videoId }
                     .take((limit - stillRunning).coerceAtLeast(0))
                     .toList()

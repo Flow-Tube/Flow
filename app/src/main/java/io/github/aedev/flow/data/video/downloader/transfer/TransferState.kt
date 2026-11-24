@@ -3,6 +3,7 @@ package io.github.aedev.flow.data.video.downloader.transfer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.FileOutputStream
 
 /**
  * The blocks of a download already on disk, saved beside its part files so a resume after a pause,
@@ -44,13 +45,19 @@ data class TransferState(
 
         fun read(file: File): TransferState? = runCatching { json.decodeFromString(serializer(), file.readText()) }.getOrNull()
 
-        /** Written to a sibling and renamed, so a crash mid-write never leaves half a map behind. */
+        /**
+         * Written to a sibling and renamed, so a crash mid-write never leaves half a map behind. The
+         * caller syncs the part files first: a map must never name blocks still only in memory.
+         */
         fun write(
             file: File,
             state: TransferState,
         ) {
             val temp = File(file.parentFile, "${file.name}.tmp")
-            temp.writeText(json.encodeToString(serializer(), state))
+            FileOutputStream(temp).use { output ->
+                output.write(json.encodeToString(serializer(), state).toByteArray(Charsets.UTF_8))
+                output.fd.sync()
+            }
             if (!temp.renameTo(file)) {
                 file.delete()
                 temp.renameTo(file)

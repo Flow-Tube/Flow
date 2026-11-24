@@ -19,6 +19,8 @@ import io.github.aedev.flow.data.local.entity.DownloadWithItems
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.work.DownloadStaging
+import io.github.aedev.flow.data.video.downloader.work.DownloadWaitReason
+import io.github.aedev.flow.data.video.downloader.work.DownloadWaits
 import io.github.aedev.flow.data.video.storage.DownloadDestination
 import io.github.aedev.flow.data.video.storage.DownloadFiles
 import io.github.aedev.flow.data.video.storage.DownloadLocation
@@ -50,6 +52,8 @@ data class DownloadProgressUpdate(
     val totalBytes: Long,
     val status: DownloadItemStatus,
     val isMerging: Boolean = false,
+    val waitingFor: DownloadWaitReason? = null,
+    val storageShortBy: Long = 0L,
 ) {
     val progress: Float
         get() = if (totalBytes > 0) downloadedBytes.toFloat() / totalBytes.toFloat() else 0f
@@ -80,6 +84,7 @@ class VideoDownloadManager
         private val downloadDao: DownloadDao,
         private val offlineSubtitleStore: OfflineSubtitleStore,
         private val preferences: PlayerPreferences,
+        private val waits: DownloadWaits,
     ) {
         companion object {
             private const val TAG = "VideoDownloadManager"
@@ -373,6 +378,8 @@ class VideoDownloadManager
                     recentlyDeletedPaths.addAll(filePaths)
 
                     downloadDao.deleteDownload(videoId)
+                    // Before returning: a re-download queued right after reuses these staging names.
+                    DownloadStaging(stagingDirectory(), videoId).clear()
 
                     ioScope.launch {
                         val left = mutableListOf<String>()
@@ -397,7 +404,7 @@ class VideoDownloadManager
                             }
                         }
                         offlineSubtitleStore.delete(videoId)
-                        DownloadStaging(stagingDirectory(), videoId).clear()
+                        waits.releaseStorage()
                     }
                     true
                 } catch (e: Exception) {

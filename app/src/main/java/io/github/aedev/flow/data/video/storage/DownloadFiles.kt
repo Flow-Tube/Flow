@@ -10,6 +10,8 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.MimeTypeMap
 import java.io.File
+import java.io.FileOutputStream
+import java.io.RandomAccessFile
 
 /**
  * File operations on a stored download path, which is either an absolute file path or the
@@ -113,6 +115,7 @@ object DownloadFiles {
             runCatching {
                 resolver.openOutputStream(target, "w")?.use { output ->
                     source.inputStream().use { it.copyTo(output, COPY_BUFFER_BYTES) }
+                    (output as? FileOutputStream)?.fd?.sync()
                 } != null
             }.onFailure { Log.w(TAG, "Could not copy ${source.name} to $target", it) }
                 .getOrDefault(false)
@@ -213,12 +216,26 @@ object DownloadFiles {
         val target = File(directory, name)
         if (target.exists()) return null
         if (source.renameTo(target)) return target
+        // A copy is written under a hidden name and renamed once complete, so a failure never leaves
+        // a half file under the real name.
+        val partial = File(directory, ".$name.partial")
         return runCatching {
-            source.copyTo(target, overwrite = false)
+            FileOutputStream(partial).use { output ->
+                source.inputStream().use { it.copyTo(output, COPY_BUFFER_BYTES) }
+                output.fd.sync()
+            }
+            check(partial.renameTo(target)) { "rename to ${target.name} refused" }
             source.delete()
             target
-        }.onFailure { Log.w(TAG, "Could not move ${source.name} to $directory", it) }
-            .getOrNull()
+        }.onFailure {
+            partial.delete()
+            Log.w(TAG, "Could not move ${source.name} to $directory", it)
+        }.getOrNull()
+    }
+
+    /** Forces [file]'s written bytes to storage, so a power loss cannot leave pages that were never written. */
+    fun sync(file: File) {
+        RandomAccessFile(file, "rw").use { it.channel.force(false) }
     }
 
     private fun treeRoot(treeUri: String): Uri {

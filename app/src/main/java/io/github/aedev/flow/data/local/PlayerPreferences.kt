@@ -59,6 +59,7 @@ const val DEFAULT_FULLSCREEN_SEEKBAR_PADDING_DP = 48
 const val MAX_FULLSCREEN_SEEKBAR_PADDING_DP = 120
 const val DEFAULT_CONCURRENT_DOWNLOADS = 3
 const val MAX_CONCURRENT_DOWNLOADS = 5
+const val MAX_DOWNLOAD_THREADS = 8
 
 /** On until turned off, matching NewPipe's default and the Background button (#1298). */
 const val DEFAULT_BACKGROUND_PLAY_ENABLED = true
@@ -4543,12 +4544,12 @@ class PlayerPreferences(
     val downloadThreads: Flow<Int> =
         context.devicePreferencesDataStore.data
             .map { preferences ->
-                preferences[DeviceKeys.DOWNLOAD_THREADS] ?: 3
+                (preferences[DeviceKeys.DOWNLOAD_THREADS] ?: 3).coerceIn(1, MAX_DOWNLOAD_THREADS)
             }
 
     suspend fun setDownloadThreads(threads: Int) {
         context.devicePreferencesDataStore.edit { preferences ->
-            preferences[DeviceKeys.DOWNLOAD_THREADS] = threads
+            preferences[DeviceKeys.DOWNLOAD_THREADS] = threads.coerceIn(1, MAX_DOWNLOAD_THREADS)
         }
     }
 

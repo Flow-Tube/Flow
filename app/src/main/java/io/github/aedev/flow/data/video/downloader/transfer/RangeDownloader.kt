@@ -1,8 +1,13 @@
 package io.github.aedev.flow.data.video.downloader.transfer
 
 import android.util.Log
+import androidx.annotation.OptIn
+import androidx.media3.common.C
+import androidx.media3.common.PriorityTaskManager
+import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.data.video.downloader.YouTubeStreamUrls
 import io.github.aedev.flow.network.ProxyAwareClient
+import io.github.aedev.flow.player.PlaybackPriority
 import io.github.aedev.flow.player.datasource.GoogleVideoRequestPolicy
 import io.github.aedev.flow.player.error.StreamDenialClassifier
 import kotlinx.coroutines.CoroutineDispatcher
@@ -13,6 +18,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -47,7 +53,10 @@ class RangeDownloader internal constructor(
     // Blocking socket reads run here, never on the shared IO pool, so a large download cannot
     // starve the rest of the app of IO threads.
     private val transferDispatcher: CoroutineDispatcher,
+    private val playback: PriorityTaskManager? = null,
+    private val cached: CachedBlocks? = null,
 ) {
+    @OptIn(UnstableApi::class)
     @Inject
     constructor() : this(
         ProxyAwareClient {
@@ -57,12 +66,15 @@ class RangeDownloader internal constructor(
                 .retryOnConnectionFailure(true)
         }::get,
         Dispatchers.IO.limitedParallelism(MAX_PARALLEL_READS),
+        PlaybackPriority.tasks,
+        PlayerCacheBlocks(),
     )
 
     /**
      * Runs [job] to its end. Cancelling the caller stops the job at once: the blocking reads
      * are released by cancelling their requests, which a coroutine cancellation alone cannot do.
      */
+    @OptIn(UnstableApi::class)
     suspend fun run(job: TransferJob): TransferResult =
         withContext(transferDispatcher) {
             coroutineScope {
@@ -74,9 +86,12 @@ class RangeDownloader internal constructor(
                             job.stop()
                         }
                     }
+                // A task proceeds only while it is the highest registered one, so the download registers too.
+                playback?.add(C.PRIORITY_DOWNLOAD)
                 try {
                     transfer(client(), job)
                 } finally {
+                    playback?.remove(C.PRIORITY_DOWNLOAD)
                     releaseOnCancel.cancel()
                 }
             }
@@ -121,7 +136,7 @@ class RangeDownloader internal constructor(
                 }
             }
         } catch (e: IOException) {
-            val failure = if (isDiskFull(e)) TransferFailure.DISK_FULL else TransferFailure.BLOCK_FAILED
+            val failure = if (DiskFull.isCause(e)) TransferFailure.DISK_FULL else TransferFailure.BLOCK_FAILED
             job.fail(TransferResult.Failed(failure, e.message))
         }
         return job.outcome()
@@ -139,10 +154,35 @@ class RangeDownloader internal constructor(
             val block = stream.nextBlock.getAndIncrement()
             if (block >= blockCount) return
             if (block in stream.completedBlocks) continue
+            if (stream.refreshAtNanos?.let { System.nanoTime() >= it } == true) {
+                job.fail(TransferResult.Expiring)
+                return
+            }
+            yieldToPlayback(job)
+            if (!job.isRunning) return
             val start = block * BLOCK_SIZE
             val end = minOf(start + BLOCK_SIZE, stream.totalBytes) - 1
             if (!fetchBlockWithRetry(client, job, stream, block, start, end)) return
             stream.completedBlocks.add(block)
+        }
+    }
+
+    /** A player is loading, so a download mid-block steps aside rather than share the link (YouTube pre-empts the same way). */
+    @OptIn(UnstableApi::class)
+    private fun playbackWantsLink(): Boolean = playback?.proceedNonBlocking(C.PRIORITY_DOWNLOAD) == false
+
+    /** Waits while a player is loading. */
+    @OptIn(UnstableApi::class)
+    private suspend fun yieldToPlayback(job: TransferJob) {
+        val tasks = playback ?: return
+        if (tasks.proceedNonBlocking(C.PRIORITY_DOWNLOAD)) return
+        val since = job.trace?.now()
+        job.yieldingWorkers.incrementAndGet()
+        try {
+            runInterruptible { tasks.proceed(C.PRIORITY_DOWNLOAD) }
+        } finally {
+            job.yieldingWorkers.decrementAndGet()
+            since?.let { job.trace?.onPlaybackWait(it) }
         }
     }
 
@@ -155,7 +195,8 @@ class RangeDownloader internal constructor(
         end: Long,
     ): Boolean {
         var lastError: String? = null
-        repeat(MAX_ATTEMPTS) { attempt ->
+        var attempt = 0
+        while (attempt < MAX_ATTEMPTS) {
             if (!job.isRunning) return false
             when (val outcome = fetchBlock(client, job, stream, block, start, end)) {
                 BlockOutcome.Done -> {
@@ -164,6 +205,12 @@ class RangeDownloader internal constructor(
 
                 BlockOutcome.Stopped -> {
                     return false
+                }
+
+                // Cut off for playback: the block resumes from the byte it reached, without costing an attempt.
+                BlockOutcome.Yielded -> {
+                    yieldToPlayback(job)
+                    continue
                 }
 
                 is BlockOutcome.Denied -> {
@@ -179,6 +226,7 @@ class RangeDownloader internal constructor(
                         return false
                     }
                     if (attempt + 1 < MAX_ATTEMPTS) delay(retryDelayMs(attempt, outcome.retryAfterMs))
+                    attempt++
                 }
             }
         }
@@ -200,13 +248,15 @@ class RangeDownloader internal constructor(
             stream.partialBlockBytes.remove(block)
             return BlockOutcome.Done
         }
+        if (already == 0L && copyFromCache(job, stream, from, end)) return BlockOutcome.Done
         val call = client.newCall(blockRequest(stream.url, from, end, job.fallbackUserAgent))
         job.track(call)
         var written = 0L
         try {
+            val sentAt = job.trace?.now() ?: 0L
             val response =
                 try {
-                    call.execute()
+                    call.execute().also { job.trace?.onResponse(sentAt) }
                 } catch (e: IOException) {
                     return if (job.isRunning) BlockOutcome.Retry(e.message ?: e.javaClass.simpleName) else BlockOutcome.Stopped
                 }
@@ -230,7 +280,12 @@ class RangeDownloader internal constructor(
                                 stream.partialBlockBytes[block] = already + written
                                 return BlockOutcome.Stopped
                             }
+                            if (playbackWantsLink()) {
+                                stream.partialBlockBytes[block] = already + written
+                                return BlockOutcome.Yielded
+                            }
                             file.write(buffer, 0, read)
+                            job.trace?.onBytes(read)
                             written += read
                             stream.downloaded.addAndGet(read.toLong())
                         }
@@ -246,10 +301,39 @@ class RangeDownloader internal constructor(
         } catch (e: IOException) {
             stream.partialBlockBytes[block] = already + written
             if (!job.isRunning) return BlockOutcome.Stopped
-            return BlockOutcome.Retry(e.message ?: e.javaClass.simpleName, diskFull = isDiskFull(e))
+            return BlockOutcome.Retry(e.message ?: e.javaClass.simpleName, diskFull = DiskFull.isCause(e))
         } finally {
             job.untrack(call)
         }
+    }
+
+    /** A whole block the player already cached is copied from there instead of fetched. */
+    private fun copyFromCache(
+        job: TransferJob,
+        stream: TransferStream,
+        from: Long,
+        end: Long,
+    ): Boolean {
+        val source = cached ?: return false
+        var written = 0L
+        val copied =
+            try {
+                RandomAccessFile(stream.file, "rw").use { file ->
+                    file.seek(from)
+                    source.copy(stream.url, from, end) { buffer, count ->
+                        file.write(buffer, 0, count)
+                        written += count
+                    }
+                }
+            } catch (e: IOException) {
+                Log.w(TAG, "${job.videoId} ${stream.role}: cached block not copied: ${e.message}")
+                false
+            }
+        if (copied) {
+            stream.downloaded.addAndGet(written)
+            job.trace?.onCacheBytes(written)
+        }
+        return copied
     }
 
     private fun failedResponse(
@@ -341,16 +425,13 @@ class RangeDownloader internal constructor(
         RandomAccessFile(file, "rw").use { raf -> if (raf.length() != size) raf.setLength(size) }
     }
 
-    private fun restoredBytes(stream: TransferStream): Long =
-        stream.completedBlocks.sumOf { block ->
-            val start = block * BLOCK_SIZE
-            minOf(start + BLOCK_SIZE, stream.totalBytes) - start
-        } + stream.partialBlockBytes.values.sum()
-
     private sealed interface BlockOutcome {
         data object Done : BlockOutcome
 
         data object Stopped : BlockOutcome
+
+        /** A player started loading; the block stops where it is and continues after. */
+        data object Yielded : BlockOutcome
 
         data class Denied(
             val url: String,
@@ -372,15 +453,37 @@ class RangeDownloader internal constructor(
         private const val MAX_RETRY_AFTER_MS = 60_000L
         private const val MAX_PARALLEL_READS = 16
 
+        /** A URL this close to its deadline is minted again before the next block rather than refused mid-block. */
+        const val EXPIRY_MARGIN_SECONDS = 5 * 60L
+        private const val NANOS_PER_SECOND = 1_000_000_000L
+
+        /**
+         * When a URL is minted again, measured from when it was resolved on the monotonic clock, so a
+         * clock change mid-download cannot move it. Null when the URL has no deadline, or already
+         * looks close to it: then the device clock is off and the 403 path is the only safe signal.
+         */
+        fun refreshDeadlineNanos(
+            url: String,
+            nowSeconds: Long = System.currentTimeMillis() / 1000,
+            nowNanos: Long = System.nanoTime(),
+        ): Long? {
+            val left = StreamDenialClassifier.expiresInSeconds(url, nowSeconds)?.takeIf { it > EXPIRY_MARGIN_SECONDS } ?: return null
+            return nowNanos + (left - EXPIRY_MARGIN_SECONDS) * NANOS_PER_SECOND
+        }
+
         fun blockCount(totalBytes: Long): Int = ((totalBytes + BLOCK_SIZE - 1) / BLOCK_SIZE).toInt()
+
+        /** The bytes of [stream] already on disk from its restored block map. */
+        fun restoredBytes(stream: TransferStream): Long =
+            stream.completedBlocks.sumOf { block ->
+                val start = block * BLOCK_SIZE
+                minOf(start + BLOCK_SIZE, stream.totalBytes) - start
+            } + stream.partialBlockBytes.values.sum()
 
         fun retryDelayMs(
             attempt: Int,
             retryAfterMs: Long?,
         ): Long = retryAfterMs?.coerceIn(0L, MAX_RETRY_AFTER_MS) ?: (INITIAL_RETRY_DELAY_MS shl attempt)
-
-        fun isDiskFull(error: IOException): Boolean =
-            error.message?.contains("ENOSPC") == true || error.message?.contains("No space left") == true
 
         private fun retryAfterMs(response: Response): Long? =
             response

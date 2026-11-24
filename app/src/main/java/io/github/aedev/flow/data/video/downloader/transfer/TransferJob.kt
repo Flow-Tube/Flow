@@ -26,6 +26,9 @@ class TransferStream(
     var totalBytes: Long = totalBytes
         internal set
 
+    /** When [url] is minted again before the next block, on the monotonic clock; see [RangeDownloader.refreshDeadlineNanos]. */
+    internal val refreshAtNanos: Long? = RangeDownloader.refreshDeadlineNanos(url)
+
     val completedBlocks: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     val partialBlockBytes: ConcurrentHashMap<Int, Long> = ConcurrentHashMap()
     internal val downloaded = AtomicLong(0L)
@@ -43,7 +46,7 @@ enum class TransferStatus {
     FINISHED,
 }
 
-/** What one run of [ParallelDownloader] ended on. */
+/** What one run of [RangeDownloader] ended on. */
 sealed interface TransferResult {
     data object Completed : TransferResult
 
@@ -56,6 +59,9 @@ sealed interface TransferResult {
 
     /** No bytes arrived for a while; the stream is resolved again without blaming its client. */
     data object Stalled : TransferResult
+
+    /** A URL was about to expire, or had; it is minted again and the transfer continues. */
+    data object Expiring : TransferResult
 
     data class Failed(
         val reason: TransferFailure,
@@ -75,6 +81,7 @@ class TransferJob(
     val streams: List<TransferStream>,
     val threads: Int,
     val fallbackUserAgent: String,
+    val trace: DownloadTrace? = null,
 ) {
     @Volatile
     var status: TransferStatus = TransferStatus.RUNNING
@@ -85,6 +92,11 @@ class TransferJob(
         private set
 
     private val activeCalls: MutableList<Call> = Collections.synchronizedList(mutableListOf())
+
+    internal val yieldingWorkers = AtomicInteger()
+
+    /** Some worker is waiting for playback to stop loading, so a still byte count is not a stall. */
+    val isYieldingToPlayback: Boolean get() = yieldingWorkers.get() > 0
 
     val downloadedBytes: Long get() = streams.sumOf { it.downloadedBytes }
     val totalBytes: Long get() = streams.sumOf { it.totalBytes }

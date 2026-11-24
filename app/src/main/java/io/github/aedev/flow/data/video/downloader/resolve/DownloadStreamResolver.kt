@@ -1,12 +1,18 @@
 package io.github.aedev.flow.data.video.downloader.resolve
 
+import android.content.Context
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.MusicAudioQuality
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.VideoCodec
 import io.github.aedev.flow.data.video.DefaultDownloadSelection
 import io.github.aedev.flow.data.video.DownloadStreamPolicy
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
+import io.github.aedev.flow.data.video.playsSmoothlyHere
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
+import io.github.aedev.flow.player.quality.VideoDecoderSupport
 import io.github.aedev.flow.player.stream.CaptionFormat
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
@@ -46,20 +52,27 @@ sealed interface ResolveOutcome {
  * Turns a [DownloadRequest] into streams with fresh URLs, through the same InnerTube client ladder
  * playback uses (coalesced with it, so a download of the video on screen costs no second request).
  */
+@OptIn(UnstableApi::class)
 @Singleton
 class DownloadStreamResolver
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val preferences: PlayerPreferences,
+        private val recent: RecentExtractions,
     ) {
         suspend fun resolve(
             request: DownloadRequest,
             avoidItags: Set<Int> = emptySet(),
             acceptOtherTrack: Boolean = false,
         ): ResolveOutcome {
-            val result = InnerTubeVideoStreamExtractor.extract(request.videoId) ?: return ResolveOutcome.Unavailable
+            val result =
+                recent.take(request.videoId)
+                    ?: InnerTubeVideoStreamExtractor.extract(request.videoId, audioOnly = request.wantsAudioOnly)
+                    ?: return ResolveOutcome.Unavailable
             if (result.isLive) return ResolveOutcome.Unavailable
-            val outcome = select(request, result, avoidItags, defaults(), acceptOtherTrack)
+            VideoDecoderSupport.attach(context)
+            val outcome = select(request, result, avoidItags, defaults(), acceptOtherTrack) { it.playsSmoothlyHere() }
             if (outcome !is ResolveOutcome.Resolved || request.wantsAudioOnly) return outcome
             return ResolveOutcome.Resolved(outcome.streams.copy(captions = captionsOf(request, result)))
         }
@@ -101,6 +114,7 @@ class DownloadStreamResolver
                 avoidItags: Set<Int>,
                 defaults: SelectionDefaults,
                 acceptOtherTrack: Boolean = false,
+                playsSmoothly: (Format) -> Boolean = { true },
             ): ResolveOutcome {
                 val audioFormats =
                     DownloadStreamPolicy
@@ -146,12 +160,14 @@ class DownloadStreamResolver
                     ?.let { itag -> videoFormats.firstOrNull { it.itag == itag } }
                     ?.let { return ResolveOutcome.Resolved(ResolvedStreams(it, audio, durationMs, audioTrackSwapped = trackSwapped)) }
 
+                // Left to choose, a download keeps to what this device plays smoothly, as playback's Auto does.
+                val candidates = videoFormats.filter(playsSmoothly).ifEmpty { videoFormats }
                 val height =
                     DefaultDownloadSelection.pickHeight(
-                        videoFormats.map(DownloadStreamPolicy::videoHeight),
+                        candidates.map(DownloadStreamPolicy::videoHeight),
                         request.targetHeight ?: defaults.height,
                     ) ?: return ResolveOutcome.Unavailable
-                val atHeight = videoFormats.filter { DownloadStreamPolicy.videoHeight(it) == height }
+                val atHeight = candidates.filter { DownloadStreamPolicy.videoHeight(it) == height }
                 val codec =
                     DefaultDownloadSelection
                         .rankCodecs(atHeight.map(DownloadStreamPolicy::videoCodecKey), request.videoCodec ?: defaults.codec)
