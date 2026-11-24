@@ -10,6 +10,7 @@ data class FlowCrashBreadcrumb(
     val phase: String,
     val detail: String,
     val heapMb: Long? = null,
+    val nativeMb: Long? = null,
     /** How many times in a row this phase and detail were recorded; [timestampMs] is the latest. */
     val count: Int = 1,
 )
@@ -96,6 +97,7 @@ object FlowCrashReportFormatter {
             append("${timeFormat.format(Date(entry.timestampMs))} ${entry.phase}: ${entry.detail}")
             if (entry.count > 1) append(" ×${entry.count}")
             entry.heapMb?.let { append(" heap=${it}MB") }
+            entry.nativeMb?.let { append(" native=${it}MB") }
             appendLine()
         }
     }

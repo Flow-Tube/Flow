@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.crash
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.utils.FlowCrashBreadcrumb
 import io.github.aedev.flow.utils.FlowCrashReportFormatter
 import io.github.aedev.flow.utils.FlowCrashReportSnapshot
 import org.junit.Test
@@ -234,5 +235,34 @@ class CrashSummaryTest {
     @Test
     fun `a plain message keeps the exception's own name`() {
         assertThat(parseCrashSummary(report).headline).isEqualTo("IllegalArgumentException")
+    }
+
+    @Test
+    fun `the link carries the thread, the heap and the last steps for a memory crash (2258)`() {
+        val oom =
+            FlowCrashReportFormatter.build(
+                FlowCrashReportSnapshot(
+                    timestampMs = 0,
+                    threadName = "arch_disk_io_2",
+                    threadId = 40,
+                    exceptionClass = "java.lang.OutOfMemoryError",
+                    exceptionMessage = "Failed to allocate a 56 byte allocation",
+                    stackTrace =
+                        "java.lang.OutOfMemoryError: Failed to allocate a 56 byte allocation\n" +
+                            "\tat androidx.room.util.DBUtil.performBlocking(DBUtil.kt:30)",
+                    deviceInfo = "  App Version: 3.0.5 (20)",
+                    memoryInfo = "  Used heap: 255 MB\n  Max heap: 256 MB",
+                    breadcrumbs = (1..7).map { FlowCrashBreadcrumb(it * 1_000L, "download", "step $it", heapMb = 200L + it) },
+                ),
+            )
+
+        val url = parseCrashSummary(oom).issueUrl()
+        val context = URLDecoder.decode(url.substringAfter("&context=").substringBefore("&"), Charsets.UTF_8.name())
+
+        assertThat(context).startsWith("Thread: arch_disk_io_2 (id=40)\nHeap: 255 MB of 256 MB\nBefore the crash:\n")
+        assertThat(context).contains("download: step 7 heap=207MB")
+        assertThat(context).contains("download: step 3")
+        assertThat(context).doesNotContain("step 2")
+        assertThat(url.indexOf("&context=")).isLessThan(url.indexOf("&logs="))
     }
 }

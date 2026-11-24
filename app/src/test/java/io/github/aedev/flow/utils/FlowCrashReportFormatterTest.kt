@@ -79,13 +79,20 @@ class FlowCrashReportFormatterTest {
                     memoryInfo = "",
                     breadcrumbs =
                         listOf(
-                            FlowCrashBreadcrumb(1_799_999_990_000L, "video-service", "onStartCommand action=null", heapMb = 212, count = 5),
+                            FlowCrashBreadcrumb(
+                                1_799_999_990_000L,
+                                "video-service",
+                                "onStartCommand action=null",
+                                heapMb = 212,
+                                nativeMb = 40,
+                                count = 5,
+                            ),
                             FlowCrashBreadcrumb(1_799_999_991_000L, "video-item", "load abc audioOnly=false"),
                         ),
                 ),
             )
 
-        assertThat(report).contains("video-service: onStartCommand action=null ×5 heap=212MB")
+        assertThat(report).contains("video-service: onStartCommand action=null ×5 heap=212MB native=40MB")
         assertThat(report).contains("video-item: load abc audioOnly=false\n")
     }
 

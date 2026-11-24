@@ -514,7 +514,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        FlowCrashHandler.recordPhase("memory", "MainActivity.onTrimMemory level=$level")
         videoPlayerManager.get().handleMemoryPressure(
             trimLevel = level,
             videoVisible = lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) || isInPictureInPictureMode,

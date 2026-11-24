@@ -1,7 +1,9 @@
 package io.github.aedev.flow.utils
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
+import android.os.Debug
 import android.util.Log
 import androidx.core.content.pm.PackageInfoCompat
 import java.io.File
@@ -24,7 +26,7 @@ class FlowCrashHandler private constructor(
         private const val TAG = "FlowCrashHandler"
         private const val CRASH_LOG_FILE = "flow_crashes.log"
         private const val MAX_CRASH_LOG_SIZE = 500_000L // 500KB
-        private const val MAX_BREADCRUMBS = 40
+        private const val MAX_BREADCRUMBS = 80
         private val breadcrumbs = ConcurrentLinkedDeque<FlowCrashBreadcrumb>()
 
         @Volatile
@@ -100,6 +102,7 @@ class FlowCrashHandler private constructor(
                     phase = phase.take(48),
                     detail = detail.take(240),
                     heapMb = (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024,
+                    nativeMb = Debug.getNativeHeapAllocatedSize() / 1024 / 1024,
                 )
             synchronized(breadcrumbs) { breadcrumbs.record(entry, MAX_BREADCRUMBS) }
         }
@@ -215,6 +218,21 @@ class FlowCrashHandler private constructor(
             appendLine("  Free heap: ${runtime.freeMemory() / 1024 / 1024} MB")
             appendLine("  Total heap: ${runtime.totalMemory() / 1024 / 1024} MB")
             appendLine("  Max heap: ${runtime.maxMemory() / 1024 / 1024} MB")
+            // Each extra fact is optional: after an OutOfMemoryError any of these calls can fail.
+            runCatching { appendLine("  Native heap: ${Debug.getNativeHeapAllocatedSize() / 1024 / 1024} MB") }
+            runCatching {
+                val runs = Debug.getRuntimeStat("art.gc.gc-count")
+                val blocking = Debug.getRuntimeStat("art.gc.blocking-gc-count")
+                appendLine("  GC runs: $runs (blocking $blocking)")
+            }
+            runCatching {
+                val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val device = ActivityManager.MemoryInfo().also(activityManager::getMemoryInfo)
+                val freeMb = device.availMem / 1024 / 1024
+                val totalMb = device.totalMem / 1024 / 1024
+                appendLine("  Memory class: ${activityManager.memoryClass} MB, low-RAM device: ${activityManager.isLowRamDevice}")
+                appendLine("  Device memory free: $freeMb of $totalMb MB, low: ${device.lowMemory}")
+            }
         }.trimEnd()
     }
 }
