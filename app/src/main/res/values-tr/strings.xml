@@ -4553,7 +4553,7 @@
     <string name="subscriptions_pin_channel">Başlamak için sabitle</string>
     <string name="subscriptions_open_channel">Kanalı aç</string>
     <string name="subscriptions_pinned_section">Sabitlenmiş</string>
-    <string name="auto_group_music_playlists">Müzik oynatma listeleri</string>
+    <string name="auto_group_music_playlists">Müzik çalma listeleri</string>
     <string name="auto_group_video_playlists">Video oynatma listeleri</string>
     <string name="lyrics_romanization_only_summary">Orijinal betiği Latin harfleriyle değiştirin</string>
     <string name="lyrics_background_colorful">Renkli</string>
@@ -5314,4 +5314,5 @@
     <string name="linked_error_folder_forbidden">Sunucu o klasöre yazmaya izin vermiyor.</string>
     <string name="settings_quality_lower_when_small">Mini oynatıcıda ve PiP\'te daha düşük kalite</string>
     <string name="settings_quality_lower_when_small_summary">Otomatik, video küçükken 480p\'ye kadar kullanır</string>
+    <string name="linked_device_name_with_id">%1$s · %2$s</string>
 </resources>
