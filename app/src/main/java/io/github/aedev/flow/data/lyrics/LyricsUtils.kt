@@ -283,8 +283,8 @@ object LyricsUtils {
 
     private fun stripRichSyncTags(content: String): String =
         content
-            .replace(Regex("<\\d{1,2}:\\d{2}\\.\\d{2,3}>\\s*"), " ")
-            .replace(Regex("\\[\\d{1,2}:\\d{2}\\.\\d{2,3}\\]\\s*$"), " ")
+            .replace(Regex("<\\d{1,2}:\\d{2}\\.\\d{2,3}>"), "")
+            .replace(Regex("\\[\\d{1,2}:\\d{2}\\.\\d{2,3}\\]\\s*$"), "")
             .replace(Regex("\\s+"), " ")
             .replace(Regex("\\s+([,.;:!?%])"), "$1")
             .trim()

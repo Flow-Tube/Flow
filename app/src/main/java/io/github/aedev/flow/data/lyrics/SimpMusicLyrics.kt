@@ -125,7 +125,8 @@ class SimpMusicLyrics(
             val richEntries = parseRichSyncJson(richSyncStr, duration)
             if (richEntries != null && richEntries.isNotEmpty()) {
                 Log.d(TAG, "Using richSyncLyrics (${richEntries.size} lines)")
-                return richEntries
+                val reference = listOfNotNull(bestMatch.text("syncedLyrics"), bestMatch.text("plainLyrics") ?: bestMatch.text("plainLyric"))
+                return SyllableJoin.rejoin(richEntries, reference.joinToString("\n"))
             }
         }
 

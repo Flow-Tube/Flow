@@ -1182,7 +1182,7 @@
     "Lio/github/aedev/flow/data/lyrics/LrcRedLyricsProvider$SearchResponse;.$childSerializers",
     "Lio/github/aedev/flow/data/lyrics/LrcRedLyricsProvider$SearchResponse;.results",
     "Lio/github/aedev/flow/data/lyrics/LyricsAnswer;.entries",
-    "Lio/github/aedev/flow/data/lyrics/LyricsCacheManager$recheckUnverifiedOnce$2;.$keep",
+    "Lio/github/aedev/flow/data/lyrics/LyricsCacheManager$expireOnce$2;.$expire",
     "Lio/github/aedev/flow/data/lyrics/LyricsCacheManager$saveLyrics$2;.$entries",
     "Lio/github/aedev/flow/data/lyrics/LyricsCacheManager$saveManualLyrics$2;.$entries",
     "Lio/github/aedev/flow/data/lyrics/LyricsCandidate;.entries",

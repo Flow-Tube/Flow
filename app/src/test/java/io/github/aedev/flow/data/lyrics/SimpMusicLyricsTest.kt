@@ -62,4 +62,15 @@ class SimpMusicLyricsTest {
 
         assertThat(simpMusic.parseResponse(response(row), duration = 269)?.first()?.text).isEqualTo("one")
     }
+
+    @Test
+    fun `split syllables in the word-synced text are joined from the row's line lyrics`() {
+        val rich = "[00:10.01] <00:10.01>When <00:11.12>I <00:11.45>see <00:12.36>the <00:12.70>de <00:13.03>vil&#x27;s <00:13.38>eyes"
+        val row = """{"durationSeconds":224,"vote":9,"richSyncLyrics":"$rich","syncedLyrics":"[00:10.00] hen I see the devil's eyes"}"""
+
+        val entry = simpMusic.parseResponse(response(row), duration = 224)!!.single()
+
+        assertThat(entry.text).isEqualTo("When I see the devil&#x27;s eyes")
+        assertThat(entry.words?.map { it.text }).containsExactly("When", "I", "see", "the", "de", "vil&#x27;s", "eyes").inOrder()
+    }
 }
