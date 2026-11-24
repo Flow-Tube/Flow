@@ -5300,4 +5300,18 @@
     <string name="notification_new_video_premiere">%1$s saatinde prömiyer: %2$s</string>
     <string name="settings_nav_icon_pop_title">Simge patlaması</string>
     <string name="playlist_video_position">%2$d video içinden %1$d</string>
+    <plurals name="comments_oldest_capped">
+        <item quantity="one">En son %1$d yorumun en eskisi</item>
+        <item quantity="other">En son %1$d yorumun en eskisi</item>
+    </plurals>
+    <string name="linked_error_connect_timeout">O adreste hiçbir yanıt alınamadı. Adresi ve bağlantı noktasını, ayrıca sunucunun bu cihazdan gelen bağlantıları kabul ettiğini kontrol edin.</string>
+    <string name="linked_error_connection_refused">Sunucu bağlantıyı reddetti. Adresteki bağlantı noktasını kontrol edin.</string>
+    <string name="linked_error_no_such_host">Bu ağda o sunucu adı veya adresi bulunamadı.</string>
+    <string name="linked_error_no_answer">Sunucu yanıt vermeyi durdurdu. Birazdan tekrar deneyin.</string>
+    <string name="linked_error_not_http">Bu adres bir web sunucusu gibi yanıt vermiyor. http veya https ile bağlantı noktasını kontrol edin.</string>
+    <string name="linked_error_folder_redirected">Sunucu bu adresi başka bir yere yönlendiriyor. Tam WebDAV klasör adresini kullanın.</string>
+    <string name="linked_error_folder_missing">O klasör sunucuda mevcut değil. Klasör adresini kontrol edin.</string>
+    <string name="linked_error_folder_forbidden">Sunucu o klasöre yazmaya izin vermiyor.</string>
+    <string name="settings_quality_lower_when_small">Mini oynatıcıda ve PiP\'te daha düşük kalite</string>
+    <string name="settings_quality_lower_when_small_summary">Otomatik, video küçükken 480p\'ye kadar kullanır</string>
 </resources>
