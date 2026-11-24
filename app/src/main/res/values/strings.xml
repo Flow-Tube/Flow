@@ -3261,6 +3261,14 @@
     <string name="linked_confirm">Confirm</string>
     <string name="linked_error_insecure">The server must use HTTPS unless it is on your local network.</string>
     <string name="linked_error_unreachable">Couldn\'t reach the server. Check the address and your connection.</string>
+    <string name="linked_error_connect_timeout">Nothing answered at that address. Check the address and port, and that the server accepts connections from this device.</string>
+    <string name="linked_error_connection_refused">The server refused the connection. Check the port in the address.</string>
+    <string name="linked_error_no_such_host">That server name or address couldn\'t be found on this network.</string>
+    <string name="linked_error_no_answer">The server stopped answering. Try again in a moment.</string>
+    <string name="linked_error_not_http">That address doesn\'t answer like a web server. Check http or https and the port.</string>
+    <string name="linked_error_folder_redirected">The server sends that address elsewhere. Use the exact WebDAV folder address.</string>
+    <string name="linked_error_folder_missing">That folder doesn\'t exist on the server. Check the folder address.</string>
+    <string name="linked_error_folder_forbidden">The server doesn\'t allow writing to that folder.</string>
     <string name="linked_error_login_refused">The WebDAV server refused the user name or password. Enter them again.</string>
     <string name="linked_error_refused">The server refused the request. Check the address and the admin token.</string>
     <string name="linked_error_instance_changed">This isn\'t the server this device was linked through.</string>

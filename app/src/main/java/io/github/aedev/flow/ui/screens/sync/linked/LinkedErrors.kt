@@ -11,7 +11,15 @@ internal fun LinkedError.message(): String =
         when (this) {
             LinkedError.INSECURE -> R.string.linked_error_insecure
             LinkedError.UNREACHABLE -> R.string.linked_error_unreachable
+            LinkedError.CONNECT_TIMEOUT -> R.string.linked_error_connect_timeout
+            LinkedError.CONNECTION_REFUSED -> R.string.linked_error_connection_refused
+            LinkedError.NO_SUCH_HOST -> R.string.linked_error_no_such_host
+            LinkedError.NO_ANSWER -> R.string.linked_error_no_answer
+            LinkedError.NOT_HTTP -> R.string.linked_error_not_http
             LinkedError.REFUSED -> R.string.linked_error_refused
+            LinkedError.FOLDER_REDIRECTED -> R.string.linked_error_folder_redirected
+            LinkedError.FOLDER_MISSING -> R.string.linked_error_folder_missing
+            LinkedError.FOLDER_FORBIDDEN -> R.string.linked_error_folder_forbidden
             LinkedError.GROUP_MISSING -> R.string.linked_error_group_missing
             LinkedError.ADMIN_REFUSED -> R.string.linked_error_admin_refused
             LinkedError.ADMIN_BLOCKED -> R.string.linked_error_admin_blocked

@@ -37,6 +37,8 @@ internal fun storeClient(base: HttpUrl): OkHttpClient {
             .followRedirects(false)
             .followSslRedirects(false)
             .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .callTimeout(60, TimeUnit.SECONDS)
     when {
         base.isHttps -> Unit

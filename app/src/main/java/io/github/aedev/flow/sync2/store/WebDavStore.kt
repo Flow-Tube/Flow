@@ -1,5 +1,6 @@
 package io.github.aedev.flow.sync2.store
 
+import android.util.Log
 import android.util.Xml
 import io.github.aedev.flow.sync.crypto.SyncBytes
 import io.github.aedev.flow.sync.crypto.SyncCrypto
@@ -18,6 +19,7 @@ import org.xmlpull.v1.XmlPullParser
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
+private const val TAG = "WebDavStore"
 private val OCTETS = "application/octet-stream".toMediaType()
 private val XML = "application/xml; charset=utf-8".toMediaType()
 
@@ -84,9 +86,11 @@ class WebDavStore private constructor(
                 try {
                     client.newCall(request).execute().use { it.code to it.body.bytesUpTo(limit) }
                 } catch (e: IOException) {
+                    Log.w(TAG, "$method /$path failed: ${e.javaClass.simpleName}: ${e.message}")
                     throw StoreException.Network(e)
                 }
             }
+        if (code !in 200..299) Log.w(TAG, "$method /$path answered $code")
         if (code == 401) {
             refused += account
             throw StoreException.LoginRefused()
@@ -180,6 +184,7 @@ class WebDavStore private constructor(
     suspend fun probe(): Boolean {
         val code = send("MKCOL", "").first
         if (code !in 200..299 && code != 405) refusal(code)
+        folders += ""
         val path = "probe/" + SyncBytes.toHex(SyncCrypto.randomBytes(16))
         val content = SyncCrypto.randomBytes(16)
         val guard = mapOf("If-None-Match" to "*")
