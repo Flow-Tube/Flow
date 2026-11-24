@@ -55,6 +55,11 @@ jobs:
       # Caching is disabled deliberately. CodeQL extracts Kotlin by observing
       # the compiler as it runs, so a cache hit that makes the compile tasks
       # UP-TO-DATE would produce an empty database and fail the analysis.
+      # The same heap split as every build.yml job. With the project defaults, four workers share a
+      # 4 GB Kotlin daemon, and the compile ran out of heap with CodeQL's extractor attached.
+      - name: Use CI Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
