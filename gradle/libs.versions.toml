@@ -49,6 +49,8 @@ uiautomator = "2.4.0"
 camerax = "1.6.1"
 zxingCore = "3.5.4"
 robolectric = "4.16.1"
+# The SDK 34 image Robolectric 4.16.1 runs every @Config(sdk = [34]) test on; changes with the version above.
+robolectricAndroidAll = "14-robolectric-10818077-i7"
 androidxTestCore = "1.7.0"
 
 [libraries]
@@ -130,6 +132,7 @@ hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testi
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "testExtJunit" }
 androidx-test-core = { group = "androidx.test", name = "core-ktx", version.ref = "androidxTestCore" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+robolectric-android-all = { group = "org.robolectric", name = "android-all-instrumented", version.ref = "robolectricAndroidAll" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 androidx-tracing = { group = "androidx.tracing", name = "tracing", version.ref = "tracing" }

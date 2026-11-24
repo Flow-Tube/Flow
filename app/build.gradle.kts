@@ -233,7 +233,26 @@ android {
     }
 }
 
+// Robolectric fetches its Android image from Maven Central inside each test JVM, and CI runs kept
+// failing on HTTP 429 there. Gradle resolves it instead (from the mirror in settings.gradle.kts, cached
+// on the runners), and the tests read it offline; a test on any other SDK fails at once.
+val robolectricAndroidAll by configurations.creating { isTransitive = false }
+dependencies { robolectricAndroidAll(libs.robolectric.android.all) }
+val robolectricJarsDir = layout.buildDirectory.dir("robolectric-jars")
+val robolectricJars =
+    tasks.register<Sync>("robolectricJars") {
+        from(robolectricAndroidAll)
+        into(robolectricJarsDir)
+    }
+
 tasks.withType<Test>().configureEach {
+    inputs.files(robolectricJars)
+    val jarsDir = robolectricJarsDir.map { it.asFile.absolutePath }
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            listOf("-Drobolectric.offline=true", "-Drobolectric.dependency.dir=${jarsDir.get()}")
+        },
+    )
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     // `-Dflow.fuzz.cases=N` and `-Dflow.fuzz.seed=S` reach the property tests.
     for (name in listOf("flow.fuzz.cases", "flow.fuzz.seed")) providers.systemProperty(name).orNull?.let { systemProperty(name, it) }
