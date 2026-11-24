@@ -5506,4 +5506,14 @@
         <item quantity="many">Descargar %1$d vídeos nuevos</item>
         <item quantity="other">Descargar %1$d vídeos nuevos</item>
     </plurals>
+    <string name="notification_download_other_quality">%2$s no estaba disponible. Se ha guardado %1$s en su lugar</string>
+    <string name="download_may_stutter">Puede entrecortarse aquí</string>
+    <string name="player_live_time_behind">-%1$s</string>
+    <string name="notification_download_yielding">%1$s · En espera mientras se reproduce algo</string>
+    <string name="download_waiting_network">Esperando a la red</string>
+    <string name="notification_download_waiting_network">Esperando a la red. Se reanudará solo.</string>
+    <string name="download_waiting_storage">Esperando al almacenamiento</string>
+    <string name="download_waiting_storage_amount">Necesita %1$s más de almacenamiento</string>
+    <string name="notification_download_waiting_storage">Esperando al almacenamiento. Libera espacio para continuar.</string>
+    <string name="notification_download_waiting_storage_amount">Esperando al almacenamiento. Libera %1$s para continuar.</string>
 </resources>
