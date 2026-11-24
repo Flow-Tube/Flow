@@ -76,7 +76,7 @@
     <string name="resume">繼續</string>
     <string name="play">播放</string>
     <string name="next">下一個</string>
-    <string name="repeat">重覆</string>
+    <string name="repeat">重複</string>
     <string name="loading_track">載入中……</string>
     <string name="error_occurred">發生錯誤</string>
     <string name="playing_from">播放源自</string>
@@ -275,7 +275,7 @@
     <plurals name="view_replies_template">
         <item quantity="other">查看 %1$d 則回覆</item>
     </plurals>
-    <string name="load_more_replies">顯示更多回復</string>
+    <string name="load_more_replies">顯示更多回覆</string>
     <string name="select_text">選取文字</string>
     <string name="pinned_comment">置頂留言</string>
     <string name="pinned_by_creator">由創作者置頂</string>
@@ -728,7 +728,7 @@
     <string name="content_settings_header_display">顯示</string>
     <string name="content_settings_header_home_layout">首頁版面配置</string>
     <string name="content_settings_home_layout_title">首頁顯示模式</string>
-    <string name="content_settings_home_layout_subtitle">選擇影片在首頁上的顯示方式</string>
+    <string name="content_settings_home_layout_subtitle">其他動態會沿用這個模式，直到你另外切換為止</string>
     <string name="content_settings_home_columns_title">每列卡片數</string>
     <string name="content_settings_home_columns_subtitle">自動依照螢幕調整。選擇數字即可固定欄數。</string>
     <string name="content_settings_home_columns_auto">自動</string>
@@ -759,7 +759,7 @@
     <string name="player_settings_shorts_continue_into_feed">繼續瀏覽推薦內容</string>
     <string name="player_settings_shorts_continue_into_feed_subtitle">佇列結束後繼續播放推薦的 Shorts</string>
     <string name="player_settings_speed_slider_subtitle">使用連續滑桿設定任意播放速度</string>
-    <string name="player_settings_play_during_calls_subtitle">在通話和 App 通話期間繼續播放</string>
+    <string name="player_settings_play_during_calls_subtitle">在通話和應用程式通話期間繼續播放</string>
     <string name="onboarding_btn_continue">繼續</string>
     <string name="sync_continue">繼續</string>
     <string name="sync_sas_body">請確認兩部裝置顯示相同的 6 位數代碼。</string>
@@ -770,7 +770,7 @@
     <string name="player_settings_video_codec_dialog_body">Flow 優先選用的編解碼器。你仍可從畫質選單中選擇任何編解碼器。H.264 在大多數裝置上播放最流暢。AV1 和 VP9 消耗較少數據，但需要更多電力。</string>
     <string name="cache_size_desc">快取的歌曲也可離線播放。重新啟動後生效。</string>
     <string name="library_settings_subtitle">播放、下載、外觀與資料設定</string>
-    <string name="master_backup_subtitle">將 App 資料、影片引擎和音樂引擎整合在一個檔案中</string>
+    <string name="master_backup_subtitle">將應用程式資料、影片引擎和音樂引擎整合在一個檔案中</string>
     <string name="export_data_section_subtitle">選擇要匯出的資料並儲存至裝置</string>
     <string name="export_app_data_desc">匯出你的訂閱內容、觀看記錄、播放清單和設定</string>
     <string name="error_no_internet_hint">請檢查 Wi-Fi 或行動數據連線，然後再試一次。</string>
@@ -830,7 +830,7 @@
     <string name="player_settings_double_tap_seek_dialog_body">在螢幕任一側連續點選兩下時跳轉的時間長度。</string>
     <string name="import_music_apps_section_subtitle">從其他播放器匯入你的音樂媒體庫</string>
     <string name="player_settings_overlay_cc">字幕按鈕</string>
-    <string name="player_settings_auto_pip_subtitle">離開 App 時切換至子母畫面</string>
+    <string name="player_settings_auto_pip_subtitle">離開應用程式時切換至子母畫面</string>
     <string name="player_appearance_volume_boost_title">允許額外提高音量</string>
     <string name="player_appearance_volume_boost_subtitle">允許透過滑動調整音量，超過系統音量上限</string>
     <string name="tv_player_chapters">章節</string>
@@ -1412,9 +1412,9 @@
     <string name="sleep_timer_reset">重設</string>
     <string name="sleep_timer_cancel_timer">取消計時器</string>
     <string name="sleep_timer_active_label">睡眠計時器已啟用</string>
-    <string name="sleep_timer_close_app">計時器結束時關閉 App</string>
-    <string name="sleep_timer_close_app_desc">關閉 App 以節省電池電量</string>
-    <string name="sleep_timer_will_close_app">計時結束時，App 將會關閉</string>
+    <string name="sleep_timer_close_app">計時器結束時關閉應用程式</string>
+    <string name="sleep_timer_close_app_desc">關閉應用程式以節省電池電量</string>
+    <string name="sleep_timer_will_close_app">計時結束時，應用程式將會關閉</string>
     <string name="auto_backup_title">自動備份</string>
     <string name="auto_backup_notification_channel">自動備份</string>
     <string name="auto_backup_subtitle">排程將資料自動備份到資料夾</string>
@@ -1486,7 +1486,7 @@
     <string name="downloads_recover_allow">允許存取</string>
     <string name="downloads_recover_dismiss">暫不</string>
     <plurals name="downloads_recovered_count">
-        <item quantity="other">找到先前安裝版本的 %d 個下載項目</item>
+        <item quantity="other">找到先前安裝版本的 %d 個下載內容</item>
     </plurals>
     <string name="downloads_recovered_none">找不到先前安裝版本的下載內容</string>
     <string name="downloads_find_earlier_title">尋找先前的下載內容</string>
@@ -4221,7 +4221,7 @@
     <string name="download_sheet_change_folder">變更</string>
     <string name="download_sheet_all_languages">所有語言</string>
     <plurals name="downloads_deleted">
-        <item quantity="other">已刪除 %1$d 個下載項目</item>
+        <item quantity="other">已刪除 %1$d 個下載內容</item>
     </plurals>
     <string name="settings_keywords_tilt_fullscreen">旋轉、旋轉鎖定、自動旋轉、橫向、橫放、傾斜、全螢幕</string>
     <string name="description_premiered">首播於</string>
@@ -5094,7 +5094,7 @@
     <string name="chat_replay">聊天重播</string>
     <string name="translate">翻譯</string>
     <string name="translate_with">翻譯方式</string>
-    <string name="translate_no_app">找不到翻譯 App。你可以在「設定」›「語言與地區」中新增自己的伺服器。</string>
+    <string name="translate_no_app">找不到翻譯應用程式。你可以在「設定」›「語言與地區」中新增自己的伺服器。</string>
     <string name="translation_in_progress">翻譯中…</string>
     <string name="translation_show_original">顯示原文</string>
     <string name="translation_by_host">由 %1$s 翻譯</string>
@@ -5111,7 +5111,7 @@
     <string name="settings_top_bar_profile_summary">可從每個主要分頁切換個人檔案</string>
     <string name="settings_profile_menu_settings_title">個人檔案選單中的設定</string>
     <string name="settings_profile_menu_settings_summary">隱藏設定圖示，改從你的個人檔案開啟設定</string>
-    <string name="settings_top_bar_profile_keywords">個人檔案、頭像、帳號、頂端列、設定圖示、齒輪</string>
+    <string name="settings_top_bar_profile_keywords">個人檔案、頭像、帳戶、頂端列、設定圖示、齒輪</string>
     <string name="content_settings_hide_watched_suggestions_title">從建議內容中隱藏已觀看的影片</string>
     <string name="content_settings_hide_watched_suggestions_subtitle">不在「待播」和自動播放中出現</string>
     <string name="content_settings_subs_all_chip_title">「全部」標籤</string>
@@ -5138,8 +5138,8 @@
     <string name="settings_nav_icon_pop_summary">開啟分頁時，圖示會彈跳一下</string>
     <string name="settings_translation_header">翻譯</string>
     <string name="settings_translate_with">翻譯方式</string>
-    <string name="translate_with_app">翻譯 App</string>
-    <string name="translate_with_app_summary">將留言和說明傳送給你手機上的翻譯 App</string>
+    <string name="translate_with_app">翻譯應用程式</string>
+    <string name="translate_with_app_summary">將留言和說明傳送給你手機上的翻譯應用程式</string>
     <string name="translate_with_server">你的伺服器</string>
     <string name="translate_with_server_summary">使用你輸入的 LibreTranslate 或 Lingva 伺服器就地翻譯</string>
     <string name="translation_server_title">翻譯伺服器</string>
@@ -5216,7 +5216,7 @@
     <string name="home_preview_captions_on">顯示字幕</string>
     <string name="home_preview_captions_off">隱藏字幕</string>
     <string name="settings_video_card_style_title">卡片樣式</string>
-    <string name="settings_video_card_style_summary">滿版會讓首頁和訂閱內容的縮圖不再有圓角</string>
+    <string name="settings_video_card_style_summary">滿版會讓影片縮圖不再有圓角</string>
     <string name="settings_video_card_style_keywords">卡片、縮圖、圓角、滿版、邊到邊</string>
     <string name="settings_video_card_style_rounded">圓角</string>
     <string name="settings_video_card_style_full_width">滿版</string>
@@ -5226,4 +5226,25 @@
     <string name="load_error_offline_hint">重新連上網路後會再次載入</string>
     <string name="home_offline_downloads_hint">你的下載內容仍可播放</string>
     <string name="home_back_online_refresh">已重新連上網路 · 重新整理</string>
+    <string name="repeat_mode_off">關閉循環播放</string>
+    <string name="repeat_mode_all">循環播放全部</string>
+    <string name="repeat_mode_one">循環播放單一項目</string>
+    <string name="playlist_video_position">第 %1$d 項，共 %2$d 項</string>
+    <plurals name="playlist_loading_all">
+        <item quantity="other">正在載入全部 %1$d 部影片</item>
+    </plurals>
+    <string name="playlist_loading_all_unknown">正在載入所有影片</string>
+    <plurals name="playlist_download_new">
+        <item quantity="other">下載 %1$d 部新影片</item>
+    </plurals>
+    <string name="player_live_time_behind">-%1$s</string>
+    <string name="notification_download_other_quality">無法取得 %2$s，已改為儲存 %1$s</string>
+    <string name="download_may_stutter">在此裝置上可能不流暢</string>
+    <string name="notification_download_yielding">%1$s · 播放時先等待</string>
+    <string name="download_waiting_network">正在等待網路連線</string>
+    <string name="notification_download_waiting_network">正在等待網路連線，連線後會自動繼續。</string>
+    <string name="download_waiting_storage">正在等待儲存空間</string>
+    <string name="download_waiting_storage_amount">還需要 %1$s 儲存空間</string>
+    <string name="notification_download_waiting_storage">正在等待儲存空間，請清出空間以繼續。</string>
+    <string name="notification_download_waiting_storage_amount">正在等待儲存空間，請清出 %1$s 的空間以繼續。</string>
 </resources>
