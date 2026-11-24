@@ -3,7 +3,11 @@ package io.github.aedev.flow.sync2.service
 import io.github.aedev.flow.sync2.crypto.ProtocolError
 import io.github.aedev.flow.sync2.crypto.ProtocolException
 import io.github.aedev.flow.sync2.engine.LinkedException
+import io.github.aedev.flow.sync2.store.NetworkFailure
 import io.github.aedev.flow.sync2.store.StoreException
+
+/** The [StoreException.Refused.code] of every refusal from a WebDAV folder. */
+private const val WEBDAV = "webdav"
 
 /** Why a linked-devices action failed, as the UI tells the user. */
 enum class LinkedError(
@@ -12,7 +16,15 @@ enum class LinkedError(
 ) {
     INSECURE,
     UNREACHABLE(retryable = true),
+    CONNECT_TIMEOUT(retryable = true),
+    CONNECTION_REFUSED(retryable = true),
+    NO_SUCH_HOST(retryable = true),
+    NO_ANSWER(retryable = true),
+    NOT_HTTP,
     REFUSED,
+    FOLDER_REDIRECTED,
+    FOLDER_MISSING,
+    FOLDER_FORBIDDEN,
     GROUP_MISSING,
     ADMIN_REFUSED,
     ADMIN_BLOCKED,
@@ -50,13 +62,23 @@ fun Throwable.linkedError(): LinkedError =
         }
 
         is StoreException.Network -> {
-            LinkedError.UNREACHABLE
+            when (failure) {
+                NetworkFailure.CONNECT_TIMEOUT -> LinkedError.CONNECT_TIMEOUT
+                NetworkFailure.CONNECTION_REFUSED -> LinkedError.CONNECTION_REFUSED
+                NetworkFailure.NO_SUCH_HOST -> LinkedError.NO_SUCH_HOST
+                NetworkFailure.NO_ANSWER -> LinkedError.NO_ANSWER
+                NetworkFailure.NOT_HTTP -> LinkedError.NOT_HTTP
+                NetworkFailure.OTHER -> LinkedError.UNREACHABLE
+            }
         }
 
         is StoreException.Refused -> {
             when {
                 rateLimited -> LinkedError.BUSY
                 code == "unclaimed" -> LinkedError.GROUP_MISSING
+                code == WEBDAV && status in 300..399 -> LinkedError.FOLDER_REDIRECTED
+                code == WEBDAV && (status == 404 || status == 409) -> LinkedError.FOLDER_MISSING
+                code == WEBDAV && (status == 403 || status == 405) -> LinkedError.FOLDER_FORBIDDEN
                 else -> LinkedError.REFUSED
             }
         }

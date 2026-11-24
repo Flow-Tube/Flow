@@ -145,7 +145,9 @@ sealed class StoreException(
 
     class Network(
         cause: IOException,
-    ) : StoreException("Could not reach the server", cause)
+    ) : StoreException("Could not reach the server", cause) {
+        val failure: NetworkFailure = NetworkFailure.of(cause)
+    }
 
     class Refused(
         val status: Int,
