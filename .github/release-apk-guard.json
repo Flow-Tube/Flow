@@ -2,12 +2,12 @@
   "gsonTargets": [
     "Lio/github/aedev/flow/data/local/BackupData;",
     "Lio/github/aedev/flow/data/local/FreeTubeHistoryExportEntry;",
+    "Lio/github/aedev/flow/data/local/YouTubeArchiveHistoryEntry;",
     "Lio/github/aedev/flow/data/lyrics/BetterLyrics$TTMLResponse;",
     "Lio/github/aedev/flow/data/lyrics/LrcLibLyricsProvider$SearchResult;",
     "Lio/github/aedev/flow/data/lyrics/LyricsPlusProvider$LyricsPlusResponse;",
     "Lio/github/aedev/flow/data/lyrics/paxsenix/models/AppleMusicSearchResponse;",
     "Lio/github/aedev/flow/data/lyrics/paxsenix/models/LyricsResponse;",
-    "[Lio/github/aedev/flow/data/local/YouTubeArchiveHistoryEntry;",
     "[Lio/github/aedev/flow/data/lyrics/LrcLibLyricsProvider$SearchResult;"
   ],
   "typeTokens": [

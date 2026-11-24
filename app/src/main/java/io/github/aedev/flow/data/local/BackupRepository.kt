@@ -41,21 +41,17 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import java.io.BufferedInputStream
-import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
-import java.io.StringReader
 import java.time.Duration
-import java.time.Instant
 import java.time.OffsetDateTime
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
-import kotlin.math.roundToLong
 
 data class SettingsBackup(
     val strings: Map<String, String> = emptyMap(),
@@ -87,44 +83,6 @@ data class BackupData(
     val likedVideos: List<LikedVideoInfo>? = emptyList(),
     val contentPreferences: ContentPreferencesBackup? = null,
     val settings: SettingsBackup? = null,
-)
-
-private data class FreeTubeHistoryExportEntry(
-    val videoId: String? = null,
-    val author: String? = null,
-    val authorId: String? = null,
-    val title: String? = null,
-    val timeWatched: Long? = null,
-    val lengthSeconds: Long? = null,
-    val watchProgress: Double? = null,
-)
-
-private data class YouTubeTakeoutHistoryEntryOut(
-    val header: String = "YouTube",
-    val title: String,
-    val titleUrl: String,
-    val subtitles: List<YouTubeTakeoutSubtitleOut>,
-    val time: String,
-    val products: List<String> = listOf("YouTube"),
-    val activityControls: List<String> = listOf("YouTube watch history"),
-)
-
-private data class YouTubeTakeoutSubtitleOut(
-    val name: String,
-    val url: String,
-)
-
-private data class YouTubeArchiveSubtitle(
-    val name: String? = null,
-    val url: String? = null,
-)
-
-private data class YouTubeArchiveHistoryEntry(
-    val title: String? = null,
-    val titleUrl: String? = null,
-    val subtitles: List<YouTubeArchiveSubtitle>? = null,
-    val time: String? = null,
-    val details: Any? = null,
 )
 
 private enum class HistoryImportFormat {
@@ -170,8 +128,7 @@ class BackupRepository(
             .create()
 
     private val backupJson = BackupJson(gson)
-
-    private fun parseBackupJson(json: String): BackupData? = backupJson.read(StringReader(json))
+    private val watchHistoryJson = WatchHistoryJson(gson)
 
     private val viewHistory = ViewHistory.getInstance(context)
     private val searchHistoryRepo = SearchHistoryRepository(context)
@@ -357,12 +314,8 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             try {
                 val backupData = buildBackupData()
-
-                val json = gson.toJson(backupData)
                 context.contentResolver.openOutputStream(uri, "wt")?.use { outputStream ->
-                    OutputStreamWriter(outputStream).use { writer ->
-                        writer.write(json)
-                    }
+                    backupJson.write(backupData, outputStream)
                 } ?: return@withContext Result.failure(Exception("Could not open output stream"))
                 Result.success(Unit)
             } catch (e: Exception) {
@@ -373,16 +326,11 @@ class BackupRepository(
     suspend fun importData(uri: Uri): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                val json =
-                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                        BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                            reader.readText()
-                        }
-                    } ?: return@withContext Result.failure(Exception("Could not read file"))
-
                 val backupData =
-                    parseBackupJson(json)
-                        ?: return@withContext Result.failure(Exception("Invalid backup file"))
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        backupJson.read(InputStreamReader(inputStream, Charsets.UTF_8))
+                            ?: return@withContext Result.failure(Exception("Invalid backup file"))
+                    } ?: return@withContext Result.failure(Exception("Could not read file"))
 
                 importBackupData(backupData)
 
@@ -417,36 +365,8 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             try {
                 val history = viewHistory.getAllHistory().first()
-                val ucIdRegex = Regex("UC[0-9A-Za-z_-]{22}")
-                val items =
-                    history.mapNotNull { entry ->
-                        val videoId = entry.videoId.trim()
-                        if (videoId.isEmpty()) return@mapNotNull null
-                        val channelUrl =
-                            ucIdRegex
-                                .find(entry.channelId.trim())
-                                ?.value
-                                ?.let { "https://www.youtube.com/channel/$it" }
-                                ?: "https://www.youtube.com/"
-                        YouTubeTakeoutHistoryEntryOut(
-                            title = "Watched ${entry.title}",
-                            titleUrl = "https://www.youtube.com/watch?v=$videoId",
-                            subtitles =
-                                listOf(
-                                    YouTubeTakeoutSubtitleOut(
-                                        name = entry.channelName.ifBlank { "YouTube" },
-                                        url = channelUrl,
-                                    ),
-                                ),
-                            time = Instant.ofEpochMilli(entry.timestamp).toString(),
-                        )
-                    }
-
-                val json = gson.toJson(items)
                 context.contentResolver.openOutputStream(uri, "wt")?.use { outputStream ->
-                    OutputStreamWriter(outputStream, Charsets.UTF_8).use { writer ->
-                        writer.write(json)
-                    }
+                    OutputStreamWriter(outputStream, Charsets.UTF_8).use { writer -> watchHistoryJson.writeTakeout(history, writer) }
                 } ?: return@withContext Result.failure(Exception("Could not open output stream"))
 
                 Result.success(Unit)
@@ -834,14 +754,13 @@ class BackupRepository(
     }
 
     private suspend fun importJsonWatchHistory(uri: Uri): Result<Int> {
-        val raw =
+        val entries =
             context.contentResolver
                 .openInputStream(uri)
                 ?.bufferedReader(Charsets.UTF_8)
-                ?.use(BufferedReader::readText)
+                ?.use(watchHistoryJson::read)
                 ?: return Result.failure(Exception("Could not read file"))
 
-        val entries = parseJsonWatchHistoryEntries(raw)
         if (entries.isEmpty()) {
             return Result.failure(Exception("no_entries"))
         }
@@ -854,113 +773,6 @@ class BackupRepository(
         }
 
         return Result.success(entries.size)
-    }
-
-    private fun parseJsonWatchHistoryEntries(raw: String): List<VideoHistoryEntry> {
-        val trimmed = raw.trim()
-        if (trimmed.isEmpty()) return emptyList()
-
-        return when {
-            trimmed.startsWith("[") -> parseYouTubeArchiveHistoryEntries(trimmed)
-            trimmed.startsWith("{") -> parseFreeTubeHistoryEntries(trimmed)
-            else -> emptyList()
-        }
-    }
-
-    private fun parseFreeTubeHistoryEntries(raw: String): List<VideoHistoryEntry> {
-        val lines =
-            raw
-                .lineSequence()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .toList()
-
-        return lines.mapNotNullIndexed { index, line ->
-            runCatching {
-                gson.fromJson(line, FreeTubeHistoryExportEntry::class.java)
-            }.getOrNull()?.toVideoHistoryEntry(index)
-        }
-    }
-
-    private fun parseYouTubeArchiveHistoryEntries(raw: String): List<VideoHistoryEntry> {
-        val items =
-            runCatching {
-                gson.fromJson(raw, Array<YouTubeArchiveHistoryEntry>::class.java)?.toList().orEmpty()
-            }.getOrDefault(emptyList())
-
-        return items.mapNotNullIndexed { index, item -> item.toVideoHistoryEntry(index) }
-    }
-
-    private fun FreeTubeHistoryExportEntry.toVideoHistoryEntry(index: Int): VideoHistoryEntry? {
-        val normalizedVideoId = videoId?.trim().orEmpty()
-        val normalizedTitle = title?.trim().orEmpty()
-        if (normalizedVideoId.isEmpty() || normalizedTitle.isEmpty()) return null
-
-        val durationMs = (lengthSeconds ?: 0L).coerceAtLeast(0L) * 1000L
-        val progress = (watchProgress ?: 0.0).coerceIn(0.0, 1.0)
-        val positionMs =
-            if (durationMs > 0L && progress > 0.0) {
-                (durationMs.toDouble() * progress).roundToLong().coerceIn(0L, durationMs)
-            } else {
-                0L
-            }
-
-        return VideoHistoryEntry(
-            videoId = normalizedVideoId,
-            position = positionMs,
-            duration = durationMs,
-            timestamp = timeWatched ?: (System.currentTimeMillis() - index),
-            title = normalizedTitle,
-            thumbnailUrl = ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(normalizedVideoId),
-            channelName = author?.trim().orEmpty(),
-            channelId = authorId?.trim().orEmpty(),
-            isMusic = false,
-        )
-    }
-
-    private fun YouTubeArchiveHistoryEntry.toVideoHistoryEntry(index: Int): VideoHistoryEntry? {
-        if (details != null) return null
-
-        val videoUrl = titleUrl?.trim().orEmpty()
-        val videoId = extractWatchHistoryVideoId(videoUrl)
-        if (videoId.isEmpty()) return null
-
-        val rawTitle = title?.trim().orEmpty()
-        val normalizedTitle = rawTitle.removePrefix("Watched ").trim()
-        if (normalizedTitle.isEmpty()) return null
-
-        val subtitle = subtitles.orEmpty().firstOrNull()
-        return VideoHistoryEntry(
-            videoId = videoId,
-            position = 0L,
-            duration = 0L,
-            timestamp = parseArchiveTimestamp(time) ?: (System.currentTimeMillis() - index),
-            title = normalizedTitle,
-            thumbnailUrl = ThumbnailUrlResolver.buildHighQualityYoutubeThumbnail(videoId),
-            channelName = subtitle?.name?.trim().orEmpty(),
-            channelId = extractChannelId(subtitle?.url),
-            isMusic = false,
-        )
-    }
-
-    private fun extractWatchHistoryVideoId(url: String): String =
-        Regex("""[?&]v=([\w-]{10,12})""")
-            .find(url)
-            ?.groupValues
-            ?.getOrNull(1)
-            .orEmpty()
-
-    private fun extractChannelId(url: String?): String =
-        Regex("""/channel/([^/?#]+)""")
-            .find(url.orEmpty())
-            ?.groupValues
-            ?.getOrNull(1)
-            .orEmpty()
-
-    private fun parseArchiveTimestamp(value: String?): Long? {
-        val raw = value?.trim().orEmpty()
-        if (raw.isEmpty()) return null
-        return runCatching { Instant.parse(raw).toEpochMilli() }.getOrNull()
     }
 
     private fun readSqliteTimestamp(
@@ -977,21 +789,13 @@ class BackupRepository(
                 val raw = cursor.getString(columnIndex).orEmpty().trim()
                 raw.toLongOrNull()
                     ?: runCatching { OffsetDateTime.parse(raw).toInstant().toEpochMilli() }.getOrNull()
-                    ?: parseArchiveTimestamp(raw)
+                    ?: WatchHistoryJson.parseArchiveTimestamp(raw)
             }
 
             else -> {
                 null
             }
         }
-    }
-
-    private inline fun <T, R> Iterable<T>.mapNotNullIndexed(transform: (index: Int, T) -> R?): List<R> {
-        val destination = ArrayList<R>()
-        forEachIndexed { index, item ->
-            transform(index, item)?.let(destination::add)
-        }
-        return destination
     }
 
     /** First column of a Takeout playlist CSV row, when it looks like a video id. */
@@ -1814,10 +1618,7 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             try {
                 val backupData = buildBackupData()
-                val json = gson.toJson(backupData)
-                writeToFolder(folderUri, "flow_backup.json", "application/json") { out ->
-                    out.write(json.toByteArray(Charsets.UTF_8))
-                }
+                writeToFolder(folderUri, "flow_backup.json", "application/json") { out -> backupJson.write(backupData, out) }
             } catch (e: Exception) {
                 Result.failure(e)
             }

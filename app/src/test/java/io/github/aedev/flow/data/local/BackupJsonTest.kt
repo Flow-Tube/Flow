@@ -62,6 +62,15 @@ class BackupJsonTest {
     }
 
     @Test
+    fun a_plain_backup_file_round_trips_as_the_same_json_the_old_string_export_wrote() {
+        val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
+        val file = ByteArrayOutputStream().also { json.write(data, it) }.toByteArray()
+
+        assertEquals(gson.toJson(data), String(file, Charsets.UTF_8))
+        assertEquals(data, json.read(InputStreamReader(ByteArrayInputStream(file), Charsets.UTF_8)))
+    }
+
+    @Test
     fun an_empty_backup_reads_as_nothing() {
         assertNull(json.read(StringReader("")))
     }
