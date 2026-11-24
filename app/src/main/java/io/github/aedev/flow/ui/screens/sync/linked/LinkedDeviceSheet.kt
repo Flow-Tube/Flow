@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,6 +55,10 @@ internal fun LinkedDeviceSheet(
     status: String,
     icon: ImageVector,
     devices: List<LinkedDevice>,
+    /** Each device's name, with the start of its id when another device has the same name. */
+    names: Map<String, String>,
+    /** Each device's one-line status, which also helps tell devices apart in the remove dialog. */
+    statuses: Map<String, String>,
     /** The remembered playback answer: true allowed, false not, null asks. */
     consent: Boolean?,
     onConsent: (Boolean?) -> Unit,
@@ -67,7 +72,7 @@ internal fun LinkedDeviceSheet(
         SheetMode.SHEET -> {
             QuickActionsSheet(onDismiss = onDismiss) { sheet ->
                 FlowSheetHeader(
-                    title = device.name,
+                    title = names[device.id] ?: device.name,
                     subtitle = status,
                     leadingIcon = icon,
                     onClose = null,
@@ -131,7 +136,7 @@ internal fun LinkedDeviceSheet(
         }
 
         SheetMode.REMOVE -> {
-            RemoveDialog(device, devices, addedBy, onDismiss) { also ->
+            RemoveDialog(device, devices, names, statuses, addedBy, onDismiss) { also ->
                 onDismiss()
                 onRemove(also)
             }
@@ -172,6 +177,8 @@ private fun RenameDialog(
 private fun RemoveDialog(
     device: LinkedDevice,
     devices: List<LinkedDevice>,
+    names: Map<String, String>,
+    statuses: Map<String, String>,
     addedBy: suspend (String) -> List<String>,
     onDismiss: () -> Unit,
     onRemove: (also: List<String>) -> Unit,
@@ -184,18 +191,23 @@ private fun RemoveDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.linked_remove_title, device.name)) },
+        title = { Text(stringResource(R.string.linked_remove_title, names[device.id] ?: device.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.linked_remove_body))
-                if (added.isNotEmpty()) Text(stringResource(R.string.linked_remove_also, device.name))
+                if (added.isNotEmpty()) Text(stringResource(R.string.linked_remove_also, names[device.id] ?: device.name))
                 for (other in added) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = other.id in also,
                             onCheckedChange = { also = if (it) also + other.id else also - other.id },
                         )
-                        Text(other.name)
+                        Column {
+                            Text(names[other.id] ?: other.name)
+                            statuses[other.id]?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }

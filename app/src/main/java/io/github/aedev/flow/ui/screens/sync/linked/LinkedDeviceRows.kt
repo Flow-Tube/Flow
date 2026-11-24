@@ -42,12 +42,13 @@ internal fun LinkedDeviceRows(
 ) {
     var open by rememberSaveable { mutableStateOf<String?>(null) }
     var choosingAdd by rememberSaveable { mutableStateOf(false) }
+    val names = rememberDeviceNames(devices)
     SyncSection(stringResource(R.string.linked_devices)) {
         SyncRowGroup(count = devices.size + 1) { index, shape ->
             val device = devices.getOrNull(index)
             if (device != null) {
                 FlowNavRow(
-                    title = device.name,
+                    title = names[device.id] ?: device.name,
                     onClick = { open = device.id },
                     supportingText = deviceStatus(device, presence, nearby),
                     leadingIcon = deviceKindIcon(kinds[device.id], device.platform),
@@ -103,6 +104,8 @@ internal fun LinkedDeviceRows(
             status = deviceStatus(device, presence, nearby),
             icon = deviceKindIcon(kinds[device.id], device.platform),
             devices = devices,
+            names = names,
+            statuses = devices.associate { it.id to deviceStatus(it, presence, nearby) },
             consent = consent[device.id],
             onConsent = { onConsent(device.id, it) },
             onRename = { name -> onRename(device.id, name) },
