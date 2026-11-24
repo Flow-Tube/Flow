@@ -751,6 +751,7 @@ object YouTube {
                 val commentsPage = communityPostCommentsPage(continuation = initial.continuation)
                 commentsPage.copy(
                     commentCountText = commentsPage.commentCountText ?: initial.commentCountText,
+                    sortOptions = commentsPage.sortOptions.ifEmpty { initial.sortOptions },
                 )
             }
         }

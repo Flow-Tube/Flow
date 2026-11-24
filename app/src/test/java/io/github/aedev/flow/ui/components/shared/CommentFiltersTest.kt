@@ -9,7 +9,7 @@ import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import org.junit.Test
 
 /**
- * Pins which chip reads which continuation, and the one case that is still decided locally.
+ * Pins which chip reads which continuation of YouTube's own sort menu.
  */
 class CommentFiltersTest {
     private val options =
@@ -51,8 +51,29 @@ class CommentFiltersTest {
     }
 
     @Test
-    fun `oldest reads the chronological order because the section offers no third`() {
+    fun `only top and newest come from the section's menu, by position`() {
+        assertThat(CommentSortFilter.entries.map { it.menuIndex }).containsExactly(0, 1, null, null).inOrder()
+    }
+
+    @Test
+    fun `oldest reads the newest order, since the section offers no oldest one`() {
         assertThat(videoCommentSortFor(options, CommentSortFilter.OLDEST)?.token).isEqualTo("newest_token")
+    }
+
+    @Test
+    fun `oldest turns the arrival order around and keeps pins first, whatever the dates say`() {
+        val comments =
+            listOf(
+                comment("pin", published = "1 year ago", pinned = true),
+                comment("newest", published = "vor 2 Stunden"),
+                comment("middle", published = "2 days ago"),
+                comment("same-label", published = "2 days ago"),
+                comment("oldest", published = "hace 3 años"),
+            )
+
+        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.OLDEST).map { it.id })
+            .containsExactly("pin", "oldest", "same-label", "middle", "newest")
+            .inOrder()
     }
 
     @Test
@@ -70,20 +91,6 @@ class CommentFiltersTest {
             .inOrder()
         assertThat(applyVideoCommentFilters(comments, CommentSortFilter.NEWEST).map { it.id })
             .containsExactly("c1", "c2")
-            .inOrder()
-    }
-
-    @Test
-    fun `oldest reverses the loaded pages and keeps a pin first`() {
-        val comments =
-            listOf(
-                comment("pin", published = "1 hour ago", pinned = true),
-                comment("new", published = "1 hour ago"),
-                comment("old", published = "2 years ago"),
-            )
-
-        assertThat(applyVideoCommentFilters(comments, CommentSortFilter.OLDEST).map { it.id })
-            .containsExactly("pin", "old", "new")
             .inOrder()
     }
 

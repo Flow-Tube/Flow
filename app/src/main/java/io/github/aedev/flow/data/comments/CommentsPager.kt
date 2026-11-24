@@ -24,19 +24,20 @@ private const val TAG = "CommentsPager"
 private const val STARTUP_GATE_TIMEOUT_MS = 20_000L
 
 /**
- * Pages read ahead of the first one for a sort that arranges the loaded set itself, so it has more
- * than twenty rows to arrange. Every other order pages on scroll only. Bounded and sequential: each
- * page waits for the one before it, and a user-driven load more or a sort change cancels what is left.
- */
-private const val DEFAULT_PREFETCH_PAGES = 3
-
-/**
  * Pages Timed reads per order when it opens, and per order on each tap of Load more. Timed never
  * pages by itself past this: only a few comments in a hundred carry a timestamp, so following the
  * list's end could walk a video's whole comment section.
  */
 private const val TIMED_PAGES_PER_ORDER = 8
 private const val TIMED_MORE_PAGES_PER_ORDER = 2
+
+/**
+ * Pages Oldest reads of the Newest order before turning it around, about 500 comments. YouTube has no
+ * oldest-first order, so the only way to the oldest comment is to the end of the newest-first one,
+ * which on a big video is thousands of requests; past this the list says how far it reached.
+ */
+internal const val OLDEST_PAGE_LIMIT = 25
+private const val OLDEST_KEY_PREFIX = "oldest:"
 
 /** What the pager needs to know about the surface's playback before it spends the network on comments. */
 internal data class CommentsPlaybackState(
@@ -69,7 +70,6 @@ internal class CommentsPager(
     private val playbackState: Flow<CommentsPlaybackState> = flowOf(CommentsPlaybackState.READY),
     private val isCurrentVideo: (String) -> Boolean = { true },
     private val fetchTimeoutMs: Long? = null,
-    private val prefetchPages: Int = DEFAULT_PREFETCH_PAGES,
 ) {
     private val _comments = MutableStateFlow<List<Comment>>(emptyList())
     val comments: StateFlow<List<Comment>> = _comments.asStateFlow()
@@ -95,10 +95,12 @@ internal class CommentsPager(
     private val _isDisabled = MutableStateFlow(false)
     val isDisabled: StateFlow<Boolean> = _isDisabled.asStateFlow()
 
+    /** True when Oldest stopped at [OLDEST_PAGE_LIMIT] with older comments left unread. */
+    private val _oldestCapped = MutableStateFlow(false)
+    val oldestCapped: StateFlow<Boolean> = _oldestCapped.asStateFlow()
+
     private var next: CommentsPageResult = CommentsPageResult.EMPTY
     private var loadJob: Job? = null
-    private var prefetchJob: Job? = null
-    private var hasReadAhead = false
     private var loadingVideoId: String? = null
     private var activeSortToken: String? = null
     private var timedCursors: MutableList<CommentsPageResult> = mutableListOf()
@@ -109,11 +111,10 @@ internal class CommentsPager(
     /** Empties the list, for a video with no comments to fetch and for a player being torn down. */
     fun clear() {
         loadJob?.cancel()
-        prefetchJob?.cancel()
         loadJob = null
-        prefetchJob = null
         loadingVideoId = null
         activeSortToken = null
+        _oldestCapped.value = false
         next = CommentsPageResult.EMPTY
         timedCursors = mutableListOf()
         timedFromYouTube = false
@@ -130,26 +131,63 @@ internal class CommentsPager(
 
     fun load(videoId: String) {
         if (loadingVideoId == videoId && activeSortToken == null && loadJob?.isActive == true) return
-        startLoad(videoId, sortToken = null, readAhead = false)
+        startLoad(videoId, sortToken = null)
     }
 
     /**
      * Reloads the section in the order [sort] names, which is a different continuation entirely.
-     * Two chips can share one continuation (Newest and Oldest), so a switch between them keeps what
-     * has loaded. [readAhead] is for a chip that arranges the loaded set itself.
+     * Picking the order already showing keeps what has loaded.
      */
     fun selectSort(
         videoId: String,
         sort: VideoCommentSort,
-        readAhead: Boolean = false,
     ) {
         val sameSection = loadingVideoId == videoId && activeSortToken == sort.token
         if (sameSection && loadJob?.isActive == true) return
-        if (sameSection && _comments.value.isNotEmpty()) {
-            if (readAhead) prefetchFollowingPages(videoId)
-            return
-        }
-        startLoad(videoId, sortToken = sort.token, readAhead = readAhead)
+        if (sameSection && _comments.value.isNotEmpty()) return
+        startLoad(videoId, sortToken = sort.token)
+    }
+
+    /**
+     * Oldest: reads [newest] page after page, one request at a time, to its end or [OLDEST_PAGE_LIMIT],
+     * and shows the list only once it has, since every page would reorder it. Picking it again keeps
+     * what has loaded; any other sort or video cancels the walk.
+     */
+    fun selectOldest(
+        videoId: String,
+        newest: VideoCommentSort,
+    ) {
+        val key = OLDEST_KEY_PREFIX + newest.token
+        if (loadingVideoId == videoId && activeSortToken == key && (loadJob?.isActive == true || _comments.value.isNotEmpty())) return
+        resetForLoad(videoId, key)
+        loadJob =
+            scope.launch {
+                try {
+                    awaitPlaybackGate(videoId)
+                    if (!isCurrentVideo(videoId)) return@launch
+                    var page = fetch { source.firstPage(videoId, newest.token) } ?: return@launch
+                    if (page.sortOptions.isNotEmpty()) _sortOptions.value = page.sortOptions
+                    page.totalText?.let { _totalText.value = it }
+                    page.totalCount?.let { _totalCount.value = it }
+                    _isDisabled.value = page.disabled
+                    var comments = page.comments.distinctByNonBlankKey(Comment::id)
+                    var pages = 1
+                    while (page.hasMore && pages < OLDEST_PAGE_LIMIT && isCurrentVideo(videoId)) {
+                        page = fetch { fetchNextPage(videoId, page) } ?: break
+                        comments = comments.mergeDistinctByNonBlankKey(page.comments, Comment::id)
+                        pages++
+                    }
+                    if (!isCurrentVideo(videoId)) return@launch
+                    _comments.value = comments
+                    _oldestCapped.value = page.hasMore
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error reading comments to their oldest", e)
+                } finally {
+                    if (loadingVideoId == videoId && activeSortToken == key) _isLoading.value = false
+                }
+            }
     }
 
     /**
@@ -224,7 +262,6 @@ internal class CommentsPager(
     private fun startLoad(
         videoId: String,
         sortToken: String?,
-        readAhead: Boolean,
     ) {
         resetForLoad(videoId, sortToken)
         loadJob =
@@ -241,7 +278,6 @@ internal class CommentsPager(
                     page.totalText?.let { _totalText.value = it }
                     page.totalCount?.let { _totalCount.value = it }
                     _isDisabled.value = page.disabled
-                    if (readAhead) prefetchFollowingPages(videoId)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -257,7 +293,6 @@ internal class CommentsPager(
         sortToken: String?,
     ) {
         loadJob?.cancel()
-        prefetchJob?.cancel()
         // A re-sort keeps the header; a page without a count must not inherit the last video's (#1111).
         if (videoId != loadingVideoId) {
             _sortOptions.value = emptyList()
@@ -267,7 +302,7 @@ internal class CommentsPager(
         }
         loadingVideoId = videoId
         activeSortToken = sortToken
-        hasReadAhead = false
+        _oldestCapped.value = false
         _comments.value = emptyList()
         next = CommentsPageResult.EMPTY
         timedCursors = mutableListOf()
@@ -300,7 +335,6 @@ internal class CommentsPager(
         }
         if (!next.hasMore) return
         if (_isLoadingMore.value) return
-        prefetchJob?.cancel()
         scope.launch {
             _isLoadingMore.value = true
             try {
@@ -313,27 +347,6 @@ internal class CommentsPager(
                 _isLoadingMore.value = false
             }
         }
-    }
-
-    /** Walks a bounded number of further pages in the background once the first one has landed. */
-    private fun prefetchFollowingPages(videoId: String) {
-        if (prefetchPages <= 0 || hasReadAhead) return
-        hasReadAhead = true
-        prefetchJob?.cancel()
-        prefetchJob =
-            scope.launch {
-                repeat(prefetchPages) {
-                    if (!next.hasMore || !isCurrentVideo(videoId) || _isLoadingMore.value) return@launch
-                    try {
-                        appendNextPage(videoId)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Log.d(TAG, "Comment prefetch stopped for $videoId: ${e.message}")
-                        return@launch
-                    }
-                }
-            }
     }
 
     private suspend fun fetchNextPage(

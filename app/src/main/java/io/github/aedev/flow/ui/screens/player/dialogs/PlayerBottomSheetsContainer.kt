@@ -23,6 +23,7 @@ import io.github.aedev.flow.player.SleepTimerManager
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
 import io.github.aedev.flow.ui.components.shared.FlowCommentsBottomSheet
+import io.github.aedev.flow.ui.components.shared.oldestCommentsNote
 import io.github.aedev.flow.ui.components.videoplayer.sheet.FlowLiveChatBottomSheet
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerCommentsUiState
@@ -79,6 +80,8 @@ internal fun PlayerBottomSheetsContainer(
             comments = visibleComments,
             isLoading = commentsUiState.isLoading,
             selectedFilter = screenState.commentSortFilter,
+            sortOptions = commentsUiState.sortOptions,
+            sortNote = oldestCommentsNote(screenState.commentSortFilter, commentsUiState.oldestCapped, commentsUiState.comments.size),
             totalText = commentsUiState.totalText,
             artworkUrl = video.thumbnailUrl,
             showTimed = true,
