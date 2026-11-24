@@ -234,8 +234,8 @@ android {
 }
 
 // Robolectric fetches its Android image from Maven Central inside each test JVM, and CI runs kept
-// failing on HTTP 429 there. Gradle resolves it instead, cached on the runners, and the tests read it
-// offline; a test on any other SDK fails at once rather than downloading.
+// failing on HTTP 429 there. Gradle resolves it instead (from the mirror in settings.gradle.kts, cached
+// on the runners), and the tests read it offline; a test on any other SDK fails at once.
 val robolectricAndroidAll by configurations.creating { isTransitive = false }
 dependencies { robolectricAndroidAll(libs.robolectric.android.all) }
 val robolectricJarsDir = layout.buildDirectory.dir("robolectric-jars")
