@@ -584,6 +584,7 @@ class Media3MusicService : MediaLibraryService() {
         player.setShuffleOrder(ShuffleOrder.UnshuffledShuffleOrder(0))
         musicResume.attach(player)
         MusicPreload(this, player) { loadControl.savesData = it }.attach(lifecycleScope, prefs.bufferProfile)
+        NextSongWarmup(downloadUtil.getPlayerDataSourceFactory(), lifecycleScope, savesData = { loadControl.savesData }).attach(player)
         crossfader = MusicCrossfader(player, ::buildCrossfadeTail, ::crossfadeMoment, ::applyLoudnessGain).also { it.attach() }
         lifecycleScope.launch {
             combine(
