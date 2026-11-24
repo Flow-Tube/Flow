@@ -27,17 +27,22 @@ internal fun visibleSubscriptionEnrichmentWindow(
         .take(maxCandidates)
 }
 
+/**
+ * The rows a player lookup should look at: those without a length yet, and live streams, which are
+ * looked at again every [liveRecheckMillis] so one that has ended turns into its length.
+ */
 internal fun missingDurationCandidates(
     videos: List<Video>,
     attemptedAtMillis: Map<String, Long>,
     nowMillis: Long,
     retryAfterMillis: Long,
+    liveRecheckMillis: Long = retryAfterMillis,
 ): List<Video> =
     videos.filter { video ->
         val lastAttempt = attemptedAtMillis[video.id]
+        val wait = if (video.isLive) liveRecheckMillis else retryAfterMillis
         video.id.isNotBlank() &&
             video.duration <= 0 &&
-            !video.isLive &&
             !video.isUpcoming &&
-            (lastAttempt == null || nowMillis - lastAttempt >= retryAfterMillis)
+            (lastAttempt == null || nowMillis - lastAttempt >= wait)
     }

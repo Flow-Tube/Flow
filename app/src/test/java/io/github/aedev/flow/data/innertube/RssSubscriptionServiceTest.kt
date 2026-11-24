@@ -290,15 +290,17 @@ class RssSubscriptionServiceTest {
                     ChannelUploads(
                         owner = FeedItemOwner("UCa", "Channel"),
                         videos = listOf(upload("v1", "UCa")),
-                        live = listOf(upload("past-stream", "UCa")),
+                        live = listOf(upload("past-stream", "UCa"), upload("on-air", "UCa").copy(isLive = true, duration = 0)),
                     ),
                 )
 
             val chunk = sweep("UCa")
 
             assertThat(chunk.failedChannelIds).isEmpty()
-            assertThat(chunk.videos.map { it.id }).containsExactly("v1", "past-stream")
-            assertThat(chunk.videos.single { it.id == "past-stream" }.isLive).isTrue()
+            assertThat(chunk.videos.map { it.id }).containsExactly("v1", "past-stream", "on-air")
+            assertThat(chunk.videos.single { it.id == "past-stream" }.isLive).isFalse()
+            assertThat(chunk.videos.single { it.id == "past-stream" }.duration).isEqualTo(600)
+            assertThat(chunk.videos.single { it.id == "on-air" }.isLive).isTrue()
             assertThat(chunk.videos.single { it.id == "v1" }.channelName).isEqualTo("Channel")
         }
 

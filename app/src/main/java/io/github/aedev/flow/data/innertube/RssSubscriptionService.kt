@@ -472,7 +472,6 @@ class RssSubscriptionService
                     ?.let { ThumbnailUrlResolver.resolveChannelAvatar(it) }
                     .orEmpty()
             val shortIds = uploads.shorts.mapTo(HashSet()) { it.id }
-            val liveIds = uploads.live.mapTo(HashSet()) { it.id }
             val videos =
                 (uploads.videos + uploads.shorts + uploads.live)
                     .distinctBy { it.id }
@@ -482,7 +481,6 @@ class RssSubscriptionService
                             channelName = uploads.owner.name,
                             channelAvatar = channelAvatar,
                             fromShortsTab = video.id in shortIds,
-                            fromLiveTab = video.id in liveIds,
                             rssUploadTimeMillis = rssDateMap[video.id],
                             minimumDateMillis = minimumDateMillis,
                         )
@@ -497,7 +495,6 @@ class RssSubscriptionService
             channelName: String,
             channelAvatar: String,
             fromShortsTab: Boolean,
-            fromLiveTab: Boolean,
             rssUploadTimeMillis: Long?,
             minimumDateMillis: Long,
         ): Video? {
@@ -507,7 +504,6 @@ class RssSubscriptionService
             if (uploadedAt <= minimumDateMillis) return null
 
             val upcoming = isUpcoming || uploadedAt > System.currentTimeMillis() + 60_000L
-            val isArchivedLivestream = fromLiveTab && !isLive && !upcoming
             return copy(
                 channelName = this.channelName.ifBlank { channelName }.ifBlank { UNKNOWN_LABEL },
                 channelId = channelId,
@@ -516,13 +512,13 @@ class RssSubscriptionService
                     if (upcoming && uploadDate.isNotBlank()) {
                         uploadDate
                     } else {
-                        formatRelativeTime(uploadedAt).let { if (isArchivedLivestream) "Streamed $it" else it }
+                        formatRelativeTime(uploadedAt)
                     },
                 timestamp = uploadedAt,
                 timestampIsExact = rssUploadTimeMillis != null,
                 channelThumbnailUrl = channelAvatar.ifBlank { channelThumbnailUrl },
                 isShort = isShort || fromShortsTab,
-                isLive = !upcoming && (isLive || fromLiveTab),
+                isLive = !upcoming && isLive,
                 isUpcoming = upcoming,
             )
         }

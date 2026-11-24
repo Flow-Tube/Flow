@@ -28,10 +28,46 @@ class SubscriptionPlayerMetadataTest {
         unmockkObject(YouTube)
     }
 
-    private fun answer(status: PlayabilityStatus) {
+    private fun answer(
+        status: PlayabilityStatus,
+        details: PlayerResponse.VideoDetails = DETAILS,
+    ) {
         coEvery { YouTube.player(any(), any(), YouTubeClient.ANDROID, any(), any(), any(), any()) } returns
-            Result.success(response(status))
+            Result.success(response(status, details))
     }
+
+    @Test
+    fun `a stream on air is live with no length`() =
+        runTest {
+            answer(OK, DETAILS.copy(lengthSeconds = "0", isLive = true, isLiveContent = true))
+
+            val row = fetchSubscriptionPlayerMetadata(video("v1"), TIMEOUT_MS)?.enriched
+
+            assertThat(row?.isLive).isTrue()
+            assertThat(row?.duration).isEqualTo(0)
+        }
+
+    @Test
+    fun `an ended stream is a video with its length, also when the row said live`() =
+        runTest {
+            answer(OK, DETAILS.copy(lengthSeconds = "5400", isLive = null, isLiveContent = true))
+
+            val row = fetchSubscriptionPlayerMetadata(video("v1").copy(isLive = true), TIMEOUT_MS)?.enriched
+
+            assertThat(row?.isLive).isFalse()
+            assertThat(row?.duration).isEqualTo(5400)
+            assertThat(video("v1").copy(isLive = true).withPlayerMetadata(row!!).isLive).isFalse()
+        }
+
+    @Test
+    fun `a stream that ended and has no length yet clears the live badge`() =
+        runTest {
+            answer(OK, DETAILS.copy(lengthSeconds = "0", isLive = false, isLiveContent = true))
+
+            assertThat(fetchSubscriptionPlayerMetadata(video("v1"), TIMEOUT_MS)?.enriched).isNull()
+            val cleared = fetchSubscriptionPlayerMetadata(video("v1").copy(isLive = true), TIMEOUT_MS)?.enriched
+            assertThat(cleared?.isLive).isFalse()
+        }
 
     @Test
     fun `a country refusal is reported and the row still gets its duration`() =
@@ -73,21 +109,27 @@ class SubscriptionPlayerMetadataTest {
                     ),
             )
 
-        fun response(status: PlayabilityStatus) =
-            PlayerResponse(
-                responseContext = ResponseContext(visitorData = null, serviceTrackingParams = null),
-                playabilityStatus = status,
-                playerConfig = null,
-                streamingData = null,
-                videoDetails =
-                    PlayerResponse.VideoDetails(
-                        videoId = "v1",
-                        title = "Original title",
-                        author = "Channel",
-                        channelId = "UC1",
-                        lengthSeconds = "70",
-                    ),
-                playbackTracking = null,
+        val OK = PlayabilityStatus(status = "OK", reason = null)
+
+        val DETAILS =
+            PlayerResponse.VideoDetails(
+                videoId = "v1",
+                title = "Original title",
+                author = "Channel",
+                channelId = "UC1",
+                lengthSeconds = "70",
             )
+
+        fun response(
+            status: PlayabilityStatus,
+            details: PlayerResponse.VideoDetails = DETAILS,
+        ) = PlayerResponse(
+            responseContext = ResponseContext(visitorData = null, serviceTrackingParams = null),
+            playabilityStatus = status,
+            playerConfig = null,
+            streamingData = null,
+            videoDetails = details,
+            playbackTracking = null,
+        )
     }
 }

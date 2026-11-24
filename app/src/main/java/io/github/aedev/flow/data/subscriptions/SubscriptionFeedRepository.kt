@@ -485,7 +485,8 @@ private fun SubscriptionFeedEntity.toVideo() =
         collaborators = decodeCollaborators(collaboratorsJson),
         channelThumbnailUrls = decodeCollaborators(collaboratorsJson).map { it.thumbnailUrl }.filter { it.isNotBlank() },
         isShort = isShort,
-        isLive = isLive && uploadDate.containsLiveMarker(),
+        // A scheduled stream is stored as live + upcoming, since the cache has no column for it.
+        isLive = isLive && !isUpcoming,
         // A cached "upcoming" outlives its start time only until the next look at the row.
         isUpcoming = isUpcoming && timestamp > System.currentTimeMillis(),
         isScheduledLive = isUpcoming && isLive && timestamp > System.currentTimeMillis(),
@@ -550,11 +551,3 @@ private fun ChannelRssEntry.toEntity(
     isUpcoming = publishedAtMillis > cachedAt + 60_000L,
     cachedAt = cachedAt,
 )
-
-private fun String.containsLiveMarker(): Boolean {
-    val text = lowercase()
-    return text.contains("live") ||
-        text.contains("stream") ||
-        text.contains("watching") ||
-        text.contains("started")
-}

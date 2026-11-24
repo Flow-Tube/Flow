@@ -123,6 +123,25 @@ class FeedItemParsersTest {
     }
 
     @Test
+    fun `a stream on now in another language is live by its badge style, not upcoming`() {
+        val video =
+            (
+                item(
+                    lockup(
+                        "lofi",
+                        "LOCKUP_CONTENT_TYPE_VIDEO",
+                        "lofi hip hop radio",
+                        rows = row("3,9 K usuarios"),
+                        overlays = bottomBadgeOverlay("EN DIRECTO", "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE"),
+                    ),
+                ) as FeedItem.VideoItem
+            ).video
+
+        assertTrue(video.isLive)
+        assertFalse(video.isUpcoming)
+    }
+
+    @Test
     fun `a scheduled stream is upcoming and keeps its scheduled start as the date`() {
         val video =
             (
