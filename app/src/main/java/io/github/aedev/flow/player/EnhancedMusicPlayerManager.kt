@@ -400,6 +400,13 @@ object EnhancedMusicPlayerManager {
                     }
                 }
 
+                override fun onPlayWhenReadyChanged(
+                    playWhenReady: Boolean,
+                    reason: Int,
+                ) {
+                    updatePlayerState()
+                }
+
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     updatePlayerState()
                     if (isPlaying) {
@@ -630,6 +637,7 @@ object EnhancedMusicPlayerManager {
                 _playerState.value.copy(
                     isPlaying = p.isPlaying,
                     isBuffering = p.playbackState == Player.STATE_BUFFERING,
+                    playWhenReady = p.playWhenReady,
                     duration = if (pendingSkip == null && p.duration > 0) p.duration else _playerState.value.duration,
                     position = if (pendingSkip == null) p.currentPosition else 0L,
                 )

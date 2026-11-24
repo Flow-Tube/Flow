@@ -13,6 +13,7 @@ data class MusicPlayerUiState(
     val currentTrack: MusicTrack? = null,
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
+    val playWhenReady: Boolean = false,
     val duration: Long = 0,
     val queue: List<MusicTrack> = emptyList(),
     val autoplaySuggestions: List<MusicTrack> = emptyList(),
@@ -45,4 +46,10 @@ data class MusicPlayerUiState(
     val lyricsBackground: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,
     val lyricsCandidates: List<LyricsCandidate> = emptyList(),
     val isBrowsingLyrics: Boolean = false,
-)
+) {
+    /**
+     * Playing, or only buffering on the way to playing (a seek buffers even inside the loaded range). Motion
+     * that follows playback keys off this, so a seek doesn't stop and restart it.
+     */
+    val isPlaybackActive: Boolean get() = isPlaying || (playWhenReady && isBuffering)
+}
