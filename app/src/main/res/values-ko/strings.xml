@@ -4441,4 +4441,16 @@
     <string name="keyboard_shortcut_exit_fullscreen">전체 화면 종료</string>
     <string name="keyboard_shortcut_faster">더 빠르게</string>
     <string name="keyboard_shortcut_slower">느리게</string>
+    <string name="subscriptions_pin_channel">시작 화면에 고정</string>
+    <string name="subscriptions_unpin_channel">고정 해제</string>
+    <string name="subscriptions_open_channel">채널 열기</string>
+    <string name="subscriptions_pinned_section">고정됨</string>
+    <string name="premiered_date_template">%1$s 에 첫 공개</string>
+    <string name="auto_group_music_playlists">음악 플레이리스트</string>
+    <string name="auto_group_video_playlists">영상 플레이리스트</string>
+    <string name="lyrics_romanization_only">로마자 표기만</string>
+    <string name="lyrics_romanization_only_summary">원본 대본을 라틴 문자로</string>
+    <string name="lyrics_background">백그라운드</string>
+    <string name="lyrics_background_solid_detail">표지의 색상 중 하나</string>
+    <string name="lyrics_share">가사 공유</string>
 </resources>
