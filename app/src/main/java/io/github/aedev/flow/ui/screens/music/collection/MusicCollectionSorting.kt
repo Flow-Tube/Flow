@@ -44,14 +44,17 @@ enum class MusicSortOrder(
     }
 }
 
-/** [this] in [order]; ties keep the collection's own order, so a sort never shuffles equal songs. */
+/**
+ * [this] in [order]. Equal songs keep the collection's order, except that newest added reverses it:
+ * an import gives every song one date, and the collection order is the order they were added in.
+ */
 internal fun List<MusicTrack>.sortedForCollection(
     order: MusicSortOrder,
     addedAt: Map<String, Long>,
 ): List<MusicTrack> =
     when (order) {
         MusicSortOrder.COLLECTION -> this
-        MusicSortOrder.NEWEST_ADDED -> sortedByDescending { addedAt[it.videoId] ?: Long.MIN_VALUE }
+        MusicSortOrder.NEWEST_ADDED -> asReversed().sortedByDescending { addedAt[it.videoId] ?: Long.MIN_VALUE }
         MusicSortOrder.OLDEST_ADDED -> sortedBy { addedAt[it.videoId] ?: Long.MAX_VALUE }
         MusicSortOrder.TITLE -> sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
         MusicSortOrder.ARTIST -> sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.artist })

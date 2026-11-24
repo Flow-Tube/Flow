@@ -49,6 +49,27 @@ class MusicCollectionSortingTest {
     }
 
     @Test
+    fun `songs added together come out reversed when newest first`() {
+        val imported = tracks + track("d", "Re: Stacks", "Bon Iver", 401)
+        val sameImport = mapOf("a" to 10L, "b" to 10L, "c" to 10L, "d" to 20L)
+
+        assertThat(
+            imported.sortedForCollection(MusicSortOrder.NEWEST_ADDED, sameImport).map { it.videoId },
+        ).containsExactly("d", "c", "b", "a").inOrder()
+        assertThat(
+            imported.sortedForCollection(MusicSortOrder.OLDEST_ADDED, sameImport).map { it.videoId },
+        ).containsExactly("a", "b", "c", "d").inOrder()
+    }
+
+    @Test
+    fun `songs without a date go last in both date orders`() {
+        val partly = mapOf("b" to 10L)
+
+        assertThat(tracks.sortedForCollection(MusicSortOrder.NEWEST_ADDED, partly).first().videoId).isEqualTo("b")
+        assertThat(tracks.sortedForCollection(MusicSortOrder.OLDEST_ADDED, partly).first().videoId).isEqualTo("b")
+    }
+
+    @Test
     fun `songs without an album sort after those with one`() {
         assertThat(tracks.sortedForCollection(MusicSortOrder.ALBUM, added).first().videoId).isEqualTo("c")
     }
