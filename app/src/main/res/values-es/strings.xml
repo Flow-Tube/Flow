@@ -5516,4 +5516,20 @@
     <string name="download_waiting_storage_amount">Necesita %1$s más de almacenamiento</string>
     <string name="notification_download_waiting_storage">Esperando al almacenamiento. Libera espacio para continuar.</string>
     <string name="notification_download_waiting_storage_amount">Esperando al almacenamiento. Libera %1$s para continuar.</string>
+    <plurals name="comments_oldest_capped">
+        <item quantity="one">El más antiguo del último %1$d comentario</item>
+        <item quantity="many">El más antiguo de los últimos %1$d comentarios</item>
+        <item quantity="other">El más antiguo de los últimos %1$d comentarios</item>
+    </plurals>
+    <string name="linked_device_name_with_id">%1$s · %2$s</string>
+    <string name="linked_error_connect_timeout">No hubo respuesta en esa dirección. Comprueba la dirección, puerto y verifica que el servidor acepte conexiones desde este dispositivo.</string>
+    <string name="linked_error_connection_refused">El servidor rechazó la conexión. Comprueba el puerto en la dirección.</string>
+    <string name="linked_error_no_such_host">No se pudo encontrar ese nombre o dirección de servidor en esta red.</string>
+    <string name="linked_error_no_answer">El servidor dejó de responder. Vuelve a intentarlo en un momento.</string>
+    <string name="linked_error_not_http">Esa dirección no responde como un servidor web. Comprueba si utiliza http o https, así como el puerto.</string>
+    <string name="linked_error_folder_redirected">El servidor envía esa dirección a otro lugar. Utiliza la dirección exacta de la carpeta WebDAV.</string>
+    <string name="linked_error_folder_missing">Esa carpeta no existe en el servidor. Comprueba la dirección de la carpeta.</string>
+    <string name="linked_error_folder_forbidden">El servidor no permite escribir en esa carpeta.</string>
+    <string name="settings_quality_lower_when_small">Menor calidad en el minirreproductor y en el modo PiP</string>
+    <string name="settings_quality_lower_when_small_summary">Automático utiliza hasta 480p cuando el vídeo es pequeño</string>
 </resources>
