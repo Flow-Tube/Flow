@@ -1484,7 +1484,7 @@ class Media3MusicService : MediaLibraryService() {
             ProfileSwitchGate.isSwitching ||
                 controllerInfo.declinesMediaButtonStart(
                     hasMediaItem = ::player.isInitialized && player.currentMediaItem != null,
-                    canResume = queuePersistence.hasSavedQueueFile() && HeadphoneResume.isAllowed(this),
+                    canResume = queuePersistence.hasResumableQueue() && HeadphoneResume.isAllowed(this),
                 )
         }
 
