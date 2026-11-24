@@ -15,6 +15,7 @@ object LyricsCacheManager {
     private const val SYNC_OFFSET_SUFFIX = ".offset"
     private const val NO_LYRICS_SUFFIX = ".none"
     private const val UNVERIFIED_MARKER = ".unverified-expired"
+    private const val WORD_SPACING_MARKER = ".word-spacing-rechecked"
     private const val WEEK_MS = 7 * 24 * 60 * 60 * 1000L
     private val lock = Any()
 
@@ -247,17 +248,32 @@ object LyricsCacheManager {
     suspend fun recheckUnverifiedOnce(
         context: Context,
         keep: (List<LyricsEntry>) -> Boolean,
+    ) = expireOnce(context, UNVERIFIED_MARKER) { entries -> entries == null || !keep(entries) }
+
+    /**
+     * Older versions put a space at every syllable tag of word-synced lyrics ("Sur real"), and a
+     * word-synced copy is never looked at again on its own, so each one gets one look after updating.
+     */
+    suspend fun recheckWordSyncedOnce(
+        context: Context,
+        isWordSynced: (List<LyricsEntry>) -> Boolean,
+    ) = expireOnce(context, WORD_SPACING_MARKER) { entries -> entries != null && isWordSynced(entries) }
+
+    private suspend fun expireOnce(
+        context: Context,
+        markerName: String,
+        expire: (List<LyricsEntry>?) -> Boolean,
     ) {
         withContext(Dispatchers.IO) {
             synchronized(lock) {
                 runCatching {
-                    val dir = getCacheFile(context, UNVERIFIED_MARKER).parentFile ?: return@runCatching
-                    val marker = File(dir, UNVERIFIED_MARKER)
+                    val dir = getCacheFile(context, markerName).parentFile ?: return@runCatching
+                    val marker = File(dir, markerName)
                     if (marker.exists()) return@runCatching
                     dir.listFiles { file -> file.extension == "json" }.orEmpty().forEach { file ->
                         if (sidecar(context, file.nameWithoutExtension, MANUAL_SUFFIX).exists()) return@forEach
                         val entries = runCatching { json.decodeFromString<List<LyricsEntry>>(file.readText(Charsets.UTF_8)) }.getOrNull()
-                        if (entries == null || !keep(entries)) file.setLastModified(0L)
+                        if (expire(entries)) file.setLastModified(0L)
                     }
                     marker.createNewFile()
                 }.onFailure { Log.e(TAG, "Failed to expire old lyrics: ${it.message}") }

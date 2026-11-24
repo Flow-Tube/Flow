@@ -104,6 +104,28 @@ class LyricsCacheManagerTest {
         }
 
     @Test
+    fun `the word-synced pass looks again at word-synced copies only, once`() =
+        runTest {
+            val wordSynced = listOf(LyricsEntry(1L, "Sur real", listOf(WordTimestamp("Sur", 1L, 2L), WordTimestamp("real", 2L, 3L))))
+            LyricsCacheManager.saveLyrics(context, "word", wordSynced)
+            LyricsCacheManager.saveLyrics(context, "line", found)
+            LyricsCacheManager.saveManualLyrics(context, "picked", wordSynced)
+            val isWordSynced: (List<LyricsEntry>) -> Boolean = { entries -> entries.any { !it.words.isNullOrEmpty() } }
+
+            LyricsCacheManager.recheckWordSyncedOnce(context, isWordSynced)
+
+            assertThat(LyricsCacheManager.isUnverified(context, "word")).isTrue()
+            assertThat(LyricsCacheManager.getLyrics(context, "word")).isEqualTo(wordSynced)
+            assertThat(LyricsCacheManager.isUnverified(context, "line")).isFalse()
+            assertThat(LyricsCacheManager.isUnverified(context, "picked")).isFalse()
+
+            LyricsCacheManager.saveLyrics(context, "later", wordSynced)
+            LyricsCacheManager.recheckWordSyncedOnce(context, isWordSynced)
+
+            assertThat(LyricsCacheManager.isUnverified(context, "later")).isFalse()
+        }
+
+    @Test
     fun `a failing marker write does not fail the lookup that started it`() =
         runTest {
             val blocked = mockk<Context> { every { filesDir } returns File(folder.root, "file-not-dir").apply { writeText("") } }
