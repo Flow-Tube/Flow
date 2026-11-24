@@ -352,6 +352,76 @@ class LanSyncTest {
         }
 
     @Test
+    fun a_member_brings_a_device_it_just_removed_the_removal_when_it_dials_it_as_removed() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = bRemoved(g)
+
+            withContext(Dispatchers.Default) {
+                val answered = CompletableDeferred<Unit>()
+                val listener =
+                    WsServer(SESSION_PATH) { connection ->
+                        val link =
+                            try {
+                                acceptLink(connection, b.lanSession())
+                            } catch (_: ProtocolException) {
+                                connection.close()
+                                return@WsServer
+                            }
+                        try {
+                            pullBoth(link, b)
+                        } finally {
+                            answered.complete(Unit)
+                        }
+                    }
+                val port = listener.start()
+                val link =
+                    checkNotNull(
+                        dialLink(
+                            a.lanSession(),
+                            null,
+                            removed = true,
+                        ) { WsClient(OkHttpClient()).connect("ws://127.0.0.1:$port$SESSION_PATH") },
+                    )
+                assertTrue(link.peerRemoved)
+                coroutineScope {
+                    val peer = LanPeer(link, a.lanSession(), a.local)
+                    val reader = peer.start(this)
+                    peer.awaitQuiet(500)
+                    link.close()
+                    reader.join()
+                }
+                answered.await()
+                listener.stop()
+            }
+
+            assertNull(b.local.getObject(StorePaths.log(SyncBytes.toHex(g.a.did), 1)))
+            val refused = runCatching { b.session() }.exceptionOrNull()
+            assertTrue("$refused", refused is LinkedException.Removed)
+        }
+
+    @Test
+    fun a_dial_as_removed_refuses_a_device_still_in_the_group() =
+        runTest {
+            val g = LinkedGroup(this).apply { create() }
+            val (a, b) = member(g, g.a) to member(g, g.b)
+            withContext(Dispatchers.Default) {
+                val listener = WsServer(SESSION_PATH) { connection -> runCatching { pullBoth(acceptLink(connection, b.lanSession()), b) } }
+                val port = listener.start()
+                val refused =
+                    runCatching {
+                        dialLink(
+                            a.lanSession(),
+                            null,
+                            removed = true,
+                        ) { WsClient(OkHttpClient()).connect("ws://127.0.0.1:$port$SESSION_PATH") }
+                    }.exceptionOrNull()
+                listener.stop()
+                assertEquals("$refused", ProtocolError.SENDER, (refused as? ProtocolException)?.error)
+            }
+        }
+
+    @Test
     fun members_that_appended_at_the_same_seq_both_end_on_the_fork_winner() =
         runTest {
             val g = LinkedGroup(this).apply { create() }

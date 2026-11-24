@@ -118,7 +118,7 @@ class LinkedActions
         private val sync: LinkedSync,
         private val identity: DeviceIdentity,
         private val local: LocalStore,
-        lan: LanSync,
+        private val lan: LanSync,
         private val lanMet: LanMet,
         private val reset: LinkedReset,
         private val credentials: StoreCredentials,
@@ -326,7 +326,10 @@ class LinkedActions
         ): String? {
             // The cut names what this device has read, so read what it can first (spec/protocol.md, Removal).
             sync.syncNow()
-            val words = removeDevices(session(), keys.load(), also + id)
+            val removed = also + id
+            val addresses = lan.addressesOf(removed)
+            val words = removeDevices(session(), keys.load(), removed)
+            lan.noticeRemoval(addresses)
             if (words != null) db.groups().setRecoverySaved(false)
             db.snapshots().snapshotSoon()
             return words

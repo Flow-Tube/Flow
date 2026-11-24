@@ -144,13 +144,15 @@ private fun Session.removedKey(
 
 /**
  * The connecting side: hello sealed under [epoch], naming the [port] this device listens on.
- * [LinkedException.LanUnreachable] when the member closes without answering.
+ * [LinkedException.LanUnreachable] when the member closes without answering. With [removed], the
+ * answer must come from a device this one removed, which gets the roster only (spec/live.md, Removing).
  */
 suspend fun connectLink(
     connection: SyncConnection,
     session: Session,
     port: Int? = null,
     epoch: Int = session.state.epoch,
+    removed: Boolean = false,
 ): LanLink {
     val lanKey = purposeKey(session.epochKey(epoch), session.group, epoch, Purpose.LAN)
     val clientNonce = SyncCrypto.randomBytes(NONCE_SIZE)
@@ -172,7 +174,7 @@ suspend fun connectLink(
 
     val second = opened(connection.receiveHello() ?: throw LinkedException.LanUnreachable(), lanKey, 2)
     val serverDid = second.field("did")
-    val serverKey = session.memberKey(serverDid)
+    val serverKey = if (removed) session.removedKey(serverDid, epoch) ?: reject(ProtocolError.SENDER) else session.memberKey(serverDid)
     val server = SyncBytes.fromHex(serverDid)
     val serverNonce = second.nonce()
     val transcript = lanTranscript(LanRole.SERVER, clientNonce, serverNonce, client, server)
@@ -181,7 +183,7 @@ suspend fun connectLink(
     val proof = sign(session.device.sigSeed, lanTranscript(LanRole.CLIENT, clientNonce, serverNonce, client, server))
     connection.send(hello(epoch, lanKey, 3, JsonObject(mapOf("sig" to JsonPrimitive(SyncBytes.b64urlEncode(proof))))))
     val keys = lanSessionKeys(lanKey, clientNonce, serverNonce, client, server)
-    return LanLink(connection, serverDid, null, keys.clientToServer, keys.serverToClient)
+    return LanLink(connection, serverDid, null, keys.clientToServer, keys.serverToClient, peerRemoved = removed)
 }
 
 /**
@@ -191,13 +193,14 @@ suspend fun connectLink(
 suspend fun dialLink(
     session: Session,
     port: Int?,
+    removed: Boolean = false,
     connect: suspend () -> SyncConnection?,
 ): LanLink? {
     var epoch = session.state.epoch
     repeat(DIAL_ATTEMPTS) {
         val connection = connect() ?: return null
         try {
-            return connectLink(connection, session, port, epoch)
+            return connectLink(connection, session, port, epoch, removed)
         } catch (_: LinkedException.LanUnreachable) {
             connection.close()
             if (epoch == 0) return null

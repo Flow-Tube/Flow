@@ -36,6 +36,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -95,6 +96,9 @@ class LanSync
         private val open = ConcurrentHashMap.newKeySet<String>()
         private val seen = MutableStateFlow<Map<String, Long>>(emptyMap())
         private val dialed = ConcurrentHashMap<String, Long>()
+
+        /** Asks the running session to dial every remembered member now, past the once-a-minute limit. */
+        private val reachNow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
         /** The mDNS names this device advertised, which it never dials. */
         private val names = ConcurrentHashMap.newKeySet<String>()
@@ -180,6 +184,45 @@ class LanSync
             }
         }
 
+        /** Where the [removed] devices last listened. Read before the removal, which makes this device forget them. */
+        suspend fun addressesOf(removed: Collection<String>): List<LanAddressRow> = removalTargets(db.lan().addresses(), removed)
+
+        /**
+         * Brings the devices just removed, at [rows], the roster that removes them, for up to 10 seconds, so they
+         * stop at once instead of on their next dial; the members left are dialed now (spec/live.md, LAN groups).
+         * The removed devices lack the new epoch's key, and [dialLink] steps back to the one they still hold.
+         */
+        fun noticeRemoval(rows: List<LanAddressRow>) {
+            reachNow.tryEmit(Unit)
+            if (rows.isEmpty()) return
+            scope.launch {
+                val session = session() ?: return@launch
+                withTimeoutOrNull(FAREWELL_MS) {
+                    coroutineScope {
+                        for (row in rows) launch { deliverRemoval(row, session) }
+                    }
+                }
+            }
+        }
+
+        private suspend fun deliverRemoval(
+            row: LanAddressRow,
+            session: Session,
+        ) {
+            var link: LanLink? = null
+            try {
+                link = dialLink(session, null, removed = true) { connect(row.address) } ?: return
+                converse(link, session, serveOnly = true)
+                Log.i(TAG, "LAN removal delivered")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "LAN removal not delivered: ${e.linkedError()}")
+            } finally {
+                link?.close()
+            }
+        }
+
         private suspend fun session(): Session? {
             db.groups().group() ?: return null
             return open()
@@ -239,6 +282,7 @@ class LanSync
                     launch { reach(port) }
                     // Something to send: a live message, or objects this device wrote.
                     launch { live.envelopes.collect { reach(port, it) } }
+                    launch { reachNow.collect { reach(port, now = true) } }
                     launch {
                         db
                             .groups()
@@ -270,11 +314,12 @@ class LanSync
         private suspend fun CoroutineScope.reach(
             port: Int,
             envelope: ByteArray? = null,
+            now: Boolean = false,
         ) {
             val reachable = devices.online.value
             for (row in db.lan().addresses()) {
                 val address = row.address
-                if (address !in open && (due(address) || (envelope != null && row.did in reachable))) {
+                if (address !in open && (now || due(address) || (envelope != null && row.did in reachable))) {
                     launch { dial(row.host, row.port, port, envelope) }
                 }
             }
@@ -431,3 +476,9 @@ class LanSync
     }
 
 private val LanAddressRow.address: String get() = "$host:$port"
+
+/** The remembered addresses of the [removed] devices, each once. */
+internal fun removalTargets(
+    rows: List<LanAddressRow>,
+    removed: Collection<String>,
+): List<LanAddressRow> = rows.filter { it.did in removed }.distinctBy { it.address }
