@@ -37,4 +37,23 @@ class AutoArtworkUrlTest {
         assertThat(AutoArtworkProvider.artworkUriString("https://example.com/a.jpg")).isNull()
         assertThat(AutoArtworkProvider.artworkUriString("")).isNull()
     }
+
+    @Test
+    fun `android 11 sessions carry the web address, which its System UI skips`() {
+        val web = "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
+
+        assertThat(AutoArtworkProvider.sessionArtworkUriString(web, sdkInt = 30)).isEqualTo(web)
+    }
+
+    @Test
+    fun `other versions carry the car's content form, and anything unwrappable stays as it is`() {
+        val web = "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
+
+        listOf(26, 29, 31, 36).forEach { sdk ->
+            assertThat(AutoArtworkProvider.sessionArtworkUriString(web, sdk)).startsWith(prefix)
+        }
+        assertThat(AutoArtworkProvider.sessionArtworkUriString("https://example.com/a.jpg", 31)).isEqualTo("https://example.com/a.jpg")
+        assertThat(AutoArtworkProvider.sessionArtworkUriString("content://media/external/audio/albumart/12", 30))
+            .isEqualTo("content://media/external/audio/albumart/12")
+    }
 }
