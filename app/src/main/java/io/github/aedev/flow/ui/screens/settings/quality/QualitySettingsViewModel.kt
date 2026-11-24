@@ -18,6 +18,7 @@ class QualitySettingsViewModel
         val videoWifi = preferences.defaultQualityWifi.asState(VideoQuality.AUTO)
         val videoMobile = preferences.defaultQualityCellular.asState(VideoQuality.AUTO)
         val rememberVideo = preferences.rememberVideoQuality.asState(false)
+        val lowerWhenSmall = preferences.lowerQualityWhenSmall.asState(true)
         val shortsWifi = preferences.shortsQualityWifi.asState(VideoQuality.Q_720P)
         val shortsMobile = preferences.shortsQualityCellular.asState(VideoQuality.Q_480P)
         val music = preferences.musicAudioQuality.asState(MusicAudioQuality.AUTO)
@@ -31,6 +32,8 @@ class QualitySettingsViewModel
         fun setVideoMobile(value: VideoQuality) = write { preferences.setDefaultQualityCellular(value) }
 
         fun setRememberVideo(enabled: Boolean) = write { preferences.setRememberVideoQuality(enabled) }
+
+        fun setLowerWhenSmall(enabled: Boolean) = write { preferences.setLowerQualityWhenSmall(enabled) }
 
         fun setShortsWifi(value: VideoQuality) = write { preferences.setShortsQualityWifi(value) }
 

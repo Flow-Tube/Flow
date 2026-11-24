@@ -462,6 +462,7 @@ class PlayerPreferences(
         val LINKED_TAKEN_BACK = device(stringSetPreferencesKey("linked_taken_back"))
         val DEFAULT_QUALITY_CELLULAR = device(stringPreferencesKey("default_quality_cellular"))
         val REMEMBER_VIDEO_QUALITY = device(booleanPreferencesKey("remember_video_quality"))
+        val LOWER_QUALITY_WHEN_SMALL = device(booleanPreferencesKey("lower_quality_when_small"))
         val DEFAULT_VIDEO_CODEC = device(stringPreferencesKey("default_video_codec"))
         val FALLBACK_VIDEO_CODEC = device(stringPreferencesKey("fallback_video_codec"))
         val TILT_FULLSCREEN_ROTATION_LOCKED = device(booleanPreferencesKey("tilt_fullscreen_rotation_locked"))
@@ -2169,6 +2170,14 @@ class PlayerPreferences(
 
     suspend fun setRememberVideoQuality(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { it[DeviceKeys.REMEMBER_VIDEO_QUALITY] = enabled }
+    }
+
+    /** Whether Auto keeps to 480p while the mini player or a PiP window shows the video (#2257). */
+    val lowerQualityWhenSmall: Flow<Boolean> =
+        context.devicePreferencesDataStore.data.map { it[DeviceKeys.LOWER_QUALITY_WHEN_SMALL] ?: true }
+
+    suspend fun setLowerQualityWhenSmall(enabled: Boolean) {
+        context.devicePreferencesDataStore.edit { it[DeviceKeys.LOWER_QUALITY_WHEN_SMALL] = enabled }
     }
 
     /** Saves an in-player pick ([height] 0 is Auto) as this network's default, when [rememberVideoQuality] is on. */
