@@ -12,11 +12,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.lyrics.LyricsCacheManager
 import io.github.aedev.flow.di.MusicCache
 import io.github.aedev.flow.di.PlayerCache
-import io.github.aedev.flow.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -59,7 +57,6 @@ class MediaCacheRepository
         @MusicCache private val musicCache: Lazy<SimpleCache>,
         private val imageLoader: Lazy<ImageLoader>,
         private val okHttpClient: OkHttpClient,
-        private val youTube: YouTube,
     ) {
         suspend fun usage(): MediaCacheUsage =
             withContext(Dispatchers.IO) {
@@ -69,7 +66,6 @@ class MediaCacheRepository
                     artwork = safely { imageLoader.get().diskCache?.size ?: 0L },
                     other =
                         safely { okHttpClient.cache?.size() ?: 0L } +
-                            safely { youTube.cacheDirectory?.contentSize() ?: 0L } +
                             LyricsCacheManager.cacheSizeBytes(context),
                 )
             }
@@ -93,7 +89,6 @@ class MediaCacheRepository
 
                     MediaCacheType.OTHER -> {
                         runCatching { okHttpClient.cache?.evictAll() }.onFailure { Log.w(TAG, "Could not clear the network cache", it) }
-                        youTube.cacheDirectory?.listFiles()?.forEach { it.deleteRecursively() }
                         LyricsCacheManager.clearAllCache(context)
                     }
                 }
@@ -104,8 +99,6 @@ class MediaCacheRepository
                 runCatching { removeResource(key) }.onFailure { Log.w(TAG, "Could not clear a cached item", it) }
             }
         }
-
-        private fun File.contentSize(): Long = walkBottomUp().filter { it.isFile }.sumOf { it.length() }
 
         private inline fun safely(measure: () -> Long): Long =
             runCatching(measure).onFailure { Log.w(TAG, "Could not measure a cache", it) }.getOrDefault(0L)

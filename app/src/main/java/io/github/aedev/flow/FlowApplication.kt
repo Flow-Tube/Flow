@@ -150,7 +150,10 @@ class FlowApplication :
         breakReminderTimer.install()
         dailyLimitGuard.install()
         appLock.install()
-        YouTube.cacheDirectory = cacheDir.resolve("innertube_http_cache")
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            // Left by the InnerTube HTTP cache of older builds; nothing writes to it any more.
+            cacheDir.resolve("innertube_http_cache").deleteRecursively()
+        }
 
         DiscordPresenceRuntime.initialize(this, okHttpClient)
 
@@ -252,28 +255,6 @@ class FlowApplication :
         }
 
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            var lastRegion: String? = null
-            playerPreferences.trendingRegion.collectLatest { region ->
-                if (lastRegion != null && lastRegion != region) {
-                    Log.d(TAG, "Trending region changed from $lastRegion to $region. Invalidate visitor data.")
-                    YouTube.visitorData = null
-
-                    YouTube
-                        .visitorData()
-                        .onSuccess { data ->
-                            if (!data.isNullOrEmpty()) {
-                                YouTube.visitorData = data
-                                Log.d(TAG, "Fresh visitorData fetched for region: $region")
-                            }
-                        }.onFailure { e ->
-                            Log.w(TAG, "Failed to fetch fresh visitorData: ${e.message}")
-                        }
-                }
-                lastRegion = region
-            }
-        }
-
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val repository = SubscriptionRepository.getInstance(this@FlowApplication)
                 val youtubeRepository = YouTubeRepository.getInstance(playerPreferences)
@@ -335,10 +316,5 @@ class FlowApplication :
 
     private fun releaseVolatileMemory() {
         if (::playlistRepository.isInitialized) playlistRepository.trimMemory()
-        if (::okHttpClient.isInitialized) {
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                okHttpClient.connectionPool.evictAll()
-            }
-        }
     }
 }
