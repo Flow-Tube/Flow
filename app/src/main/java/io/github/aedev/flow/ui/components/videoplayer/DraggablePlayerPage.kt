@@ -33,6 +33,7 @@ internal fun DraggablePlayerPage(
     hidden: Boolean,
     isTwoPaneWindow: Boolean,
     statusBarHeight: Float,
+    belowVideoBandPx: Float,
     screenWidth: Float,
     screenHeight: Float,
     videoHeightProvider: () -> Float,
@@ -60,11 +61,11 @@ internal fun DraggablePlayerPage(
             if (isTwoPaneWindow) videoHeightProvider else ({ 0f })
         }
     val bodyPaddingTopProvider =
-        remember(isTwoPaneWindow, statusBarHeight, videoHeightProvider) {
+        remember(isTwoPaneWindow, statusBarHeight, belowVideoBandPx, videoHeightProvider) {
             if (isTwoPaneWindow) {
                 ({ statusBarHeight })
             } else {
-                ({ videoHeightProvider() + statusBarHeight })
+                ({ videoHeightProvider() + statusBarHeight + belowVideoBandPx })
             }
         }
     // How much of a scroll-away page, measured to the full window, still hangs below its bottom edge.

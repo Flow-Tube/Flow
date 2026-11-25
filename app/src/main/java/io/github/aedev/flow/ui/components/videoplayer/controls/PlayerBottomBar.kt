@@ -118,6 +118,7 @@ internal fun PlayerBottomBar(
     isLayerVisible: () -> Boolean = { true },
     onFineScrub: (() -> Unit)? = null,
     isPlaying: Boolean = true,
+    hangsBelowVideo: Boolean = false,
 ) {
     val accentColor = MaterialTheme.colorScheme.primary
     // Faded rather than removed: the pills hold the height the seek bar sits at, and a bar that
@@ -248,6 +249,7 @@ internal fun PlayerBottomBar(
             onScrubProgress = onScrubProgress,
             onScrubFinished = onScrubFinished,
             isScrubbing = isScrubbing,
+            modifier = if (hangsBelowVideo) Modifier.hangBelowVideoEdge() else Modifier,
             seekbarZIndex = 2f,
             onFineScrub = onFineScrub,
         )

@@ -137,6 +137,7 @@ fun VideoPlayerHost(
             coversPlayer = playerSheetState.isScrolledAway,
         )
     val effectiveVideoAspectRatio = mediaSheetGeometry.effectiveVideoAspectRatio
+    val videoBand = belowVideoBand(prefs.idleProgressBar, isTwoPaneWindow)
     var expandedPlayerBottomPx by remember { mutableStateOf<() -> Float>({ 0f }) }
     val pipForcedFullscreen = remember { mutableStateOf(false) }
 
@@ -338,6 +339,7 @@ fun VideoPlayerHost(
                 playerWidthPx = constraints.maxWidth.toFloat(),
                 expandedPlayerBottomPx = expandedPlayerBottomPx,
                 sheetShown = screenState.activeSheet != PlayerSheet.None,
+                belowVideoBand = videoBand,
                 fallbackScreenHeight = config.screenHeightDp.dp,
                 maxWidth = maxWidth,
                 maxHeight = maxHeight,
@@ -368,6 +370,7 @@ fun VideoPlayerHost(
                 },
             videoAspectRatio = effectiveVideoAspectRatio,
             expandedPlayerHeightFractionOverride = mediaSheetGeometry.playerHeightFractionOverride,
+            belowVideoBand = videoBand,
             scrollAwayEnabled = prefs.playerScrollAwayEnabled,
             contentKey = video.id,
             bottomPadding = bottomPadding,

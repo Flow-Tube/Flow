@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.IdleProgressBar
 import io.github.aedev.flow.data.local.PlayerOverlayPreferences
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.player.EnhancedPlayerManager
@@ -378,6 +379,7 @@ internal fun PlayerControlsOverlay(
                         modifier = Modifier.align(Alignment.BottomCenter),
                         onFineScrub = fineScrub.open,
                         isPlaying = state.isPlaying,
+                        hangsBelowVideo = overlayPreferences.idleProgressBar == IdleProgressBar.BELOW_VIDEO && !isFullscreen,
                     )
                 }
 

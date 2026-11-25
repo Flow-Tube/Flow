@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.local.DoubleTapSeekZone
 import io.github.aedev.flow.data.local.FullscreenSidePanelWidth
 import io.github.aedev.flow.data.local.GestureOverlayStyle
 import io.github.aedev.flow.data.local.HomeFeedColumns
+import io.github.aedev.flow.data.local.IdleProgressBar
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PlayerRelatedCardStyle
 import io.github.aedev.flow.data.local.SpeedSwipeSide
@@ -58,6 +59,7 @@ internal class VideoPlayerPreferencesState(
     val ambientGlowInBatterySaver: Boolean,
     val ambientResponsive: Boolean,
     val adaptivePlayerSizeEnabled: Boolean,
+    val idleProgressBar: IdleProgressBar,
     val playerScrollAwayEnabled: Boolean,
     val groupedQualitySelectorEnabled: Boolean,
     val lockModeEnabled: Boolean,
@@ -110,6 +112,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
     val ambientGlowInBatterySaver by playerPreferences.videoAmbientGlowInBatterySaver.collectAsState(initial = false)
     val ambientResponsive by playerPreferences.videoAmbientResponsive.collectAsState(initial = false)
     val adaptivePlayerSizeEnabled by playerPreferences.adaptivePlayerSizeEnabled.collectAsState(initial = true)
+    val idleProgressBar by playerPreferences.idleProgressBar.collectAsState(initial = IdleProgressBar.ON_VIDEO)
     val playerScrollAwayEnabled by playerPreferences.playerScrollAwayEnabled.collectAsState(initial = false)
     val groupedQualitySelectorEnabled by playerPreferences.groupedQualitySelectorEnabled.collectAsState(initial = false)
     val lockModeEnabled by playerPreferences.overlayLockModeEnabled.collectAsState(initial = false)
@@ -162,6 +165,7 @@ internal fun rememberVideoPlayerPreferences(context: Context): VideoPlayerPrefer
         ambientGlowInBatterySaver = ambientGlowInBatterySaver,
         ambientResponsive = ambientResponsive,
         adaptivePlayerSizeEnabled = adaptivePlayerSizeEnabled,
+        idleProgressBar = idleProgressBar,
         playerScrollAwayEnabled = playerScrollAwayEnabled,
         groupedQualitySelectorEnabled = groupedQualitySelectorEnabled,
         lockModeEnabled = lockModeEnabled,

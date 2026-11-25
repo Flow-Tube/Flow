@@ -3,6 +3,8 @@ package io.github.aedev.flow.ui.screens.player.state
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.local.IdleProgressBar
+import io.github.aedev.flow.ui.components.shared.RestTrackHeight
 import org.junit.Test
 
 /**
@@ -18,6 +20,7 @@ class PlayerMediaSheetGeometryTest {
         lockedCollapsedHeight: androidx.compose.ui.unit.Dp? = null,
         expandedPlayerBottom: androidx.compose.ui.unit.Dp = 300.dp,
         coversPlayer: Boolean = false,
+        belowVideoBandPx: Float = 0f,
     ) = mediaSheetHeights(
         density = density,
         fullScreenHeightPx = 2000f,
@@ -29,6 +32,7 @@ class PlayerMediaSheetGeometryTest {
         statusBarHeightPx = 48f,
         playerWidthPx = 1080f,
         coversPlayer = coversPlayer,
+        belowVideoBandPx = belowVideoBandPx,
     )
 
     @Test
@@ -110,5 +114,21 @@ class PlayerMediaSheetGeometryTest {
         assertThat(panelCropsVideo(1f)).isTrue()
         assertThat(panelCropsVideo(9f / 16f)).isFalse()
         assertThat(panelCropsVideo(16f / 9f)).isFalse()
+    }
+
+    @Test
+    fun `only a below-video progress bar in a one-pane page reserves a band`() {
+        assertThat(belowVideoBand(IdleProgressBar.BELOW_VIDEO, isTwoPaneWindow = false)).isEqualTo(RestTrackHeight)
+        assertThat(belowVideoBand(IdleProgressBar.BELOW_VIDEO, isTwoPaneWindow = true)).isEqualTo(0.dp)
+        assertThat(belowVideoBand(IdleProgressBar.ON_VIDEO, isTwoPaneWindow = false)).isEqualTo(0.dp)
+        assertThat(belowVideoBand(IdleProgressBar.OFF, isTwoPaneWindow = false)).isEqualTo(0.dp)
+    }
+
+    @Test
+    fun `a resize-driven sheet stops under the band at 16 by 9`() {
+        val without = heights(progressDrivenResize = true, lockedCollapsedHeight = 100.dp)
+        val with = heights(progressDrivenResize = true, lockedCollapsedHeight = 100.dp, belowVideoBandPx = 10f)
+
+        assertThat(without.expanded - with.expanded).isEqualTo(5.dp)
     }
 }
