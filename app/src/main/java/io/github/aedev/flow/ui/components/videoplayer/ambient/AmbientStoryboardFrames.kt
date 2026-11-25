@@ -25,11 +25,12 @@ private const val SMALL_TILE_WIDTH = 64
 
 /**
  * The level whose frames are closest together, so the light follows the picture; between levels
- * as frequent, the smallest tiles, which fit the most frames on one sheet.
+ * as frequent, the smallest tiles, which fit the most frames on one sheet. A live storyboard has no
+ * frames near the live edge, where a live stream plays, so the light keeps to the video there.
  */
 internal fun ambientStoryboardLevel(levels: List<StoryboardLevel>): StoryboardLevel? =
     levels
-        .filter { it.thumbnailWidth >= DISPLAY_W && it.thumbnailHeight >= DISPLAY_H && it.intervalMs > 0L }
+        .filter { !it.isLive && it.thumbnailWidth >= DISPLAY_W && it.thumbnailHeight >= DISPLAY_H && it.intervalMs > 0L }
         .minWithOrNull(compareBy<StoryboardLevel> { it.intervalMs }.thenBy { it.thumbnailWidth })
 
 /** How far apart the frames the light uses are: whole storyboard frames, at least [MIN_STORYBOARD_STEP_MS]. */

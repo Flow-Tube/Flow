@@ -1,5 +1,7 @@
 package io.github.aedev.flow.player.live
 
+import io.github.aedev.flow.player.stream.LiveSegmentPosition
+
 /**
  * What a live segment response says about the stream's newest segment: its sequence number, its
  * media time, and the server's clock when it answered.
@@ -54,6 +56,19 @@ class LiveSegmentClock(
     /** How far back the window reaches: YouTube's DVR limit, or the whole stream if it is younger. */
     val timeShiftBufferDepthMs: Long
         get() = minOf(maxDepthMs, (head.sequence + 1) * segmentDurationUs / 1_000)
+
+    /**
+     * The segment under [positionMs] on a player window that starts [windowStartInPeriodUs] into
+     * the period. Segment N starts at N segment durations into the period, as the manifest says.
+     */
+    fun segmentAt(
+        windowStartInPeriodUs: Long,
+        positionMs: Long,
+    ): LiveSegmentPosition? {
+        val periodUs = windowStartInPeriodUs + positionMs * 1_000
+        if (periodUs < 0 || segmentDurationUs <= 0) return null
+        return LiveSegmentPosition(sequence = periodUs / segmentDurationUs, headSequence = head.sequence)
+    }
 
     @Synchronized
     fun observe(observed: LiveHead) {
