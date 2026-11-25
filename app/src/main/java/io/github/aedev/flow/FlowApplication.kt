@@ -255,28 +255,6 @@ class FlowApplication :
         }
 
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            var lastRegion: String? = null
-            playerPreferences.trendingRegion.collectLatest { region ->
-                if (lastRegion != null && lastRegion != region) {
-                    Log.d(TAG, "Trending region changed from $lastRegion to $region. Invalidate visitor data.")
-                    YouTube.visitorData = null
-
-                    YouTube
-                        .visitorData()
-                        .onSuccess { data ->
-                            if (!data.isNullOrEmpty()) {
-                                YouTube.visitorData = data
-                                Log.d(TAG, "Fresh visitorData fetched for region: $region")
-                            }
-                        }.onFailure { e ->
-                            Log.w(TAG, "Failed to fetch fresh visitorData: ${e.message}")
-                        }
-                }
-                lastRegion = region
-            }
-        }
-
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val repository = SubscriptionRepository.getInstance(this@FlowApplication)
                 val youtubeRepository = YouTubeRepository.getInstance(playerPreferences)
