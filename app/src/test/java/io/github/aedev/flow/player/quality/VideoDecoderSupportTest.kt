@@ -62,4 +62,3 @@ class VideoDecoderSupportTest {
         assertThat(showsYouTubeHdr(intArrayOf())).isFalse()
     }
 }
-
