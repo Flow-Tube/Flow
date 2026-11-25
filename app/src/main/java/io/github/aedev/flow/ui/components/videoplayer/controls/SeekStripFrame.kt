@@ -41,3 +41,16 @@ internal fun seekStripFrames(
             .takeIf { left < stripWidthPx && left + frameWidthPx > 0f }
     }
 }
+
+/** The frames a strip can lay out; a live level has no count of its own and spans the DVR window. */
+internal fun stripFrameCount(
+    frameCount: Int,
+    isLive: Boolean,
+    intervalMs: Long,
+    durationMs: Long,
+): Int =
+    when {
+        !isLive -> frameCount
+        intervalMs <= 0L || durationMs <= 0L -> 0
+        else -> ceil(durationMs.toDouble() / intervalMs).toInt()
+    }

@@ -126,4 +126,12 @@ class SeekStripGeometryTest {
         val under = frames.single { it.leftPx <= STRIP_WIDTH / 2f && it.leftPx + FRAME_WIDTH > STRIP_WIDTH / 2f }
         assertThat(under.positionMs).isEqualTo(threeHours - 5_000L)
     }
+
+    @Test
+    fun `a live level lays frames across the whole DVR window`() {
+        assertThat(stripFrameCount(frameCount = 0, isLive = true, intervalMs = 5_000L, durationMs = 7_200_000L)).isEqualTo(1_440)
+        assertThat(stripFrameCount(frameCount = 0, isLive = true, intervalMs = 5_000L, durationMs = 0L)).isEqualTo(0)
+        assertThat(stripFrameCount(frameCount = FRAME_COUNT, isLive = false, intervalMs = 5_000L, durationMs = 7_200_000L))
+            .isEqualTo(FRAME_COUNT)
+    }
 }
