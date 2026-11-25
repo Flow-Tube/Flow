@@ -811,7 +811,7 @@ object EnhancedMusicPlayerManager {
 
     /**
      * Physically rearranges the queue: the playing track is pinned to the top and everything else
-     * is randomized. Applied as individual player moves so playback never restarts or rebuffers.
+     * is randomized. The player's items are put around the playing one, so it never restarts or rebuffers.
      */
     fun shuffleQueue() {
         scope.launch {
@@ -828,20 +828,10 @@ object EnhancedMusicPlayerManager {
             _queue.value = target
             clearPendingPlayNext()
             player?.let { p ->
-                if (p.mediaItemCount == target.size) {
-                    target.forEachIndexed { targetIdx, track ->
-                        var fromIdx = -1
-                        for (i in targetIdx until p.mediaItemCount) {
-                            if (p.getMediaItemAt(i).mediaId == track.videoId) {
-                                fromIdx = i
-                                break
-                            }
-                        }
-                        if (fromIdx > targetIdx) {
-                            p.moveMediaItem(fromIdx, targetIdx)
-                        }
-                    }
-                }
+                val playerIds = List(p.mediaItemCount) { p.getMediaItemAt(it).mediaId }
+                PlaylistQueueOrder
+                    .indexOrder(playerIds, p.currentMediaItemIndex, target.map { it.videoId }, targetIndex = 0)
+                    ?.let(p::reorderAround)
             }
             queueEdited()
         }

@@ -116,26 +116,26 @@ class PlaylistQueueOrderTest {
     }
 
     @Test
-    fun `moves turn the player's order into the target`() {
+    fun `the index order turns the player's order into the target`() {
         val current = listOf("a", "b", "c", "d", "e")
         val target = listOf("c", "e", "a", "d", "b")
 
-        val moves = PlaylistQueueOrder.movesTo(current, target)!!
-        val applied = current.toMutableList()
-        moves.forEach { (from, to) -> applied.add(to, applied.removeAt(from)) }
+        val order = PlaylistQueueOrder.indexOrder(current, currentIndex = 2, target = target, targetIndex = 0)!!
 
-        assertEquals(target, applied)
+        assertEquals(target, order.map(current::get))
     }
 
     @Test
-    fun `moves handle repeated items and refuse different ones`() {
-        val moves = PlaylistQueueOrder.movesTo(listOf("a", "b", "a"), listOf("a", "a", "b"))!!
-        val applied = mutableListOf("a", "b", "a")
-        moves.forEach { (from, to) -> applied.add(to, applied.removeAt(from)) }
+    fun `the index order keeps the playing copy of a repeated item and refuses different ones`() {
+        val current = listOf("a", "b", "a")
 
-        assertEquals(listOf("a", "a", "b"), applied)
-        assertEquals(null, PlaylistQueueOrder.movesTo(listOf("a", "b"), listOf("a", "c")))
-        assertEquals(emptyList<Pair<Int, Int>>(), PlaylistQueueOrder.movesTo(listOf("a", "b"), listOf("a", "b")))
+        assertEquals(
+            listOf(2, 0, 1),
+            PlaylistQueueOrder.indexOrder(current, currentIndex = 2, target = listOf("a", "a", "b"), targetIndex = 0),
+        )
+        assertEquals(null, PlaylistQueueOrder.indexOrder(listOf("a", "b"), 0, listOf("a", "c"), 0))
+        assertEquals(null, PlaylistQueueOrder.indexOrder(listOf("a", "b"), 0, listOf("b", "a"), 0))
+        assertEquals(null, PlaylistQueueOrder.indexOrder(listOf("a", "b"), 0, listOf("a", "b", "b"), 0))
     }
 
     @Test

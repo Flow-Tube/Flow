@@ -92,6 +92,7 @@ import io.github.aedev.flow.player.isVideoListItem
 import io.github.aedev.flow.player.musicvideo.MusicMediaSourceFactory
 import io.github.aedev.flow.player.musicvideo.MusicVideoFormats
 import io.github.aedev.flow.player.musicvideo.MusicVideoSwitch
+import io.github.aedev.flow.player.reorderAround
 import io.github.aedev.flow.player.restoredMusicQueue
 import io.github.aedev.flow.player.sessionArtworkBitmapLoader
 import io.github.aedev.flow.player.stream.ClientGateTracker
@@ -1079,8 +1080,7 @@ class Media3MusicService : MediaLibraryService() {
     private fun shuffleFromCurrentItem() {
         val order = List(player.mediaItemCount) { it }
         if (order.size < 2) return
-        val target = PlaylistQueueOrder.shuffleFromCurrent(order, player.currentMediaItemIndex).items
-        PlaylistQueueOrder.movesTo(order, target)?.forEach { (from, to) -> player.moveMediaItem(from, to) }
+        player.reorderAround(PlaylistQueueOrder.shuffleFromCurrent(order, player.currentMediaItemIndex).items)
     }
 
     private fun skipPastFailedItem(failed: MusicPlaybackRecoveryPlanner.FailedItem) {
