@@ -44,6 +44,10 @@ enum class CaptionSource {
  * a download, or a `content:` URI for a subtitle file on the device.
  *
  * @param label the name a file gave the track, shown in place of the language name.
+ * @param name YouTube's own name for the track, which tells a creator track, an auto-generated one
+ *   and a regional variant of one language apart.
+ * @param trackId YouTube's `vssId`, unique per track even when two share a language.
+ * @param audioLinks the audio tracks YouTube lists this caption for; empty when it gave no mapping.
  */
 data class ResolvedCaption(
     val languageTag: String,
@@ -52,7 +56,42 @@ data class ResolvedCaption(
     val format: CaptionFormat,
     val label: String? = null,
     val source: CaptionSource = CaptionSource.YOUTUBE,
+    val name: String? = null,
+    val trackId: String? = null,
+    val audioLinks: List<CaptionAudioLink> = emptyList(),
 ) {
     val isTranslated: Boolean
         get() = url.contains("&${CaptionTrackResolver.TRANSLATED_PARAM}=")
 }
+
+/** Whether captions start on while an audio track plays, as YouTube's `captionsInitialState` says. */
+enum class CaptionsInitialState {
+    ON_RECOMMENDED,
+    ON_REQUIRED,
+    OFF_RECOMMENDED,
+    UNKNOWN,
+    ;
+
+    val turnsCaptionsOn: Boolean
+        get() = this == ON_RECOMMENDED || this == ON_REQUIRED
+
+    companion object {
+        private const val PREFIX = "CAPTIONS_INITIAL_STATE_"
+
+        fun parse(value: String?): CaptionsInitialState = entries.firstOrNull { "$PREFIX${it.name}" == value } ?: UNKNOWN
+    }
+}
+
+/**
+ * One audio track that lists a caption track.
+ *
+ * @param audioTrackId the audio format's `audioTrack.id`, such as `es.3`; null on a video with one audio track.
+ * @param isDefaultAudioTrack the audio track YouTube plays when nobody picks one.
+ * @param isDefaultCaption the caption YouTube shows for this audio track when captions are on.
+ */
+data class CaptionAudioLink(
+    val audioTrackId: String?,
+    val isDefaultAudioTrack: Boolean,
+    val isDefaultCaption: Boolean,
+    val initialState: CaptionsInitialState,
+)

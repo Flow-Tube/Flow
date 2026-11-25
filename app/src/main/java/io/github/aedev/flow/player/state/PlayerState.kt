@@ -98,4 +98,8 @@ data class SubtitleOption(
     val isForced: Boolean = false,
     /** Where a file track lives, such as `Subs/English.srt`, shown under its name. */
     val detail: String? = null,
+    /** YouTube's id for the track, which tells apart two tracks in one language. */
+    val trackId: String? = null,
+    /** [label] is YouTube's own name, which already says when a track is auto-generated. */
+    val isLabelFromSource: Boolean = false,
 )

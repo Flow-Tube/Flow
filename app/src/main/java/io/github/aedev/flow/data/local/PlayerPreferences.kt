@@ -3132,6 +3132,12 @@ class PlayerPreferences(
                 preferences[Keys.AUTO_ENABLE_SUBTITLES] ?: false
             }.distinctUntilChanged()
 
+    /** True only once the viewer switched automatic captions off; unset is not a choice. */
+    val autoSubtitlesTurnedOff: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.AUTO_ENABLE_SUBTITLES] == false }
+            .distinctUntilChanged()
+
     suspend fun setAutoEnableSubtitles(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.AUTO_ENABLE_SUBTITLES] = enabled

@@ -81,15 +81,33 @@ data class PlayerResponse(
         data class PlayerCaptionsTracklistRenderer(
             val captionTracks: List<CaptionTrack>? = null,
             val translationLanguages: List<TranslationLanguage>? = null,
+            val audioTracks: List<AudioTrack>? = null,
+            val defaultAudioTrackIndex: Int? = null,
         )
 
         @Serializable
         data class CaptionTrack(
             val baseUrl: String? = null,
             val name: Text? = null,
+            /** Unique per track: `.en`, `a.en` for auto-generated, `.en.<id>` for a named creator track. */
+            val vssId: String? = null,
             val languageCode: String? = null,
             val kind: String? = null, // "asr" = auto-generated
             val isTranslatable: Boolean? = null,
+            val trackName: String? = null,
+        )
+
+        /**
+         * Which caption tracks go with one audio track, as indices into [PlayerCaptionsTracklistRenderer.captionTracks],
+         * and whether captions start on while it plays.
+         */
+        @Serializable
+        data class AudioTrack(
+            val captionTrackIndices: List<Int>? = null,
+            val defaultCaptionTrackIndex: Int? = null,
+            val hasDefaultTrack: Boolean? = null,
+            val audioTrackId: String? = null,
+            val captionsInitialState: String? = null,
         )
 
         @Serializable

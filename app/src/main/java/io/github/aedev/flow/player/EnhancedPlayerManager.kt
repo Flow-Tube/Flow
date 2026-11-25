@@ -180,6 +180,14 @@ class EnhancedPlayerManager private constructor() {
     private val _subtitleLoadFailedEvent = MutableSharedFlow<SubtitleLoadFailure>(extraBufferCapacity = 1)
     private var currentVideoStream: VideoStream? = null
     private var currentAudioStream: AudioStream? = null
+        set(value) {
+            field = value
+            // YouTube lists captions per audio track, so a dub can bring its own list and default.
+            if (subtitleTracks.setAudioTrack(value?.audioTrackId)) {
+                publishSubtitles()
+                applySubtitleTrackSelection()
+            }
+        }
     private var innerTubeVideoFormats: List<PlayerResponse.StreamingData.Format> = emptyList()
     private var innerTubeAudioFormats: List<PlayerResponse.StreamingData.Format> = emptyList()
 
@@ -911,8 +919,12 @@ class EnhancedPlayerManager private constructor() {
         }
 
         built.launch {
-            combine(prefs.autoEnableSubtitles, prefs.preferredSubtitleLanguage) { enabled, language ->
-                SubtitleAutoPolicy(enabled, language)
+            combine(
+                prefs.autoEnableSubtitles,
+                prefs.preferredSubtitleLanguage,
+                prefs.autoSubtitlesTurnedOff,
+            ) { enabled, language, turnedOff ->
+                SubtitleAutoPolicy(enabled, language, turnedOff)
             }.collect { policy ->
                 if (subtitleTracks.setPolicy(policy)) {
                     publishSubtitles()
