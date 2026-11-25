@@ -233,6 +233,25 @@ class CrashSummaryTest {
     }
 
     @Test
+    fun `the logs keep the frame that called Flow's first frame (2378)`() {
+        val framework = (1..10).joinToString("\n") { "\tat androidx.media3.session.Frame$it.run(r8-map-id-1bc4:$it)" }
+        val summary =
+            parseCrashSummary(
+                releaseCrash(
+                    "java.lang.OutOfMemoryError: boom\n$framework\n" +
+                        "\tat io.github.aedev.flow.service.SessionPlayer.updateStateAndInformListeners(r8-map-id-1bc4:1086)\n" +
+                        "\tat io.github.aedev.flow.service.SessionPlayer.moveMediaItems(r8-map-id-1bc4:12)\n" +
+                        "\tat androidx.media3.session.MediaSessionStub.moveMediaItem(r8-map-id-1bc4:7)",
+                ),
+            )
+        val logs = URLDecoder.decode(summary.issueUrl().substringAfter("&logs="), Charsets.UTF_8.name())
+
+        assertThat(logs).contains("SessionPlayer.updateStateAndInformListeners")
+        assertThat(logs).endsWith("SessionPlayer.moveMediaItems(r8-map-id-1bc4:12)")
+        assertThat(logs).doesNotContain("MediaSessionStub")
+    }
+
+    @Test
     fun `a plain message keeps the exception's own name`() {
         assertThat(parseCrashSummary(report).headline).isEqualTo("IllegalArgumentException")
     }

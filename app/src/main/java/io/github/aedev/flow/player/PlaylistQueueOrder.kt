@@ -118,24 +118,25 @@ internal object PlaylistQueueOrder {
             ?: items.indexOfFirst { keySelector(it) == keySelector(target) }
 
     /**
-     * The `moveMediaItem(from, to)` calls, applied in order, that turn [current] into [target], or
-     * null when the two don't hold the same items.
+     * The indices of [current] that, taken in turn, make [target], with [currentIndex] standing for
+     * [targetIndex] so a repeated item never swaps in for the one playing. Null when the two don't
+     * hold the same items.
      */
-    fun <K> movesTo(
+    fun <K> indexOrder(
         current: List<K>,
+        currentIndex: Int,
         target: List<K>,
-    ): List<Pair<Int, Int>>? {
-        if (current.groupingBy { it }.eachCount() != target.groupingBy { it }.eachCount()) return null
-        val working = current.toMutableList()
-        val moves = mutableListOf<Pair<Int, Int>>()
-        target.forEachIndexed { toIndex, key ->
-            val fromIndex = (toIndex until working.size).first { working[it] == key }
-            if (fromIndex != toIndex) {
-                working.add(toIndex, working.removeAt(fromIndex))
-                moves += fromIndex to toIndex
-            }
+        targetIndex: Int,
+    ): List<Int>? {
+        if (current.size != target.size || current.getOrNull(currentIndex) != target.getOrNull(targetIndex)) return null
+        val free =
+            current.indices
+                .filter { it != currentIndex }
+                .groupBy { current[it] }
+                .mapValues { (_, indices) -> ArrayDeque(indices) }
+        return target.mapIndexed { index, key ->
+            if (index == targetIndex) currentIndex else free[key]?.removeFirstOrNull() ?: return null
         }
-        return moves
     }
 
     /** [items] put in the order of [order], or null when the two don't hold the same items. */

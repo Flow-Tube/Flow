@@ -131,10 +131,14 @@ private fun isThrowHelper(frame: String): Boolean {
         method.substringBeforeLast('.').substringAfterLast('.') in ThrowHelperClasses
 }
 
-/** The first [count] frames, plus the first of Flow's own frames when it comes later. */
+/**
+ * The first [count] frames, plus the first of Flow's own frames when it comes later and the frame
+ * that called it. R8 merges classes, so that own frame can be a library's in disguise, and its
+ * caller is what says what set the crash off (#2378).
+ */
 private fun List<String>.headKeepingOwnFrame(count: Int): List<String> {
-    val own = drop(count).firstOrNull { APP_PACKAGE in it } ?: return take(count)
-    return take(count) + SKIPPED_FRAMES + own
+    val own = (count until size).firstOrNull { APP_PACKAGE in this[it] } ?: return take(count)
+    return take(count) + SKIPPED_FRAMES + subList(own, minOf(own + 2, size))
 }
 
 /** The thread, the heap and the last steps, which tell a memory crash's cause apart from where it surfaced (#2258). */
