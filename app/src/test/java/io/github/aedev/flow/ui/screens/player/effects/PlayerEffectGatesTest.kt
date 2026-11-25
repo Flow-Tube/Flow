@@ -140,7 +140,6 @@ class PlayerEffectGatesTest {
             UpcomingVideoRefreshEffect(
                 videoId = "premiere",
                 isUpcoming = true,
-                upcomingReleaseTimeMs = System.currentTimeMillis() - 1_000L,
                 viewModel = viewModel,
             )
         }

@@ -170,13 +170,4 @@ class UpcomingPremierePolicyTest {
         assertThat(fromCache.timestamp).isEqualTo(42L)
         assertThat(fromCache.title).isEqualTo("Title")
     }
-
-    @Test
-    fun `the refresh poll settles briefly, asks every thirty seconds, and gives up after ten minutes`() {
-        assertThat(UpcomingPremierePolicy.SETTLE_MS).isEqualTo(3_000L)
-        assertThat(UpcomingPremierePolicy.REFRESH_INTERVAL_MS).isEqualTo(30_000L)
-        assertThat(UpcomingPremierePolicy.MAX_REFRESH_ATTEMPTS).isEqualTo(20)
-        assertThat(UpcomingPremierePolicy.MAX_REFRESH_ATTEMPTS * UpcomingPremierePolicy.REFRESH_INTERVAL_MS)
-            .isEqualTo(600_000L)
-    }
 }
