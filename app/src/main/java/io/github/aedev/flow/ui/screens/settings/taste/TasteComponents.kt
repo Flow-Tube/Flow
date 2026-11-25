@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.recommendation.FlowPersona
+import io.github.aedev.flow.ui.components.settings.dpadFocusStop
 import io.github.aedev.flow.ui.components.shared.flowArtistShape
 import kotlin.math.PI
 import kotlin.math.cos
@@ -76,7 +77,7 @@ internal fun PersonaHeroCard(
     maturity: Float,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().dpadFocusStop(MaterialTheme.shapes.extraLarge),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
@@ -129,7 +130,7 @@ internal fun TasteShapeCard(
 ) {
     val description = stringResource(R.string.taste_shape_description)
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().dpadFocusStop(MaterialTheme.shapes.extraLarge),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
@@ -228,7 +229,7 @@ private fun polygon(
         close()
     }
 
-/** A settings row whose supporting line is a meter, for a weight or a trait. */
+/** A settings row whose supporting line is a meter, for a weight or a trait. On a remote, OK runs [onDpadClick]. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun TasteMeterRow(
@@ -237,8 +238,10 @@ internal fun TasteMeterRow(
     shape: Shape,
     detail: String? = null,
     trailing: (@Composable () -> Unit)? = null,
+    onDpadClick: (() -> Unit)? = null,
 ) {
     SegmentedListItem(
+        modifier = Modifier.dpadFocusStop(shape, onDpadClick),
         verticalAlignment = Alignment.CenterVertically,
         shapes = ListItemDefaults.shapes(shape = shape),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
