@@ -749,6 +749,7 @@ class EnhancedPlayerManager private constructor() {
                 getAllAudioStreams = { castAudioStreams },
                 setCurrentAudioStream = { audio ->
                     currentAudioStream = audio
+                    audioFeaturesManager?.onAudioStreamChanged(currentVideoId, audio)
                     _playerState.value =
                         _playerState.value.copy(
                             currentAudioTrack = StreamProcessor.indexOfAudioTrack(availableAudioStreams, audio),
@@ -880,12 +881,13 @@ class EnhancedPlayerManager private constructor() {
         audioFeaturesManager?.setVolumeBoost(player, volume)
     }
 
-    /** YouTube's loudness for [videoId], in dB; null when the stream carries none. */
+    /** YouTube's loudness for [videoId] played from [audio]. */
     fun setLoudness(
         videoId: String,
-        gainDb: Float?,
+        audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
+        audio: AudioStream?,
     ) {
-        audioFeaturesManager?.setLoudness(videoId, gainDb)
+        audioFeaturesManager?.setLoudness(videoId, audioConfig, audio)
     }
 
     private fun observePreferences(
@@ -3174,6 +3176,7 @@ class EnhancedPlayerManager private constructor() {
     fun switchAudioTrack(index: Int) {
         if (index in availableAudioStreams.indices) {
             currentAudioStream = availableAudioStreams[index]
+            audioFeaturesManager?.onAudioStreamChanged(currentVideoId, currentAudioStream)
             val position = player?.currentPosition ?: 0L
             val wasPlaying = player?.isPlaying ?: false
             if (audioOnlyMode.isActive) {

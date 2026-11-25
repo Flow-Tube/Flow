@@ -30,6 +30,7 @@ import io.github.aedev.flow.data.video.BackgroundDownloadQueuer
 import io.github.aedev.flow.data.video.DownloadBatch
 import io.github.aedev.flow.data.video.downloader.collection.DownloadedCollections
 import io.github.aedev.flow.data.video.downloader.collection.OfflineCollection
+import io.github.aedev.flow.innertube.pages.YouTubeAlertException
 import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.ui.components.library.PlaylistSortOrder
 import io.github.aedev.flow.ui.components.library.sortedForPlaylist
@@ -157,7 +158,7 @@ class PlaylistDetailViewModel
         }
 
         fun retry() {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, isGone = false) }
             loadPlaylist()
         }
 
@@ -471,7 +472,10 @@ class PlaylistDetailViewModel
                 if (NetworkState.isOnline(context)) playlistRepository.complete(playlistId)?.let(remote::start)
                 return
             }
-            val page = playlistRepository.cachedComplete(playlistId) ?: playlistRepository.firstPage(playlistId)
+            val first =
+                playlistRepository.cachedComplete(playlistId)?.let { Result.success(it) }
+                    ?: playlistRepository.firstPageResult(playlistId)
+            val page = first.getOrNull()
             if (page != null) {
                 remote.start(page)
                 val sorted =
@@ -501,10 +505,17 @@ class PlaylistDetailViewModel
                 return
             }
 
+            val refusal = first.exceptionOrNull() as? YouTubeAlertException
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    errorMessage = context.getString(R.string.playlist_load_failed),
+                    errorMessage =
+                        when {
+                            refusal == null -> context.getString(R.string.playlist_load_failed)
+                            refusal.alert.isBlank() -> context.getString(R.string.youtube_page_unavailable)
+                            else -> refusal.alert
+                        },
+                    isGone = refusal != null,
                 )
             }
         }

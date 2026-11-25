@@ -102,34 +102,42 @@ class YouTubePlaylistRepository
             completeLists.put(playlistId, CachedList(page.copy(continuation = null), System.currentTimeMillis()))
         }
 
-        suspend fun firstPage(playlistId: String): RemotePlaylistPage? {
+        suspend fun firstPage(playlistId: String): RemotePlaylistPage? = firstPageResult(playlistId).getOrNull()
+
+        /** Like [firstPage], keeping why it failed, such as YouTube's own reason for refusing the playlist. */
+        suspend fun firstPageResult(playlistId: String): Result<RemotePlaylistPage> {
             val page =
                 fetch { if (isMix(playlistId)) YouTube.mixPlaylistPage(playlistId) else YouTube.videoPlaylistPage(playlistId) }
-                    ?.takeIf { it.title != null || it.videos.isNotEmpty() } ?: return null
+                    .getOrElse { return Result.failure(it) }
+                    .takeIf { it.title != null || it.videos.isNotEmpty() }
+                    ?: return Result.failure(NoSuchElementException("Empty playlist page for $playlistId"))
             // A Shorts grid stops at 100 with no next page; its "show unavailable" view is a list
             // that pages through every video. Only grids ask for it: on a list it would add
             // unplayable entries that look playable.
             val list =
                 if (page.isShortsGrid) {
                     fetch { YouTube.videoPlaylistPage(playlistId, params = YouTube.PLAYLIST_SHOW_UNAVAILABLE_PARAMS) }
+                        .getOrNull()
                         ?.takeIf { it.videos.isNotEmpty() }
                 } else {
                     null
                 } ?: page
-            return RemotePlaylistPage(
-                title = page.title.orEmpty(),
-                ownerName = page.ownerName,
-                ownerId = page.ownerId?.takeIf(String::isNotBlank),
-                description = page.description.orEmpty(),
-                thumbnailUrl =
-                    page.thumbnailUrl ?: list.videos
-                        .firstOrNull()
-                        ?.thumbnailUrl
-                        .orEmpty(),
-                videos = list.videos,
-                continuation = list.continuation,
-                isCourse = page.isCourse,
-                videoCount = page.videoCount ?: list.videoCount,
+            return Result.success(
+                RemotePlaylistPage(
+                    title = page.title.orEmpty(),
+                    ownerName = page.ownerName,
+                    ownerId = page.ownerId?.takeIf(String::isNotBlank),
+                    description = page.description.orEmpty(),
+                    thumbnailUrl =
+                        page.thumbnailUrl ?: list.videos
+                            .firstOrNull()
+                            ?.thumbnailUrl
+                            .orEmpty(),
+                    videos = list.videos,
+                    continuation = list.continuation,
+                    isCourse = page.isCourse,
+                    videoCount = page.videoCount ?: list.videoCount,
+                ),
             )
         }
 
@@ -140,7 +148,7 @@ class YouTubePlaylistRepository
         ): Pair<List<Video>, String?>? =
             pages[continuation] ?: pagesInFlight
                 .run(continuation) {
-                    fetch { YouTube.videoPlaylistPage(playlistId, continuation) }?.let { it.videos to it.continuation }
+                    fetch { YouTube.videoPlaylistPage(playlistId, continuation) }.getOrNull()?.let { it.videos to it.continuation }
                 }?.also { pages.put(continuation, it) }
 
         /**
@@ -165,12 +173,11 @@ class YouTubePlaylistRepository
             return complete
         }
 
-        private suspend fun fetch(block: suspend () -> Result<VideoPlaylistPage>): VideoPlaylistPage? =
+        private suspend fun fetch(block: suspend () -> Result<VideoPlaylistPage>): Result<VideoPlaylistPage> =
             withContext(PerformanceDispatcher.networkIO) {
                 block()
                     .onFailure { if (it is CancellationException) throw it }
                     .onFailure { Log.w(TAG, "Playlist request failed: ${it.message}") }
-                    .getOrNull()
             }
 
         companion object {

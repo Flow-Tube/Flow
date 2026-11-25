@@ -29,8 +29,10 @@ data class VideoPlaylistPage(
 /**
  * Reads the first page (header plus items) or a continuation (items only). Items arrive as video
  * lockups carrying their own channel; unavailable entries are simply absent from the response.
+ * Throws [YouTubeAlertException] for a playlist YouTube says does not exist.
  */
 internal fun JsonElement.toVideoPlaylistPage(): VideoPlaylistPage {
+    throwIfRefused()
     val (items, isShortsGrid) = playlistItems()
     val header =
         findRenderers(
