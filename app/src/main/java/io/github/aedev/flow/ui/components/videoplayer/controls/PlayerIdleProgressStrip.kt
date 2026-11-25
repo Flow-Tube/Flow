@@ -45,7 +45,7 @@ internal fun BoxScope.PlayerIdleProgressStrip(
         modifier =
             Modifier
                 .align(Alignment.BottomCenter)
-                .then(if (below) Modifier.hangBelowEdge() else Modifier),
+                .then(if (below) Modifier.hangBelowVideoEdge() else Modifier),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             PlayerSeekbarRow(
@@ -64,8 +64,11 @@ internal fun BoxScope.PlayerIdleProgressStrip(
     }
 }
 
-/** Moves the painted band, which sits at the bottom of the row, to start just under the box edge. */
-private fun Modifier.hangBelowEdge(): Modifier =
+/**
+ * Moves the painted band, which sits at the bottom of the row, to start just under the box edge.
+ * The controls' bar takes the same place, so showing the controls doesn't move it (#2323).
+ */
+internal fun Modifier.hangBelowVideoEdge(): Modifier =
     layout { measurable, constraints ->
         val placeable = measurable.measure(constraints)
         layout(placeable.width, placeable.height) {
