@@ -1,5 +1,6 @@
 package io.github.aedev.flow.innertube
 
+import android.net.ConnectivityManager
 import android.util.Log
 import io.github.aedev.flow.FlowApplication
 import io.github.aedev.flow.data.local.PlayerPreferences
@@ -27,7 +28,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -37,7 +37,6 @@ import kotlinx.serialization.json.putJsonObject
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
-import java.io.IOException
 import java.net.Proxy
 import java.util.*
 import kotlin.io.encoding.Base64
@@ -206,30 +205,14 @@ class InnerTube {
             }
         }
 
-    /**
-     * Simple retry wrapper for transient IO errors (socket aborts, timeouts).
-     * Retries the given block up to [maxAttempts] times with exponential backoff.
-     * Cancellation is respected since [delay] will throw if the coroutine is cancelled.
-     */
-    private suspend fun <T> withRetry(
-        maxAttempts: Int = 3,
-        initialDelay: Long = 500L,
-        factor: Double = 2.0,
-        block: suspend () -> T,
-    ): T {
-        var currentDelay = initialDelay
-        var attempt = 0
-        while (true) {
-            try {
-                return block()
-            } catch (e: IOException) {
-                attempt++
-                if (attempt >= maxAttempts) throw e
-                delay(currentDelay)
-                currentDelay = (currentDelay * factor).toLong()
-            }
-        }
-    }
+    private val retry = InnerTubeRetry(hasActiveNetwork = ::hasActiveNetwork)
+
+    private suspend fun <T : Any> withRetry(block: suspend () -> T): T = retry.run(block)
+
+    private fun hasActiveNetwork(): Boolean =
+        runCatching {
+            FlowApplication.appContext.getSystemService(ConnectivityManager::class.java)?.activeNetwork != null
+        }.getOrDefault(true)
 
     private fun HttpRequestBuilder.ytClient(
         client: YouTubeClient,
