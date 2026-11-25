@@ -839,7 +839,7 @@ class BackupRepository(
                 val playlistName =
                     displayName
                         .removeSuffix(".csv")
-                        .let { if (it.endsWith("-videos", ignoreCase = true)) it.dropLast(7) else it }
+                        .withoutEnglishVideosSuffix()
                         .trim()
                         .ifEmpty { "Imported Playlist" }
 

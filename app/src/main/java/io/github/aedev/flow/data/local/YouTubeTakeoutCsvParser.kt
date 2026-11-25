@@ -336,7 +336,10 @@ private fun String.takeoutLeafStem(): String {
     return leaf.substringBeforeLast('.', leaf)
 }
 
-private fun String.withoutEnglishVideosSuffix(): String = if (endsWith("-videos", ignoreCase = true)) dropLast(7) else this
+// Takeout names playlist files "<title>-videos.csv" or "<title> videos.csv", and adds "(1)", "(2)"... when two names clash.
+private val takeoutVideosSuffix = Regex("""[\s_-]+videos(\s*\(\d+\))?$""", RegexOption.IGNORE_CASE)
+
+internal fun String.withoutEnglishVideosSuffix(): String = replace(takeoutVideosSuffix, "")
 
 private fun String.fallbackTakeoutPlaylistName(fallbackPlaylistName: String): String {
     val fallback =

@@ -335,6 +335,28 @@ class YouTubeTakeoutCsvParserTest {
     }
 
     @Test
+    fun `playlist name falls back to filenames with a space before videos`() {
+        val cyberFilename = "Takeout/YouTube and YouTube Music/playlists/Cyber videos.csv"
+        val copyFilename = "Takeout/YouTube and YouTube Music/playlists/Watch Later videos(1).csv"
+
+        assertThat(resolvePlaylistNames(listOf(cyberFilename, copyFilename), emptyList()))
+            .containsExactly(cyberFilename, "Cyber", copyFilename, "Watch Later")
+    }
+
+    @Test
+    fun `playlist names match titles when filenames use a space before videos`() {
+        val cyberFilename = "Takeout/YouTube and YouTube Music/playlists/Cyber videos.csv"
+        val gameFilename = "Takeout/YouTube and YouTube Music/playlists/Game Soundtracks videos.csv"
+
+        assertThat(
+            resolvePlaylistNames(
+                listOf(cyberFilename, gameFilename),
+                listOf("Game Soundtracks", "Cyber"),
+            ),
+        ).containsExactly(cyberFilename, "Cyber", gameFilename, "Game Soundtracks")
+    }
+
+    @Test
     fun `playlist name matching ignores parent directory text`() {
         val roadFilename = "Takeout/YouTube and YouTube Music/playlists/Road-videos.csv"
         val musicFilename = "Takeout/YouTube and YouTube Music/playlists/Music-videos.csv"
