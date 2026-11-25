@@ -97,6 +97,14 @@ class ChannelBrowseCacheTest {
         }
 
     @Test
+    fun `clear drops every response`() =
+        runTest {
+            read(key())
+            cache.clear()
+            assertThat(read(key())).isEqualTo(2)
+        }
+
+    @Test
     fun `max age is read from the response context only`() {
         fun maxAge(json: String) = Json.parseToJsonElement(json).responseMaxAgeSeconds()
 

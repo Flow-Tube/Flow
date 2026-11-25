@@ -91,6 +91,11 @@ class ShortsStreamResolver internal constructor(
     private val extractionCoalescer = InFlightRequestCoalescer<String, VideoExtractionResult?>(scope)
     private val streamCoalescer = InFlightRequestCoalescer<String, ShortPlaybackStreams?>(scope)
 
+    fun trimMemory() {
+        synchronized(extractions) { extractions.clear() }
+        synchronized(streams) { streams.clear() }
+    }
+
     suspend fun resolve(
         videoId: String,
         targetHeight: Int,

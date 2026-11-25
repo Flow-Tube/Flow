@@ -41,6 +41,8 @@ internal class ChannelBrowseCache(
         return json
     }
 
+    fun clear() = responses.clear()
+
     private companion object {
         // A channel open is the landing, its About panel and a tab or two; this holds about two channels.
         const val CAPACITY = 6

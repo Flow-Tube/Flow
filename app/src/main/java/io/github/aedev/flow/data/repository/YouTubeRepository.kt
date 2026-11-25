@@ -104,6 +104,11 @@ class YouTubeRepository
         private val videoCollaboratorCache = LruCache<String, List<VideoCollaborator>>(300)
         private val videoChannelMetadataCache = LruCache<String, VideoChannelMetadata>(300)
 
+        fun trimMetadataCaches() {
+            listOf(channelAvatarCache, videoAvatarStackCache, videoCollaboratorCache, videoChannelMetadataCache)
+                .forEach { it.trimToSize(it.size() / 2) }
+        }
+
         private data class VideoChannelMetadata(
             val channelId: String,
             val channelName: String,
