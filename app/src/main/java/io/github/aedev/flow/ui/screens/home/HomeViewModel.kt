@@ -19,6 +19,7 @@ import io.github.aedev.flow.data.recommendation.NeighbourChannelsRepository
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.shorts.ShortsFeedRepository
 import io.github.aedev.flow.data.subscriptions.HomeSubscriptionUploads
+import io.github.aedev.flow.platform.memory.MemoryGauges
 import io.github.aedev.flow.ui.screens.home.chips.ChipFeedContext
 import io.github.aedev.flow.ui.screens.home.chips.HomeChip
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipFeeds
@@ -58,6 +59,7 @@ class HomeViewModel
         private val chipFeeds: HomeChipFeeds,
         private val snapshotRecorder: HomeSnapshotRecorder,
         private val neighbourChannels: NeighbourChannelsRepository,
+        private val memoryGauges: MemoryGauges,
         savedStateHandle: SavedStateHandle,
         @ApplicationContext private val appContext: Context,
     ) : ViewModel() {
@@ -68,6 +70,7 @@ class HomeViewModel
 
         companion object {
             private const val UI_STATE_SUBSCRIPTION_TIMEOUT_MS = 5_000L
+            private const val HOME_FEED_GAUGE = "home"
         }
 
         private val session =
@@ -173,7 +176,10 @@ class HomeViewModel
 
         fun enrichChipVideo(video: Video) = chipFeeds.enrichVisible(video)
 
+        private val feedSizeGauge = { _uiState.value.videos.size }
+
         init {
+            memoryGauges.register(HOME_FEED_GAUGE, feedSizeGauge)
             viewModelScope.launch(PerformanceDispatcher.networkIO) { enricher.enrichLandedChannels() }
             chipFeeds.attach(
                 scope = viewModelScope,
@@ -454,5 +460,9 @@ class HomeViewModel
                     .filter { state.origins[it]?.kind == HomeCardOrigin.Kind.NEIGHBOUR && shownNeighbourCards.add(it) }
                     .mapNotNull { id -> state.videos.firstOrNull { it.id == id }?.channelId }
             if (neighbourChannelIds.isNotEmpty()) viewModelScope.launch { neighbourChannels.noteShown(neighbourChannelIds) }
+        }
+
+        override fun onCleared() {
+            memoryGauges.unregister(HOME_FEED_GAUGE, feedSizeGauge)
         }
     }

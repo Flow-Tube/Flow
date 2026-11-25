@@ -32,6 +32,7 @@ import io.github.aedev.flow.notification.BackgroundCheckScheduler
 import io.github.aedev.flow.notification.BreakReminderTimer
 import io.github.aedev.flow.notification.DailyLimitGuard
 import io.github.aedev.flow.notification.NotificationHelper
+import io.github.aedev.flow.platform.memory.HeapSampler
 import io.github.aedev.flow.player.PlaybackShutdown
 import io.github.aedev.flow.player.SleepTimerManager
 import io.github.aedev.flow.sync2.service.LinkedCatchUp
@@ -116,6 +117,9 @@ class FlowApplication :
     @Inject
     lateinit var aiList: AiListRepository
 
+    @Inject
+    lateinit var heapSampler: HeapSampler
+
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
 
     companion object {
@@ -149,6 +153,7 @@ class FlowApplication :
 
         // Install crash handler for real-time monitoring
         FlowCrashHandler.install(this)
+        heapSampler.install()
 
         try {
             io.github.aedev.flow.utils.cipher.CipherDeobfuscator

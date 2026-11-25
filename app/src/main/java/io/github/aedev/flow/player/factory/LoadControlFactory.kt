@@ -188,7 +188,7 @@ object LoadControlFactory {
 
         return DefaultLoadControl
             .Builder()
-            .setAllocator(DefaultAllocator(true, PlayerConfig.ALLOCATOR_BUFFER_SIZE))
+            .setAllocator(PlayerBuffers.track(DefaultAllocator(true, PlayerConfig.ALLOCATOR_BUFFER_SIZE)))
             .setBufferDurationsMs(resolvedMin, resolvedMax, playbackMs, rebufferMs)
             .setBackBuffer(backBufferMs, retainBackBufferFromKeyframe)
             .setPrioritizeTimeOverSizeThresholds(true)

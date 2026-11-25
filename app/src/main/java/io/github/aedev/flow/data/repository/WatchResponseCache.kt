@@ -21,6 +21,8 @@ internal class WatchResponseCache<V : Any>(
 
     fun cached(videoId: String): V? = entries[videoId]
 
+    fun size(): Int = entries.size()
+
     suspend fun forPlayer(videoId: String): V? =
         entries[videoId] ?: inFlight.run(videoId) { fetch(videoId) }?.also { entries.put(videoId, it) }
 

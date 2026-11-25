@@ -87,6 +87,8 @@ class YouTubeRepository
                 fetch = { videoId -> YouTube.watchNextJson(videoId, watchPlaylistFor.remove(videoId)).getOrNull() },
             )
 
+        fun watchCacheEntries(): Int = watchResponses.size()
+
         // The playlist a video is about to play from, so its one watch request also brings the queue window.
         private val watchPlaylistFor = java.util.concurrent.ConcurrentHashMap<String, String>()
 
