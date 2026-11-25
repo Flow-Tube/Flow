@@ -150,7 +150,10 @@ class FlowApplication :
         breakReminderTimer.install()
         dailyLimitGuard.install()
         appLock.install()
-        YouTube.cacheDirectory = cacheDir.resolve("innertube_http_cache")
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            // Left by the InnerTube HTTP cache of older builds; nothing writes to it any more.
+            cacheDir.resolve("innertube_http_cache").deleteRecursively()
+        }
 
         DiscordPresenceRuntime.initialize(this, okHttpClient)
 
@@ -335,10 +338,5 @@ class FlowApplication :
 
     private fun releaseVolatileMemory() {
         if (::playlistRepository.isInitialized) playlistRepository.trimMemory()
-        if (::okHttpClient.isInitialized) {
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                okHttpClient.connectionPool.evictAll()
-            }
-        }
     }
 }

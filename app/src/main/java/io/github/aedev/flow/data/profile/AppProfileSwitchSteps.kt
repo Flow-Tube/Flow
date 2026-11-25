@@ -106,8 +106,8 @@ class AppProfileSwitchSteps
         }
 
         override suspend fun clearCaches() {
-            // InnerTube's cache may hold search suggestions and visitor responses; the share folders, exports.
-            listOf("innertube_http_cache", "recap", "lyrics", "playlists").forEach { File(context.cacheDir, it).deleteRecursively() }
+            // The share folders, exports.
+            listOf("recap", "lyrics", "playlists").forEach { File(context.cacheDir, it).deleteRecursively() }
             if (ProfileWebView.clearedAtSwitch) PoTokenGenerator.resetSession()
         }
 

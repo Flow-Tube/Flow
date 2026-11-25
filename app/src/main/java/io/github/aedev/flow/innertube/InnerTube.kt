@@ -101,14 +101,6 @@ class InnerTube {
             httpClient = createClient()
         }
 
-    var cacheDirectory: java.io.File? = null
-        set(value) {
-            if (field == value) return
-            field = value
-            httpClient.close()
-            httpClient = createClient()
-        }
-
     var useLoginForBrowse: Boolean = false
 
     internal var webClients = WebClients(fetchServiceWorker = ::getServiceWorker)
@@ -180,14 +172,6 @@ class InnerTube {
                             maxRequests = 48
                             maxRequestsPerHost = 8
                         },
-                    )
-
-                    // Cache configuration for better performance
-                    cache(
-                        okhttp3.Cache(
-                            directory = cacheDirectory ?: java.io.File(System.getProperty("java.io.tmpdir"), "http_cache"),
-                            maxSize = 50L * 1024L * 1024L, // 50 MB
-                        ),
                     )
                 }
 

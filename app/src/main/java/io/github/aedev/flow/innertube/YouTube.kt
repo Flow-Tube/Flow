@@ -208,11 +208,6 @@ object YouTube {
         set(value) {
             innerTube.proxyAuth = value
         }
-    var cacheDirectory: java.io.File?
-        get() = innerTube.cacheDirectory
-        set(value) {
-            innerTube.cacheDirectory = value
-        }
     var useLoginForBrowse: Boolean
         get() = innerTube.useLoginForBrowse
         set(value) {
