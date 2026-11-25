@@ -43,6 +43,8 @@ import kotlin.io.encoding.Base64
 
 private const val TAG = "InnerTube"
 
+private const val WATCH_OWNER_FIELDS = "contents.twoColumnWatchNextResults.results.results.contents.videoSecondaryInfoRenderer.owner"
+
 private val TIMED_COMMENTS_FILTER =
     buildJsonObject {
         putJsonObject("commentsFilterFormData") {
@@ -483,9 +485,11 @@ class InnerTube {
         poToken: String? = null,
         localeOverride: YouTubeLocale? = null,
         apiUrl: String? = null,
+        fieldMask: String? = null,
     ) = withRetry {
         httpClient.post(apiUrl?.let { "${it}player" } ?: "player") {
             ytClient(client, setLogin = true, apiUrl = apiUrl)
+            fieldMask?.let { header("X-Goog-FieldMask", it) }
             setBody(
                 PlayerBody(
                     context =
@@ -727,6 +731,30 @@ class InnerTube {
             )
         }
     }
+
+    /**
+     * The watch page's owner row alone, which is where a collaboration lists its channels and
+     * avatar stack: a couple of kilobytes instead of the whole page.
+     */
+    suspend fun watchOwner(videoId: String) =
+        withRetry {
+            val client = webClients.live(YouTubeClient.WEB)
+            httpClient.post("https://www.youtube.com/youtubei/v1/next") {
+                webYouTubeHeaders(client)
+                header("X-Goog-FieldMask", WATCH_OWNER_FIELDS)
+                setBody(
+                    NextBody(
+                        context = client.toContext(locale, visitorData, null),
+                        videoId = videoId,
+                        playlistId = null,
+                        playlistSetVideoId = null,
+                        index = null,
+                        params = null,
+                        continuation = null,
+                    ),
+                )
+            }
+        }
 
     /** The watch page's refreshed counts and date, on the same host and headers as [nextWatch]. */
     suspend fun updatedMetadata(
