@@ -1980,4 +1980,5 @@
     <string name="subscriptions_pinned_section">已固定</string>
     <string name="auto_group_music_playlists">音乐播放列表</string>
     <string name="auto_group_video_playlists">视频播放列表</string>
+    <string name="discord_presence_description">显示您在Flow中播放的内容，作为您的Discord Rich Presence</string>
 </resources>
