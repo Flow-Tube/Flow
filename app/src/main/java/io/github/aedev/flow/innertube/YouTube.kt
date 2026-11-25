@@ -487,7 +487,7 @@ object YouTube {
             val about =
                 response
                     .channelAboutContinuation()
-                    ?.let { token -> runCatching { channelBrowseJson(continuation = token).toChannelAbout() }.getOrNull() }
+                    ?.let { token -> runCatching { channelBrowseJson(continuation = token, keep = true).toChannelAbout() }.getOrNull() }
             response.toChannelPage(response.toChannelHeader(idOrHandle).mergedWith(about))
         }
 
@@ -557,15 +557,42 @@ object YouTube {
         browseId: String? = null,
         params: String? = null,
         continuation: String? = null,
+        keep: Boolean = continuation == null,
+    ): JsonElement =
+        cachedChannelBrowse(
+            client = currentWebClient(),
+            browseId = browseId,
+            params = params,
+            continuation = continuation,
+            keep = keep,
+        )
+
+    private val channelBrowses = ChannelBrowseCache()
+
+    fun trimMemory() = channelBrowses.clear()
+
+    /**
+     * A channel browse through [channelBrowses]. Only a page a channel opens on is kept ([keep]): a paging
+     * continuation is read once and would push the channel's own pages out.
+     */
+    private suspend fun cachedChannelBrowse(
+        client: YouTubeClient,
+        browseId: String?,
+        params: String?,
+        continuation: String?,
+        keep: Boolean = continuation == null,
     ): JsonElement {
-        val response =
-            innerTube.channelBrowse(
-                client = currentWebClient(),
-                channelId = browseId,
-                params = params,
+        val fetch = suspend { innerTube.channelBrowse(client, browseId, params, continuation).bodyAsText() }
+        if (!keep) return Json.parseToJsonElement(fetch())
+        val key =
+            ChannelBrowseCache.Key(
+                browseId = browseId.takeIf { continuation == null },
+                params = params.takeIf { continuation == null },
                 continuation = continuation,
+                locale = locale,
+                visitorData = visitorData,
             )
-        return Json.parseToJsonElement(response.bodyAsText())
+        return channelBrowses.read(key, fetch)
     }
 
     /**
@@ -671,17 +698,12 @@ object YouTube {
         continuation: String? = null,
     ): Result<ChannelShortsPage> =
         runCatching {
-            val client = currentWebClient()
-            val response =
-                innerTube.channelBrowse(
-                    client = client,
-                    channelId = channelId,
-                    params = CHANNEL_SHORTS_PARAMS.takeIf { continuation == null },
-                    continuation = continuation,
-                )
-            Json
-                .parseToJsonElement(response.bodyAsText())
-                .jsonObject
+            cachedChannelBrowse(
+                client = currentWebClient(),
+                browseId = channelId,
+                params = CHANNEL_SHORTS_PARAMS.takeIf { continuation == null },
+                continuation = continuation,
+            ).jsonObject
                 .toChannelShortsPage()
         }
 
@@ -828,15 +850,12 @@ object YouTube {
         params: String? = null,
     ): Result<CommunityPostsPage> =
         runCatching {
-            val client = currentWebClient()
-            val response =
-                innerTube.channelBrowse(
-                    client = client,
-                    channelId = channelId.takeIf { continuation == null },
-                    params = (params?.takeIf(String::isNotBlank) ?: CHANNEL_POSTS_PARAMS).takeIf { continuation == null },
-                    continuation = continuation,
-                )
-            Json.parseToJsonElement(response.bodyAsText()).toCommunityPostsPage(
+            cachedChannelBrowse(
+                client = currentWebClient(),
+                browseId = channelId.takeIf { continuation == null },
+                params = (params?.takeIf(String::isNotBlank) ?: CHANNEL_POSTS_PARAMS).takeIf { continuation == null },
+                continuation = continuation,
+            ).toCommunityPostsPage(
                 fallbackAuthorName = channelName,
                 fallbackAuthorAvatarUrl = channelThumbnailUrl,
             )

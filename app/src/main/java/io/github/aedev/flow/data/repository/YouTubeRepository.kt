@@ -85,6 +85,7 @@ class YouTubeRepository
             WatchResponseCache<JsonElement>(
                 capacity = DeviceTier.WATCH_CACHE_ENTRIES,
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+                identity = { YouTube.locale },
                 fetch = { videoId -> YouTube.watchNextJson(videoId, watchPlaylistFor.remove(videoId)).getOrNull() },
             )
 
@@ -102,6 +103,11 @@ class YouTubeRepository
         private val videoAvatarStackCache = LruCache<String, List<String>>(300)
         private val videoCollaboratorCache = LruCache<String, List<VideoCollaborator>>(300)
         private val videoChannelMetadataCache = LruCache<String, VideoChannelMetadata>(300)
+
+        fun trimMetadataCaches() {
+            listOf(channelAvatarCache, videoAvatarStackCache, videoCollaboratorCache, videoChannelMetadataCache)
+                .forEach { it.trimToSize(it.size() / 2) }
+        }
 
         private data class VideoChannelMetadata(
             val channelId: String,

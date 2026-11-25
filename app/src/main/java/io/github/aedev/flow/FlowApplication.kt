@@ -316,5 +316,11 @@ class FlowApplication :
 
     private fun releaseVolatileMemory() {
         if (::playlistRepository.isInitialized) playlistRepository.trimMemory()
+        if (::youTubeRepository.isInitialized) {
+            val repository = youTubeRepository.get()
+            repository.trimWatchCache(keepVideoId = GlobalPlayerState.currentVideo.value?.id)
+            repository.trimMetadataCaches()
+        }
+        YouTube.trimMemory()
     }
 }

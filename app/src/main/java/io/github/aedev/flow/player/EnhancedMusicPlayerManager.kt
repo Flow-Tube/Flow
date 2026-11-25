@@ -25,6 +25,7 @@ import io.github.aedev.flow.player.error.PlayerDiagnostics
 import io.github.aedev.flow.player.musicvideo.MusicVideoItems
 import io.github.aedev.flow.player.musicvideo.MusicVideoPlanner
 import io.github.aedev.flow.service.Media3MusicService
+import io.github.aedev.flow.utils.MusicPlayerUtils
 import io.github.aedev.flow.utils.await
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -231,8 +232,6 @@ object EnhancedMusicPlayerManager {
     private val _isLiked = MutableStateFlow(false)
     val isLiked: StateFlow<Boolean> = _isLiked.asStateFlow()
 
-    // OPTIMIZED: LRU Cache for resolved stream URLs to avoid re-fetching
-    private val urlCache = android.util.LruCache<String, String>(50)
     private var pendingPlayNextMediaId: String? = null
     private var pendingPlayNextMediaIndex: Int = MusicQueuePlanner.INDEX_UNSET
 
@@ -243,7 +242,7 @@ object EnhancedMusicPlayerManager {
 
         if (idx != -1 && idx < queue.size - 1) {
             val nextTrack = queue[idx + 1]
-            if (!LocalMediaIds.isLocal(nextTrack.videoId) && urlCache.get(nextTrack.videoId) == null) {
+            if (!LocalMediaIds.isLocal(nextTrack.videoId) && MusicPlayerUtils.cachedPlayback(nextTrack.videoId) == null) {
                 scope.launch(Dispatchers.IO) {
                     try {
                         if (isDownloaded(nextTrack.videoId)) return@launch
@@ -257,43 +256,13 @@ object EnhancedMusicPlayerManager {
         }
     }
 
-    /**
-     * Resolves stream URL with caching
-     */
-    suspend fun resolveStreamUrl(videoId: String): String? {
-        // 1. Check cache
-        urlCache.get(videoId)?.let {
-            Log.d("EnhancedMusicPlayer", "Cache hit for $videoId")
-            return it
-        }
-
-        // 2. Resolve (using MusicPlayerUtils)
-        return try {
-            val playbackData =
-                io.github.aedev.flow.utils.MusicPlayerUtils
-                    .playerResponseForPlayback(videoId)
-                    .getOrNull()
-            val url = playbackData?.streamUrl
-
-            if (url != null) {
-                urlCache.put(videoId, url)
-            }
-            url
+    suspend fun resolveStreamUrl(videoId: String): String? =
+        try {
+            MusicPlayerUtils.playerResponseForPlayback(videoId).getOrNull()?.streamUrl
         } catch (e: Exception) {
             Log.e("EnhancedMusicPlayer", "Error resolving URL for $videoId", e)
             null
         }
-    }
-
-    fun invalidateResolvedStream(videoId: String) {
-        urlCache.remove(videoId)
-        Log.d("EnhancedMusicPlayer", "Invalidated resolved URL cache for $videoId")
-    }
-
-    fun clearUrlCache() {
-        urlCache.evictAll()
-        Log.d("EnhancedMusicPlayer", "Cleared all resolved URL cache entries")
-    }
 
     /** Whether a song plays from its download, whose stream then needs no warming. */
     private var isDownloaded: suspend (videoId: String) -> Boolean = { false }
