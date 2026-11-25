@@ -1,6 +1,7 @@
 package io.github.aedev.flow.player.stream
 
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.innertube.YouTube
@@ -120,6 +121,29 @@ object InnerTubeVideoStreamExtractor {
         val liveHlsUrl: String? = null,
         val liveDashUrl: String? = null,
     )
+
+    private val reusable =
+        ReusableExtractions(
+            identity = { WebPoTokenSession.identityGeneration },
+            isGated = ClientGateTracker::isGated,
+            nowMs = SystemClock::elapsedRealtime,
+        )
+
+    /**
+     * [extract] for the watch page: a kept extraction of [videoId] while it is still good, otherwise
+     * a fresh one, which is then kept for the next open. Never used for a forced-SABR or recovery
+     * load, which exist to replace URLs.
+     */
+    suspend fun extractForPage(videoId: String): VideoExtractionResult? {
+        reusable.get(videoId)?.let { kept ->
+            Log.d(TAG, "Reusing the kept extraction for $videoId (${kept.usedClient.clientName}); no client ladder")
+            return kept
+        }
+        return extract(videoId)?.also { reusable.store(videoId, it) }
+    }
+
+    /** Drops [videoId]'s kept extraction: its URLs were refused, or a recovery replaces them. */
+    fun forgetReusable(videoId: String) = reusable.forget(videoId)
 
     /**
      * @param audioOnly the caller plays only [VideoExtractionResult.audioFormats], so a capped

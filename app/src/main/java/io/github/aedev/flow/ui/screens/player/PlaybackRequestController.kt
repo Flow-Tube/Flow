@@ -176,7 +176,7 @@ internal class PlaybackRequestController(
         if (reuseLoadedStreams && recovery.retryInPlace()) return
         playerManager.clearCurrentVideo()
         uiState.update { it.copy(error = null, errorHint = null, errorOffersSessionReset = false, isLoading = true) }
-        load(videoId)
+        load(videoId, freshStreams = true)
     }
 
     fun playPlaylist(
@@ -240,11 +240,13 @@ internal class PlaybackRequestController(
     private fun load(
         videoId: String,
         resumePositionOverrideMs: Long? = null,
+        freshStreams: Boolean = false,
     ) = loads.load(
         videoId = videoId,
         isWifi = NetworkState.isOnWifi(context),
         forceRefresh = true,
         escalateToSabr = false,
         resumePositionOverrideMs = resumePositionOverrideMs,
+        freshStreams = freshStreams,
     )
 }

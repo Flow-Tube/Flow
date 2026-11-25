@@ -13,6 +13,8 @@ data class PlaybackResolutionRequest(
     val allowShorts: Boolean,
     /** Creators the viewer has blocked; their videos never enter the related list. */
     val blockedChannelIds: Set<String> = emptySet(),
+    /** A retry: an extraction kept from an earlier open is dropped instead of played again. */
+    val freshStreams: Boolean = false,
 )
 
 /** Why a resolution produced nothing to play, and therefore which error string the screen shows. */

@@ -268,6 +268,7 @@ class PlayerCacheManager(
         videoId: String,
         kind: StreamDenialKind,
     ): List<PlayerResponse.StreamingData.Format>? {
+        InnerTubeVideoStreamExtractor.forgetReusable(videoId)
         val result =
             when (kind) {
                 StreamDenialKind.URL_EXPIRED -> InnerTubeVideoStreamExtractor.extract(videoId)
