@@ -463,8 +463,6 @@ class Media3MusicService : MediaLibraryService() {
         try {
             downloadUtil.clearUrlCache()
             MusicPlayerUtils.clearPlaybackCache()
-            io.github.aedev.flow.player.EnhancedMusicPlayerManager
-                .clearUrlCache()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to clear caches on quality change: ${e.message}")
         }
@@ -1124,12 +1122,6 @@ class Media3MusicService : MediaLibraryService() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to clear decryption cache for $mediaId", e)
         }
-        try {
-            io.github.aedev.flow.player.EnhancedMusicPlayerManager
-                .invalidateResolvedStream(mediaId)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to clear resolved stream cache for $mediaId", e)
-        }
     }
 
     private fun httpFailure(error: PlaybackException): HttpDataSource.InvalidResponseCodeException? =
@@ -1240,8 +1232,6 @@ class Media3MusicService : MediaLibraryService() {
                 try {
                     downloadUtil.invalidateUrlCache(mediaId)
                     MusicPlayerUtils.forceRefreshForVideo(mediaId)
-                    io.github.aedev.flow.player.EnhancedMusicPlayerManager
-                        .invalidateResolvedStream(mediaId)
                     player.stop()
                     if (refreshStreamMediaItem(failed)) {
                         player.prepare()
