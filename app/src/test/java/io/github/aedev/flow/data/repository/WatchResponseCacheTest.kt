@@ -10,12 +10,19 @@ import org.junit.Test
 
 class WatchResponseCacheTest {
     private val fetched = mutableListOf<String>()
+    private var nowMs = 0L
+    private var locale = "en-US"
 
     private fun TestScope.cache(gate: CompletableDeferred<Unit>? = null) =
-        WatchResponseCache<String>(capacity = 3, scope = backgroundScope) { videoId ->
+        WatchResponseCache<String>(
+            capacity = 3,
+            scope = backgroundScope,
+            now = { nowMs },
+            identity = { locale },
+        ) { videoId ->
             gate?.await()
             fetched += videoId
-            "response:$videoId"
+            "response:$videoId@$nowMs"
         }
 
     @Test
@@ -26,9 +33,9 @@ class WatchResponseCacheTest {
 
             listOf("d", "e", "f", "g").forEach { cache.forFeed(it) }
 
-            assertThat(cache.cached("a")).isEqualTo("response:a")
-            assertThat(cache.cached("b")).isEqualTo("response:b")
-            assertThat(cache.cached("c")).isEqualTo("response:c")
+            assertThat(cache.cached("a")).isEqualTo("response:a@0")
+            assertThat(cache.cached("b")).isEqualTo("response:b@0")
+            assertThat(cache.cached("c")).isEqualTo("response:c@0")
             assertThat(cache.cached("d")).isNull()
         }
 
@@ -38,7 +45,7 @@ class WatchResponseCacheTest {
             val cache = cache()
             cache.forPlayer("a")
 
-            assertThat(cache.forFeed("a")).isEqualTo("response:a")
+            assertThat(cache.forFeed("a")).isEqualTo("response:a@0")
             assertThat(fetched).containsExactly("a")
         }
 
@@ -52,10 +59,47 @@ class WatchResponseCacheTest {
             runCurrent()
             gate.complete(Unit)
 
-            assertThat(feed.await()).isEqualTo("response:a")
-            assertThat(player.await()).isEqualTo("response:a")
+            assertThat(feed.await()).isEqualTo("response:a@0")
+            assertThat(player.await()).isEqualTo("response:a@0")
             assertThat(fetched).containsExactly("a")
-            assertThat(cache.cached("a")).isEqualTo("response:a")
+            assertThat(cache.cached("a")).isEqualTo("response:a@0")
+        }
+
+    @Test
+    fun `a response is reused within its age limit`() =
+        runTest {
+            val cache = cache()
+            cache.forPlayer("a")
+            nowMs = WatchResponseCache.MAX_AGE_MS - 1
+
+            assertThat(cache.forPlayer("a")).isEqualTo("response:a@0")
+            assertThat(fetched).containsExactly("a")
+        }
+
+    @Test
+    fun `replaying a video after the age limit fetches it again`() =
+        runTest {
+            val cache = cache()
+            cache.forPlayer("a")
+            nowMs = WatchResponseCache.MAX_AGE_MS
+
+            assertThat(cache.cached("a")).isNull()
+            assertThat(cache.forPlayer("a")).isEqualTo("response:a@${WatchResponseCache.MAX_AGE_MS}")
+            assertThat(fetched).containsExactly("a", "a").inOrder()
+            assertThat(cache.size()).isEqualTo(1)
+        }
+
+    @Test
+    fun `a language change misses the old response`() =
+        runTest {
+            val cache = cache()
+            cache.forPlayer("a")
+            locale = "de-DE"
+
+            assertThat(cache.cached("a")).isNull()
+            cache.forPlayer("a")
+            assertThat(fetched).containsExactly("a", "a").inOrder()
+            assertThat(cache.cached("a")).isEqualTo("response:a@0")
         }
 
     @Test

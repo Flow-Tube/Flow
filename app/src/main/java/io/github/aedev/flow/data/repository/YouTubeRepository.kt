@@ -85,6 +85,7 @@ class YouTubeRepository
             WatchResponseCache<JsonElement>(
                 capacity = DeviceTier.WATCH_CACHE_ENTRIES,
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+                identity = { YouTube.locale },
                 fetch = { videoId -> YouTube.watchNextJson(videoId, watchPlaylistFor.remove(videoId)).getOrNull() },
             )
 
