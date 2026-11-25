@@ -42,4 +42,6 @@ data class PlaylistDetailUiState(
     /** Every page arrived and YouTube's count is higher: it left out unavailable videos. */
     val hidesUnavailable: Boolean = false,
     val errorMessage: String? = null,
+    /** YouTube says the playlist does not exist, so [errorMessage] is final and retrying cannot help. */
+    val isGone: Boolean = false,
 )

@@ -13,6 +13,8 @@ data class ChannelUiState(
     val isLoading: Boolean = false,
     val isLoadingVideos: Boolean = false,
     val error: String? = null,
+    /** YouTube says the channel does not exist, so [error] is final and retrying cannot help. */
+    val isGone: Boolean = false,
     val videosError: String? = null,
     val isSubscribed: Boolean = false,
     val isNotificationsEnabled: Boolean = false,
