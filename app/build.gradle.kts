@@ -445,6 +445,7 @@ dependencies {
     testImplementation(libs.conscrypt.openjdk.uber)
     testImplementation(libs.kxml2)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.mockk)
     testImplementation(libs.truth)
     // Han word breaker for tests; the JDK breaker does not split Han runs.

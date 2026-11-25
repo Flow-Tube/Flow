@@ -1,6 +1,8 @@
 package io.github.aedev.flow.innertube.models
 
 import kotlinx.serialization.Serializable
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Which attestation runtime mints a PO Token this client's requests will be accepted with.
@@ -35,7 +37,8 @@ data class YouTubeClient(
     val androidSdkVersion: String? = null,
     val originalUrl: String? = null,
     val platform: String? = null,
-    val utcOffsetMinutes: Int? = null,
+    /** Whether the context carries the device's time zone, which web clients render server-side times in. */
+    val sendsTimeZone: Boolean = false,
     val buildId: String? = null,
     val cronetVersion: String? = null,
     val packageName: String? = null,
@@ -63,6 +66,8 @@ data class YouTubeClient(
         locale: YouTubeLocale,
         visitorData: String?,
         dataSyncId: String?,
+        zone: ZoneId = ZoneId.systemDefault(),
+        now: Instant = Instant.now(),
     ) = Context(
         client =
             Context.Client(
@@ -75,7 +80,8 @@ data class YouTubeClient(
                 androidSdkVersion = androidSdkVersion,
                 originalUrl = originalUrl,
                 platform = platform,
-                utcOffsetMinutes = utcOffsetMinutes,
+                utcOffsetMinutes = if (sendsTimeZone) zone.rules.getOffset(now).totalSeconds / 60 else null,
+                timeZone = if (sendsTimeZone) zone.id else null,
                 gl = locale.gl,
                 hl = locale.hl,
                 visitorData = visitorData,
@@ -114,7 +120,7 @@ data class YouTubeClient(
                 userAgent = USER_AGENT_WEB,
                 originalUrl = ORIGIN_YOUTUBE,
                 platform = "DESKTOP",
-                utcOffsetMinutes = 0,
+                sendsTimeZone = true,
             )
 
         val MWEB =
@@ -124,7 +130,7 @@ data class YouTubeClient(
                 clientId = "2",
                 userAgent = USER_AGENT_MWEB,
                 platform = "MOBILE",
-                utcOffsetMinutes = 0,
+                sendsTimeZone = true,
                 useSignatureTimestamp = true,
                 useWebPoTokens = true,
                 sendUserAgentInContext = true,
