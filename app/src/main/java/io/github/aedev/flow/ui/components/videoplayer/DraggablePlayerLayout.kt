@@ -124,7 +124,7 @@ fun DraggablePlayerLayout(
     onCollapseGesture: (() -> Unit)? = null,
     onFullscreenGesture: (() -> Unit)? = null,
     onEnterPortraitFullscreen: (() -> Unit)? = null,
-    onExpandedPlayerBottomChanged: (Dp) -> Unit = {},
+    onExpandedPlayerBottomChanged: (() -> Float) -> Unit = {},
     videoAspectRatio: Float = 16f / 9f,
     expandedPlayerHeightFractionOverride: (() -> Float)? = null,
     scrollAwayEnabled: Boolean = false,

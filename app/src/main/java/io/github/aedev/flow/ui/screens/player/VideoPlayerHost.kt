@@ -137,7 +137,7 @@ fun VideoPlayerHost(
             coversPlayer = playerSheetState.isScrolledAway,
         )
     val effectiveVideoAspectRatio = mediaSheetGeometry.effectiveVideoAspectRatio
-    var expandedPlayerBottom by remember { mutableStateOf(0.dp) }
+    var expandedPlayerBottomPx by remember { mutableStateOf<() -> Float>({ 0f }) }
     val pipForcedFullscreen = remember { mutableStateOf(false) }
 
     PlayerZoomEffects(
@@ -336,7 +336,8 @@ fun VideoPlayerHost(
                 isFullscreen = screenState.isFullscreen,
                 fullScreenHeightPx = constraints.maxHeight.toFloat(),
                 playerWidthPx = constraints.maxWidth.toFloat(),
-                expandedPlayerBottom = expandedPlayerBottom,
+                expandedPlayerBottomPx = expandedPlayerBottomPx,
+                sheetShown = screenState.activeSheet != PlayerSheet.None,
                 fallbackScreenHeight = config.screenHeightDp.dp,
                 maxWidth = maxWidth,
                 maxHeight = maxHeight,
@@ -395,9 +396,7 @@ fun VideoPlayerHost(
                 screenState.isFullscreenPortrait = true
                 screenState.isFullscreen = true
             },
-            onExpandedPlayerBottomChanged = { bottom ->
-                expandedPlayerBottom = bottom
-            },
+            onExpandedPlayerBottomChanged = { bottom -> expandedPlayerBottomPx = bottom },
             modifier =
                 Modifier
                     .align(Alignment.CenterStart)
@@ -413,6 +412,7 @@ fun VideoPlayerHost(
                     expandedSurfacesMounted = expandedSurfacesMounted,
                     expandedSurfacesPlaced = expandedSurfacesPlaced,
                     videoAspectRatio = videoAspectRatio,
+                    croppedByPanel = mediaSheetGeometry.cropsVideo,
                     canGoPrevious = canGoPrevious,
                     isCommentsAvailable = isCommentsAvailable,
                     canUseFullscreenSidePanel = canUseFullscreenSidePanel,
@@ -458,7 +458,7 @@ fun VideoPlayerHost(
             SponsorSkipLayer(
                 session = stageSession,
                 sponsorSegments = sponsorSegments,
-                expandedPlayerBottom = expandedPlayerBottom,
+                expandedPlayerBottomPx = expandedPlayerBottomPx,
                 playerWidth = sidePanelState.playerWidth,
                 expandedSurfacesPlaced = expandedSurfacesPlaced,
                 style = prefs.sbSkipButtonStyle,

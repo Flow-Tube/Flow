@@ -88,4 +88,27 @@ class PlayerMediaSheetGeometryTest {
         assertThat(result.collapsed).isEqualTo(700.dp)
         assertThat(result.expanded).isEqualTo(700.dp)
     }
+
+    @Test
+    fun `a panel shortens every video taller than 16 by 9`() {
+        assertThat(panelShortensPlayer(4f / 3f)).isTrue()
+        assertThat(panelShortensPlayer(1f)).isTrue()
+        assertThat(panelShortensPlayer(9f / 16f)).isTrue()
+        assertThat(panelShortensPlayer(16f / 9f)).isFalse()
+        assertThat(panelShortensPlayer(2.39f)).isFalse()
+    }
+
+    @Test
+    fun `a nearly 16 by 9 stream keeps its height under a panel`() {
+        assertThat(panelShortensPlayer(426f / 240f)).isFalse()
+        assertThat(panelShortensPlayer(1.75f)).isFalse()
+    }
+
+    @Test
+    fun `a shortened 4 by 3 or square video is cropped and a vertical one keeps fitting`() {
+        assertThat(panelCropsVideo(4f / 3f)).isTrue()
+        assertThat(panelCropsVideo(1f)).isTrue()
+        assertThat(panelCropsVideo(9f / 16f)).isFalse()
+        assertThat(panelCropsVideo(16f / 9f)).isFalse()
+    }
 }

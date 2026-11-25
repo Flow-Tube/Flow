@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
@@ -16,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
@@ -26,13 +25,14 @@ import io.github.aedev.flow.data.model.SponsorBlockSegment
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.ui.components.videoplayer.overlay.SponsorBlockSkipButton
 import io.github.aedev.flow.ui.components.videoplayer.placedWhen
+import kotlin.math.roundToInt
 
 /** The floating skip button, laid over the video area only and never over the body below it. */
 @Composable
 internal fun BoxScope.SponsorSkipLayer(
     session: VideoPlayerStageSession,
     sponsorSegments: List<SponsorBlockSegment>,
-    expandedPlayerBottom: Dp,
+    expandedPlayerBottomPx: () -> Float,
     playerWidth: Dp,
     expandedSurfacesPlaced: () -> Boolean,
     style: SponsorBlockSkipButtonStyle,
@@ -55,11 +55,14 @@ internal fun BoxScope.SponsorSkipLayer(
     val sponsorButtonPositionMs by remember {
         derivedStateOf { (screenState.currentPosition / 1_000L) * 1_000L }
     }
+    // Read in the layout phase: the player's bottom moves on every frame of a resize.
     val sponsorLayerModifier =
-        if (screenState.isFullscreen || expandedPlayerBottom <= 0.dp) {
-            Modifier.fillMaxHeight()
-        } else {
-            Modifier.height(expandedPlayerBottom)
+        Modifier.layout { measurable, constraints ->
+            val bottom = expandedPlayerBottomPx().roundToInt()
+            val height =
+                if (screenState.isFullscreen || bottom <= 0) constraints.maxHeight else bottom.coerceIn(0, constraints.maxHeight)
+            val placeable = measurable.measure(constraints.copy(minHeight = height, maxHeight = height))
+            layout(placeable.width, placeable.height) { placeable.place(0, 0) }
         }
     Box(
         modifier =
