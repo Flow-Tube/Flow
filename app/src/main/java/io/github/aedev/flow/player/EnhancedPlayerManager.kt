@@ -683,7 +683,7 @@ class EnhancedPlayerManager private constructor() {
                         player?.clearMediaItems()
                     }
                 }
-                loader.onSubtitleLoadFailed = { index, label ->
+                loader.onSubtitleLoadFailed = { index, label, status ->
                     val failed = subtitleTracks.captions.getOrNull(index)
                     scope.launch {
                         _subtitleLoadFailedEvent.emit(
@@ -692,6 +692,7 @@ class EnhancedPlayerManager private constructor() {
                                 label = label,
                                 language = failed?.languageTag,
                                 isTranslated = failed?.isTranslated == true,
+                                httpStatus = status,
                             ),
                         )
                     }

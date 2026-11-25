@@ -96,8 +96,8 @@ class MediaLoader(
         private set
     var onSabrFallbackNeeded: (() -> Unit)? = null
 
-    /** Invoked with a subtitle track's index and display label once its fetch has finally given up. */
-    var onSubtitleLoadFailed: ((Int, String) -> Unit)? = null
+    /** Invoked with a subtitle track's index, display label and last HTTP status once its fetch has finally given up. */
+    var onSubtitleLoadFailed: ((Int, String, Int?) -> Unit)? = null
 
     /**
      * Load media with video and audio streams.
@@ -514,8 +514,9 @@ class MediaLoader(
                         captionTransport != null && captionTransport.handles(uri) -> captionTransport
                         else -> dataSourceFactory
                     }
+                val otherTransport = dataSourceFactory.takeIf { factory === captionTransport }
                 SingleSampleMediaSource
-                    .Factory(factory)
+                    .Factory(captionDataSourceFactory(caption, factory, otherTransport, label))
                     .setLoadErrorHandlingPolicy(SubtitleLoadErrorHandlingPolicy(caption.isTranslated))
                     // Stays true: a propagated subtitle error would surface as a fatal
                     // ExoPlaybackException and stop the video over a failed sidecar text track.
@@ -524,8 +525,8 @@ class MediaLoader(
                     .also { source ->
                         source.addEventListener(
                             Handler(Looper.getMainLooper()),
-                            subtitleLoadFailureReporter(index, label, subtitleUrl) { failedIndex, failedLabel ->
-                                onSubtitleLoadFailed?.invoke(failedIndex, failedLabel)
+                            subtitleLoadFailureReporter(index, label, subtitleUrl) { failedIndex, failedLabel, status ->
+                                onSubtitleLoadFailed?.invoke(failedIndex, failedLabel, status)
                             },
                         )
                     }

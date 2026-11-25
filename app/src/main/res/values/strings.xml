@@ -4125,6 +4125,7 @@
     <string name="audio_track_original">Original</string>
     <string name="audio_track_dubbed">Dubbed</string>
     <string name="subtitle_load_failed">Couldn’t load %1$s subtitles — try again</string>
+    <string name="subtitle_unavailable_for_video">%1$s subtitles aren’t available for this video</string>
     <string name="subtitle_translation_unavailable">Translation unavailable — showing %1$s</string>
     <string name="ui_skipped_segment">Skipped %1$s</string>
     <string name="sb_segment_notice">%1$s segment</string>

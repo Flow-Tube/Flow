@@ -12,4 +12,5 @@ data class SubtitleLoadFailure(
     val label: String,
     val language: String?,
     val isTranslated: Boolean,
+    val httpStatus: Int? = null,
 )

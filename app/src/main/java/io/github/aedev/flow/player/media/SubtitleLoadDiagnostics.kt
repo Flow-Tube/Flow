@@ -92,7 +92,7 @@ internal fun subtitleLoadFailureReporter(
     index: Int,
     label: String,
     url: String,
-    onGaveUp: (index: Int, label: String) -> Unit,
+    onGaveUp: (index: Int, label: String, status: Int?) -> Unit,
 ): MediaSourceEventListener =
     object : MediaSourceEventListener {
         override fun onLoadCompleted(
@@ -123,6 +123,6 @@ internal fun subtitleLoadFailureReporter(
                 return
             }
             Log.w(TAG, "Subtitle '$label' gave up after retries: ${SubtitleLoadDiagnostics.describe(url, error)}")
-            onGaveUp(index, label)
+            onGaveUp(index, label, SubtitleLoadDiagnostics.statusOf(error))
         }
     }

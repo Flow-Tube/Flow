@@ -10,6 +10,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.state.SubtitleLoadFailure
 import io.github.aedev.flow.player.state.SubtitleOption
+import io.github.aedev.flow.player.stream.CaptionUrlFallback
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.SubtitleSelection
@@ -201,7 +202,9 @@ internal fun SubtitleLoadErrorEffect(
                     context.getString(R.string.subtitle_translation_unavailable, options[fallback].label)
                 } else {
                     SubtitleSelection.disable()
-                    context.getString(R.string.subtitle_load_failed, failure.label)
+                    val unavailable = CaptionUrlFallback.isUnavailable(failure.httpStatus)
+                    val messageRes = if (unavailable) R.string.subtitle_unavailable_for_video else R.string.subtitle_load_failed
+                    context.getString(messageRes, failure.label)
                 }
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }
