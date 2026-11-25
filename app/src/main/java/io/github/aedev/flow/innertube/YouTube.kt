@@ -559,6 +559,8 @@ object YouTube {
 
     private val channelBrowses = ChannelBrowseCache()
 
+    fun trimMemory() = channelBrowses.clear()
+
     /**
      * A channel browse through [channelBrowses]. Only a page a channel opens on is kept ([keep]): a paging
      * continuation is read once and would push the channel's own pages out.

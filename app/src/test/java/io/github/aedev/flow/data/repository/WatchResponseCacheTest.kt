@@ -112,7 +112,7 @@ class WatchResponseCacheTest {
 
             assertThat(cache.size()).isEqualTo(1)
             assertThat(cache.cached("a")).isNull()
-            assertThat(cache.cached("b")).isEqualTo("response:b")
+            assertThat(cache.cached("b")).isEqualTo("response:b@0")
         }
 
     @Test
@@ -124,7 +124,7 @@ class WatchResponseCacheTest {
             cache.retainOnly("b")
 
             assertThat(cache.size()).isEqualTo(1)
-            assertThat(cache.cached("b")).isEqualTo("response:b")
+            assertThat(cache.cached("b")).isEqualTo("response:b@0")
         }
 
     @Test

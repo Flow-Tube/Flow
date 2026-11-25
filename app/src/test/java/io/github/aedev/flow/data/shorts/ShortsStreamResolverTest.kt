@@ -127,6 +127,18 @@ class ShortsStreamResolverTest {
         }
 
     @Test
+    fun `a memory trim lets go of every kept reel response`() =
+        runBlocking {
+            resolver.resolve("reel1234567", targetHeight = 720, preferredAudioLanguage = "")
+
+            resolver.trimMemory()
+            resolver.resolve("reel1234567", targetHeight = 720, preferredAudioLanguage = "")
+            resolver.availableQualities("reel1234567")
+
+            assertEquals(2, extractions.get())
+        }
+
+    @Test
     fun `streams are trusted for four fifths of their lifetime and re-fetched after`() =
         runBlocking {
             resolver.resolve("reel1234567", targetHeight = 720, preferredAudioLanguage = "")

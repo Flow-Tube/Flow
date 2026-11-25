@@ -24,6 +24,7 @@ import io.github.aedev.flow.data.profile.ProfileWorkReconciler
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.repository.YouTubePlaylistRepository
 import io.github.aedev.flow.data.repository.YouTubeRepository
+import io.github.aedev.flow.data.shorts.ShortsStreamResolver
 import io.github.aedev.flow.discord.DiscordPresenceRuntime
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.network.AppProxyManager
@@ -124,6 +125,9 @@ class FlowApplication :
 
     @Inject
     lateinit var youTubeRepository: dagger.Lazy<YouTubeRepository>
+
+    @Inject
+    lateinit var shortsStreams: dagger.Lazy<ShortsStreamResolver>
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
 
@@ -335,6 +339,13 @@ class FlowApplication :
 
     private fun releaseVolatileMemory() {
         if (::playlistRepository.isInitialized) playlistRepository.trimMemory()
+        if (::youTubeRepository.isInitialized) {
+            val repository = youTubeRepository.get()
+            repository.trimWatchCache(keepVideoId = GlobalPlayerState.currentVideo.value?.id)
+            repository.trimMetadataCaches()
+        }
+        if (::shortsStreams.isInitialized) shortsStreams.get().trimMemory()
+        YouTube.trimMemory()
         if (::okHttpClient.isInitialized) {
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 okHttpClient.connectionPool.evictAll()
