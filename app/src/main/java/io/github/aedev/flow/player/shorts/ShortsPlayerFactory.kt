@@ -1,6 +1,7 @@
 package io.github.aedev.flow.player.shorts
 
 import android.content.Context
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
@@ -14,9 +15,12 @@ import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.text.TextOutput
+import androidx.media3.exoplayer.text.TextRenderer
 import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
@@ -31,6 +35,7 @@ import io.github.aedev.flow.player.config.PlayerConfig
 import io.github.aedev.flow.player.config.VideoSizeCap
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
 import io.github.aedev.flow.player.factory.LoadControlFactory
+import io.github.aedev.flow.player.renderer.subtitle.FlowSubtitleDecoderFactory
 
 /** Builds what the Shorts pool runs on: its players, the cached data source and the one media session. */
 @OptIn(UnstableApi::class)
@@ -91,6 +96,8 @@ internal object ShortsPlayerFactory {
                         .setForceHighestSupportedBitrate(false)
                         .setViewportSizeToPhysicalDisplaySize(context, true)
                         .setMaxVideoSize(maxVideoWidth, maxVideoHeight)
+                        // Captions are switched on for the reel on screen only.
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
 
                 if (preferredAudioLanguage != "original" && preferredAudioLanguage.isNotEmpty()) {
                     builder.setPreferredAudioLanguage(preferredAudioLanguage)
@@ -113,6 +120,19 @@ internal object ShortsPlayerFactory {
                         .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                         .setAudioProcessors(arrayOf(equalizer))
                         .build()
+
+                // Side-loaded captions reach the text renderer unparsed, so it decodes them the legacy way, as the video player's does.
+                override fun buildTextRenderers(
+                    context: Context,
+                    output: TextOutput,
+                    outputLooper: Looper,
+                    extensionRendererMode: Int,
+                    out: ArrayList<Renderer>,
+                ) {
+                    val text = TextRenderer(output, outputLooper, FlowSubtitleDecoderFactory())
+                    text.experimentalSetLegacyDecodingEnabled(true)
+                    out.add(text)
+                }
             }.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
                 .setEnableDecoderFallback(true)
 

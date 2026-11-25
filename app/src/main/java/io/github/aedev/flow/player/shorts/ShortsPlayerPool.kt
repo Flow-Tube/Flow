@@ -17,6 +17,7 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.ShortVideo
 import io.github.aedev.flow.player.audio.LoudnessGain
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
+import io.github.aedev.flow.player.stream.ResolvedCaption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -275,6 +276,7 @@ class ShortsPlayerPool private constructor() {
         audioDashManifest: String? = null,
         loudnessGainDb: Float? = null,
         videoAdaptiveManifest: DashManifest? = null,
+        captions: List<ResolvedCaption> = emptyList(),
     ) {
         if (!isInitialized || index < 0) return
         val slot = index % POOL_SIZE
@@ -296,7 +298,8 @@ class ShortsPlayerPool private constructor() {
         firstFrames.forget(slots.videoIds[slot])
         firstFrames.forget(videoId)
 
-        val streams = ShortsSlotStreams(videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb, videoAdaptiveManifest)
+        val streams =
+            ShortsSlotStreams(videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb, videoAdaptiveManifest, captions)
         slots.assign(slot, index, videoId, streams)
         applyVolume(slot)
         bumpOwnership()

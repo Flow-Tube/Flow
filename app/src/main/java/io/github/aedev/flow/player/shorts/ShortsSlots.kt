@@ -1,6 +1,7 @@
 package io.github.aedev.flow.player.shorts
 
 import androidx.media3.exoplayer.dash.manifest.DashManifest
+import io.github.aedev.flow.player.stream.ResolvedCaption
 
 /** The streams a slot last loaded, so audio or quality can be swapped without a new lookup. */
 internal data class ShortsSlotStreams(
@@ -11,6 +12,7 @@ internal data class ShortsSlotStreams(
     /** YouTube's loudness for the reel, in dB; null when its response carried none. */
     val loudnessGainDb: Float? = null,
     val adaptiveManifest: DashManifest? = null,
+    val captions: List<ResolvedCaption> = emptyList(),
 )
 
 /** What each pooled player holds, kept together so a slot is assigned and cleared as one. */
