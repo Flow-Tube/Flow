@@ -22,6 +22,7 @@ import io.github.aedev.flow.data.notes.NotesRepository
 import io.github.aedev.flow.data.shorts.withoutShorts
 import io.github.aedev.flow.data.subscriptions.markChannelSeen
 import io.github.aedev.flow.innertube.YouTube
+import io.github.aedev.flow.innertube.pages.YouTubeAlertException
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabContent
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
@@ -198,7 +199,7 @@ class ChannelViewModel
                 return
             }
 
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, error = null, isGone = false) }
             viewModelScope.launch(PerformanceDispatcher.networkIO) {
                 val browseId =
                     directId ?: YouTube.resolveChannelId(checkNotNull(vanityUrl)).getOrElse { error ->
@@ -233,9 +234,18 @@ class ChannelViewModel
                     },
                     onFailure = { error ->
                         Log.e(TAG, "Failed to load channel", error)
+                        val refusal = error as? YouTubeAlertException
+                        val failure = LoadErrorKind.of(error).messageRes(R.string.error_failed_to_load_channel)
+                        val message =
+                            when {
+                                refusal == null -> appContext.getString(failure)
+                                refusal.alert.isBlank() -> appContext.getString(R.string.youtube_page_unavailable)
+                                else -> refusal.alert
+                            }
                         _uiState.update {
                             it.copy(
-                                error = appContext.getString(LoadErrorKind.of(error).messageRes(R.string.error_failed_to_load_channel)),
+                                error = message,
+                                isGone = refusal != null,
                                 isLoading = false,
                             )
                         }

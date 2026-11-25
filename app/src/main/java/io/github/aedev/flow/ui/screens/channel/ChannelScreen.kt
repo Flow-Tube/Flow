@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.outlined.PersonOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -95,6 +96,7 @@ import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.shared.ChannelOrganizeTarget
 import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
+import io.github.aedev.flow.ui.components.shared.FlowGoneState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowSubscribeButton
 import io.github.aedev.flow.ui.components.shared.FullSizeImageDialog
@@ -221,6 +223,15 @@ fun ChannelScreen(
                 when {
                     uiState.isLoading -> {
                         FlowLoadingIndicator()
+                    }
+
+                    uiState.isGone -> {
+                        FlowGoneState(
+                            message = uiState.error.orEmpty(),
+                            icon = Icons.Outlined.PersonOff,
+                            onBack = onBackClick,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
                     }
 
                     uiState.error != null -> {

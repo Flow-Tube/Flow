@@ -207,33 +207,48 @@ private fun JsonObject.marksCourse(): Boolean =
 private fun JsonObject.toChannelRendererItem(): FeedItem? {
     val channelId = this["channelId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
     val title = this["title"].youtubeText()?.takeIf(String::isNotBlank) ?: return null
-    val labels = listOfNotNull(this["subscriberCountText"].youtubeText(), this["videoCountText"].youtubeText())
+    val counts = channelRendererCounts()
     val canonicalUrl = this["navigationEndpoint"].objectOrNull()?.canonicalBaseUrl()
     return FeedItem.RelatedChannelItem(
         Channel(
             id = channelId,
             name = title,
             thumbnailUrl = this["thumbnail"].largestImageUrl().orEmpty(),
-            subscriberCount = parseYouTubeViewCount(labels.firstOrNull { it.isSubscriberLabel() }),
+            subscriberCount = parseYouTubeViewCount(counts.subscribers),
             description = this["descriptionSnippet"].youtubeText().orEmpty(),
             // Always the /channel/<id> form: an @handle is not a valid browseId, and the channel
             // screen browses whatever this url resolves to.
             url = "https://www.youtube.com/channel/$channelId",
-            handle = labels.firstOrNull { it.startsWith("@") } ?: canonicalUrl?.takeIf { it.startsWith("/@") }?.drop(1).orEmpty(),
-            videoCount = labels.firstOrNull { it.isVideoCountLabel() }?.leadingCount() ?: 0,
+            handle = counts.handle ?: canonicalUrl?.takeIf { it.startsWith("/@") }?.drop(1).orEmpty(),
+            videoCount = counts.videos?.leadingCount() ?: 0,
             isVerified = this["ownerBadges"].hasVerifiedBadge(),
         ),
     )
 }
 
-/**
- * The two count labels are not reliably in the field their name implies — a live channelRenderer
- * puts "@handle" under subscriberCountText and "16.9M subscribers" under videoCountText — so each
- * label is classified by what it says.
- */
-private fun String.isSubscriberLabel(): Boolean = !startsWith("@") && !isVideoCountLabel()
+private class ChannelRendererCounts(
+    val handle: String?,
+    val subscribers: String?,
+    val videos: String?,
+)
 
-private fun String.isVideoCountLabel(): Boolean = contains("video", ignoreCase = true)
+/**
+ * The two count labels are not reliably in the field their name implies: a live channelRenderer puts
+ * "@handle" under subscriberCountText and "16.9M subscribers" under videoCountText, and the words
+ * are in the request's language. Only the handle can be told apart by what it says, so when one
+ * label is the handle the other is the subscriber count and the card shows no video count; without
+ * a handle each field holds what its name says.
+ */
+private fun JsonObject.channelRendererCounts(): ChannelRendererCounts {
+    val first = this["subscriberCountText"].youtubeText()?.trim()?.takeIf(String::isNotEmpty)
+    val second = this["videoCountText"].youtubeText()?.trim()?.takeIf(String::isNotEmpty)
+    val handle = listOfNotNull(first, second).firstOrNull { it.startsWith("@") }
+    return when (handle) {
+        null -> ChannelRendererCounts(handle = null, subscribers = first, videos = second)
+        first -> ChannelRendererCounts(handle = handle, subscribers = second, videos = null)
+        else -> ChannelRendererCounts(handle = handle, subscribers = first, videos = null)
+    }
+}
 
 private fun JsonObject.canonicalBaseUrl(): String? =
     this["browseEndpoint"]
@@ -435,12 +450,7 @@ internal fun parseDurationText(text: String?): Int? {
     }
 }
 
-internal fun String.leadingCount(): Int? =
-    Regex("""[\d,.]+""")
-        .find(this)
-        ?.value
-        ?.replace(",", "")
-        ?.replace(".", "")
-        ?.toIntOrNull()
+/** The count a label leads with, in any language and abbreviated or not: "1 234 vidéos", "1.2K videos". */
+internal fun String.leadingCount(): Int? = parseYouTubeViewCount(this).takeIf { it > 0 }?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt()
 
 internal fun List<VideoCollaborator>.avatarUrls(): List<String> = map { it.thumbnailUrl }.filter(String::isNotBlank)

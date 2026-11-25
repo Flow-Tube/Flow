@@ -5315,4 +5315,5 @@
     <string name="settings_quality_lower_when_small">Mini oynatıcıda ve PiP\'te daha düşük kalite</string>
     <string name="settings_quality_lower_when_small_summary">Otomatik, video küçükken 480p\'ye kadar kullanır</string>
     <string name="linked_device_name_with_id">%1$s · %2$s</string>
+    <string name="subtitle_unavailable_for_video">%1$s altyazıları bu video için kullanılamıyor</string>
 </resources>

@@ -27,7 +27,9 @@ import kotlin.coroutines.CoroutineContext
  * out of the same response. The watched filter is the exception: it is applied here, so a page it
  * thins out reads on, up to [MAX_REQUESTS_PER_LOAD] requests, rather than reaching the grid nearly empty.
  * Paging asks again while the list is short, so after [MAX_EMPTY_LOADS] loads in a row that kept
- * nothing the search ends there instead of walking every page YouTube has.
+ * nothing, whether the watched filter, blocking or de-duplication emptied them, the search ends there
+ * instead of walking every page YouTube has. A page that hands back the token it was loaded with ends
+ * it too: Paging refuses the same key twice in a row.
  */
 class SearchPagingSource(
     private val query: String,
@@ -58,7 +60,8 @@ class SearchPagingSource(
             var continuation = params.key
             var requests = 0
             do {
-                val page = loadPage(query, filter.toSearchParams(exactQuery), continuation)
+                val requested = continuation
+                val page = loadPage(query, filter.toSearchParams(exactQuery), requested)
                 if (params.key == null && requests == 0) onHeader(page.header)
                 requests++
                 val items =
@@ -69,15 +72,14 @@ class SearchPagingSource(
                     }.withoutHidden(hidden)
                 results +=
                     loadedItemKeys.filter(items.watchFiltered()) { it.identityKey() }
-                continuation = page.continuation
+                continuation = page.continuation.takeUnless { it == requested }
             } while (watchState != WatchState.ANY &&
                 results.size < MIN_FILTERED_PAGE &&
                 continuation != null &&
                 requests < MAX_REQUESTS_PER_LOAD
             )
             emptyLoadsInARow = if (results.isEmpty()) emptyLoadsInARow + 1 else 0
-            val exhausted = watchState != WatchState.ANY && emptyLoadsInARow >= MAX_EMPTY_LOADS
-            LoadResult.Page(data = results, prevKey = null, nextKey = continuation.takeUnless { exhausted })
+            LoadResult.Page(data = results, prevKey = null, nextKey = continuation.takeUnless { emptyLoadsInARow >= MAX_EMPTY_LOADS })
         } catch (e: Exception) {
             LoadResult.Error(e)
         }

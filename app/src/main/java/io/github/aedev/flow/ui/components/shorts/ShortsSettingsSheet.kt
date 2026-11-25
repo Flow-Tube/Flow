@@ -220,7 +220,7 @@ internal fun ShortsSettingsSheet(
                         state = state,
                         onTrackSelected = { index ->
                             val track = state.availableAudioTracks[index]
-                            playerPool.reloadWithAudioUrl(pageIndex, short.id, track.url, track.dashManifest)
+                            playerPool.reloadWithAudioUrl(pageIndex, short.id, track.url, track.dashManifest, track.loudnessGainDb)
                             state.selectedAudioIndex = index
                             sheetState.dismiss()
                         },
