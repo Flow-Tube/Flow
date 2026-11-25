@@ -21,6 +21,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -199,6 +200,32 @@ class PlaybackLoadResolverTest {
             advanceUntilIdle()
 
             assertThat(steps).isEmpty()
+        }
+
+    @Test
+    fun `a load after the tap's extraction finished plays it without a second client ladder`() =
+        runTest(testDispatcher) {
+            mockkObject(PlaybackPrefetcher)
+            every { PlaybackPrefetcher.take(VIDEO_ID) } returns playableInnerTubeResult()
+
+            val steps = resolveSteps().second
+            advanceUntilIdle()
+
+            assertThat(steps.single()).isInstanceOf(ResolvedPlayback.VodFromInnerTube::class.java)
+            coVerify(exactly = 0) { InnerTubeVideoStreamExtractor.extract(any(), any()) }
+        }
+
+    @Test
+    fun `a forced SABR reload never takes the tap's extraction`() =
+        runTest(testDispatcher) {
+            mockkObject(PlaybackPrefetcher)
+            every { PlaybackPrefetcher.take(any()) } returns playableInnerTubeResult()
+
+            resolveSteps(escalateToSabr = true)
+            advanceUntilIdle()
+
+            verify(exactly = 0) { PlaybackPrefetcher.take(any()) }
+            coVerify(exactly = 1) { InnerTubeVideoStreamExtractor.extract(VIDEO_ID, forceSabr = true) }
         }
 
     private fun TestScope.resolveSteps(

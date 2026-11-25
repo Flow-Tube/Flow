@@ -231,7 +231,10 @@ class PlaybackLoadResolver
                 if (forceSabr) {
                     InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = true)
                 } else {
-                    InnerTubeVideoStreamExtractor.takePromoted(videoId)
+                    // Both offers are spent by this first load, so a reload after a refusal extracts fresh.
+                    val tapped = PlaybackPrefetcher.take(videoId)
+                    (InnerTubeVideoStreamExtractor.takePromoted(videoId) ?: tapped)
+                        ?.also { Log.d(TAG, "Load of $videoId took a finished extraction; no new client ladder") }
                         ?: withTimeoutOrNull(INNERTUBE_TIMEOUT_MS) {
                             InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = false)
                         }

@@ -58,6 +58,17 @@ class ExtractionHandoffTest {
     }
 
     @Test
+    fun `an offer made under a visitor identity since replaced is not used`() {
+        var generation = 0
+        val guarded = ExtractionHandoff(identity = { generation }) { now }
+        guarded.offer("next", result)
+        generation++
+
+        assertThat(guarded.holds("next")).isFalse()
+        assertThat(guarded.take("next")).isNull()
+    }
+
+    @Test
     fun `nothing offered means nothing taken`() {
         assertThat(handoff.take("next")).isNull()
     }
