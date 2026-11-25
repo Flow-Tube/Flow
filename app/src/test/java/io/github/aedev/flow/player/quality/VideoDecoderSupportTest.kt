@@ -56,7 +56,8 @@ class VideoDecoderSupportTest {
     @Test
     fun `only HDR10 or HLG count as an HDR screen for YouTube`() {
         assertThat(showsYouTubeHdr(intArrayOf(Display.HdrCapabilities.HDR_TYPE_HDR10))).isTrue()
-        assertThat(showsYouTubeHdr(intArrayOf(Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION, Display.HdrCapabilities.HDR_TYPE_HLG))).isTrue()
+        val dolbyAndHlg = intArrayOf(Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION, Display.HdrCapabilities.HDR_TYPE_HLG)
+        assertThat(showsYouTubeHdr(dolbyAndHlg)).isTrue()
         assertThat(showsYouTubeHdr(intArrayOf(Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION))).isFalse()
         assertThat(showsYouTubeHdr(intArrayOf())).isFalse()
     }
