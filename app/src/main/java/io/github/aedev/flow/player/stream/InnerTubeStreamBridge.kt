@@ -53,6 +53,8 @@ object InnerTubeStreamBridge {
                         runCatching { Locale.forLanguageTag(tag) }.getOrNull()?.takeIf { it.language.isNotBlank() }
                     },
                 audioTrackType = if (format.isOriginal) AudioTrackType.ORIGINAL else AudioTrackType.DUBBED,
+                loudnessDb = format.loudnessDb,
+                trackAbsoluteLoudnessLkfs = format.trackAbsoluteLoudnessLkfs,
             )
         }
     }

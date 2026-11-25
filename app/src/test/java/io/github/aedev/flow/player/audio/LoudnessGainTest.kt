@@ -18,9 +18,29 @@ class LoudnessGainTest {
     }
 
     @Test
-    fun `loudnessDb is next, then the format's own value`() {
-        assertThat(LoudnessGain.gainDb(config(loudnessDb = 4.5), 9.0)).isEqualTo(-4.5f)
+    fun `the playing format's own level wins over the response's`() {
+        assertThat(LoudnessGain.gainDb(config(loudnessDb = 4.5, perceptual = -9.5), 9.0)).isEqualTo(-9f)
         assertThat(LoudnessGain.gainDb(null, 3.0)).isEqualTo(-3f)
+    }
+
+    @Test
+    fun `a format with only its absolute level is measured against the target`() {
+        assertThat(LoudnessGain.gainDb(config(loudnessDb = 4.5, target = -14.0), null, -11.0)).isEqualTo(-3f)
+    }
+
+    @Test
+    fun `loudnessDb is used when there is no perceptual level and no format level`() {
+        assertThat(LoudnessGain.gainDb(config(loudnessDb = 4.5), null)).isEqualTo(-4.5f)
+    }
+
+    @Test
+    fun `a dub is not turned down by the original track's level`() {
+        // A dubbed video's response: audioConfig describes the original, each dub format its own track.
+        val response = config(loudnessDb = 1.66, perceptual = -12.34, target = -14.0)
+
+        assertThat(LoudnessGain.gainDb(response, 0.0, -14.0)).isEqualTo(0f)
+        assertThat(LoudnessGain.gainDb(response, 1.66, -12.34)!!.toDouble()).isWithin(1e-4).of(-1.66)
+        assertThat(LoudnessGain.gainDb(response, null)!!.toDouble()).isWithin(1e-4).of(-1.66)
     }
 
     @Test

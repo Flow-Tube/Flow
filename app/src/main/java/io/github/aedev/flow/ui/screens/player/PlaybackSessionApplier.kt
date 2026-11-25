@@ -15,7 +15,6 @@ import io.github.aedev.flow.data.video.OfflineSubtitleStore
 import io.github.aedev.flow.data.video.VideoDownloadManager
 import io.github.aedev.flow.player.EnhancedPlayerManager
 import io.github.aedev.flow.player.GlobalPlayerState
-import io.github.aedev.flow.player.audio.LoudnessGain
 import io.github.aedev.flow.player.error.VideoErrorMapper
 import io.github.aedev.flow.player.live.LiveSegmentSessions
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
@@ -433,10 +432,7 @@ internal class PlaybackSessionApplier(
             loadToken = load.token,
         )
 
-        playerManager.setLoudness(
-            videoId,
-            LoudnessGain.gainDb(result.playerResponse.playerConfig?.audioConfig, result.audioFormats.firstOrNull()?.loudnessDb),
-        )
+        playerManager.setLoudness(videoId, result.playerResponse.playerConfig?.audioConfig, streams.audioStream)
         playbackPreparer.prepareVodStreams(
             videoId = videoId,
             streams = streams,

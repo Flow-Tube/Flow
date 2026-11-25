@@ -88,7 +88,7 @@ object MusicPlayerUtils {
 
     fun cachedLoudnessGainDb(videoId: String): Float? {
         val data = resultCache[videoId]?.result?.getOrNull() ?: return null
-        return LoudnessGain.gainDb(data.audioConfig, data.format.loudnessDb)
+        return LoudnessGain.gainDb(data.audioConfig, data.format.loudnessDb, data.format.trackAbsoluteLoudnessLkfs)
     }
 
     /** The resolved playback of [videoId] while it is still fresh, without waiting on a request. */

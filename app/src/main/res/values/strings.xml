@@ -2970,6 +2970,7 @@
     <string name="library_empty_title">Your library is empty</string>
     <string name="library_empty_body">Videos and music you watch, like, save or download will collect here.</string>
     <string name="playlist_load_failed">Could not load this playlist</string>
+    <string name="youtube_page_unavailable">YouTube says this page is not available</string>
     <string name="playlist_unavailable_hidden">Unavailable videos are hidden</string>
     <plurals name="playlist_loading_all">
         <item quantity="one">Loading %1$d video</item>

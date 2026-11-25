@@ -15,6 +15,7 @@ import io.github.aedev.flow.data.recommendation.RankTrace
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedRepository
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipFeeds
+import io.github.aedev.flow.utils.NetworkState
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.traced
@@ -79,16 +80,20 @@ internal class HomeFeedLoader(
                     persistentHomeFeedCache.loadLastFeed(session.cacheFilters())
                 }.getOrElse { emptyList() }
             if (cached.isEmpty()) return@launch
-            // Cards the viewer already had on screen are old news; only the rest come back (#1447).
+            // Cards the viewer already had on screen are old news; only the rest come back (#1447), unless offline.
             val feedHistory = runCatching { FlowNeuroEngine.getBrainSnapshot().feedHistory }.getOrDefault(emptyMap())
-            val unseen = unseenCachedCards(cached.filterWatched(session.watchedVideoIds.value)) { (feedHistory[it]?.showCount ?: 0) > 0 }
-            if (unseen.isEmpty()) return@launch
+            val launchCards =
+                cachedCardsAtLaunch(
+                    cached = cached.filterWatched(session.watchedVideoIds.value),
+                    isOnline = NetworkState.isOnline(appContext),
+                ) { (feedHistory[it]?.showCount ?: 0) > 0 }
+            if (launchCards.isEmpty()) return@launch
 
             // Shown before any network call: the collaboration avatars fill in after (#1301).
             var shownIds = emptyList<String>()
             uiState.update { state ->
                 if (state.videos.isNotEmpty()) return@update state
-                val videos = unseen
+                val videos = launchCards
                 shownIds = videos.map { it.id }
                 session.cachedOnScreenIds = shownIds.toSet()
                 HomeFeedCache.update(videos, state.shorts)
