@@ -1,18 +1,18 @@
 package io.github.aedev.flow.innertube
 
-/** Stands in for the `sw.js` read behind YouTube's WEB client version, so no test touches the network. */
+/** Stands in for the `sw.js` reads behind the web client versions, so no test touches the network. */
 internal object WebClientVersionStub {
-    private val original = YouTube.webClientVersion
+    private val original = YouTube.webClients
 
     fun answer(version: String) = install { """self.ytcfg={"INNERTUBE_CONTEXT_CLIENT_VERSION":"$version"}""" }
 
     fun fail() = install { throw java.io.IOException("no network") }
 
     fun reset() {
-        YouTube.webClientVersion = original
+        YouTube.webClients = original
     }
 
     private fun install(fetch: suspend () -> String) {
-        YouTube.webClientVersion = WebClientVersion(fetch)
+        YouTube.webClients = WebClients { _, _ -> fetch() }
     }
 }

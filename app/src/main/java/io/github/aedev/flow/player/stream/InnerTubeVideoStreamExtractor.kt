@@ -737,7 +737,11 @@ object InnerTubeVideoStreamExtractor {
                 Log.w(TAG, "$label+SABR: no visitorData available")
                 return null
             }
-            val poToken = WebPoTokenSession.mintForVisitorData(videoId, visitorData)
+            val (poToken, liveClient) =
+                coroutineScope {
+                    val live = async { YouTube.liveWebClient(client) }
+                    WebPoTokenSession.mintForVisitorData(videoId, visitorData) to live.await()
+                }
             if (poToken == null) {
                 failureReasons.add("$label: PoToken unavailable (WebView missing/broken?)")
                 Log.w(TAG, "$label+SABR: PoToken mint returned null (WebView missing/broken?)")
@@ -756,7 +760,7 @@ object InnerTubeVideoStreamExtractor {
                             locale = YouTubeLocale.EXTRACTION,
                             cpn = cpn,
                             reloadToken = reloadToken,
-                            client = client,
+                            client = liveClient,
                         ).getOrNull()
                 }
             if (playerResponse == null) {
@@ -770,7 +774,7 @@ object InnerTubeVideoStreamExtractor {
                 val refusal = PlayabilityVerdict.refusal(playerResponse.playabilityStatus, playerResponse.videoDetails != null)
                 failureReasons.add("$label: $refusal")
                 Log.w(TAG, "$label: $refusal")
-                PlayerDiagnostics.logWarning(TAG, "skip $label v${client.clientVersion}: $refusal pot=true")
+                PlayerDiagnostics.logWarning(TAG, "skip $label v${liveClient.clientVersion}: $refusal pot=true")
                 return null
             }
 
@@ -833,9 +837,9 @@ object InnerTubeVideoStreamExtractor {
             // same client that minted this response.
             val sabrInfo =
                 withTransformedN.copy(
-                    clientNameId = SabrClientIdentity.clientNameId(client),
-                    clientVersion = client.clientVersion,
-                    clientUserAgent = client.userAgent,
+                    clientNameId = SabrClientIdentity.clientNameId(liveClient),
+                    clientVersion = liveClient.clientVersion,
+                    clientUserAgent = liveClient.userAgent,
                 )
 
             // The SABR session is the point of this path, but these formats are what playback falls
@@ -887,7 +891,7 @@ object InnerTubeVideoStreamExtractor {
                 videoFormats = videoFormats,
                 audioFormats = audioFormats,
                 playerResponse = playerResponse,
-                usedClient = client,
+                usedClient = liveClient,
                 sabrInfo = sabrInfo,
             )
         } catch (e: CancellationException) {
