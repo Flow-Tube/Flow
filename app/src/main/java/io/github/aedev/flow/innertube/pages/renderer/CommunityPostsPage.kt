@@ -1,6 +1,7 @@
 package io.github.aedev.flow.innertube.pages.renderer
 
 import io.github.aedev.flow.data.model.Comment
+import io.github.aedev.flow.data.model.RichText
 import io.github.aedev.flow.innertube.pages.VideoCommentSort
 import io.github.aedev.flow.innertube.pages.accessibilityLabel
 import io.github.aedev.flow.innertube.pages.arrayOrNull
@@ -11,9 +12,11 @@ import io.github.aedev.flow.innertube.pages.countTextFromAccessibilityLabel
 import io.github.aedev.flow.innertube.pages.findReplyContinuation
 import io.github.aedev.flow.innertube.pages.normalizeImageUrl
 import io.github.aedev.flow.innertube.pages.objectOrNull
+import io.github.aedev.flow.innertube.pages.runsToRichText
 import io.github.aedev.flow.innertube.pages.stringOrNull
 import io.github.aedev.flow.innertube.pages.toLegacyComment
 import io.github.aedev.flow.innertube.pages.toModernComment
+import io.github.aedev.flow.innertube.pages.toRichText
 import io.github.aedev.flow.innertube.pages.toSortOptions
 import io.github.aedev.flow.innertube.pages.youtubeText
 import kotlinx.serialization.json.JsonArray
@@ -27,11 +30,19 @@ data class CommunityPost(
     val authorChannelId: String? = null,
     val authorAvatarUrl: String,
     val text: String,
+    /** [text] with the links, timestamps, hashtags and mentions the server marked in it. */
+    val richText: RichText? = null,
     val attachment: PostAttachment?,
     val likeCountText: String,
     val commentCountText: String,
     val commentEndpointParams: String?,
     val publishedTimeText: String,
+)
+
+/** A post opened on its own, with the comments page the same response carried. */
+data class SinglePostPage(
+    val post: CommunityPost,
+    val comments: CommunityCommentsPage,
 )
 
 data class CommunityPostsPage(
@@ -225,6 +236,8 @@ internal fun JsonObject.toCommunityPost(
         authorChannelId = authorChannelId() ?: owner.id.takeIf(String::isNotBlank),
         authorAvatarUrl = normalizeImageUrl(authorAvatar),
         text = this["contentText"].youtubeText().orEmpty(),
+        // Not tied to a video: a timestamp in a post names its video, so it opens that video at the time.
+        richText = this["contentText"].runsToRichText(ownVideoId = null) ?: this["contentText"].toRichText(ownVideoId = null),
         attachment = this["backstageAttachment"].toPostAttachment(owner),
         likeCountText = this["voteCount"].youtubeText().orEmpty(),
         commentCountText =
