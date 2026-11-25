@@ -79,4 +79,3 @@ class LiveSegmentClockTest {
         assertThat(clock.segmentAt(-10_000_000L, 0L)).isNull()
     }
 }
-
