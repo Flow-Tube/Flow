@@ -34,6 +34,8 @@ data class PollChoice(
     val text: String,
     val voteRatio: Float? = null,
     val voteCountText: String? = null,
+    /** The picture of an image poll's choice; null in a text poll. */
+    val imageUrl: String? = null,
 )
 
 /**
@@ -92,6 +94,7 @@ private fun JsonObject.poll(): PostAttachment.Poll? {
                     voteCountText =
                         choice["numVotes"].youtubeText()
                             ?: choice["votePercentageIfSelected"].youtubeText(),
+                    imageUrl = choice["image"].largestImageUrl(),
                 )
             }
     return choices.takeIf { it.isNotEmpty() }?.let {

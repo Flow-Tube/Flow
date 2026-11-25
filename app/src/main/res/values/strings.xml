@@ -866,6 +866,8 @@
     <string name="channel_search_failed">Couldn\'t search this channel</string>
     <string name="community_post_image_content_description">Community post image</string>
     <string name="share_community_post">Share community post</string>
+    <string name="post_title">Post</string>
+    <string name="post_load_failed">Couldn\'t load this post</string>
     <string name="end_of_queue">End of queue</string>
     <string name="no_videos_found">No videos found</string>
     <string name="no_shorts_found">No shorts found</string>

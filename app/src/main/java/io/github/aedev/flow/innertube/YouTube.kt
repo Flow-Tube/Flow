@@ -114,6 +114,7 @@ import io.github.aedev.flow.innertube.pages.renderer.CommunityCommentsPage
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPostsPage
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
 import io.github.aedev.flow.innertube.pages.renderer.FeedShelf
+import io.github.aedev.flow.innertube.pages.renderer.SinglePostPage
 import io.github.aedev.flow.innertube.pages.renderer.collaboratorDialog
 import io.github.aedev.flow.innertube.pages.renderer.lockupDateAndViews
 import io.github.aedev.flow.innertube.pages.renderer.toCommunityCommentsPage
@@ -170,6 +171,7 @@ object YouTube {
     private const val CHANNEL_VIDEOS_PARAMS = "EgZ2aWRlb3PyBgQKAjoA"
     private const val CHANNEL_LIVE_PARAMS = "EgdzdHJlYW1z8gYECgJ6AA%3D%3D"
     private const val CHANNEL_POSTS_PARAMS = "EgVwb3N0c_IGBAoCSgA="
+    private const val POST_DETAIL_BROWSE_ID = "FEpost_detail"
     private const val CHANNEL_SHORTS_PARAMS = "EgZzaG9ydHPyBgUKA5oBAA=="
 
     /** The playlist header menu's "Show unavailable videos" view, which lists a Shorts grid in full. */
@@ -724,11 +726,13 @@ object YouTube {
             MusicVideoChart(title = playlist.title, entries = page.videos.ranked())
         }
 
+    /** [params] is the posts tab's own token from the channel's tab list; the usual one stands in without it. */
     suspend fun communityPosts(
         channelId: String,
         channelName: String,
         channelThumbnailUrl: String,
-    ): Result<CommunityPostsPage> = communityPostsPage(channelId, channelName, channelThumbnailUrl)
+        params: String? = null,
+    ): Result<CommunityPostsPage> = communityPostsPage(channelId, channelName, channelThumbnailUrl, params = params)
 
     suspend fun communityPostsContinuation(
         continuation: String,
@@ -745,18 +749,45 @@ object YouTube {
     suspend fun communityPostComments(
         postId: String,
         params: String?,
-    ): Result<CommunityCommentsPage> =
+    ): Result<CommunityCommentsPage> = runCatching { commentsFrom(communityPostCommentsPage(postId = postId, params = params)) }
+
+    /** The comments of a post whose page [detail] is already in hand, as [communityPost] returns it. */
+    suspend fun communityPostComments(detail: CommunityCommentsPage): Result<CommunityCommentsPage> = runCatching { commentsFrom(detail) }
+
+    /** A post's page often holds only the token for its comments; the first page of them is behind it. */
+    private suspend fun commentsFrom(initial: CommunityCommentsPage): CommunityCommentsPage {
+        val continuation = initial.continuation
+        if (initial.comments.isNotEmpty() || continuation == null) return initial
+        val commentsPage = communityPostCommentsPage(continuation = continuation)
+        return commentsPage.copy(
+            commentCountText = commentsPage.commentCountText ?: initial.commentCountText,
+            sortOptions = commentsPage.sortOptions.ifEmpty { initial.sortOptions },
+        )
+    }
+
+    /**
+     * One post from its `/post/` link. Its FEpost_detail page answers only to the params
+     * resolve_url gives the link, and holds the post and the first token of its comments.
+     */
+    suspend fun communityPost(postId: String): Result<SinglePostPage> =
         runCatching {
-            val initial = communityPostCommentsPage(postId = postId, params = params)
-            if (initial.comments.isNotEmpty() || initial.continuation == null) {
-                initial
-            } else {
-                val commentsPage = communityPostCommentsPage(continuation = initial.continuation)
-                commentsPage.copy(
-                    commentCountText = commentsPage.commentCountText ?: initial.commentCountText,
-                    sortOptions = commentsPage.sortOptions.ifEmpty { initial.sortOptions },
-                )
-            }
+            val params =
+                innerTube
+                    .resolveUrl(WEB, "https://www.youtube.com/post/$postId")
+                    .body<ResolveUrlResponse>()
+                    .endpoint
+                    ?.browseEndpoint
+                    ?.takeIf { it.browseId == POST_DETAIL_BROWSE_ID }
+                    ?.params
+                    ?: error("No post behind $postId")
+            val page = Json.parseToJsonElement(innerTube.postCommentsBrowse(currentWebClient(), params = params).bodyAsText())
+            val post =
+                page.toCommunityPostsPage(fallbackAuthorName = "", fallbackAuthorAvatarUrl = "").posts.firstOrNull()
+                    ?: error("No post in the page of $postId")
+            SinglePostPage(
+                post = post.copy(commentEndpointParams = post.commentEndpointParams ?: params),
+                comments = page.toCommunityCommentsPage(),
+            )
         }
 
     suspend fun communityPostCommentsContinuation(continuation: String): Result<CommunityCommentsPage> =
@@ -796,6 +827,7 @@ object YouTube {
         channelName: String,
         channelThumbnailUrl: String,
         continuation: String? = null,
+        params: String? = null,
     ): Result<CommunityPostsPage> =
         runCatching {
             val client = currentWebClient()
@@ -803,7 +835,7 @@ object YouTube {
                 innerTube.channelBrowse(
                     client = client,
                     channelId = channelId.takeIf { continuation == null },
-                    params = CHANNEL_POSTS_PARAMS.takeIf { continuation == null },
+                    params = (params?.takeIf(String::isNotBlank) ?: CHANNEL_POSTS_PARAMS).takeIf { continuation == null },
                     continuation = continuation,
                 )
             Json.parseToJsonElement(response.bodyAsText()).toCommunityPostsPage(

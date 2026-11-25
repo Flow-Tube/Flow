@@ -89,6 +89,36 @@ class PostAttachmentTest {
     }
 
     @Test
+    fun `an image poll keeps each choice's picture`() {
+        val parsed =
+            attachment(
+                """
+                { "pollRenderer": {
+                  "choices": [
+                    { "text": { "runs": [ { "text": "Sage" } ] },
+                      "image": { "thumbnails": [
+                        { "url": "https://yt3.test/sage-small.jpg", "width": 88, "height": 88 },
+                        { "url": "https://yt3.test/sage-large.jpg", "width": 400, "height": 400 } ] } },
+                    { "text": { "runs": [ { "text": "Lilac" } ] },
+                      "image": { "thumbnails": [ { "url": "https://yt3.test/lilac.jpg", "width": 400, "height": 400 } ] } }
+                  ],
+                  "totalVotes": { "simpleText": "31K votes" }
+                } }
+                """.trimIndent(),
+            )
+
+        val poll = parsed as PostAttachment.Poll
+        assertEquals(listOf("https://yt3.test/sage-large.jpg", "https://yt3.test/lilac.jpg"), poll.choices.map { it.imageUrl })
+    }
+
+    @Test
+    fun `a text poll has no pictures`() {
+        val parsed = attachment("""{ "pollRenderer": { "choices": [ { "text": { "runs": [ { "text": "Yes" } ] } } ] } }""")
+
+        assertNull((parsed as PostAttachment.Poll).choices.single().imageUrl)
+    }
+
+    @Test
     fun `a poll without ratios still parses its choices`() {
         val parsed =
             attachment(

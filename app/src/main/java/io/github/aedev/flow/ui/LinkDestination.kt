@@ -62,6 +62,7 @@ private fun pageRoute(link: YouTubeLink): String? =
         is YouTubeLink.Channel -> if (link.isMusic) musicArtistRoute(link.id) else youtubeChannelRoute(link.id)
         is YouTubeLink.ChannelHandle -> youtubeChannelRoute(link.handle)
         is YouTubeLink.LegacyChannel -> youtubeChannelRoute(link.url)
+        is YouTubeLink.Post -> communityPostRoute(link.id)
     }
 
 private fun playlistRoute(link: YouTubeLink.Playlist): String? =

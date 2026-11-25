@@ -41,6 +41,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.model.plainRichText
 import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
+import io.github.aedev.flow.ui.components.layout.navigation.LocalMediaNavigator
 import io.github.aedev.flow.ui.theme.extendedColors
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.toAnnotatedString
@@ -66,10 +67,17 @@ fun MediaPostCard(
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val uriHandler = LocalUriHandler.current
-    val linkActions = rememberRichTextLinkActions(onOpenUrl = { url -> runCatching { uriHandler.openUri(url) } })
+    val navigator = LocalMediaNavigator.current
+    val linkActions =
+        rememberRichTextLinkActions(
+            onOpenUrl = { url -> runCatching { uriHandler.openUri(url) } },
+            onChannel = navigator::openChannel,
+            onHashtag = { tag -> navigator.openSearch("#$tag") },
+        )
     val formattedText =
-        remember(post.text, primaryColor, onSurfaceColor, linkActions) {
-            plainRichText(post.text).toAnnotatedString(linkColor = primaryColor, textColor = onSurfaceColor, actions = linkActions)
+        remember(post.text, post.richText, primaryColor, onSurfaceColor, linkActions) {
+            (post.richText ?: plainRichText(post.text))
+                .toAnnotatedString(linkColor = primaryColor, textColor = onSurfaceColor, actions = linkActions)
         }
 
     Column(
