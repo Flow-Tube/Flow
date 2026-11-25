@@ -87,7 +87,9 @@ class PlaybackLoadResolver
                 }
 
                 val innerTubeDeferred =
-                    scope.async(networkDispatcher) { extractInnerTube(videoId, forceSabr = request.escalateToSabr) }
+                    scope.async(networkDispatcher) {
+                        extractInnerTube(videoId, forceSabr = request.escalateToSabr, freshStreams = request.freshStreams)
+                    }
 
                 // Startup-critical disk reads, resolved in parallel with stream extraction so the
                 // playback-preparation path below never blocks on DataStore/DB.
@@ -226,18 +228,26 @@ class PlaybackLoadResolver
         private suspend fun extractInnerTube(
             videoId: String,
             forceSabr: Boolean,
+            freshStreams: Boolean,
         ): InnerTubeVideoStreamExtractor.VideoExtractionResult? =
             try {
-                if (forceSabr) {
-                    InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = true)
-                } else {
-                    // Both offers are spent by this first load, so a reload after a refusal extracts fresh.
-                    val tapped = PlaybackPrefetcher.take(videoId)
-                    (InnerTubeVideoStreamExtractor.takePromoted(videoId) ?: tapped)
-                        ?.also { Log.d(TAG, "Load of $videoId took a finished extraction; no new client ladder") }
-                        ?: withTimeoutOrNull(INNERTUBE_TIMEOUT_MS) {
-                            InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = false)
-                        }
+                when {
+                    forceSabr -> {
+                        InnerTubeVideoStreamExtractor.extract(videoId, forceSabr = true)
+                    }
+
+                    freshStreams -> {
+                        InnerTubeVideoStreamExtractor.forgetReusable(videoId)
+                        withTimeoutOrNull(INNERTUBE_TIMEOUT_MS) { InnerTubeVideoStreamExtractor.extractForPage(videoId) }
+                    }
+
+                    else -> {
+                        // Both offers are spent by this first load, so a reload after a refusal extracts fresh.
+                        val tapped = PlaybackPrefetcher.take(videoId)
+                        (InnerTubeVideoStreamExtractor.takePromoted(videoId) ?: tapped)
+                            ?.also { Log.d(TAG, "Load of $videoId took a finished extraction; no new client ladder") }
+                            ?: withTimeoutOrNull(INNERTUBE_TIMEOUT_MS) { InnerTubeVideoStreamExtractor.extractForPage(videoId) }
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e

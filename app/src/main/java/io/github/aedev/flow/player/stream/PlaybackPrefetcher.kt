@@ -20,7 +20,7 @@ object PlaybackPrefetcher {
     private val tap =
         TapPrefetch(
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-            extract = { videoId -> InnerTubeVideoStreamExtractor.extract(videoId) },
+            extract = { videoId -> InnerTubeVideoStreamExtractor.extractForPage(videoId) },
             identity = { WebPoTokenSession.identityGeneration },
             nowMs = SystemClock::elapsedRealtime,
         )

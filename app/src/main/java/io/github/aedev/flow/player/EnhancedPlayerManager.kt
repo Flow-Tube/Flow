@@ -316,7 +316,10 @@ class EnhancedPlayerManager private constructor() {
             currentVideoId = { currentVideoId },
             positionMs = { player?.currentPosition ?: 0L },
             playDownload = ::playDownloadAfterDenial,
-            extract = { videoId -> withTimeoutOrNull(DENIAL_RELOAD_TIMEOUT_MS) { InnerTubeVideoStreamExtractor.extract(videoId) } },
+            extract = { videoId ->
+                InnerTubeVideoStreamExtractor.forgetReusable(videoId)
+                withTimeoutOrNull(DENIAL_RELOAD_TIMEOUT_MS) { InnerTubeVideoStreamExtractor.extract(videoId) }
+            },
             prepare = { videoId, extraction, startPositionMs ->
                 val resume = player?.playWhenReady ?: true
                 prepareExtractedStreams(videoId, extraction, startPositionMs, keepAudioOnly = audioOnlyMode.isActive)
