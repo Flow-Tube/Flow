@@ -77,7 +77,16 @@ data class PlayerResponse(
             val uploadDate: String? = null,
             val externalChannelId: String? = null,
             val canonicalUrl: String? = null,
-        )
+            val liveBroadcastDetails: LiveBroadcastDetails? = null,
+        ) {
+            /** A stream's real start and end, as ISO-8601 date-times with an offset. */
+            @Serializable
+            data class LiveBroadcastDetails(
+                val isLiveNow: Boolean? = null,
+                val startTimestamp: String? = null,
+                val endTimestamp: String? = null,
+            )
+        }
     }
 
     @Serializable
@@ -349,6 +358,8 @@ data class PlayerResponse(
         val isPostLiveDvr: Boolean? = null,
         val keywords: List<String>? = null,
         val latencyClass: String? = null,
+        /** False when the creator hides the video's likes. */
+        val allowRatings: Boolean? = null,
     )
 
     @Serializable
