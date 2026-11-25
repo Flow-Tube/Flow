@@ -1,9 +1,12 @@
 package io.github.aedev.flow.ui.tv.navigation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -24,7 +27,6 @@ import io.github.aedev.flow.ui.screens.history.HistoryScreen
 import io.github.aedev.flow.ui.screens.home.HomeViewModel
 import io.github.aedev.flow.ui.screens.library.DownloadsScreen
 import io.github.aedev.flow.ui.screens.music.MusicPlayerViewModel
-import io.github.aedev.flow.ui.screens.music.MusicViewModel
 import io.github.aedev.flow.ui.screens.playlists.PlaylistDetailScreen
 import io.github.aedev.flow.ui.screens.playlists.PlaylistsScreen
 import io.github.aedev.flow.ui.screens.search.SearchViewModel
@@ -42,16 +44,15 @@ fun TvNavHost(
     navController: NavHostController,
     startRoute: String,
     homeViewModel: HomeViewModel,
-    musicViewModel: MusicViewModel,
     musicPlayerViewModel: MusicPlayerViewModel,
-    subscriptionsViewModel: SubscriptionsViewModel,
-    searchViewModel: SearchViewModel,
     onPlayVideo: (Video) -> Unit,
     onPlayPlaylist: (videos: List<Video>, startIndex: Int, title: String, shuffle: Boolean, more: QueuePageSource?) -> Unit,
     onPlayVideoId: (String) -> Unit,
     onSelectRoot: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Activity scoped like the phone tabs, but created when their page first opens: Home alone is on screen at launch.
+    val activity = LocalContext.current as ComponentActivity
     val openChannel: (String) -> Unit = { channelRef ->
         navController.navigate(TvRoutes.channel(channelRef))
     }
@@ -80,7 +81,7 @@ fun TvNavHost(
         }
         composable(FlowTab.Subscriptions.route) {
             TvSubscriptionsScreen(
-                viewModel = subscriptionsViewModel,
+                viewModel = hiltViewModel<SubscriptionsViewModel>(activity),
                 onVideoClick = onPlayVideo,
                 onChannelClick = { channel -> openChannel(channel.url.ifBlank { channel.id }) },
                 modifier = Modifier.fillMaxSize(),
@@ -88,7 +89,7 @@ fun TvNavHost(
         }
         composable(FlowTab.Search.route) {
             TvSearchScreen(
-                viewModel = searchViewModel,
+                viewModel = hiltViewModel<SearchViewModel>(activity),
                 onVideoClick = onPlayVideo,
                 onChannelClick = { channel -> openChannel(channel.url.ifBlank { channel.id }) },
                 onPlaylistClick = { playlist -> navController.navigate(TvRoutes.playlist(playlist.id)) },
@@ -215,7 +216,6 @@ fun TvNavHost(
         }
         tvMusicRoutes(
             navController = navController,
-            musicViewModel = musicViewModel,
             musicPlayerViewModel = musicPlayerViewModel,
             onPlayVideo = onPlayVideo,
             onSelectRoot = onSelectRoot,
