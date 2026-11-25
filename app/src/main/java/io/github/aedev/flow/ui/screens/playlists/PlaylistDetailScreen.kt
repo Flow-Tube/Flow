@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.PlaylistRemove
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -45,6 +46,7 @@ import io.github.aedev.flow.ui.components.library.PlaylistSearchBar
 import io.github.aedev.flow.ui.components.library.PlaylistSortChip
 import io.github.aedev.flow.ui.components.library.PlaylistSortOrder
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
+import io.github.aedev.flow.ui.components.shared.FlowGoneState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowSelectionAction
 import io.github.aedev.flow.ui.components.shared.FlowSelectionToolbar
@@ -257,6 +259,10 @@ fun PlaylistDetailScreen(
             when {
                 uiState.isLoading -> {
                     FlowLoadingIndicator()
+                }
+
+                uiState.isGone -> {
+                    FlowGoneState(message = uiState.errorMessage.orEmpty(), icon = Icons.Outlined.PlaylistRemove, onBack = onNavigateBack)
                 }
 
                 uiState.errorMessage != null -> {
