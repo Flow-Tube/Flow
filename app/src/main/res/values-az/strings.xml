@@ -5288,4 +5288,29 @@
         <item quantity="other">%1$d yeni video yüklə</item>
     </plurals>
     <string name="player_live_time_behind">-%1$s</string>
+    <plurals name="comments_oldest_capped">
+        <item quantity="one">Ən son %1$d şərhin ən köhnəsi</item>
+        <item quantity="other">Ən son %1$d şərhin ən köhnəsi</item>
+    </plurals>
+    <string name="notification_download_other_quality">%2$s mövcud deyildi. Əvəzinə %1$s saxlanıldı</string>
+    <string name="download_may_stutter">Burada kəkələyə bilər</string>
+    <string name="linked_device_name_with_id">%1$s · %2$s</string>
+    <string name="linked_error_connect_timeout">Bu ünvanda heç bir cavab verilmədi. Ünvanı və portu, həmçinin serverin bu cihazdan bağlantıları qəbul etdiyini yoxlayın.</string>
+    <string name="linked_error_connection_refused">Server bağlantını rədd etdi. Ünvandakı portu yoxlayın.</string>
+    <string name="linked_error_no_such_host">Həmin server adı və ya ünvanı bu şəbəkədə tapılmadı.</string>
+    <string name="linked_error_no_answer">Server cavab verməyi dayandırdı. Birazdan yenidən cəhd edin.</string>
+    <string name="linked_error_not_http">Həmin ünvan veb server kimi cavab vermir. http və ya https və portu yoxlayın.</string>
+    <string name="linked_error_folder_redirected">Server həmin ünvanı başqa yerə göndərir. Dəqiq WebDAV qovluq ünvanın istifadə et.</string>
+    <string name="linked_error_folder_missing">Həmin qovluq serverdə yoxdur. Qovluq ünvanını yoxlayın.</string>
+    <string name="linked_error_folder_forbidden">Server həmin qovluğa yazmağa icazə vermir.</string>
+    <string name="subtitle_unavailable_for_video">Bu video üçün %1$s titr mövcud deyil</string>
+    <string name="notification_download_yielding">%1$s · Bir şey oynadılarkən gözlənilir</string>
+    <string name="download_waiting_network">Şəbəkə gözlənilir</string>
+    <string name="notification_download_waiting_network">Şəbəkə gözlənilir. Öz-özünə davam edir.</string>
+    <string name="download_waiting_storage">Yaddaş gözlənilir</string>
+    <string name="download_waiting_storage_amount">%1$s daha çox yaddaş tələb edilir</string>
+    <string name="notification_download_waiting_storage">Yaddaş gözlənilir. Davam etmək üçün yer boşaldın.</string>
+    <string name="notification_download_waiting_storage_amount">Yaddaş gözlənilir. Davam etmək üçün %1$s boşaldın.</string>
+    <string name="settings_quality_lower_when_small">Kiçik oynadıcıda və PiP-də daha aşağı keyfiyyət</string>
+    <string name="settings_quality_lower_when_small_summary">Avtomatik, video kiçik olduqda 480p-ə qədər istifadə edir</string>
 </resources>
