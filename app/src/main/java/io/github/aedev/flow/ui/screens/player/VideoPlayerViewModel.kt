@@ -29,6 +29,7 @@ import io.github.aedev.flow.player.LifecyclePlaybackPreferences
 import io.github.aedev.flow.player.queue.QueuePageSource
 import io.github.aedev.flow.player.stream.PlaybackLoadResolver
 import io.github.aedev.flow.player.stream.ResetYouTubeSession
+import io.github.aedev.flow.player.stream.UpcomingPoll
 import io.github.aedev.flow.player.stream.UpcomingPremiereProbe
 import io.github.aedev.flow.ui.screens.player.state.*
 import kotlinx.coroutines.CoroutineDispatcher
@@ -312,6 +313,9 @@ class VideoPlayerViewModel
             escalateToSabr: Boolean = false,
             resumePositionOverrideMs: Long? = null,
         ) = loads.load(videoId, isWifi, forceRefresh, escalateToSabr, resumePositionOverrideMs)
+
+        /** One light look at a video counting down; see [UpcomingPremiereProbe.poll]. */
+        suspend fun pollUpcoming(videoId: String): UpcomingPoll? = upcomingPremiereProbe.poll(videoId)
 
         fun switchQuality(quality: VideoQuality) = settings.switchQuality(quality)
 
