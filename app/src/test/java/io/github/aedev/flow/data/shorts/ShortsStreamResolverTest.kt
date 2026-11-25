@@ -107,6 +107,28 @@ class ShortsStreamResolverTest {
         }
 
     @Test
+    fun `each audio track carries its own gain, not the original track's`() =
+        runBlocking {
+            result =
+                reelExtraction(
+                    videoFormats = result!!.videoFormats,
+                    audioFormats =
+                        result!!.audioFormats.map { format ->
+                            format.copy(loudnessDb = if (format.audioTrack?.id == "fr.3") 0.0 else 1.66)
+                        },
+                    playerConfig =
+                        PlayerResponse.PlayerConfig(
+                            audioConfig = PlayerResponse.PlayerConfig.AudioConfig(loudnessDb = 1.66, perceptualLoudnessDb = -12.34),
+                        ),
+                )
+
+            val gains = resolver.availableAudioTracks("reel1234567").associate { it.label to it.loudnessGainDb }
+
+            assertEquals(-1.66f, gains.getValue("English original")!!, 1e-4f)
+            assertEquals(0f, gains.getValue("French")!!, 0f)
+        }
+
+    @Test
     fun `one extraction serves playback, the quality sheet, the audio sheet and the download dialog`() =
         runBlocking {
             resolver.resolve("reel1234567", targetHeight = 720, preferredAudioLanguage = "")

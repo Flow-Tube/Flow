@@ -436,6 +436,7 @@ class ShortsPlayerPool private constructor() {
         videoId: String,
         newAudioUrl: String?,
         newAudioDashManifest: String? = null,
+        loudnessGainDb: Float? = null,
     ) {
         if (!isInitialized || index < 0) return
         val slot = index % POOL_SIZE
@@ -449,6 +450,8 @@ class ShortsPlayerPool private constructor() {
         player.clearMediaItems()
         slots.audioUrls[slot] = newAudioUrl
         slots.audioManifests[slot] = newAudioDashManifest
+        slots.loudnessGainsDb[slot] = loudnessGainDb
+        applyVolume(slot)
 
         preparePlayerInternal(
             player,

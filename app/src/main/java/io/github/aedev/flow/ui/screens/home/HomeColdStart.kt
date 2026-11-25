@@ -27,6 +27,16 @@ internal fun unseenCachedCards(
 ): List<Video> = cached.filterNot { wasShown(it.id) }.takeIf { it.size >= MIN_CACHED_CARDS }.orEmpty()
 
 /**
+ * The cached cards shown at launch. Online, only [unseenCachedCards]. With no network no new feed is
+ * coming to replace them, so the whole cached feed comes back, seen or not: old cards beat an error.
+ */
+internal fun cachedCardsAtLaunch(
+    cached: List<Video>,
+    isOnline: Boolean,
+    wasShown: (String) -> Boolean,
+): List<Video> = if (isOnline) unseenCachedCards(cached, wasShown) else cached
+
+/**
  * The feed after the New videos button: the new cards first, then what late merges added below the
  * cached ones. The cached cards themselves go.
  */
