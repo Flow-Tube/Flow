@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.repository.YouTubeRepository
+import io.github.aedev.flow.platform.memory.DeviceTier
 import javax.inject.Singleton
 
 @Module
@@ -15,7 +16,10 @@ import javax.inject.Singleton
 object RepositoryModule {
     @Provides
     @Singleton
-    fun provideYouTubeRepository(playerPreferences: PlayerPreferences): YouTubeRepository = YouTubeRepository.getInstance(playerPreferences)
+    fun provideYouTubeRepository(
+        playerPreferences: PlayerPreferences,
+        deviceTier: DeviceTier,
+    ): YouTubeRepository = YouTubeRepository.getInstance(playerPreferences).also { it.limitWatchCache(deviceTier.watchCacheEntries) }
 
     @Provides
     @Singleton

@@ -57,4 +57,40 @@ class WatchResponseCacheTest {
             assertThat(fetched).containsExactly("a")
             assertThat(cache.cached("a")).isEqualTo("response:a")
         }
+
+    @Test
+    fun `a small heap keeps only the latest video`() =
+        runTest {
+            val cache = cache()
+            cache.resize(1)
+
+            listOf("a", "b").forEach { cache.forPlayer(it) }
+
+            assertThat(cache.size()).isEqualTo(1)
+            assertThat(cache.cached("a")).isNull()
+            assertThat(cache.cached("b")).isEqualTo("response:b")
+        }
+
+    @Test
+    fun `trimming keeps the playing video's response and drops the rest`() =
+        runTest {
+            val cache = cache()
+            listOf("a", "b", "c").forEach { cache.forPlayer(it) }
+
+            cache.retainOnly("b")
+
+            assertThat(cache.size()).isEqualTo(1)
+            assertThat(cache.cached("b")).isEqualTo("response:b")
+        }
+
+    @Test
+    fun `trimming with nothing playing empties the cache`() =
+        runTest {
+            val cache = cache()
+            listOf("a", "b").forEach { cache.forPlayer(it) }
+
+            cache.retainOnly(null)
+
+            assertThat(cache.size()).isEqualTo(0)
+        }
 }

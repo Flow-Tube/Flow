@@ -9,6 +9,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import io.github.aedev.flow.data.local.BufferDurations
 import io.github.aedev.flow.data.local.BufferProfile
+import io.github.aedev.flow.platform.memory.DeviceTier
 import io.github.aedev.flow.player.config.PlayerConfig
 
 /**
@@ -102,7 +103,7 @@ object LoadControlFactory {
         isLowRamDevice: Boolean,
         requestedMaxMs: Int,
     ): VideoBudget {
-        val isLowMemoryDevice = isLowRamDevice || memoryClassMb < PlayerConfig.SMALL_HEAP_MB
+        val isLowMemoryDevice = DeviceTier.isSmall(memoryClassMb, isLowRamDevice)
         val isConstrainedHeap = isLowMemoryDevice || memoryClassMb <= 384
         val tierBytes =
             when {
@@ -111,8 +112,10 @@ object LoadControlFactory {
                 else -> PlayerConfig.MAIN_TARGET_BUFFER_BYTES
             }
         val wantsLongBuffer = !isLowRamDevice && requestedMaxMs > StockMaxBufferMs
+        val longBufferDivisor =
+            if (isLowMemoryDevice) PlayerConfig.SMALL_HEAP_LONG_BUFFER_HEAP_DIVISOR else PlayerConfig.LONG_BUFFER_HEAP_DIVISOR
         val longBufferBytes =
-            (memoryClassMb.toLong() * BYTES_PER_MB / PlayerConfig.LONG_BUFFER_HEAP_DIVISOR)
+            (memoryClassMb.toLong() * BYTES_PER_MB / longBufferDivisor)
                 .coerceAtMost(PlayerConfig.MAX_LONG_BUFFER_BYTES.toLong())
                 .toInt()
         return VideoBudget(

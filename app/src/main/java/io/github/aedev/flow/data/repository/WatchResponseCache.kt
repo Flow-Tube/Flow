@@ -23,6 +23,17 @@ internal class WatchResponseCache<V : Any>(
 
     fun size(): Int = entries.size()
 
+    fun resize(capacity: Int) = entries.resize(capacity)
+
+    /** Drops every entry but [videoId]'s, which the player is still reading. */
+    fun retainOnly(videoId: String?) {
+        entries
+            .snapshot()
+            .keys
+            .filter { it != videoId }
+            .forEach(entries::remove)
+    }
+
     suspend fun forPlayer(videoId: String): V? =
         entries[videoId] ?: inFlight.run(videoId) { fetch(videoId) }?.also { entries.put(videoId, it) }
 
