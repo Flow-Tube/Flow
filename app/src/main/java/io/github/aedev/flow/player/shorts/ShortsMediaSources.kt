@@ -8,7 +8,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.dash.DashMediaSource
-import androidx.media3.exoplayer.dash.manifest.DashManifest
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -22,20 +21,18 @@ internal object ShortsMediaSources {
     fun load(
         player: ExoPlayer,
         factory: DataSource.Factory,
-        videoUrl: String,
-        audioUrl: String?,
-        videoDashManifest: String?,
-        audioDashManifest: String?,
-        videoAdaptiveManifest: DashManifest? = null,
+        streams: ShortsSlotStreams,
     ) {
+        val videoUrl = streams.videoUrl
+        val audioUrl = streams.audioUrl
         if (audioUrl != null && audioUrl != videoUrl) {
             val videoSource =
-                videoAdaptiveManifest?.let { DashMediaSource.Factory(factory).createMediaSource(it, MediaItem.fromUri(videoUrl)) }
-                    ?: sourceFor(factory, videoUrl, videoDashManifest)
-            val audioSource = sourceFor(factory, audioUrl, audioDashManifest)
+                streams.adaptiveManifest?.let { DashMediaSource.Factory(factory).createMediaSource(it, MediaItem.fromUri(videoUrl)) }
+                    ?: sourceFor(factory, videoUrl, streams.videoManifest)
+            val audioSource = sourceFor(factory, audioUrl, streams.audioManifest)
             player.setMediaSource(MergingMediaSource(true, true, videoSource, audioSource))
         } else {
-            player.setMediaSource(sourceFor(factory, videoUrl, videoDashManifest))
+            player.setMediaSource(sourceFor(factory, videoUrl, streams.videoManifest))
         }
         player.prepare()
     }

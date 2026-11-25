@@ -2,6 +2,17 @@ package io.github.aedev.flow.player.shorts
 
 import androidx.media3.exoplayer.dash.manifest.DashManifest
 
+/** The streams a slot last loaded, so audio or quality can be swapped without a new lookup. */
+internal data class ShortsSlotStreams(
+    val videoUrl: String,
+    val audioUrl: String?,
+    val videoManifest: String? = null,
+    val audioManifest: String? = null,
+    /** YouTube's loudness for the reel, in dB; null when its response carried none. */
+    val loudnessGainDb: Float? = null,
+    val adaptiveManifest: DashManifest? = null,
+)
+
 /** What each pooled player holds, kept together so a slot is assigned and cleared as one. */
 internal class ShortsSlots(
     size: Int,
@@ -9,16 +20,7 @@ internal class ShortsSlots(
     /** The absolute list position that owns each slot. */
     val ownerIndices = arrayOfNulls<Int>(size)
     val videoIds = arrayOfNulls<String>(size)
-
-    // The last streams per slot, so audio or quality can be swapped without a new lookup.
-    val videoUrls = arrayOfNulls<String>(size)
-    val audioUrls = arrayOfNulls<String?>(size)
-    val videoManifests = arrayOfNulls<String?>(size)
-    val audioManifests = arrayOfNulls<String?>(size)
-    val adaptiveManifests = arrayOfNulls<DashManifest?>(size)
-
-    /** YouTube's loudness for each slot's reel, in dB; null when its response carried none. */
-    val loudnessGainsDb = arrayOfNulls<Float>(size)
+    val streams = arrayOfNulls<ShortsSlotStreams>(size)
 
     fun owns(
         slot: Int,
@@ -30,31 +32,16 @@ internal class ShortsSlots(
         slot: Int,
         index: Int,
         videoId: String,
-        videoUrl: String,
-        audioUrl: String?,
-        videoManifest: String?,
-        audioManifest: String?,
-        loudnessGainDb: Float? = null,
-        adaptiveManifest: DashManifest? = null,
+        streams: ShortsSlotStreams,
     ) {
         ownerIndices[slot] = index
         videoIds[slot] = videoId
-        videoUrls[slot] = videoUrl
-        audioUrls[slot] = audioUrl
-        videoManifests[slot] = videoManifest
-        audioManifests[slot] = audioManifest
-        loudnessGainsDb[slot] = loudnessGainDb
-        adaptiveManifests[slot] = adaptiveManifest
+        this.streams[slot] = streams
     }
 
     fun clear(slot: Int) {
         ownerIndices[slot] = null
         videoIds[slot] = null
-        videoUrls[slot] = null
-        audioUrls[slot] = null
-        videoManifests[slot] = null
-        audioManifests[slot] = null
-        loudnessGainsDb[slot] = null
-        adaptiveManifests[slot] = null
+        streams[slot] = null
     }
 }
