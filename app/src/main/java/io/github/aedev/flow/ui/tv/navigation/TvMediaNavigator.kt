@@ -67,7 +67,7 @@ internal class TvMediaNavigator(
                 openChannel(link.url)
             }
 
-            is YouTubeLink.Search -> {
+            is YouTubeLink.Search, is YouTubeLink.Post -> {
                 return false
             }
         }

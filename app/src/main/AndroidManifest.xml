@@ -173,6 +173,7 @@
                 <data android:pathPrefix="/c" />
                 <data android:pathPrefix="/user" />
                 <data android:pathPrefix="/@" />
+                <data android:pathPrefix="/post/" />
             </intent-filter>
 
             <intent-filter>

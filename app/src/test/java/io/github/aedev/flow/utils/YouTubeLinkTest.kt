@@ -170,12 +170,23 @@ class YouTubeLinkTest {
     }
 
     @Test
+    fun `reads a community post link`() {
+        assertParses(
+            YouTubeLink.Post("UgkxKEltTHuMPh3O9wcRik3GPcX_lA3qrgpK"),
+            "https://www.youtube.com/post/UgkxKEltTHuMPh3O9wcRik3GPcX_lA3qrgpK",
+            "https://youtube.com/post/UgkxKEltTHuMPh3O9wcRik3GPcX_lA3qrgpK?si=abc",
+            "Look at this https://m.youtube.com/post/UgkxKEltTHuMPh3O9wcRik3GPcX_lA3qrgpK",
+        )
+    }
+
+    @Test
     fun `an unknown or malformed path is never guessed to be a video`() {
         assertParses(
             null,
             "https://www.youtube.com/",
             "https://www.youtube.com/feed/subscriptions",
-            "https://www.youtube.com/post/UgkxAbCdEfGhIjKlMnOpQrStUvWxYz",
+            "https://www.youtube.com/post/",
+            "https://www.youtube.com/post/not-a-post",
             "https://www.youtube.com/watch?v=short",
             "https://www.youtube.com/shorts/tooShort",
             "https://www.youtube.com/channel/notAChannelId",
