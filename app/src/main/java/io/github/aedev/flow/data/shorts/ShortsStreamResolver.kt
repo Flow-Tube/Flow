@@ -61,6 +61,7 @@ data class ShortAudioTrack(
     val dashManifest: String?,
     val isOriginal: Boolean,
     val bitrate: Int,
+    val loudnessGainDb: Float? = null,
 )
 
 /**
@@ -141,6 +142,7 @@ class ShortsStreamResolver internal constructor(
     suspend fun availableAudioTracks(videoId: String): List<ShortAudioTrack> {
         val result = extraction(videoId) ?: return emptyList()
         val durationMs = result.durationMs()
+        val audioConfig = result.playerResponse.playerConfig?.audioConfig
         return result
             .playableAudioFormats()
             .groupBy { it.audioTrack?.id ?: it.audioLanguageTag ?: "default" }
@@ -153,6 +155,7 @@ class ShortsStreamResolver internal constructor(
                     dashManifest = ShortsDashManifest.forAudio(best, url, durationMs),
                     isOriginal = best.isOriginal,
                     bitrate = (best.averageBitrate ?: best.bitrate).coerceAtLeast(0),
+                    loudnessGainDb = LoudnessGain.gainDb(audioConfig, best.loudnessDb, best.trackAbsoluteLoudnessLkfs),
                 )
             }.sortedWith(compareByDescending<ShortAudioTrack> { it.isOriginal }.thenBy { it.label })
     }
@@ -219,7 +222,12 @@ class ShortsStreamResolver internal constructor(
             audioDashManifest = audio?.url?.let { ShortsDashManifest.forAudio(audio, it, durationMs) },
             videoAdaptiveManifest = if (targetHeight == 0) shortsAutoLadder(videoFormats, video, durationMs) else null,
             details = playerResponse.videoDetails?.toShortDetails(durationMs),
-            loudnessGainDb = LoudnessGain.gainDb(playerResponse.playerConfig?.audioConfig, audio?.loudnessDb),
+            loudnessGainDb =
+                LoudnessGain.gainDb(
+                    playerResponse.playerConfig?.audioConfig,
+                    audio?.loudnessDb,
+                    audio?.trackAbsoluteLoudnessLkfs,
+                ),
         )
     }
 
