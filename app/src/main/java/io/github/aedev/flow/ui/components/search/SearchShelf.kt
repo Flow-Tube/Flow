@@ -71,7 +71,7 @@ fun SearchShelf(
             }
 
             SearchShelfKind.POSTS -> {
-                PostStrip(shelf, onPostClick)
+                PostStrip(shelf, onPostClick, onChannelClick)
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -132,13 +132,18 @@ private fun VideoStrip(
 private fun PostStrip(
     shelf: SearchResultItem.ShelfResult,
     onPostClick: (CommunityPost) -> Unit,
+    onChannelClick: (String) -> Unit,
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = StripHorizontalPadding, vertical = StripVerticalPadding),
         horizontalArrangement = Arrangement.spacedBy(PostSpacing),
     ) {
         items(shelf.posts, key = { it.id }) { post ->
-            SearchPostCard(post = post, onClick = { onPostClick(post) })
+            SearchPostCard(
+                post = post,
+                onClick = { onPostClick(post) },
+                onAuthorClick = post.authorChannelId?.let { channelId -> { onChannelClick(channelId) } },
+            )
         }
     }
 }

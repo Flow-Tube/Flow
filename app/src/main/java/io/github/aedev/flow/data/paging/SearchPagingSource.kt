@@ -165,14 +165,13 @@ internal fun SearchResultsPage.toShortsResults(shortsEnabled: Boolean): List<Sea
 
 /**
  * Drops everything a blocked creator put in the results, the way the home feed already drops them
- * before ranking: their own card, their videos, and their videos inside a strip. A video marked not
- * interested goes too. A strip left with nothing goes, rather than staying as a heading over a gap.
+ * before ranking: their own card, their videos and posts, and their videos inside a strip. A video
+ * marked not interested goes too. A strip left with nothing goes, rather than staying as a heading
+ * over a gap.
  *
  * Only what the viewer hid outright applies: a search is an explicit ask, so the engine's inferred
  * suppressions and blocked topics do not filter it. The AI channel list does, when its hide switch is
  * on; a channel result stays, and only teaches the list which handle its id has.
- *
- * Community posts carry no channel id in the response, so a blocked creator's post survives here.
  */
 internal fun List<SearchResultItem>.withoutHidden(exclusions: FeedExclusions): List<SearchResultItem> {
     if (exclusions.isEmpty) return this
@@ -194,9 +193,10 @@ internal fun List<SearchResultItem>.withoutHidden(exclusions: FeedExclusions): L
 
             is SearchResultItem.ShelfResult -> {
                 val videos = item.videos.filterNot { exclusions.hides(it) || exclusions.hidesAsAi(it) }
+                val posts = item.posts.filterNot { exclusions.hidesChannel(it.authorChannelId.orEmpty()) }
                 when {
                     videos.isNotEmpty() -> item.copy(videos = videos)
-                    item.posts.isNotEmpty() -> item
+                    posts.isNotEmpty() -> item.copy(posts = posts)
                     else -> null
                 }
             }

@@ -96,6 +96,88 @@ class CommunityPostsPageTest {
         assertEquals("posts-next", page.continuation)
     }
 
+    private fun post(
+        id: String,
+        withAuthorEndpoint: Boolean = true,
+    ): String {
+        val endpoint = if (withAuthorEndpoint) """"authorEndpoint": {"browseEndpoint": {"browseId": "UCauthor"}},""" else ""
+        return """
+            {"backstagePostThreadRenderer": {"post": {"backstagePostRenderer": {
+              "postId": "$id",
+              "authorText": {"runs": [{"text": "Bench Notes", "navigationEndpoint": {"browseEndpoint": {"browseId": "UCfromtext"}}}]},
+              $endpoint
+              "contentText": {"runs": [{"text": "Hello"}]}
+            }}}}
+            """
+    }
+
+    private fun aboutPanelHeader(token: String) =
+        """
+        "header": {"pageHeaderRenderer": {"content": {"pageHeaderViewModel": {"description": {"descriptionPreviewViewModel": {
+          "rendererContext": {"commandContext": {"onTap": {"innertubeCommand": {"showEngagementPanelEndpoint": {"engagementPanel": {
+            "engagementPanelSectionListRenderer": {"content": {"sectionListRenderer": {"contents": [{"itemSectionRenderer": {"contents": [
+              {"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "$token"}}}}
+            ]}}]}}}
+          }}}}}}
+        }}}}}}
+        """
+
+    private fun postsTab(vararg items: String) =
+        """
+        "contents": {"twoColumnBrowseResultsRenderer": {"tabs": [{"tabRenderer": {"selected": true, "content": {
+          "sectionListRenderer": {"contents": [{"itemSectionRenderer": {"contents": [${items.joinToString(",")}]}}]}
+        }}}]}}
+        """
+
+    @Test
+    fun `keeps each post's author channel`() {
+        val page =
+            Json
+                .parseToJsonElement("{${postsTab(post("p1"), post("p2", withAuthorEndpoint = false))}}")
+                .toCommunityPostsPage("Fallback", "")
+
+        assertEquals(listOf("UCauthor", "UCfromtext"), page.posts.map { it.authorChannelId })
+    }
+
+    @Test
+    fun `the last page of posts has no next page, though the header carries an about token`() {
+        val page =
+            Json
+                .parseToJsonElement("{${aboutPanelHeader("about-token")}, ${postsTab(post("p1"))}}")
+                .toCommunityPostsPage("Fallback", "")
+
+        assertEquals(1, page.posts.size)
+        assertNull(page.continuation)
+    }
+
+    @Test
+    fun `the next page comes from the posts list even when the header comes first`() {
+        val next = """{"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "posts-next"}}}}"""
+        val page =
+            Json
+                .parseToJsonElement("{${aboutPanelHeader("about-token")}, ${postsTab(post("p1"), next)}}")
+                .toCommunityPostsPage("Fallback", "")
+
+        assertEquals("posts-next", page.continuation)
+    }
+
+    @Test
+    fun `a posts page append reads its own next token`() {
+        val page =
+            Json
+                .parseToJsonElement(
+                    """
+                    {"onResponseReceivedEndpoints": [{"appendContinuationItemsAction": {"continuationItems": [
+                      ${post("p9")},
+                      {"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "page-3"}}}}
+                    ]}}]}
+                    """,
+                ).toCommunityPostsPage("Fallback", "")
+
+        assertEquals(listOf("p9"), page.posts.map { it.id })
+        assertEquals("page-3", page.continuation)
+    }
+
     @Test
     fun `parses modern entity comments with reply and page continuations`() {
         val response =

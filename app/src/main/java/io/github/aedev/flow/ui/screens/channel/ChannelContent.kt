@@ -313,7 +313,7 @@ internal fun ChannelContent(
                             errorLog = communityUiState.postsErrorLog,
                             listState = postsListState,
                             contentPadding = listPadding,
-                            onAuthorClick = { onChannelClick(header.id) },
+                            onAuthorClick = { post -> onChannelClick(post.authorChannelId ?: header.id) },
                             onCommentsClick = onCommunityPostComments,
                             onShareClick = onCommunityPostShare,
                             onLoadMore = onLoadMoreCommunityPosts,
@@ -372,7 +372,7 @@ internal fun ChannelContent(
                                 post = { post, compact ->
                                     MediaPostCard(
                                         post = post,
-                                        onAuthorClick = { onChannelClick(header.id) },
+                                        onAuthorClick = { onChannelClick(post.authorChannelId ?: header.id) },
                                         onCommentsClick = { onCommunityPostComments(post) },
                                         onShareClick = { onCommunityPostShare(post) },
                                         showDivider = !compact,

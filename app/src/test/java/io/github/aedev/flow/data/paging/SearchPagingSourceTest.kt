@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.local.UploadDate
 import io.github.aedev.flow.data.local.WatchState
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 import io.github.aedev.flow.innertube.pages.SearchFixture
+import io.github.aedev.flow.innertube.pages.renderer.CommunityPost
 import io.github.aedev.flow.innertube.pages.renderer.FeedShelfStyle
 import io.github.aedev.flow.innertube.pages.renderer.videoOrNull
 import io.github.aedev.flow.innertube.pages.search.SearchHeader
@@ -303,6 +304,38 @@ class SearchPagingSourceTest {
             )
 
         assertThat(listOf(shelf).withoutHidden(FeedExclusions(blockedChannelIds = setOf("UCblocked")))).isEmpty()
+    }
+
+    @Test
+    fun `a blocked creator's posts leave a posts strip, and a strip of only theirs goes`() {
+        fun post(
+            id: String,
+            channelId: String?,
+        ) = CommunityPost(
+            id = id,
+            authorName = id,
+            authorChannelId = channelId,
+            authorAvatarUrl = "",
+            text = "",
+            attachment = null,
+            likeCountText = "",
+            commentCountText = "",
+            commentEndpointParams = null,
+            publishedTimeText = "",
+        )
+        val mixed =
+            SearchResultItem.ShelfResult(
+                id = "p1",
+                title = "Posts",
+                kind = SearchShelfKind.POSTS,
+                posts = listOf(post("a", "UCblocked"), post("b", "UCkept"), post("c", null)),
+            )
+        val onlyBlocked = mixed.copy(id = "p2", posts = listOf(post("d", "UCblocked")))
+
+        val visible = listOf(mixed, onlyBlocked).withoutHidden(FeedExclusions(blockedChannelIds = setOf("UCblocked")))
+
+        assertThat(visible).hasSize(1)
+        assertThat((visible.single() as SearchResultItem.ShelfResult).posts.map { it.id }).containsExactly("b", "c").inOrder()
     }
 
     @Test

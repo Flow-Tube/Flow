@@ -721,11 +721,13 @@ object YouTube {
             MusicVideoChart(title = playlist.title, entries = page.videos.ranked())
         }
 
+    /** [params] is the posts tab's own token from the channel's tab list; the usual one stands in without it. */
     suspend fun communityPosts(
         channelId: String,
         channelName: String,
         channelThumbnailUrl: String,
-    ): Result<CommunityPostsPage> = communityPostsPage(channelId, channelName, channelThumbnailUrl)
+        params: String? = null,
+    ): Result<CommunityPostsPage> = communityPostsPage(channelId, channelName, channelThumbnailUrl, params = params)
 
     suspend fun communityPostsContinuation(
         continuation: String,
@@ -793,6 +795,7 @@ object YouTube {
         channelName: String,
         channelThumbnailUrl: String,
         continuation: String? = null,
+        params: String? = null,
     ): Result<CommunityPostsPage> =
         runCatching {
             val client = currentWebClient()
@@ -800,7 +803,7 @@ object YouTube {
                 innerTube.channelBrowse(
                     client = client,
                     channelId = channelId.takeIf { continuation == null },
-                    params = CHANNEL_POSTS_PARAMS.takeIf { continuation == null },
+                    params = (params?.takeIf(String::isNotBlank) ?: CHANNEL_POSTS_PARAMS).takeIf { continuation == null },
                     continuation = continuation,
                 )
             Json.parseToJsonElement(response.bodyAsText()).toCommunityPostsPage(

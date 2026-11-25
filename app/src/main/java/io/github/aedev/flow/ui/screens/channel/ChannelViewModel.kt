@@ -219,7 +219,12 @@ class ChannelViewModel
                                 isLoading = false,
                             )
                         }
-                        communityController.reset(channelId, header.title, header.avatarUrl)
+                        communityController.reset(
+                            channelId,
+                            header.title,
+                            header.avatarUrl,
+                            page.tabs.firstOrNull { tab -> tab.kind == ChannelTabKind.Posts }?.params,
+                        )
                         postComments.close()
                         loadSubscriptionState(channelId)
                         observeNote(channelId)
