@@ -96,7 +96,8 @@ class AudioCaptionsTest {
                 ),
             )
 
-        assertThat(required.single().audioLinks.single().initialState).isEqualTo(CaptionsInitialState.ON_REQUIRED)
+        val link = required.single().audioLinks.single()
+        assertThat(link.initialState).isEqualTo(CaptionsInitialState.ON_REQUIRED)
         assertThat(AudioCaptions.recommended(required, null)?.trackId).isEqualTo(".en")
     }
 }
