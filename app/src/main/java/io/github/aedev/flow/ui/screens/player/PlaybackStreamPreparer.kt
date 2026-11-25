@@ -149,6 +149,7 @@ internal class PlaybackStreamPreparer(
                 ?.url
                 ?: cached?.thumbnailUrl ?: ThumbnailUrlResolver.normalizeVideoThumbnail(videoId, null)
         val known = blankVideo(videoId, cached)
+        val broadcastStartMs = LiveBroadcastTimes.startMs(result.playerResponse)
         return StreamIdentity(
             enrichedVideo =
                 known.copy(
@@ -161,7 +162,9 @@ internal class PlaybackStreamPreparer(
                     tags = keywordTags(result, cached),
                     // Only when the winning client returned a microformat: WEB/MWEB do, VISIONOS does not.
                     category = microformatCategory(result) ?: cached?.category,
-                ).withBroadcastStart(LiveBroadcastTimes.startMs(result.playerResponse)),
+                    timestamp = broadcastStartMs ?: known.timestamp,
+                    timestampIsExact = broadcastStartMs != null || known.timestampIsExact,
+                ),
             title = title,
             channel = channel,
             thumbnail = thumbnail,
@@ -169,9 +172,6 @@ internal class PlaybackStreamPreparer(
             embeddedAvatarUrls = listOfNotNull(cached?.channelThumbnailUrl) + cached?.channelThumbnailUrls.orEmpty(),
         )
     }
-
-    private fun Video.withBroadcastStart(startMs: Long?): Video =
-        if (startMs == null) this else copy(timestamp = startMs, timestampIsExact = true)
 
     private fun keywordTags(
         result: InnerTubeVideoStreamExtractor.VideoExtractionResult,
