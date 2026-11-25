@@ -2166,10 +2166,6 @@
     <string name="cover_shape_clam_shell">贝壳形</string>
     <string name="cover_shape_pentagon">五边形</string>
     <string name="cover_shape_gem">宝石形</string>
-    <string name="cover_shape_sunny"></string>
-    <string name="cover_shape_very_sunny"></string>
-    <string name="cover_shape_cookie_4"></string>
-    <string name="cover_shape_cookie_6"></string>
     <string name="mini_player_show">显示迷你播放器</string>
     <string name="mini_player_action_open">打开播放器</string>
     <string name="mini_player_action_larger">放大</string>
