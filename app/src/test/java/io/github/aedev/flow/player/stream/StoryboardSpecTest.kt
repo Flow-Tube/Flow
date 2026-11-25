@@ -180,6 +180,7 @@ class StoryboardSpecTest {
     @Test
     fun `the newest two sheets of a live stream have no frames yet`() {
         val head = 2_000L
+
         fun tileFor(sequence: Long) = liveLevel { LiveSegmentPosition(sequence, head) }.tileAt(0L)
 
         assertThat(tileFor(head - 18)).isNotNull()
