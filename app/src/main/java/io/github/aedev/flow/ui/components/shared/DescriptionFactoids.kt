@@ -64,6 +64,7 @@ internal fun readDescriptionDate(
 internal fun fallbackFactoids(
     video: Video,
     descriptionPage: VideoDescriptionPage?,
+    showLikes: Boolean = true,
 ): List<VideoDescriptionFactoid> {
     val locale = Locale.getDefault()
     val dateText = descriptionPage?.publishedDateText ?: video.uploadDate
@@ -98,11 +99,13 @@ internal fun fallbackFactoids(
                 )
             }
         }
-    return listOf(
+    val likes =
         VideoDescriptionFactoid(
             value = formatLikeCount(video.likeCount.toInt()),
             label = stringResource(R.string.likes),
-        ),
+        )
+    return listOfNotNull(
+        likes.takeIf { showLikes },
         VideoDescriptionFactoid(
             value = NumberFormat.getIntegerInstance(locale).format(descriptionPage?.viewCount ?: video.viewCount),
             label = stringResource(R.string.views),

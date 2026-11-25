@@ -88,6 +88,7 @@ import io.github.aedev.flow.player.stats.PlayerStatsReadings
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InnerTubeVideoMapper
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
+import io.github.aedev.flow.player.stream.LiveSegmentPosition
 import io.github.aedev.flow.player.stream.ResolvedCaption
 import io.github.aedev.flow.player.stream.ResolvedStreamData
 import io.github.aedev.flow.player.stream.ServicePlaybackStreamSelector
@@ -180,6 +181,14 @@ class EnhancedPlayerManager private constructor() {
     private val _subtitleLoadFailedEvent = MutableSharedFlow<SubtitleLoadFailure>(extraBufferCapacity = 1)
     private var currentVideoStream: VideoStream? = null
     private var currentAudioStream: AudioStream? = null
+        set(value) {
+            field = value
+            // YouTube lists captions per audio track, so a dub can bring its own list and default.
+            if (subtitleTracks.setAudioTrack(value?.audioTrackId)) {
+                publishSubtitles()
+                applySubtitleTrackSelection()
+            }
+        }
     private var innerTubeVideoFormats: List<PlayerResponse.StreamingData.Format> = emptyList()
     private var innerTubeAudioFormats: List<PlayerResponse.StreamingData.Format> = emptyList()
 
@@ -919,8 +928,12 @@ class EnhancedPlayerManager private constructor() {
         }
 
         built.launch {
-            combine(prefs.autoEnableSubtitles, prefs.preferredSubtitleLanguage) { enabled, language ->
-                SubtitleAutoPolicy(enabled, language)
+            combine(
+                prefs.autoEnableSubtitles,
+                prefs.preferredSubtitleLanguage,
+                prefs.autoSubtitlesTurnedOff,
+            ) { enabled, language, turnedOff ->
+                SubtitleAutoPolicy(enabled, language, turnedOff)
             }.collect { policy ->
                 if (subtitleTracks.setPolicy(policy)) {
                     publishSubtitles()
@@ -2947,6 +2960,17 @@ class EnhancedPlayerManager private constructor() {
     fun getCastAudioStreams(): List<AudioStream> = StreamProcessor.streamsOfTrack(castAudioStreams, currentAudioStream)
 
     fun getCurrentPosition(): Long = player?.currentPosition ?: 0L
+
+    /** The live segment under a seek bar [positionMs], while a live stream plays from its segments. */
+    fun liveSegmentAt(positionMs: Long): LiveSegmentPosition? {
+        if (!LiveSegmentSessions.isSessionUri(currentDashManifestUrl)) return null
+        val session = LiveSegmentSessions.forVideo(currentVideoId) ?: return null
+        val p = player ?: return null
+        val timeline = p.currentTimeline
+        if (timeline.isEmpty) return null
+        val window = timeline.getWindow(p.currentMediaItemIndex, Timeline.Window())
+        return session.clock.segmentAt(window.positionInFirstPeriodUs, positionMs)
+    }
 
     fun getDuration(): Long = player?.duration ?: 0L
 

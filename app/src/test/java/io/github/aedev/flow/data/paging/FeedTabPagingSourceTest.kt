@@ -22,6 +22,7 @@ class FeedTabPagingSourceTest {
                 duration = 60,
                 viewCount = 1,
                 uploadDate = "",
+                timestamp = 0L,
             ),
         )
 
