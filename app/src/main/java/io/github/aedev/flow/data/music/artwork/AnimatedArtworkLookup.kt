@@ -21,6 +21,21 @@ internal data class ArtworkAnswer(
     fun loop(): AnimatedLoop? = AnimatedLoop(animated, animatedVertical).takeIf { it.square != null || it.tall != null }
 }
 
+/** What the artwork service answers for a Canvas: the Spotify song it matched and, when it has one, the video. */
+@Serializable
+internal data class CanvasAnswer(
+    val trackId: String? = null,
+    val videoUrl: String? = null,
+    val error: String? = null,
+) {
+    /** The service found the song on Spotify, whether or not it has a Canvas. */
+    val matched: Boolean get() = trackId != null
+
+    fun loop(): AnimatedLoop? = videoUrl?.takeIf { it.startsWith(CANVAS_SCHEME) }?.let(AnimatedLoop::canvas)
+}
+
+private const val CANVAS_SCHEME = "https://"
+
 /** What Apple's public catalogue search answers: the songs found and the release each is on. */
 @Serializable
 internal data class CatalogSearch(
@@ -37,24 +52,42 @@ internal data class CatalogSong(
     val trackCount: Int = 0,
 )
 
-/** An album's loops: the square one, and the 3:4 one cut for a tall screen. Either can be missing. */
+/**
+ * An album's loops: the square one, and the 3:4 one cut for a tall screen. Either can be missing. A
+ * Canvas is one portrait MP4 that plays in every space, cropped to it.
+ */
 internal data class AnimatedLoop(
     val square: String?,
     val tall: String?,
+    val isCanvas: Boolean = false,
 ) {
     /** The loop for the space it plays in. A tall space takes the square loop when it is all there is. */
     fun urlFor(tallSpace: Boolean): String? = if (tallSpace) tall ?: square else square
+
+    companion object {
+        fun canvas(url: String) = AnimatedLoop(square = url, tall = url, isCanvas = true)
+    }
 }
+
+/** One loop to play: an Apple loop is an HLS playlist, a Canvas a single MP4. */
+internal data class LoopVideo(
+    val url: String,
+    val isCanvas: Boolean,
+)
 
 /** A loop and the song it was looked up for, so it can never show on another song. */
 internal class LoadedLoop(
     private val videoId: String,
     private val loop: AnimatedLoop,
 ) {
-    fun urlFor(
+    fun videoFor(
         currentVideoId: String?,
         tallSpace: Boolean,
-    ): String? = loop.urlFor(tallSpace).takeIf { videoId == currentVideoId }
+    ): LoopVideo? =
+        loop
+            .urlFor(tallSpace)
+            ?.takeIf { videoId == currentVideoId }
+            ?.let { LoopVideo(it, loop.isCanvas) }
 }
 
 /**
@@ -98,6 +131,18 @@ internal object AnimatedArtworkLookup {
         val release = track.album.takeIf(String::isNotBlank) ?: track.title
         return "${musicArtistKey(artist(track))}|${musicTitleKey(release)}"
     }
+
+    /** A Canvas belongs to one song, so each song is asked about and kept on its own. */
+    fun canvasKey(track: MusicTrack): String = "$CANVAS_KEY_PREFIX${musicArtistKey(artist(track))}|${musicTitleKey(track.title)}"
+
+    /** The song as it shows here: the service does its own matching, and a full title keeps a remix from matching the original. */
+    fun canvasParams(track: MusicTrack): Map<String, String> =
+        buildMap {
+            put("s", track.title)
+            put("a", artist(track).removeSuffix(TOPIC_SUFFIX).trim())
+            track.album.takeIf(String::isNotBlank)?.let { put("al", it) }
+            track.duration.takeIf { it > 0 }?.let { put("d", it.toString()) }
+        }
 
     fun accepts(
         track: MusicTrack,
@@ -162,6 +207,7 @@ internal object AnimatedArtworkLookup {
             .toSet()
 
     private const val TOPIC_SUFFIX = " - Topic"
+    private const val CANVAS_KEY_PREFIX = "canvas:"
     private const val UNKNOWN_ALBUM = "Unknown Album"
     private val ARTIST_SEPARATOR = Regex("""\s*[,&]\s*""")
     private const val VARIOUS_ARTISTS = "Various Artists"

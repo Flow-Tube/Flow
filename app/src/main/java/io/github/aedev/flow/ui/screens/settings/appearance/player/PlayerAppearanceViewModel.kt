@@ -31,6 +31,7 @@ import io.github.aedev.flow.data.local.SeekbarPaddingMode
 import io.github.aedev.flow.data.local.ShortsPlayerUiMode
 import io.github.aedev.flow.data.local.SliderStyle
 import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
+import io.github.aedev.flow.data.music.artwork.ArtworkSource
 import io.github.aedev.flow.ui.screens.settings.SettingsViewModel
 import javax.inject.Inject
 
@@ -58,6 +59,7 @@ class PlayerAppearanceViewModel
         val animatedArtwork = preferences.animatedArtwork.asState(false)
         val animatedArtworkWifiOnly = preferences.animatedArtworkWifiOnly.asState(true)
         val animatedArtworkQuality = preferences.animatedArtworkQuality.asState(ArtworkLoopQuality.AUTO)
+        val animatedArtworkSource = preferences.animatedArtworkSource.asState(ArtworkSource.APPLE_MUSIC)
         val plainControlColors = preferences.musicPlainControlColors.asState(MusicPlainControlColors.MONOCHROME)
         val sleepTimerButton = preferences.musicSleepTimerButton.asState(false)
         val miniCoverShape = preferences.miniCoverShape.asState(MiniCoverShape.MORPHING)
@@ -130,6 +132,8 @@ class PlayerAppearanceViewModel
         fun setAnimatedArtworkWifiOnly(value: Boolean) = write { preferences.setAnimatedArtworkWifiOnly(value) }
 
         fun setAnimatedArtworkQuality(value: ArtworkLoopQuality) = write { preferences.setAnimatedArtworkQuality(value) }
+
+        fun setAnimatedArtworkSource(value: ArtworkSource) = write { preferences.setAnimatedArtworkSource(value) }
 
         fun setPlainControlColors(value: MusicPlainControlColors) = write { preferences.setMusicPlainControlColors(value) }
 

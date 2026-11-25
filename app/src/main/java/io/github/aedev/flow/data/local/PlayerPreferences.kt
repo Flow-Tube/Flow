@@ -9,7 +9,9 @@ import io.github.aedev.flow.applock.AppLockSettings
 import io.github.aedev.flow.applock.DEFAULT_APP_LOCK_DELAY_MINUTES
 import io.github.aedev.flow.data.model.SponsorBlockCategories
 import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
+import io.github.aedev.flow.data.music.artwork.ArtworkSource
 import io.github.aedev.flow.data.music.artwork.resolveArtworkLoopQuality
+import io.github.aedev.flow.data.music.artwork.resolveArtworkSource
 import io.github.aedev.flow.data.playlist.PlaylistListOrder
 import io.github.aedev.flow.data.profile.StoreScope
 import io.github.aedev.flow.data.translation.TranslationServerType
@@ -339,6 +341,7 @@ class PlayerPreferences(
         val MUSIC_AT_NORMAL_SPEED = booleanPreferencesKey("music_at_normal_speed")
         val MUSIC_VIDEO_SWITCH = booleanPreferencesKey("music_video_switch")
         val ANIMATED_ARTWORK = booleanPreferencesKey("animated_artwork")
+        val ANIMATED_ARTWORK_SOURCE = stringPreferencesKey("animated_artwork_source")
         val MUSIC_REPEAT_MODE = intPreferencesKey("music_repeat_mode")
         val MUSIC_RESUME_LONG_TRACKS = booleanPreferencesKey("music_resume_long_tracks")
         val MUSIC_CROSSFADE_SECONDS = intPreferencesKey("music_crossfade_seconds")
@@ -3443,6 +3446,17 @@ class PlayerPreferences(
     suspend fun setAnimatedArtwork(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.ANIMATED_ARTWORK] = enabled
+        }
+    }
+
+    val animatedArtworkSource: Flow<ArtworkSource> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> resolveArtworkSource(preferences[Keys.ANIMATED_ARTWORK_SOURCE]) }
+            .distinctUntilChanged()
+
+    suspend fun setAnimatedArtworkSource(source: ArtworkSource) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.ANIMATED_ARTWORK_SOURCE] = source.name
         }
     }
 
