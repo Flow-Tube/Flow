@@ -36,6 +36,7 @@ import io.github.aedev.flow.player.subtitle.toRollingCaptionText
  *
  * @param bottomPadding the gap, in dp, between the bottom of the picture and the lowest line.
  * @param resizeMode the player's mode: 0 fit, 1 fill, 2 zoom.
+ * @param player the player whose captions are drawn; the video player's unless another is given.
  */
 @Composable
 fun Media3SubtitleOverlay(
@@ -46,9 +47,9 @@ fun Media3SubtitleOverlay(
     bottomPadding: Float = style.bottomPadding,
     videoAspectRatio: Float? = null,
     resizeMode: Int = 0,
+    player: Player? = EnhancedPlayerManager.getInstance().getPlayer(),
 ) {
     var cues by remember { mutableStateOf(emptyList<Cue>()) }
-    val player = EnhancedPlayerManager.getInstance().getPlayer()
 
     DisposableEffect(player) {
         if (player == null) {

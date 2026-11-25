@@ -21,6 +21,7 @@ import io.github.aedev.flow.player.stream.ResolvedCaption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 
 /**
  * Three pooled ExoPlayers for the Shorts pager. A page maps to slot `index % 3`, so the reel on
@@ -108,10 +109,22 @@ class ShortsPlayerPool private constructor() {
     /** Whether any pooled player is playing, from the players' own callbacks. */
     val anyPlaying: StateFlow<Boolean> = _anyPlaying.asStateFlow()
 
-    private val playingListener =
+    private val captions = ShortsCaptions()
+
+    /** The captions of the reel on screen, for its overlay and the settings sheet. */
+    val captionState: StateFlow<ShortsCaptionState> = captions.state
+
+    private val poolListener =
         object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _anyPlaying.value = players.any { it?.isPlaying == true }
+            }
+
+            override fun onEvents(
+                player: Player,
+                events: Player.Events,
+            ) {
+                if (events.contains(Player.EVENT_TRACKS_CHANGED)) captions.onTracksChanged(player)
             }
         }
 
@@ -169,6 +182,14 @@ class ShortsPlayerPool private constructor() {
                 volumeNormalization = enabled
                 for (slot in 0 until POOL_SIZE) applyVolume(slot)
             },
+            captionPolicy =
+                combine(
+                    preferences.shortsCaptions,
+                    preferences.autoEnableSubtitles,
+                    preferences.preferredSubtitleLanguage,
+                    ShortsCaptionChoice::policy,
+                ),
+            onCaptionPolicy = captions::setPolicy,
         )
 
         val audio = ShortsPoolAudioEffects(appContext, POOL_SIZE).also { audioEffects = it }
@@ -183,10 +204,13 @@ class ShortsPlayerPool private constructor() {
                             dataSourceFactory!!,
                             preferredAudioLanguage,
                             slotVideoId = { slots.videoIds[i] },
-                            onFirstFrame = { firstFrames.onRendered(slots.videoIds[i]) },
+                            onFirstFrame = {
+                                firstFrames.onRendered(slots.videoIds[i])
+                                showCaptions()
+                            },
                             isActiveSlot = { activeIndex >= 0 && ShortsSlotRules.slotFor(activeIndex, POOL_SIZE) == i },
                         ).also {
-                            it.addListener(playingListener)
+                            it.addListener(poolListener)
                             audio.announce(i, it)
                         }
                 slots.clear(i)
@@ -316,6 +340,7 @@ class ShortsPlayerPool private constructor() {
         if (shouldPlay) _currentVideoId.value = videoId
         // Only the reel on screen takes audio focus; the buffering neighbours must not.
         player.setAudioAttributes(MovieAudio, shouldPlay)
+        showCaptions()
     }
 
     /**
@@ -355,7 +380,22 @@ class ShortsPlayerPool private constructor() {
         players[activeSlot]?.let { active ->
             mediaSession?.takeIf { it.player !== active }?.setPlayer(active)
         }
+        showCaptions()
     }
+
+    /**
+     * Shows captions on the slot holding the reel on screen and switches them off everywhere else.
+     * They wait for the reel's first frame, so fetching a caption track never delays it.
+     */
+    private fun showCaptions() {
+        val player = ownedPlayer(activeIndex, activeVideoId)
+        val streams = player?.let { slots.streams[ShortsSlotRules.slotFor(activeIndex, POOL_SIZE)] }
+        val drawn = activeVideoId in firstFrames.renderedVideoIds.value
+        captions.show(player?.takeIf { drawn }, activeVideoId, streams?.captions.orEmpty())
+    }
+
+    /** Shows the caption track whose option has [url] on the reel on screen; null turns captions off. */
+    fun selectCaption(url: String?) = captions.select(url)
 
     fun releaseUnusedPlayers(currentIndex: Int) {
         if (!isInitialized) return
@@ -435,6 +475,7 @@ class ShortsPlayerPool private constructor() {
         player.playWhenReady = wasPlaying
         if (keepPosition) player.seekTo(position)
         player.repeatMode = repeatMode()
+        showCaptions()
     }
 
     private fun preparePlayerInternal(
@@ -515,6 +556,7 @@ class ShortsPlayerPool private constructor() {
         memoryTrim = null
         preferenceObservers.stop()
         sharedCache.release()
+        captions.clear()
         mediaSession?.release()
         mediaSession = null
         audioEffects?.release()
