@@ -12,6 +12,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.player.state.PlayerScreenState
 import io.github.aedev.flow.ui.screens.player.state.PlayerSheet
@@ -96,6 +97,19 @@ internal fun TvPlayerSheetEffects(
             shown && state.isAtLeast(Lifecycle.State.RESUMED)
         }.collect(viewModel::setLiveChatPanelVisible)
     }
+}
+
+/**
+ * Loads the page of whatever the player moves on to, as the phone does: a queued video started
+ * without its streams waits for this load, and title, chapters and related follow it. Unlike the
+ * phone's sync it doesn't wait out a restored last session, which TV never shows.
+ */
+@Composable
+internal fun TvPageSyncEffect(
+    video: Video,
+    viewModel: VideoPlayerViewModel,
+) {
+    LaunchedEffect(video.id) { viewModel.syncWithCurrentPlayerVideo(video) }
 }
 
 internal class TvPlayerFocusRequesters(
