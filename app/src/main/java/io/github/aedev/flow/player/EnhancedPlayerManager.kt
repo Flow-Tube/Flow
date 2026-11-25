@@ -284,6 +284,9 @@ class EnhancedPlayerManager private constructor() {
             isLiveStream = { currentIsLiveStream },
             resolveStreams = { video, ctx -> resolveStreamsForVideo(video, ctx) },
             hasLocalCopy = { video -> localCopySource?.localCopyPath(video.id) != null },
+            isForegroundVideo = { !audioOnlyMode.isActive },
+            isDataSaverOn = NetworkState::isDataSaverOn,
+            nextVideoPreload = { ctx -> playerFactory.nextVideoPreloadConfiguration(ctx) },
             buildMediaSource = { resolved, ctx ->
                 val videoStreams = StreamProcessor.processVideoStreams(resolved.videoStreams)
                 mediaLoader?.buildPreloadMediaSource(
@@ -1094,7 +1097,10 @@ class EnhancedPlayerManager private constructor() {
                     newPosition: Player.PositionInfo,
                     reason: Int,
                 ) {
-                    if (reason == Player.DISCONTINUITY_REASON_SEEK) _seekEvent.tryEmit(Unit)
+                    if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                        _seekEvent.tryEmit(Unit)
+                        preload.onSeek()
+                    }
                     if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) emitCompletionOnAdvance(oldPosition)
                 }
 
