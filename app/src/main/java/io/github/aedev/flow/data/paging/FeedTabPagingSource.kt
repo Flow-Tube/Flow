@@ -10,6 +10,7 @@ import io.github.aedev.flow.innertube.pages.renderer.FeedItem
 import io.github.aedev.flow.innertube.pages.renderer.FeedItemOwner
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Any paged feed of [FeedItem] behind a browseId and a params token — a channel tab, or an explore
@@ -20,6 +21,9 @@ import kotlinx.coroutines.withContext
  *   with one chosen it *is* the first page rather than a filter applied to one.
  * @param onPageLoaded reports the sort bar and the resolved owner back once, so the screen can render
  *   chips without a second browse.
+ *
+ * The list ends when a page hands back the token it was loaded with, which Paging refuses as a key,
+ * or after [MAX_EMPTY_LOADS] pages in a row that added nothing new.
  */
 class FeedTabPagingSource(
     private val browseId: String,
@@ -28,30 +32,50 @@ class FeedTabPagingSource(
     private val sortToken: String? = null,
     private var owner: FeedItemOwner = FeedItemOwner(id = browseId),
     private val onPageLoaded: (ChannelTabContent) -> Unit = {},
+    private val loadPage: FeedTabPageLoader =
+        FeedTabPageLoader { continuation, pageOwner ->
+            if (continuation != null) {
+                YouTube.channelTabContinuation(continuation, pageOwner, kind)
+            } else {
+                YouTube.channelTab(browseId, params, pageOwner, kind)
+            }
+        },
+    private val loadContext: CoroutineContext = PerformanceDispatcher.networkIO,
 ) : PagingSource<String, FeedItem>() {
     private val seen = DistinctKeyTracker()
+    private var emptyLoadsInARow = 0
 
     override fun getRefreshKey(state: PagingState<String, FeedItem>): String? = null
 
     override suspend fun load(params: LoadParams<String>): LoadResult<String, FeedItem> =
-        withContext(PerformanceDispatcher.networkIO) {
+        withContext(loadContext) {
             val cursor = params.key
-            val page =
-                when {
-                    cursor != null -> YouTube.channelTabContinuation(cursor, owner, kind)
-                    sortToken != null -> YouTube.channelTabContinuation(sortToken, owner, kind)
-                    else -> YouTube.channelTab(browseId, this@FeedTabPagingSource.params, owner, kind)
-                }.getOrElse { return@withContext LoadResult.Error(it) }
+            val requested = cursor ?: sortToken
+            val page = loadPage(requested, owner).getOrElse { return@withContext LoadResult.Error(it) }
 
             if (page.owner.id.isNotBlank()) owner = page.owner
             if (cursor == null || page.filters.isNotEmpty()) onPageLoaded(page)
 
+            val items = seen.filter(page.items) { it.pagingKey() }
+            emptyLoadsInARow = if (items.isEmpty()) emptyLoadsInARow + 1 else 0
             LoadResult.Page(
-                data = seen.filter(page.items) { it.pagingKey() },
+                data = items,
                 prevKey = null,
-                nextKey = page.continuation,
+                nextKey = page.continuation.takeUnless { it == requested || emptyLoadsInARow >= MAX_EMPTY_LOADS },
             )
         }
+
+    private companion object {
+        const val MAX_EMPTY_LOADS = 2
+    }
+}
+
+/** One page of a feed tab: the first when [continuation] is null, otherwise the page it names. */
+fun interface FeedTabPageLoader {
+    suspend operator fun invoke(
+        continuation: String?,
+        owner: FeedItemOwner,
+    ): Result<ChannelTabContent>
 }
 
 private fun FeedItem.pagingKey(): String =

@@ -8,7 +8,9 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.state.EnhancedPlayerState
+import io.github.aedev.flow.player.stream.model.AudioStream
 import io.github.aedev.flow.service.Media3MusicService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +59,7 @@ class AudioFeaturesManager(
     // Keyed by media id, so a queue item the screen never loaded plays at full level rather than
     // inheriting the gain of the video before it.
     private var loudness: Pair<String, Float>? = null
+    private var loudnessConfig: Pair<String, PlayerResponse.PlayerConfig.AudioConfig?>? = null
 
     /** The loudness correction in force for what is playing, for the stats panel. */
     val appliedLoudnessDb: Float?
@@ -172,13 +175,24 @@ class AudioFeaturesManager(
         Log.d(TAG, "Volume set to: $volume (player=${exoPlayer.volume}, boost=${boostGainMb}mB)")
     }
 
-    /** YouTube's loudness for [mediaId], applied while that item is the one playing. */
+    /** YouTube's loudness for [mediaId] played from [audio], applied while that item is the one playing. */
     fun setLoudness(
         mediaId: String,
-        gainDb: Float?,
+        audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
+        audio: AudioStream?,
     ) {
-        loudness = gainDb?.let { mediaId to it }
+        loudnessConfig = mediaId to audioConfig
+        loudness = LoudnessGain.gainDb(audioConfig, audio?.loudnessDb, audio?.trackAbsoluteLoudnessLkfs)?.let { mediaId to it }
         playerRef?.let(::applyVolume)
+    }
+
+    /** Each audio track carries its own level, so a dub picked mid-video replaces the original's gain. */
+    fun onAudioStreamChanged(
+        mediaId: String?,
+        audio: AudioStream?,
+    ) {
+        val (configMediaId, audioConfig) = loudnessConfig?.takeIf { it.first == mediaId } ?: return
+        setLoudness(configMediaId, audioConfig, audio)
     }
 
     fun onMediaItemChanged() {

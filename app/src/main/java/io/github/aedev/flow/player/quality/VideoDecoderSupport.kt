@@ -1,11 +1,15 @@
 package io.github.aedev.flow.player.quality
 
 import android.content.Context
+import android.hardware.display.DisplayManager
+import android.os.Build
 import android.util.Log
+import android.view.Display
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
+import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.player.stream.model.VideoStream
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
@@ -32,6 +36,20 @@ internal fun decodableForAuto(
 }
 
 /**
+ * Auto's candidates for a screen that does or does not show HDR. On an SDR screen an HDR stream is
+ * tone-mapped down at best and washed out at worst, so it is left for a manual pick, unless the
+ * video has nothing else.
+ */
+internal fun withoutHdrOnSdrScreen(
+    streams: List<VideoStream>,
+    screenShowsHdr: Boolean,
+): List<VideoStream> = if (screenShowsHdr) streams else streams.filterNot(VideoCodecUtils::isHdr).ifEmpty { streams }
+
+/** HDR10 or HLG among a display's HDR types: the two transfer curves YouTube's HDR formats use. */
+internal fun showsYouTubeHdr(hdrTypes: IntArray): Boolean =
+    hdrTypes.any { it == Display.HdrCapabilities.HDR_TYPE_HDR10 || it == Display.HdrCapabilities.HDR_TYPE_HLG }
+
+/**
  * The device's decoders, asked once per codec, size and rate. Auto only climbs to qualities that pass
  * [decodableForAuto]; a manual pick is never filtered, so any stream can still be forced.
  */
@@ -44,6 +62,9 @@ internal object VideoDecoderSupport {
 
     @Volatile
     private var appContext: Context? = null
+
+    @Volatile
+    private var screenHdr: Boolean? = null
 
     fun attach(context: Context) {
         appContext = context.applicationContext
@@ -104,6 +125,31 @@ internal object VideoDecoderSupport {
             true
         }
 
-    /** Auto's candidates: the decodable ones, or all of them when the device says none is. */
-    fun forAuto(streams: List<VideoStream>): List<VideoStream> = streams.filter(::canDecode).ifEmpty { streams }
+    /**
+     * Auto's candidates: the decodable ones, or all of them when the device says none is, without
+     * HDR when the screen cannot show it.
+     */
+    fun forAuto(streams: List<VideoStream>): List<VideoStream> =
+        withoutHdrOnSdrScreen(streams.filter(::canDecode).ifEmpty { streams }, screenShowsHdr())
+
+    /** Asked once: true when the screen cannot be asked, so nothing is held back on a guess. */
+    private fun screenShowsHdr(): Boolean {
+        screenHdr?.let { return it }
+        val context = appContext ?: return true
+        val types = defaultDisplayHdrTypes(context) ?: return true
+        return showsYouTubeHdr(types).also {
+            screenHdr = it
+            Log.i(TAG, "Screen HDR10/HLG: $it (types ${types.joinToString()}); HDR in Auto: $it")
+        }
+    }
+
+    private fun defaultDisplayHdrTypes(context: Context): IntArray? {
+        val display = context.getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY) ?: return null
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            display.mode.supportedHdrTypes
+        } else {
+            @Suppress("DEPRECATION")
+            display.hdrCapabilities?.supportedHdrTypes
+        }
+    }
 }

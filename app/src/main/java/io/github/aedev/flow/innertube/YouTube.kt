@@ -122,6 +122,7 @@ import io.github.aedev.flow.innertube.pages.search.SearchResultsPage
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
+import io.github.aedev.flow.innertube.pages.throwIfRefused
 import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
 import io.github.aedev.flow.innertube.pages.toLiveMetadataUpdate
@@ -473,6 +474,7 @@ object YouTube {
     suspend fun channel(idOrHandle: String): Result<ChannelPage> =
         runCatching {
             val response = channelBrowseJson(browseId = idOrHandle)
+            response.throwIfRefused()
             val about =
                 response
                     .channelAboutContinuation()
@@ -506,6 +508,7 @@ object YouTube {
     suspend fun channelLanding(channelId: String): Result<ChannelPage> =
         runCatching {
             val response = channelBrowseJson(browseId = channelId)
+            response.throwIfRefused()
             response.toChannelPage(response.toChannelHeader(channelId))
         }
 

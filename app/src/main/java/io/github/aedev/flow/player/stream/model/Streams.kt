@@ -55,6 +55,8 @@ class AudioStream(
     val audioTrackName: String? = null,
     val audioLocale: Locale? = null,
     val audioTrackType: AudioTrackType? = null,
+    val loudnessDb: Double? = null,
+    val trackAbsoluteLoudnessLkfs: Double? = null,
 ) : Stream(id, content, format) {
     val bitrate: Int = itagItem?.bitrate ?: 0
     val initStart: Int = itagItem?.initStart ?: 0
