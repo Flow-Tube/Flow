@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.PlayerMessage
 import androidx.media3.exoplayer.source.MediaSource
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
@@ -48,6 +49,9 @@ internal class GaplessPreloadController(
     private val resolveStreams: suspend (Video, Context) -> ResolvedStreamData?,
     private val hasLocalCopy: suspend (Video) -> Boolean,
     private val buildMediaSource: (ResolvedStreamData, Context) -> MediaSource?,
+    private val isForegroundVideo: () -> Boolean,
+    private val isDataSaverOn: (Context) -> Boolean,
+    private val nextVideoPreload: (Context) -> ExoPlayer.PreloadConfiguration,
     private val log: (String) -> Unit,
     private val isGone: (String) -> Boolean = InnerTubeVideoStreamExtractor::isGone,
 ) {
@@ -63,6 +67,9 @@ internal class GaplessPreloadController(
 
     private var job: Job? = null
     private var retryJob: Job? = null
+
+    // Fires schedule() again once a foreground video reaches its preload point; a player event, not a poll.
+    private var deferredStart: PlayerMessage? = null
     private var attemptVideoId: String? = null
     private var attemptNextVideoId: String? = null
     private var retryCount: Int = 0
@@ -105,8 +112,13 @@ internal class GaplessPreloadController(
         schedule()
     }
 
-    /** Starts preloading the next video, unless the player or the session says not to. */
-    fun schedule() {
+    /**
+     * Starts preloading the next video, unless the player or the session says not to.
+     *
+     * @param atPreloadPoint the foreground video reached [PreloadStartPolicy]'s point, so its
+     *   position is not checked again.
+     */
+    fun schedule(atPreloadPoint: Boolean = false) {
         if (isLooping()) {
             log("schedulePreloadNext skipped looping")
             return
@@ -146,6 +158,15 @@ internal class GaplessPreloadController(
             log("schedulePreloadNext skipped duplicate attempt next=${target.video.id}")
             return
         }
+        if (isForegroundVideo()) {
+            if (context()?.let(isDataSaverOn) == true) {
+                cancelDeferredStart()
+                log("schedulePreloadNext skipped data saver in foreground")
+                return
+            }
+            if (!atPreloadPoint && deferUntilPreloadPoint(p)) return
+        }
+        cancelDeferredStart()
 
         attemptVideoId = currentId
         attemptNextVideoId = target.video.id
@@ -153,6 +174,40 @@ internal class GaplessPreloadController(
         retryJob = null
         log("schedulePreloadNext start next=${target.video.id} fromQueue=${target.fromQueue}")
         job = scope.launch { runPreload(currentId, target) }
+    }
+
+    /** Holds a foreground preload until [PreloadStartPolicy]'s point; true when it must wait. */
+    private fun deferUntilPreloadPoint(p: ExoPlayer): Boolean {
+        val startAtMs = PreloadStartPolicy.startPositionMs(p.duration)
+        if (p.currentPosition >= startAtMs) return false
+        if (deferredStart?.let { !it.isCanceled && it.positionMs == startAtMs && it.mediaItemIndex == p.currentMediaItemIndex } == true) {
+            return true
+        }
+        cancelDeferredStart()
+        deferredStart =
+            p
+                .createMessage { _, _ ->
+                    deferredStart = null
+                    log("schedulePreloadNext preload point reached")
+                    schedule(atPreloadPoint = true)
+                }.setLooper(p.applicationLooper)
+                .setPosition(p.currentMediaItemIndex, startAtMs)
+                .setDeleteAfterDelivery(true)
+                .send()
+        log("schedulePreloadNext deferred until ${startAtMs}ms of ${p.duration}ms in foreground")
+        return true
+    }
+
+    /** A seek can jump over the preload point, which the pending message would then never reach. */
+    fun onSeek() {
+        if (deferredStart == null) return
+        cancelDeferredStart()
+        schedule()
+    }
+
+    private fun cancelDeferredStart() {
+        deferredStart?.cancel()
+        deferredStart = null
     }
 
     private suspend fun runPreload(
@@ -190,6 +245,7 @@ internal class GaplessPreloadController(
                     log("schedulePreloadNext mediaSource failed next=${nextVideo.id}")
                     return
                 }
+            pl.preloadConfiguration = nextVideoPreload(ctx)
             pl.addMediaSource(source)
             preloaded = PreloadedNext(resolved, target.fromQueue)
             retryCount = 0
@@ -296,6 +352,7 @@ internal class GaplessPreloadController(
     }
 
     private fun cancelJobs() {
+        cancelDeferredStart()
         job?.cancel()
         job = null
         retryJob?.cancel()

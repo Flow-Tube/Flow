@@ -20,6 +20,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
@@ -85,6 +86,10 @@ class PlaybackLoadResolver
                     )
                     return
                 }
+
+                // The watch page reads /next for every streamed video. Asked beside /player instead of
+                // after it, it is still the one request: the page's own reads join it or find it cached.
+                scope.launch(networkDispatcher) { repository.watchNextResponse(videoId) }
 
                 val innerTubeDeferred =
                     scope.async(networkDispatcher) {

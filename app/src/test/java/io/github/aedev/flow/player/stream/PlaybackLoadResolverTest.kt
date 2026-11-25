@@ -254,6 +254,31 @@ class PlaybackLoadResolverTest {
             verify(exactly = 0) { InnerTubeVideoStreamExtractor.forgetReusable(any()) }
         }
 
+    @Test
+    fun `a streamed load asks for the watch page beside the streams, not after them`() =
+        runTest(testDispatcher) {
+            val extraction = CompletableDeferred<InnerTubeVideoStreamExtractor.VideoExtractionResult?>()
+            coEvery { InnerTubeVideoStreamExtractor.extract(any(), any()) } coAnswers { extraction.await() }
+
+            val job = resolveSteps().first
+            runCurrent()
+
+            coVerify(exactly = 1) { repository.watchNextResponse(VIDEO_ID) }
+            job.cancel()
+        }
+
+    @Test
+    fun `a downloaded copy never asks for the watch page from the load`() =
+        runTest(testDispatcher) {
+            val file = temporaryFolder.newFile("$VIDEO_ID.mp4")
+            localCopy = DownloadedVideo(video = downloadedVideo(), filePath = file.absolutePath)
+
+            resolveSteps()
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { repository.watchNextResponse(any()) }
+        }
+
     private fun TestScope.resolveSteps(
         escalateToSabr: Boolean = false,
         isCurrent: () -> Boolean = { true },
