@@ -98,6 +98,25 @@ fun JsonElement.watchUpNextVideoId(): String? =
         ?.takeIf { it.isNotBlank() }
 
 /**
+ * The keys of a campaign seek bar (`decoratedPlayerBarRenderer`, a themed playhead some videos carry
+ * for a while) when this response has one, nested renderer keys prefixed. Read only to log a sample:
+ * no response seen so far carried one, so its field names are unconfirmed.
+ */
+fun JsonElement.decoratedPlayerBarKeys(): List<String>? {
+    val bar =
+        objectOrNull()
+            ?.get("playerOverlays")
+            .objectOrNull()
+            ?.get("playerOverlayRenderer")
+            .objectOrNull()
+            ?.get("decoratedPlayerBarRenderer")
+            .objectOrNull()
+            ?: return null
+    val inner = bar["decoratedPlayerBarRenderer"].objectOrNull()?.keys.orEmpty()
+    return bar.keys.toList() + inner.map { "decoratedPlayerBarRenderer.$it" }
+}
+
+/**
  * The countdown's own card for the video YouTube plays next. The pick is often missing from the
  * related list, and this card is the only place the response describes it then.
  */

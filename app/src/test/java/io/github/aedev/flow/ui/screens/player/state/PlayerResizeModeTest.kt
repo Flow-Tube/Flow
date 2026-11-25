@@ -11,7 +11,8 @@ class PlayerResizeModeTest {
         zoomToFill: Boolean = true,
         videoAspectRatio: Float = 16f / 9f,
         portraitLayout: Boolean = false,
-    ) = effectiveResizeMode(isFullscreen, spherical, override, zoomToFill, videoAspectRatio, portraitLayout)
+        croppedByPanel: Boolean = false,
+    ) = effectiveResizeMode(isFullscreen, spherical, override, zoomToFill, videoAspectRatio, portraitLayout, croppedByPanel)
 
     @Test
     fun `the page player always fits, whatever the button or the setting say`() {
@@ -56,5 +57,16 @@ class PlayerResizeModeTest {
         assertThat(PlayerResizeMode.next(PlayerResizeMode.FIT)).isEqualTo(PlayerResizeMode.FILL)
         assertThat(PlayerResizeMode.next(PlayerResizeMode.FILL)).isEqualTo(PlayerResizeMode.ZOOM)
         assertThat(PlayerResizeMode.next(PlayerResizeMode.ZOOM)).isEqualTo(PlayerResizeMode.FIT)
+    }
+
+    @Test
+    fun `a page player a panel holds short crops to fill`() {
+        assertThat(mode(isFullscreen = false, croppedByPanel = true)).isEqualTo(PlayerResizeMode.ZOOM)
+    }
+
+    @Test
+    fun `a panel never crops the 360 view or changes fullscreen`() {
+        assertThat(mode(isFullscreen = false, spherical = true, croppedByPanel = true)).isEqualTo(PlayerResizeMode.FIT)
+        assertThat(mode(zoomToFill = false, croppedByPanel = true)).isEqualTo(PlayerResizeMode.FIT)
     }
 }

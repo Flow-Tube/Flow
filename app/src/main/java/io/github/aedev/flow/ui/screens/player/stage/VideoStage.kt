@@ -63,6 +63,7 @@ internal fun VideoStage(
     expandedSurfacesMounted: Boolean,
     expandedSurfacesPlaced: () -> Boolean,
     videoAspectRatio: Float,
+    croppedByPanel: Boolean,
     canGoPrevious: Boolean,
     isCommentsAvailable: Boolean,
     canUseFullscreenSidePanel: Boolean,
@@ -100,6 +101,7 @@ internal fun VideoStage(
                     orientationRequestIgnored = session.context.orientationRequestIgnored(stageConfiguration),
                     windowIsPortrait = stageConfiguration.screenHeightDp > stageConfiguration.screenWidthDp,
                 ),
+            croppedByPanel = croppedByPanel && !localIsInPipMode,
         )
     val gesturesActive = !isMinimized && !localIsInPipMode && !screenState.isTouchLocked
     val haptics = LocalHapticFeedback.current

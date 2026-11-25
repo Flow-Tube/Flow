@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -14,8 +15,27 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.data.local.IdleProgressBar
+import io.github.aedev.flow.ui.components.shared.RestTrackHeight
+import io.github.aedev.flow.ui.components.videoplayer.motion.playerBoxAspectRatio
 
 private const val FULLSCREEN_MEDIA_SHEET_FRACTION = 0.75f
+private const val SIXTEEN_NINE = 16f / 9f
+
+/** Whether an open panel shortens the player to 16:9: every video whose box is taller, as YouTube does (#2373). */
+internal fun panelShortensPlayer(videoAspectRatio: Float): Boolean = playerBoxAspectRatio(videoAspectRatio) < SIXTEEN_NINE
+
+/**
+ * The band kept free under the video for a progress bar set to hang below it (#2323), so the page
+ * and the panels start under the bar instead of covering it. A two-pane page sits beside the video.
+ */
+internal fun belowVideoBand(
+    idleProgressBar: IdleProgressBar,
+    isTwoPaneWindow: Boolean,
+): Dp = if (idleProgressBar == IdleProgressBar.BELOW_VIDEO && !isTwoPaneWindow) RestTrackHeight else 0.dp
+
+/** Whether the shortened player crops the picture to fill its box. A vertical video would show a sliver, so it keeps fitting. */
+internal fun panelCropsVideo(videoAspectRatio: Float): Boolean = videoAspectRatio >= 1f && panelShortensPlayer(videoAspectRatio)
 
 /** The two heights a media sheet snaps between, plus the unlocked collapsed height it derives from. */
 internal data class MediaSheetHeights(
@@ -43,6 +63,7 @@ internal class PlayerMediaSheetGeometry(
     val playerHeightFractionOverride: (() -> Float)?,
     val onProgressChange: (Float) -> Unit,
     val coversPlayer: Boolean = false,
+    val cropsVideo: Boolean = false,
 )
 
 internal fun mediaSheetHeights(
@@ -56,6 +77,7 @@ internal fun mediaSheetHeights(
     statusBarHeightPx: Float,
     playerWidthPx: Float,
     coversPlayer: Boolean = false,
+    belowVideoBandPx: Float = 0f,
 ): MediaSheetHeights {
     val rawMediaSheetCollapsedHeight =
         with(density) {
@@ -85,7 +107,7 @@ internal fun mediaSheetHeights(
         }
     val sixteenNineMediaSheetExpandedHeight =
         with(density) {
-            val sixteenNinePlayerBottomPx = statusBarHeightPx + playerWidthPx * 9f / 16f
+            val sixteenNinePlayerBottomPx = statusBarHeightPx + playerWidthPx * 9f / 16f + belowVideoBandPx
             (fullScreenHeightPx - sixteenNinePlayerBottomPx).coerceAtLeast(0f).toDp()
         }
     val mediaSheetCollapsedHeight =
@@ -138,7 +160,7 @@ internal fun rememberPlayerMediaSheetGeometry(
             !coversPlayer &&
             !screenState.isFullscreen &&
             progressDrivenMediaSheetVisible &&
-            videoAspectRatio < 1f
+            panelShortensPlayer(videoAspectRatio)
     LaunchedEffect(progressDrivenMediaSheetVisible) {
         if (!progressDrivenMediaSheetVisible) {
             if (progressState.progress != 0f) {
@@ -172,6 +194,7 @@ internal fun rememberPlayerMediaSheetGeometry(
         playerHeightFractionOverride = sheetPlayerHeightFractionOverride,
         onProgressChange = updateMediaSheetProgress,
         coversPlayer = coversPlayer,
+        cropsVideo = progressDrivenMediaSheetResize && panelCropsVideo(videoAspectRatio),
     )
 }
 
@@ -181,12 +204,30 @@ internal fun rememberMediaSheetHeights(
     isFullscreen: Boolean,
     fullScreenHeightPx: Float,
     playerWidthPx: Float,
-    expandedPlayerBottom: Dp,
+    expandedPlayerBottomPx: () -> Float,
+    sheetShown: Boolean,
+    belowVideoBand: Dp,
     fallbackScreenHeight: Dp,
     maxWidth: Dp,
     maxHeight: Dp,
 ): MediaSheetHeights {
     val density = LocalDensity.current
+    // The player's bottom moves on every frame of a list shrink or a shape glide, so it is read only
+    // while an open sheet still sizes itself from it: not once a resize-driven sheet has locked.
+    val readsPlayerBottom = sheetShown && !isFullscreen && !geometry.coversPlayer
+    val belowVideoBandPx = with(density) { belowVideoBand.toPx() }
+    val expandedPlayerBottom by remember(
+        density,
+        expandedPlayerBottomPx,
+        readsPlayerBottom,
+        geometry.progressDrivenResize,
+        belowVideoBandPx,
+    ) {
+        derivedStateOf {
+            val locked = geometry.progressDrivenResize && geometry.progressState.lockedCollapsedHeight != null
+            if (readsPlayerBottom && !locked) with(density) { (expandedPlayerBottomPx() + belowVideoBandPx).toDp() } else 0.dp
+        }
+    }
     val statusBarHeightPx = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
     val heights =
         mediaSheetHeights(
@@ -200,6 +241,7 @@ internal fun rememberMediaSheetHeights(
             statusBarHeightPx = statusBarHeightPx,
             playerWidthPx = playerWidthPx,
             coversPlayer = geometry.coversPlayer,
+            belowVideoBandPx = belowVideoBandPx,
         )
     LaunchedEffect(geometry.progressDrivenResize, heights.rawCollapsed, maxWidth, maxHeight) {
         if (

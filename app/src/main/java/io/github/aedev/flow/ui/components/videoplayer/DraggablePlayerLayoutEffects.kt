@@ -8,15 +8,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.ui.components.videoplayer.motion.MINI_RESNAP_DEBOUNCE_MS
 import io.github.aedev.flow.ui.components.videoplayer.motion.MiniPlayerResnapTargets
 import io.github.aedev.flow.ui.components.videoplayer.motion.playerResizeSpringSpec
 import io.github.aedev.flow.ui.components.videoplayer.motion.resnapMiniPlayer
 import kotlinx.coroutines.delay
-import kotlin.math.roundToInt
 
 /**
  * Nudges a settled mini player back onto its resting corner whenever the bounds change under it
@@ -44,25 +40,17 @@ internal fun MiniPlayerResnapEffect(
 }
 
 /**
- * Publishes the expanded player's bottom edge to the host from its own recomposition scope.
- * The host sizes media sheets from it, so it must be state, but rounding to whole dp keeps the
- * host from recomposing on every pixel of the adaptive-height shrink.
+ * Hands the host a live reading of the expanded player's bottom edge, in px. A value published from
+ * here went stale whenever the video's height glided after the open (#2373), because nothing read it
+ * in composition; the host now reads the provider itself, only while something is anchored to it.
  */
 @Composable
 internal fun ReportExpandedPlayerBottom(
     statusBarHeight: Float,
     videoHeightProvider: () -> Float,
-    onChanged: (Dp) -> Unit,
+    onChanged: (() -> Float) -> Unit,
 ) {
-    val density = LocalDensity.current
-    val bottom by remember(statusBarHeight, density, videoHeightProvider) {
-        derivedStateOf {
-            with(density) { (statusBarHeight + videoHeightProvider()).toDp() }
-                .value
-                .roundToInt()
-                .dp
-        }
-    }
+    val bottom = remember(statusBarHeight, videoHeightProvider) { { statusBarHeight + videoHeightProvider() } }
     val currentOnChanged by rememberUpdatedState(onChanged)
     SideEffect { currentOnChanged(bottom) }
 }

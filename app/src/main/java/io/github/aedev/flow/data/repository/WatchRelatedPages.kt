@@ -1,11 +1,14 @@
 package io.github.aedev.flow.data.repository
 
+import android.util.Log
+import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.data.model.RelatedCollection
 import io.github.aedev.flow.data.model.WatchRelatedPage
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.models.response.WatchMetadataResponse
 import io.github.aedev.flow.innertube.pages.WatchRelatedEntry
 import io.github.aedev.flow.innertube.pages.WatchRelatedResults
+import io.github.aedev.flow.innertube.pages.decoratedPlayerBarKeys
 import io.github.aedev.flow.innertube.pages.relatedContinuationResults
 import io.github.aedev.flow.innertube.pages.watchRelatedResults
 import io.github.aedev.flow.innertube.pages.watchUpNextCard
@@ -26,6 +29,9 @@ internal class WatchRelatedPages(
     suspend fun firstPage(videoId: String): WatchRelatedPage? =
         withContext(dispatcher) {
             val watch = repository.watchNextResponse(videoId) ?: return@withContext null
+            if (BuildConfig.DEBUG) {
+                watch.decoratedPlayerBarKeys()?.let { Log.d(CAMPAIGN_SEEK_BAR_TAG, "Campaign seek bar on $videoId: $it") }
+            }
             val upNextVideoId = watch.watchUpNextVideoId()
             val upNextCard = watch.watchUpNextCard()?.takeIf { it.videoId == upNextVideoId }
             toPage(watch.watchRelatedResults(YouTube.locale.hl), upNextVideoId, upNextCard).takeIf { it.videos.isNotEmpty() }
@@ -104,3 +110,5 @@ internal class WatchRelatedPages(
                 ),
         )
 }
+
+private const val CAMPAIGN_SEEK_BAR_TAG = "CampaignSeekBar"
