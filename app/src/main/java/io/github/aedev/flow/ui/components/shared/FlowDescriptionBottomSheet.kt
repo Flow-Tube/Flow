@@ -56,6 +56,7 @@ fun FlowDescriptionBottomSheet(
     onTagClick: ((String) -> Unit)? = null,
     descriptionPage: VideoDescriptionPage? = null,
     tags: List<String> = emptyList(),
+    showLikes: Boolean = true,
     chapterCount: Int = 0,
     onChaptersClick: (() -> Unit)? = null,
     onTranscriptClick: (() -> Unit)? = null,
@@ -229,7 +230,7 @@ fun FlowDescriptionBottomSheet(
                 )
             }
 
-            val stats = descriptionPage?.factoids?.takeIf { it.isNotEmpty() } ?: fallbackFactoids(video, descriptionPage)
+            val stats = descriptionPage?.factoids?.takeIf { it.isNotEmpty() } ?: fallbackFactoids(video, descriptionPage, showLikes)
 
             Row(horizontalArrangement = Arrangement.spacedBy(CardSpacing)) {
                 stats.forEach { factoid ->

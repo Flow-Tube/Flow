@@ -24,7 +24,14 @@ data class PlayerResponse(
     val attestation: Attestation? = null,
     /** Kept raw: only the pre-roll's timing is read (see `PrerollWait`), and none of it may fail the parse. */
     val adPlacements: JsonArray? = null,
+    val heartbeatParams: HeartbeatParams? = null,
 ) {
+    /** How often YouTube's player reports back while a stream is live or waiting to start. */
+    @Serializable
+    data class HeartbeatParams(
+        val intervalMilliseconds: String? = null,
+    )
+
     /**
      * The attestation demand YouTube attaches to a player response, as
      * `a=6&b=<nonce>&c=<issued>&d=<clientId>&e=<videoId>&hh=<binding>`.
@@ -77,7 +84,16 @@ data class PlayerResponse(
             val uploadDate: String? = null,
             val externalChannelId: String? = null,
             val canonicalUrl: String? = null,
-        )
+            val liveBroadcastDetails: LiveBroadcastDetails? = null,
+        ) {
+            /** A stream's real start and end, as ISO-8601 date-times with an offset. */
+            @Serializable
+            data class LiveBroadcastDetails(
+                val isLiveNow: Boolean? = null,
+                val startTimestamp: String? = null,
+                val endTimestamp: String? = null,
+            )
+        }
     }
 
     @Serializable
@@ -166,6 +182,10 @@ data class PlayerResponse(
             data class LiveStreamabilityRenderer(
                 val videoId: String? = null,
                 val offlineSlate: OfflineSlate? = null,
+                /** Which broadcast of the video this is; a new one means the stream was restarted. */
+                val broadcastId: String? = null,
+                /** How long YouTube's player waits before asking again while the stream has not started. */
+                val pollDelayMs: String? = null,
             ) {
                 @Serializable
                 data class OfflineSlate(
@@ -349,6 +369,8 @@ data class PlayerResponse(
         val isPostLiveDvr: Boolean? = null,
         val keywords: List<String>? = null,
         val latencyClass: String? = null,
+        /** False when the creator hides the video's likes. */
+        val allowRatings: Boolean? = null,
     )
 
     @Serializable

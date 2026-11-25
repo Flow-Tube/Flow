@@ -47,6 +47,8 @@ data class VideoPlayerUiState(
     val storyboard: List<StoryboardLevel> = emptyList(),
     /** A livestream that has ended: its date reads "Streamed …" rather than a plain date. */
     val isArchivedLivestream: Boolean = false,
+    /** False when the creator hides the video's likes, so no like or dislike count is shown. */
+    val ratingsAllowed: Boolean = true,
     val heatmap: VideoHeatmap? = null,
     val autoplayEnabled: Boolean = true,
     val streamSizes: Map<String, Long> = emptyMap(),
@@ -109,6 +111,7 @@ data class VideoPlayerUiState(
             chapters = emptyList(),
             heatmap = null,
             storyboard = emptyList(),
+            ratingsAllowed = true,
             watchHeader = null,
         )
 }

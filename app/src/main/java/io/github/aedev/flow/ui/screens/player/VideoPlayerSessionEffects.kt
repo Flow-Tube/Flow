@@ -149,7 +149,6 @@ internal fun VideoPlayerSessionEffects(
     UpcomingVideoRefreshEffect(
         videoId = video.id,
         isUpcoming = playerUiState.isUpcoming,
-        upcomingReleaseTimeMs = playerUiState.upcomingReleaseTimeMs,
         viewModel = playerViewModel,
     )
 
