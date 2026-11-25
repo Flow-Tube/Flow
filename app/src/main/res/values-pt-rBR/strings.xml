@@ -4608,7 +4608,7 @@
     <string name="lyrics_timing_later">%1$s s depois</string>
     <string name="player_appearance_video_artwork_colors_title">Cores da miniatura</string>
     <string name="player_appearance_video_artwork_colors_subtitle">Colore descrição e comentários</string>
-    <string name="lyrics_share">Compartilhar líricas</string>
+    <string name="lyrics_share">Compartilhar letras</string>
     <string name="lyrics_share_selected">%1$d de %2$d linhas selecionadas</string>
     <string name="lyrics_share_align_left">Esquerda</string>
     <string name="lyrics_share_align_center">Centro</string>
@@ -4679,7 +4679,7 @@
     <string name="lyrics_align_short_left">Esquerda</string>
     <string name="lyrics_align_short_center">Centro</string>
     <string name="lyrics_align_short_right">Direita</string>
-    <string name="settings_section_lyrics">Líricas</string>
+    <string name="settings_section_lyrics">Letras</string>
     <string name="chat_replay">Replay de chat</string>
     <string name="translate">Traduzir</string>
     <string name="translate_with">Traduzir com</string>
@@ -4746,7 +4746,7 @@
     <string name="lyrics_provider_netease">NetEase</string>
     <string name="lyrics_provider_amll">AMLL</string>
     <string name="lyrics_provider_netease_desc">Sincronização de linha · catálogo grande</string>
-    <string name="lyrics_provider_amll_desc">Sincronização de palavras · líricas da comunidade</string>
+    <string name="lyrics_provider_amll_desc">Sincronização de palavras · letras da comunidade</string>
     <string name="content_settings_home_new_videos_subtitle">Mostrar um botão quando um feed novo estiver pronto</string>
     <string name="settings_top_bar_profile_title">Perfil na barra superior</string>
     <string name="settings_top_bar_profile_summary">Trocar perfis de cada aba principal</string>
