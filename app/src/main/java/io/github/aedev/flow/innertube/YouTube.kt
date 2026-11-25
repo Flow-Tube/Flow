@@ -155,8 +155,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.Proxy
-import java.time.Instant
-import java.time.ZoneId
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
@@ -558,24 +556,15 @@ object YouTube {
         params: String? = null,
         continuation: String? = null,
     ): JsonElement {
-        // Channel rows carry server-rendered times ("Scheduled for 9/16/26, 6:45 PM"); the WEB
-        // client's zero offset would print them in UTC.
         val response =
             innerTube.channelBrowse(
-                client = currentWebClient().copy(utcOffsetMinutes = localUtcOffsetMinutes()),
+                client = currentWebClient(),
                 channelId = browseId,
                 params = params,
                 continuation = continuation,
             )
         return Json.parseToJsonElement(response.bodyAsText())
     }
-
-    private fun localUtcOffsetMinutes(): Int =
-        ZoneId
-            .systemDefault()
-            .rules
-            .getOffset(Instant.now())
-            .totalSeconds / 60
 
     /**
      * The landing response carries a one-line description and nothing else about the channel; the
