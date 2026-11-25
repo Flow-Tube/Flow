@@ -61,6 +61,7 @@ internal fun QualitySettingsScreen(
     val music by viewModel.music.collectAsStateWithLifecycle()
     val codec by viewModel.codec.collectAsStateWithLifecycle()
     val fallbackCodec by viewModel.fallbackCodec.collectAsStateWithLifecycle()
+    val hardwareAv1 by viewModel.hardwareAv1.collectAsStateWithLifecycle()
     val thumbnailsWifi by viewModel.thumbnailsWifi.collectAsStateWithLifecycle()
     val thumbnailsMobile by viewModel.thumbnailsMobile.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableStateOf(tab ?: SettingsTabs.QUALITY_VIDEO) }
@@ -180,6 +181,7 @@ internal fun QualitySettingsScreen(
                     fallbackCodec,
                     thumbnailsWifi,
                     thumbnailsMobile,
+                    hardwareAv1,
                 ),
             viewModel = viewModel,
             onDismiss = { picker = null },
@@ -196,6 +198,7 @@ private data class QualityPickerState(
     val fallbackCodec: VideoCodec,
     val thumbnailsWifi: ThumbnailQuality,
     val thumbnailsMobile: ThumbnailQuality,
+    val hardwareAv1: Boolean,
 )
 
 @Composable
@@ -265,7 +268,10 @@ private fun QualityPickerDialog(
             FlowChoiceDialog(
                 title = stringResource(R.string.player_settings_video_codec_dialog_title),
                 description = stringResource(R.string.player_settings_video_codec_dialog_body),
-                options = VideoCodec.entries.map { FlowChoice(it, codecLabel(it), autoDescription.takeIf { _ -> it == VideoCodec.AUTO }) },
+                options =
+                    codecChoices(state.hardwareAv1, state.codec).map {
+                        FlowChoice(it, codecLabel(it), autoDescription.takeIf { _ -> it == VideoCodec.AUTO })
+                    },
                 selected = state.codec,
                 onSelect = viewModel::setCodec,
                 onDismiss = onDismiss,
@@ -278,7 +284,7 @@ private fun QualityPickerDialog(
                 title = stringResource(R.string.player_settings_video_codec_fallback),
                 description = stringResource(R.string.player_settings_video_codec_fallback_dialog_body),
                 options =
-                    fallbackCodecs(state.codec).map {
+                    fallbackCodecs(state.codec, codecChoices(state.hardwareAv1, state.fallbackCodec)).map {
                         FlowChoice(
                             it,
                             codecLabel(it),

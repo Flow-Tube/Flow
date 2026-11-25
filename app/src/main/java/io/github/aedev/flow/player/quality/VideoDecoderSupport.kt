@@ -27,16 +27,26 @@ internal data class DecoderAnswer(
 /**
  * Whether a stream should be offered to Auto: a hardware decoder takes it, or a software one does and the
  * stream is no bigger than 1080p at 30 fps. A software decoder at 1440p60 drops frames and heats the phone.
+ * A codec that [needsHardware] never counts a software decoder: software AV1 stutters even at 720p60.
  */
 internal fun decodableForAuto(
     answers: List<DecoderAnswer>,
     width: Int,
     height: Int,
     fps: Int,
+    needsHardware: Boolean = false,
 ): Boolean {
-    val softwareCanKeepUp = max(width, height) <= 1920 && min(width, height) <= 1080 && fps <= 30
+    val softwareCanKeepUp = !needsHardware && max(width, height) <= 1920 && min(width, height) <= 1080 && fps <= 30
     return answers.any { it.supported && (it.hardware || softwareCanKeepUp) }
 }
+
+/** Whether a quality in [codecKey] is listed and picked: AV1 only on a device that decodes it in hardware. */
+internal fun codecOffered(
+    codecKey: String?,
+    hardwareAv1: () -> Boolean,
+): Boolean = !codecKey.equals(AV1_CODEC_KEY, ignoreCase = true) || hardwareAv1()
+
+private const val AV1_CODEC_KEY = "av1"
 
 /**
  * Auto's candidates for a screen that does or does not show HDR. On an SDR screen an HDR stream is
@@ -62,6 +72,7 @@ internal object VideoDecoderSupport {
     private val PrewarmMimeTypes = listOf(MimeTypes.VIDEO_H264, MimeTypes.VIDEO_VP9, MimeTypes.VIDEO_AV1, MimeTypes.VIDEO_H265)
 
     private val answers = ConcurrentHashMap<String, Boolean>()
+    private val hardwareDecoders = ConcurrentHashMap<String, Boolean>()
 
     @Volatile
     private var appContext: Context? = null
@@ -98,6 +109,20 @@ internal object VideoDecoderSupport {
         attach(context)
         PrewarmMimeTypes.forEach { mime -> runCatching { MediaCodecUtil.getDecoderInfos(mime, false, false) } }
     }
+
+    /** Whether any decoder for [mime] is hardware; true when the device cannot be asked, so nothing is hidden on a guess. */
+    fun hasHardwareDecoder(mime: String): Boolean =
+        hardwareDecoders.getOrPut(mime) {
+            try {
+                MediaCodecUtil.getDecoderInfos(mime, false, false).any { it.hardwareAccelerated }
+            } catch (e: MediaCodecUtil.DecoderQueryException) {
+                Log.w(TAG, "Decoder query failed for $mime", e)
+                true
+            }
+        }
+
+    /** Whether qualities in [codecKey] are listed in the quality pickers and taken by a pick by height. */
+    fun offers(codecKey: String?): Boolean = codecOffered(codecKey) { hasHardwareDecoder(MimeTypes.VIDEO_AV1) }
 
     fun canDecode(stream: VideoStream): Boolean {
         val itag = stream.itagItem ?: return true
@@ -142,6 +167,7 @@ internal object VideoDecoderSupport {
                 width,
                 height,
                 fps,
+                needsHardware = mime == MimeTypes.VIDEO_AV1,
             )
         } catch (e: MediaCodecUtil.DecoderQueryException) {
             Log.w(TAG, "Decoder query failed for $mime", e)

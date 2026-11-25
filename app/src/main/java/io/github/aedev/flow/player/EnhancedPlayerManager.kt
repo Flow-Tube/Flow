@@ -3017,6 +3017,7 @@ class EnhancedPlayerManager private constructor() {
             if (currentSabrInfo != null) {
                 innerTubeVideoFormats
                     .filter { !it.isAudio && it.itag > 0 }
+                    .filter { VideoDecoderSupport.offers(VideoCodecUtils.codecKeyFromMimeType(it.mimeType)) }
                     .groupBy {
                         VideoCodecUtils.streamSizeKey(
                             qualityHeightFromFormat(it),
