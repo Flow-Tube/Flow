@@ -3,6 +3,8 @@ package io.github.aedev.flow.player.quality
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Display
 import androidx.media3.common.Format
@@ -12,6 +14,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.player.stream.model.VideoStream
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
 
@@ -66,8 +69,28 @@ internal object VideoDecoderSupport {
     @Volatile
     private var screenHdr: Boolean? = null
 
+    private val watchingDisplay = AtomicBoolean(false)
+
     fun attach(context: Context) {
         appContext = context.applicationContext
+        if (watchingDisplay.compareAndSet(false, true)) watchDisplay(context.applicationContext)
+    }
+
+    /** A TV box can be moved to another screen while Flow runs, so the HDR answer is asked again after a change. */
+    private fun watchDisplay(context: Context) {
+        val displays = context.getSystemService(DisplayManager::class.java) ?: return
+        displays.registerDisplayListener(
+            object : DisplayManager.DisplayListener {
+                override fun onDisplayAdded(displayId: Int) = Unit
+
+                override fun onDisplayRemoved(displayId: Int) = Unit
+
+                override fun onDisplayChanged(displayId: Int) {
+                    if (displayId == Display.DEFAULT_DISPLAY) screenHdr = null
+                }
+            },
+            Handler(Looper.getMainLooper()),
+        )
     }
 
     /** Loads the decoder lists off the main thread; the first query per MIME type walks MediaCodecList. */
@@ -132,7 +155,7 @@ internal object VideoDecoderSupport {
     fun forAuto(streams: List<VideoStream>): List<VideoStream> =
         withoutHdrOnSdrScreen(streams.filter(::canDecode).ifEmpty { streams }, screenShowsHdr())
 
-    /** Asked once: true when the screen cannot be asked, so nothing is held back on a guess. */
+    /** Asked once per screen: true when the screen cannot be asked, so nothing is held back on a guess. */
     private fun screenShowsHdr(): Boolean {
         screenHdr?.let { return it }
         val context = appContext ?: return true
