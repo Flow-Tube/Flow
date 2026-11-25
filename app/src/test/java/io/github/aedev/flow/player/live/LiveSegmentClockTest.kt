@@ -1,6 +1,7 @@
 package io.github.aedev.flow.player.live
 
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.player.stream.LiveSegmentPosition
 import org.junit.Test
 
 /** Heads are the ones googlevideo reported for two 24/7 streams on 23 Nov. */
@@ -67,4 +68,15 @@ class LiveSegmentClockTest {
         clock.observe(radioHead.copy(sequence = radioHead.sequence - 5, serverTimeMs = radioHead.serverTimeMs + 1_000))
         assertThat(clock.head).isEqualTo(radioHead)
     }
+
+    @Test
+    fun `a seek bar position maps to the segment under it`() {
+        val clock = LiveSegmentClock(radioHead.copy(sequence = 100, mediaTimeMs = 500_000), 5_000, twelveHoursMs)
+        val windowStartUs = 40 * clock.segmentDurationUs
+
+        assertThat(clock.segmentAt(windowStartUs, 0L)).isEqualTo(LiveSegmentPosition(40, 100))
+        assertThat(clock.segmentAt(windowStartUs, 12_400L)?.sequence).isEqualTo(42)
+        assertThat(clock.segmentAt(-10_000_000L, 0L)).isNull()
+    }
 }
+

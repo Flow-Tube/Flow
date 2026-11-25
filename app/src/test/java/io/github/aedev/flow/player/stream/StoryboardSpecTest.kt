@@ -152,4 +152,47 @@ class StoryboardSpecTest {
 
         assertThat(StoryboardSpec.parse(spec, durationMs = 0L)).isEmpty()
     }
+
+    private val liveSpec = "https://i.ytimg.com/sb/abc/storyboard_live_90_3x3_b2/M\$M.jpg?rs=sig#159#90#3#3"
+
+    private fun liveLevel(locator: LiveSegmentLocator) = StoryboardSpec.parseLive(liveSpec, 5_000L, locator).single()
+
+    @Test
+    fun `a live spec is one level of segment-numbered frames`() {
+        val level = liveLevel { null }
+
+        assertThat(level.isLive).isTrue()
+        assertThat(level.thumbnailWidth to level.thumbnailHeight).isEqualTo(159 to 90)
+        assertThat(level.columns to level.rows).isEqualTo(3 to 3)
+        assertThat(level.intervalMs).isEqualTo(5_000L)
+    }
+
+    @Test
+    fun `a live frame is found by its segment number`() {
+        // Segment 1_000 is frame 1 of sheet 111 (nine frames a sheet): top row, middle column.
+        val tile = liveLevel { LiveSegmentPosition(sequence = 1_000, headSequence = 2_000) }.tileAt(0L)!!
+
+        assertThat(tile.sheetUrl).isEqualTo("https://i.ytimg.com/sb/abc/storyboard_live_90_3x3_b2/M111.jpg?rs=sig")
+        assertThat(tile.left to tile.top).isEqualTo(159 to 0)
+        assertThat(tile.sheetWidth to tile.sheetHeight).isEqualTo(477 to 270)
+    }
+
+    @Test
+    fun `the newest two sheets of a live stream have no frames yet`() {
+        val head = 2_000L
+        fun tileFor(sequence: Long) = liveLevel { LiveSegmentPosition(sequence, head) }.tileAt(0L)
+
+        assertThat(tileFor(head - 18)).isNotNull()
+        assertThat(tileFor(head - 17)).isNull()
+        assertThat(tileFor(head)).isNull()
+        assertThat(tileFor(-1)).isNull()
+    }
+
+    @Test
+    fun `a live spec without a sheet number or with missing fields is ignored`() {
+        assertThat(StoryboardSpec.parseLive("https://i.ytimg.com/sb/abc/M0.jpg#159#90#3#3", 5_000L) { null }).isEmpty()
+        assertThat(StoryboardSpec.parseLive("https://i.ytimg.com/sb/abc/M\$M.jpg#159#90", 5_000L) { null }).isEmpty()
+        assertThat(StoryboardSpec.parseLive(null, 5_000L) { null }).isEmpty()
+        assertThat(StoryboardSpec.parseLive(liveSpec, 0L) { null }).isEmpty()
+    }
 }

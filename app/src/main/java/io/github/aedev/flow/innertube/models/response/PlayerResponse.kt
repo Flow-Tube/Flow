@@ -49,7 +49,14 @@ data class PlayerResponse(
     @Serializable
     data class Storyboards(
         val playerStoryboardSpecRenderer: PlayerStoryboardSpecRenderer? = null,
+        val playerLiveStoryboardSpecRenderer: PlayerLiveStoryboardSpecRenderer? = null,
     ) {
+        /** A live stream's storyboard: `url#width#height#columns#rows`, its sheet number in `$M`. */
+        @Serializable
+        data class PlayerLiveStoryboardSpecRenderer(
+            val spec: String? = null,
+        )
+
         @Serializable
         data class PlayerStoryboardSpecRenderer(
             val spec: String? = null,

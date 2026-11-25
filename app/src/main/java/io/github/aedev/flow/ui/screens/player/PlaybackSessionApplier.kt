@@ -315,11 +315,23 @@ internal class PlaybackSessionApplier(
 
         uiState.update { it.applyLiveStreams(relatedVideos, streams.hlsUrl) }
 
+        val segmentsManifest = liveSegments.await()
+        // Live scrub previews are numbered by segment, which only a segment session can place.
+        LiveSegmentSessions.forVideo(videoId)?.takeIf { segmentsManifest != null && isLoadCurrent(load.token) }?.let { session ->
+            val storyboard =
+                StoryboardSpec.parseLive(
+                    spec = result.playerResponse.storyboards?.playerLiveStoryboardSpecRenderer?.spec,
+                    segmentDurationMs = session.clock.segmentDurationUs / 1_000,
+                    segments = playerManager::liveSegmentAt,
+                )
+            uiState.update { it.copy(storyboard = storyboard) }
+        }
+
         val liveStarted =
             playbackPreparer.prepareLiveStreams(
                 videoId = videoId,
                 hlsUrl = streams.hlsUrl,
-                dashManifestUrl = liveSegments.await() ?: streams.dashManifestUrl,
+                dashManifestUrl = segmentsManifest ?: streams.dashManifestUrl,
                 subtitles = streams.subtitles,
                 isCurrent = { isLoadCurrent(load.token) },
                 isDvrEnabled = streams.isDvrEnabled,
