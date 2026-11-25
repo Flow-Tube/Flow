@@ -116,6 +116,13 @@ class LoadControlFactoryTest {
     }
 
     @Test
+    fun `a long custom buffer on a small heap is held to a tenth of it`() {
+        val budget = LoadControlFactory.videoBudget(memoryClassMb = 128, isLowRamDevice = false, requestedMaxMs = 180_000)
+
+        assertEquals(128 * MB / 10, budget.targetBufferBytes)
+    }
+
+    @Test
     fun `a low-RAM device keeps its short buffer whatever was asked`() {
         val budget = LoadControlFactory.videoBudget(memoryClassMb = 192, isLowRamDevice = true, requestedMaxMs = 180_000)
 

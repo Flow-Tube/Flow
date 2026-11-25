@@ -21,6 +21,15 @@ class AppMemoryTrimTest {
     }
 
     @Test
+    fun `a system running low drops refetchable caches but not on every exit`() {
+        assertThat(AppMemoryTrim.releasesRefetchableCaches(ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE)).isFalse()
+        assertThat(AppMemoryTrim.releasesRefetchableCaches(ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN)).isFalse()
+        assertThat(AppMemoryTrim.releasesRefetchableCaches(ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)).isTrue()
+        assertThat(AppMemoryTrim.releasesRefetchableCaches(ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL)).isTrue()
+        assertThat(AppMemoryTrim.releasesRefetchableCaches(ComponentCallbacks2.TRIM_MEMORY_BACKGROUND)).isTrue()
+    }
+
+    @Test
     fun `a cached process releases them`() {
         listOf(
             ComponentCallbacks2.TRIM_MEMORY_BACKGROUND,

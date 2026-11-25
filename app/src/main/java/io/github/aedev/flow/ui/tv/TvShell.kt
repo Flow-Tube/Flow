@@ -54,10 +54,7 @@ import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.MediaMiniBarDefaults
 import io.github.aedev.flow.ui.screens.home.HomeViewModel
 import io.github.aedev.flow.ui.screens.music.MusicPlayerViewModel
-import io.github.aedev.flow.ui.screens.music.MusicViewModel
 import io.github.aedev.flow.ui.screens.playon.LocalPlayOn
-import io.github.aedev.flow.ui.screens.search.SearchViewModel
-import io.github.aedev.flow.ui.screens.subscriptions.SubscriptionsViewModel
 import io.github.aedev.flow.ui.tv.components.TvNavRail
 import io.github.aedev.flow.ui.tv.components.TvRailProfile
 import io.github.aedev.flow.ui.tv.components.railFocusDirection
@@ -80,10 +77,7 @@ fun TvShell(
     navigation: TvNavigation,
     navController: NavHostController,
     homeViewModel: HomeViewModel,
-    musicViewModel: MusicViewModel,
     musicPlayerViewModel: MusicPlayerViewModel,
-    subscriptionsViewModel: SubscriptionsViewModel,
-    searchViewModel: SearchViewModel,
     onPlayVideo: (Video) -> Unit,
     onPlayPlaylist: (videos: List<Video>, startIndex: Int, title: String, shuffle: Boolean, more: QueuePageSource?) -> Unit,
     onPlayVideoId: (String) -> Unit,
@@ -224,10 +218,7 @@ fun TvShell(
                     navController = navController,
                     startRoute = navigation.startTab.route,
                     homeViewModel = homeViewModel,
-                    musicViewModel = musicViewModel,
                     musicPlayerViewModel = musicPlayerViewModel,
-                    subscriptionsViewModel = subscriptionsViewModel,
-                    searchViewModel = searchViewModel,
                     onPlayVideo = onPlayVideo,
                     onPlayPlaylist = onPlayPlaylist,
                     onPlayVideoId = onPlayVideoId,

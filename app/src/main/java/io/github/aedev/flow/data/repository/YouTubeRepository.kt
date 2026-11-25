@@ -26,6 +26,7 @@ import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.search.resultVideos
 import io.github.aedev.flow.innertube.pages.toWatchPageHeader
 import io.github.aedev.flow.innertube.pages.toWatchPlaylistWindow
+import io.github.aedev.flow.platform.memory.DeviceTier
 import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
@@ -82,10 +83,16 @@ class YouTubeRepository
         // response, so it is fetched once per video and held for the few videos in play.
         private val watchResponses =
             WatchResponseCache<JsonElement>(
-                capacity = WATCH_NEXT_CACHE_SIZE,
+                capacity = DeviceTier.WATCH_CACHE_ENTRIES,
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
                 fetch = { videoId -> YouTube.watchNextJson(videoId, watchPlaylistFor.remove(videoId)).getOrNull() },
             )
+
+        fun watchCacheEntries(): Int = watchResponses.size()
+
+        fun limitWatchCache(entries: Int) = watchResponses.resize(entries)
+
+        fun trimWatchCache(keepVideoId: String?) = watchResponses.retainOnly(keepVideoId)
 
         // The playlist a video is about to play from, so its one watch request also brings the queue window.
         private val watchPlaylistFor = java.util.concurrent.ConcurrentHashMap<String, String>()
@@ -771,7 +778,6 @@ class YouTubeRepository
 
         companion object {
             private const val TAG = "YouTubeRepository"
-            private const val WATCH_NEXT_CACHE_SIZE = 3
             private const val VIDEO_CATEGORY_CACHE_SIZE = 500
             private const val PAID_PROMOTION_CACHE_SIZE = 100
             private val CHANNEL_ID_IN_URL = Regex("""/channel/(UC[\w-]{22})""")

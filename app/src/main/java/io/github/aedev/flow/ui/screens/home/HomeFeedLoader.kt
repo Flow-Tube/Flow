@@ -55,10 +55,10 @@ internal class HomeFeedLoader(
     private val enricher: HomeChannelEnricher,
     private val wave2: HomeWave2Discovery,
     private val lateMerges: HomeLateMerges,
+    private val firstRound: HomeFirstRound,
     private val onRefreshFailed: () -> Unit,
 ) {
     private companion object {
-        const val MAX_RELATED_SEEDS = 4
         const val SNAPSHOT_FEED_DEBOUNCE_MS = 2_000L
 
         // Trace section the Home refresh benchmark reads (#1301).
@@ -138,8 +138,8 @@ internal class HomeFeedLoader(
                     val region = playerPreferences.trendingRegion.first()
                     val fetchStart = System.currentTimeMillis()
 
-                    // ── Wave 1: first 3 queries + related lanes; subscriptions come from the store ──
-                    val wave1QueryCount = session.discoveryQueries.size.coerceAtMost(3)
+                    // ── Wave 1: first queries + related lanes (see HomeFirstRound); subscriptions come from the store ──
+                    val wave1QueryCount = session.discoveryQueries.size.coerceAtMost(firstRound.queryCount)
                     val wave1Queries = session.discoveryQueries.take(wave1QueryCount)
                     session.currentQueryIndex = wave1QueryCount
 
@@ -162,11 +162,17 @@ internal class HomeFeedLoader(
                                     }
 
                                 // ── Related-graph lane: harvest /next neighbours of recent positives ──
+                                if (!firstRound.lanesTogether) deferredDiscovery.join()
                                 val deferredRelated =
                                     async {
                                         val seedInputs = feedSources.historySeedInputs()
                                         val longTermInputs = feedSources.longTermSeedInputs()
-                                        val seedIds = FlowNeuroEngine.selectRelatedSeeds(seedInputs, MAX_RELATED_SEEDS, longTermInputs)
+                                        val seedIds =
+                                            FlowNeuroEngine.selectRelatedSeeds(
+                                                seedInputs,
+                                                firstRound.relatedSeeds,
+                                                longTermInputs,
+                                            )
                                         feedSources.fetchRelatedGraph(seedInputs + longTermInputs, seedIds, session::cacheFilters)
                                     }
 

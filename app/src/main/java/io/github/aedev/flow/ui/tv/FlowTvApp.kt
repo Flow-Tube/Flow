@@ -38,11 +38,8 @@ import io.github.aedev.flow.ui.components.shared.LocalFlowSheetPresenter
 import io.github.aedev.flow.ui.mediaNavigationLocals
 import io.github.aedev.flow.ui.screens.home.HomeViewModel
 import io.github.aedev.flow.ui.screens.music.MusicPlayerViewModel
-import io.github.aedev.flow.ui.screens.music.MusicViewModel
 import io.github.aedev.flow.ui.screens.player.VideoPlayerViewModel
 import io.github.aedev.flow.ui.screens.playon.PlayOnHost
-import io.github.aedev.flow.ui.screens.search.SearchViewModel
-import io.github.aedev.flow.ui.screens.subscriptions.SubscriptionsViewModel
 import io.github.aedev.flow.ui.tv.components.TvSheetPresenter
 import io.github.aedev.flow.ui.tv.music.TvMusicNowPlaying
 import io.github.aedev.flow.ui.tv.navigation.TvMediaNavigator
@@ -62,9 +59,6 @@ fun FlowTvApp(
     val activity = context as ComponentActivity
     val homeViewModel: HomeViewModel = hiltViewModel(activity)
     val playerViewModel: VideoPlayerViewModel = hiltViewModel(activity)
-    val subscriptionsViewModel: SubscriptionsViewModel = hiltViewModel(activity)
-    val searchViewModel: SearchViewModel = hiltViewModel(activity)
-    val musicViewModel: MusicViewModel = hiltViewModel(activity)
     val musicPlayerViewModel: MusicPlayerViewModel = hiltViewModel(activity)
     val shellViewModel: TvShellViewModel = hiltViewModel(activity)
     val navigation by shellViewModel.navigation.collectAsStateWithLifecycle()
@@ -188,10 +182,7 @@ fun FlowTvApp(
                                 navigation = tvNavigation,
                                 navController = navController,
                                 homeViewModel = homeViewModel,
-                                musicViewModel = musicViewModel,
                                 musicPlayerViewModel = musicPlayerViewModel,
-                                subscriptionsViewModel = subscriptionsViewModel,
-                                searchViewModel = searchViewModel,
                                 onPlayVideo = ::play,
                                 onPlayPlaylist = ::playPlaylist,
                                 onPlayVideoId = { playById(it) },

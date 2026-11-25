@@ -10,4 +10,15 @@ import android.content.ComponentCallbacks2
  */
 internal object AppMemoryTrim {
     fun releasesVolatileMemory(trimLevel: Int): Boolean = trimLevel >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
+
+    /**
+     * Caches that are cheap to refetch (watch responses other than the playing video's, music lists) also go
+     * when the system runs low while Flow is in use. UI_HIDDEN, which sits between those levels, is left out
+     * for the same reason as above.
+     */
+    @Suppress("DEPRECATION")
+    fun releasesRefetchableCaches(trimLevel: Int): Boolean =
+        trimLevel == ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            trimLevel == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+            releasesVolatileMemory(trimLevel)
 }

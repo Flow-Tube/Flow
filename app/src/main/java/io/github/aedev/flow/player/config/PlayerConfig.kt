@@ -55,6 +55,9 @@ object PlayerConfig {
      * Media3's allocator keeps buffered media in heap arrays: 1/5 of a 256 MB heap is about 51 MB.
      */
     const val LONG_BUFFER_HEAP_DIVISOR = 5
+
+    /** On a heap under [SMALL_HEAP_MB] a long buffer gets a tenth, about 13 MB of a 128 MB TV's heap (#2204). */
+    const val SMALL_HEAP_LONG_BUFFER_HEAP_DIVISOR = 10
     const val MAX_LONG_BUFFER_BYTES = 128 * 1024 * 1024
 
     /** Explicit target buffer budget per shorts player in the pooled shorts stack. */
@@ -72,7 +75,7 @@ object PlayerConfig {
     const val SHORTS_BACK_BUFFER_MS = 2_000
 
     /**
-     * Music buffer window. [MUSIC_MAX_BUFFER_MS] is the lean window (crossfade tails, low-RAM devices
+     * Music buffer window. [MUSIC_MAX_BUFFER_MS] is the lean window (crossfade tails, small heaps
      * and Data Saver); otherwise a song loads whole and what has played stays, so a seek is in memory (#2167).
      */
     const val MUSIC_MIN_BUFFER_MS = 2_500

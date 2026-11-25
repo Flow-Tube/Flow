@@ -63,6 +63,7 @@ import io.github.aedev.flow.data.scrobble.ScrobbleRules
 import io.github.aedev.flow.extensions.setOffloadEnabled
 import io.github.aedev.flow.innertube.YouTube
 import io.github.aedev.flow.innertube.models.WatchEndpoint
+import io.github.aedev.flow.platform.memory.DeviceTier
 import io.github.aedev.flow.player.LifecyclePlaybackPreferences
 import io.github.aedev.flow.player.MusicFailureStreak
 import io.github.aedev.flow.player.MusicLoadErrorPolicy
@@ -264,6 +265,9 @@ class Media3MusicService : MediaLibraryService() {
 
     @Inject
     lateinit var legacySongs: LegacySongDownloads
+
+    @Inject
+    lateinit var deviceTier: DeviceTier
 
     @Inject
     lateinit var widgetPublisher: io.github.aedev.flow.widget.nowplaying.NowPlayingWidgetPublisher
@@ -548,8 +552,9 @@ class Media3MusicService : MediaLibraryService() {
 
         val renderersFactory = musicRenderers(equalizer)
 
-        val isLowRamDevice = (getSystemService(ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true
-        val loadControl = MusicLoadControl(LoadControlFactory.forMusic(wholeSong = !isLowRamDevice), NetworkState.isDataSaverOn(this))
+        // A whole song plus ten minutes already played is up to 24 MB, too much of a small heap (#2204).
+        val loadControl =
+            MusicLoadControl(LoadControlFactory.forMusic(wholeSong = !deviceTier.isSmallHeap), NetworkState.isDataSaverOn(this))
 
         player =
             ExoPlayer

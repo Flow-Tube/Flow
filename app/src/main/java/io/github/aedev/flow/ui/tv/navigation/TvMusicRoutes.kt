@@ -14,7 +14,6 @@ import io.github.aedev.flow.ui.screens.music.ArtistRoute
 import io.github.aedev.flow.ui.screens.music.EnhancedMusicScreen
 import io.github.aedev.flow.ui.screens.music.MoodsAndGenresScreen
 import io.github.aedev.flow.ui.screens.music.MusicPlayerViewModel
-import io.github.aedev.flow.ui.screens.music.MusicViewModel
 import io.github.aedev.flow.ui.screens.music.YouTubeBrowseScreen
 import io.github.aedev.flow.ui.screens.music.collection.MusicCollectionCallbacks
 import io.github.aedev.flow.ui.screens.music.collection.MusicCollectionScreen
@@ -24,7 +23,6 @@ import io.github.aedev.flow.ui.tv.components.TvScreenFrame
 /** Music and everything reached from it: artists and their sections, albums and playlists, moods. */
 internal fun NavGraphBuilder.tvMusicRoutes(
     navController: NavHostController,
-    musicViewModel: MusicViewModel,
     musicPlayerViewModel: MusicPlayerViewModel,
     onPlayVideo: (Video) -> Unit,
     onSelectRoot: (String) -> Unit,
@@ -42,7 +40,6 @@ internal fun NavGraphBuilder.tvMusicRoutes(
                 onAllPlaylistsClick = { navController.navigate(TvRoutes.playlists(MediaKind.Music)) },
                 onAllSubscriptionsClick = { onSelectRoot(FlowTab.Subscriptions.route) },
                 showRecognize = false,
-                viewModel = musicViewModel,
             )
         }
     }
@@ -61,7 +58,6 @@ internal fun NavGraphBuilder.tvMusicRoutes(
                 onSeeAllClick = { browseId, params -> navController.navigate(TvRoutes.artistItems(artistChannelId, browseId, params)) },
                 onPlayWatchPlaylist = musicPlayerViewModel::playWatchPlaylist,
                 onStartRadio = musicPlayerViewModel::startRadio,
-                musicViewModel = musicViewModel,
             )
         }
     }
@@ -84,7 +80,6 @@ internal fun NavGraphBuilder.tvMusicRoutes(
                 browseId = browseId,
                 params = entry.arguments?.getString(TvRoutes.ARTIST_ITEMS_PARAMS_ARG),
                 onBackClick = { navController.popBackStack() },
-                viewModel = musicViewModel,
                 onTrackClick = { song ->
                     val track = convertSongToMusicTrack(song)
                     musicPlayerViewModel.loadAndPlayTrack(track, listOf(track))

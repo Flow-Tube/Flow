@@ -13,6 +13,7 @@ import io.github.aedev.flow.applock.AppLock
 import io.github.aedev.flow.data.contentfilter.aislist.AiListRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
+import io.github.aedev.flow.data.music.MusicCache
 import io.github.aedev.flow.data.profile.ActiveProfile
 import io.github.aedev.flow.data.profile.PendingSlice
 import io.github.aedev.flow.data.profile.PostSwitchWork
@@ -32,6 +33,8 @@ import io.github.aedev.flow.notification.BackgroundCheckScheduler
 import io.github.aedev.flow.notification.BreakReminderTimer
 import io.github.aedev.flow.notification.DailyLimitGuard
 import io.github.aedev.flow.notification.NotificationHelper
+import io.github.aedev.flow.platform.memory.HeapSampler
+import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.PlaybackShutdown
 import io.github.aedev.flow.player.SleepTimerManager
 import io.github.aedev.flow.sync2.service.LinkedCatchUp
@@ -116,6 +119,12 @@ class FlowApplication :
     @Inject
     lateinit var aiList: AiListRepository
 
+    @Inject
+    lateinit var heapSampler: HeapSampler
+
+    @Inject
+    lateinit var youTubeRepository: dagger.Lazy<YouTubeRepository>
+
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
 
     companion object {
@@ -149,6 +158,7 @@ class FlowApplication :
 
         // Install crash handler for real-time monitoring
         FlowCrashHandler.install(this)
+        heapSampler.install()
 
         try {
             io.github.aedev.flow.utils.cipher.CipherDeobfuscator
@@ -308,9 +318,19 @@ class FlowApplication :
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         FlowCrashHandler.recordPhase("memory", "FlowApplication.onTrimMemory level=$level")
+        if (AppMemoryTrim.releasesRefetchableCaches(level)) {
+            releaseRefetchableCaches()
+        }
         if (AppMemoryTrim.releasesVolatileMemory(level)) {
             releaseVolatileMemory()
         }
+    }
+
+    private fun releaseRefetchableCaches() {
+        if (::youTubeRepository.isInitialized) {
+            youTubeRepository.get().trimWatchCache(keepVideoId = GlobalPlayerState.currentVideo.value?.id)
+        }
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch { MusicCache.clearAll() }
     }
 
     private fun releaseVolatileMemory() {
