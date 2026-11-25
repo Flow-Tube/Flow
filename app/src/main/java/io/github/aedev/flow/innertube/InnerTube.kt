@@ -217,7 +217,7 @@ class InnerTube {
                 url(YouTubeClient.API_URL_YOUTUBE_MUSIC)
                 // Add common headers for better compatibility
                 header("Accept", "application/json")
-                header("Accept-Language", "en-US,en;q=0.9")
+                header(HttpHeaders.AcceptLanguage, acceptLanguage(locale.hl))
                 header("Cache-Control", "no-cache")
             }
         }
@@ -323,7 +323,6 @@ class InnerTube {
                         append(HttpHeaders.Origin, YouTubeClient.ORIGIN_YOUTUBE)
                         append("Referer", YouTubeClient.ORIGIN_YOUTUBE)
                         append(HttpHeaders.Cookie, "SOCS=CAE=")
-                        append(HttpHeaders.AcceptLanguage, "${locale.hl}, en;q=0.9")
                     } else {
                         append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE)
                         append("Referer", YouTubeClient.REFERER_YOUTUBE)
