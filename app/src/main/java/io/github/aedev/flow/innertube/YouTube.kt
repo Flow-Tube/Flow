@@ -102,6 +102,7 @@ import io.github.aedev.flow.innertube.pages.explore.ranked
 import io.github.aedev.flow.innertube.pages.explore.toExploreDestinationShell
 import io.github.aedev.flow.innertube.pages.explore.trendingVideoChart
 import io.github.aedev.flow.innertube.pages.mixSeedVideoId
+import io.github.aedev.flow.innertube.pages.objectOrNull
 import io.github.aedev.flow.innertube.pages.parseYouTubeViewCount
 import io.github.aedev.flow.innertube.pages.reel.ReelItem
 import io.github.aedev.flow.innertube.pages.reel.ReelLockup
@@ -122,6 +123,7 @@ import io.github.aedev.flow.innertube.pages.search.SearchResultsPage
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.github.aedev.flow.innertube.pages.search.parseSearchSuggestions
 import io.github.aedev.flow.innertube.pages.search.toSearchResultsPage
+import io.github.aedev.flow.innertube.pages.stringOrNull
 import io.github.aedev.flow.innertube.pages.timedLyricLines
 import io.github.aedev.flow.innertube.pages.toCommentRepliesPage
 import io.github.aedev.flow.innertube.pages.toLiveMetadataUpdate
@@ -371,7 +373,7 @@ object YouTube {
     /** A collaboration's channels and its avatar stack, read from one watch request. */
     suspend fun videoOwnerCredits(videoId: String): Result<Pair<List<VideoCollaborator>, List<String>>> =
         runCatching {
-            val rawBody = innerTube.next(currentWebClient(), videoId, null, null, null, null, null).bodyAsText()
+            val rawBody = innerTube.watchOwner(videoId).bodyAsText()
             val root =
                 Json {
                     ignoreUnknownKeys = true
@@ -2166,8 +2168,8 @@ object YouTube {
      * The creator-declared category for [videoId].
      *
      * MWEB carries a `microformat` where the direct-URL clients the player path uses do not, and it
-     * fills it without a `signatureTimestamp` — the response is UNPLAYABLE and carries no streams,
-     * which is the point: it costs ~8 KB and no base.js fetch, against ~215 KB for WEB.
+     * fills it without a `signatureTimestamp`, so there is no base.js fetch. The field mask trims the
+     * answer to the category alone, so it is read as JSON rather than as a [PlayerResponse].
      */
     suspend fun videoCategory(videoId: String): Result<String?> =
         runCatching {
@@ -2179,11 +2181,9 @@ object YouTube {
                     signatureTimestamp = null,
                     localeOverride = YouTubeLocale.EXTRACTION,
                     apiUrl = YouTubeClient.API_URL_YOUTUBE,
-                ).body<PlayerResponse>()
-                .microformat
-                ?.playerMicroformatRenderer
-                ?.category
-                ?.takeIf { it.isNotBlank() }
+                    fieldMask = VIDEO_CATEGORY_FIELDS,
+                ).body<JsonObject>()
+                .toVideoCategory()
         }
 
     /** [videoId]'s details and microformat, in the app's content language; no streams are needed from it. */
@@ -2587,6 +2587,8 @@ object YouTube {
 
     const val MAX_GET_QUEUE_SIZE = 1000
 
+    private const val VIDEO_CATEGORY_FIELDS = "microformat.playerMicroformatRenderer.category"
+
     /**
      * One page of the reel feed: the seedless first page for a null token, else the page a
      * previous response's continuation names. Entries carry ids and tokens only; see [reelItem].
@@ -2639,3 +2641,13 @@ object YouTube {
                 .toCommentRepliesPage(ownVideoId)
         }
 }
+
+/** The category out of a player response, whole or masked to [YouTube.videoCategory]'s field. */
+internal fun JsonObject.toVideoCategory(): String? =
+    this["microformat"]
+        .objectOrNull()
+        ?.get("playerMicroformatRenderer")
+        .objectOrNull()
+        ?.get("category")
+        .stringOrNull()
+        ?.takeIf(String::isNotBlank)
