@@ -2264,6 +2264,7 @@
     <string name="location_internal_app_label">Internal App Storage</string>
     <string name="location_internal_app_desc">Private to Flow. Removed if you uninstall.</string>
     <string name="location_custom_saf_label">Browse…</string>
+    <string name="backup_no_file_picker">This TV has no file picker, so backups can\'t be saved or restored here.</string>
     <string name="location_custom_saf_desc">Pick any folder using the system file picker</string>
     <string name="download_location_not_writable">Can\'t save there. Using %1$s</string>
     <string name="location_custom_manual_label">Enter path manually</string>

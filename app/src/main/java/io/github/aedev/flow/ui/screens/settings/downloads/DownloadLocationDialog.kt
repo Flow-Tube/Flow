@@ -33,7 +33,7 @@ internal fun DownloadLocationDialog(
     downloadsPath: String?,
     internalPath: String,
     onSelect: (String?) -> Unit,
-    onBrowse: () -> Unit,
+    onBrowse: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
     var typing by rememberSaveable { mutableStateOf(false) }
@@ -79,13 +79,15 @@ internal fun DownloadLocationDialog(
                         },
                     )
                 }
-                FlowNavRow(
-                    title = stringResource(R.string.location_custom_saf_label),
-                    supportingText = stringResource(R.string.location_custom_saf_desc),
-                    leadingIcon = Icons.Outlined.CreateNewFolder,
-                    showChevron = false,
-                    onClick = onBrowse,
-                )
+                onBrowse?.let { browse ->
+                    FlowNavRow(
+                        title = stringResource(R.string.location_custom_saf_label),
+                        supportingText = stringResource(R.string.location_custom_saf_desc),
+                        leadingIcon = Icons.Outlined.CreateNewFolder,
+                        showChevron = false,
+                        onClick = browse,
+                    )
+                }
                 FlowNavRow(
                     title = stringResource(R.string.location_custom_manual_label),
                     supportingText = stringResource(R.string.location_custom_manual_desc),

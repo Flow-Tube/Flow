@@ -47,11 +47,11 @@ internal class TasteActions(
     val onOpenFavouriteArtists: () -> Unit,
     val onOpenDiscoverChannels: () -> Unit,
     val onOpenRecap: () -> Unit,
-    val onExportVideo: () -> Unit,
-    val onImportVideo: () -> Unit,
+    val onExportVideo: (() -> Unit)?,
+    val onImportVideo: (() -> Unit)?,
     val onResetVideo: () -> Unit,
-    val onExportMusic: () -> Unit,
-    val onImportMusic: () -> Unit,
+    val onExportMusic: (() -> Unit)?,
+    val onImportMusic: (() -> Unit)?,
     val onResetMusic: () -> Unit,
 )
 
@@ -316,11 +316,11 @@ private fun musicStageProgress(maturity: String): Float =
 
 private fun SettingsListScope.data(actions: TasteActions) {
     group(key = "taste.data", header = R.string.taste_data_header) {
-        nav(TasteIndex.exportVideo, onClick = actions.onExportVideo, showChevron = false, icon = Icons.Outlined.Upload)
-        nav(TasteIndex.importVideo, onClick = actions.onImportVideo, showChevron = false, icon = Icons.Outlined.Download)
+        actions.onExportVideo?.let { nav(TasteIndex.exportVideo, onClick = it, showChevron = false, icon = Icons.Outlined.Upload) }
+        actions.onImportVideo?.let { nav(TasteIndex.importVideo, onClick = it, showChevron = false, icon = Icons.Outlined.Download) }
         nav(TasteIndex.resetVideo, onClick = actions.onResetVideo, showChevron = false, icon = Icons.Outlined.RestartAlt)
-        nav(TasteIndex.exportMusic, onClick = actions.onExportMusic, showChevron = false, icon = Icons.Outlined.Upload)
-        nav(TasteIndex.importMusic, onClick = actions.onImportMusic, showChevron = false, icon = Icons.Outlined.Download)
+        actions.onExportMusic?.let { nav(TasteIndex.exportMusic, onClick = it, showChevron = false, icon = Icons.Outlined.Upload) }
+        actions.onImportMusic?.let { nav(TasteIndex.importMusic, onClick = it, showChevron = false, icon = Icons.Outlined.Download) }
         nav(TasteIndex.resetMusic, onClick = actions.onResetMusic, showChevron = false, icon = Icons.Outlined.RestartAlt)
     }
 }

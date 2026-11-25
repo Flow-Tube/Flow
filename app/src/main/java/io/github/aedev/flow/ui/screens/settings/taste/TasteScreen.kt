@@ -29,6 +29,7 @@ import io.github.aedev.flow.ui.components.settings.SettingsTarget
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.deepFlowStatus
+import io.github.aedev.flow.ui.utils.rememberDocumentPickerAvailable
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -93,8 +94,9 @@ internal fun TasteScreen(
     val pausedLabel = stringResource(R.string.taste_learning_paused)
     val pausedStatus = deepFlowStatus(deepFlow)
 
+    val canPickFile = rememberDocumentPickerAvailable()
     val actions =
-        remember(viewModel) {
+        remember(viewModel, canPickFile) {
             TasteActions(
                 onTopicPreferred = viewModel::setTopicPreferred,
                 onBlockTopic = viewModel::blockTopic,
@@ -105,11 +107,11 @@ internal fun TasteScreen(
                 onOpenFavouriteArtists = { onNavigate(SettingsTarget(SettingsDestination.FAVOURITE_ARTISTS)) },
                 onOpenDiscoverChannels = { onNavigate(SettingsTarget(SettingsDestination.DISCOVER_CHANNELS)) },
                 onOpenRecap = onOpenRecap,
-                onExportVideo = { exportVideo.launch("flow_video_profile_${LocalDate.now()}.json") },
-                onImportVideo = { importVideo.launch(arrayOf(JSON)) },
+                onExportVideo = { exportVideo.launch("flow_video_profile_${LocalDate.now()}.json") }.takeIf { canPickFile },
+                onImportVideo = { importVideo.launch(arrayOf(JSON)) }.takeIf { canPickFile },
                 onResetVideo = { confirmReset = ResetKind.VIDEO },
-                onExportMusic = { exportMusic.launch("flow_music_profile_${LocalDate.now()}.json") },
-                onImportMusic = { importMusic.launch(arrayOf(JSON)) },
+                onExportMusic = { exportMusic.launch("flow_music_profile_${LocalDate.now()}.json") }.takeIf { canPickFile },
+                onImportMusic = { importMusic.launch(arrayOf(JSON)) }.takeIf { canPickFile },
                 onResetMusic = { confirmReset = ResetKind.MUSIC },
             )
         }

@@ -164,6 +164,7 @@ internal object PlaybackIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.settings_section_speed,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val normalizeVolume =
         SettingEntry(
@@ -180,6 +181,7 @@ internal object PlaybackIndex {
             summary = R.string.player_settings_overlay_cast_subtitle,
             section = R.string.settings_section_player_buttons,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val captionsButton =
         SettingEntry(
@@ -221,6 +223,7 @@ internal object PlaybackIndex {
             summary = R.string.player_settings_overlay_lock_mode_subtitle,
             section = R.string.settings_section_player_buttons,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val speedIndicator =
         SettingEntry(
@@ -431,6 +434,7 @@ internal object PlaybackIndex {
             summary = R.string.settings_music_side_swipes_summary,
             section = R.string.settings_section_music,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val musicVideoSwitch =
         SettingEntry(
@@ -448,6 +452,7 @@ internal object PlaybackIndex {
             section = R.string.settings_section_music,
             destination = page,
             keywords = R.string.settings_keywords_lock_screen_player,
+            availability = SettingAvailability.NotOnTv,
         )
 
     val all =
