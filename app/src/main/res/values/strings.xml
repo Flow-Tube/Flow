@@ -2627,6 +2627,12 @@
     <string name="player_appearance_animated_artwork_subtitle">Loop an album\'s motion artwork when it has one</string>
     <string name="player_appearance_animated_artwork_wifi_title">Animated artwork on Wi-Fi only</string>
     <string name="player_appearance_animated_artwork_wifi_subtitle">Keep artwork still on mobile data</string>
+    <string name="player_appearance_animated_artwork_quality_title">Animated artwork quality</string>
+    <string name="player_appearance_animated_artwork_quality_subtitle">Auto matches the artwork\'s size on screen</string>
+    <string name="player_appearance_animated_artwork_quality_auto">Auto</string>
+    <string name="player_appearance_animated_artwork_quality_low">Low</string>
+    <string name="player_appearance_animated_artwork_quality_medium">Medium</string>
+    <string name="player_appearance_animated_artwork_quality_high">High</string>
     <string name="music_content_language_title">Content language</string>
     <string name="music_content_language_follow_app">Follow app language</string>
     <string name="music_content_language_dialog_title">Select content language</string>

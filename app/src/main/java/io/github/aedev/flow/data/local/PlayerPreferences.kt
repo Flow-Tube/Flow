@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.*
 import io.github.aedev.flow.applock.AppLockSettings
 import io.github.aedev.flow.applock.DEFAULT_APP_LOCK_DELAY_MINUTES
 import io.github.aedev.flow.data.model.SponsorBlockCategories
+import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
+import io.github.aedev.flow.data.music.artwork.resolveArtworkLoopQuality
 import io.github.aedev.flow.data.playlist.PlaylistListOrder
 import io.github.aedev.flow.data.profile.StoreScope
 import io.github.aedev.flow.data.translation.TranslationServerType
@@ -596,6 +598,7 @@ class PlayerPreferences(
         val APP_LOCK_DELAY_MINUTES = device(intPreferencesKey("app_lock_delay_minutes"))
         val APP_LOCK_HIDE_IN_RECENTS = device(booleanPreferencesKey("app_lock_hide_in_recents"))
         val ANIMATED_ARTWORK_WIFI_ONLY = device(booleanPreferencesKey("animated_artwork_wifi_only"))
+        val ANIMATED_ARTWORK_QUALITY = device(stringPreferencesKey("animated_artwork_quality"))
         val COMMENT_GIFS_WIFI_ONLY = device(booleanPreferencesKey("comment_gifs_wifi_only"))
         val AUTO_DOWNLOAD_LIKED_MUSIC = device(booleanPreferencesKey("auto_download_liked_music"))
 
@@ -3451,6 +3454,17 @@ class PlayerPreferences(
     suspend fun setAnimatedArtworkWifiOnly(enabled: Boolean) {
         context.devicePreferencesDataStore.edit { preferences ->
             preferences[DeviceKeys.ANIMATED_ARTWORK_WIFI_ONLY] = enabled
+        }
+    }
+
+    val animatedArtworkQuality: Flow<ArtworkLoopQuality> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> resolveArtworkLoopQuality(preferences[DeviceKeys.ANIMATED_ARTWORK_QUALITY]) }
+            .distinctUntilChanged()
+
+    suspend fun setAnimatedArtworkQuality(quality: ArtworkLoopQuality) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.ANIMATED_ARTWORK_QUALITY] = quality.name
         }
     }
 

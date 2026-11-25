@@ -107,6 +107,14 @@ internal object PlayerAppearanceIndex {
             R.string.settings_section_music_player,
             revealVia = animatedArtwork.key,
         )
+    val animatedArtworkQuality =
+        entry(
+            "animated_artwork_quality",
+            R.string.player_appearance_animated_artwork_quality_title,
+            R.string.player_appearance_animated_artwork_quality_subtitle,
+            R.string.settings_section_music_player,
+            revealVia = animatedArtwork.key,
+        )
     val artworkControlColors =
         entry(
             "artwork_control_colors",
@@ -357,6 +365,7 @@ internal object PlayerAppearanceIndex {
             hideMusicArtwork,
             animatedArtwork,
             animatedArtworkWifiOnly,
+            animatedArtworkQuality,
             artworkControlColors,
             plainControlColors,
             splitTransport,

@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.artwork.AnimatedArtworkRepository
+import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
 import io.github.aedev.flow.data.music.artwork.LoadedLoop
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.di.MusicCache
@@ -47,6 +48,13 @@ class AnimatedArtworkViewModel
     ) : ViewModel() {
         val isEnabled: StateFlow<Boolean> =
             preferences.animatedArtwork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
+
+        val quality: StateFlow<ArtworkLoopQuality> =
+            preferences.animatedArtworkQuality.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+                ArtworkLoopQuality.AUTO,
+            )
 
         private val loaded = MutableStateFlow<LoadedLoop?>(null)
 

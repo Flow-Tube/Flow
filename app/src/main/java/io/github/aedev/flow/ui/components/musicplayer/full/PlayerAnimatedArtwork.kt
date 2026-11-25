@@ -45,6 +45,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.screens.music.AnimatedArtworkViewModel
 import kotlinx.coroutines.delay
@@ -73,6 +74,7 @@ internal fun rememberAnimatedArtwork(
 ): (@Composable () -> Unit)? {
     val enabled by viewModel.isEnabled.collectAsState()
     val loop by viewModel.loop.collectAsState()
+    val quality by viewModel.quality.collectAsState()
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val mounted = enabled && allowed && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
     val active = mounted && running
@@ -94,6 +96,7 @@ internal fun rememberAnimatedArtwork(
                     url = loopUrl,
                     running = running,
                     shown = shown,
+                    quality = quality,
                     dataSourceFactory = viewModel.dataSourceFactory,
                     onFailed = viewModel::onLoopFailed,
                     modifier = Modifier.fillMaxSize(),
@@ -109,7 +112,7 @@ internal fun rememberAnimatedArtwork(
  * keeps moving while the song is paused and holds its frame while not [running], and it only starts
  * loading once it runs. A paused player still wakes every second, so after a while hidden it stops
  * and frees its decoder; the view keeps showing the frame. [shown] hides it without tearing it down,
- * as during an artwork swipe.
+ * as during an artwork swipe. [quality] caps how sharp a loop it fetches.
  */
 @OptIn(UnstableApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -117,6 +120,7 @@ internal fun PlayerAnimatedArtwork(
     url: String,
     running: Boolean,
     shown: Boolean,
+    quality: ArtworkLoopQuality,
     dataSourceFactory: DataSource.Factory,
     onFailed: () -> Unit,
     modifier: Modifier = Modifier,
@@ -177,15 +181,21 @@ internal fun PlayerAnimatedArtwork(
     )
 
     BoxWithConstraints(modifier = modifier) {
-        // The smallest variant that covers this box: a larger one would only cost data.
         val widthPx = constraints.maxWidth
         val heightPx = constraints.maxHeight
-        LaunchedEffect(player, widthPx, heightPx) {
-            if (widthPx == Constraints.Infinity || heightPx == Constraints.Infinity) return@LaunchedEffect
+        LaunchedEffect(player, widthPx, heightPx, quality) {
+            val bounded = widthPx != Constraints.Infinity && heightPx != Constraints.Infinity
             player.trackSelectionParameters =
                 player.trackSelectionParameters
                     .buildUpon()
-                    .setViewportSize(widthPx, heightPx, false)
+                    .apply {
+                        // Auto takes the smallest variant that covers this box: a larger one would only cost data.
+                        if (quality.followsViewport && bounded) {
+                            setViewportSize(widthPx, heightPx, false)
+                        } else {
+                            clearViewportSizeConstraints()
+                        }
+                    }.setMaxVideoSize(quality.maxWidth, Int.MAX_VALUE)
                     .build()
         }
         AndroidView(
