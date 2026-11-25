@@ -111,6 +111,8 @@ class InnerTube {
 
     var useLoginForBrowse: Boolean = false
 
+    internal var webClients = WebClients(fetchServiceWorker = ::getServiceWorker)
+
     private fun sanitizeLocale(value: YouTubeLocale): YouTubeLocale =
         YouTubeLocale(
             gl = sanitizeCountryCode(value.gl),
@@ -743,7 +745,7 @@ class InnerTube {
         continuation: String? = null,
         playlistId: String? = null,
     ) = withRetry {
-        val client = YouTubeClient.WEB
+        val client = webClients.live(YouTubeClient.WEB)
         httpClient.post("https://www.youtube.com/youtubei/v1/next") {
             webYouTubeHeaders(client)
             setBody(
@@ -765,7 +767,7 @@ class InnerTube {
         videoId: String? = null,
         continuation: String? = null,
     ) = withRetry {
-        val client = YouTubeClient.WEB
+        val client = webClients.live(YouTubeClient.WEB)
         httpClient.post("https://www.youtube.com/youtubei/v1/updated_metadata") {
             webYouTubeHeaders(client)
             setBody(
@@ -814,7 +816,7 @@ class InnerTube {
         videoId: String?,
         playlistId: String,
     ) = withRetry {
-        val client = YouTubeClient.WEB
+        val client = webClients.live(YouTubeClient.WEB)
         httpClient.post("https://www.youtube.com/youtubei/v1/next") {
             webYouTubeHeaders(client, visitor = null)
             setBody(
@@ -836,7 +838,7 @@ class InnerTube {
         offsetMs: Long? = null,
         replay: Boolean = false,
     ) = withRetry {
-        val client = YouTubeClient.WEB
+        val client = webClients.live(YouTubeClient.WEB)
         val endpoint = if (replay) "get_live_chat_replay" else "get_live_chat"
         httpClient.post("https://www.youtube.com/youtubei/v1/live_chat/$endpoint") {
             webYouTubeHeaders(client)
@@ -910,11 +912,16 @@ class InnerTube {
             }
         }
 
-    suspend fun getWebServiceWorker(): String =
+    /** The service worker [origin] serves to [userAgent]; it carries that site's client version. */
+    suspend fun getServiceWorker(
+        origin: String,
+        userAgent: String,
+    ): String =
         httpClient
-            .get("https://www.youtube.com/sw.js") {
-                header("Origin", "https://www.youtube.com")
-                header("Referer", "https://www.youtube.com")
+            .get("$origin/sw.js") {
+                header("Origin", origin)
+                header("Referer", origin)
+                userAgent(userAgent)
             }.bodyAsText()
 
     suspend fun accountMenu(client: YouTubeClient) =
@@ -1202,7 +1209,7 @@ class InnerTube {
 
     suspend fun getMediaInfo(videoId: String): Result<MediaInfo> =
         runCatching {
-            val response = next(client = YouTubeClient.WEB, videoId, null, null, null, null, null).body<NextResponse>()
+            val response = next(client = webClients.live(YouTubeClient.WEB), videoId, null, null, null, null, null).body<NextResponse>()
             val playerResponse =
                 player(
                     client = YouTubeClient.ANDROID,

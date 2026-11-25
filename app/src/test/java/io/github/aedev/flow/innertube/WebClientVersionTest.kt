@@ -19,6 +19,16 @@ class WebClientVersionTest {
     }
 
     @Test
+    fun `a worker that names another client is not read as this one`() {
+        val mobile = """self.ytcfg={"INNERTUBE_CLIENT_NAME":"MWEB","INNERTUBE_CONTEXT_CLIENT_VERSION":"2.20261123.09.00"}"""
+
+        assertEquals("2.20261123.09.00", WebClientVersion.parse(mobile, clientName = "MWEB"))
+        assertEquals(null, WebClientVersion.parse(mobile, clientName = "WEB"))
+        assertEquals("2.20261116.00.00", WebClientVersion.parse(serviceWorker, clientName = "WEB"))
+        assertEquals("2.20250101.01.00", WebClientVersion.parse("""{"innertube_context_client_version":"2.20250101.01.00"}""", "MWEB"))
+    }
+
+    @Test
     fun `fetches once and keeps the live version`() =
         runTest {
             var fetches = 0

@@ -109,7 +109,7 @@ data class YouTubeClient(
         val WEB =
             YouTubeClient(
                 clientName = "WEB",
-                clientVersion = "2.20260710.06.00",
+                clientVersion = "2.20261123.08.00",
                 clientId = "1",
                 userAgent = USER_AGENT_WEB,
                 originalUrl = ORIGIN_YOUTUBE,
@@ -120,7 +120,7 @@ data class YouTubeClient(
         val MWEB =
             YouTubeClient(
                 clientName = "MWEB",
-                clientVersion = "2.20250122.04.00",
+                clientVersion = "2.20261123.09.00",
                 clientId = "2",
                 userAgent = USER_AGENT_MWEB,
                 platform = "MOBILE",
@@ -165,7 +165,7 @@ data class YouTubeClient(
         val WEB_REMIX =
             YouTubeClient(
                 clientName = "WEB_REMIX",
-                clientVersion = "1.20260213.01.00",
+                clientVersion = "1.20261122.17.00",
                 clientId = "67",
                 userAgent = USER_AGENT_WEB,
                 loginSupported = true,
