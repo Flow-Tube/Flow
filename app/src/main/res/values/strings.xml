@@ -2880,6 +2880,7 @@
     <!-- Player Controls -->
     <string name="btn_minimize">Minimize</string>
     <string name="captions">Captions</string>
+    <string name="shorts_no_captions">This Short has no captions</string>
     <string name="pip_mode">Picture-in-Picture</string>
     <string name="previous_frame">Previous frame</string>
     <string name="next_frame">Next frame</string>

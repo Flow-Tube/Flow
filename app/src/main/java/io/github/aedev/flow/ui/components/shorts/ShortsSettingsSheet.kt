@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.Speed
@@ -19,6 +20,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -35,7 +38,10 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.ShortVideo
 import io.github.aedev.flow.data.shorts.ShortVideoQuality
+import io.github.aedev.flow.player.shorts.ShortsCaptionChoice
+import io.github.aedev.flow.player.shorts.ShortsCaptionState
 import io.github.aedev.flow.player.shorts.ShortsPlayerPool
+import io.github.aedev.flow.player.state.SubtitleOption
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.ui.components.shared.FlowBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
@@ -53,6 +59,8 @@ import io.github.aedev.flow.ui.components.shared.flowRowGroupShape
 import io.github.aedev.flow.ui.components.shared.playbackSpeedLabel
 import io.github.aedev.flow.ui.components.shared.rememberFlowBottomSheetState
 import io.github.aedev.flow.ui.components.videoplayer.settings.PlayerSettingsQualityPage
+import io.github.aedev.flow.ui.components.videoplayer.settings.PlayerSettingsSubtitlesPage
+import io.github.aedev.flow.ui.components.videoplayer.subtitle.SubtitleCustomizer
 import io.github.aedev.flow.ui.screens.shorts.ShortsViewModel
 import kotlinx.coroutines.launch
 
@@ -62,6 +70,7 @@ private val LoadingPadding = 32.dp
 private val EmptyPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
 private const val HEADER_DIVIDER_ALPHA = 0.4f
 private const val THIS_SHORT_ROWS = 4
+private const val VIDEO_ROWS = 2
 
 /**
  * The reel's settings: the same paged sheet the video player uses, one instance whose pages swap in
@@ -94,8 +103,23 @@ internal fun ShortsSettingsSheet(
             ShortsSettingsPage.Quality -> stringResource(R.string.shorts_quality)
             ShortsSettingsPage.Speed -> stringResource(R.string.shorts_playback_speed)
             ShortsSettingsPage.Audio -> stringResource(R.string.shorts_audio_track)
+            ShortsSettingsPage.Captions -> stringResource(R.string.captions)
+            ShortsSettingsPage.CaptionStyle -> stringResource(R.string.subtitle_style)
         }
-    val backPage = ShortsSettingsPage.Main.takeIf { state.page != ShortsSettingsPage.Main }
+    val backPage =
+        when (state.page) {
+            ShortsSettingsPage.Main -> null
+            ShortsSettingsPage.CaptionStyle -> ShortsSettingsPage.Captions
+            else -> ShortsSettingsPage.Main
+        }
+    val captionState by playerPool.captionState.collectAsState()
+    val captions = captionState.takeIf { it.videoId == short.id } ?: ShortsCaptionState()
+
+    fun pickCaption(option: SubtitleOption?) {
+        playerPool.selectCaption(option?.url)
+        scope.launch { playerPreferences.setShortsCaptions(ShortsCaptionChoice.stored(option)) }
+        sheetState.dismiss()
+    }
 
     fun withStreams(block: suspend () -> Unit) {
         if (state.isLoadingStreams) return
@@ -183,6 +207,8 @@ internal fun ShortsSettingsSheet(
                         onQuality = ::openQuality,
                         onSpeed = { state.page = ShortsSettingsPage.Speed },
                         onAudio = ::openAudio,
+                        captionLabel = captions.selected?.label ?: stringResource(R.string.off),
+                        onCaptions = { state.page = ShortsSettingsPage.Captions },
                         onAmbientModeToggle = { enabled -> scope.launch { playerPreferences.setVideoAmbientModeEnabled(enabled) } },
                     )
                 }
@@ -226,6 +252,21 @@ internal fun ShortsSettingsSheet(
                         },
                     )
                 }
+
+                ShortsSettingsPage.Captions -> {
+                    ShortsCaptionsPage(
+                        captions = captions,
+                        onPick = ::pickCaption,
+                        onStyle = { state.page = ShortsSettingsPage.CaptionStyle },
+                    )
+                }
+
+                ShortsSettingsPage.CaptionStyle -> {
+                    SubtitleCustomizer(
+                        currentStyle = settings.subtitleStyle,
+                        onStyleChange = { style -> scope.launch { playerPreferences.setSubtitleStyle(style) } },
+                    )
+                }
             }
         }
     }
@@ -241,6 +282,8 @@ private fun ShortsSettingsMainPage(
     onQuality: () -> Unit,
     onSpeed: () -> Unit,
     onAudio: () -> Unit,
+    captionLabel: String,
+    onCaptions: () -> Unit,
     onAmbientModeToggle: (Boolean) -> Unit,
 ) {
     FlowSectionHeader(stringResource(R.string.shorts_settings_this_short))
@@ -277,8 +320,15 @@ private fun ShortsSettingsMainPage(
         FlowNavRow(
             leadingIcon = Icons.Filled.HighQuality,
             title = stringResource(R.string.shorts_quality),
-            shape = flowRowGroupShape(0, 1),
+            shape = flowRowGroupShape(0, VIDEO_ROWS),
             onClick = onQuality,
+        )
+        FlowNavRow(
+            leadingIcon = Icons.Filled.ClosedCaption,
+            title = stringResource(R.string.captions),
+            trailingText = captionLabel,
+            shape = flowRowGroupShape(1, VIDEO_ROWS),
+            onClick = onCaptions,
         )
     }
 
@@ -313,6 +363,30 @@ private fun ShortsSettingsMainPage(
             onCheckedChange = onAmbientModeToggle,
         )
     }
+}
+
+@Composable
+private fun ShortsCaptionsPage(
+    captions: ShortsCaptionState,
+    onPick: (SubtitleOption?) -> Unit,
+    onStyle: () -> Unit,
+) {
+    if (captions.options.isEmpty()) {
+        Text(
+            text = stringResource(R.string.shorts_no_captions),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(EmptyPadding),
+        )
+    }
+    PlayerSettingsSubtitlesPage(
+        availableSubtitles = captions.options,
+        selectedSubtitleUrl = captions.selected?.url,
+        subtitlesEnabled = captions.selected != null,
+        onSubtitleSelected = { index -> onPick(captions.options[index]) },
+        onDisableSubtitles = { onPick(null) },
+        onShowStyleCustomizer = onStyle,
+    )
 }
 
 @Composable
