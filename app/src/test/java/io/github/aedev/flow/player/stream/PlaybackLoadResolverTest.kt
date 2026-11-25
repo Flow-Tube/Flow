@@ -228,11 +228,63 @@ class PlaybackLoadResolverTest {
             coVerify(exactly = 1) { InnerTubeVideoStreamExtractor.extract(VIDEO_ID, forceSabr = true) }
         }
 
+    @Test
+    fun `a retry drops the kept extraction and never takes a handed-over one`() =
+        runTest(testDispatcher) {
+            mockkObject(PlaybackPrefetcher)
+            every { PlaybackPrefetcher.take(any()) } returns playableInnerTubeResult()
+            coEvery { InnerTubeVideoStreamExtractor.extract(any(), any()) } returns playableInnerTubeResult()
+
+            resolveSteps(freshStreams = true)
+            advanceUntilIdle()
+
+            verify(exactly = 1) { InnerTubeVideoStreamExtractor.forgetReusable(VIDEO_ID) }
+            verify(exactly = 0) { PlaybackPrefetcher.take(any()) }
+            verify(exactly = 0) { InnerTubeVideoStreamExtractor.takePromoted(any()) }
+            coVerify(exactly = 1) { InnerTubeVideoStreamExtractor.extract(VIDEO_ID, forceSabr = false) }
+        }
+
+    @Test
+    fun `a forced SABR reload neither reads nor drops the kept extraction`() =
+        runTest(testDispatcher) {
+            resolveSteps(escalateToSabr = true)
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { InnerTubeVideoStreamExtractor.extractForPage(any()) }
+            verify(exactly = 0) { InnerTubeVideoStreamExtractor.forgetReusable(any()) }
+        }
+
+    @Test
+    fun `a streamed load asks for the watch page beside the streams, not after them`() =
+        runTest(testDispatcher) {
+            val extraction = CompletableDeferred<InnerTubeVideoStreamExtractor.VideoExtractionResult?>()
+            coEvery { InnerTubeVideoStreamExtractor.extract(any(), any()) } coAnswers { extraction.await() }
+
+            val job = resolveSteps().first
+            runCurrent()
+
+            coVerify(exactly = 1) { repository.watchNextResponse(VIDEO_ID) }
+            job.cancel()
+        }
+
+    @Test
+    fun `a downloaded copy never asks for the watch page from the load`() =
+        runTest(testDispatcher) {
+            val file = temporaryFolder.newFile("$VIDEO_ID.mp4")
+            localCopy = DownloadedVideo(video = downloadedVideo(), filePath = file.absolutePath)
+
+            resolveSteps()
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) { repository.watchNextResponse(any()) }
+        }
+
     private fun TestScope.resolveSteps(
         escalateToSabr: Boolean = false,
         isCurrent: () -> Boolean = { true },
         upcoming: UpcomingPremiere = UpcomingPremiere.NOT_UPCOMING,
         blockedChannelIds: Set<String> = emptySet(),
+        freshStreams: Boolean = false,
     ): Pair<Job, List<ResolvedPlayback>> {
         val steps = mutableListOf<ResolvedPlayback>()
         val job =
@@ -247,6 +299,7 @@ class PlaybackLoadResolverTest {
                             resumePositionOverrideMs = null,
                             allowShorts = true,
                             blockedChannelIds = blockedChannelIds,
+                            freshStreams = freshStreams,
                         ),
                     isCurrent = isCurrent,
                     resolveUpcoming = { _, _ -> upcoming },

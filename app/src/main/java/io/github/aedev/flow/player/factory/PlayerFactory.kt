@@ -59,6 +59,12 @@ class PlayerFactory {
         cachedPrefs = null
     }
 
+    /** How much of the next queued video to buffer, read each time one is queued so a Data Saver change applies. */
+    fun nextVideoPreloadConfiguration(context: Context): ExoPlayer.PreloadConfiguration {
+        val preloadUs = LoadControlFactory.nextVideoPreloadUs(ensurePrefs(context).bufferForPlaybackMs, NetworkState.isDataSaverOn(context))
+        return if (preloadUs > 0) ExoPlayer.PreloadConfiguration(preloadUs) else ExoPlayer.PreloadConfiguration.DEFAULT
+    }
+
     suspend fun preloadPreferences(context: Context) {
         if (cachedPrefs == null) cachedPrefs = readPrefs(context)
     }
@@ -175,8 +181,7 @@ class PlayerFactory {
             .also {
                 it.setSeekParameters(SeekParameters.CLOSEST_SYNC)
                 it.setWakeMode(C.WAKE_MODE_LOCAL)
-                val preloadUs = LoadControlFactory.nextVideoPreloadUs(prefs.bufferForPlaybackMs, NetworkState.isDataSaverOn(context))
-                if (preloadUs > 0) it.preloadConfiguration = ExoPlayer.PreloadConfiguration(preloadUs)
+                it.preloadConfiguration = nextVideoPreloadConfiguration(context)
                 // Renderer, decoder, surface and stall events under one tag, so a stall can be
                 // timed from logcat instead of argued about (#1298).
                 if (BuildConfig.DEBUG) {
