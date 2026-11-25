@@ -1151,7 +1151,7 @@
     <string name="content_settings_title_lines_3">3行</string>
     <string name="content_settings_title_lines_unlimited">制限なし</string>
     <string name="content_settings_video_card_actions_title">動画カード上の好き嫌いボタン</string>
-    <string name="content_settings_video_card_actions_subtitle">フィードを調整するためのカード上の「いいね」ボタンと「嫌い」ボタン</string>
+    <string name="content_settings_video_card_actions_subtitle">フィードを調整するためのカード上の「高評価」ボタンと「低評価」ボタン</string>
     <string name="content_settings_video_card_mark_watched_title">動画カード上の「視聴済みとしてマーク」ボタン</string>
     <string name="content_settings_video_card_mark_watched_subtitle">カード上の目のボタンで動画を視聴済みとしてマークします</string>
     <string name="content_settings_video_card_progress_title">時計の進行状況を表示する</string>
@@ -1416,7 +1416,7 @@
     <string name="player_settings_header_gestures">ジェスチャー</string>
     <string name="player_settings_double_tap_seek">ダブルタップのシーク時間</string>
     <string name="player_settings_double_tap_seek_dialog_title">ダブルタップのシーク時間</string>
-    <string name="player_settings_double_tap_seek_dialog_body">どちらかの側をダブルタップするとどのくらいの距離までジャンプしますか。</string>
+    <string name="player_settings_double_tap_seek_dialog_body">左右どちらかをダブルタップするとどのくらいの時間ジャンプするか。</string>
     <string name="player_settings_double_tap_seek_off">オフ</string>
     <string name="player_settings_seek_zone_width">シークゾーン幅</string>
     <string name="player_settings_seek_zone_width_dialog_body">ダブルタップで各辺のどのくらいの範囲を探索するか。</string>
@@ -1442,9 +1442,9 @@
     <string name="video_quality_cellular_header">細胞の質</string>
     <string name="music_quality_header">音楽のオーディオ品質</string>
     <string name="music_quality_auto">自動</string>
-    <string name="music_quality_high">高い</string>
-    <string name="music_quality_medium">中くらい</string>
-    <string name="music_quality_low">低い</string>
+    <string name="music_quality_high">高音質</string>
+    <string name="music_quality_medium">標準</string>
+    <string name="music_quality_low">低音質</string>
     <string name="quality_144p">144p</string>
     <string name="quality_240p">240p</string>
     <string name="quality_360p">360p</string>
@@ -1648,7 +1648,7 @@
     <string name="import_label_newpipe_subscriptions">NewPipeの登録チャンネル</string>
     <string name="import_label_youtube_subscriptions">YouTubeの登録チャンネル</string>
     <string name="import_label_youtube_watch_history">YouTube の視聴履歴</string>
-    <string name="import_label_youtube_likes">YouTubeの「いいね！」</string>
+    <string name="import_label_youtube_likes">YouTubeの高評価</string>
     <string name="import_label_freetube_watch_history">FreeTube の視聴履歴</string>
     <string name="import_label_newpipe_watch_history">NewPipe の視聴履歴</string>
     <string name="import_label_libretube_subscriptions">LibreTubeの登録チャンネル</string>
@@ -1666,12 +1666,12 @@
     <string name="import_yt_data_section_subtitle">YouTube テイクアウトから追加データをインポート</string>
     <string name="import_yt_watch_history">視聴履歴をインポートする</string>
     <string name="import_yt_watch_history_desc">YouTube Takeout (watch-history.html) から視聴履歴をインポートします。</string>
-    <string name="import_yt_likes">「いいね」をインポートする</string>
+    <string name="import_yt_likes">高評価をインポートする</string>
     <string name="import_yt_likes_desc">Google Takeout のマイ アクティビティ エクスポート (JSON) から「高く評価された」動画をインポートします。</string>
-    <string name="import_takeout_part_likes">%1$d 件のいいね！</string>
+    <string name="import_takeout_part_likes">%1$d 件の高評価</string>
     <string name="import_takeout_step_history">視聴履歴</string>
     <string name="import_takeout_step_subscriptions">登録チャンネル</string>
-    <string name="import_takeout_step_activity">「いいね！」と検索</string>
+    <string name="import_takeout_step_activity">高評価と検索</string>
     <plurals name="import_takeout_part_subscriptions">
         <item quantity="other">%d 件の登録チャンネル</item>
     </plurals>
@@ -2311,10 +2311,10 @@
     <string name="file_size_mb">%1$s MB</string>
     <string name="file_size_gb">%1$s GB</string>
     <string name="removed_from_history">履歴から削除されました</string>
-    <string name="removed_from_likes">いいねから削除されました</string>
+    <string name="removed_from_likes">高評価した動画から削除されました</string>
     <string name="delete_download_dialog_title">ダウンロードを削除しますか?</string>
     <string name="delete_download_dialog_text">%1$s はこのデバイスから削除されます。</string>
-    <string name="library_empty_body">視聴、いいね、保存、ダウンロードした動画や音楽がここに表示されます。</string>
+    <string name="library_empty_body">視聴、高評価、保存、ダウンロードした動画や音楽がここに表示されます。</string>
     <string name="playlist_load_failed">このプレイリストを読み込めませんでした</string>
     <string name="playlist_unavailable_hidden">利用できない動画は非表示になっています</string>
     <string name="library_settings_subtitle">再生、ダウンロード、外観およびデータ</string>
@@ -2557,7 +2557,7 @@
     <string name="linked_profile_other">他のデバイスで</string>
     <string name="linked_profile_unnamed">名前のないプロファイル</string>
     <string name="linked_profile_start_title">%1$s を同期します</string>
-    <string name="linked_profile_merge_note">同期されたプロファイルに参加すると、その履歴、いいね、再生リストがこのプロファイルに統合されます。</string>
+    <string name="linked_profile_merge_note">同期されたプロファイルに参加すると、その履歴、高評価、再生リストがこのプロファイルに統合されます。</string>
     <string name="linked_profile_new_link">新しい同期プロファイルとして</string>
     <string name="linked_profile_join">%1$s を使用</string>
     <string name="linked_profile_stop_title">%1$s の同期を停止しますか?</string>
@@ -2577,7 +2577,7 @@
     <string name="sync_notification_channel">デバイスの同期</string>
     <string name="sync_collection_playlists">再生リスト</string>
     <string name="sync_collection_watch_history">視聴履歴</string>
-    <string name="sync_collection_likes">いいね！</string>
+    <string name="sync_collection_likes">高評価</string>
     <string name="sync_collection_subscriptions">登録チャンネル</string>
     <string name="sync_collection_subscription_groups">登録チャンネルのグループ</string>
     <string name="sync_collection_subscription_groups_body">チャンネルを分類するフォルダー。</string>
@@ -3169,7 +3169,7 @@
     <string name="widget_open_history">履歴を開く</string>
     <string name="widget_no_recent">視聴した動画がここに表示されます</string>
     <string name="widget_no_downloads">ダウンロードはここに表示されます</string>
-    <string name="widget_unlike">いいねから削除</string>
+    <string name="widget_unlike">高評価した動画から削除</string>
     <string name="widget_open_player">プレーヤーを開く</string>
     <string name="widget_short_badge">短い</string>
     <string name="widget_browse_downloads">ダウンロードを参照する</string>
@@ -3189,7 +3189,7 @@
     <string name="widget_week_title">過去 7 日間</string>
     <string name="widget_week_top_artist">今月のトップアーティスト</string>
     <string name="settings_widgets_title">ウィジェット</string>
-    <string name="settings_widgets_summary">ホーム画面に Flow を置く</string>
+    <string name="settings_widgets_summary">ホーム画面に Flow を配置</string>
     <string name="settings_widgets_add_header">ホーム画面に追加</string>
     <string name="settings_widgets_footer">いずれかをタップして配置するか、ホーム画面を長押しします。</string>
     <string name="settings_widgets_unsupported">ランチャーではアプリのウィジェットを追加できません。ホーム画面を長押しして追加します。</string>
@@ -3329,7 +3329,7 @@
     <string name="update_action_downloading">ダウンロード中</string>
     <string name="update_action_downloading_percent">ダウンロード中 %1$d%%</string>
     <string name="update_action_verifying">ファイルを確認する</string>
-    <string name="update_action_allow">インストールを許可する</string>
+    <string name="update_action_allow">インストールを許可</string>
     <string name="update_action_install">アップデートをインストール</string>
     <string name="update_action_installing">インストール中</string>
     <string name="update_permission_notice">Flow がアップデートをインストールできるようにします。 Android はこれを 1 回要求します。</string>
@@ -3505,7 +3505,7 @@
     <string name="donations_cryptocurrency">暗号通貨</string>
     <string name="import_no_history_entries">ファイル内に視聴履歴エントリが見つかりません</string>
     <string name="import_no_videos">再生リスト ファイルに動画が見つかりません</string>
-    <string name="import_no_likes">「いいね！」は見つかりませんでした。英語の Google アカウントを使用して、YouTube のマイ アクティビティを JSON としてエクスポートします。</string>
+    <string name="import_no_likes">高評価した動画は見つかりませんでした。英語の Google アカウントを使用して、YouTube のマイ アクティビティを JSON としてエクスポートします。</string>
     <string name="import_no_content">このバックアップにはインポート可能なコンテンツが見つかりません</string>
     <string name="import_invalid_format">認識できないバックアップ形式 - 正しいファイルを選択していることを確認してください</string>
     <string name="import_failed_template">インポートに失敗しました: %1$s</string>
@@ -3553,7 +3553,7 @@
     <string name="settings_playback_summary">自動再生、ジェスチャー、キャプション、プレーヤー ボタン</string>
     <string name="settings_quality_summary">動画、ショート動画、音楽の品質</string>
     <string name="settings_content_summary">ホーム、登録チャンネル、Shorts、メモ</string>
-    <string name="settings_topics_summary">フォローするトピックと非表示にするトピック</string>
+    <string name="settings_topics_summary">フォローまたは非表示にするトピックの選択</string>
     <string name="settings_integrations_summary">SponsorBlock、DeArrow、低評価など</string>
     <string name="settings_backup_summary">エクスポート、インポート、自動バックアップ</string>
     <string name="settings_history_summary">検索履歴と提案</string>
@@ -3647,9 +3647,9 @@
     <string name="settings_quality_tab_shorts">Shorts</string>
     <string name="settings_quality_tab_music">音楽</string>
     <string name="settings_section_thumbnails">サムネイル</string>
-    <string name="thumbnail_quality_high">高い</string>
-    <string name="thumbnail_quality_medium">中くらい</string>
-    <string name="thumbnail_quality_low">低い</string>
+    <string name="thumbnail_quality_high">高画質</string>
+    <string name="thumbnail_quality_medium">標準</string>
+    <string name="thumbnail_quality_low">低画質</string>
     <string name="thumbnail_quality_high_desc">最も鮮明で、最も多くのデータを使用します</string>
     <string name="thumbnail_quality_medium_desc">携帯電話ではクリア、データ量は約半分</string>
     <string name="thumbnail_quality_low_desc">データ量は最小限、大きなカードではソフト</string>
@@ -3661,7 +3661,7 @@
     <string name="settings_quality_mobile">画質 (モバイルデータ通信)</string>
     <string name="settings_section_resolution">解像度</string>
     <string name="settings_section_codec">コーデック</string>
-    <string name="settings_music_quality_auto_summary">Wi-Fi では高、モバイル データでは中程度</string>
+    <string name="settings_music_quality_auto_summary">Wi-Fi では高音質、モバイル データでは標準</string>
     <string name="settings_keywords_quality">解像度、1080p、4k、hd、データ使用量</string>
     <string name="settings_keywords_codec">h264、avc、vp9、av1、ハードウェア デコード</string>
     <string name="settings_quality_preferred_codec">優先コーデック</string>
@@ -3883,7 +3883,7 @@
     <string name="taste_export_music">音楽プロファイルをエクスポートする</string>
     <string name="taste_import_music">音楽プロファイルをインポートする</string>
     <string name="taste_reset_music">音楽プロファイルをリセットする</string>
-    <string name="taste_reset_video_body">Flow は動画や検索から学んだことを忘れてしまいます。履歴、いいね、再生リスト、非表示のアイテムは残り、ホームでは引き続き使用されます。</string>
+    <string name="taste_reset_video_body">Flow は動画や検索から学んだことを忘れてしまいます。履歴、高評価、再生リスト、非表示のアイテムは残り、ホームでは引き続き使用されます。</string>
     <string name="taste_reset_music_title">音楽プロファイルをリセットしますか?</string>
     <string name="taste_reset_music_body">これにより、Flow が音楽から学んだ内容がクリアされ、再びゼロから始まります。あなたのハイライトは残ります。</string>
     <string name="taste_trait_now">現在は %1$s</string>
@@ -3945,7 +3945,7 @@
     <string name="recap_dislikes">低評価</string>
     <string name="recap_blocked">ブロック</string>
     <string name="recap_library_title">あなたのライブラリ</string>
-    <string name="recap_likes">いいね！</string>
+    <string name="recap_likes">高評価</string>
     <string name="recap_saves">保存されました</string>
     <string name="recap_downloads">ダウンロード</string>
     <string name="recap_searches">検索</string>
@@ -4171,7 +4171,7 @@
     <string name="scrobbling_show_secret">見せる</string>
     <string name="scrobbling_hide_secret">隠れる</string>
     <string name="scrobbling_send_likes">愛が好きな曲</string>
-    <string name="scrobbling_send_likes_summary">Last.fm と Libre.fm では、「いいね！」がお気に入りのトラックとして表示されます</string>
+    <string name="scrobbling_send_likes_summary">Last.fm と Libre.fm では、高評価した音楽がお気に入りのトラックとして表示されます</string>
     <string name="scrobbling_import">トップアーティストをインポートする</string>
     <string name="scrobbling_import_summary">よく再生されるアーティストをお気に入りに追加します</string>
     <string name="scrobbling_import_offer_title">%1$s で音楽を形作りませんか?</string>
@@ -4260,4 +4260,10 @@
     </plurals>
     <string name="recent_searches_show_all">すべて表示</string>
     <string name="group_show_in_all">すべてに表示</string>
+    <string name="settings_classic_loader_title">クラシックなローディングインジケーター</string>
+    <string name="settings_classic_loader_keywords">ローダー、スピナー、進行状況、円、読み込みアニメーション</string>
+    <string name="settings_quality_lower_when_small">ミニプレイヤー・ピクチャーインピクチャーでは低画質</string>
+    <string name="quality_auto_with_resolution">自動 (%1$s)</string>
+    <string name="export_playlists_title">再生リスト</string>
+    <string name="export_playlists_desc">再生リスト、後で見る、高評価した動画や保存したショート動画などをまとめ、Flowが認識できるデータにします</string>
 </resources>
