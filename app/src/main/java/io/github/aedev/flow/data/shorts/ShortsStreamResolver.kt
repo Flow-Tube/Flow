@@ -1,9 +1,14 @@
 package io.github.aedev.flow.data.shorts
 
+import android.content.ComponentCallbacks2
+import android.content.Context
+import android.content.res.Configuration
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.dash.manifest.DashManifest
+import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.aedev.flow.AppMemoryTrim
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.audio.LoudnessGain
@@ -76,10 +81,17 @@ class ShortsStreamResolver internal constructor(
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
     @Inject
-    constructor(playerPreferences: PlayerPreferences) : this(
+    constructor(
+        @ApplicationContext context: Context,
+        playerPreferences: PlayerPreferences,
+    ) : this(
         playerPreferences = playerPreferences,
         extract = { videoId -> InnerTubeVideoStreamExtractor.extract(videoId) },
-    )
+    ) {
+        // Listening here rather than being trimmed from the application means a trim never creates a
+        // resolver for a user who has not opened Shorts.
+        context.registerComponentCallbacks(TrimOnMemoryPressure(::trimMemory))
+    }
 
     private class Expiring<T>(
         val value: T,
@@ -258,4 +270,17 @@ class ShortsStreamResolver internal constructor(
                 override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean = size > maxEntries
             }
     }
+}
+
+internal class TrimOnMemoryPressure(
+    private val trim: () -> Unit,
+) : ComponentCallbacks2 {
+    override fun onTrimMemory(level: Int) {
+        if (AppMemoryTrim.releasesVolatileMemory(level)) trim()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) = Unit
+
+    @Deprecated("Deprecated in Java")
+    override fun onLowMemory() = trim()
 }
