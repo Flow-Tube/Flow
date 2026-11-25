@@ -47,6 +47,9 @@ object LiveSegmentSessions {
     }
 
     @Synchronized
+    fun forVideo(videoId: String?): LiveSegmentSession? = videoId?.let { sessions[it] }
+
+    @Synchronized
     internal fun register(session: LiveSegmentSession) {
         sessions.remove(session.videoId)
         sessions[session.videoId] = session

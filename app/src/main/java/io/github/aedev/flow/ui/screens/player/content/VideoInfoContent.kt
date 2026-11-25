@@ -111,8 +111,8 @@ internal fun VideoInfoContent(
         isSubscribed = uiState.isSubscribed,
         isNotificationsEnabled = uiState.isNotificationsEnabled,
         likeState = uiState.likeState ?: "NONE",
-        likeCount = video.likeCount,
-        dislikeCount = uiState.dislikeCount,
+        likeCount = video.likeCount.takeIf { uiState.ratingsAllowed },
+        dislikeCount = uiState.dislikeCount.takeIf { uiState.ratingsAllowed },
         onLikeClick = {
             val thumbnailUrl = video.thumbnailUrl
 

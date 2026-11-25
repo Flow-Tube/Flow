@@ -138,6 +138,7 @@ internal class PlaybackLoadController(
      * @param escalateToSabr If true (a 403-expiry reload), skip the fast direct-URL clients and
      *   extract straight through the durable WEB+PoToken+SABR path — fast clients return the same
      *   session-gated URLs that just 403'd, so re-trying them loops.
+     * @param freshStreams If true (a retry), never play an extraction kept from an earlier open.
      */
     fun load(
         videoId: String,
@@ -145,6 +146,7 @@ internal class PlaybackLoadController(
         forceRefresh: Boolean,
         escalateToSabr: Boolean,
         resumePositionOverrideMs: Long?,
+        freshStreams: Boolean = false,
     ) {
         notes.observe(videoId)
         if (LocalMediaIds.isLocal(videoId)) {
@@ -205,6 +207,7 @@ internal class PlaybackLoadController(
                                 resumePositionOverrideMs = resumePositionOverrideMs,
                                 allowShorts = shortsEnabled,
                                 blockedChannelIds = exclusions.blockedChannelIds,
+                                freshStreams = freshStreams,
                             ),
                         isCurrent = { isCurrent(loadToken) },
                         resolveUpcoming = collaborators.upcomingPremiere::resolve,

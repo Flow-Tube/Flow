@@ -33,7 +33,7 @@ internal fun ChannelCommunityPosts(
     errorLog: String?,
     listState: LazyListState,
     contentPadding: PaddingValues,
-    onAuthorClick: () -> Unit,
+    onAuthorClick: (CommunityPost) -> Unit,
     onCommentsClick: (CommunityPost) -> Unit,
     onShareClick: (CommunityPost) -> Unit,
     onLoadMore: () -> Unit,
@@ -94,7 +94,7 @@ internal fun ChannelCommunityPosts(
                 ) { post ->
                     MediaPostCard(
                         post = post,
-                        onAuthorClick = onAuthorClick,
+                        onAuthorClick = { onAuthorClick(post) },
                         onCommentsClick = { onCommentsClick(post) },
                         onShareClick = { onShareClick(post) },
                     )

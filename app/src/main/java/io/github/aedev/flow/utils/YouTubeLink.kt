@@ -46,6 +46,11 @@ sealed interface YouTubeLink {
     data class Search(
         val query: String,
     ) : YouTubeLink
+
+    /** A community post, `youtube.com/post/<id>`. */
+    data class Post(
+        val id: String,
+    ) : YouTubeLink
 }
 
 private val URL_IN_TEXT = Regex("""(?i)\bhttps?://\S+""")
@@ -53,6 +58,7 @@ private val VIDEO_ID = Regex("""[A-Za-z0-9_-]{11}""")
 private val CHANNEL_ID = Regex("""UC[A-Za-z0-9_-]{22}""")
 private val PLAYLIST_ID = Regex("""[A-Za-z0-9_-]{2,}""")
 private val ALBUM_ID = Regex("""MPREb_[A-Za-z0-9_-]+""")
+private val POST_ID = Regex("""Ug[A-Za-z0-9_-]{8,}""")
 private val HANDLE = Regex("""@[\p{L}\p{N}._-]{3,}""")
 private val CHANNEL_NAME = Regex("""[\p{L}\p{N}._-]+""")
 private const val TRAILING_PUNCTUATION = ".,;:!?)]}>\"'"
@@ -194,6 +200,10 @@ private fun pathLink(
 
         first.startsWith("@") -> {
             first.takeIf(HANDLE::matches)?.let(YouTubeLink::ChannelHandle)
+        }
+
+        first == "post" -> {
+            second?.takeIf(POST_ID::matches)?.let(YouTubeLink::Post)
         }
 
         first == "results" -> {

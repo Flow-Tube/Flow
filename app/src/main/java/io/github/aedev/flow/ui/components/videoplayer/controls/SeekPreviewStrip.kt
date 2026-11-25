@@ -80,7 +80,7 @@ internal fun SeekPreviewStrip(
         seekStripFrames(
             positionMs = position,
             intervalMs = level.intervalMs,
-            frameCount = level.frameCount,
+            frameCount = stripFrameCount(level.frameCount, level.isLive, level.intervalMs, durationMs),
             thumbXPx = thumbX,
             frameWidthPx = frameWidthPx,
             stripWidthPx = size.width,
@@ -129,7 +129,7 @@ private fun visibleFrames(
     seekStripFrames(
         positionMs = positionMs,
         intervalMs = level.intervalMs,
-        frameCount = level.frameCount,
+        frameCount = stripFrameCount(level.frameCount, level.isLive, level.intervalMs, durationMs),
         thumbXPx = scrubThumbFraction(positionMs, durationMs) * stripWidthPx,
         frameWidthPx = frameWidthPx,
         stripWidthPx = stripWidthPx,

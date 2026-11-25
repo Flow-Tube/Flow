@@ -27,6 +27,7 @@ internal class ChannelCommunityController(
         val id: String,
         val name: String,
         val avatarUrl: String,
+        val postsParams: String?,
     )
 
     private val _state = MutableStateFlow(ChannelCommunityUiState())
@@ -34,12 +35,14 @@ internal class ChannelCommunityController(
 
     private var channel: ChannelContext? = null
 
+    /** [postsParams] is the posts tab's own token from the channel's tab list, when it has one. */
     fun reset(
         channelId: String,
         channelName: String,
         avatarUrl: String,
+        postsParams: String?,
     ) {
-        channel = ChannelContext(channelId, channelName, avatarUrl)
+        channel = ChannelContext(channelId, channelName, avatarUrl, postsParams)
         _state.value = ChannelCommunityUiState()
     }
 
@@ -55,6 +58,7 @@ internal class ChannelCommunityController(
                     channelSnapshot.id,
                     channelSnapshot.name,
                     channelSnapshot.avatarUrl,
+                    channelSnapshot.postsParams,
                 ).fold(
                     onSuccess = { page ->
                         if (channel?.id != channelSnapshot.id) return@fold

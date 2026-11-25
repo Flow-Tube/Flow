@@ -9,6 +9,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
 
 class YouTubeClientTest {
     private val locale = YouTubeLocale(gl = "LB", hl = "en-US")
@@ -31,9 +33,43 @@ class YouTubeClientTest {
 
         assertEquals("https://www.youtube.com", context.client.originalUrl)
         assertEquals("DESKTOP", context.client.platform)
-        assertEquals(0, context.client.utcOffsetMinutes)
         assertEquals("LB", context.client.gl)
         assertEquals("en-US", context.client.hl)
+    }
+
+    @Test
+    fun webClientsSendTheDeviceTimeZoneWithTheOffsetInForceAtTheTimeOfTheRequest() {
+        val berlin = ZoneId.of("Europe/Berlin")
+        val winter = Instant.parse("2026-01-15T12:00:00Z")
+        val summer = Instant.parse("2026-07-15T12:00:00Z")
+
+        listOf(YouTubeClient.WEB, YouTubeClient.MWEB).forEach { client ->
+            val inWinter = client.toContext(locale, null, null, zone = berlin, now = winter).client
+            val inSummer = client.toContext(locale, null, null, zone = berlin, now = summer).client
+
+            assertEquals("Europe/Berlin", inWinter.timeZone)
+            assertEquals(60, inWinter.utcOffsetMinutes)
+            assertEquals(120, inSummer.utcOffsetMinutes)
+        }
+    }
+
+    @Test
+    fun aZoneBehindUtcSendsANegativeOffset() {
+        val newYork = ZoneId.of("America/New_York")
+        val context = YouTubeClient.WEB.toContext(locale, null, null, zone = newYork, now = Instant.parse("2026-01-15T12:00:00Z"))
+
+        assertEquals(-300, context.client.utcOffsetMinutes)
+        assertEquals("America/New_York", context.client.timeZone)
+    }
+
+    @Test
+    fun otherClientsSendNoTimeZoneKeys() {
+        listOf(YouTubeClient.WEB_REMIX, YouTubeClient.ANDROID, YouTubeClient.IOS, YouTubeClient.ANDROID_VR_1_65_10).forEach { client ->
+            val encoded = innerTubeJson.encodeToJsonElement(contextOf(client)).jsonObject["client"]!!.jsonObject
+
+            assertFalse(client.clientName, "utcOffsetMinutes" in encoded)
+            assertFalse(client.clientName, "timeZone" in encoded)
+        }
     }
 
     @Test

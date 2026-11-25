@@ -8,7 +8,9 @@ import androidx.media3.common.Tracks
 import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.player.media.MediaLoader
 import io.github.aedev.flow.player.state.SubtitleOrigin
+import io.github.aedev.flow.player.stream.CaptionAudioLink
 import io.github.aedev.flow.player.stream.CaptionFormat
+import io.github.aedev.flow.player.stream.CaptionsInitialState
 import io.github.aedev.flow.player.stream.ResolvedCaption
 import org.junit.Test
 
@@ -61,6 +63,85 @@ class SubtitleTracksTest {
 
         tracks.load("v2", listOf(online("en")), acceptsEmbedded = false)
         assertThat(tracks.selected?.language).isEqualTo("en")
+    }
+
+    private fun linked(
+        language: String,
+        vssId: String,
+        vararg links: CaptionAudioLink,
+    ) = online(language).copy(url = "https://yt/timedtext?vss=$vssId", trackId = vssId, audioLinks = links.toList())
+
+    private fun link(
+        audioTrackId: String,
+        default: Boolean,
+        state: CaptionsInitialState,
+    ) = CaptionAudioLink(audioTrackId, isDefaultAudioTrack = audioTrackId == "en.4", isDefaultCaption = default, initialState = state)
+
+    // English is listed for both audio tracks and turns on under the Spanish dub; German only under the original.
+    private val dubbed =
+        listOf(
+            linked(
+                "en",
+                ".en",
+                link("en.4", default = true, state = CaptionsInitialState.OFF_RECOMMENDED),
+                link("es.3", default = true, state = CaptionsInitialState.ON_RECOMMENDED),
+            ),
+            linked("de", ".de", link("en.4", default = false, state = CaptionsInitialState.OFF_RECOMMENDED)),
+        )
+
+    @Test
+    fun `a dub turns on its recommended captions and the original does not`() {
+        val tracks = SubtitleTracks()
+        tracks.load("v1", dubbed, acceptsEmbedded = false)
+        tracks.setAudioTrack("en.4")
+        assertThat(tracks.selected).isNull()
+        assertThat(tracks.options.map { it.language }).containsExactly("de", "en")
+
+        assertThat(tracks.setAudioTrack("es.3")).isTrue()
+        assertThat(tracks.options.map { it.language }).containsExactly("en")
+        assertThat(tracks.selected?.trackId).isEqualTo(".en")
+
+        tracks.setAudioTrack("en.4")
+        assertThat(tracks.selected).isNull()
+    }
+
+    @Test
+    fun `a viewer who turned captions off is never overridden`() {
+        val settingOff = SubtitleTracks()
+        settingOff.setPolicy(SubtitleAutoPolicy(enabled = false, languageTag = null, turnedOff = true))
+        settingOff.load("v1", dubbed, acceptsEmbedded = false)
+        settingOff.setAudioTrack("es.3")
+        assertThat(settingOff.selected).isNull()
+
+        val offForVideo = SubtitleTracks()
+        offForVideo.load("v1", dubbed, acceptsEmbedded = false)
+        offForVideo.select(null)
+        offForVideo.setAudioTrack("es.3")
+        assertThat(offForVideo.selected).isNull()
+    }
+
+    @Test
+    fun `a pick the new audio track does not list falls back to the automatic track`() {
+        val tracks = SubtitleTracks()
+        tracks.load("v1", dubbed, acceptsEmbedded = false)
+        tracks.setAudioTrack("en.4")
+        tracks.select(tracks.options.first { it.language == "de" }.url)
+
+        tracks.setAudioTrack("es.3")
+        assertThat(tracks.selected?.language).isEqualTo("en")
+
+        tracks.setAudioTrack("en.4")
+        assertThat(tracks.selected?.language).isEqualTo("de")
+    }
+
+    @Test
+    fun `the preferred language still wins when captions turn on by themselves`() {
+        val tracks = SubtitleTracks()
+        tracks.setPolicy(SubtitleAutoPolicy(enabled = true, languageTag = "de"))
+        tracks.load("v1", dubbed, acceptsEmbedded = false)
+        tracks.setAudioTrack("en.4")
+
+        assertThat(tracks.selected?.language).isEqualTo("de")
     }
 
     @Test

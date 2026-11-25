@@ -1,5 +1,6 @@
 package io.github.aedev.flow.innertube.pages.renderer
 
+import io.github.aedev.flow.data.model.RichTextTarget
 import io.github.aedev.flow.innertube.pages.youtubeText
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -94,6 +95,139 @@ class CommunityPostsPageTest {
         assertEquals("45", post.commentCountText)
         assertEquals("post-params", post.commentEndpointParams)
         assertEquals("posts-next", page.continuation)
+    }
+
+    private fun post(
+        id: String,
+        withAuthorEndpoint: Boolean = true,
+    ): String {
+        val endpoint = if (withAuthorEndpoint) """"authorEndpoint": {"browseEndpoint": {"browseId": "UCauthor"}},""" else ""
+        return """
+            {"backstagePostThreadRenderer": {"post": {"backstagePostRenderer": {
+              "postId": "$id",
+              "authorText": {"runs": [{"text": "Bench Notes", "navigationEndpoint": {"browseEndpoint": {"browseId": "UCfromtext"}}}]},
+              $endpoint
+              "contentText": {"runs": [{"text": "Hello"}]}
+            }}}}
+            """
+    }
+
+    private fun aboutPanelHeader(token: String) =
+        """
+        "header": {"pageHeaderRenderer": {"content": {"pageHeaderViewModel": {"description": {"descriptionPreviewViewModel": {
+          "rendererContext": {"commandContext": {"onTap": {"innertubeCommand": {"showEngagementPanelEndpoint": {"engagementPanel": {
+            "engagementPanelSectionListRenderer": {"content": {"sectionListRenderer": {"contents": [{"itemSectionRenderer": {"contents": [
+              {"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "$token"}}}}
+            ]}}]}}}
+          }}}}}}
+        }}}}}}
+        """
+
+    private fun postsTab(vararg items: String) =
+        """
+        "contents": {"twoColumnBrowseResultsRenderer": {"tabs": [{"tabRenderer": {"selected": true, "content": {
+          "sectionListRenderer": {"contents": [{"itemSectionRenderer": {"contents": [${items.joinToString(",")}]}}]}
+        }}}]}}
+        """
+
+    @Test
+    fun `keeps each post's author channel`() {
+        val page =
+            Json
+                .parseToJsonElement("{${postsTab(post("p1"), post("p2", withAuthorEndpoint = false))}}")
+                .toCommunityPostsPage("Fallback", "")
+
+        assertEquals(listOf("UCauthor", "UCfromtext"), page.posts.map { it.authorChannelId })
+    }
+
+    @Test
+    fun `the last page of posts has no next page, though the header carries an about token`() {
+        val page =
+            Json
+                .parseToJsonElement("{${aboutPanelHeader("about-token")}, ${postsTab(post("p1"))}}")
+                .toCommunityPostsPage("Fallback", "")
+
+        assertEquals(1, page.posts.size)
+        assertNull(page.continuation)
+    }
+
+    @Test
+    fun `the next page comes from the posts list even when the header comes first`() {
+        val next = """{"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "posts-next"}}}}"""
+        val page =
+            Json
+                .parseToJsonElement("{${aboutPanelHeader("about-token")}, ${postsTab(post("p1"), next)}}")
+                .toCommunityPostsPage("Fallback", "")
+
+        assertEquals("posts-next", page.continuation)
+    }
+
+    @Test
+    fun `a posts page append reads its own next token`() {
+        val page =
+            Json
+                .parseToJsonElement(
+                    """
+                    {"onResponseReceivedEndpoints": [{"appendContinuationItemsAction": {"continuationItems": [
+                      ${post("p9")},
+                      {"continuationItemRenderer": {"continuationEndpoint": {"continuationCommand": {"token": "page-3"}}}}
+                    ]}}]}
+                    """,
+                ).toCommunityPostsPage("Fallback", "")
+
+        assertEquals(listOf("p9"), page.posts.map { it.id })
+        assertEquals("page-3", page.continuation)
+    }
+
+    @Test
+    fun `keeps the links, timestamps, hashtags and mentions in a post's text`() {
+        val response =
+            Json.parseToJsonElement(
+                """
+                {"contents": [{"backstagePostThreadRenderer": {"post": {"backstagePostRenderer": {
+                  "postId": "rich",
+                  "contentText": {"runs": [
+                    {"text": "Full video at "},
+                    {"text": "4:12", "navigationEndpoint": {"watchEndpoint": {"videoId": "dQw4w9WgXcQ", "startTimeSeconds": 252}}},
+                    {"text": " in "},
+                    {"text": "youtu.be/…", "navigationEndpoint": {"urlEndpoint": {
+                      "url": "https://www.youtube.com/redirect?q=https%3A%2F%2Fexample.com%2Fpage&v=x"}}},
+                    {"text": " "},
+                    {"text": "#mkbhd", "navigationEndpoint": {"browseEndpoint": {"browseId": "FEhashtag", "canonicalBaseUrl": "/hashtag/mkbhd"}}},
+                    {"text": " with "},
+                    {"text": "@friend", "navigationEndpoint": {"browseEndpoint": {"browseId": "UCWqW23Ko6dbscptZYyQE-8A"}}}
+                  ]}
+                }}}}]}
+                """,
+            )
+
+        val post = response.toCommunityPostsPage("Fallback", "").posts.single()
+        val rich = requireNotNull(post.richText)
+
+        assertEquals(post.text, rich.text)
+        assertEquals(
+            listOf(
+                RichTextTarget.Video("dQw4w9WgXcQ", 252),
+                RichTextTarget.Url("https://example.com/page"),
+                RichTextTarget.Hashtag("mkbhd"),
+                RichTextTarget.Channel("UCWqW23Ko6dbscptZYyQE-8A"),
+            ),
+            rich.spans.map { it.target },
+        )
+        assertEquals("4:12", rich.text.substring(rich.spans[0].start, rich.spans[0].end))
+    }
+
+    @Test
+    fun `a plain post has no marked spans`() {
+        val post =
+            Json
+                .parseToJsonElement("{${postsTab(post("plain"))}}")
+                .toCommunityPostsPage("Fallback", "")
+                .posts
+                .single()
+
+        assertEquals("Hello", post.richText?.text)
+        assertEquals(emptyList<Any>(), post.richText?.spans)
     }
 
     @Test

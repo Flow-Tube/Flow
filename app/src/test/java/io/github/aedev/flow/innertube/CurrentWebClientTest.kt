@@ -36,6 +36,6 @@ class CurrentWebClientTest {
         WebClientVersionStub.fail()
 
         assertThat(currentWebClient()).isEqualTo(YouTubeClient.WEB)
-        assertThat(currentWebClient().clientVersion).isEqualTo("2.20260710.06.00")
+        assertThat(currentWebClient().clientVersion).isEqualTo("2.20261123.08.00")
     }
 }

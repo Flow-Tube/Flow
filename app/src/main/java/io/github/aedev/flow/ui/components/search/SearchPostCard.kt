@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.search
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ fun SearchPostCard(
     post: CommunityPost,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onAuthorClick: (() -> Unit)? = null,
 ) {
     OutlinedCard(
         onClick = onClick,
@@ -47,6 +49,12 @@ fun SearchPostCard(
             verticalArrangement = Arrangement.spacedBy(BlockSpacing),
         ) {
             Row(
+                modifier =
+                    if (onAuthorClick != null) {
+                        Modifier.clip(MaterialTheme.shapes.small).clickable(onClick = onAuthorClick)
+                    } else {
+                        Modifier
+                    },
                 horizontalArrangement = Arrangement.spacedBy(AuthorSpacing),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

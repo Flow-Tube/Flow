@@ -547,6 +547,8 @@ fun NavGraphBuilder.flowAppGraph(
 
     downloadsRoutes(navController, mediaNavigator, playerViewModel, onMusicStarted)
 
+    postRoutes(navController, mediaNavigator)
+
     musicRoutes(navController, mediaNavigator, currentRoute, playerViewModel, defaultStartRoute, onMusicStarted)
 
     widgetPlaybackRoutes(navController, defaultStartRoute, playerViewModel, onMusicStarted)

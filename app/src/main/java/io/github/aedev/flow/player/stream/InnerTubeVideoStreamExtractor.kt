@@ -1,6 +1,7 @@
 package io.github.aedev.flow.player.stream
 
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import androidx.media3.common.util.UnstableApi
 import io.github.aedev.flow.innertube.YouTube
@@ -120,6 +121,29 @@ object InnerTubeVideoStreamExtractor {
         val liveHlsUrl: String? = null,
         val liveDashUrl: String? = null,
     )
+
+    private val reusable =
+        ReusableExtractions(
+            identity = { WebPoTokenSession.identityGeneration },
+            isGated = ClientGateTracker::isGated,
+            nowMs = SystemClock::elapsedRealtime,
+        )
+
+    /**
+     * [extract] for the watch page: a kept extraction of [videoId] while it is still good, otherwise
+     * a fresh one, which is then kept for the next open. Never used for a forced-SABR or recovery
+     * load, which exist to replace URLs.
+     */
+    suspend fun extractForPage(videoId: String): VideoExtractionResult? {
+        reusable.get(videoId)?.let { kept ->
+            Log.d(TAG, "Reusing the kept extraction for $videoId (${kept.usedClient.clientName}); no client ladder")
+            return kept
+        }
+        return extract(videoId)?.also { reusable.store(videoId, it) }
+    }
+
+    /** Drops [videoId]'s kept extraction: its URLs were refused, or a recovery replaces them. */
+    fun forgetReusable(videoId: String) = reusable.forget(videoId)
 
     /**
      * @param audioOnly the caller plays only [VideoExtractionResult.audioFormats], so a capped
@@ -713,7 +737,11 @@ object InnerTubeVideoStreamExtractor {
                 Log.w(TAG, "$label+SABR: no visitorData available")
                 return null
             }
-            val poToken = WebPoTokenSession.mintForVisitorData(videoId, visitorData)
+            val (poToken, liveClient) =
+                coroutineScope {
+                    val live = async { YouTube.liveWebClient(client) }
+                    WebPoTokenSession.mintForVisitorData(videoId, visitorData) to live.await()
+                }
             if (poToken == null) {
                 failureReasons.add("$label: PoToken unavailable (WebView missing/broken?)")
                 Log.w(TAG, "$label+SABR: PoToken mint returned null (WebView missing/broken?)")
@@ -732,7 +760,7 @@ object InnerTubeVideoStreamExtractor {
                             locale = YouTubeLocale.EXTRACTION,
                             cpn = cpn,
                             reloadToken = reloadToken,
-                            client = client,
+                            client = liveClient,
                         ).getOrNull()
                 }
             if (playerResponse == null) {
@@ -746,7 +774,7 @@ object InnerTubeVideoStreamExtractor {
                 val refusal = PlayabilityVerdict.refusal(playerResponse.playabilityStatus, playerResponse.videoDetails != null)
                 failureReasons.add("$label: $refusal")
                 Log.w(TAG, "$label: $refusal")
-                PlayerDiagnostics.logWarning(TAG, "skip $label v${client.clientVersion}: $refusal pot=true")
+                PlayerDiagnostics.logWarning(TAG, "skip $label v${liveClient.clientVersion}: $refusal pot=true")
                 return null
             }
 
@@ -809,9 +837,9 @@ object InnerTubeVideoStreamExtractor {
             // same client that minted this response.
             val sabrInfo =
                 withTransformedN.copy(
-                    clientNameId = SabrClientIdentity.clientNameId(client),
-                    clientVersion = client.clientVersion,
-                    clientUserAgent = client.userAgent,
+                    clientNameId = SabrClientIdentity.clientNameId(liveClient),
+                    clientVersion = liveClient.clientVersion,
+                    clientUserAgent = liveClient.userAgent,
                 )
 
             // The SABR session is the point of this path, but these formats are what playback falls
@@ -863,7 +891,7 @@ object InnerTubeVideoStreamExtractor {
                 videoFormats = videoFormats,
                 audioFormats = audioFormats,
                 playerResponse = playerResponse,
-                usedClient = client,
+                usedClient = liveClient,
                 sabrInfo = sabrInfo,
             )
         } catch (e: CancellationException) {

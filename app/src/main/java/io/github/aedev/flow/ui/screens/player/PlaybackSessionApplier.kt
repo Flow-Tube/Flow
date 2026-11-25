@@ -312,13 +312,29 @@ internal class PlaybackSessionApplier(
         playbackPreparer.beginSession(videoId, identity.title, identity.channel, identity.thumbnail)
         playbackPreparer.applyAutoplayCandidates(videoId = videoId, videos = relatedVideos)
 
-        uiState.update { it.applyLiveStreams(relatedVideos, streams.hlsUrl) }
+        uiState.update {
+            it.applyLiveStreams(relatedVideos, streams.hlsUrl).copy(ratingsAllowed = streams.ratingsAllowed)
+        }
+
+        val segmentsManifest = liveSegments.await()
+        // Live scrub previews are numbered by segment, which only a segment session can place.
+        val segmentSession = LiveSegmentSessions.forVideo(videoId).takeIf { segmentsManifest != null }
+        if (segmentSession != null && isLoadCurrent(load.token)) {
+            val liveStoryboard = result.playerResponse.storyboards?.playerLiveStoryboardSpecRenderer
+            val storyboard =
+                StoryboardSpec.parseLive(
+                    spec = liveStoryboard?.spec,
+                    segmentDurationMs = segmentSession.clock.segmentDurationUs / 1_000,
+                    segments = playerManager::liveSegmentAt,
+                )
+            uiState.update { it.copy(storyboard = storyboard) }
+        }
 
         val liveStarted =
             playbackPreparer.prepareLiveStreams(
                 videoId = videoId,
                 hlsUrl = streams.hlsUrl,
-                dashManifestUrl = liveSegments.await() ?: streams.dashManifestUrl,
+                dashManifestUrl = segmentsManifest ?: streams.dashManifestUrl,
                 subtitles = streams.subtitles,
                 isCurrent = { isLoadCurrent(load.token) },
                 isDvrEnabled = streams.isDvrEnabled,
@@ -374,9 +390,7 @@ internal class PlaybackSessionApplier(
                     cachedVideo = identity.enrichedVideo,
                     // A stream that was live but is not now. The extractor reported this as a
                     // POST_LIVE_STREAM type; the player response splits it across two flags.
-                    isArchivedLivestream =
-                        result.playerResponse.videoDetails?.isLiveContent == true &&
-                            result.playerResponse.videoDetails?.isLive != true,
+                    isArchivedLivestream = streams.isArchivedLivestream,
                     relatedVideos = relatedVideos,
                     videoStream = streams.videoStream,
                     audioStream = streams.audioStream,
@@ -395,7 +409,7 @@ internal class PlaybackSessionApplier(
                                     ?.spec,
                             durationMs = streams.durationSeconds * 1000L,
                         ),
-                ).copy(streamClient = result.usedClient.clientName)
+                ).copy(streamClient = result.usedClient.clientName, ratingsAllowed = streams.ratingsAllowed)
         }
 
         // Queue and preloaded playback may already own this media item. Arm secondary metadata
