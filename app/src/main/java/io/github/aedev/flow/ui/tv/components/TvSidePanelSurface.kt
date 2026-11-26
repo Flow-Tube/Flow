@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.tv.theme.LocalTvDimens
@@ -49,6 +50,7 @@ internal fun TvSidePanelSurface(
     onClose: (() -> Unit)?,
     keepsFocus: () -> Boolean,
     modifier: Modifier = Modifier,
+    width: Dp = LocalTvDimens.current.sidePanelWidth,
     contentPadding: PaddingValues = PaddingValues(),
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
     content: @Composable ColumnScope.() -> Unit,
@@ -60,7 +62,7 @@ internal fun TvSidePanelSurface(
     Surface(
         modifier =
             modifier
-                .width(dimens.sidePanelWidth)
+                .width(width)
                 .fillMaxHeight(),
         shape = MaterialTheme.shapes.extraLarge.copy(topEnd = ZeroCornerSize, bottomEnd = ZeroCornerSize),
         color = color,
