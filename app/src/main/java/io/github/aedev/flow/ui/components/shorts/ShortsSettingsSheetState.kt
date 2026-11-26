@@ -21,6 +21,8 @@ internal enum class ShortsSettingsPage {
     Quality,
     Speed,
     Audio,
+    Captions,
+    CaptionStyle,
 }
 
 /**

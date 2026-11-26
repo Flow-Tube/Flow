@@ -13,9 +13,11 @@ import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.audio.LoudnessGain
 import io.github.aedev.flow.player.shorts.ShortsStartupTrace
+import io.github.aedev.flow.player.stream.CaptionTrackResolver
 import io.github.aedev.flow.player.stream.InFlightRequestCoalescer
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor.VideoExtractionResult
+import io.github.aedev.flow.player.stream.ResolvedCaption
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.player.stream.durationMs
 import io.github.aedev.flow.player.stream.playableAudioFormats
@@ -49,6 +51,8 @@ data class ShortPlaybackStreams(
     val details: ShortDetails? = null,
     /** YouTube's loudness for the reel, in dB, for volume normalization. */
     val loudnessGainDb: Float? = null,
+    /** The reel's own caption tracks; each loads only while captions show on it. */
+    val captions: List<ResolvedCaption> = emptyList(),
 )
 
 data class ShortVideoQuality(
@@ -245,6 +249,7 @@ class ShortsStreamResolver internal constructor(
                     audio?.loudnessDb,
                     audio?.trackAbsoluteLoudnessLkfs,
                 ),
+            captions = CaptionTrackResolver.resolve(playerResponse),
         )
     }
 

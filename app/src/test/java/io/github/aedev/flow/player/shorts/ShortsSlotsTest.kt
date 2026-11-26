@@ -8,23 +8,22 @@ class ShortsSlotsTest {
 
     @Test
     fun `a slot is owned only by the index and id it was assigned`() {
-        slots.assign(1, index = 4, videoId = "a", videoUrl = "v", audioUrl = "x", videoManifest = null, audioManifest = "m")
+        slots.assign(1, index = 4, videoId = "a", ShortsSlotStreams(videoUrl = "v", audioUrl = "x", audioManifest = "m"))
 
         assertThat(slots.owns(1, index = 4, videoId = "a")).isTrue()
         assertThat(slots.owns(1, index = 7, videoId = "a")).isFalse()
         assertThat(slots.owns(1, index = 4, videoId = "b")).isFalse()
-        assertThat(slots.audioManifests[1]).isEqualTo("m")
+        assertThat(slots.streams[1]?.audioManifest).isEqualTo("m")
     }
 
     @Test
     fun `clearing a slot forgets everything it held`() {
-        slots.assign(2, index = 5, videoId = "a", videoUrl = "v", audioUrl = "x", videoManifest = "vm", audioManifest = "am")
+        val streams = ShortsSlotStreams(videoUrl = "v", audioUrl = "x", videoManifest = "vm", audioManifest = "am")
+        slots.assign(2, index = 5, videoId = "a", streams)
 
         slots.clear(2)
 
         assertThat(slots.owns(2, index = 5, videoId = "a")).isFalse()
-        assertThat(
-            listOf(slots.videoUrls[2], slots.audioUrls[2], slots.videoManifests[2], slots.audioManifests[2]),
-        ).containsExactly(null, null, null, null)
+        assertThat(slots.streams[2]).isNull()
     }
 }
