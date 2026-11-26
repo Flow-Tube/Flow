@@ -2841,7 +2841,7 @@
     <string name="settings_music_side_swipes_summary">Sürət üçün sol tərəfi, səs üçün sağ tərəfi sürüşdürün</string>
     <string name="music_watch_video_desc">Musiqi videosunu video oynadıcıda aç</string>
     <string name="player_appearance_animated_artwork_title">Animasiyalı albom şəkli</string>
-    <string name="player_appearance_animated_artwork_subtitle">Albomun animasiyalı şəkli varsa, onu dövrəyə sal</string>
+    <string name="player_appearance_animated_artwork_subtitle">Mahnının animasiyalı şəkli varsa, onu dövrəyə sal</string>
     <string name="player_appearance_animated_artwork_wifi_title">Yalnız Wi-Fi-da animasiyalı albom şəkli</string>
     <string name="player_appearance_animated_artwork_wifi_subtitle">Mobil internetdə şəkli sabit saxla</string>
     <string name="music_content_language_title">Məzmun dili</string>
@@ -5316,4 +5316,17 @@
     <string name="post_title">Post</string>
     <string name="post_load_failed">Bu postu yükləmək olmadı</string>
     <string name="youtube_page_unavailable">YouTube bu səhifənin əlçatan olmadığını bildirir</string>
+    <string name="backup_no_file_picker">Bu TV-nin fayl seçicisi yoxdur, ona görə də nüsxələr burada saxlanıla və ya bərpa edilə bilməz.</string>
+    <string name="player_appearance_animated_artwork_source_title">Animasiyalı üzlük mənbəyi</string>
+    <string name="player_appearance_animated_artwork_source_subtitle">Hər ikisini, əvvəlcə Apple Music-i sınayır, sonra Spotify Canvas</string>
+    <string name="player_appearance_animated_artwork_source_apple">Apple Music</string>
+    <string name="player_appearance_animated_artwork_source_canvas">Spotify</string>
+    <string name="player_appearance_animated_artwork_source_both">Hər ikisi</string>
+    <string name="player_appearance_animated_artwork_quality_title">Animasiyalı üzlük keyfiyyəti</string>
+    <string name="player_appearance_animated_artwork_quality_subtitle">Ekrandakı üzlüyün ölçüsünə avtomatik uyğunlaşır</string>
+    <string name="player_appearance_animated_artwork_quality_auto">Avtomatik</string>
+    <string name="player_appearance_animated_artwork_quality_low">Aşağı</string>
+    <string name="player_appearance_animated_artwork_quality_medium">Orta</string>
+    <string name="player_appearance_animated_artwork_quality_high">Yüksək</string>
+    <string name="shorts_no_captions">Bu Short-un subtitri yoxdur</string>
 </resources>
