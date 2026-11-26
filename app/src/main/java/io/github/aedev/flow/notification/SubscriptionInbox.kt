@@ -1,39 +1,57 @@
 package io.github.aedev.flow.notification
 
-import io.github.aedev.flow.data.local.ChannelSubscription
+import android.util.Log
 import io.github.aedev.flow.data.local.NotificationRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.local.entity.NotificationEntity
 import io.github.aedev.flow.data.model.Video
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Lists the uploads a subscription feed refresh brings in, from every followed channel, in the inbox. */
+/**
+ * Lists new uploads from every followed channel in the inbox. Each path that adds rows to the
+ * subscription feed cache hands them here, because a row is new only once: the next writer sees it
+ * as cached.
+ */
 @Singleton
 class SubscriptionInbox
     @Inject
     constructor(
         private val inbox: NotificationRepository,
         private val preferences: PlayerPreferences,
+        private val subscriptions: SubscriptionRepository,
     ) {
+        /** [added] rows just written to the feed cache, [cachedBefore] that cache's rows for their channels beforehand. */
         suspend fun record(
-            written: List<Video>,
+            added: List<Video>,
             cachedBefore: List<Video>,
-            subscriptions: List<ChannelSubscription>,
             now: Long,
         ) {
-            val picked =
-                selectInboxUploads(
-                    written = written,
-                    cachedBefore = cachedBefore,
-                    followedAt = subscriptions.associate { it.channelId to it.subscribedAt },
-                    sinceMs = preferences.inboxFeedSince(now - INBOX_BACKFILL_MS),
-                    showShorts = preferences.effectiveSubscriptionShowShorts.first(),
-                    notifyShorts = preferences.notifShortsEnabled.first(),
-                    now = now,
-                )
-            if (picked.isNotEmpty()) inbox.recordNew(picked.map { it.toInboxEntry() })
+            if (added.isEmpty()) return
+            try {
+                val picked =
+                    selectInboxUploads(
+                        written = added,
+                        cachedBefore = cachedBefore,
+                        followedAt = subscriptions.getAllSubscriptions().first().associate { it.channelId to it.subscribedAt },
+                        sinceMs = preferences.inboxFeedSince(now - INBOX_BACKFILL_MS),
+                        showShorts = preferences.effectiveSubscriptionShowShorts.first(),
+                        notifyShorts = preferences.notifShortsEnabled.first(),
+                        now = now,
+                    )
+                if (picked.isNotEmpty()) inbox.recordNew(picked.map { it.toInboxEntry() })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Couldn't list new uploads in the inbox", e)
+            }
+        }
+
+        private companion object {
+            const val TAG = "SubscriptionInbox"
         }
     }
 

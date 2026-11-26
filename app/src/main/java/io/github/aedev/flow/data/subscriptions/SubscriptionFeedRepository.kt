@@ -17,7 +17,6 @@ import io.github.aedev.flow.data.subscriptions.SubscriptionFeedMerger.preserving
 import io.github.aedev.flow.di.ProfileDb
 import io.github.aedev.flow.notification.SubscriptionInbox
 import io.github.aedev.flow.utils.PerformanceDispatcher
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -274,8 +273,10 @@ class SubscriptionFeedRepository
             reelIds: Set<String>,
         ) {
             val written = channelIds.toHashSet()
-            val subscriptions = withContext(PerformanceDispatcher.diskIO) { subscriptionRepository.getAllSubscriptions().first() }
-            val subscribedChannelIds = subscriptions.mapTo(HashSet()) { it.channelId }
+            val subscribedChannelIds =
+                withContext(PerformanceDispatcher.diskIO) {
+                    subscriptionRepository.getAllSubscriptions().first().mapTo(HashSet()) { it.channelId }
+                }
             val write =
                 subscriptionFeedWrite(
                     channelIds = channelIds,
@@ -307,13 +308,7 @@ class SubscriptionFeedRepository
                 subscriptionRepository.markFeedFetched(write.fetchedChannelIds, refreshTime)
                 val cachedCount = cacheDao.getSubscriptionFeedCount()
                 playerPreferences.setSubscriptionLastRefresh(refreshTime, cachedCount)
-                try {
-                    inbox.record(write.rows, sliceCached.filter { it.channelId in written }, subscriptions, refreshTime)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Log.w(TAG, "Couldn't list new uploads in the inbox", e)
-                }
+                inbox.record(write.rows, sliceCached.filter { it.channelId in written }, refreshTime)
             }
             Log.i(
                 TAG,
@@ -354,7 +349,9 @@ class SubscriptionFeedRepository
             if (rows.isEmpty()) return
 
             withContext(PerformanceDispatcher.diskIO) {
+                val before = cacheDao.getSubscriptionFeedForChannels(listOf(channelId)).map { it.toVideo() }
                 cacheDao.insertSubscriptionFeedIfAbsent(rows)
+                inbox.record(rows.map { it.toVideo() }, before, now)
             }
             Log.d(TAG, "Seeded ${rows.size} row(s) for $channelId from the notification check")
         }
@@ -410,6 +407,8 @@ class SubscriptionFeedRepository
             val (inserts, updates) = splitChannelTabUploads(recent, stored)
             withContext(PerformanceDispatcher.diskIO) {
                 cacheDao.insertSubscriptionFeedIfAbsent(inserts.map { it.toEntity(now) })
+                val insertedChannels = inserts.mapTo(HashSet()) { it.channelId }
+                inbox.record(inserts, stored.filter { it.channelId in insertedChannels }, now)
             }
             updateEnrichedMetadata(updates)
         }
