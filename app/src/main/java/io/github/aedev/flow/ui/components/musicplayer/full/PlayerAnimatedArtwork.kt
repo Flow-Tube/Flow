@@ -45,6 +45,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
+import io.github.aedev.flow.data.music.artwork.LoopVideo
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.ui.screens.music.AnimatedArtworkViewModel
 import kotlinx.coroutines.delay
@@ -73,27 +75,30 @@ internal fun rememberAnimatedArtwork(
 ): (@Composable () -> Unit)? {
     val enabled by viewModel.isEnabled.collectAsState()
     val loop by viewModel.loop.collectAsState()
+    val quality by viewModel.quality.collectAsState()
+    val source by viewModel.source.collectAsState()
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val mounted = enabled && allowed && lifecycleState.isAtLeast(Lifecycle.State.STARTED)
     val active = mounted && running
-    LaunchedEffect(track, active) { if (active && track != null) viewModel.load(track) else viewModel.stopLookup() }
+    LaunchedEffect(track, active, source) { if (active && track != null) viewModel.load(track, source) else viewModel.stopLookup() }
     if (!mounted) return null
-    val url = loop?.urlFor(track?.videoId, tallSpace)
+    val video = loop?.videoFor(track?.videoId, tallSpace)
     return {
         AnimatedContent(
-            targetState = url,
+            targetState = video,
             // A new loop fades in by itself on its first frame.
             transitionSpec = {
                 (EnterTransition.None togetherWith fadeOut(tween(durationMillis = 300, delayMillis = NEXT_COVER_WAIT_MS))).using(null)
             },
             modifier = Modifier.fillMaxSize(),
             label = "animatedArtworkLoop",
-        ) { loopUrl ->
-            if (loopUrl != null) {
+        ) { loopVideo ->
+            if (loopVideo != null) {
                 PlayerAnimatedArtwork(
-                    url = loopUrl,
+                    video = loopVideo,
                     running = running,
                     shown = shown,
+                    quality = quality,
                     dataSourceFactory = viewModel.dataSourceFactory,
                     onFailed = viewModel::onLoopFailed,
                     modifier = Modifier.fillMaxSize(),
@@ -104,26 +109,27 @@ internal fun rememberAnimatedArtwork(
 }
 
 /**
- * An album's motion artwork looping over its cover. It has a muted player of its own that never
+ * An album's motion artwork, or a song's Canvas, looping over its cover. It has a muted player of its own that never
  * takes audio focus, fades in on its first frame, and is released when it leaves composition. It
  * keeps moving while the song is paused and holds its frame while not [running], and it only starts
  * loading once it runs. A paused player still wakes every second, so after a while hidden it stops
  * and frees its decoder; the view keeps showing the frame. [shown] hides it without tearing it down,
- * as during an artwork swipe.
+ * as during an artwork swipe. [quality] caps how sharp an Apple loop it fetches; a Canvas has one size.
  */
 @OptIn(UnstableApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlayerAnimatedArtwork(
-    url: String,
+    video: LoopVideo,
     running: Boolean,
     shown: Boolean,
+    quality: ArtworkLoopQuality,
     dataSourceFactory: DataSource.Factory,
     onFailed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val reportFailure by rememberUpdatedState(onFailed)
-    var hasFrame by remember(url) { mutableStateOf(false) }
+    var hasFrame by remember(video) { mutableStateOf(false) }
     val player =
         remember(dataSourceFactory) {
             ExoPlayer
@@ -142,7 +148,7 @@ internal fun PlayerAnimatedArtwork(
         }
     DisposableEffect(player) { onDispose { player.release() } }
 
-    DisposableEffect(player, url) {
+    DisposableEffect(player, video) {
         val listener =
             object : Player.Listener {
                 override fun onRenderedFirstFrame() {
@@ -155,8 +161,8 @@ internal fun PlayerAnimatedArtwork(
         player.setMediaItem(
             MediaItem
                 .Builder()
-                .setUri(url)
-                .setMimeType(MimeTypes.APPLICATION_M3U8)
+                .setUri(video.url)
+                .setMimeType(if (video.isCanvas) MimeTypes.VIDEO_MP4 else MimeTypes.APPLICATION_M3U8)
                 .build(),
         )
         onDispose { player.removeListener(listener) }
@@ -177,15 +183,21 @@ internal fun PlayerAnimatedArtwork(
     )
 
     BoxWithConstraints(modifier = modifier) {
-        // The smallest variant that covers this box: a larger one would only cost data.
         val widthPx = constraints.maxWidth
         val heightPx = constraints.maxHeight
-        LaunchedEffect(player, widthPx, heightPx) {
-            if (widthPx == Constraints.Infinity || heightPx == Constraints.Infinity) return@LaunchedEffect
+        LaunchedEffect(player, widthPx, heightPx, quality, video.isCanvas) {
+            val bounded = widthPx != Constraints.Infinity && heightPx != Constraints.Infinity
             player.trackSelectionParameters =
                 player.trackSelectionParameters
                     .buildUpon()
-                    .setViewportSize(widthPx, heightPx, false)
+                    .apply {
+                        // Auto takes the smallest variant that covers this box: a larger one would only cost data.
+                        if (quality.followsViewport && bounded && !video.isCanvas) {
+                            setViewportSize(widthPx, heightPx, false)
+                        } else {
+                            clearViewportSizeConstraints()
+                        }
+                    }.setMaxVideoSize(if (video.isCanvas) Int.MAX_VALUE else quality.maxWidth, Int.MAX_VALUE)
                     .build()
         }
         AndroidView(

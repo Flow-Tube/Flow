@@ -79,6 +79,7 @@ internal fun PlayerAppearanceScreen(
     val followLightTheme by viewModel.followLightTheme.collectAsStateWithLifecycle()
     val artworkControlColors by viewModel.artworkControlColors.collectAsStateWithLifecycle()
     val animatedArtwork by viewModel.animatedArtwork.collectAsStateWithLifecycle()
+    val artworkSource by viewModel.animatedArtworkSource.collectAsStateWithLifecycle()
     val plainControlColors by viewModel.plainControlColors.collectAsStateWithLifecycle()
     val sleepTimerButton by viewModel.sleepTimerButton.collectAsStateWithLifecycle()
     val musicMini = rememberMusicMiniSettings(viewModel)
@@ -154,6 +155,7 @@ internal fun PlayerAppearanceScreen(
     val queueSwipeLeftLabel = stringResource(queueSwipeLeft.rowSwipe.labelRes)
     val queueSwipeRightLabel = stringResource(queueSwipeRight.rowSwipe.labelRes)
     val lyricsOptions = rememberLyricsLookOptions()
+    val artworkOptions = rememberArtworkOptions()
 
     SettingsPage(
         title = stringResource(R.string.player_appearance_title),
@@ -207,14 +209,7 @@ internal fun PlayerAppearanceScreen(
                 switch(PlayerAppearanceIndex.lyricsOnCover, viewModel.lyricsOnCover, viewModel::setLyricsOnCover)
             }
             switch(PlayerAppearanceIndex.hideMusicArtwork, hideMusicArtwork, viewModel::setHideMusicArtwork)
-            switch(PlayerAppearanceIndex.animatedArtwork, animatedArtwork, viewModel::setAnimatedArtwork)
-            if (animatedArtwork) {
-                switch(
-                    PlayerAppearanceIndex.animatedArtworkWifiOnly,
-                    viewModel.animatedArtworkWifiOnly,
-                    viewModel::setAnimatedArtworkWifiOnly,
-                )
-            }
+            animatedArtworkRows(viewModel, animatedArtwork, artworkSource, artworkOptions)
             switch(PlayerAppearanceIndex.artworkControlColors, artworkControlColors, viewModel::setArtworkControlColors)
             if (!artworkControlColors) {
                 toggleGroup(

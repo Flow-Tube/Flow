@@ -47,6 +47,9 @@ class AnimatedArtworkRepositoryTest {
     private var searchAnswer: (String) -> List<SongItem> = { emptyList() }
     private val catalogSearches = mutableListOf<Pair<String, String>>()
     private var catalogAnswer: (String) -> List<CatalogSong> = { emptyList() }
+    private val canvasUrl = "https://canvaz.scdn.co/upload/artist/a/video/b.cnvs.mp4"
+    private val canvasRequests = mutableListOf<Map<String, String>>()
+    private var canvasAnswer: (Map<String, String>) -> CanvasAnswer = { CanvasAnswer("39LLxExYz6ewLAcYrzQQyP", canvasUrl) }
     private var clock = 0L
     private val cache = MemoryCache()
     private val repository =
@@ -54,6 +57,10 @@ class AnimatedArtworkRepositoryTest {
             fetch = { params ->
                 requests += params
                 answer(params)
+            },
+            fetchCanvas = { params ->
+                canvasRequests += params
+                canvasAnswer(params)
             },
             searchSongs = { query ->
                 searches += query
@@ -173,9 +180,11 @@ class AnimatedArtworkRepositoryTest {
     fun `a stored answer reads back as it was written`() {
         val found = CachedLoop(AnimatedLoop(loop, tallLoop), 42L)
         val missing = CachedLoop(null, 42L)
+        val canvas = CachedLoop(AnimatedLoop.canvas(canvasUrl), 42L)
 
         assertThat(decodeCachedLoop(found.encoded())).isEqualTo(found)
         assertThat(decodeCachedLoop(missing.encoded())).isEqualTo(missing)
+        assertThat(decodeCachedLoop(canvas.encoded())).isEqualTo(canvas)
     }
 
     @Test
@@ -448,4 +457,125 @@ class AnimatedArtworkRepositoryTest {
 
         assertThat(queries.map { it.artist }.distinct()).containsExactly("Taylor Swift")
     }
+
+    @Test
+    fun `a canvas is asked for by the song's title, artist, album and length`() =
+        runTest {
+            val canvas = repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)
+
+            assertThat(canvas?.isCanvas).isTrue()
+            assertThat(canvas?.urlFor(tallSpace = false)).isEqualTo(canvasUrl)
+            assertThat(canvas?.urlFor(tallSpace = true)).isEqualTo(canvasUrl)
+            assertThat(canvasRequests.single()).containsExactly("s", "Anti-Hero", "a", "Taylor Swift", "al", "Midnights", "d", "201")
+            assertThat(requests).isEmpty()
+        }
+
+    @Test
+    fun `a canvas is kept per song, not per album`() =
+        runTest {
+            repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)
+            repository.loopFor(antiHero.copy(videoId = "b"), ArtworkSource.SPOTIFY_CANVAS)
+            repository.loopFor(antiHero.copy(videoId = "c", title = "Lavender Haze"), ArtworkSource.SPOTIFY_CANVAS)
+
+            assertThat(canvasRequests.map { it["s"] }).containsExactly("Anti-Hero", "Lavender Haze").inOrder()
+        }
+
+    @Test
+    fun `a song with no canvas or no match is remembered as none`() =
+        runTest {
+            canvasAnswer = { CanvasAnswer(trackId = "39LLxExYz6ewLAcYrzQQyP", videoUrl = null) }
+            assertThat(repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)).isNull()
+            canvasAnswer = { CanvasAnswer(error = "No matching track") }
+            assertThat(repository.loopFor(antiHero.copy(title = "Lavender Haze"), ArtworkSource.SPOTIFY_CANVAS)).isNull()
+
+            repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)
+            assertThat(canvasRequests).hasSize(2)
+        }
+
+    @Test
+    fun `a canvas that is not an https link is not played`() =
+        runTest {
+            canvasAnswer = { CanvasAnswer("39LLxExYz6ewLAcYrzQQyP", "http://canvaz.scdn.co/a.mp4") }
+
+            assertThat(repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)).isNull()
+        }
+
+    @Test
+    fun `a failed canvas lookup is not kept`() =
+        runTest {
+            canvasAnswer = { throw IOException("503") }
+            assertThat(runCatching { repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS) }.isFailure).isTrue()
+
+            canvasAnswer = { CanvasAnswer("39LLxExYz6ewLAcYrzQQyP", canvasUrl) }
+            assertThat(repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)?.isCanvas).isTrue()
+        }
+
+    @Test
+    fun `both takes the album loop first and never asks for a canvas when there is one`() =
+        runTest {
+            assertThat(repository.loopFor(antiHero, ArtworkSource.BOTH)?.isCanvas).isFalse()
+            assertThat(canvasRequests).isEmpty()
+        }
+
+    @Test
+    fun `both falls back to the canvas when the album has no loop`() =
+        runTest {
+            answer = { ArtworkAnswer("Anti-Hero", "Taylor Swift") }
+
+            assertThat(repository.loopFor(antiHero, ArtworkSource.BOTH)?.urlFor(tallSpace = false)).isEqualTo(canvasUrl)
+            assertThat(canvasRequests).hasSize(1)
+        }
+
+    @Test
+    fun `forgetting a song drops its canvas too`() =
+        runTest {
+            repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)
+            repository.forget(antiHero)
+            repository.loopFor(antiHero, ArtworkSource.SPOTIFY_CANVAS)
+
+            assertThat(canvasRequests).hasSize(2)
+        }
+
+    @Test
+    fun `a music video with no canvas match asks again as its song version`() =
+        runTest {
+            val video = antiHero.copy(album = "", duration = 308)
+            searchAnswer = {
+                listOf(
+                    SongItem(
+                        id = "song",
+                        title = "Anti-Hero",
+                        artists = listOf(Artist("Taylor Swift", "ts")),
+                        album = Album("Midnights", "m"),
+                        duration = 201,
+                        thumbnail = "",
+                        musicVideoType = MUSIC_VIDEO_TYPE_ATV,
+                    ),
+                )
+            }
+            canvasAnswer =
+                { params ->
+                    if (params["d"] ==
+                        "201"
+                    ) {
+                        CanvasAnswer("0V3wPSX9ygBnCm8psDIegu", canvasUrl)
+                    } else {
+                        CanvasAnswer(error = "No matching tracks found")
+                    }
+                }
+
+            assertThat(repository.loopFor(video, ArtworkSource.SPOTIFY_CANVAS)?.isCanvas).isTrue()
+            assertThat(canvasRequests.map { it["d"] }).containsExactly("308", "201").inOrder()
+            assertThat(canvasRequests.last()["al"]).isEqualTo("Midnights")
+        }
+
+    @Test
+    fun `a matched song with no canvas is not asked about again as another version`() =
+        runTest {
+            canvasAnswer = { CanvasAnswer(trackId = "0V3wPSX9ygBnCm8psDIegu") }
+
+            assertThat(repository.loopFor(antiHero.copy(album = ""), ArtworkSource.SPOTIFY_CANVAS)).isNull()
+            assertThat(canvasRequests).hasSize(1)
+            assertThat(searches).isEmpty()
+        }
 }

@@ -20,9 +20,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Album motion artwork for the music player, from the artwork service that sits beside the
- * BetterLyrics lyrics API. It returns Apple Music's loops for an album, sends nothing but the
- * song's title, artist, album and length, and needs no account. Each album is asked about once;
+ * Motion artwork for the music player, from the artwork service that sits beside the BetterLyrics
+ * lyrics API. It returns Apple Music's loops for an album, or a song's Spotify Canvas, which it
+ * matches and looks up itself, so nothing is sent to Spotify from here. Each lookup sends nothing
+ * but the song's title, artist, album and length, and needs no account. Each album is asked about once;
  * the answer, loop or none, is kept for days, as the service asks of its clients. A row with no
  * album, usually a music video, is asked about again under its song version's album on a miss.
  * Apple often has several releases of a song and the service can land on one with no loop, so a
@@ -31,6 +32,7 @@ import javax.inject.Singleton
 @Singleton
 class AnimatedArtworkRepository internal constructor(
     private val fetch: suspend (Map<String, String>) -> ArtworkAnswer,
+    private val fetchCanvas: suspend (Map<String, String>) -> CanvasAnswer,
     private val searchSongs: suspend (String) -> List<SongItem>,
     private val searchCatalog: suspend (String, String) -> List<CatalogSong>,
     private val cache: AnimatedArtworkCache,
@@ -43,6 +45,7 @@ class AnimatedArtworkRepository internal constructor(
         preferences: PlayerPreferences,
     ) : this(
         fetch = ArtworkService::fetch,
+        fetchCanvas = ArtworkService::fetchCanvas,
         // Not YouTubeMusicService.searchMusic: it turns a failed search into an empty list, which would be kept as a miss for days.
         searchSongs = { query ->
             withContext(PerformanceDispatcher.networkIO) {
@@ -61,20 +64,53 @@ class AnimatedArtworkRepository internal constructor(
 
     private val lock = Mutex()
 
-    /** The HLS loops for [row]'s album, or null when it has none. Throws when the service could not answer. */
-    internal suspend fun loopFor(row: MusicTrack): AnimatedLoop? =
+    /**
+     * The loop [source] has for [row]: its album's HLS loops, its Canvas, or with both the album's
+     * loop first. Null when there is none. Throws when the service could not answer.
+     */
+    internal suspend fun loopFor(
+        row: MusicTrack,
+        source: ArtworkSource = ArtworkSource.APPLE_MUSIC,
+    ): AnimatedLoop? =
         lock.withLock {
             val track = AnimatedArtworkLookup.withKnownAlbum(row)
-            val key = AnimatedArtworkLookup.key(track)
-            cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return@withLock it.loop }
-            val asked = mutableSetOf<String>()
-            val loop = lookUp(track, asked)
-            cache.put(key, CachedLoop(loop, now()))
-            loop
+            val album =
+                if (source.asksAppleMusic) {
+                    remembered(AnimatedArtworkLookup.key(track)) { lookUp(track, mutableSetOf()) }
+                } else {
+                    null
+                }
+            when {
+                album != null || source == ArtworkSource.APPLE_MUSIC -> album
+                else -> remembered(AnimatedArtworkLookup.canvasKey(track)) { canvas(track) }
+            }
         }
 
-    /** Drops [row]'s answer, for a loop that no longer plays. */
-    suspend fun forget(row: MusicTrack) = cache.remove(AnimatedArtworkLookup.key(AnimatedArtworkLookup.withKnownAlbum(row)))
+    /** Drops [row]'s answers, for a loop that no longer plays. */
+    suspend fun forget(row: MusicTrack) {
+        val track = AnimatedArtworkLookup.withKnownAlbum(row)
+        cache.remove(AnimatedArtworkLookup.key(track))
+        cache.remove(AnimatedArtworkLookup.canvasKey(track))
+    }
+
+    private suspend fun remembered(
+        key: String,
+        answer: suspend () -> AnimatedLoop?,
+    ): AnimatedLoop? {
+        cache.get(key)?.takeIf { now() - it.atMs < ttlFor(it) }?.let { return it.loop }
+        return answer().also { cache.put(key, CachedLoop(it, now())) }
+    }
+
+    /**
+     * A music video runs longer than its song, so the service finds no song of that length; it is
+     * asked once more under the song version's album and length.
+     */
+    private suspend fun canvas(track: MusicTrack): AnimatedLoop? {
+        val answer = fetchCanvas(AnimatedArtworkLookup.canvasParams(track))
+        if (answer.matched) return answer.loop()
+        val version = albumVersion(track) ?: return null
+        return fetchCanvas(AnimatedArtworkLookup.canvasParams(version)).loop()
+    }
 
     private suspend fun ask(
         track: MusicTrack,
@@ -136,12 +172,16 @@ class AnimatedArtworkRepository internal constructor(
 
 private object ArtworkService {
     private const val ENDPOINT = "https://artwork.boidu.dev/"
+    private const val CANVAS_ENDPOINT = "https://artwork.boidu.dev/canvas"
     private const val CATALOG_SEARCH = "https://itunes.apple.com/search"
     private const val CATALOG_RESULTS = "25"
     private val http = ProxyAwareClient()
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun fetch(params: Map<String, String>): ArtworkAnswer = json.decodeFromString(ArtworkAnswer.serializer(), get(ENDPOINT, params))
+
+    suspend fun fetchCanvas(params: Map<String, String>): CanvasAnswer =
+        json.decodeFromString(CanvasAnswer.serializer(), get(CANVAS_ENDPOINT, params))
 
     suspend fun searchCatalog(
         term: String,
