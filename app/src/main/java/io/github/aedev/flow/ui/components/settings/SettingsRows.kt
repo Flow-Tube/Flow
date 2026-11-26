@@ -160,18 +160,8 @@ private fun InfoRow(
     shape: Shape,
     badge: Boolean = false,
 ) {
-    // A remote scrolls a page only by moving focus, so on one these rows take focus despite doing nothing.
-    val focusModifier =
-        if (LocalDpadNavigation.current) {
-            val interactionSource = remember { MutableInteractionSource() }
-            Modifier
-                .indication(interactionSource, ripple(focusRingShape = shape))
-                .focusable(interactionSource = interactionSource)
-        } else {
-            Modifier
-        }
     SegmentedListItem(
-        modifier = focusModifier,
+        modifier = Modifier.dpadFocusStop(shape),
         verticalAlignment = Alignment.CenterVertically,
         shapes = ListItemDefaults.shapes(shape = shape),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),

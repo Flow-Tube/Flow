@@ -22,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import io.github.aedev.flow.R
@@ -29,6 +31,7 @@ import io.github.aedev.flow.ui.components.settings.SettingsDestination
 import io.github.aedev.flow.ui.components.settings.SettingsListScope
 import io.github.aedev.flow.ui.components.settings.info
 import io.github.aedev.flow.ui.components.settings.nav
+import io.github.aedev.flow.ui.components.shared.skipDpadFocus
 import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
 import io.github.aedev.flow.ui.screens.settings.index.TasteIndex
 
@@ -163,21 +166,16 @@ private fun SettingsListScope.picks(
     group(key = "taste.picks", header = R.string.taste_picks_header) {
         picks.forEach { pick ->
             row("taste.pick.${pick.id}") { shape ->
-                TasteMeterRow(
+                TasteMenuRow(
                     title = pick.label,
                     value = null,
                     shape = shape,
                     detail = stringResource(R.string.taste_topic_boosted) + " · " + stringResource(evidenceLabel(pick.evidence)),
-                    trailing = {
-                        ItemMenu(
-                            label = pick.label,
-                            options =
-                                listOf(
-                                    stringResource(R.string.taste_topic_unboost) to { actions.onTopicPreferred(pick.id, false) },
-                                    stringResource(R.string.taste_topic_block) to { actions.onBlockTopic(pick.id) },
-                                ),
-                        )
-                    },
+                    options =
+                        listOf(
+                            stringResource(R.string.taste_topic_unboost) to { actions.onTopicPreferred(pick.id, false) },
+                            stringResource(R.string.taste_topic_block) to { actions.onBlockTopic(pick.id) },
+                        ),
                 )
             }
         }
@@ -197,21 +195,16 @@ private fun SettingsListScope.interests(
         groups.forEach { group ->
             row("taste.group.${group.id}") { shape ->
                 val named = group.members.take(GROUP_MENU_WORDS)
-                TasteMeterRow(
+                TasteMenuRow(
                     title = group.label,
                     value = group.share,
                     shape = shape,
                     detail = stringResource(evidenceLabel(group.evidence)),
-                    trailing = {
-                        ItemMenu(
-                            label = group.label,
-                            options =
-                                listOf(stringResource(R.string.taste_topic_boost) to { actions.onTopicPreferred(named.first().id, true) }) +
-                                    named.map { topic ->
-                                        stringResource(R.string.taste_topic_block_named, topic.label) to { actions.onBlockTopic(topic.id) }
-                                    },
-                        )
-                    },
+                    options =
+                        listOf(stringResource(R.string.taste_topic_boost) to { actions.onTopicPreferred(named.first().id, true) }) +
+                            named.map { topic ->
+                                stringResource(R.string.taste_topic_block_named, topic.label) to { actions.onBlockTopic(topic.id) }
+                            },
                 )
             }
         }
@@ -225,17 +218,12 @@ private fun SettingsListScope.channels(
     group(key = TasteIndex.channels.key, header = R.string.taste_channels_header) {
         channels.forEach { channel ->
             row("taste.channel.${channel.id}") { shape ->
-                TasteMeterRow(
+                TasteMenuRow(
                     title = channel.name,
                     value = channel.score,
                     shape = shape,
                     detail = stringResource(channelStrength(channel.score)),
-                    trailing = {
-                        ItemMenu(
-                            label = channel.name,
-                            options = listOf(stringResource(R.string.taste_channel_block) to { actions.onBlockChannel(channel.id) }),
-                        )
-                    },
+                    options = listOf(stringResource(R.string.taste_channel_block) to { actions.onBlockChannel(channel.id) }),
                 )
             }
         }
@@ -328,22 +316,43 @@ private fun SettingsListScope.data(actions: TasteActions) {
 // The words of a group its menu lets the viewer block one by one.
 private const val GROUP_MENU_WORDS = 3
 
+/** A [TasteMeterRow] with a menu of [options]: its ⋮ button on touch, the whole row on a remote. */
+@Composable
+private fun TasteMenuRow(
+    title: String,
+    value: Float?,
+    shape: Shape,
+    detail: String,
+    options: List<Pair<String, () -> Unit>>,
+) {
+    var open by remember { mutableStateOf(false) }
+    TasteMeterRow(
+        title = title,
+        value = value,
+        shape = shape,
+        detail = detail,
+        trailing = { ItemMenu(label = title, options = options, open = open, onOpenChange = { open = it }) },
+        onDpadClick = { open = true },
+    )
+}
+
 @Composable
 private fun ItemMenu(
     label: String,
     options: List<Pair<String, () -> Unit>>,
+    open: Boolean,
+    onOpenChange: (Boolean) -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { open = true }) {
+        IconButton(onClick = { onOpenChange(true) }, modifier = Modifier.skipDpadFocus()) {
             Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.taste_item_actions, label))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(expanded = open, onDismissRequest = { onOpenChange(false) }) {
             options.forEach { (text, action) ->
                 DropdownMenuItem(
                     text = { Text(text) },
                     onClick = {
-                        open = false
+                        onOpenChange(false)
                         action()
                     },
                 )
