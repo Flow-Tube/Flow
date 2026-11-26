@@ -23,10 +23,8 @@ import coil3.toBitmap
 import io.github.aedev.flow.BuildConfig
 import io.github.aedev.flow.MainActivity
 import io.github.aedev.flow.R
-import io.github.aedev.flow.data.local.AppDatabase
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.ThumbnailQuality
-import io.github.aedev.flow.data.local.entity.NotificationEntity
 import io.github.aedev.flow.data.profile.ActiveProfile
 import io.github.aedev.flow.data.update.AppRelease
 import kotlinx.coroutines.Dispatchers
@@ -99,23 +97,6 @@ object NotificationHelper {
     private const val NOTIFICATION_BITMAP_MAX_PX = 512
 
     private var channelsCreated = false
-
-    /**
-     * Store notification in database
-     */
-    internal suspend fun storeNotification(
-        context: Context,
-        entity: NotificationEntity,
-    ) {
-        withContext(Dispatchers.IO) {
-            try {
-                val db = AppDatabase.profile(context)
-                db.notificationDao().insertNotification(entity)
-            } catch (e: Exception) {
-                android.util.Log.e("NotificationHelper", "Failed to store notification", e)
-            }
-        }
-    }
 
     /**
      * Initialize all notification channels

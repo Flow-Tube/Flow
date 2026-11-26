@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.NotificationRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.entity.NotificationEntity
 import io.github.aedev.flow.notification.NotificationHelper.CHANNEL_SUBSCRIPTIONS
@@ -31,29 +32,47 @@ object SubscriptionNotifications {
     )
 
     /**
-     * Dispatcher for subscription update notifications.
+     * Puts [videos] in the inbox, then posts them as system notifications when the permission and the
+     * New videos switch allow. The inbox fills either way.
      */
     suspend fun showSubscriptionUpdates(
         context: Context,
         videos: List<NewVideoEntry>,
+        inbox: NotificationRepository,
+    ) = deliver(
+        videos = videos,
+        record = { inbox.recordNew(it) },
+        mayNotify = {
+            NotificationHelper.hasNotificationPermission(context) &&
+                PlayerPreferences(context).notifNewVideosEnabled.first()
+        },
+        notify = { post(context, it) },
+    )
+
+    internal suspend fun deliver(
+        videos: List<NewVideoEntry>,
+        record: suspend (List<NotificationEntity>) -> Unit,
+        mayNotify: suspend () -> Boolean,
+        notify: suspend (List<NewVideoEntry>) -> Unit,
     ) {
-        if (!NotificationHelper.hasNotificationPermission(context)) return
-        if (!PlayerPreferences(context).notifNewVideosEnabled.first()) return
         if (videos.isEmpty()) return
+        record(videos.map { it.toInboxEntry() })
+        if (mayNotify()) notify(videos)
+    }
 
-        videos.forEach { v ->
-            NotificationHelper.storeNotification(
-                context,
-                NotificationEntity(
-                    videoId = v.videoId,
-                    title = v.videoTitle,
-                    channelName = v.channelName,
-                    thumbnailUrl = v.thumbnailUrl,
-                    type = "NEW_VIDEO",
-                ),
-            )
-        }
+    internal fun NewVideoEntry.toInboxEntry() =
+        NotificationEntity(
+            videoId = videoId,
+            title = videoTitle,
+            channelName = channelName,
+            thumbnailUrl = thumbnailUrl,
+            type = "NEW_VIDEO",
+        )
 
+    private suspend fun post(
+        context: Context,
+        videos: List<NewVideoEntry>,
+    ) {
         val manager = NotificationManagerCompat.from(context)
         val multiple = videos.size > 1
         val locale = context.resources.configuration.locales[0]
