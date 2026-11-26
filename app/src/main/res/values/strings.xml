@@ -22,6 +22,7 @@
     <string name="home_load_more_failed">Couldn\'t load more videos</string>
     <string name="home_load_more_failed_body">Check your connection</string>
     <string name="home_refresh_failed">Couldn\'t refresh your feed</string>
+    <string name="music_refresh_failed">Couldn\'t refresh music</string>
     <plurals name="subscriptions_refresh_progress_template">
         <item quantity="one">Refreshing %1$d of %2$d channel</item>
         <item quantity="other">Refreshing %1$d of %2$d channels</item>

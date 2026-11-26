@@ -18,6 +18,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +43,7 @@ import io.github.aedev.flow.innertube.pages.MoodAndGenres
 import io.github.aedev.flow.ui.OnTabReselected
 import io.github.aedev.flow.ui.TabScrollEventBus
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
+import io.github.aedev.flow.ui.components.layout.LocalFlowSnackbarHostState
 import io.github.aedev.flow.ui.components.layout.floatAboveBottomChrome
 import io.github.aedev.flow.ui.components.layout.flowBottomContentPadding
 import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
@@ -162,6 +167,17 @@ fun EnhancedMusicScreen(
     }
     val musicMenus = LocalMusicMenus.current
 
+    val shellSnackbar = LocalFlowSnackbarHostState.current
+    val snackbarHostState = shellSnackbar ?: remember { SnackbarHostState() }
+    val refreshFailed = stringResource(R.string.music_refresh_failed)
+    val retryLabel = stringResource(R.string.retry)
+    LaunchedEffect(viewModel) {
+        viewModel.refreshFailures.collectLatest {
+            val result = snackbarHostState.showSnackbar(refreshFailed, actionLabel = retryLabel, duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed) viewModel.refresh()
+        }
+    }
+
     val bottomInsets = LocalFlowBottomInsets.current
     val headerState = rememberFlowScrollAwayState()
     val headerSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
@@ -179,6 +195,7 @@ fun EnhancedMusicScreen(
                 }
             }
         },
+        snackbarHost = { if (shellSnackbar == null) SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0.dp),
     ) { paddingValues ->
@@ -236,7 +253,7 @@ fun EnhancedMusicScreen(
                     val pullState = rememberPullToRefreshState()
 
                     FlowPullToRefreshBox(
-                        isRefreshing = uiState.isLoading || uiState.homeChipPage?.status == MusicHomeChipStatus.REFRESHING,
+                        isRefreshing = uiState.isRefreshing || uiState.homeChipPage?.status == MusicHomeChipStatus.REFRESHING,
                         onRefresh = { viewModel.refresh() },
                         state = pullState,
                         indicatorTopPadding = topPadding,
