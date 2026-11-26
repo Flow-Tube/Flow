@@ -84,3 +84,80 @@ internal fun notificationTime(
         NotificationBucket.EARLIER -> NotificationTime.Date(moment.toLocalDate())
     }
 }
+
+/** A row of a section: one notification, or the uploads of one channel shown together. */
+internal sealed interface InboxRow {
+    val key: String
+
+    data class Single(
+        val notification: NotificationEntity,
+    ) : InboxRow {
+        override val key: String get() = "n${notification.id}"
+    }
+
+    /** Newest first, as the section had them. */
+    data class Channel(
+        val bucket: NotificationBucket,
+        val channelName: String,
+        val notifications: List<NotificationEntity>,
+    ) : InboxRow {
+        override val key: String get() = "c:$bucket:$channelName"
+    }
+}
+
+/**
+ * [items] (newest first) with each channel's new-upload notifications, when there are two or more,
+ * gathered into one row where its newest one was. Everything else keeps its place.
+ */
+internal fun groupByChannel(
+    bucket: NotificationBucket,
+    items: List<NotificationEntity>,
+): List<InboxRow> {
+    val uploads = items.filter { it.groupsByChannel() }.groupBy { it.channelName }
+    val placed = HashSet<String>()
+    return items.mapNotNull { item ->
+        val siblings = uploads[item.channelName].takeIf { item.groupsByChannel() }.orEmpty()
+        when {
+            siblings.size < 2 -> InboxRow.Single(item)
+            placed.add(item.channelName) -> InboxRow.Channel(bucket, item.channelName, siblings)
+            else -> null
+        }
+    }
+}
+
+private fun NotificationEntity.groupsByChannel() = type == "NEW_VIDEO" && channelName.isNotBlank()
+
+/** What the list draws for a section: channel rows, and under an open one its uploads. */
+internal sealed interface InboxLine {
+    val key: String
+
+    data class Header(
+        val row: InboxRow.Channel,
+        val expanded: Boolean,
+    ) : InboxLine {
+        override val key: String get() = row.key
+    }
+
+    data class Item(
+        val notification: NotificationEntity,
+        override val key: String,
+    ) : InboxLine
+}
+
+internal fun inboxLines(
+    rows: List<InboxRow>,
+    expanded: Set<String>,
+): List<InboxLine> =
+    rows.flatMap { row ->
+        when (row) {
+            is InboxRow.Single -> {
+                listOf(InboxLine.Item(row.notification, row.key))
+            }
+
+            is InboxRow.Channel -> {
+                val open = row.key in expanded
+                val header = InboxLine.Header(row, open)
+                if (open) listOf(header) + row.notifications.map { InboxLine.Item(it, "${row.key}/${it.id}") } else listOf(header)
+            }
+        }
+    }

@@ -38,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -75,10 +76,13 @@ fun NotificationScreen(
     val zone = remember { ZoneId.systemDefault() }
     val today = rememberToday(zone)
     val sections = remember(notifications, newIds, today) { groupNotifications(notifications, newIds, today, zone) }
+    val sectionRows = remember(sections) { sections.map { it to groupByChannel(it.bucket, it.items) } }
+    var expanded by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var confirmClear by rememberSaveable { mutableStateOf(false) }
     val removedMessage = stringResource(R.string.notifications_removed)
+    val resources = LocalResources.current
     val undoLabel = stringResource(R.string.undo)
     val savedMessage = stringResource(R.string.toast_added_to_watch_later)
     val alreadySavedMessage = stringResource(R.string.notifications_already_in_watch_later)
@@ -86,11 +90,19 @@ fun NotificationScreen(
 
     LaunchedEffect(Unit) { viewModel.openInbox() }
 
-    fun remove(item: NotificationEntity) {
-        viewModel.deleteNotification(item)
+    fun remove(items: List<NotificationEntity>) {
+        viewModel.deleteNotifications(items)
+        val message =
+            if (items.size ==
+                1
+            ) {
+                removedMessage
+            } else {
+                resources.getQuantityString(R.plurals.notifications_removed_count, items.size, items.size)
+            }
         scope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
-            val result = snackbarHostState.showSnackbar(removedMessage, undoLabel, duration = SnackbarDuration.Short)
+            val result = snackbarHostState.showSnackbar(message, undoLabel, duration = SnackbarDuration.Short)
             if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete()
         }
     }
@@ -146,22 +158,49 @@ fun NotificationScreen(
                         bottom = flowBottomContentPadding(ListBottomPadding),
                     ),
             ) {
-                sections.forEach { section ->
+                sectionRows.forEach { (section, rows) ->
                     item(key = section.bucket, contentType = "header") {
                         FlowSectionHeader(stringResource(section.bucket.titleRes))
                     }
-                    itemsIndexed(section.items, key = { _, item -> item.id }, contentType = { _, _ -> "row" }) { index, item ->
-                        NotificationRow(
-                            notification = item,
-                            isNew = section.bucket == NotificationBucket.NEW,
-                            time = notificationTime(item.timestamp, today, zone).label(),
-                            shape = flowSegmentShape(index, section.items.size),
-                            onClick = { onNotificationClick(item.videoId) },
-                            onLongClick = { scope.launch { menu = NotificationMenu(item, viewModel.videoFor(item)) } },
-                            onDismiss = { remove(item) },
-                            onSave = { save(item) },
-                            modifier = Modifier.animateItem().padding(bottom = FlowSegmentedGap),
-                        )
+                    val isNew = section.bucket == NotificationBucket.NEW
+                    val lines = inboxLines(rows, expanded.toSet())
+                    itemsIndexed(
+                        items = lines,
+                        key = { _, line -> line.key },
+                        contentType = { _, line -> line is InboxLine.Header },
+                    ) { index, line ->
+                        val shape = flowSegmentShape(index, lines.size)
+                        val rowModifier = Modifier.animateItem().padding(bottom = FlowSegmentedGap)
+                        when (line) {
+                            is InboxLine.Item -> {
+                                val item = line.notification
+                                NotificationRow(
+                                    notification = item,
+                                    isNew = isNew,
+                                    time = notificationTime(item.timestamp, today, zone).label(),
+                                    shape = shape,
+                                    onClick = { onNotificationClick(item.videoId) },
+                                    onLongClick = { scope.launch { menu = NotificationMenu(item, viewModel.videoFor(item)) } },
+                                    onDismiss = { remove(listOf(item)) },
+                                    onSave = { save(item) },
+                                    modifier = rowModifier,
+                                )
+                            }
+
+                            is InboxLine.Header -> {
+                                val newest = line.row.notifications.first()
+                                NotificationChannelRow(
+                                    row = line.row,
+                                    isNew = isNew,
+                                    time = notificationTime(newest.timestamp, today, zone).label(),
+                                    expanded = line.expanded,
+                                    shape = shape,
+                                    onToggle = { expanded = if (line.expanded) expanded - line.key else expanded + line.key },
+                                    onDismiss = { remove(line.row.notifications) },
+                                    modifier = rowModifier,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -172,7 +211,7 @@ fun NotificationScreen(
         VideoQuickActionsBottomSheet(
             video = open.video,
             onDismiss = { menu = null },
-            onRemoveFromCollection = { remove(open.notification) },
+            onRemoveFromCollection = { remove(listOf(open.notification)) },
             removeFromCollectionLabel = stringResource(R.string.delete),
             removeFromCollectionIcon = Icons.Outlined.Delete,
         )

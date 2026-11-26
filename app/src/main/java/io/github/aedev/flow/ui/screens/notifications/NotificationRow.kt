@@ -42,9 +42,9 @@ import io.github.aedev.flow.data.local.entity.NotificationEntity
 import io.github.aedev.flow.ui.components.shared.MediaThumbnail
 import kotlinx.coroutines.launch
 
-private val ThumbnailWidth = 120.dp
-private val RowPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
-private val MetaSpacing = 6.dp
+internal val NotificationThumbnailWidth = 120.dp
+internal val NotificationRowPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+internal val NotificationMetaSpacing = 6.dp
 private val SwipeIconPadding = 24.dp
 
 /**
@@ -93,7 +93,7 @@ internal fun NotificationRow(
         },
         backgroundContent = {
             if (state.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
-                SwipeBackground(
+                NotificationSwipeBackground(
                     icon = Icons.Outlined.WatchLater,
                     label = saveLabel,
                     container = MaterialTheme.colorScheme.secondaryContainer,
@@ -101,7 +101,7 @@ internal fun NotificationRow(
                     alignment = Alignment.CenterStart,
                 )
             } else {
-                SwipeBackground(
+                NotificationSwipeBackground(
                     icon = Icons.Outlined.Delete,
                     label = deleteLabel,
                     container = MaterialTheme.colorScheme.errorContainer,
@@ -116,7 +116,7 @@ internal fun NotificationRow(
 }
 
 @Composable
-private fun SwipeBackground(
+internal fun NotificationSwipeBackground(
     icon: ImageVector,
     label: String,
     container: Color,
@@ -160,18 +160,18 @@ private fun NotificationContent(
                 contentColor = colors.onSurface,
                 supportingContentColor = colors.onSurfaceVariant,
             ),
-        contentPadding = RowPadding,
+        contentPadding = NotificationRowPadding,
         leadingContent = {
             MediaThumbnail(
                 videoId = notification.videoId,
                 thumbnailUrl = notification.thumbnailUrl,
-                width = ThumbnailWidth,
+                width = NotificationThumbnailWidth,
                 placeholder = Icons.Outlined.Notifications,
             )
         },
         supportingContent = {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(MetaSpacing),
+                horizontalArrangement = Arrangement.spacedBy(NotificationMetaSpacing),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (isNew) Badge(containerColor = colors.primary)
