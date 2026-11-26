@@ -11,6 +11,7 @@ enum class MusicHomeShelf(
     @param:StringRes val labelRes: Int,
 ) {
     YOUR_PLAYLISTS(R.string.music_home_your_playlists),
+    LIKED_MUSIC(R.string.liked_music_playlist),
     YOUR_SUBSCRIPTIONS(R.string.music_home_your_subscriptions),
     LISTEN_AGAIN(R.string.section_listen_again),
     ON_REPEAT(R.string.section_on_repeat),

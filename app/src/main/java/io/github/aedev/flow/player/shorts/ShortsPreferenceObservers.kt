@@ -1,5 +1,6 @@
 package io.github.aedev.flow.player.shorts
 
+import io.github.aedev.flow.player.subtitle.SubtitleAutoPolicy
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,8 @@ internal class ShortsPreferenceObservers(
         onPlaybackSpeed: (Float) -> Unit,
         volumeNormalization: Flow<Boolean> = emptyFlow(),
         onVolumeNormalization: (Boolean) -> Unit = {},
+        captionPolicy: Flow<SubtitleAutoPolicy> = emptyFlow(),
+        onCaptionPolicy: (SubtitleAutoPolicy) -> Unit = {},
     ) {
         stop()
         val observerScope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -41,6 +44,9 @@ internal class ShortsPreferenceObservers(
         }
         observerScope.launch {
             volumeNormalization.collect(onVolumeNormalization)
+        }
+        observerScope.launch {
+            captionPolicy.collect(onCaptionPolicy)
         }
     }
 

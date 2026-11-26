@@ -68,8 +68,17 @@ internal fun musicQualityLabel(quality: MusicAudioQuality): Int =
         MusicAudioQuality.LOW -> R.string.music_quality_low
     }
 
-/** The fallback choices for [preferred]: every codec but the preferred one. */
-internal fun fallbackCodecs(preferred: VideoCodec): List<VideoCodec> = VideoCodec.entries.filter { it != preferred }
+/** The codecs the setting lists: AV1 only on a device that decodes it in hardware, or while it is [selected]. */
+internal fun codecChoices(
+    hardwareAv1: Boolean,
+    selected: VideoCodec,
+): List<VideoCodec> = VideoCodec.entries.filter { it != VideoCodec.AV1 || hardwareAv1 || it == selected }
+
+/** The fallback choices for [preferred]: every listed codec but the preferred one. */
+internal fun fallbackCodecs(
+    preferred: VideoCodec,
+    choices: List<VideoCodec> = VideoCodec.entries,
+): List<VideoCodec> = choices.filter { it != preferred }
 
 /** A fallback equal to the new preferred codec is meaningless, so it drops back to automatic. */
 internal fun fallbackAfterPreferredChange(

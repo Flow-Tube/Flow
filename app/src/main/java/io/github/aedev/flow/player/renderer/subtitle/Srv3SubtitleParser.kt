@@ -12,6 +12,7 @@ import android.text.style.UnderlineSpan
 import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.Format
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.text.Cue
 import androidx.media3.common.util.Consumer
 import androidx.media3.extractor.text.CuesWithTiming
@@ -59,6 +60,15 @@ class Srv3SubtitleParser : SubtitleParser {
 
         /** MIME type this parser is registered against; never advertised by YouTube itself. */
         const val MIME_TYPE = "application/x-youtube-srv3"
+
+        /**
+         * TrackGroup derives its type from MimeTypes.getTrackType(sampleMimeType), so without this
+         * an srv3 track group reports TRACK_TYPE_UNKNOWN and every `groups.filter { it.type ==
+         * C.TRACK_TYPE_TEXT }` lookup silently stops finding it. Registration is idempotent and
+         * keyed by MIME type, and the empty codec prefix is right: srv3 never appears in a Format's
+         * codec string.
+         */
+        fun registerTrackType() = MimeTypes.registerCustomMimeType(MIME_TYPE, "", C.TRACK_TYPE_TEXT)
     }
 }
 

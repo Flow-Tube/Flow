@@ -7,7 +7,6 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.dash.manifest.DashManifest
@@ -17,17 +16,12 @@ import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.model.ShortVideo
 import io.github.aedev.flow.player.audio.LoudnessGain
-import io.github.aedev.flow.player.cache.PlayerCacheManager
-import io.github.aedev.flow.player.cache.SharedPlayerCacheProvider
 import io.github.aedev.flow.player.datasource.YouTubeHttpDataSource
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import io.github.aedev.flow.player.stream.ResolvedCaption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
 
 /**
  * Three pooled ExoPlayers for the Shorts pager. A page maps to slot `index % 3`, so the reel on
@@ -95,20 +89,7 @@ class ShortsPlayerPool private constructor() {
         release()
     }
 
-    /**
-     * Reads through the shared media cache once it exists.
-     *
-     * Without it every loop of a REPEAT_MODE_ONE short and every swipe back re-downloaded the
-     * whole file — the main video player has read through [SharedPlayerCacheProvider] all along,
-     * and this pool was the one playback path that did not.
-     *
-     * Null until the cache has been opened, which cannot happen here: [initialize] runs on the main
-     * thread and opening the cache touches SQLite and the filesystem.
-     */
-    @Volatile
-    private var cachedDataSourceFactory: DataSource.Factory? = null
-
-    private var poolScope: CoroutineScope? = null
+    private val sharedCache = ShortsSharedCache()
     private var preferredAudioLanguage: String = "original"
     private var shortsPlaybackMode: String = "loop"
     private var basePlaybackSpeed: Float = 1f
@@ -128,10 +109,22 @@ class ShortsPlayerPool private constructor() {
     /** Whether any pooled player is playing, from the players' own callbacks. */
     val anyPlaying: StateFlow<Boolean> = _anyPlaying.asStateFlow()
 
-    private val playingListener =
+    private val captions = ShortsCaptions()
+
+    /** The captions of the reel on screen, for its overlay and the settings sheet. */
+    val captionState: StateFlow<ShortsCaptionState> = captions.state
+
+    private val poolListener =
         object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _anyPlaying.value = players.any { it?.isPlaying == true }
+            }
+
+            override fun onEvents(
+                player: Player,
+                events: Player.Events,
+            ) {
+                if (events.contains(Player.EVENT_TRACKS_CHANGED)) captions.onTracksChanged(player)
             }
         }
 
@@ -167,7 +160,7 @@ class ShortsPlayerPool private constructor() {
         val appContext = context.applicationContext
         Log.d(TAG, "Initializing 3-player pool for Shorts")
         dataSourceFactory = DefaultDataSource.Factory(appContext, YouTubeHttpDataSource.Factory())
-        attachSharedCache(appContext)
+        sharedCache.attach(appContext)
         val preferences = PlayerPreferences(appContext)
         preferenceObservers.start(
             preferredAudioLanguage = preferences.preferredAudioLanguage,
@@ -189,6 +182,14 @@ class ShortsPlayerPool private constructor() {
                 volumeNormalization = enabled
                 for (slot in 0 until POOL_SIZE) applyVolume(slot)
             },
+            captionPolicy =
+                combine(
+                    preferences.shortsCaptions,
+                    preferences.autoEnableSubtitles,
+                    preferences.preferredSubtitleLanguage,
+                    ShortsCaptionChoice::policy,
+                ),
+            onCaptionPolicy = captions::setPolicy,
         )
 
         val audio = ShortsPoolAudioEffects(appContext, POOL_SIZE).also { audioEffects = it }
@@ -203,10 +204,13 @@ class ShortsPlayerPool private constructor() {
                             dataSourceFactory!!,
                             preferredAudioLanguage,
                             slotVideoId = { slots.videoIds[i] },
-                            onFirstFrame = { firstFrames.onRendered(slots.videoIds[i]) },
+                            onFirstFrame = {
+                                firstFrames.onRendered(slots.videoIds[i])
+                                showCaptions()
+                            },
                             isActiveSlot = { activeIndex >= 0 && ShortsSlotRules.slotFor(activeIndex, POOL_SIZE) == i },
                         ).also {
-                            it.addListener(playingListener)
+                            it.addListener(poolListener)
                             audio.announce(i, it)
                         }
                 slots.clear(i)
@@ -218,30 +222,6 @@ class ShortsPlayerPool private constructor() {
         } catch (error: Throwable) {
             release()
             throw error
-        }
-    }
-
-    /**
-     * Points playback at the shared media cache, opening it off the main thread if some other
-     * player has not already. Until that completes the pool keeps streaming uncached, so a cold
-     * cache delays the benefit rather than the first frame.
-     */
-    private fun attachSharedCache(appContext: Context) {
-        SharedPlayerCacheProvider.existing()?.let {
-            cachedDataSourceFactory = ShortsPlayerFactory.cachedDataSourceFactory(appContext, it)
-            return
-        }
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO).also { poolScope = it }
-        scope.launch {
-            runCatching {
-                PlayerCacheManager.preload(appContext)
-                SharedPlayerCacheProvider.existing()
-            }.onSuccess { cache ->
-                if (cache != null) {
-                    cachedDataSourceFactory = ShortsPlayerFactory.cachedDataSourceFactory(appContext, cache)
-                    Log.d(TAG, "Shorts playback now reads through the shared media cache")
-                }
-            }.onFailure { Log.w(TAG, "Shared cache unavailable; Shorts will stream uncached", it) }
         }
     }
 
@@ -298,7 +278,7 @@ class ShortsPlayerPool private constructor() {
         videoId: String,
     ): String? {
         if (ownedPlayer(index, videoId) == null) return null
-        return slots.videoUrls[ShortsSlotRules.slotFor(index, POOL_SIZE)]
+        return slots.streams[ShortsSlotRules.slotFor(index, POOL_SIZE)]?.videoUrl
     }
 
     fun getCurrentVideoId(): String? = _currentVideoId.value
@@ -320,6 +300,7 @@ class ShortsPlayerPool private constructor() {
         audioDashManifest: String? = null,
         loudnessGainDb: Float? = null,
         videoAdaptiveManifest: DashManifest? = null,
+        captions: List<ResolvedCaption> = emptyList(),
     ) {
         if (!isInitialized || index < 0) return
         val slot = index % POOL_SIZE
@@ -341,23 +322,25 @@ class ShortsPlayerPool private constructor() {
         firstFrames.forget(slots.videoIds[slot])
         firstFrames.forget(videoId)
 
-        slots.assign(slot, index, videoId, videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb, videoAdaptiveManifest)
+        val streams =
+            ShortsSlotStreams(videoUrl, audioUrl, videoDashManifest, audioDashManifest, loudnessGainDb, videoAdaptiveManifest, captions)
+        slots.assign(slot, index, videoId, streams)
         applyVolume(slot)
         bumpOwnership()
 
         // Load media
         if (shouldPlay) ShortsStartupTrace.onPrepared(videoId)
-        preparePlayerInternal(player, videoUrl, audioUrl, videoDashManifest, audioDashManifest, videoAdaptiveManifest)
+        preparePlayerInternal(player, streams)
 
         // Set playback state
         player.setPlaybackSpeed(basePlaybackSpeed)
         player.playWhenReady = shouldPlay
-        // Set repeat mode based on playback preference: "loop" → REPEAT_MODE_ONE, "auto_next" → REPEAT_MODE_OFF
-        player.repeatMode = if (shortsPlaybackMode == "loop") Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        player.repeatMode = repeatMode()
 
         if (shouldPlay) _currentVideoId.value = videoId
         // Only the reel on screen takes audio focus; the buffering neighbours must not.
         player.setAudioAttributes(MovieAudio, shouldPlay)
+        showCaptions()
     }
 
     /**
@@ -397,7 +380,22 @@ class ShortsPlayerPool private constructor() {
         players[activeSlot]?.let { active ->
             mediaSession?.takeIf { it.player !== active }?.setPlayer(active)
         }
+        showCaptions()
     }
+
+    /**
+     * Shows captions on the slot holding the reel on screen and switches them off everywhere else.
+     * They wait for the reel's first frame, so fetching a caption track never delays it.
+     */
+    private fun showCaptions() {
+        val player = ownedPlayer(activeIndex, activeVideoId)
+        val streams = player?.let { slots.streams[ShortsSlotRules.slotFor(activeIndex, POOL_SIZE)] }
+        val drawn = activeVideoId in firstFrames.renderedVideoIds.value
+        captions.show(player?.takeIf { drawn }, activeVideoId, streams?.captions.orEmpty())
+    }
+
+    /** Shows the caption track whose option has [url] on the reel on screen; null turns captions off. */
+    fun selectCaption(url: String?) = captions.select(url)
 
     fun releaseUnusedPlayers(currentIndex: Int) {
         if (!isInitialized) return
@@ -437,33 +435,8 @@ class ShortsPlayerPool private constructor() {
         newAudioUrl: String?,
         newAudioDashManifest: String? = null,
         loudnessGainDb: Float? = null,
-    ) {
-        if (!isInitialized || index < 0) return
-        val slot = index % POOL_SIZE
-        val player = players[slot] ?: return
-        if (!slots.owns(slot, index, videoId)) return
-
-        val videoUrl = slots.videoUrls[slot] ?: return
-        val wasPlaying = player.isPlaying || player.playWhenReady
-
-        player.stop()
-        player.clearMediaItems()
-        slots.audioUrls[slot] = newAudioUrl
-        slots.audioManifests[slot] = newAudioDashManifest
-        slots.loudnessGainsDb[slot] = loudnessGainDb
-        applyVolume(slot)
-
-        preparePlayerInternal(
-            player,
-            videoUrl,
-            newAudioUrl,
-            slots.videoManifests[slot],
-            newAudioDashManifest,
-            slots.adaptiveManifests[slot],
-        )
-        player.setPlaybackSpeed(basePlaybackSpeed)
-        player.playWhenReady = wasPlaying
-        player.repeatMode = if (shortsPlaybackMode == "loop") Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+    ) = reload(index, videoId, keepPosition = false) {
+        it.copy(audioUrl = newAudioUrl, audioManifest = newAudioDashManifest, loudnessGainDb = loudnessGainDb)
     }
 
     /**
@@ -475,44 +448,49 @@ class ShortsPlayerPool private constructor() {
         videoId: String,
         newVideoUrl: String,
         newVideoDashManifest: String? = null,
+    ) = reload(index, videoId, keepPosition = true) {
+        it.copy(videoUrl = newVideoUrl, videoManifest = newVideoDashManifest, adaptiveManifest = null)
+    }
+
+    private fun reload(
+        index: Int,
+        videoId: String,
+        keepPosition: Boolean,
+        change: (ShortsSlotStreams) -> ShortsSlotStreams,
     ) {
         if (!isInitialized || index < 0) return
         val slot = index % POOL_SIZE
         val player = players[slot] ?: return
         if (!slots.owns(slot, index, videoId)) return
-
+        val streams = slots.streams[slot]?.let(change) ?: return
         val wasPlaying = player.isPlaying || player.playWhenReady
         val position = player.currentPosition
 
         player.stop()
         player.clearMediaItems()
-        slots.videoUrls[slot] = newVideoUrl
-        slots.videoManifests[slot] = newVideoDashManifest
-        slots.adaptiveManifests[slot] = null
+        slots.streams[slot] = streams
+        applyVolume(slot)
 
-        val audioUrl = slots.audioUrls[slot]
-        preparePlayerInternal(player, newVideoUrl, audioUrl, newVideoDashManifest, slots.audioManifests[slot], null)
-        player.setPlaybackSpeed(basePlaybackSpeed)
+        preparePlayerInternal(player, streams)
         player.playWhenReady = wasPlaying
-        player.seekTo(position)
-        player.repeatMode = if (shortsPlaybackMode == "loop") Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        if (keepPosition) player.seekTo(position)
+        player.repeatMode = repeatMode()
+        showCaptions()
     }
 
     private fun preparePlayerInternal(
         player: ExoPlayer,
-        videoUrl: String,
-        audioUrl: String?,
-        videoDashManifest: String?,
-        audioDashManifest: String?,
-        videoAdaptiveManifest: DashManifest?,
+        streams: ShortsSlotStreams,
     ) {
-        val factory = cachedDataSourceFactory ?: dataSourceFactory ?: return
-        ShortsMediaSources.load(player, factory, videoUrl, audioUrl, videoDashManifest, audioDashManifest, videoAdaptiveManifest)
+        val factory = sharedCache.dataSourceFactory ?: dataSourceFactory ?: return
+        ShortsMediaSources.load(player, factory, streams)
         player.setPlaybackSpeed(basePlaybackSpeed)
     }
 
+    private fun repeatMode(): Int = if (shortsPlaybackMode == "loop") Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+
     private fun applyVolume(slot: Int) {
-        val gainDb = slots.loudnessGainsDb[slot].takeIf { volumeNormalization }
+        val gainDb = slots.streams[slot]?.loudnessGainDb?.takeIf { volumeNormalization }
         players[slot]?.volume = LoudnessGain.volume(gainDb)
     }
 
@@ -577,9 +555,8 @@ class ShortsPlayerPool private constructor() {
         memoryTrim?.unregister()
         memoryTrim = null
         preferenceObservers.stop()
-        poolScope?.cancel()
-        poolScope = null
-        cachedDataSourceFactory = null
+        sharedCache.release()
+        captions.clear()
         mediaSession?.release()
         mediaSession = null
         audioEffects?.release()

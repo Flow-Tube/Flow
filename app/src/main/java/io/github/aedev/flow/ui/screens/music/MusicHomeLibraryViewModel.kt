@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.music
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.aedev.flow.data.local.LikedVideosRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PlaylistRepository
 import io.github.aedev.flow.data.local.SubscriptionRepository
@@ -14,6 +15,7 @@ import io.github.aedev.flow.data.scrobble.LastFmDiscovery
 import io.github.aedev.flow.data.scrobble.ScrobbleService
 import io.github.aedev.flow.data.scrobble.ScrobbleStore
 import io.github.aedev.flow.ui.components.music.section.MusicHomeShelf
+import io.github.aedev.flow.ui.components.music.section.likedMusicCard
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +31,7 @@ import javax.inject.Inject
 private const val SHELF_LIMIT = 20
 
 /**
- * The viewer's own corner of the music home: their music playlists in the playlists page's order,
+ * The viewer's own corner of the music home: their liked songs and music playlists in the playlists page's order,
  * the music channels they subscribe to, newest first, the sections they chose to hide, and, for
  * Last.fm accounts, the discovery shelf. Only that shelf touches the network, and only once shown.
  */
@@ -38,6 +40,7 @@ class MusicHomeLibraryViewModel
     @Inject
     constructor(
         playlistRepository: PlaylistRepository,
+        likedVideosRepository: LikedVideosRepository,
         subscriptionRepository: SubscriptionRepository,
         preferences: PlayerPreferences,
         scrobbleStore: ScrobbleStore,
@@ -56,6 +59,13 @@ class MusicHomeLibraryViewModel
                     )
                 }
             }.stateIn(viewModelScope, sharing, emptyList())
+
+        val likedMusic: StateFlow<MusicPlaylist?> =
+            likedVideosRepository
+                .getLikedMusicFlow()
+                .map(::likedMusicCard)
+                .distinctUntilChanged()
+                .stateIn(viewModelScope, sharing, null)
 
         val subscriptions: StateFlow<List<ArtistDetails>> =
             subscriptionRepository

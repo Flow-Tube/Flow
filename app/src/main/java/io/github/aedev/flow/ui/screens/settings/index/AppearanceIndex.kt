@@ -16,6 +16,7 @@ internal object AppearanceIndex {
             keywords = R.string.settings_keywords_app_icon,
             section = R.string.settings_section_style,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val interfaceMode =
         SettingEntry(
@@ -73,6 +74,7 @@ internal object AppearanceIndex {
             summary = R.string.content_settings_show_app_logo_subtitle,
             section = R.string.settings_section_layout,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val topBarProfile =
         SettingEntry(
@@ -182,6 +184,7 @@ internal object AppearanceIndex {
             keywords = R.string.settings_keywords_haptics,
             section = R.string.settings_section_style,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val hapticsIgnoreSystem =
         SettingEntry(
@@ -191,6 +194,7 @@ internal object AppearanceIndex {
             keywords = R.string.settings_keywords_haptics,
             section = R.string.settings_section_style,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val highlightNewSettings =
         SettingEntry(

@@ -33,6 +33,7 @@ import io.github.aedev.flow.ui.components.settings.notice
 import io.github.aedev.flow.ui.components.settings.option
 import io.github.aedev.flow.ui.screens.settings.index.FontIndex
 import io.github.aedev.flow.ui.theme.AppFont
+import io.github.aedev.flow.ui.utils.rememberDocumentPickerAvailable
 
 private const val BYTES_PER_MB = 1024 * 1024
 private const val ANY_FILE = "*/*"
@@ -56,6 +57,7 @@ internal fun FontScreen(
     val customLabel = selection.customName?.takeIf { it.isNotBlank() } ?: customKind
     val builtInLabels = builtInFonts.map { (font, label) -> font to stringResource(label) }
     val fileSummary = stringResource(R.string.font_choose_file_summary, maxMb)
+    val canPickFile = rememberDocumentPickerAvailable()
 
     FontImportMessageEffect(importResult, maxMb, snackbarHostState, viewModel::consumeImportResult)
 
@@ -84,13 +86,15 @@ internal fun FontScreen(
                     onClick = { viewModel.select(AppFont.CUSTOM) },
                 )
             }
-            nav(
-                FontIndex.customFile,
-                value = fileSummary,
-                icon = Icons.Outlined.UploadFile,
-                showChevron = false,
-                onClick = { picker.launch(arrayOf(ANY_FILE)) },
-            )
+            if (canPickFile) {
+                nav(
+                    FontIndex.customFile,
+                    value = fileSummary,
+                    icon = Icons.Outlined.UploadFile,
+                    showChevron = false,
+                    onClick = { picker.launch(arrayOf(ANY_FILE)) },
+                )
+            }
         }
         notice("font.note", text = { stringResource(R.string.font_system_only_note) }, icon = Icons.Outlined.Info)
     }

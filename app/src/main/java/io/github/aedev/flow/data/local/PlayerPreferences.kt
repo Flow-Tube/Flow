@@ -602,6 +602,7 @@ class PlayerPreferences(
         val APP_LOCK_HIDE_IN_RECENTS = device(booleanPreferencesKey("app_lock_hide_in_recents"))
         val ANIMATED_ARTWORK_WIFI_ONLY = device(booleanPreferencesKey("animated_artwork_wifi_only"))
         val ANIMATED_ARTWORK_QUALITY = device(stringPreferencesKey("animated_artwork_quality"))
+        val SHORTS_CAPTIONS = device(stringPreferencesKey("shorts_captions"))
         val COMMENT_GIFS_WIFI_ONLY = device(booleanPreferencesKey("comment_gifs_wifi_only"))
         val AUTO_DOWNLOAD_LIKED_MUSIC = device(booleanPreferencesKey("auto_download_liked_music"))
 
@@ -3128,6 +3129,21 @@ class PlayerPreferences(
     suspend fun setTranscriptLanguage(language: String) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.TRANSCRIPT_LANGUAGE] = language
+        }
+    }
+
+    /**
+     * Captions in Shorts: empty follows [autoEnableSubtitles] and [preferredSubtitleLanguage],
+     * "off" keeps them off, anything else is the language picked last for a reel.
+     */
+    val shortsCaptions: Flow<String> =
+        context.devicePreferencesDataStore.data
+            .map { preferences -> preferences[DeviceKeys.SHORTS_CAPTIONS].orEmpty() }
+            .distinctUntilChanged()
+
+    suspend fun setShortsCaptions(choice: String) {
+        context.devicePreferencesDataStore.edit { preferences ->
+            preferences[DeviceKeys.SHORTS_CAPTIONS] = choice
         }
     }
 

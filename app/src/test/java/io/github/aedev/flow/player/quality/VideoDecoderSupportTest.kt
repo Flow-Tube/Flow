@@ -32,6 +32,21 @@ class VideoDecoderSupportTest {
     }
 
     @Test
+    fun `a codec that needs hardware is never left to a software decoder`() {
+        assertThat(decodableForAuto(listOf(software), 1280, 720, 30, needsHardware = true)).isFalse()
+        assertThat(decodableForAuto(listOf(software, hardware), 3840, 2160, 60, needsHardware = true)).isTrue()
+    }
+
+    @Test
+    fun `AV1 is offered only with a hardware decoder, other codecs always`() {
+        assertThat(codecOffered("av1") { false }).isFalse()
+        assertThat(codecOffered("AV1") { true }).isTrue()
+        assertThat(codecOffered("vp9") { false }).isTrue()
+        assertThat(codecOffered("h264") { false }).isTrue()
+        assertThat(codecOffered(null) { false }).isTrue()
+    }
+
+    @Test
     fun `an SDR screen keeps HDR out of Auto, wherever the server listed it`() {
         val hdrFirst =
             listOf(vp9(1080, 5_000_000, hdr = true), vp9(1080, 3_500_000), vp9(720, 2_000_000, hdr = true), vp9(720, 2_000_000))

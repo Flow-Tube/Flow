@@ -64,6 +64,9 @@ internal object ShortsOverlayDefaults {
     val PauseIndicatorSize = 72.dp
     val PauseIndicatorIconSize = 40.dp
     val LikeBurstSize = 120.dp
+
+    /** Room left between captions and the title and channel rows under them. */
+    val CaptionsGap = 8.dp
 }
 
 /** The reel's poster, shown until its first frame and never while it is buffering mid-play. */

@@ -62,12 +62,7 @@ class MediaLoader(
         private const val TAG = "MediaLoader"
 
         init {
-            // TrackGroup derives its type from MimeTypes.getTrackType(sampleMimeType), so without
-            // this an srv3 track group reports TRACK_TYPE_UNKNOWN and every `groups.filter { it.type
-            // == C.TRACK_TYPE_TEXT }` lookup - including EnhancedPlayerManager's track-id override -
-            // silently stops finding it. Registration is idempotent and keyed by MIME type, and
-            // the empty codec prefix is right: srv3 never appears in a Format's codec string.
-            MimeTypes.registerCustomMimeType(Srv3SubtitleParser.MIME_TYPE, "", C.TRACK_TYPE_TEXT)
+            Srv3SubtitleParser.registerTrackType()
         }
 
         private const val SUBTITLE_TRACK_ID_PREFIX = "flow-subtitle-"

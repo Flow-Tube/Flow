@@ -185,6 +185,7 @@ class QualityManager(
             QualityOption(height = 0, label = "Auto", bitrate = 0L),
         ) +
             availableVideoStreams
+                .filter { VideoDecoderSupport.offers(VideoCodecUtils.codecKeyFromStream(it)) }
                 .groupBy { "${qualityHeight(it)}_${VideoCodecUtils.codecKeyFromStream(it)}" }
                 .values
                 .mapNotNull { streams ->
@@ -233,9 +234,11 @@ class QualityManager(
         Log.d(TAG, "Switching to FIXED quality: ${height}p")
 
         // Find the stream matching this height, a rung of the loaded ladder first
+        val atHeight = getWorkingStreams().filter { qualityHeight(it) == height }
         val targetStream =
-            getWorkingStreams()
-                .filter { qualityHeight(it) == height }
+            atHeight
+                .filter { VideoDecoderSupport.offers(VideoCodecUtils.codecKeyFromStream(it)) }
+                .ifEmpty { atHeight }
                 .minWithOrNull(
                     compareBy<VideoStream> { streamKey(it) !in activeLadderKeys }
                         .thenBy { VideoCodecUtils.codecRankWithPreference(it, preferredCodecKey) }

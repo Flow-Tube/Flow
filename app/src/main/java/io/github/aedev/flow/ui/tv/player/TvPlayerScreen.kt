@@ -118,6 +118,7 @@ fun TvPlayerScreen(
         uiState = uiState,
         viewModel = viewModel,
     )
+    TvPageSyncEffect(video, viewModel)
     TvPlayerSheetEffects(video.id, screenState, viewModel, prefs.commentsEnabled)
 
     fun openSheet(sheet: PlayerSheet) {

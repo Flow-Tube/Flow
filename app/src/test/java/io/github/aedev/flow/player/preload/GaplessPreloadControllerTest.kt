@@ -374,4 +374,45 @@ class GaplessPreloadControllerTest {
             assertThat(harness.controller.preloaded).isNull()
             verify { player.removeMediaItem(1) }
         }
+
+    @Test
+    fun `queueing the video already appended for autoplay keeps the window and marks it as the queue's`() =
+        runTest {
+            val player = playerWith()
+            val harness =
+                PreloadHarness(
+                    backgroundScope,
+                    player = player,
+                    target = PreloadTarget(video("next"), fromQueue = false),
+                    resolve = { resolved("next") },
+                )
+            harness.controller.schedule()
+            runCurrent()
+
+            harness.target = PreloadTarget(video("next"), fromQueue = true)
+            harness.controller.request("queue-add")
+
+            assertThat(harness.controller.preloaded?.fromQueue).isTrue()
+            verify(exactly = 0) { player.removeMediaItem(any()) }
+            assertThat(harness.resolveCalls).isEqualTo(1)
+        }
+
+    @Test
+    fun `removing it from the queue hands the window back to autoplay`() =
+        runTest {
+            val harness =
+                PreloadHarness(
+                    backgroundScope,
+                    player = playerWith(),
+                    target = PreloadTarget(video("next"), fromQueue = true),
+                    resolve = { resolved("next") },
+                )
+            harness.controller.schedule()
+            runCurrent()
+
+            harness.target = PreloadTarget(video("next"), fromQueue = false)
+            harness.controller.request("queue-remove")
+
+            assertThat(harness.controller.preloaded?.fromQueue).isFalse()
+        }
 }

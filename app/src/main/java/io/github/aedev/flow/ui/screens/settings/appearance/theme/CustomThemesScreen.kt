@@ -53,6 +53,7 @@ import io.github.aedev.flow.ui.theme.ThemeCatalogEntry
 import io.github.aedev.flow.ui.theme.ThemeMode
 import io.github.aedev.flow.ui.theme.ThemeVariant
 import io.github.aedev.flow.ui.theme.toColorScheme
+import io.github.aedev.flow.ui.utils.rememberDocumentPickerAvailable
 
 private const val JSON_MIME = "application/json"
 private val ImportMimeTypes = arrayOf(JSON_MIME, "text/plain", "application/octet-stream")
@@ -101,6 +102,7 @@ internal fun CustomThemesScreen(
         }
     val palettes = ThemeCatalog.palettes.filter { it.mode != ThemeMode.MATERIAL_YOU }
     val allFileName = stringResource(R.string.settings_custom_themes_title)
+    val canPickFile = rememberDocumentPickerAvailable()
 
     fun exportThemes(themes: List<CustomTheme>) {
         exporting = themes
@@ -115,7 +117,7 @@ internal fun CustomThemesScreen(
         highlight = highlight,
         snackbarHostState = snackbarHostState,
         actions = {
-            if (list.isNotEmpty()) {
+            if (list.isNotEmpty() && canPickFile) {
                 IconButton(onClick = { exportThemes(list) }) {
                     Icon(Icons.Outlined.SaveAlt, contentDescription = stringResource(R.string.settings_custom_theme_export_all))
                 }
@@ -130,13 +132,15 @@ internal fun CustomThemesScreen(
                 enabled = list.size < CustomTheme.MAX_COUNT,
                 onClick = { action = CustomThemeAction.Create },
             )
-            nav(
-                CustomThemeIndex.import,
-                icon = Icons.Outlined.FileOpen,
-                showChevron = false,
-                enabled = list.size < CustomTheme.MAX_COUNT,
-                onClick = { importer.launch(ImportMimeTypes) },
-            )
+            if (canPickFile) {
+                nav(
+                    CustomThemeIndex.import,
+                    icon = Icons.Outlined.FileOpen,
+                    showChevron = false,
+                    enabled = list.size < CustomTheme.MAX_COUNT,
+                    onClick = { importer.launch(ImportMimeTypes) },
+                )
+            }
         }
         if (themes != null && list.isEmpty()) {
             item("custom_themes.empty") {
@@ -160,7 +164,7 @@ internal fun CustomThemesScreen(
                             onUse = { viewModel.use(theme.id) },
                             onRename = { action = CustomThemeAction.Rename(theme.id) },
                             onDuplicate = { action = CustomThemeAction.Duplicate(theme.id) },
-                            onExport = { exportThemes(listOf(theme)) },
+                            onExport = { exportThemes(listOf(theme)) }.takeIf { canPickFile },
                             onShare = {
                                 val send =
                                     Intent(Intent.ACTION_SEND)
@@ -263,7 +267,7 @@ private fun CustomThemeRow(
     onUse: () -> Unit,
     onRename: () -> Unit,
     onDuplicate: () -> Unit,
-    onExport: () -> Unit,
+    onExport: (() -> Unit)?,
     onShare: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -286,11 +290,11 @@ private fun CustomThemeRow(
                     Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.settings_custom_theme_more))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    listOf(
+                    listOfNotNull(
                         R.string.settings_custom_theme_use to onUse,
                         R.string.settings_custom_theme_rename to onRename,
                         R.string.settings_custom_theme_duplicate to onDuplicate,
-                        R.string.settings_custom_theme_export to onExport,
+                        onExport?.let { R.string.settings_custom_theme_export to it },
                         R.string.settings_custom_theme_share to onShare,
                         R.string.settings_custom_theme_delete to onDelete,
                     ).forEach { (label, onClick) ->

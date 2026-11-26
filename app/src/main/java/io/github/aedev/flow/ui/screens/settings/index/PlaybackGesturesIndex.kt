@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.index
 
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.settings.SettingAvailability
 import io.github.aedev.flow.ui.components.settings.SettingEntry
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 
@@ -14,6 +15,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val seekZoneWidth =
         SettingEntry(
@@ -22,6 +24,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val brightnessGesture =
         SettingEntry(
@@ -31,6 +34,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val rememberBrightness =
         SettingEntry(
@@ -39,6 +43,7 @@ internal object PlaybackGesturesIndex {
             summary = R.string.player_appearance_remember_brightness_subtitle,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val volumeGesture =
         SettingEntry(
@@ -48,6 +53,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val volumeBoost =
         SettingEntry(
@@ -56,6 +62,7 @@ internal object PlaybackGesturesIndex {
             summary = R.string.player_appearance_volume_boost_subtitle,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val speedSwipe =
         SettingEntry(
@@ -64,6 +71,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val speedSwipeStep =
         SettingEntry(
@@ -71,6 +79,7 @@ internal object PlaybackGesturesIndex {
             title = R.string.player_settings_speed_swipe_step,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val seekGesture =
         SettingEntry(
@@ -80,6 +89,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val moreVideosGesture =
         SettingEntry(
@@ -89,6 +99,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val chapterSkipGesture =
         SettingEntry(
@@ -98,6 +109,7 @@ internal object PlaybackGesturesIndex {
             keywords = R.string.settings_keywords_gestures,
             section = R.string.player_appearance_gestures_header,
             destination = page,
+            availability = SettingAvailability.NotOnTv,
         )
     val controlsWhileLoading =
         SettingEntry(
