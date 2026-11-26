@@ -5,6 +5,8 @@ import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.artwork.AnimatedArtworkRepository
 import io.github.aedev.flow.data.music.artwork.AnimatedLoop
+import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
+import io.github.aedev.flow.data.music.artwork.ArtworkSource
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.utils.NetworkState
 import io.mockk.coEvery
@@ -34,12 +36,16 @@ class AnimatedArtworkViewModelTest {
         mockk(relaxed = true) {
             every { animatedArtwork } returns flowOf(true)
             every { animatedArtworkWifiOnly } returns wifiOnly
+            every { animatedArtworkSource } returns flowOf(ArtworkSource.APPLE_MUSIC)
+            every { animatedArtworkQuality } returns flowOf(ArtworkLoopQuality.AUTO)
         }
     private val song = MusicTrack(videoId = "song", title = "Salt Line", artist = "Harbour Lights", thumbnailUrl = "", duration = 200)
     private val other = song.copy(videoId = "other", title = "Tide Table")
     private val found = AnimatedLoop("https://example.org/loop.m3u8", null)
 
     private fun viewModel() = AnimatedArtworkViewModel(mockk<Context>(relaxed = true), repository, preferences, mockk(relaxed = true))
+
+    private fun AnimatedArtworkViewModel.shownUrl(videoId: String) = loop.value?.videoFor(videoId, tallSpace = false)?.url
 
     private fun advanceTo(ms: Long) {
         testDispatcher.scheduler.advanceTimeBy(ms - testDispatcher.scheduler.currentTime)
@@ -64,14 +70,14 @@ class AnimatedArtworkViewModelTest {
         coEvery { repository.loopFor(song) } throws IOException("503") andThen found
         val viewModel = viewModel()
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         advanceTo(19_999)
         coVerify(exactly = 1) { repository.loopFor(song) }
         assertThat(viewModel.loop.value).isNull()
 
         advanceTo(20_000)
         coVerify(exactly = 2) { repository.loopFor(song) }
-        assertThat(viewModel.loop.value?.urlFor("song", tallSpace = false)).isEqualTo(found.square)
+        assertThat(viewModel.shownUrl("song")).isEqualTo(found.square)
     }
 
     @Test
@@ -79,7 +85,7 @@ class AnimatedArtworkViewModelTest {
         coEvery { repository.loopFor(song) } throws IOException("503")
         val viewModel = viewModel()
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         advanceTo(59_999)
         coVerify(exactly = 2) { repository.loopFor(song) }
 
@@ -95,9 +101,9 @@ class AnimatedArtworkViewModelTest {
         coEvery { repository.loopFor(song) } throws IOException("503")
         val viewModel = viewModel()
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         advanceTo(60_000)
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         testDispatcher.scheduler.runCurrent()
 
         coVerify(exactly = 4) { repository.loopFor(song) }
@@ -109,9 +115,9 @@ class AnimatedArtworkViewModelTest {
         coEvery { repository.loopFor(other) } returns found
         val viewModel = viewModel()
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         advanceTo(100_000)
-        viewModel.load(other)
+        viewModel.load(other, ArtworkSource.APPLE_MUSIC)
         advanceTo(200_000)
 
         coVerify(exactly = 1) { repository.loopFor(song) }
@@ -124,13 +130,13 @@ class AnimatedArtworkViewModelTest {
         coEvery { repository.loopFor(other) } returns found
         val viewModel = viewModel()
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         advanceTo(10_000)
-        viewModel.load(other)
+        viewModel.load(other, ArtworkSource.APPLE_MUSIC)
         advanceTo(100_000)
 
         coVerify(exactly = 1) { repository.loopFor(song) }
-        assertThat(viewModel.loop.value?.urlFor("other", tallSpace = false)).isEqualTo(found.square)
+        assertThat(viewModel.shownUrl("other")).isEqualTo(found.square)
     }
 
     @Test
@@ -138,16 +144,16 @@ class AnimatedArtworkViewModelTest {
         coEvery { repository.loopFor(song) } throws IOException("503") andThen found
         val viewModel = viewModel()
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         advanceTo(10_000)
         viewModel.stopLookup()
         advanceTo(100_000)
         coVerify(exactly = 1) { repository.loopFor(song) }
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         testDispatcher.scheduler.runCurrent()
         coVerify(exactly = 2) { repository.loopFor(song) }
-        assertThat(viewModel.loop.value?.urlFor("song", tallSpace = false)).isEqualTo(found.square)
+        assertThat(viewModel.shownUrl("song")).isEqualTo(found.square)
     }
 
     @Test
@@ -155,14 +161,14 @@ class AnimatedArtworkViewModelTest {
         coEvery { repository.loopFor(song) } returns found
         val viewModel = viewModel()
 
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         testDispatcher.scheduler.runCurrent()
         viewModel.stopLookup()
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         testDispatcher.scheduler.runCurrent()
 
         coVerify(exactly = 1) { repository.loopFor(song) }
-        assertThat(viewModel.loop.value?.urlFor("song", tallSpace = false)).isEqualTo(found.square)
+        assertThat(viewModel.shownUrl("song")).isEqualTo(found.square)
     }
 
     @Test
@@ -170,13 +176,13 @@ class AnimatedArtworkViewModelTest {
         wifiOnly.value = true
         every { NetworkState.isOnWifi(any()) } returns false
         val viewModel = viewModel()
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         advanceTo(100_000)
         coVerify(exactly = 0) { repository.loopFor(any()) }
 
         coEvery { repository.loopFor(song) } throws IOException("503")
         every { NetworkState.isOnWifi(any()) } returns true
-        viewModel.load(song)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
         testDispatcher.scheduler.runCurrent()
         coVerify(exactly = 1) { repository.loopFor(song) }
 
@@ -184,5 +190,20 @@ class AnimatedArtworkViewModelTest {
         testDispatcher.scheduler.advanceTimeBy(100_000)
         testDispatcher.scheduler.runCurrent()
         coVerify(exactly = 1) { repository.loopFor(song) }
+    }
+
+    @Test
+    fun `switching the source asks again for the same song`() {
+        coEvery { repository.loopFor(song, any()) } returns found
+        val viewModel = viewModel()
+
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
+        advanceTo(0)
+        viewModel.load(song, ArtworkSource.APPLE_MUSIC)
+        viewModel.load(song, ArtworkSource.SPOTIFY_CANVAS)
+        advanceTo(0)
+
+        coVerify(exactly = 1) { repository.loopFor(song, ArtworkSource.APPLE_MUSIC) }
+        coVerify(exactly = 1) { repository.loopFor(song, ArtworkSource.SPOTIFY_CANVAS) }
     }
 }

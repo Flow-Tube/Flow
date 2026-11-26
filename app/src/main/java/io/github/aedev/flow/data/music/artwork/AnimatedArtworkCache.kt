@@ -16,11 +16,11 @@ internal data class CachedLoop(
 private const val SEPARATOR = "|"
 
 internal fun CachedLoop.encoded(): String =
-    if (loop != null) {
-        listOf(atMs.toString(), loop.square.orEmpty(), loop.tall.orEmpty()).joinToString(SEPARATOR)
-    } else {
-        listOf(atMs.toString(), MISS_AFTER_RELEASE_SEARCH).joinToString(SEPARATOR)
-    }
+    when {
+        loop == null -> listOf(atMs.toString(), MISS_AFTER_RELEASE_SEARCH)
+        loop.isCanvas -> listOf(atMs.toString(), CANVAS, loop.square.orEmpty())
+        else -> listOf(atMs.toString(), loop.square.orEmpty(), loop.tall.orEmpty())
+    }.joinToString(SEPARATOR)
 
 /**
  * Older formats read as nothing saved, so the album is asked once more: entries from before tall
@@ -32,6 +32,10 @@ internal fun decodeCachedLoop(stored: String): CachedLoop? {
     return when {
         parts.size == MISS_PARTS && parts[1] == MISS_AFTER_RELEASE_SEARCH -> {
             CachedLoop(null, atMs)
+        }
+
+        parts.size == LOOP_PARTS && parts[1] == CANVAS -> {
+            parts[2].takeIf(String::isNotEmpty)?.let { CachedLoop(AnimatedLoop.canvas(it), atMs) }
         }
 
         parts.size == LOOP_PARTS -> {
@@ -49,6 +53,7 @@ internal fun decodeCachedLoop(stored: String): CachedLoop? {
 private const val LOOP_PARTS = 3
 private const val MISS_PARTS = 2
 private const val MISS_AFTER_RELEASE_SEARCH = "miss"
+private const val CANVAS = "canvas"
 
 internal interface AnimatedArtworkCache {
     suspend fun get(key: String): CachedLoop?

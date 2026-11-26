@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.music.artwork.AnimatedArtworkRepository
 import io.github.aedev.flow.data.music.artwork.ArtworkLoopQuality
+import io.github.aedev.flow.data.music.artwork.ArtworkSource
 import io.github.aedev.flow.data.music.artwork.LoadedLoop
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.di.MusicCache
@@ -49,6 +50,13 @@ class AnimatedArtworkViewModel
         val isEnabled: StateFlow<Boolean> =
             preferences.animatedArtwork.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
 
+        val source: StateFlow<ArtworkSource> =
+            preferences.animatedArtworkSource.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+                ArtworkSource.APPLE_MUSIC,
+            )
+
         val quality: StateFlow<ArtworkLoopQuality> =
             preferences.animatedArtworkQuality.stateIn(
                 viewModelScope,
@@ -58,7 +66,7 @@ class AnimatedArtworkViewModel
 
         private val loaded = MutableStateFlow<LoadedLoop?>(null)
 
-        /** The HLS loops of the song last [load]ed, or null while there are none to show. */
+        /** The loops of the song last [load]ed, or null while there are none to show. */
         internal val loop: StateFlow<LoadedLoop?> = loaded.asStateFlow()
 
         val dataSourceFactory: DataSource.Factory =
@@ -69,11 +77,16 @@ class AnimatedArtworkViewModel
                 .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
         private var loadedTrack: MusicTrack? = null
+        private var loadedSource: ArtworkSource? = null
         private var lookup: Job? = null
 
-        fun load(track: MusicTrack) {
-            if (track == loadedTrack) return
+        fun load(
+            track: MusicTrack,
+            source: ArtworkSource,
+        ) {
+            if (track == loadedTrack && source == loadedSource) return
             loadedTrack = track
+            loadedSource = source
             lookup?.cancel()
             loaded.value = null
             lookup =
@@ -82,7 +95,7 @@ class AnimatedArtworkViewModel
                         delay(waitMs)
                         if (!mayLookUp()) break
                         try {
-                            loaded.value = repository.loopFor(track)?.let { LoadedLoop(track.videoId, it) }
+                            loaded.value = repository.loopFor(track, source)?.let { LoadedLoop(track.videoId, it) }
                             return@launch
                         } catch (e: CancellationException) {
                             throw e
@@ -115,6 +128,7 @@ class AnimatedArtworkViewModel
         // Nothing was decided for this song, so asking again later is allowed.
         private fun forgetLoaded() {
             loadedTrack = null
+            loadedSource = null
         }
 
         private companion object {

@@ -2624,9 +2624,14 @@
     <string name="settings_music_side_swipes_summary">Swipe the left side for speed, the right for volume</string>
     <string name="music_watch_video_desc">Open the music video in the video player</string>
     <string name="player_appearance_animated_artwork_title">Animated artwork</string>
-    <string name="player_appearance_animated_artwork_subtitle">Loop an album\'s motion artwork when it has one</string>
+    <string name="player_appearance_animated_artwork_subtitle">Loop the song\'s motion artwork when it has one</string>
     <string name="player_appearance_animated_artwork_wifi_title">Animated artwork on Wi-Fi only</string>
     <string name="player_appearance_animated_artwork_wifi_subtitle">Keep artwork still on mobile data</string>
+    <string name="player_appearance_animated_artwork_source_title">Animated artwork source</string>
+    <string name="player_appearance_animated_artwork_source_subtitle">Both tries Apple Music first, then Spotify Canvas</string>
+    <string name="player_appearance_animated_artwork_source_apple">Apple Music</string>
+    <string name="player_appearance_animated_artwork_source_canvas">Spotify</string>
+    <string name="player_appearance_animated_artwork_source_both">Both</string>
     <string name="player_appearance_animated_artwork_quality_title">Animated artwork quality</string>
     <string name="player_appearance_animated_artwork_quality_subtitle">Auto matches the artwork\'s size on screen</string>
     <string name="player_appearance_animated_artwork_quality_auto">Auto</string>
