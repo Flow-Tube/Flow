@@ -96,11 +96,14 @@ fun SearchScreen(
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
 
+    val firstEntry = remember { mutableStateOf(true) }
     LaunchedEffect(showResults) {
+        val entering = firstEntry.value
+        firstEntry.value = false
         if (showResults) {
             focusManager.clearFocus(force = true)
             keyboard?.hide()
-        } else {
+        } else if (!entering || viewModel.opensKeyboard()) {
             runCatching { focusRequester.requestFocus() }
             keyboard?.show()
         }

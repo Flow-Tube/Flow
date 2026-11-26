@@ -149,6 +149,9 @@ internal fun ContentSettingsScreen(
                 sharedLinkActionLabel(action)
             }
         }
+        group(key = "content.search", header = R.string.search) {
+            switch(ContentIndex.searchKeyboard, viewModel.searchKeyboard, viewModel::setSearchKeyboard)
+        }
     }
 
     if (showThresholdDialog) {

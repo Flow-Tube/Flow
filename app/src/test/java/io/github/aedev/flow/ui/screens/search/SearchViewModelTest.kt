@@ -6,6 +6,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.engagement.HiddenContentStore
 import io.github.aedev.flow.data.local.ContentType
 import io.github.aedev.flow.data.local.Duration
+import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.PrivacyGate
 import io.github.aedev.flow.data.local.SearchFilter
 import io.github.aedev.flow.data.local.SearchHistoryRepository
@@ -18,6 +19,7 @@ import io.github.aedev.flow.data.shorts.queue.ShortsQueueHandoff
 import io.github.aedev.flow.innertube.pages.search.SearchSuggestion
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -41,6 +43,7 @@ class SearchViewModelTest {
     private val suggestions: SearchSuggestionsRepository = mockk(relaxed = true)
     private val context: Context = mockk(relaxed = true)
     private val history: SearchHistoryRepository = mockk(relaxed = true)
+    private val preferences: PlayerPreferences = mockk(relaxed = true)
 
     private var deepFlow = false
     private val privacyGate =
@@ -60,7 +63,7 @@ class SearchViewModelTest {
             mockk(relaxed = true),
             mockk(relaxed = true),
             mockk(relaxed = true),
-            mockk(relaxed = true),
+            preferences,
             privacyGate,
             savedState,
             HiddenContentStore(CoroutineScope(Dispatchers.Unconfined)),
@@ -80,6 +83,16 @@ class SearchViewModelTest {
         Dispatchers.resetMain()
         unmockkAll()
     }
+
+    @Test
+    fun `search opens the keyboard only while the setting is on`() =
+        runTest(testDispatcher) {
+            every { preferences.searchAutoKeyboard } returns flowOf(false)
+            assertThat(viewModel().opensKeyboard()).isFalse()
+
+            every { preferences.searchAutoKeyboard } returns flowOf(true)
+            assertThat(viewModel().opensKeyboard()).isTrue()
+        }
 
     @Test
     fun `initial ui state has an empty query and no narrowing`() {

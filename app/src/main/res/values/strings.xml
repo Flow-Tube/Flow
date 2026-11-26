@@ -4740,6 +4740,8 @@
     <string name="content_settings_open_links_system_asks">Android asks which app to use</string>
     <string name="content_settings_shared_links_title">Shared links</string>
     <string name="content_settings_shared_links_subtitle">What a video shared to Flow does</string>
+    <string name="content_settings_search_keyboard_title">Open keyboard on search</string>
+    <string name="content_settings_search_keyboard_subtitle">Focus the search field as soon as search opens</string>
     <string name="content_settings_shared_links_dialog_body">Links you tap in other apps always play.</string>
     <string name="content_settings_shared_links_play">Play right away</string>
     <string name="content_settings_shared_links_ask_while_playing">Ask while something plays</string>
