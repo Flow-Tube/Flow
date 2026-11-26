@@ -16,8 +16,10 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +51,11 @@ internal fun NotificationChannelRow(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val state = rememberSwipeToDismissBoxState()
+    val state = rememberNotificationSwipeState()
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    // SwipeToDismissBox restarts its dismiss effect whenever this callback changes, so it must stay one instance.
+    val settle: (SwipeToDismissBoxValue) -> Unit =
+        remember { { value -> if (value == SwipeToDismissBoxValue.EndToStart) currentOnDismiss() } }
     val deleteLabel = stringResource(R.string.delete)
     val stateLabel = stringResource(if (expanded) R.string.notifications_channel_open else R.string.notifications_channel_closed)
     val newLabel = stringResource(R.string.notifications_group_new)
@@ -69,7 +75,7 @@ internal fun NotificationChannelRow(
                         },
                     )
             },
-        onDismiss = { value -> if (value == SwipeToDismissBoxValue.EndToStart) onDismiss() },
+        onDismiss = settle,
         backgroundContent = {
             NotificationSwipeBackground(
                 icon = Icons.Outlined.Delete,

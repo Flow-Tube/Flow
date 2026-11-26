@@ -75,18 +75,21 @@ class NotificationViewModel
             }
         }
 
-        fun deleteNotification(notification: NotificationEntity) = deleteNotifications(listOf(notification))
-
-        /** Removes a channel row's uploads together, so one undo brings them all back. */
-        fun deleteNotifications(notifications: List<NotificationEntity>) {
+        /**
+         * Removes [notifications] together, so one undo brings them all back. False when they are
+         * already the removal waiting on undo: a repeated dismiss of the same row changes nothing.
+         */
+        fun deleteNotifications(notifications: List<NotificationEntity>): Boolean {
+            if (notifications.isEmpty() || lastRemoved.map { it.id }.containsAll(notifications.map { it.id })) return false
             lastRemoved = notifications
-            viewModelScope.launch { notifications.forEach { repository.deleteNotification(it) } }
+            viewModelScope.launch { repository.deleteNotifications(notifications) }
+            return true
         }
 
         fun undoDelete() {
             val removed = lastRemoved.ifEmpty { return }
             lastRemoved = emptyList()
-            viewModelScope.launch { removed.forEach { repository.insertNotification(it.copy(isRead = true)) } }
+            viewModelScope.launch { repository.restoreNotifications(removed.map { it.copy(isRead = true) }) }
         }
 
         /** Saves [notification]'s video to Watch later; [onResult] gets false when it was already there. */

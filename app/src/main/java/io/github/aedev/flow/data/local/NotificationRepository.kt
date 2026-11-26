@@ -15,10 +15,6 @@ class NotificationRepository
         val allNotifications: Flow<List<NotificationEntity>> = notificationDao.getAllNotifications()
         val unreadCount: Flow<Int> = notificationDao.getUnreadCount()
 
-        suspend fun insertNotification(notification: NotificationEntity) {
-            notificationDao.insertNotification(notification)
-        }
-
         /** Stores the entries whose video the inbox doesn't hold yet, and returns them. */
         suspend fun recordNew(entries: List<NotificationEntity>): List<NotificationEntity> {
             val unique = entries.distinctBy { it.videoId }
@@ -37,8 +33,13 @@ class NotificationRepository
             notificationDao.markAllAsRead()
         }
 
-        suspend fun deleteNotification(notification: NotificationEntity) {
-            notificationDao.deleteNotification(notification)
+        /** Removes [notifications] in one write, so the inbox never shows them half gone. */
+        suspend fun deleteNotifications(notifications: List<NotificationEntity>) {
+            notificationDao.deleteNotifications(notifications)
+        }
+
+        suspend fun restoreNotifications(notifications: List<NotificationEntity>) {
+            notificationDao.insertNotifications(notifications)
         }
 
         suspend fun clearAll() {

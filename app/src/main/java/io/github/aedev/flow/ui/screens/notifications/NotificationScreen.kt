@@ -91,7 +91,7 @@ fun NotificationScreen(
     LaunchedEffect(Unit) { viewModel.openInbox() }
 
     fun remove(items: List<NotificationEntity>) {
-        viewModel.deleteNotifications(items)
+        if (!viewModel.deleteNotifications(items)) return
         val message =
             if (items.size ==
                 1

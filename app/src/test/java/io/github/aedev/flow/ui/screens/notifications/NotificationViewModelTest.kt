@@ -77,16 +77,27 @@ class NotificationViewModelTest {
     }
 
     @Test
-    fun `a channel row is removed and restored as a whole`() {
+    fun `a channel row is removed in one write and undo restores every video`() {
+        val viewModel = viewModel()
+
+        assertThat(viewModel.deleteNotifications(listOf(unread, read))).isTrue()
+        viewModel.undoDelete()
+
+        coVerify(exactly = 1) { repository.deleteNotifications(listOf(unread, read)) }
+        coVerify(exactly = 1) { repository.restoreNotifications(listOf(unread.copy(isRead = true), read.copy(isRead = true))) }
+    }
+
+    @Test
+    fun `a repeated dismiss of part of the removed group neither deletes again nor shrinks the undo`() {
         val viewModel = viewModel()
 
         viewModel.deleteNotifications(listOf(unread, read))
+        val again = viewModel.deleteNotifications(listOf(read))
         viewModel.undoDelete()
 
-        coVerify(exactly = 1) { repository.deleteNotification(unread) }
-        coVerify(exactly = 1) { repository.deleteNotification(read) }
-        coVerify(exactly = 1) { repository.insertNotification(unread.copy(isRead = true)) }
-        coVerify(exactly = 1) { repository.insertNotification(read.copy(isRead = true)) }
+        assertThat(again).isFalse()
+        coVerify(exactly = 1) { repository.deleteNotifications(any()) }
+        coVerify(exactly = 1) { repository.restoreNotifications(listOf(unread.copy(isRead = true), read.copy(isRead = true))) }
     }
 
     @Test
@@ -100,12 +111,12 @@ class NotificationViewModelTest {
     fun `undo puts the removed notification back as read`() {
         val viewModel = viewModel()
 
-        viewModel.deleteNotification(unread)
+        viewModel.deleteNotifications(listOf(unread))
         viewModel.undoDelete()
         viewModel.undoDelete()
 
-        coVerify(exactly = 1) { repository.deleteNotification(unread) }
-        coVerify(exactly = 1) { repository.insertNotification(unread.copy(isRead = true)) }
+        coVerify(exactly = 1) { repository.deleteNotifications(listOf(unread)) }
+        coVerify(exactly = 1) { repository.restoreNotifications(listOf(unread.copy(isRead = true))) }
     }
 
     @Test
