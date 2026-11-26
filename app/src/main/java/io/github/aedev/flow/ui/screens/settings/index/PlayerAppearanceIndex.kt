@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.index
 
 import io.github.aedev.flow.R
+import io.github.aedev.flow.ui.components.settings.SettingAvailability
 import io.github.aedev.flow.ui.components.settings.SettingEntry
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
 
@@ -13,6 +14,7 @@ internal object PlayerAppearanceIndex {
         summary: Int? = null,
         section: Int,
         revealVia: String? = null,
+        availability: SettingAvailability = SettingAvailability.Always,
     ) = SettingEntry(
         key = "player_appearance.$key",
         title = title,
@@ -20,6 +22,7 @@ internal object PlayerAppearanceIndex {
         section = section,
         revealVia = revealVia,
         destination = page,
+        availability = availability,
     )
 
     val sliderStyle =
@@ -196,9 +199,21 @@ internal object PlayerAppearanceIndex {
     val miniLongPress =
         entry("mini_long_press", R.string.player_appearance_mini_long_press_title, section = R.string.settings_section_music_mini_player)
     val queueSwipeLeft =
-        entry("queue_swipe_left", R.string.queue_swipe_left, R.string.queue_swipe_subtitle, R.string.settings_section_music_player)
+        entry(
+            "queue_swipe_left",
+            R.string.queue_swipe_left,
+            R.string.queue_swipe_subtitle,
+            R.string.settings_section_music_player,
+            availability = SettingAvailability.NotOnTv,
+        )
     val queueSwipeRight =
-        entry("queue_swipe_right", R.string.queue_swipe_right, R.string.queue_swipe_subtitle, R.string.settings_section_music_player)
+        entry(
+            "queue_swipe_right",
+            R.string.queue_swipe_right,
+            R.string.queue_swipe_subtitle,
+            R.string.settings_section_music_player,
+            availability = SettingAvailability.NotOnTv,
+        )
     val adaptiveSize =
         entry(
             "adaptive_size",
@@ -289,6 +304,7 @@ internal object PlayerAppearanceIndex {
             R.string.player_appearance_gesture_overlay_title,
             R.string.player_appearance_gesture_overlay_subtitle,
             R.string.settings_section_video_player,
+            availability = SettingAvailability.NotOnTv,
         )
     val sidePanelWidth =
         entry(
@@ -316,13 +332,20 @@ internal object PlayerAppearanceIndex {
         )
 
     val miniBarSwipeLeft =
-        entry("mini_bar_swipe_left", R.string.mini_bar_swipe_left, R.string.mini_bar_swipe_subtitle, R.string.settings_section_mini_player)
+        entry(
+            "mini_bar_swipe_left",
+            R.string.mini_bar_swipe_left,
+            R.string.mini_bar_swipe_subtitle,
+            R.string.settings_section_mini_player,
+            availability = SettingAvailability.NotOnTv,
+        )
     val miniBarSwipeRight =
         entry(
             "mini_bar_swipe_right",
             R.string.mini_bar_swipe_right,
             R.string.mini_bar_swipe_subtitle,
             R.string.settings_section_mini_player,
+            availability = SettingAvailability.NotOnTv,
         )
 
     val lyricsAnimation =

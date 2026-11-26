@@ -77,6 +77,7 @@ import io.github.aedev.flow.ui.screens.settings.quality.VideoQualities
 import io.github.aedev.flow.ui.screens.settings.quality.codecLabel
 import io.github.aedev.flow.ui.screens.settings.quality.musicQualityLabel
 import io.github.aedev.flow.ui.screens.settings.quality.videoQualityLabel
+import io.github.aedev.flow.ui.utils.rememberDocumentPickerAvailable
 
 private enum class DownloadPicker { QUALITY, CODEC, MUSIC_QUALITY, AUTO_DOWNLOAD }
 
@@ -274,6 +275,7 @@ internal fun DownloadSettingsScreen(
         }
     cacheLimit?.let { type -> DownloadCacheLimitDialog(type, cacheViewModel, onDismiss = { cacheLimit = null }) }
     if (dialogTarget != null && dialogLocation != null) {
+        val canPickFolder = rememberDocumentPickerAvailable()
         DownloadLocationDialog(
             target = dialogTarget,
             current = dialogLocation.chosen,
@@ -281,7 +283,7 @@ internal fun DownloadSettingsScreen(
             downloadsPath = viewModel.downloadsPath(),
             internalPath = viewModel.internalPath(),
             onSelect = { path -> viewModel.setLocation(dialogTarget, path?.let { DownloadLocation(path = it) }) },
-            onBrowse = { folderPicker.launch(null) },
+            onBrowse = { folderPicker.launch(null) }.takeIf { canPickFolder },
             onDismiss = { locationTarget = null },
         )
     }

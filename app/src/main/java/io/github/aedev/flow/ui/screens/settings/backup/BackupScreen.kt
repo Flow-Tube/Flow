@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -31,10 +32,12 @@ import io.github.aedev.flow.data.local.LocalDataManager.AutoBackupFrequency
 import io.github.aedev.flow.data.local.LocalDataManager.AutoBackupType
 import io.github.aedev.flow.ui.components.settings.SettingsPage
 import io.github.aedev.flow.ui.components.settings.SettingsTabs
+import io.github.aedev.flow.ui.components.settings.notice
 import io.github.aedev.flow.ui.components.shared.FlowConfirmDialog
 import io.github.aedev.flow.ui.components.shared.FlowConnectedToggleGroup
 import io.github.aedev.flow.ui.components.shared.FlowProgressBanner
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
+import io.github.aedev.flow.ui.utils.rememberDocumentPickerAvailable
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -114,6 +117,7 @@ internal fun BackupScreen(
             uri?.let(viewModel::setFolder)
         }
 
+    val canPickFile = rememberDocumentPickerAvailable()
     val autoState =
         AutoBackupState(
             frequency = frequency,
@@ -180,15 +184,19 @@ internal fun BackupScreen(
             }
         },
     ) {
-        when (selectedTab) {
-            SettingsTabs.BACKUP_IMPORT -> {
+        when {
+            !canPickFile -> {
+                notice("backup.no_picker", text = { stringResource(R.string.backup_no_file_picker) }, icon = Icons.Outlined.Info)
+            }
+
+            selectedTab == SettingsTabs.BACKUP_IMPORT -> {
                 importPage { kind ->
                     pendingImport = kind
                     if (kind.takesSeveralFiles) multiImportPicker.launch(kind.mimeTypes) else importPicker.launch(kind.mimeTypes)
                 }
             }
 
-            SettingsTabs.BACKUP_AUTO -> {
+            selectedTab == SettingsTabs.BACKUP_AUTO -> {
                 autoBackupPage(
                     state = autoState,
                     onFrequency = viewModel::setFrequency,

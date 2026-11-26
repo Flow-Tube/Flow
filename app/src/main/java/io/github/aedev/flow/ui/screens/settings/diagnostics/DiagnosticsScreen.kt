@@ -53,6 +53,7 @@ import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowLoadingIndicator
 import io.github.aedev.flow.ui.components.shared.FlowToggleOption
 import io.github.aedev.flow.ui.screens.settings.index.DiagnosticsIndex
+import io.github.aedev.flow.ui.utils.rememberDocumentPickerAvailable
 import io.github.aedev.flow.utils.copyPlainText
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -92,6 +93,7 @@ internal fun DiagnosticsScreen(
     val exportedMessage = stringResource(R.string.diagnostics_snapshot_exported)
     val exportFailedMessage = stringResource(R.string.diagnostics_snapshot_export_failed)
     val noSnapshotText = stringResource(R.string.diagnostics_no_home_snapshot)
+    val canPickFile = rememberDocumentPickerAvailable()
     val exportSnapshot =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/gzip")) { uri ->
             if (uri != null) {
@@ -148,14 +150,16 @@ internal fun DiagnosticsScreen(
                 onCheckedChange = viewModel::setRecordingSnapshots,
                 icon = Icons.Outlined.FiberManualRecord,
             )
-            nav(
-                DiagnosticsIndex.exportSnapshot,
-                icon = Icons.Outlined.FileDownload,
-                showChevron = false,
-                enabled = snapshotCount > 0,
-                value = noSnapshotText.takeIf { snapshotCount == 0 },
-                onClick = { exportSnapshot.launch("flow_home_snapshot_${LocalDate.now()}.json.gz") },
-            )
+            if (canPickFile) {
+                nav(
+                    DiagnosticsIndex.exportSnapshot,
+                    icon = Icons.Outlined.FileDownload,
+                    showChevron = false,
+                    enabled = snapshotCount > 0,
+                    value = noSnapshotText.takeIf { snapshotCount == 0 },
+                    onClick = { exportSnapshot.launch("flow_home_snapshot_${LocalDate.now()}.json.gz") },
+                )
+            }
         }
         if (BuildConfig.DEBUG) {
             debugProfiles(
