@@ -108,13 +108,9 @@ internal fun ThemeScreen(
                 toggleGroup(ThemeIndex.style, styleOptions, settings.variant, viewModel::setVariant)
             }
         }
-        if (!settings.followsSystem) {
-            header(key = ThemeIndex.palettes.key, text = R.string.settings_theme_palettes)
-            item("theme.palettes.grid") { ThemeCardGrid(paletteItems) }
-            if (customItems.isNotEmpty()) {
-                header(key = "theme.custom", text = R.string.settings_custom_themes_title)
-                item("theme.custom.grid") { ThemeCardGrid(customItems) }
-            }
+        if (!settings.followsSystem && customItems.isNotEmpty()) {
+            header(key = "theme.custom", text = R.string.settings_custom_themes_title)
+            item("theme.custom.grid") { ThemeCardGrid(customItems) }
         }
         group(key = "theme.manage") {
             nav(
@@ -122,6 +118,10 @@ internal fun ThemeScreen(
                 icon = Icons.Outlined.Palette,
                 onClick = { onNavigate(SettingsTarget(SettingsDestination.CUSTOM_THEME)) },
             )
+        }
+        if (!settings.followsSystem) {
+            header(key = ThemeIndex.palettes.key, text = R.string.settings_theme_palettes)
+            item("theme.palettes.grid") { ThemeCardGrid(paletteItems) }
         }
     }
 
