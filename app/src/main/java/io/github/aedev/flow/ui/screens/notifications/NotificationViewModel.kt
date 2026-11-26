@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.notifications
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.Lazy
@@ -9,10 +10,12 @@ import io.github.aedev.flow.data.local.NotificationRepository
 import io.github.aedev.flow.data.local.entity.NotificationEntity
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -41,11 +44,12 @@ class NotificationViewModel
         val newIds: StateFlow<Set<Int>> = _newIds.asStateFlow()
 
         private var inboxOpened = false
-        private var lastRemoved: NotificationEntity? = null
+        private var lastRemoved: List<NotificationEntity> = emptyList()
         private var lastSaved: Video? = null
 
         /**
-         * Takes the unread snapshot, then clears the badge. Only the inbox route calls this: the
+         * Takes the unread snapshot, then clears the badge, and refreshes the subscription feed if it is
+         * due, which brings new uploads into the inbox. Only the inbox route calls this: the
          * activity-scoped instance behind the badge must never mark anything read.
          */
         fun openInbox() {
@@ -59,17 +63,30 @@ class NotificationViewModel
                         .mapTo(HashSet()) { it.id }
                 repository.markAllAsRead()
             }
+            viewModelScope.launch {
+                try {
+                    val feed = feed.get()
+                    feed.refresh(feed.planAllRefresh(force = false)).collect()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Inbox feed refresh failed", e)
+                }
+            }
         }
 
-        fun deleteNotification(notification: NotificationEntity) {
-            lastRemoved = notification
-            viewModelScope.launch { repository.deleteNotification(notification) }
+        fun deleteNotification(notification: NotificationEntity) = deleteNotifications(listOf(notification))
+
+        /** Removes a channel row's uploads together, so one undo brings them all back. */
+        fun deleteNotifications(notifications: List<NotificationEntity>) {
+            lastRemoved = notifications
+            viewModelScope.launch { notifications.forEach { repository.deleteNotification(it) } }
         }
 
         fun undoDelete() {
-            val notification = lastRemoved ?: return
-            lastRemoved = null
-            viewModelScope.launch { repository.insertNotification(notification.copy(isRead = true)) }
+            val removed = lastRemoved.ifEmpty { return }
+            lastRemoved = emptyList()
+            viewModelScope.launch { removed.forEach { repository.insertNotification(it.copy(isRead = true)) } }
         }
 
         /** Saves [notification]'s video to Watch later; [onResult] gets false when it was already there. */
@@ -96,10 +113,12 @@ class NotificationViewModel
             feed.get().cachedVideo(notification.videoId) ?: notification.toVideo()
 
         fun clearAll() {
-            lastRemoved = null
+            lastRemoved = emptyList()
             viewModelScope.launch { repository.clearAll() }
         }
     }
+
+private const val TAG = "NotificationViewModel"
 
 private fun NotificationEntity.toVideo() =
     Video(

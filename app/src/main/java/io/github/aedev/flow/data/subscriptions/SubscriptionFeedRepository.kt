@@ -15,7 +15,9 @@ import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.model.toUiModel
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedMerger.preservingEnrichedMetadata
 import io.github.aedev.flow.di.ProfileDb
+import io.github.aedev.flow.notification.SubscriptionInbox
 import io.github.aedev.flow.utils.PerformanceDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -61,6 +63,7 @@ class SubscriptionFeedRepository
         private val playerPreferences: PlayerPreferences,
         private val collabIndex: ChannelCollabIndex,
         private val subscriptionGroupDao: SubscriptionGroupDao,
+        private val inbox: SubscriptionInbox,
     ) {
         /**
          * Guards against overlapping refreshes; the screen, the startup pass and the worker can all
@@ -271,10 +274,8 @@ class SubscriptionFeedRepository
             reelIds: Set<String>,
         ) {
             val written = channelIds.toHashSet()
-            val subscribedChannelIds =
-                withContext(PerformanceDispatcher.diskIO) {
-                    subscriptionRepository.getAllSubscriptions().first().mapTo(HashSet()) { it.channelId }
-                }
+            val subscriptions = withContext(PerformanceDispatcher.diskIO) { subscriptionRepository.getAllSubscriptions().first() }
+            val subscribedChannelIds = subscriptions.mapTo(HashSet()) { it.channelId }
             val write =
                 subscriptionFeedWrite(
                     channelIds = channelIds,
@@ -306,6 +307,13 @@ class SubscriptionFeedRepository
                 subscriptionRepository.markFeedFetched(write.fetchedChannelIds, refreshTime)
                 val cachedCount = cacheDao.getSubscriptionFeedCount()
                 playerPreferences.setSubscriptionLastRefresh(refreshTime, cachedCount)
+                try {
+                    inbox.record(write.rows, sliceCached.filter { it.channelId in written }, subscriptions, refreshTime)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Couldn't list new uploads in the inbox", e)
+                }
             }
             Log.i(
                 TAG,
