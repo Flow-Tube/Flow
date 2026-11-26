@@ -9,6 +9,7 @@ import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT
 import io.github.aedev.flow.data.local.DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.HomeViewMode
+import io.github.aedev.flow.data.local.LoadingAnimation
 import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.data.local.NavBarLabels
 import io.github.aedev.flow.data.local.NavBarScroll
@@ -105,6 +106,7 @@ class AppearanceViewModel
             }
 
         val skeletonGradient = localDataManager.skeletonGradient.asState(false)
+        val loadingAnimation = localDataManager.loadingAnimation.asState(LoadingAnimation.PULSE)
         val marqueeEnabled = localDataManager.marqueeEnabled.asState(true)
         val classicLoadingIndicator = localDataManager.classicLoadingIndicator.asState(false)
         val haptics = preferences.hapticsEnabled.asState(true)
@@ -113,6 +115,8 @@ class AppearanceViewModel
         val newSettingsDays = preferences.newSettingsHighlightDays.asState(DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS)
 
         fun setSkeletonGradient(enabled: Boolean) = write { localDataManager.setSkeletonGradient(enabled) }
+
+        fun setLoadingAnimation(animation: LoadingAnimation) = write { localDataManager.setLoadingAnimation(animation) }
 
         fun setMarqueeEnabled(enabled: Boolean) = write { localDataManager.setMarqueeEnabled(enabled) }
 

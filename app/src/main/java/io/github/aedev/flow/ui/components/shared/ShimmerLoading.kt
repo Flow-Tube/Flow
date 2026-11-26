@@ -9,19 +9,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.github.aedev.flow.data.local.LoadingAnimation
+
+private const val PULSE_GAIN = 2f
+private const val SHIMMER_GAIN = 2.5f
+private const val SHIMMER_PERIOD_MILLIS = 1500
+
+// The band leans 20 degrees off vertical.
+private const val SHIMMER_COS = 0.9397f
+private const val SHIMMER_SIN = 0.3420f
+private val ShimmerHalfWidth = 96.dp
 
 /**
- * A loading placeholder that pulses between two surface tones. The pulse comes from the enclosing
- * [SkeletonSurface]'s clock and is read only while drawing, so a skeleton costs one draw pass per frame
- * and never recomposes; [delayMillis] staggers the bones of one placeholder so they ripple instead of
- * blinking together. With the user's gradient setting on, it pulses between two gradients instead,
- * whose brushes are built once per size.
+ * A loading placeholder that moves as the user's loading animation setting asks: a pulse between two
+ * surface tones (wider by default, today's narrow one as Subtle pulse), or a band of light sweeping
+ * across. The motion comes from the enclosing [SkeletonSurface]'s clock and is read only while drawing,
+ * so a skeleton costs one draw pass per frame and never recomposes; [delayMillis] staggers the pulse of
+ * one placeholder's bones so they ripple. With the gradient setting on, the same motion runs between
+ * two gradients, whose brushes are built once per size.
  */
 @Composable
 fun Modifier.shimmerEffect(
@@ -30,26 +46,95 @@ fun Modifier.shimmerEffect(
     delayMillis: Int = 0,
 ): Modifier {
     val clock = currentSkeletonClock()
-    if (LocalSkeletonGradientEnabled.current) {
-        val gradient = LocalSkeletonGradient.current ?: themeSkeletonGradient()
-        return this.clip(shape).drawWithCache {
-            fun brush(
-                start: Color,
-                end: Color,
-            ) = Brush.horizontalGradient(if (layoutDirection == LayoutDirection.Rtl) listOf(end, start) else listOf(start, end))
-            val dim = brush(gradient.dimStart, gradient.dimEnd)
-            val bright = brush(gradient.brightStart, gradient.brightEnd)
-            onDrawBehind {
-                drawRect(dim)
-                drawRect(bright, alpha = clock.pulse(durationMillis, delayMillis))
-            }
+    val animation = LocalLoadingAnimation.current
+    val gradient = if (LocalSkeletonGradientEnabled.current) LocalSkeletonGradient.current ?: themeSkeletonGradient() else null
+    val high = MaterialTheme.colorScheme.surfaceContainerHigh
+    val highest = MaterialTheme.colorScheme.surfaceContainerHighest
+    val tones =
+        remember(gradient, high, highest, animation) {
+            skeletonTones(gradient ?: SkeletonGradient(high, high, highest, highest), animation)
+        }
+    if (animation == LoadingAnimation.SHIMMER) return shimmerSweep(shape, tones, clock)
+    if (gradient == null) {
+        return this
+            .clip(shape)
+            .drawBehind { drawRect(lerp(tones.dimStart, tones.brightStart, clock.pulse(durationMillis, delayMillis))) }
+    }
+    return this.clip(shape).drawWithCache {
+        val dim = horizontalBrush(tones.dimStart, tones.dimEnd, layoutDirection)
+        val bright = horizontalBrush(tones.brightStart, tones.brightEnd, layoutDirection)
+        onDrawBehind {
+            drawRect(dim)
+            drawRect(bright, alpha = clock.pulse(durationMillis, delayMillis))
         }
     }
-    val base = MaterialTheme.colorScheme.surfaceContainerHigh
-    val highlight = MaterialTheme.colorScheme.surfaceContainerHighest
+}
+
+/** [base] with its bright pair pushed as far as [animation] swings. */
+internal fun skeletonTones(
+    base: SkeletonGradient,
+    animation: LoadingAnimation,
+): SkeletonGradient {
+    val gain =
+        when (animation) {
+            LoadingAnimation.SUBTLE_PULSE -> return base
+            LoadingAnimation.PULSE -> PULSE_GAIN
+            LoadingAnimation.SHIMMER -> SHIMMER_GAIN
+        }
+    return base.copy(
+        brightStart = stretchTone(base.dimStart, base.brightStart, gain),
+        brightEnd = stretchTone(base.dimEnd, base.brightEnd, gain),
+    )
+}
+
+private fun horizontalBrush(
+    start: Color,
+    end: Color,
+    direction: LayoutDirection,
+): Brush = Brush.horizontalGradient(if (direction == LayoutDirection.Rtl) listOf(end, start) else listOf(start, end))
+
+/** Where a bone sits in the window, so every bone draws its slice of one band crossing the screen. */
+private class SweepAnchor {
+    var x = 0f
+    var y = 0f
+    var span = 0f
+}
+
+@Composable
+private fun Modifier.shimmerSweep(
+    shape: Shape,
+    tones: SkeletonGradient,
+    clock: SkeletonClock,
+): Modifier {
+    val anchor = remember { SweepAnchor() }
     return this
-        .clip(shape)
-        .drawBehind { drawRect(lerp(base, highlight, clock.pulse(durationMillis, delayMillis))) }
+        .onPlaced { coordinates ->
+            val position = coordinates.positionInRoot()
+            val root = coordinates.findRootCoordinates().size
+            anchor.x = position.x
+            anchor.y = position.y
+            anchor.span = root.width * SHIMMER_COS + root.height * SHIMMER_SIN
+        }.clip(shape)
+        .drawWithCache {
+            val halfWidth = ShimmerHalfWidth.toPx()
+            val base = horizontalBrush(tones.dimStart, tones.dimEnd, layoutDirection)
+            val peak = lerp(tones.brightStart, tones.brightEnd, 0.5f)
+            val band =
+                Brush.linearGradient(
+                    colors = listOf(peak.copy(alpha = 0f), peak, peak.copy(alpha = 0f)),
+                    start = Offset(-halfWidth * SHIMMER_COS, -halfWidth * SHIMMER_SIN),
+                    end = Offset(halfWidth * SHIMMER_COS, halfWidth * SHIMMER_SIN),
+                )
+            onDrawBehind {
+                drawRect(base)
+                val sweep = clock.sweep(SHIMMER_PERIOD_MILLIS)
+                val fraction = if (layoutDirection == LayoutDirection.Rtl) 1f - sweep else sweep
+                val centre = skeletonSweepCentre(fraction, anchor.span, halfWidth)
+                val dx = centre * SHIMMER_COS - anchor.x
+                val dy = centre * SHIMMER_SIN - anchor.y
+                translate(dx, dy) { drawRect(band, topLeft = Offset(-dx, -dy), size = size) }
+            }
+        }
 }
 
 @Composable

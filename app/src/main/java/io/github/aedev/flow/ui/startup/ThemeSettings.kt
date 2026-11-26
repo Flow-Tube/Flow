@@ -5,8 +5,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.font.FontFamily
 import io.github.aedev.flow.data.local.AppFontPreferences
+import io.github.aedev.flow.data.local.LoadingAnimation
 import io.github.aedev.flow.data.local.LocalDataManager
 import io.github.aedev.flow.ui.components.shared.LocalClassicLoadingIndicator
+import io.github.aedev.flow.ui.components.shared.LocalLoadingAnimation
 import io.github.aedev.flow.ui.components.shared.LocalMarqueeEnabled
 import io.github.aedev.flow.ui.components.shared.LocalSkeletonGradientEnabled
 import io.github.aedev.flow.ui.theme.CustomTheme
@@ -28,6 +30,7 @@ data class ThemeSettings(
     val systemDarkThemeVariant: ThemeVariant = ThemeVariant.DARK,
     val fontFamily: FontFamily = FlowFontFamily,
     val skeletonGradient: Boolean = false,
+    val loadingAnimation: LoadingAnimation = LoadingAnimation.PULSE,
     val marqueeEnabled: Boolean = true,
     val classicLoadingIndicator: Boolean = false,
 )
@@ -38,6 +41,7 @@ fun LocalDataManager.themeSettings(fonts: AppFontPreferences): Flow<ThemeSetting
     }.combine(systemDarkThemeVariant) { settings, darkVariant -> settings.copy(systemDarkThemeVariant = darkVariant) }
         .combine(fonts.fontFamily) { settings, family -> settings.copy(fontFamily = family) }
         .combine(skeletonGradient) { settings, gradient -> settings.copy(skeletonGradient = gradient) }
+        .combine(loadingAnimation) { settings, animation -> settings.copy(loadingAnimation = animation) }
         .combine(marqueeEnabled) { settings, marquee -> settings.copy(marqueeEnabled = marquee) }
         .combine(classicLoadingIndicator) { settings, classic -> settings.copy(classicLoadingIndicator = classic) }
 
@@ -56,6 +60,7 @@ fun FlowTheme(
     content = {
         CompositionLocalProvider(
             LocalSkeletonGradientEnabled provides settings.skeletonGradient,
+            LocalLoadingAnimation provides settings.loadingAnimation,
             LocalMarqueeEnabled provides settings.marqueeEnabled,
             LocalClassicLoadingIndicator provides settings.classicLoadingIndicator,
             content = content,

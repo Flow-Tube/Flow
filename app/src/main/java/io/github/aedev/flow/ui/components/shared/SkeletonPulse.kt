@@ -30,6 +30,9 @@ class SkeletonClock internal constructor(
         durationMillis: Int,
         delayMillis: Int,
     ): Float = skeletonPulseAt(elapsedMillis.value, durationMillis, delayMillis)
+
+    /** How far a shimmer band is through its sweep, from 0 up to 1; a parked clock reads 1, past the end. */
+    fun sweep(periodMillis: Int): Float = skeletonSweepAt(elapsedMillis.value, periodMillis)
 }
 
 internal const val SKELETON_CLOCK_SPAN_MILLIS = 2_400_000
@@ -50,6 +53,24 @@ internal fun skeletonPulseAt(
     val fraction = if (cycle < durationMillis) cycle / durationMillis else (2f * durationMillis - cycle) / durationMillis
     return FastOutSlowInEasing.transform(fraction)
 }
+
+internal fun skeletonSweepAt(
+    elapsedMillis: Float,
+    periodMillis: Int,
+): Float {
+    if (elapsedMillis >= SKELETON_CLOCK_SPAN_MILLIS || periodMillis <= 0) return 1f
+    return (elapsedMillis.coerceAtLeast(0f) % periodMillis) / periodMillis
+}
+
+/**
+ * Where the middle of a shimmer band of half width [halfWidth] sits along the sweep at [fraction]:
+ * just before [span] starts at 0, just past its end at 1, so the band enters and leaves fully.
+ */
+internal fun skeletonSweepCentre(
+    fraction: Float,
+    span: Float,
+    halfWidth: Float,
+): Float = -halfWidth + (span + 2f * halfWidth) * fraction
 
 private val LocalSkeletonClock = staticCompositionLocalOf<SkeletonClock?> { null }
 

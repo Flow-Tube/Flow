@@ -4560,6 +4560,11 @@
     <string name="settings_skeleton_gradient_title">Gradient loading placeholders</string>
     <string name="settings_skeleton_gradient_summary">Tint placeholders with your theme or the video\'s colors</string>
     <string name="settings_skeleton_gradient_keywords">gradient, loading screen, skeleton, shimmer</string>
+    <string name="settings_loading_animation_title">Loading animation</string>
+    <string name="settings_loading_animation_keywords">loading screen, skeleton, placeholder, shimmer, pulse</string>
+    <string name="loading_animation_pulse">Pulse</string>
+    <string name="loading_animation_subtle_pulse">Subtle pulse</string>
+    <string name="loading_animation_shimmer">Shimmer</string>
     <string name="settings_marquee_title">Scrolling text</string>
     <string name="settings_marquee_summary">Scroll long titles and names. Turn off on slower devices</string>
     <string name="settings_marquee_keywords">marquee, scrolling title, artist name, low end, performance</string>

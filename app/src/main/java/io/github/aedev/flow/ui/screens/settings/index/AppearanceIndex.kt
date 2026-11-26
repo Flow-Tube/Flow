@@ -158,6 +158,14 @@ internal object AppearanceIndex {
             section = R.string.settings_section_style,
             destination = page,
         )
+    val loadingAnimation =
+        SettingEntry(
+            key = "appearance.loading_animation",
+            title = R.string.settings_loading_animation_title,
+            keywords = R.string.settings_loading_animation_keywords,
+            section = R.string.settings_section_style,
+            destination = page,
+        )
     val marquee =
         SettingEntry(
             key = "appearance.marquee",
@@ -218,6 +226,7 @@ internal object AppearanceIndex {
             appIcon,
             interfaceMode,
             skeletonGradient,
+            loadingAnimation,
             marquee,
             classicLoadingIndicator,
             haptics,

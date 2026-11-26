@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import io.github.aedev.flow.data.local.LoadingAnimation
 import io.github.aedev.flow.data.local.ThumbnailQuality
 import io.github.aedev.flow.ui.theme.tone
 import io.github.aedev.flow.ui.theme.withTone
@@ -38,6 +39,25 @@ data class SkeletonGradient(
 
 /** Whether loading placeholders draw a gradient. A user setting, off by default. */
 val LocalSkeletonGradientEnabled = staticCompositionLocalOf { false }
+
+/** How loading placeholders move. A user setting. */
+val LocalLoadingAnimation = staticCompositionLocalOf { LoadingAnimation.PULSE }
+
+/**
+ * The tone [gain] times as far from [rest] as [peak] is, so a pulse between two close surface tones
+ * can be made to swing wider in the same direction.
+ */
+internal fun stretchTone(
+    rest: Color,
+    peak: Color,
+    gain: Float,
+): Color =
+    Color(
+        red = (rest.red + (peak.red - rest.red) * gain).coerceIn(0f, 1f),
+        green = (rest.green + (peak.green - rest.green) * gain).coerceIn(0f, 1f),
+        blue = (rest.blue + (peak.blue - rest.blue) * gain).coerceIn(0f, 1f),
+        alpha = peak.alpha,
+    )
 
 /** Overrides the theme's gradient, for placeholders that belong to one piece of artwork. */
 internal val LocalSkeletonGradient = compositionLocalOf<SkeletonGradient?> { null }
