@@ -98,6 +98,10 @@ internal class GaplessPreloadController(
         if (existing != null && existing.data.enrichedVideo.id != target.video.id) {
             Log.d(TAG, "Replacing stale preload ${existing.data.enrichedVideo.id} with ${target.video.id} ($reason)")
             clear()
+        } else if (existing != null && existing.fromQueue != target.fromQueue) {
+            // Queueing the related video already appended for autoplay keeps the window, but its
+            // promotion must now move the queue on, or the next Next plays it again.
+            preloaded = existing.copy(fromQueue = target.fromQueue)
         }
 
         if (job?.isActive == true && attemptNextVideoId != target.video.id) {
