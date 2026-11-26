@@ -82,6 +82,7 @@ fun EnhancedMusicScreen(
         .topBarHideOnScroll
         .collectAsStateWithLifecycle(initialValue = true)
     val ownPlaylists by libraryViewModel.playlists.collectAsStateWithLifecycle()
+    val likedMusic by libraryViewModel.likedMusic.collectAsStateWithLifecycle()
     val musicSubscriptions by libraryViewModel.subscriptions.collectAsStateWithLifecycle()
     val hiddenShelves by libraryViewModel.hiddenShelves.collectAsStateWithLifecycle()
     val lastFmSignedIn by libraryViewModel.lastFmSignedIn.collectAsStateWithLifecycle()
@@ -89,6 +90,7 @@ fun EnhancedMusicScreen(
     val library =
         remember(
             ownPlaylists,
+            likedMusic,
             musicSubscriptions,
             hiddenShelves,
             onPlaylistClick,
@@ -99,6 +101,7 @@ fun EnhancedMusicScreen(
         ) {
             MusicHomeLibrary(
                 playlists = ownPlaylists,
+                likedMusic = likedMusic,
                 subscriptions = musicSubscriptions,
                 hidden = hiddenShelves,
                 onPlaylistClick = onPlaylistClick,
