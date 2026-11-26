@@ -5313,4 +5313,7 @@
     <string name="notification_download_waiting_storage_amount">Yaddaş gözlənilir. Davam etmək üçün %1$s boşaldın.</string>
     <string name="settings_quality_lower_when_small">Kiçik oynadıcıda və PiP-də daha aşağı keyfiyyət</string>
     <string name="settings_quality_lower_when_small_summary">Avtomatik, video kiçik olduqda 480p-ə qədər istifadə edir</string>
+    <string name="post_title">Post</string>
+    <string name="post_load_failed">Bu postu yükləmək olmadı</string>
+    <string name="youtube_page_unavailable">YouTube bu səhifənin əlçatan olmadığını bildirir</string>
 </resources>
