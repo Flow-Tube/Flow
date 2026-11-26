@@ -181,7 +181,7 @@ internal fun PlayerDescriptionSheetHost(
         onHashtagClick = { tag -> navigator.openSearch("#$tag") },
         descriptionPage = descriptionPage,
         tags = (listOfNotNull(video.category) + video.tags).distinct(),
-        showLikes = uiState.ratingsAllowed,
+        showLikes = uiState.ratingsAllowed || video.likeCount > 0L,
         chapterCount = uiState.chapters.size,
         onChaptersClick = onChaptersClick,
         onTranscriptClick = onTranscriptClick?.takeIf { hasTranscriptTrack },
