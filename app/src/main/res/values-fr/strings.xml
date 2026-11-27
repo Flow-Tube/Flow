@@ -5019,4 +5019,20 @@
         <item quantity="other">Au bout de %1$d minutes</item>
     </plurals>
     <string name="error_bot_wall_mobile_data_hint">Essayez de vous connecter au Wi-Fi, ou attendez un peu. En général, le problème se résout tout seul.</string>
+    <string name="subscriptions_sort_most_watched">Les plus regardés</string>
+    <string name="subscriptions_pin_channel">Épingler pour commencer</string>
+    <string name="subscriptions_unpin_channel">Désépingler</string>
+    <string name="music_refresh_failed">Impossible d\'actualiser la musique</string>
+    <string name="premiered_date_template">Première diffusion le %1$s</string>
+    <string name="lyrics_animation">Animation des paroles</string>
+    <string name="lyrics_animation_summary">Comment les lignes synchronisées évoluent au fur et à mesure qu\'elles sont chantées</string>
+    <string name="lyrics_animation_cadence_detail">Les lettres s\'élèvent au fur et à mesure qu\'on les chante</string>
+    <string name="lyrics_animation_cadence">Cadence</string>
+    <string name="lyrics_animation_classic">Classique</string>
+    <string name="lyrics_animation_classic_detail">Les mots s\'élèvent à mesure qu\'ils se remplissent</string>
+    <string name="subscriptions_pinned_section">Épinglés</string>
+    <string name="lyrics_repeat_count">(×%1$d)</string>
+    <string name="lyrics_animation_calm">Calme</string>
+    <string name="lyrics_animation_calm_detail">Remplissage uniquement, pas de mouvement</string>
+    <string name="lyrics_glow">Lueur de note maintenue</string>
 </resources>
