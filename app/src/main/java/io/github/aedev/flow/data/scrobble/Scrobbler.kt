@@ -17,7 +17,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Sends what the music player plays to every signed-in service. Finished listens are queued on the
+ * Sends what the music player plays to every signed-in service and webhook. Finished listens are queued on the
  * device first and sent by [ScrobbleWorker], so listening offline loses nothing. During Deep Flow
  * nothing is sent unless the user allowed it.
  */
@@ -39,6 +39,7 @@ class Scrobbler
         private val lastFm = AudioscrobblerClient(AudioscrobblerClient.LASTFM_URL, http::get)
         private val libreFm = AudioscrobblerClient(AudioscrobblerClient.LIBREFM_URL, http::get, MobileSessionAuth.AUTH_TOKEN)
         private val listenBrainz = ListenBrainzClient(http::get)
+        private val webhookClient = WebhookClient(http::get)
 
         /** The key Last.fm calls are signed with: the viewer's own when they turned it on, else the build's. */
         fun lastFmKeys(settings: ScrobbleSettings): AudioscrobblerKeys? =
@@ -65,6 +66,7 @@ class Scrobbler
                         }
                     if (outcome == SendOutcome.SignedOut) store.setAccount(service, null)
                 }
+                settings.webhooks.forEach { webhookClient.nowPlaying(it.url, entry, System.currentTimeMillis()) }
             }
         }
 
@@ -77,14 +79,15 @@ class Scrobbler
             if (!ScrobbleRules.counts(durationMs, playedMs)) return
             scope.launch {
                 val settings = store.current()
-                if (settings.accounts.isEmpty() || !settings.accepts(track) || !privacyGate.allowsScrobbling()) return@launch
+                val targets = settings.targets
+                if (targets.isEmpty() || !settings.accepts(track) || !privacyGate.allowsScrobbling()) return@launch
                 val entry = ScrobbleRules.entryFor(track, durationMs, startedAtMs) ?: return@launch
-                settings.accounts.keys.forEach { store.enqueue(it, entry) }
+                targets.forEach { store.enqueue(it, entry) }
                 ScrobbleWorker.enqueue(context)
             }
         }
 
-        /** Mirrors a like or unlike as a love on the services that have one; ListenBrainz needs MusicBrainz ids instead. */
+        /** Mirrors a like or unlike as a love on the services and webhooks; ListenBrainz needs MusicBrainz ids instead. */
         fun onLikeChanged(
             track: MusicTrack,
             liked: Boolean,
@@ -93,9 +96,9 @@ class Scrobbler
                 val settings = store.current()
                 if (!settings.sendLikes || !settings.accepts(track)) return@launch
                 val love = ScrobbleRules.loveFor(track, liked) ?: return@launch
-                val services = settings.accounts.keys.filter { it != ScrobbleService.LISTENBRAINZ }
-                if (services.isEmpty()) return@launch
-                services.forEach { store.enqueueLove(it, love) }
+                val targets = settings.targets.filter { it != ScrobbleTarget.Service(ScrobbleService.LISTENBRAINZ) }
+                if (targets.isEmpty()) return@launch
+                targets.forEach { store.enqueueLove(it, love) }
                 ScrobbleWorker.enqueue(context)
             }
         }
@@ -106,12 +109,13 @@ class Scrobbler
             var done = true
             settings.accounts.forEach { (service, account) ->
                 if (!flushLoves(service, account, settings)) done = false
+                val target = ScrobbleTarget.Service(service)
                 while (true) {
-                    val batch = store.pending(service).take(batchSize(service))
+                    val batch = store.pending(target).take(batchSize(service))
                     if (batch.isEmpty()) break
                     when (send(service, batch, account, settings)) {
                         SendOutcome.Sent -> {
-                            store.drop(service, batch)
+                            store.drop(target, batch)
                         }
 
                         SendOutcome.Retry -> {
@@ -127,7 +131,22 @@ class Scrobbler
                     }
                 }
             }
+            settings.webhooks.forEach { if (!flushWebhook(it)) done = false }
             return done
+        }
+
+        /** One event per request, oldest first; stops at the first one to retry so the order holds. */
+        private suspend fun flushWebhook(webhook: ScrobbleWebhook): Boolean {
+            val target = ScrobbleTarget.Webhook(webhook.id)
+            for (love in store.pendingLoves(target)) {
+                if (webhookClient.setLoved(webhook.url, love, System.currentTimeMillis()) == SendOutcome.Retry) return false
+                store.dropLove(target, love)
+            }
+            for (entry in store.pending(target)) {
+                if (webhookClient.scrobble(webhook.url, entry, System.currentTimeMillis()) == SendOutcome.Retry) return false
+                store.drop(target, listOf(entry))
+            }
+            return true
         }
 
         private suspend fun flushLoves(
@@ -138,9 +157,10 @@ class Scrobbler
             if (service == ScrobbleService.LISTENBRAINZ) return true
             val client = if (service == ScrobbleService.LIBREFM) libreFm else lastFm
             val keys = if (service == ScrobbleService.LIBREFM) AudioscrobblerClient.LibreFmKeys else lastFmKeys(settings)
-            for (love in store.pendingLoves(service)) {
+            val target = ScrobbleTarget.Service(service)
+            for (love in store.pendingLoves(target)) {
                 when (keys?.let { client.setLoved(love, account, it) } ?: SendOutcome.SignedOut) {
-                    SendOutcome.Sent -> store.dropLove(service, love)
+                    SendOutcome.Sent -> store.dropLove(target, love)
                     SendOutcome.Retry -> return false
                     SendOutcome.SignedOut -> return true
                 }
