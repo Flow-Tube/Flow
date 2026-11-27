@@ -10,9 +10,6 @@ interface NotificationDao {
     fun getAllNotifications(): Flow<List<NotificationEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertNotification(notification: NotificationEntity)
-
-    @Insert
     suspend fun insertNotifications(notifications: List<NotificationEntity>)
 
     @Query("SELECT videoId FROM notifications WHERE videoId IN (:videoIds)")
@@ -22,7 +19,7 @@ interface NotificationDao {
     suspend fun updateNotification(notification: NotificationEntity)
 
     @Delete
-    suspend fun deleteNotification(notification: NotificationEntity)
+    suspend fun deleteNotifications(notifications: List<NotificationEntity>)
 
     @Query("UPDATE notifications SET isRead = 1")
     suspend fun markAllAsRead()

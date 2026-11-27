@@ -329,6 +329,7 @@ class PlayerPreferences(
         val SUBS_NEW_VIDEOS_SINCE = longPreferencesKey("subs_new_videos_since")
         val SUBS_REFRESH_ON_STARTUP = booleanPreferencesKey("subs_refresh_on_startup")
         val SUBS_LAST_REFRESH_TIME = longPreferencesKey("subs_last_refresh_time")
+        val INBOX_FEED_SINCE = longPreferencesKey("inbox_feed_since")
         val SUBS_LAST_REFRESHED_COUNT = intPreferencesKey("subs_last_refreshed_count")
         val SUBS_SHOW_CHECKED_VIDEO_COUNT = booleanPreferencesKey("subs_show_checked_video_count")
         val SHOW_CHANNEL_GROUP_BADGES = booleanPreferencesKey("show_channel_group_badges")
@@ -3812,6 +3813,18 @@ class PlayerPreferences(
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.SUBS_SHOW_CHECKED_VIDEO_COUNT] = enabled
         }
+    }
+
+    /** Where the inbox starts listing feed uploads: [initial] on first use, kept from then on. */
+    suspend fun inboxFeedSince(initial: Long): Long {
+        context.playerPreferencesDataStore.data
+            .first()[Keys.INBOX_FEED_SINCE]
+            ?.let { return it }
+        var since = initial
+        context.playerPreferencesDataStore.edit { preferences ->
+            since = preferences[Keys.INBOX_FEED_SINCE] ?: initial.also { preferences[Keys.INBOX_FEED_SINCE] = it }
+        }
+        return since
     }
 
     suspend fun setSubscriptionLastRefresh(

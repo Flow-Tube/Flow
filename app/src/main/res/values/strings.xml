@@ -891,6 +891,16 @@
     <string name="notifications_group_last_week">Last 7 days</string>
     <string name="notifications_meta">%1$s · %2$s</string>
     <string name="notifications_removed">Notification removed</string>
+    <plurals name="notifications_removed_count">
+        <item quantity="one">%d notification removed</item>
+        <item quantity="other">%d notifications removed</item>
+    </plurals>
+    <plurals name="notifications_channel_uploads">
+        <item quantity="one">Uploaded %d video</item>
+        <item quantity="other">Uploaded %d videos</item>
+    </plurals>
+    <string name="notifications_channel_open">Videos shown</string>
+    <string name="notifications_channel_closed">Videos hidden</string>
     <string name="notifications_already_in_watch_later">Already in Watch Later</string>
     <string name="notifications_save_to_watch_later">Save to Watch Later</string>
     <string name="notifications_open_settings">Notification settings</string>

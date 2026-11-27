@@ -7,12 +7,14 @@ import io.github.aedev.flow.data.local.NotificationRepository
 import io.github.aedev.flow.data.local.entity.NotificationEntity
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedRepository
+import io.github.aedev.flow.data.subscriptions.SubscriptionRefreshPlan
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -27,6 +29,7 @@ class NotificationViewModelTest {
     private val read = NotificationEntity(id = 2, videoId = "b", title = "b", channelName = "c", thumbnailUrl = null, isRead = true)
     private val repository: NotificationRepository = mockk(relaxed = true)
     private val feed: SubscriptionFeedRepository = mockk()
+    private val plan: SubscriptionRefreshPlan = mockk()
     private val feedback: VideoFeedbackUseCase = mockk(relaxed = true)
 
     @Before
@@ -34,6 +37,8 @@ class NotificationViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         every { repository.allNotifications } returns flowOf(listOf(unread, read))
         every { repository.unreadCount } returns flowOf(1)
+        coEvery { feed.planAllRefresh(force = false) } returns plan
+        every { feed.refresh(plan) } returns emptyFlow()
     }
 
     @After
@@ -51,6 +56,51 @@ class NotificationViewModelTest {
     }
 
     @Test
+    fun `opening the inbox refreshes the feed only if it is due, once`() {
+        val viewModel = viewModel()
+
+        viewModel.openInbox()
+        viewModel.openInbox()
+
+        coVerify(exactly = 1) { feed.planAllRefresh(force = false) }
+        coVerify(exactly = 1) { feed.refresh(plan) }
+    }
+
+    @Test
+    fun `a failed feed refresh leaves the inbox working`() {
+        coEvery { feed.planAllRefresh(force = false) } throws IllegalStateException("offline")
+        val viewModel = viewModel()
+
+        viewModel.openInbox()
+
+        assertThat(viewModel.newIds.value).containsExactly(1)
+    }
+
+    @Test
+    fun `a channel row is removed in one write and undo restores every video`() {
+        val viewModel = viewModel()
+
+        assertThat(viewModel.deleteNotifications(listOf(unread, read))).isTrue()
+        viewModel.undoDelete()
+
+        coVerify(exactly = 1) { repository.deleteNotifications(listOf(unread, read)) }
+        coVerify(exactly = 1) { repository.restoreNotifications(listOf(unread.copy(isRead = true), read.copy(isRead = true))) }
+    }
+
+    @Test
+    fun `a repeated dismiss of part of the removed group neither deletes again nor shrinks the undo`() {
+        val viewModel = viewModel()
+
+        viewModel.deleteNotifications(listOf(unread, read))
+        val again = viewModel.deleteNotifications(listOf(read))
+        viewModel.undoDelete()
+
+        assertThat(again).isFalse()
+        coVerify(exactly = 1) { repository.deleteNotifications(any()) }
+        coVerify(exactly = 1) { repository.restoreNotifications(listOf(unread.copy(isRead = true), read.copy(isRead = true))) }
+    }
+
+    @Test
     fun `the badge instance never marks anything read`() {
         viewModel()
 
@@ -61,12 +111,12 @@ class NotificationViewModelTest {
     fun `undo puts the removed notification back as read`() {
         val viewModel = viewModel()
 
-        viewModel.deleteNotification(unread)
+        viewModel.deleteNotifications(listOf(unread))
         viewModel.undoDelete()
         viewModel.undoDelete()
 
-        coVerify(exactly = 1) { repository.deleteNotification(unread) }
-        coVerify(exactly = 1) { repository.insertNotification(unread.copy(isRead = true)) }
+        coVerify(exactly = 1) { repository.deleteNotifications(listOf(unread)) }
+        coVerify(exactly = 1) { repository.restoreNotifications(listOf(unread.copy(isRead = true))) }
     }
 
     @Test

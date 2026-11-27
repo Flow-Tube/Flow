@@ -15,6 +15,7 @@ import io.github.aedev.flow.data.model.VideoCollaborator
 import io.github.aedev.flow.data.model.toUiModel
 import io.github.aedev.flow.data.subscriptions.SubscriptionFeedMerger.preservingEnrichedMetadata
 import io.github.aedev.flow.di.ProfileDb
+import io.github.aedev.flow.notification.SubscriptionInbox
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +62,7 @@ class SubscriptionFeedRepository
         private val playerPreferences: PlayerPreferences,
         private val collabIndex: ChannelCollabIndex,
         private val subscriptionGroupDao: SubscriptionGroupDao,
+        private val inbox: SubscriptionInbox,
     ) {
         /**
          * Guards against overlapping refreshes; the screen, the startup pass and the worker can all
@@ -306,6 +308,7 @@ class SubscriptionFeedRepository
                 subscriptionRepository.markFeedFetched(write.fetchedChannelIds, refreshTime)
                 val cachedCount = cacheDao.getSubscriptionFeedCount()
                 playerPreferences.setSubscriptionLastRefresh(refreshTime, cachedCount)
+                inbox.record(write.rows, sliceCached.filter { it.channelId in written }, refreshTime)
             }
             Log.i(
                 TAG,
@@ -346,7 +349,9 @@ class SubscriptionFeedRepository
             if (rows.isEmpty()) return
 
             withContext(PerformanceDispatcher.diskIO) {
+                val before = cacheDao.getSubscriptionFeedForChannels(listOf(channelId)).map { it.toVideo() }
                 cacheDao.insertSubscriptionFeedIfAbsent(rows)
+                inbox.record(rows.map { it.toVideo() }, before, now)
             }
             Log.d(TAG, "Seeded ${rows.size} row(s) for $channelId from the notification check")
         }
@@ -402,6 +407,8 @@ class SubscriptionFeedRepository
             val (inserts, updates) = splitChannelTabUploads(recent, stored)
             withContext(PerformanceDispatcher.diskIO) {
                 cacheDao.insertSubscriptionFeedIfAbsent(inserts.map { it.toEntity(now) })
+                val insertedChannels = inserts.mapTo(HashSet()) { it.channelId }
+                inbox.record(inserts, stored.filter { it.channelId in insertedChannels }, now)
             }
             updateEnrichedMetadata(updates)
         }
