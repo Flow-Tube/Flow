@@ -41,7 +41,7 @@ class SettingsBackupCoverageTest {
     @Test
     fun `the appearance switches travel in a backup`() {
         assertThat(LocalDataManager.BACKED_UP_NAMES)
-            .containsAtLeast("skeleton_gradient", "marquee_enabled", "classic_loading_indicator")
+            .containsAtLeast("skeleton_gradient", "loading_animation", "marquee_enabled", "classic_loading_indicator")
     }
 
     @Test

@@ -79,6 +79,7 @@ class LocalDataManager
             private val SYSTEM_DARK_THEME_MODE = stringPreferencesKey("system_dark_theme_mode")
             private val SYSTEM_DARK_THEME_VARIANT = stringPreferencesKey("system_dark_theme_variant")
             private val SKELETON_GRADIENT = booleanPreferencesKey("skeleton_gradient")
+            private val LOADING_ANIMATION = stringPreferencesKey("loading_animation")
             private val MARQUEE_ENABLED = booleanPreferencesKey("marquee_enabled")
             private val CLASSIC_LOADING_INDICATOR = booleanPreferencesKey("classic_loading_indicator")
 
@@ -126,6 +127,7 @@ class LocalDataManager
                         BREAK_REMINDER.name,
                         BREAK_FREQUENCY.name,
                         SKELETON_GRADIENT.name,
+                        LOADING_ANIMATION.name,
                         MARQUEE_ENABLED.name,
                         CLASSIC_LOADING_INDICATOR.name,
                     ) +
@@ -182,6 +184,15 @@ class LocalDataManager
         }
 
         val skeletonGradient: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[SKELETON_GRADIENT] ?: false }
+
+        val loadingAnimation: Flow<LoadingAnimation> =
+            context.dataStore.data.map { prefs ->
+                LoadingAnimation.entries.firstOrNull { it.name == prefs[LOADING_ANIMATION] } ?: LoadingAnimation.PULSE
+            }
+
+        suspend fun setLoadingAnimation(animation: LoadingAnimation) {
+            context.dataStore.edit { prefs -> prefs[LOADING_ANIMATION] = animation.name }
+        }
 
         val marqueeEnabled: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[MARQUEE_ENABLED] ?: true }
 
