@@ -232,6 +232,8 @@ class SearchViewModel
             viewModelScope.launch { preferences.setSearchIsGridMode(enabled) }
         }
 
+        suspend fun opensKeyboard(): Boolean = preferences.searchAutoKeyboard.first()
+
         private fun onHeader(header: SearchHeader) {
             _uiState.update { it.copy(header = header) }
         }

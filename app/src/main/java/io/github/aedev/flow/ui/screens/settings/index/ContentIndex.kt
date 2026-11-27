@@ -295,6 +295,15 @@ internal object ContentIndex {
             section = R.string.settings_section_links,
             destination = page,
         )
+    val searchKeyboard =
+        SettingEntry(
+            key = "content.search.keyboard",
+            title = R.string.content_settings_search_keyboard_title,
+            summary = R.string.content_settings_search_keyboard_subtitle,
+            section = R.string.search,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
+        )
 
     val all =
         listOf(
@@ -333,5 +342,6 @@ internal object ContentIndex {
             shareWithoutText,
             openLinks,
             sharedLinks,
+            searchKeyboard,
         )
 }

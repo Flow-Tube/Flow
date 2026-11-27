@@ -242,6 +242,7 @@ class PlayerPreferences(
         val HOME_FEED_COLUMNS = stringPreferencesKey("home_feed_columns")
         val HOME_FEED_ENABLED = booleanPreferencesKey("home_feed_enabled")
         val REFRESH_HOME_ON_RESELECT = booleanPreferencesKey("refresh_home_on_reselect")
+        val SEARCH_AUTO_KEYBOARD = booleanPreferencesKey("search_auto_keyboard")
         val FEED_AUTOPLAY = stringPreferencesKey("feed_autoplay")
         val HOME_CHIPS_ENABLED = booleanPreferencesKey("home_chips_enabled")
         val HOME_NEW_VIDEOS_BUTTON_ENABLED = booleanPreferencesKey("home_new_videos_button_enabled")
@@ -2008,6 +2009,16 @@ class PlayerPreferences(
     suspend fun setRefreshHomeOnReselect(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.REFRESH_HOME_ON_RESELECT] = enabled
+        }
+    }
+
+    val searchAutoKeyboard: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.SEARCH_AUTO_KEYBOARD] ?: true }
+
+    suspend fun setSearchAutoKeyboard(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.SEARCH_AUTO_KEYBOARD] = enabled
         }
     }
 
