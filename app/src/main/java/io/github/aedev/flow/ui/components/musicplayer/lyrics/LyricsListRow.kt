@@ -34,7 +34,7 @@ private const val INDICATOR_LEAD_OUT_MS = 650L
 
 /**
  * One row of the lyrics list, placed at its offset from the anchor. Rows spring to a new offset
- * one after another, nearest first, so a line change cascades; a manual scroll freezes them.
+ * one after another, nearest first, so a line change cascades.
  */
 @Composable
 internal fun LyricsListRow(
@@ -61,13 +61,17 @@ internal fun LyricsListRow(
     val offset = remember { Animatable(targetOffset) }
     val scrollSpec = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
     LaunchedEffect(targetOffset, state.isAutoScrollEnabled, isInitialLayout) {
-        when {
-            isInitialLayout || !motionEnabled -> {
+        when (lyricsRowMove(isInitialLayout, motionEnabled, state.isAutoScrollEnabled)) {
+            LyricsRowMove.SNAP -> {
                 offset.snapTo(targetOffset)
             }
 
-            state.isAutoScrollEnabled -> {
+            LyricsRowMove.CASCADE -> {
                 delay((distance * STAGGER_PER_ROW_MS).coerceAtMost(STAGGER_MAX_MS))
+                offset.animateTo(targetOffset, scrollSpec)
+            }
+
+            LyricsRowMove.FOLLOW -> {
                 offset.animateTo(targetOffset, scrollSpec)
             }
         }
