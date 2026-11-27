@@ -191,7 +191,7 @@ object YouTubeMusicService {
             album = item.album?.name ?: "",
             channelId = item.artists.firstOrNull()?.id ?: "",
             isExplicit = item.explicit,
-            isVideoSong = item.isVideoSong,
+            isVideoSong = item.isVideoTrack,
             artists = item.artists.map { MusicArtist(it.name, it.id) },
         )
 

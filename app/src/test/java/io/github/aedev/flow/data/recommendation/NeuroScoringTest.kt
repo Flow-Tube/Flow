@@ -247,4 +247,21 @@ class NeuroScoringTest {
         assertThat(NeuroScoring.calculateEngagementQuality(popular, isColdStart = false)).isEqualTo(1.0)
         assertThat(NeuroScoring.calculateEngagementQuality(popular.copy(likeCount = 100L), isColdStart = false)).isLessThan(0.5)
     }
+
+    @Test
+    fun `a video that says what it is is not second-guessed by its title`() {
+        val song = video("s", title = "Track 7", duration = 200).copy(isMusic = true)
+        val talk = video("t", title = "lofi remix explained", duration = 200).copy(category = "Education")
+        val unknown = video("u", title = "lofi remix", duration = 200)
+
+        assertThat(NeuroScoring.isMusicTrack(song)).isTrue()
+        assertThat(NeuroScoring.isMusicTrack(talk)).isFalse()
+        assertThat(NeuroScoring.isMusicTrack(talk.copy(category = "Music"))).isTrue()
+        assertThat(NeuroScoring.isMusicTrack(unknown)).isTrue()
+    }
+
+    @Test
+    fun `a long video is never a music track to rewatch`() {
+        assertThat(NeuroScoring.isMusicTrack(video("l", duration = 3_600).copy(isMusic = true))).isFalse()
+    }
 }

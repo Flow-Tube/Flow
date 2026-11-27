@@ -82,6 +82,7 @@ internal object NeuroScoring {
     const val IMPRESSION_THRESHOLD_HEAVY = 3
     const val IMPRESSION_THRESHOLD_LIGHT = 1
     const val MUSIC_REWATCH_MAX_DURATION = 480
+    private const val MUSIC_CATEGORY = "Music"
     const val WATCHED_PENALTY_FULL = 0.02
     const val WATCHED_PENALTY_HALF = 0.30
     const val WATCHED_PENALTY_SAMPLED = 0.70
@@ -334,8 +335,11 @@ internal object NeuroScoring {
             "mix",
         )
 
+    /** The item's own kind when it carries one; the title and channel wording only when it does not. */
     fun isMusicTrack(video: Video): Boolean {
         if (video.duration > MUSIC_REWATCH_MAX_DURATION) return false
+        if (video.isMusic) return true
+        video.category?.takeIf(String::isNotBlank)?.let { return it.equals(MUSIC_CATEGORY, ignoreCase = true) }
         val titleLower = video.title.lowercase()
         val channelLower = video.channelName.lowercase()
         return MUSIC_KEYWORDS.any { keyword ->

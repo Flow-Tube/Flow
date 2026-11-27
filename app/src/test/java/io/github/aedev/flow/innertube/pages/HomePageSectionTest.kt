@@ -81,7 +81,7 @@ class HomePageSectionTest {
                 .id,
         )
         assertEquals("MUSIC_VIDEO_TYPE_PODCAST_EPISODE", songs.first().musicVideoType)
-        assertTrue(songs.all { it.isVideoSong })
+        assertTrue(songs.all { it.isPodcastEpisode && it.isVideoTrack && !it.isVideoSong })
         assertEquals("https://t/e1", songs.first().thumbnail)
     }
 
