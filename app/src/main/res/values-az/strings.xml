@@ -4481,7 +4481,7 @@
     </plurals>
     <string name="scrobbling_title">Scrobbling</string>
     <string name="scrobbling_summary">Dinlədiklərinizi Last.fm, Libre.fm və ya ListenBrainz-ə göndərin</string>
-    <string name="settings_keywords_scrobbling">scrobble scrobbling last.fm lastfm libre.fm librefm listenbrainz</string>
+    <string name="settings_keywords_scrobbling">scrobble scrobbling last.fm lastfm libre.fm librefm listenbrainz webhook web scrobbler</string>
     <string name="scrobbling_lastfm">Last.fm</string>
     <string name="scrobbling_librefm">Libre.fm</string>
     <string name="scrobbling_listenbrainz">ListenBrainz</string>
@@ -5347,4 +5347,16 @@
     <string name="loading_animation_shimmer">Parıltı</string>
     <string name="content_settings_search_keyboard_title">Axtarışda klaviaturanı aç</string>
     <string name="content_settings_search_keyboard_subtitle">Axtarış açılan kimi axtarış sahəsinə fokuslan</string>
+    <string name="content_settings_explore_start_title">Kəşf eti aç</string>
+    <string name="content_settings_explore_start_subtitle">Əvvəlcə Kəşf et kateqoriyası göstərilir</string>
+    <string name="content_settings_explore_start_last">Son kateqoriya</string>
+    <string name="scrobbling_webhooks">Webhooks</string>
+    <string name="scrobbling_webhooks_footer">Hər dinləmə Web Scrobbler-in webhook formatında JSON kimi göndərilir. Ünvanlar bu cihazda qalır.</string>
+    <string name="scrobbling_webhook_add">Webhook əlavə et</string>
+    <string name="scrobbling_webhook_add_summary">Dinləmələri öz serverinizə və ya tətbiqinizə göndərin</string>
+    <string name="scrobbling_webhook_title">Webhook</string>
+    <string name="scrobbling_webhook_name">Ad</string>
+    <string name="scrobbling_webhook_url">URL</string>
+    <string name="scrobbling_webhook_url_note">Bir http:// yaxud https:// ünvanı</string>
+    <string name="search_age_check_music_results">YouTube bu axtarış üçün daxil olmağını istəyir. YouTube Music-dən nəticələr göstərilir.</string>
 </resources>
