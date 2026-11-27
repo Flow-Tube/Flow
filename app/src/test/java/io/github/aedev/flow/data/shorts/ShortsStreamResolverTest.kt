@@ -62,7 +62,11 @@ class ShortsStreamResolverTest {
 
     private val resolver =
         ShortsStreamResolver(
-            playerPreferences = mockk<PlayerPreferences> { every { videoCodecPriority } returns flowOf("vp9") },
+            playerPreferences =
+                mockk<PlayerPreferences> {
+                    every { videoCodecPriority } returns flowOf("vp9")
+                    every { videoStableVolume } returns flowOf(false)
+                },
             extract = {
                 extractions.incrementAndGet()
                 result
