@@ -18,6 +18,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import io.github.aedev.flow.data.local.ChannelSubscription
+import io.github.aedev.flow.data.local.NotificationRepository
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SubscriptionRepository
 import io.github.aedev.flow.data.model.Video
@@ -64,6 +65,8 @@ class SubscriptionCheckWorker(
         fun channelReelIndex(): ChannelReelIndex
 
         fun playerPreferences(): PlayerPreferences
+
+        fun notificationRepository(): NotificationRepository
     }
 
     companion object {
@@ -218,7 +221,11 @@ class SubscriptionCheckWorker(
                 // A collaboration two followed channels both list must still notify once.
                 val uniqueVideos = classifyNewVideos(newVideos.distinctBy { it.videoId }, PerformanceDispatcher.networkIO, ::lookUp)
                 if (uniqueVideos.isNotEmpty()) {
-                    SubscriptionNotifications.showSubscriptionUpdates(applicationContext, uniqueVideos)
+                    SubscriptionNotifications.showSubscriptionUpdates(
+                        applicationContext,
+                        uniqueVideos,
+                        dependencies.notificationRepository(),
+                    )
                 }
 
                 Log.d(TAG, "Subscription check complete. Found ${newVideos.size} new videos.")

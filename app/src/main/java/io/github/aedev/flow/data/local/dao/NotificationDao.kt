@@ -12,6 +12,12 @@ interface NotificationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotification(notification: NotificationEntity)
 
+    @Insert
+    suspend fun insertNotifications(notifications: List<NotificationEntity>)
+
+    @Query("SELECT videoId FROM notifications WHERE videoId IN (:videoIds)")
+    suspend fun existingVideoIds(videoIds: List<String>): List<String>
+
     @Update
     suspend fun updateNotification(notification: NotificationEntity)
 
@@ -23,7 +29,7 @@ interface NotificationDao {
 
     @Query("DELETE FROM notifications")
     suspend fun deleteAllNotifications()
-    
+
     @Query("SELECT COUNT(*) FROM notifications WHERE isRead = 0")
     fun getUnreadCount(): Flow<Int>
 }
