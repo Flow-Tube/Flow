@@ -2927,7 +2927,7 @@
     <string name="settings_music_side_swipes_summary">Hız için sol tarafı, ses düzeyi için sağ tarafı kaydır</string>
     <string name="music_watch_video_desc">Müzik videosunu video oynatıcıda aç</string>
     <string name="player_appearance_animated_artwork_title">Hareketli albüm kapağı</string>
-    <string name="player_appearance_animated_artwork_subtitle">Varsa albümün hareketli kapağını döngüye al</string>
+    <string name="player_appearance_animated_artwork_subtitle">Şarkının hareketli görseli varsa döngüye al</string>
     <string name="player_appearance_animated_artwork_wifi_title">Hareketli albüm kapağı yalnızca Wi-Fi\'da</string>
     <string name="player_appearance_animated_artwork_wifi_subtitle">Mobil veride kapak resmini sabit tut</string>
     <string name="music_content_language_title">İçerik dili</string>
@@ -5319,4 +5319,17 @@
     <string name="post_title">Gönderi</string>
     <string name="post_load_failed">Bu gönderi yüklenemedi</string>
     <string name="youtube_page_unavailable">YouTube bu sayfanın kullanılamadığını söylüyor</string>
+    <string name="backup_no_file_picker">Bu TV\'de dosya seçici yok, bu nedenle yedekler burada kaydedilemez veya geri yüklenemez.</string>
+    <string name="player_appearance_animated_artwork_source_title">Hareketli görsel kaynağı</string>
+    <string name="player_appearance_animated_artwork_source_subtitle">İkisi de önce Apple Music\'i, ardından Spotify Canvas\'ı dener</string>
+    <string name="player_appearance_animated_artwork_source_apple">Apple Music</string>
+    <string name="player_appearance_animated_artwork_source_canvas">Spotify</string>
+    <string name="player_appearance_animated_artwork_source_both">İkisi</string>
+    <string name="player_appearance_animated_artwork_quality_title">Hareketli görsel kalitesi</string>
+    <string name="player_appearance_animated_artwork_quality_subtitle">Otomatik, görselin boyutunu ekrandaki boyutuyla eşleştirir</string>
+    <string name="player_appearance_animated_artwork_quality_auto">Oto</string>
+    <string name="player_appearance_animated_artwork_quality_low">Düşük</string>
+    <string name="player_appearance_animated_artwork_quality_medium">Orta</string>
+    <string name="player_appearance_animated_artwork_quality_high">Yüksek</string>
+    <string name="shorts_no_captions">Bu Shorts\'un altyazısı yok</string>
 </resources>
