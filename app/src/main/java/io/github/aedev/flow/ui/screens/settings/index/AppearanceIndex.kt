@@ -270,6 +270,16 @@ internal object NavigationBarIndex {
     val shorts = tab("shorts", R.string.settings_shorts_nav_tab_title, R.string.settings_shorts_nav_tab_subtitle)
     val music = tab("music", R.string.settings_music_nav_tab_title, R.string.settings_music_nav_tab_subtitle)
     val search = tab("search", R.string.settings_search_nav_tab_title, R.string.settings_search_nav_tab_subtitle)
+    val hideTopSearch =
+        SettingEntry(
+            key = "navigation_bar.hide_top_search",
+            title = R.string.settings_nav_hide_top_search_title,
+            summary = R.string.settings_nav_hide_top_search_summary,
+            keywords = R.string.settings_keywords_nav_bar,
+            section = R.string.settings_section_tabs,
+            destination = page,
+            revealVia = search.key,
+        )
     val explore = tab("explore", R.string.settings_categories_nav_tab_title, R.string.settings_categories_nav_tab_subtitle)
     val downloads = tab("downloads", R.string.settings_downloads_nav_tab_title, R.string.settings_downloads_nav_tab_subtitle)
     val hideOnScroll =
@@ -378,6 +388,7 @@ internal object NavigationBarIndex {
             shorts,
             music,
             search,
+            hideTopSearch,
             explore,
             downloads,
             hideOnScroll,

@@ -75,6 +75,7 @@ fun NavGraphBuilder.flowAppGraph(
     openDownloads: () -> Unit = {},
     searchExitTab: () -> FlowTab = { FlowTab.Home },
     searchIsTab: () -> Boolean = { false },
+    showTopBarSearch: () -> Boolean = { true },
 ) {
     val openSearch: () -> Unit = {
         // With a Search tab in the bar, the icon opens that tab, so Search keeps its state like any other tab.
@@ -107,6 +108,7 @@ fun NavGraphBuilder.flowAppGraph(
                 navController.openShortsOrPlayer(source, disableShortsPlayer)
             },
             onSearchClick = openSearch,
+            showSearchAction = showTopBarSearch(),
             onNavigateToHistory = {
                 navController.navigate("history")
             },
@@ -188,6 +190,7 @@ fun NavGraphBuilder.flowAppGraph(
                 }
             },
             onOpenSearch = openSearch,
+            showGlobalSearchAction = showTopBarSearch(),
         )
     }
 

@@ -68,6 +68,7 @@ fun SubscriptionsScreen(
     onShortClick: (ShortsQueueSource) -> Unit = {},
     onChannelClick: (Channel) -> Unit = {},
     onOpenSearch: () -> Unit = {},
+    showGlobalSearchAction: Boolean = true,
     modifier: Modifier = Modifier,
     openMusicSubscriptions: Boolean = false,
     onMusicSubscriptionsOpened: () -> Unit = {},
@@ -244,12 +245,16 @@ fun SubscriptionsScreen(
                                             contentDescription = stringResource(R.string.toggle_view_mode),
                                         )
                                     }
-                                    IconButton(onClick = { if (searchOpensGlobal) onOpenSearch() else openManage(false) }) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Search,
-                                            contentDescription =
-                                                stringResource(if (searchOpensGlobal) R.string.search else R.string.search_subscriptions),
-                                        )
+                                    if (!searchOpensGlobal || showGlobalSearchAction) {
+                                        IconButton(onClick = { if (searchOpensGlobal) onOpenSearch() else openManage(false) }) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Search,
+                                                contentDescription =
+                                                    stringResource(
+                                                        if (searchOpensGlobal) R.string.search else R.string.search_subscriptions,
+                                                    ),
+                                            )
+                                        }
                                     }
                                 },
                             )
