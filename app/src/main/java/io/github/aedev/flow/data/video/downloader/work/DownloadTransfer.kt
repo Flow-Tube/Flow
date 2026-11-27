@@ -57,6 +57,7 @@ sealed interface FetchOutcome {
         val streams: ResolvedStreams? = null,
         /** The video stream first chosen, when a refusal made the download settle for another one. */
         val substitutedFor: Format? = null,
+        val loudnessGainDb: Float? = streams?.loudnessGainDb,
     ) : FetchOutcome
 
     data class Failed(
@@ -302,7 +303,12 @@ class DownloadTransfer
                 staging.clearSabrParts()
                 return FetchOutcome.Failed(FetchFailure.REFUSED)
             }
-            return FetchOutcome.Fetched(staging.sabrVideoPart.takeUnless { request.wantsAudioOnly }, staging.sabrAudioPart, info.durationMs)
+            return FetchOutcome.Fetched(
+                staging.sabrVideoPart.takeUnless { request.wantsAudioOnly },
+                staging.sabrAudioPart,
+                info.durationMs,
+                loudnessGainDb = info.audioLoudnessGainDb,
+            )
         }
 
         private suspend fun <T> reportingProgress(

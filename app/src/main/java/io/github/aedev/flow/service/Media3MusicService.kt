@@ -392,14 +392,24 @@ class Media3MusicService : MediaLibraryService() {
         }
     }
 
+    private var downloadGainLookupFor: String? = null
+
     private fun applyLoudnessGain() {
         if (!::player.isInitialized) return
-        val mediaId = player.currentMediaItem?.mediaId
-        val gainDb =
-            mediaId
+        val mediaId =
+            player.currentMediaItem
+                ?.mediaId
                 ?.takeIf { loudnessNormalizationEnabled && !LocalMediaIds.isLocal(it) }
-                ?.let(MusicPlayerUtils::cachedLoudnessGainDb)
+        val gainDb = mediaId?.let { MusicPlayerUtils.cachedLoudnessGainDb(it) ?: downloadUtil.knownDownloadedLoudnessGainDb(it) }
         player.volume = LoudnessGain.volume(gainDb) * (crossfader?.sessionScale ?: 1f)
+        // The crossfade calls this on every volume step, so each song is looked up once.
+        if (mediaId != null && gainDb == null && mediaId != downloadGainLookupFor) {
+            downloadGainLookupFor = mediaId
+            lifecycleScope.launch {
+                downloadUtil.downloadedLoudnessGainDb(mediaId) ?: return@launch
+                if (player.currentMediaItem?.mediaId == mediaId) applyLoudnessGain()
+            }
+        }
     }
 
     /** The player that plays the outgoing song's last seconds during a crossfade; see [MusicCrossfader]. */

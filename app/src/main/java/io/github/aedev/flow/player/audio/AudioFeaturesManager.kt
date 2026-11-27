@@ -186,6 +186,16 @@ class AudioFeaturesManager(
         playerRef?.let(::applyVolume)
     }
 
+    /** A downloaded copy plays without a player response, so its gain is the one saved with the file. */
+    fun setStoredLoudness(
+        mediaId: String,
+        gainDb: Float?,
+    ) {
+        loudnessConfig = null
+        loudness = gainDb?.let { mediaId to it }
+        playerRef?.let(::applyVolume)
+    }
+
     /** Each audio track carries its own level, so a dub picked mid-video replaces the original's gain. */
     fun onAudioStreamChanged(
         mediaId: String?,

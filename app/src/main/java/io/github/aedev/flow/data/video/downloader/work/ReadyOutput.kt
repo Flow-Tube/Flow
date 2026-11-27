@@ -16,6 +16,7 @@ internal data class ReadyOutput(
     val swappedTrack: String? = null,
     val savedQuality: String? = null,
     val wantedQuality: String? = null,
+    val loudnessGainDb: Float? = null,
 ) {
     companion object {
         private val json = Json { ignoreUnknownKeys = true }

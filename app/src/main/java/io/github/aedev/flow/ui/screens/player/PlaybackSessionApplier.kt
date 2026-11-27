@@ -94,6 +94,9 @@ internal class PlaybackSessionApplier(
                 announceLocalCopy(load)
                 if (step.needsSponsorBlockBackfill) backfillSponsorBlockSegments(load.videoId)
                 armLocalCopyMetadata(load)
+                withContext(Dispatchers.Main) {
+                    if (isLoadCurrent(load.token)) playerManager.setStoredLoudness(load.videoId, step.loudnessGainDb)
+                }
                 prepareLocalMedia(load, step.localFilePath, step.offlineSegments)
             }
 

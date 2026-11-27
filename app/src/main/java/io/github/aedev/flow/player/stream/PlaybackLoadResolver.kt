@@ -82,6 +82,7 @@ class PlaybackLoadResolver
                             offlineSegments = sponsorBlockRepository.parseSegments(storedSponsorBlockJson),
                             needsSponsorBlockBackfill = storedSponsorBlockJson == null,
                             downloadedVideo = localCopy.video,
+                            loudnessGainDb = localCopy.loudnessGainDb,
                         ),
                     )
                     return

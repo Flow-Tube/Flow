@@ -70,6 +70,7 @@ data class DownloadedVideo(
     val downloadId: Long = -1,
     val quality: String = "Unknown",
     val isAudioOnly: Boolean = false,
+    val loudnessGainDb: Float? = null,
 )
 
 /**
@@ -505,6 +506,7 @@ class VideoDownloadManager
                 downloadId = dwi.download.createdAt,
                 quality = dwi.items.firstOrNull()?.quality ?: "Unknown",
                 isAudioOnly = dwi.isAudioOnly,
+                loudnessGainDb = dwi.items.firstNotNullOfOrNull { it.loudnessGainDb },
             )
 
         /** Generate a safe filename from title and quality.

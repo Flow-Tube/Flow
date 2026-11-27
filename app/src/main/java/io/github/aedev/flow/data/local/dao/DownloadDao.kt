@@ -195,6 +195,16 @@ interface DownloadDao {
     )
     fun completedAudioPathBlocking(videoId: String): String?
 
+    /** The gain saved with [videoId]'s finished song download. */
+    @Query(
+        """
+        SELECT loudnessGainDb FROM download_items
+        WHERE videoId = :videoId AND fileType = 'AUDIO' AND status = 'COMPLETED'
+        LIMIT 1
+    """,
+    )
+    suspend fun completedAudioLoudnessGain(videoId: String): Float?
+
     /** Check if a completed download exists for a video */
     @Query(
         """
@@ -210,7 +220,8 @@ interface DownloadDao {
     @Query(
         """
         UPDATE download_items SET filePath = :filePath, fileName = :fileName, format = :format, mimeType = :mimeType,
-            quality = :quality, downloadedBytes = :size, totalBytes = :size, status = 'COMPLETED'
+            quality = :quality, downloadedBytes = :size, totalBytes = :size, status = 'COMPLETED',
+            loudnessGainDb = :loudnessGainDb
         WHERE id = :itemId
         """,
     )
@@ -222,6 +233,7 @@ interface DownloadDao {
         mimeType: String,
         quality: String,
         size: Long,
+        loudnessGainDb: Float?,
     )
 
     @Query("UPDATE downloads SET thumbnailPath = :path WHERE videoId = :videoId")

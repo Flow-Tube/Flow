@@ -52,6 +52,20 @@ class TrackLoudnessTest {
         assertThat(manager.appliedLoudnessDb!!.toDouble()).isWithin(1e-4).of(-1.66)
     }
 
+    @Test
+    fun `a downloaded copy plays at the gain saved with it`() {
+        manager.setLoudness("video", dubbedVideo, original)
+
+        manager.setStoredLoudness("video", -4.5f)
+        assertThat(manager.appliedLoudnessDb).isEqualTo(-4.5f)
+
+        manager.onAudioStreamChanged("video", spanishDub)
+        assertThat(manager.appliedLoudnessDb).isEqualTo(-4.5f)
+
+        manager.setStoredLoudness("other", null)
+        assertThat(manager.appliedLoudnessDb).isNull()
+    }
+
     private fun track(
         id: String,
         loudnessDb: Double,
