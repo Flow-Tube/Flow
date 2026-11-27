@@ -41,19 +41,18 @@ object SubscriptionFeedTimestamps {
         video: Video,
         now: Long,
     ): Boolean {
-        val text = video.uploadDate.trim().lowercase()
         if (video.isLive || video.isUpcoming) return true
         if (video.timestamp <= 0L) return false
         val timestampLooksLikeFallbackNow =
             video.timestamp in (now - SUSPICIOUS_FRESH_TIMESTAMP_MS)..(now + SUSPICIOUS_FRESH_TIMESTAMP_MS)
-        if (timestampLooksLikeFallbackNow && isUnstableFreshUploadText(text)) {
+        if (timestampLooksLikeFallbackNow && isUnstableFreshUploadText(video.uploadDate)) {
             return false
         }
         return true
     }
 
     fun isUnstableFreshUploadText(value: String): Boolean {
-        val text = value.trim().lowercase()
+        val text = StreamedUploadDate.unmarked(value).lowercase()
         if (text.isBlank() || text == "unknown" || text == "just now" || text == "today") return true
         return text.matches(Regex("""\d+\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours)(\s+ago)?"""))
     }
@@ -62,7 +61,7 @@ object SubscriptionFeedTimestamps {
         dateString: String,
         now: Long,
     ): Long? {
-        val text = dateString.lowercase().trim()
+        val text = StreamedUploadDate.unmarked(dateString).lowercase()
         if (text.isBlank() || text == "unknown") return null
         if (text.contains("scheduled") || text.contains("premiere")) return now + 86400000L
         if (text.contains("live")) return now + 3600000L // Boost live streams
@@ -91,7 +90,7 @@ fun List<Video>.withRelativeUploadDates(now: Long): List<Video> =
             video.copy(isUpcoming = true)
         } else if (uploadTimestamp > 0L) {
             video.copy(
-                uploadDate = formatYouTubeRelativeTime(uploadTimestamp, now),
+                uploadDate = video.keepingStreamedMark(formatYouTubeRelativeTime(uploadTimestamp, now)),
                 isUpcoming = false,
             )
         } else {
@@ -104,6 +103,10 @@ fun List<Video>.withRelativeUploadDates(now: Long): List<Video> =
             )
         }
     }
+
+/** [recomputed] with the "Streamed" mark this row's stored date carried, unless it is on air again. */
+internal fun Video.keepingStreamedMark(recomputed: String): String =
+    StreamedUploadDate.markedIf(!isLive && StreamedUploadDate.isMarked(uploadDate), recomputed)
 
 fun List<Video>.withHighQualityThumbnails(): List<Video> =
     map { video ->

@@ -2556,7 +2556,6 @@
     <string name="year_artist_template">%1$s • %2$s</string>
     <string name="status_playing">Playing</string>
     <string name="label_explicit">Explicit</string>
-    <string name="duration_with_dot_template"> • %1$s</string>
     <string name="queue_position_template">%1$d / %2$d</string>
     <string name="chart_position_template">#%1$d</string>
     <string name="next_up_template">%1$s: %2$s</string>
@@ -5493,4 +5492,5 @@
     <string name="search_showing_results_for">Showing results for %1$s</string>
     <string name="search_instead_for">Search instead for %1$s</string>
     <string name="search_did_you_mean">Did you mean %1$s</string>
+    <string name="search_age_check_music_results">YouTube asks to sign in for this search. Showing results from YouTube Music.</string>
 </resources>
