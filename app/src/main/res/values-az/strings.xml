@@ -5329,4 +5329,22 @@
     <string name="player_appearance_animated_artwork_quality_medium">Orta</string>
     <string name="player_appearance_animated_artwork_quality_high">Yüksək</string>
     <string name="shorts_no_captions">Bu Short-un subtitri yoxdur</string>
+    <string name="music_refresh_failed">Musiqini yeniləmək olmadı</string>
+    <plurals name="notifications_removed_count">
+        <item quantity="one">%d bildiriş silindi</item>
+        <item quantity="other">%d bildiriş silindi</item>
+    </plurals>
+    <plurals name="notifications_channel_uploads">
+        <item quantity="one">%d video yüklənildi</item>
+        <item quantity="other">%d video yüklənildi</item>
+    </plurals>
+    <string name="notifications_channel_open">Göstərilən videolar</string>
+    <string name="notifications_channel_closed">Gizlədilən videolar</string>
+    <string name="settings_loading_animation_title">Yükləmə animasiyası</string>
+    <string name="settings_loading_animation_keywords">yükləmə ekranı, skelet, yertutan, parıltı, nəbz</string>
+    <string name="loading_animation_pulse">Nəbz</string>
+    <string name="loading_animation_subtle_pulse">İncə nəbz</string>
+    <string name="loading_animation_shimmer">Parıltı</string>
+    <string name="content_settings_search_keyboard_title">Axtarışda klaviaturanı aç</string>
+    <string name="content_settings_search_keyboard_subtitle">Axtarış açılan kimi axtarış sahəsinə fokuslan</string>
 </resources>
