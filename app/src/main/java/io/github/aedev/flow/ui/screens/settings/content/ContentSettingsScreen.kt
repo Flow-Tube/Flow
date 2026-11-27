@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import io.github.aedev.flow.data.local.ExploreStartCategory
 import io.github.aedev.flow.data.local.FeedAutoplay
 import io.github.aedev.flow.data.local.SharedLinkAction
 import io.github.aedev.flow.data.local.WatchedThreshold
@@ -51,6 +52,7 @@ internal fun ContentSettingsScreen(
     var showThresholdDialog by rememberSaveable { mutableStateOf(false) }
     var showSharedLinksDialog by rememberSaveable { mutableStateOf(false) }
     var showFeedAutoplayDialog by rememberSaveable { mutableStateOf(false) }
+    var showExploreStartDialog by rememberSaveable { mutableStateOf(false) }
 
     SettingsPage(
         title = stringResource(R.string.settings_content_title),
@@ -152,6 +154,12 @@ internal fun ContentSettingsScreen(
         group(key = "content.search", header = R.string.search) {
             switch(ContentIndex.searchKeyboard, viewModel.searchKeyboard, viewModel::setSearchKeyboard)
         }
+        group(key = "content.explore", header = R.string.nav_explore) {
+            choice(ContentIndex.exploreStart, onClick = { showExploreStartDialog = true }) {
+                val start by viewModel.exploreStart.collectAsStateWithLifecycle()
+                exploreStartLabel(start)
+            }
+        }
     }
 
     if (showThresholdDialog) {
@@ -184,6 +192,17 @@ internal fun ContentSettingsScreen(
         )
     }
 
+    if (showExploreStartDialog) {
+        val start by viewModel.exploreStart.collectAsStateWithLifecycle()
+        FlowChoiceDialog(
+            title = stringResource(R.string.content_settings_explore_start_title),
+            options = ExploreStartCategory.entries.map { FlowChoice(it, exploreStartLabel(it)) },
+            selected = start,
+            onSelect = viewModel::setExploreStart,
+            onDismiss = { showExploreStartDialog = false },
+        )
+    }
+
     if (showSharedLinksDialog) {
         val action by viewModel.sharedLinkAction.collectAsStateWithLifecycle()
         FlowChoiceDialog(
@@ -204,6 +223,21 @@ private fun feedAutoplayLabel(mode: FeedAutoplay): String =
         FeedAutoplay.WIFI_ONLY -> stringResource(R.string.content_settings_feed_autoplay_wifi)
         FeedAutoplay.ALWAYS -> stringResource(R.string.content_settings_feed_autoplay_always)
     }
+
+@Composable
+private fun exploreStartLabel(category: ExploreStartCategory): String =
+    stringResource(
+        when (category) {
+            ExploreStartCategory.LAST -> R.string.content_settings_explore_start_last
+            ExploreStartCategory.LIVE -> R.string.category_live
+            ExploreStartCategory.GAMING -> R.string.category_gaming
+            ExploreStartCategory.MUSIC -> R.string.category_music
+            ExploreStartCategory.NEWS -> R.string.category_news
+            ExploreStartCategory.SPORTS -> R.string.category_sports
+            ExploreStartCategory.LEARNING -> R.string.category_learning
+            ExploreStartCategory.FASHION -> R.string.category_fashion
+        },
+    )
 
 @Composable
 private fun sharedLinkActionLabel(action: SharedLinkAction): String =

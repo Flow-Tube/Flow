@@ -4757,6 +4757,9 @@
     <string name="content_settings_shared_links_subtitle">What a video shared to Flow does</string>
     <string name="content_settings_search_keyboard_title">Open keyboard on search</string>
     <string name="content_settings_search_keyboard_subtitle">Focus the search field as soon as search opens</string>
+    <string name="content_settings_explore_start_title">Open Explore on</string>
+    <string name="content_settings_explore_start_subtitle">The category Explore shows first</string>
+    <string name="content_settings_explore_start_last">Last category</string>
     <string name="content_settings_shared_links_dialog_body">Links you tap in other apps always play.</string>
     <string name="content_settings_shared_links_play">Play right away</string>
     <string name="content_settings_shared_links_ask_while_playing">Ask while something plays</string>
@@ -5326,7 +5329,7 @@
     </plurals>
     <string name="scrobbling_title">Scrobbling</string>
     <string name="scrobbling_summary">Send what you listen to Last.fm, Libre.fm or ListenBrainz</string>
-    <string name="settings_keywords_scrobbling">scrobble scrobbling last.fm lastfm libre.fm librefm listenbrainz</string>
+    <string name="settings_keywords_scrobbling">scrobble scrobbling last.fm lastfm libre.fm librefm listenbrainz webhook web scrobbler</string>
     <string name="scrobbling_lastfm">Last.fm</string>
     <string name="scrobbling_librefm">Libre.fm</string>
     <string name="scrobbling_listenbrainz">ListenBrainz</string>
@@ -5380,6 +5383,14 @@
     </plurals>
     <string name="scrobbling_import_none">No new artists to add</string>
     <string name="scrobbling_import_failed">Could not read your top artists</string>
+    <string name="scrobbling_webhooks">Webhooks</string>
+    <string name="scrobbling_webhooks_footer">Each listen is posted as JSON in Web Scrobbler\'s webhook format. Addresses stay on this device.</string>
+    <string name="scrobbling_webhook_add">Add webhook</string>
+    <string name="scrobbling_webhook_add_summary">Send listens to your own server or app</string>
+    <string name="scrobbling_webhook_title">Webhook</string>
+    <string name="scrobbling_webhook_name">Name</string>
+    <string name="scrobbling_webhook_url">URL</string>
+    <string name="scrobbling_webhook_url_note">An http:// or https:// address</string>
     <string name="music_home_lastfm_discover">Discover with Last.fm</string>
     <string name="music_home_lastfm_discover_subtitle">Picked by Last.fm listeners from your on repeat</string>
     <string name="keyboard_shortcuts_player">Player</string>
@@ -5484,4 +5495,5 @@
     <string name="search_showing_results_for">Showing results for %1$s</string>
     <string name="search_instead_for">Search instead for %1$s</string>
     <string name="search_did_you_mean">Did you mean %1$s</string>
+    <string name="search_age_check_music_results">YouTube asks to sign in for this search. Showing results from YouTube Music.</string>
 </resources>

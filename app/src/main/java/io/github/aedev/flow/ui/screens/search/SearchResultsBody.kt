@@ -2,10 +2,13 @@ package io.github.aedev.flow.ui.screens.search
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -49,6 +52,8 @@ import io.github.aedev.flow.utils.YouTubeLink
 import io.github.aedev.flow.utils.parseYouTubeLink
 
 private val FilterBarVerticalPadding = 4.dp
+private val NoteHorizontalPadding = 16.dp
+private val NoteVerticalPadding = 8.dp
 
 /**
  * Runs typed text as a search with the given filters, or opens it when it is a YouTube link, the way
@@ -133,6 +138,7 @@ internal fun ColumnScope.SearchResultsBody(
                 onSearchCorrected = onSearch,
             )
         }
+    if (uiState.musicFallback) MusicResultsNote()
 
     val refreshState = pagingItems.loadState.refresh
     BoxWithConstraints(modifier = Modifier.weight(1f)) {
@@ -185,6 +191,16 @@ internal fun ColumnScope.SearchResultsBody(
             }
         }
     }
+}
+
+@Composable
+private fun MusicResultsNote() {
+    Text(
+        text = stringResource(R.string.search_age_check_music_results),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = NoteHorizontalPadding, vertical = NoteVerticalPadding),
+    )
 }
 
 private fun SearchFilter.emptyResultsRes(): Int =

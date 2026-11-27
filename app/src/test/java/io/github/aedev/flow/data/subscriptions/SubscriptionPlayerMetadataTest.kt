@@ -60,6 +60,28 @@ class SubscriptionPlayerMetadataTest {
         }
 
     @Test
+    fun `an ended stream is marked as streamed and keeps the mark on the row`() =
+        runTest {
+            answer(OK, DETAILS.copy(lengthSeconds = "5400", isLive = false, isLiveContent = true))
+            val stored = video("v1").copy(uploadDate = "2 days ago")
+
+            val row = fetchSubscriptionPlayerMetadata(stored, TIMEOUT_MS)?.enriched
+
+            assertThat(row?.uploadDate).isEqualTo("Streamed 2 days ago")
+            assertThat(stored.copy(uploadDate = "3 days ago").withPlayerMetadata(row!!).uploadDate).isEqualTo("Streamed 3 days ago")
+        }
+
+    @Test
+    fun `a plain upload is not marked`() =
+        runTest {
+            answer(OK, DETAILS.copy(lengthSeconds = "300", isLive = false, isLiveContent = false))
+
+            val row = fetchSubscriptionPlayerMetadata(video("v1").copy(uploadDate = "2 days ago"), TIMEOUT_MS)?.enriched
+
+            assertThat(row?.uploadDate).isEqualTo("2 days ago")
+        }
+
+    @Test
     fun `a stream that ended and has no length yet clears the live badge`() =
         runTest {
             answer(OK, DETAILS.copy(lengthSeconds = "0", isLive = false, isLiveContent = true))

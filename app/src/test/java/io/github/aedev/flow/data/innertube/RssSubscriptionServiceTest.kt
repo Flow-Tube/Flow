@@ -393,6 +393,26 @@ class RssSubscriptionServiceTest {
             assertThat(chunk.videos.map { it.id }).containsExactly("v1", "older")
         }
 
+    @Test
+    fun `a past stream from the Live tab is stored as streamed, in any language (2437)`() =
+        runTest {
+            rss("UCa", entry("v1"), entry("past"))
+            coEvery { uploads.fetch("UCa", any(), any()) } returns
+                Result.success(
+                    ChannelUploads(
+                        owner = FeedItemOwner("UCa", "Channel"),
+                        videos = listOf(upload("v1", "UCa"), upload("past", "UCa").copy(uploadDate = "hace 2 días")),
+                        live = listOf(upload("past", "UCa"), upload("onair", "UCa").copy(isLive = true)),
+                    ),
+                )
+
+            val videos = service.fetchSubscriptionVideos(listOf("UCa"), readAllTabs = true).last().videos
+
+            assertThat(videos.single { it.id == "past" }.uploadDate).isEqualTo("Streamed recently")
+            assertThat(videos.single { it.id == "v1" }.uploadDate).isEqualTo("recently")
+            assertThat(videos.single { it.id == "onair" }.uploadDate).isEqualTo("recently")
+        }
+
     private companion object {
         const val FORMAT_UTILS = "io.github.aedev.flow.utils.FormatUtilsKt"
     }
