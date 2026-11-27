@@ -26,6 +26,7 @@ import io.github.aedev.flow.ui.components.shared.card.VideoCardThumbnail
 import io.github.aedev.flow.ui.components.shared.card.rememberVideoCardState
 import io.github.aedev.flow.ui.components.shared.quickactions.VideoQuickActionsBottomSheet
 import io.github.aedev.flow.ui.components.shared.videoMetadataLine
+import io.github.aedev.flow.ui.theme.cardTitle
 import io.github.aedev.flow.utils.formatYouTubeRelativeTime
 
 /**
@@ -148,6 +149,7 @@ private fun PlaylistVideoRowContent(
     MediaRow(
         title = state.title,
         modifier = modifier,
+        titleStyle = MaterialTheme.typography.cardTitle,
         subtitle = video.channelName,
         supporting = video.playlistMetadataLine(showAddedDate, isLikes),
         supportingColor =

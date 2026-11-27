@@ -9,6 +9,7 @@ import io.github.aedev.flow.data.scrobble.AudioscrobblerKeys
 import io.github.aedev.flow.data.scrobble.ScrobbleService
 import io.github.aedev.flow.data.scrobble.ScrobbleSettings
 import io.github.aedev.flow.data.scrobble.ScrobbleStore
+import io.github.aedev.flow.data.scrobble.ScrobbleWebhook
 import io.github.aedev.flow.data.scrobble.ScrobbleWorker
 import io.github.aedev.flow.data.scrobble.Scrobbler
 import io.github.aedev.flow.data.scrobble.TasteImport
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 internal sealed interface SignInState {
@@ -117,4 +119,12 @@ internal class ScrobblingViewModel
         fun setSendLikes(enabled: Boolean) = write { store.setSendLikes(enabled) }
 
         fun sendNow() = ScrobbleWorker.enqueue(context)
+
+        fun saveWebhook(
+            id: String?,
+            name: String,
+            url: String,
+        ) = write { store.saveWebhook(ScrobbleWebhook(id ?: UUID.randomUUID().toString(), name.trim(), url.trim())) }
+
+        fun removeWebhook(id: String) = write { store.removeWebhook(id) }
     }

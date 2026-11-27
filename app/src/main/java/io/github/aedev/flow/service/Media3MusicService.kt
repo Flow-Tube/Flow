@@ -629,7 +629,14 @@ class Media3MusicService : MediaLibraryService() {
                     val versionSwap =
                         videoSwitch.consumeSwap(mediaItem?.mediaId) &&
                             reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
-                    if (!versionSwap) {
+                    val recovered =
+                        ListenRecovery.continuesThroughTransition(
+                            reason = reason,
+                            nextListenId = mediaItem?.mediaId?.let(videoSwitch::listenId),
+                            currentListenId = learnMediaId,
+                            recoveringListenId = recoveringListenId,
+                        )
+                    if (!versionSwap && !recovered) {
                         finalizeListenSession()
                         startListenSession(mediaItem?.mediaId)
                         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) failureStreak.reset()
@@ -684,9 +691,13 @@ class Media3MusicService : MediaLibraryService() {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     onPlaybackActivityChanged(isPlaybackActive())
                     widgetPublisher.publish(player)
-                    if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
+                    val endsListen =
+                        playbackState == Player.STATE_ENDED ||
+                            (playbackState == Player.STATE_IDLE && ListenRecovery.endsOnIdle(failed = player.playerError != null))
+                    if (endsListen) {
                         // ENDED: the queue ran out — no transition fires for the last track.
-                        // IDLE: player.stop() from a dismiss/stop path — same deal.
+                        // IDLE: player.stop() from a dismiss/stop path — same deal. An error also
+                        // idles the player, but recovery plays the same song on as the same listen.
                         finalizeListenSession()
                     }
                     if (playbackState == Player.STATE_ENDED) {
@@ -698,6 +709,7 @@ class Media3MusicService : MediaLibraryService() {
                         }
                     }
                     if (playbackState == Player.STATE_READY) {
+                        recoveringListenId = null
                         refreshLearnDuration()
                         if (player.isPlaying) scheduleScrobbleCheck()
                         applyLoudnessGain()
@@ -807,6 +819,9 @@ class Media3MusicService : MediaLibraryService() {
     // so relistens still count once each.
 
     private var learnMediaId: String? = null
+
+    /** The song a playback error is being recovered for; its listen survives the restart. */
+    private var recoveringListenId: String? = null
     private var learnTrack: MusicTrack? = null
     private var learnGenre: String? = null
     private var learnFromVideoList = false
@@ -976,6 +991,7 @@ class Media3MusicService : MediaLibraryService() {
             return
         }
         val mediaId = failed.mediaId
+        recoveringListenId = videoSwitch.listenId(mediaId)
 
         Log.e(TAG, "Playback error for $mediaId: ${error.errorCodeName} (code=${error.errorCode})", error)
         lastPlaybackErrorAtMap[mediaId] = System.currentTimeMillis()
