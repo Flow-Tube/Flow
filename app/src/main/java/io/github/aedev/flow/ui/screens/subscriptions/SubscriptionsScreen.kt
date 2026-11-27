@@ -67,6 +67,7 @@ fun SubscriptionsScreen(
     onVideoClick: (Video) -> Unit,
     onShortClick: (ShortsQueueSource) -> Unit = {},
     onChannelClick: (Channel) -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     modifier: Modifier = Modifier,
     openMusicSubscriptions: Boolean = false,
     onMusicSubscriptionsOpened: () -> Unit = {},
@@ -77,6 +78,7 @@ fun SubscriptionsScreen(
     val preferences = remember(context) { PlayerPreferences(context) }
     val columnPreference by preferences.homeFeedColumns.collectAsStateWithLifecycle(HomeFeedColumns.AUTO)
     val topBarHideOnScroll by preferences.topBarHideOnScroll.collectAsStateWithLifecycle(initialValue = true)
+    val searchOpensGlobal by preferences.subsSearchOpensGlobal.collectAsStateWithLifecycle(initialValue = false)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val feedGridState = rememberLazyGridState()
@@ -242,10 +244,11 @@ fun SubscriptionsScreen(
                                             contentDescription = stringResource(R.string.toggle_view_mode),
                                         )
                                     }
-                                    IconButton(onClick = { openManage(false) }) {
+                                    IconButton(onClick = { if (searchOpensGlobal) onOpenSearch() else openManage(false) }) {
                                         Icon(
                                             imageVector = Icons.Outlined.Search,
-                                            contentDescription = stringResource(R.string.search_subscriptions),
+                                            contentDescription =
+                                                stringResource(if (searchOpensGlobal) R.string.search else R.string.search_subscriptions),
                                         )
                                     }
                                 },

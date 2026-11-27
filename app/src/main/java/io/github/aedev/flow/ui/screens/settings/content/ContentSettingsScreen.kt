@@ -108,6 +108,7 @@ internal fun ContentSettingsScreen(
             switch(ContentIndex.hideUnplayableSubs, viewModel.hideUnplayableSubs, viewModel::setHideUnplayableSubs)
             switch(ContentIndex.subsRefreshOnStartup, viewModel.subsRefreshOnStartup, viewModel::setSubsRefreshOnStartup)
             switch(ContentIndex.subsCheckedCount, viewModel.subsCheckedCount, viewModel::setSubsCheckedCount)
+            switch(ContentIndex.subsSearchGlobal, viewModel.subsSearchGlobal, viewModel::setSubsSearchGlobal)
         }
         group(key = "content.shorts", header = R.string.content_settings_header_shorts) {
             switch(ContentIndex.shortsContent, viewModel.shortsContent, viewModel::setShortsContent)

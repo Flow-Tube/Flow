@@ -1552,6 +1552,8 @@
     <string name="content_settings_subs_startup_refresh_subtitle">Check your subscription feed when the app opens</string>
     <string name="content_settings_subs_show_checked_count_title">Checked video count</string>
     <string name="content_settings_subs_show_checked_count_subtitle">Show how many videos were checked on refresh</string>
+    <string name="content_settings_subs_search_global_title">Search all of YouTube</string>
+    <string name="content_settings_subs_search_global_subtitle">The search button opens app search</string>
     <string name="content_settings_subs_show_videos_title">Subscription videos</string>
     <string name="content_settings_subs_show_videos_subtitle">Show regular videos in the subscription feed</string>
     <string name="content_settings_subs_show_shorts_title">Subscription shorts</string>

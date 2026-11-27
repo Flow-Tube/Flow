@@ -76,6 +76,11 @@ fun NavGraphBuilder.flowAppGraph(
     searchExitTab: () -> FlowTab = { FlowTab.Home },
     searchIsTab: () -> Boolean = { false },
 ) {
+    val openSearch: () -> Unit = {
+        // With a Search tab in the bar, the icon opens that tab, so Search keeps its state like any other tab.
+        if (searchIsTab()) navController.navigateToTab(FlowTab.Search, defaultStartRoute) else navController.navigate("search")
+    }
+
     // =============================================
     // ONBOARDING (First-time user experience)
     // =============================================
@@ -101,10 +106,7 @@ fun NavGraphBuilder.flowAppGraph(
             onShortClick = { source ->
                 navController.openShortsOrPlayer(source, disableShortsPlayer)
             },
-            onSearchClick = {
-                // With a Search tab in the bar, the icon opens that tab, so Search keeps its state like any other tab.
-                if (searchIsTab()) navController.navigateToTab(FlowTab.Search, defaultStartRoute) else navController.navigate("search")
-            },
+            onSearchClick = openSearch,
             onNavigateToHistory = {
                 navController.navigate("history")
             },
@@ -185,6 +187,7 @@ fun NavGraphBuilder.flowAppGraph(
                     mediaNavigator.openChannel(channel.url.ifBlank { channel.id })
                 }
             },
+            onOpenSearch = openSearch,
         )
     }
 

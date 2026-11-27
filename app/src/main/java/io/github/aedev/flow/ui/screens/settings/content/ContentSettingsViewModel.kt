@@ -48,6 +48,7 @@ class ContentSettingsViewModel
         val hideUnplayableSubs = preferences.hideUnplayableVideosFromSubscriptions.asState(false)
         val subsRefreshOnStartup = preferences.subscriptionRefreshOnStartup.asState(false)
         val subsCheckedCount = preferences.subscriptionShowCheckedVideoCount.asState(true)
+        val subsSearchGlobal = preferences.subsSearchOpensGlobal.asState(false)
 
         val shortsContent = preferences.shortsContentEnabled.asState(true)
         val channelShortsTab = preferences.channelShortsTabWhenHidden.asState(false)
@@ -108,6 +109,8 @@ class ContentSettingsViewModel
         fun setSubsRefreshOnStartup(value: Boolean) = write { preferences.setSubscriptionRefreshOnStartup(value) }
 
         fun setSubsCheckedCount(value: Boolean) = write { preferences.setSubscriptionShowCheckedVideoCount(value) }
+
+        fun setSubsSearchGlobal(value: Boolean) = write { preferences.setSubsSearchOpensGlobal(value) }
 
         fun setShortsContent(value: Boolean) = write { preferences.setShortsContentEnabled(value) }
 
