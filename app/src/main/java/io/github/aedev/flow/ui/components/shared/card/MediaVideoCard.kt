@@ -44,7 +44,7 @@ object VideoCardDefaults {
     val RowTitleGap: Dp = 6.dp
 
     /** The gap between the lines under a stacked card's thumbnail. */
-    val StackedTextSpacing: Dp = 4.dp
+    val StackedTextSpacing: Dp = 6.dp
 }
 
 /**

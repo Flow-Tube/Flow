@@ -21,6 +21,8 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarStack
 import io.github.aedev.flow.ui.components.shared.LocalDpadNavigation
 import io.github.aedev.flow.ui.components.shared.videoMetadataLine
+import io.github.aedev.flow.ui.theme.cardTitle
+import io.github.aedev.flow.ui.theme.cardTitleSmall
 
 /**
  * The thumbnail across the full width with the details beneath: feeds and grids. A dense card has no
@@ -138,7 +140,7 @@ private fun StackedCardText(
     ) {
         Text(
             text = state.title,
-            style = if (dense) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+            style = if (dense) MaterialTheme.typography.cardTitleSmall else MaterialTheme.typography.cardTitle,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
