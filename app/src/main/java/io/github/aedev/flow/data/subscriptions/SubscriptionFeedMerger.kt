@@ -79,6 +79,8 @@ object SubscriptionFeedMerger {
                 videoId = primary.id,
                 urls = candidates.map { it.thumbnailUrl },
             )
+        val isLive = candidates.any { it.isLive }
+        val streamed = !isLive && futureUpcoming == null && candidates.any { StreamedUploadDate.isMarked(it.uploadDate) }
         val bestDescription =
             candidates.firstOrNull { it.description.isNotBlank() }?.description
                 ?: primary.description
@@ -86,7 +88,7 @@ object SubscriptionFeedMerger {
         return primary.copy(
             viewCount = candidates.maxOf { it.viewCount },
             thumbnailUrl = bestVideoThumbnail,
-            uploadDate = if (hasStableMetadata) metadataSource.uploadDate else "",
+            uploadDate = StreamedUploadDate.markedIf(streamed, if (hasStableMetadata) metadataSource.uploadDate else ""),
             timestamp = metadataTimestamp ?: 0L,
             timestampIsExact = metadataSource.timestampIsExact && metadataTimestamp == metadataSource.timestamp,
             duration = candidates.maxOf { it.duration },
@@ -94,14 +96,14 @@ object SubscriptionFeedMerger {
             channelThumbnailUrl = bestChannelThumbnail,
             channelThumbnailUrls = bestChannelThumbnails,
             isShort = candidates.any { it.isShort },
-            isLive = candidates.any { it.isLive },
+            isLive = isLive,
             isUpcoming = futureUpcoming != null,
         )
     }
 
     /**
      * Keeps fields a previous pass had already resolved — chiefly the duration and view count the
-     * on-demand player lookup filled in, which no RSS entry can supply.
+     * on-demand player lookup filled in, and the "Streamed" mark, which no RSS entry can supply.
      */
     fun Video.preservingEnrichedMetadata(prior: Video?): Video {
         if (prior == null) return this
@@ -116,6 +118,11 @@ object SubscriptionFeedMerger {
             channelThumbnailUrl = channelThumbnailUrl.ifBlank { prior.channelThumbnailUrl },
             channelThumbnailUrls = channelThumbnailUrls.ifEmpty { prior.channelThumbnailUrls },
             description = description.ifBlank { prior.description },
+            uploadDate =
+                StreamedUploadDate.markedIf(
+                    !isLive && !isUpcoming && StreamedUploadDate.isMarked(prior.uploadDate),
+                    uploadDate,
+                ),
         )
     }
 }
