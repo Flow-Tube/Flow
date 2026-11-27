@@ -3,7 +3,7 @@ package io.github.aedev.flow.data.video
 import io.github.aedev.flow.data.local.MusicAudioQuality
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
 import io.github.aedev.flow.player.stream.VideoCodecUtils
-import io.github.aedev.flow.player.stream.preferNonDrc
+import io.github.aedev.flow.player.stream.selectAudioVariants
 import java.util.Locale
 import kotlin.math.abs
 
@@ -99,7 +99,7 @@ object DownloadStreamPolicy {
      */
     fun buildDownloadAudioFormats(formats: List<Format>): List<Format> =
         formats
-            .preferNonDrc()
+            .selectAudioVariants()
             .filter { !it.url.isNullOrBlank() && isAacFormat(it) }
             .distinctBy { format ->
                 listOf(

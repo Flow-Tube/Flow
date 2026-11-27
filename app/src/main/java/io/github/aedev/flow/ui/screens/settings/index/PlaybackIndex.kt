@@ -174,6 +174,14 @@ internal object PlaybackIndex {
             section = R.string.eq_settings_section,
             destination = page,
         )
+    val stableVolume =
+        SettingEntry(
+            key = "playback.stable_volume",
+            title = R.string.player_settings_stable_volume,
+            summary = R.string.player_settings_stable_volume_summary,
+            section = R.string.eq_settings_section,
+            destination = page,
+        )
     val castButton =
         SettingEntry(
             key = "playback.cast_button",
@@ -411,6 +419,14 @@ internal object PlaybackIndex {
             section = R.string.settings_section_music,
             destination = page,
         )
+    val musicNormalizeVolume =
+        SettingEntry(
+            key = "playback.music_normalize_volume",
+            title = R.string.music_normalize_volume_title,
+            summary = R.string.music_normalize_volume_desc,
+            section = R.string.settings_section_music,
+            destination = page,
+        )
     val musicResume =
         SettingEntry(
             key = "playback.music_resume",
@@ -470,6 +486,7 @@ internal object PlaybackIndex {
             playDuringCalls,
             pauseVideoWhenMuted,
             normalizeVolume,
+            stableVolume,
             rememberSpeed,
             musicNormalSpeed,
             speedPerChannel,
@@ -512,6 +529,7 @@ internal object PlaybackIndex {
             listOf(
                 endlessRadio,
                 pauseMusicWhenMuted,
+                musicNormalizeVolume,
             ) +
             PlaybackCrossfadeIndex.all +
             listOf(

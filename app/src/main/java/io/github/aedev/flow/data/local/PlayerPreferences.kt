@@ -137,6 +137,7 @@ class PlayerPreferences(
         val AUTO_PIP_ENABLED = booleanPreferencesKey("auto_pip_enabled")
         val MANUAL_PIP_BUTTON_ENABLED = booleanPreferencesKey("manual_pip_button_enabled")
         val VIDEO_VOLUME_NORMALIZATION = booleanPreferencesKey("video_volume_normalization")
+        val VIDEO_STABLE_VOLUME = booleanPreferencesKey("video_stable_volume")
 
         // Audio track preference
         val PREFERRED_AUDIO_LANGUAGE = stringPreferencesKey("preferred_audio_language")
@@ -2576,7 +2577,7 @@ class PlayerPreferences(
         }
     }
 
-    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com, once chosen (#1641). */
+    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com (#1641). */
     val videoVolumeNormalizationEnabled: Flow<Boolean> =
         context.playerPreferencesDataStore.data
             .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: DEFAULT_VIDEO_VOLUME_NORMALIZATION }
@@ -2585,6 +2586,18 @@ class PlayerPreferences(
     suspend fun setVideoVolumeNormalizationEnabled(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.VIDEO_VOLUME_NORMALIZATION] = enabled
+        }
+    }
+
+    /** Videos and Shorts play YouTube's dynamic-range-compressed copy of their audio when it has one. */
+    val videoStableVolume: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.VIDEO_STABLE_VOLUME] ?: DEFAULT_VIDEO_STABLE_VOLUME }
+            .distinctUntilChanged()
+
+    suspend fun setVideoStableVolume(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.VIDEO_STABLE_VOLUME] = enabled
         }
     }
 
@@ -5568,8 +5581,10 @@ const val DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS = 7
 
 private val FirstSeenSerializer = MapSerializer(String.serializer(), Long.serializer())
 
-/** Loud videos play at their own level unless the user turns levelling on. */
-const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = false
+/** Loud videos are turned down to YouTube's loudness level until the user turns levelling off. */
+const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = true
+
+const val DEFAULT_VIDEO_STABLE_VOLUME = false
 
 /** How the skip button looks over the video. Stored and synced by name. */
 enum class SponsorBlockSkipButtonStyle {

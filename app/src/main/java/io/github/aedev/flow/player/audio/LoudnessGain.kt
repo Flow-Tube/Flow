@@ -9,8 +9,10 @@ object LoudnessGain {
     private const val MIN_GAIN_DB = -20f
 
     /**
-     * The playing format's own level comes first, as in YouTube's player: [audioConfig] describes
-     * the original track, so a dub read from it is turned down by the original's level.
+     * Absolute levels come first, measured against the response's target as YouTube's player does,
+     * so a target other than -14 LKFS is honoured. The playing format's own level comes before
+     * [audioConfig]'s, which describes the original track: a dub read from it would be turned down
+     * by the original's level.
      */
     fun gainDb(
         audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
@@ -18,9 +20,11 @@ object LoudnessGain {
         formatAbsoluteLoudnessLkfs: Double? = null,
     ): Float? {
         val targetLkfs = audioConfig?.loudnessTargetLkfs ?: TARGET_LKFS
+        val perFormat = audioConfig?.enablePerFormatLoudness != false
         val gainDb =
-            formatLoudnessDb?.let { -it }
-                ?: formatAbsoluteLoudnessLkfs?.let { targetLkfs - it }
+            formatAbsoluteLoudnessLkfs?.let { targetLkfs - it }
+                ?: formatLoudnessDb?.takeIf { perFormat }?.let { -it }
+                ?: audioConfig?.trackAbsoluteLoudnessLkfs?.let { targetLkfs - it }
                 ?: audioConfig?.perceptualLoudnessDb?.let { targetLkfs - it }
                 ?: audioConfig?.loudnessDb?.let { -it }
                 ?: return null
