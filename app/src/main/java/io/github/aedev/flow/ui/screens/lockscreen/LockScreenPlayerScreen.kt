@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.screens.lockscreen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -9,11 +10,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -32,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -39,8 +43,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.currentStateAsState
+import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.MusicPlayerBackgroundStyle
 import io.github.aedev.flow.data.music.model.MusicTrack
@@ -52,18 +60,21 @@ import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerSegmentInne
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerSegmentLeadingShape
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerSegmentTrailingShape
 import io.github.aedev.flow.ui.components.musicplayer.controls.PlayerToggleButton
+import io.github.aedev.flow.ui.components.musicplayer.full.PlayerArtworkCornerRadius
+import io.github.aedev.flow.ui.components.musicplayer.full.PlayerArtworkFrame
 import io.github.aedev.flow.ui.components.musicplayer.full.PlayerBackground
 import io.github.aedev.flow.ui.components.shared.MediaPlaybackControls
 
 private val UnlockDistance = 96.dp
 private val ActionGroupHeight = 42.dp
 private val ActionGroupSpacing = 4.dp
+private val CoverSpacing = 24.dp
 
 /**
- * The current song over the lock screen, drawn like the music player's immersive style: the cover fills
- * the top and fades into its own blurred colours, with the word-synced lyric line, the seek bar in the
- * user's chosen style, the controls and a like / shuffle / repeat group below. Everything else stays
- * behind the lock.
+ * The current song over the lock screen, drawn with the music player's own background style and colours
+ * (#2208): immersive fills the top with the cover, any other style shows the cover as a card unless the
+ * user hides artwork. Below sit the word-synced lyric line, the seek bar in the user's chosen style, the
+ * controls and a like / shuffle / repeat group. Everything else stays behind the lock.
  */
 @Composable
 internal fun LockScreenPlayerScreen(
@@ -77,15 +88,19 @@ internal fun LockScreenPlayerScreen(
     val song = track ?: return
     PreciseProgressWhileShown()
 
-    val appearance = rememberMusicPlayerAppearance(song.highResThumbnailUrl, MusicPlayerBackgroundStyle.IMMERSIVE)
+    val appearance = rememberMusicPlayerAppearance(song.highResThumbnailUrl)
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val showCover = appearance.backgroundStyle != MusicPlayerBackgroundStyle.IMMERSIVE && !appearance.hideArtwork
     val unlockPx = with(LocalDensity.current) { UnlockDistance.toPx() }
     var dragged by remember { mutableFloatStateOf(0f) }
     MaterialTheme(colorScheme = appearance.playerScheme) {
         Box(modifier = Modifier.fillMaxSize()) {
             PlayerBackground(
                 thumbnailUrl = song.highResThumbnailUrl,
-                style = MusicPlayerBackgroundStyle.IMMERSIVE,
+                style = appearance.backgroundStyle,
                 backdrop = appearance.backdrop,
+                trackId = song.videoId,
+                motionRunning = state.isPlaying && lifecycleState.isAtLeast(Lifecycle.State.RESUMED),
             )
             Column(
                 modifier =
@@ -99,7 +114,16 @@ internal fun LockScreenPlayerScreen(
                         ).safeDrawingPadding()
                         .padding(horizontal = 24.dp, vertical = 16.dp),
             ) {
-                Spacer(Modifier.weight(1f))
+                if (showCover) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = CoverSpacing),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        LockScreenCover(song.highResThumbnailUrl, state.isPlaying, Modifier.aspectRatio(1f))
+                    }
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
                 TrackText(song)
                 lyrics?.takeIf { it.videoId == song.videoId && it.lines.isNotEmpty() }?.let { shown ->
                     LockScreenLyricLine(
@@ -133,6 +157,27 @@ internal fun LockScreenPlayerScreen(
                 UnlockHint(onUnlock, Modifier.align(Alignment.CenterHorizontally))
             }
         }
+    }
+}
+
+/** The still cover in the music player's frame; animated artwork stays off over the lock screen. */
+@Composable
+private fun LockScreenCover(
+    thumbnailUrl: String?,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    PlayerArtworkFrame(immersive = false, isPlaying = isPlaying, modifier = modifier) {
+        AsyncImage(
+            model = thumbnailUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(PlayerArtworkCornerRadius))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        )
     }
 }
 

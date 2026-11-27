@@ -159,28 +159,26 @@ internal fun VideoInfoSection(
                         .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val views =
+                    when {
+                        isUpcoming && viewCount > 0L -> stringResource(R.string.upcoming_waiting_count, formatViewCount(viewCount))
+                        isUpcoming -> stringResource(R.string.upcoming_label)
+                        else -> stringResource(R.string.views_count_short_template, formatViewCount(viewCount))
+                    }
                 Text(
                     text =
-                        when {
-                            isUpcoming && viewCount > 0L -> stringResource(R.string.upcoming_waiting_count, formatViewCount(viewCount))
-                            isUpcoming -> stringResource(R.string.upcoming_label)
-                            else -> stringResource(R.string.views_count_short_template, formatViewCount(viewCount))
+                        if (!isUpcoming && !uploadDate.isNullOrBlank()) {
+                            stringResource(
+                                R.string.video_metadata_short_template,
+                                views,
+                                dateSettings.format(uploadDate, DateContext.WATCH, dateLabels, video.timestamp, video.timestampIsExact),
+                            )
+                        } else {
+                            views
                         },
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isUpcoming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-
-                if (!isUpcoming && !uploadDate.isNullOrBlank()) {
-                    Text(
-                        text =
-                            stringResource(
-                                R.string.duration_with_dot_template,
-                                dateSettings.format(uploadDate, DateContext.WATCH, dateLabels, video.timestamp, video.timestampIsExact),
-                            ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
 
                 Spacer(modifier = Modifier.width(4.dp))
 
