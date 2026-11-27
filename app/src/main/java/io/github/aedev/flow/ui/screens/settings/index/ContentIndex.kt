@@ -196,6 +196,14 @@ internal object ContentIndex {
             destination = page,
             availability = SettingAvailability.NotOnTv,
         )
+    val channelVideosTab =
+        SettingEntry(
+            key = "content.channels.videos_tab",
+            title = R.string.content_settings_channel_videos_tab_title,
+            summary = R.string.content_settings_channel_videos_tab_subtitle,
+            section = R.string.settings_section_channels,
+            destination = page,
+        )
     val shortsContent =
         SettingEntry(
             key = "content.shorts.enabled",
@@ -348,6 +356,7 @@ internal object ContentIndex {
             subsRefreshOnStartup,
             subsCheckedCount,
             subsSearchGlobal,
+            channelVideosTab,
             shortsContent,
             channelShortsTab,
             hideWatchedShorts,

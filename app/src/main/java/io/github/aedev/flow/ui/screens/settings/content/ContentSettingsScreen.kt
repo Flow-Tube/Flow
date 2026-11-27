@@ -110,6 +110,9 @@ internal fun ContentSettingsScreen(
             switch(ContentIndex.subsCheckedCount, viewModel.subsCheckedCount, viewModel::setSubsCheckedCount)
             switch(ContentIndex.subsSearchGlobal, viewModel.subsSearchGlobal, viewModel::setSubsSearchGlobal)
         }
+        group(key = "content.channels", header = R.string.settings_section_channels) {
+            switch(ContentIndex.channelVideosTab, viewModel.channelVideosTab, viewModel::setChannelVideosTab)
+        }
         group(key = "content.shorts", header = R.string.content_settings_header_shorts) {
             switch(ContentIndex.shortsContent, viewModel.shortsContent, viewModel::setShortsContent)
             row(ContentIndex.channelShortsTab.key) { shape ->

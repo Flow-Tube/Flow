@@ -203,6 +203,7 @@ class PlayerPreferences(
         val SEARCH_SHOWS_NAV_BAR = booleanPreferencesKey("search_shows_nav_bar")
         val SUBS_SEARCH_OPENS_GLOBAL = booleanPreferencesKey("subs_search_opens_global")
         val HIDE_TOP_SEARCH_WITH_TAB = booleanPreferencesKey("hide_top_search_with_tab")
+        val CHANNEL_OPENS_ON_VIDEOS = booleanPreferencesKey("channel_opens_on_videos")
         val INNER_PAGES_SHOW_NAV_BAR = booleanPreferencesKey("inner_pages_show_nav_bar")
         val MUSIC_NAVIGATION_ENABLED = booleanPreferencesKey("music_navigation_enabled")
         val SEARCH_NAV_TAB_ENABLED = booleanPreferencesKey("search_nav_tab_enabled")
@@ -1874,6 +1875,17 @@ class PlayerPreferences(
     suspend fun setHideTopSearchWithTab(enabled: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.HIDE_TOP_SEARCH_WITH_TAB] = enabled
+        }
+    }
+
+    val channelOpensOnVideos: Flow<Boolean> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.CHANNEL_OPENS_ON_VIDEOS] ?: false }
+            .distinctUntilChanged()
+
+    suspend fun setChannelOpensOnVideos(enabled: Boolean) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.CHANNEL_OPENS_ON_VIDEOS] = enabled
         }
     }
 
