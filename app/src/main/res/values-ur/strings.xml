@@ -147,4 +147,16 @@
     <string name="error_bot_wall_network_hint">دوسرا نیٹ ورک آزمائیں، جیسے کہ موبائل ڈیٹا۔</string>
     <string name="settings_keywords_wellbeing">اسکرین کا وقت، ڈیجیٹل فلاح و بہبود، نیند، سونے کا وقت، وقفہ، دیکھنے کا وقت، استعمال</string>
     <string name="settings_watch_time_week_total">اس ہفتے %1$s</string>
+    <string name="subscriptions_sort_most_watched">زیادہ دیکھی گئی</string>
+    <string name="subscriptions_pin_channel">سٹارٹ مینیو میں پن کریں</string>
+    <string name="subscriptions_unpin_channel">پن ختم کریں</string>
+    <string name="subscriptions_open_channel">چینل کھولیں</string>
+    <string name="subscriptions_pinned_section">پن شدہ</string>
+    <string name="home_load_more_failed">مزید وڈیو لوڈ نہیں کر سکتے</string>
+    <string name="home_load_more_failed_body">انٹرنیٹ چیک کریں</string>
+    <string name="home_refresh_failed">فیڈ ریفریش نہیں کر پا رہے</string>
+    <plurals name="subscriptions_refresh_checks_template">
+        <item quantity="one">چینل میں شورٹس اور لائیو ڈھونڈ رہے ہیں</item>
+        <item quantity="other">چینلز میں شورٹس اور لائیو ڈھونڈ رہے ہیں</item>
+    </plurals>
 </resources>
