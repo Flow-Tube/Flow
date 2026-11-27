@@ -196,4 +196,49 @@ class ChannelGridParserTest {
 
         assertEquals(1, content.items.size)
     }
+
+    @Test
+    fun `reads a topic channel Home whose shelves sit in a rich grid beside an empty section list`() {
+        val content =
+            parse(
+                """
+                {
+                  $metadata,
+                  "contents": { "twoColumnBrowseResultsRenderer": { "tabs": [ { "tabRenderer": {
+                    "selected": true,
+                    "content": {
+                      "sectionListRenderer": { "disablePullToRefresh": true },
+                      "richGridRenderer": { "contents": [
+                        { "richSectionRenderer": { "content": { "richShelfRenderer": {
+                          "title": { "simpleText": "Today's Biggest Hits" },
+                          "contents": [
+                            { "richItemRenderer": { "content": { "lockupViewModel": {
+                              "contentId": "RDCLAK5uy_hits",
+                              "contentType": "LOCKUP_CONTENT_TYPE_STATION",
+                              "metadata": { "lockupMetadataViewModel": { "title": { "content": "The Hit List" } } }
+                            } } } }
+                          ]
+                        } } } },
+                        { "richSectionRenderer": { "content": { "richShelfRenderer": {
+                          "title": { "simpleText": "New This Week" },
+                          "contents": [ ${lockup("a")} ]
+                        } } } }
+                      ] }
+                    }
+                  } } ] } }
+                }
+                """.trimIndent(),
+                kind = ChannelTabKind.Home,
+            )
+
+        assertEquals(listOf("Today's Biggest Hits", "New This Week"), content.sections.map { it.title })
+        val station =
+            content.sections
+                .first()
+                .items
+                .single() as FeedItem.PlaylistItem
+        assertEquals("RDCLAK5uy_hits", station.playlist.id)
+        assertEquals("The Hit List", station.playlist.name)
+        assertTrue(content.sections[1].items.single() is FeedItem.VideoItem)
+    }
 }

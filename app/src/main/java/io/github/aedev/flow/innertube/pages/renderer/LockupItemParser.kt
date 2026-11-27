@@ -42,6 +42,7 @@ internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
     val contentType = this["contentType"].stringOrNull()
     return when (contentType) {
         "LOCKUP_CONTENT_TYPE_PLAYLIST",
+        "LOCKUP_CONTENT_TYPE_STATION",
         "LOCKUP_CONTENT_TYPE_PODCAST",
         "LOCKUP_CONTENT_TYPE_ALBUM",
         LOCKUP_CONTENT_TYPE_COURSE,
