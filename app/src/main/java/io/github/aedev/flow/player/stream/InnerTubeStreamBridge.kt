@@ -33,8 +33,11 @@ object InnerTubeStreamBridge {
         }
     }
 
-    fun convertAudioFormats(formats: List<PlayerResponse.StreamingData.Format>): List<AudioStream> {
-        return formats.preferNonDrc().mapNotNull { format ->
+    fun convertAudioFormats(
+        formats: List<PlayerResponse.StreamingData.Format>,
+        stable: Boolean = false,
+    ): List<AudioStream> {
+        return formats.selectAudioVariants(stable).mapNotNull { format ->
             val url = format.url ?: return@mapNotNull null
             val mediaFormat = mapAudioMimeToMediaFormat(format.mimeType) ?: return@mapNotNull null
             val bitrate = format.averageBitrate ?: format.bitrate

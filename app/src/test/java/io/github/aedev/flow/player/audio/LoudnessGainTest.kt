@@ -44,6 +44,31 @@ class LoudnessGainTest {
     }
 
     @Test
+    fun `a target other than minus 14 is met from absolute levels, not from loudnessDb`() {
+        // loudnessDb is relative to -14 LKFS, so it would leave a -16 target 2 dB too loud.
+        val response =
+            PlayerResponse.PlayerConfig.AudioConfig(
+                loudnessDb = 4.0,
+                perceptualLoudnessDb = -10.0,
+                loudnessTargetLkfs = -16.0,
+                trackAbsoluteLoudnessLkfs = -10.0,
+            )
+
+        assertThat(LoudnessGain.gainDb(response, 4.0, -10.0)).isEqualTo(-6f)
+        assertThat(LoudnessGain.gainDb(response, null)).isEqualTo(-6f)
+        assertThat(LoudnessGain.gainDb(response.copy(trackAbsoluteLoudnessLkfs = null), null)).isEqualTo(-6f)
+    }
+
+    @Test
+    fun `per-format loudness turned off falls back to the response's loudnessDb`() {
+        val response =
+            PlayerResponse.PlayerConfig.AudioConfig(loudnessDb = 2.0, perceptualLoudnessDb = null, enablePerFormatLoudness = false)
+
+        assertThat(LoudnessGain.gainDb(response, 5.0)).isEqualTo(-2f)
+        assertThat(LoudnessGain.gainDb(response.copy(enablePerFormatLoudness = true), 5.0)).isEqualTo(-5f)
+    }
+
+    @Test
     fun `quiet tracks are never boosted and loud ones stop at minus 20 dB`() {
         assertThat(LoudnessGain.gainDb(config(loudnessDb = -7.0), null)).isEqualTo(0f)
         assertThat(LoudnessGain.gainDb(config(loudnessDb = 35.0), null)).isEqualTo(-20f)

@@ -26,6 +26,7 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.session.MediaSession
 import dagger.hilt.android.EntryPointAccessors
+import io.github.aedev.flow.data.local.DEFAULT_VIDEO_STABLE_VOLUME
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SponsorBlockAction
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
@@ -92,6 +93,7 @@ import io.github.aedev.flow.player.stream.LiveSegmentPosition
 import io.github.aedev.flow.player.stream.ResolvedCaption
 import io.github.aedev.flow.player.stream.ResolvedStreamData
 import io.github.aedev.flow.player.stream.ServicePlaybackStreamSelector
+import io.github.aedev.flow.player.stream.StableVolumeVariants
 import io.github.aedev.flow.player.stream.StreamProcessor
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.player.stream.model.AudioStream
@@ -183,6 +185,8 @@ class EnhancedPlayerManager private constructor() {
     private var currentAudioStream: AudioStream? = null
         set(value) {
             field = value
+            _playerState.value =
+                _playerState.value.copy(isStableVolumeAvailable = StableVolumeVariants.isAvailable(innerTubeAudioFormats, value))
             // YouTube lists captions per audio track, so a dub can bring its own list and default.
             if (subtitleTracks.setAudioTrack(value?.audioTrackId)) {
                 publishSubtitles()
@@ -240,6 +244,7 @@ class EnhancedPlayerManager private constructor() {
     private var globalLoopEnabled: Boolean = false
 
     @Volatile private var autoplayEnabled: Boolean = true
+    private var stableVolume = DEFAULT_VIDEO_STABLE_VOLUME
 
     @Volatile private var queueAutoplayEnabled: Boolean = true
     private var autoplayCandidates: List<Video> = emptyList()
@@ -907,6 +912,7 @@ class EnhancedPlayerManager private constructor() {
         audioFeaturesManager?.observeVolumeNormalizationPreference(context, built)
 
         val prefs = PlayerPreferences(context)
+        built.launch { prefs.videoStableVolume.collect(::applyStableVolume) }
         player?.let { VideoMutePause.attach(it, prefs.pauseVideoWhenMuted, built) }
         built.launch {
             prefs.sponsorBlockEnabled.collect { isEnabled ->
@@ -1298,7 +1304,7 @@ class EnhancedPlayerManager private constructor() {
         preferredVideoCodecKey = preferredVideoCodec
         currentLocalFilePath = localFilePath
         if (localFilePath != null) configureTrackSelectorForLocalFile()
-        currentSabrInfo = sabrInfo
+        currentSabrInfo = StableVolumeVariants.sabr(sabrInfo, itAudioFormats, stableVolume)
         sabrPreferred = preferSabr
         innerTubeVideoFormats = itVideoFormats
         innerTubeAudioFormats = itAudioFormats
@@ -1349,8 +1355,9 @@ class EnhancedPlayerManager private constructor() {
 
         // Process streams using StreamProcessor
         availableVideoStreams = StreamProcessor.processVideoStreams(videoStreams)
-        availableAudioStreams = StreamProcessor.processAudioStreams(audioStreams)
-        castAudioStreams = audioStreams
+        val playableAudioStreams = StableVolumeVariants.streams(audioStreams, itAudioFormats, stableVolume)
+        availableAudioStreams = StreamProcessor.processAudioStreams(playableAudioStreams)
+        castAudioStreams = playableAudioStreams
         subtitleTracks.load(videoId, StreamProcessor.processCaptions(subtitles), acceptsEmbedded = localFilePath != null)
         if (audioStream == null && availableAudioStreams.isEmpty()) {
             Log.w(TAG, "setStreams: no separate audio stream for $videoId; attempting video-only/muxed playback")
@@ -1374,7 +1381,8 @@ class EnhancedPlayerManager private constructor() {
             currentVideoStream = smartStream ?: availableVideoStreams.firstOrNull()
             qualityManager?.setCurrentStream(currentVideoStream)
         }
-        currentAudioStream = audioStream
+        currentAudioStream = StableVolumeVariants.stream(audioStream, itAudioFormats, stableVolume)
+        if (currentAudioStream !== audioStream) audioFeaturesManager?.onAudioStreamChanged(videoId, currentAudioStream)
 
         val isAutoMode = (videoStream == null)
 
@@ -2347,7 +2355,7 @@ class EnhancedPlayerManager private constructor() {
                 .convertVideoFormats(extraction.videoFormats)
         val mergedAudioStreams =
             io.github.aedev.flow.player.stream.InnerTubeStreamBridge
-                .convertAudioFormats(extraction.audioFormats)
+                .convertAudioFormats(extraction.audioFormats, stable = stableVolume)
         Log.d(
             TAG,
             "Extracted streams for $videoId: ${mergedVideoStreams.size} video, " +
@@ -2492,7 +2500,7 @@ class EnhancedPlayerManager private constructor() {
                     .convertVideoFormats(extraction.videoFormats)
             val mergedAudioStreams =
                 io.github.aedev.flow.player.stream.InnerTubeStreamBridge
-                    .convertAudioFormats(extraction.audioFormats)
+                    .convertAudioFormats(extraction.audioFormats, stable = stableVolume)
             val selected =
                 ServicePlaybackStreamSelector.selectStreams(
                     videoCandidates = mergedVideoStreams,
@@ -3213,6 +3221,36 @@ class EnhancedPlayerManager private constructor() {
             if (wasPlaying) player?.play()
             _playerState.value = _playerState.value.copy(currentAudioTrack = index)
         }
+    }
+
+    /**
+     * Moves what is playing to the normal or DRC copy of the same track, from the formats this
+     * video's response already listed: the SABR session asks GVS for the other copy's FormatId and a
+     * direct stream reloads the other copy's URL, both at the current position.
+     */
+    private fun applyStableVolume(enabled: Boolean) {
+        _playerState.value = _playerState.value.copy(isStableVolumeEnabled = enabled)
+        if (stableVolume == enabled) return
+        stableVolume = enabled
+        if (currentIsLiveStream || currentLocalFilePath != null) return
+        val audio = StableVolumeVariants.stream(currentAudioStream, innerTubeAudioFormats, enabled)
+        val sabr = StableVolumeVariants.sabr(currentSabrInfo, innerTubeAudioFormats, enabled)
+        if (audio === currentAudioStream && sabr == currentSabrInfo) return
+        availableAudioStreams = StableVolumeVariants.streams(availableAudioStreams, innerTubeAudioFormats, enabled)
+        castAudioStreams = StableVolumeVariants.streams(castAudioStreams, innerTubeAudioFormats, enabled)
+        currentSabrInfo = sabr
+        currentAudioStream = audio
+        audioFeaturesManager?.onAudioStreamChanged(currentVideoId, audio)
+        val p = player ?: return
+        if (p.currentMediaItem == null) return
+        val audioOnly = audioOnlyMode.isActive
+        loadMediaInternal(
+            videoStream = if (audioOnly) null else currentVideoStream,
+            audioStream = audio,
+            preservePosition = p.currentPosition,
+            audioOnly = audioOnly,
+            playWhenReady = p.playWhenReady,
+        )
     }
 
     /** Shows the track whose option has [url], or turns captions off for null. */

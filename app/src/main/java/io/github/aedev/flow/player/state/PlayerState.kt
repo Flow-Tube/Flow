@@ -1,5 +1,6 @@
 package io.github.aedev.flow.player.state
 
+import io.github.aedev.flow.data.local.DEFAULT_VIDEO_STABLE_VOLUME
 import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
 
 data class EnhancedPlayerState(
@@ -26,6 +27,9 @@ data class EnhancedPlayerState(
     val playbackSpeed: Float = 1.0f,
     val isSkipSilenceEnabled: Boolean = false,
     val isVolumeNormalizationEnabled: Boolean = DEFAULT_VIDEO_VOLUME_NORMALIZATION,
+    val isStableVolumeEnabled: Boolean = DEFAULT_VIDEO_STABLE_VOLUME,
+    /** The audio track playing has a DRC copy that Stable volume can switch to. */
+    val isStableVolumeAvailable: Boolean = false,
     val bufferedPercentage: Float = 0f,
     val hasNext: Boolean = false,
     val hasPrevious: Boolean = false,

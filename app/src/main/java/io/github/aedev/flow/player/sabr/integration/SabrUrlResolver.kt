@@ -5,6 +5,7 @@ import android.util.Log
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.sabr.core.SabrBase64
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.selectAudioVariants
 
 data class SabrStreamInfo(
     val streamingUrl: String,
@@ -250,10 +251,12 @@ object SabrUrlResolver {
 
     /** The chosen [audioTrackId] when the response still offers it, otherwise the original track. */
     internal fun selectBestAudio(
-        audioFormats: List<PlayerResponse.StreamingData.Format>,
+        allAudioFormats: List<PlayerResponse.StreamingData.Format>,
         selectedVideo: PlayerResponse.StreamingData.Format,
         audioTrackId: String? = null,
+        stable: Boolean = false,
     ): PlayerResponse.StreamingData.Format? {
+        val audioFormats = allAudioFormats.selectAudioVariants(stable)
         val chosen = audioTrackId?.let { id -> audioFormats.filter { it.audioTrack?.id == id } }.orEmpty()
         val candidates = chosen.ifEmpty { audioFormats.filter(::isOriginalAudioTrack).ifEmpty { audioFormats } }
         val videoMime = selectedVideo.mimeType.lowercase()
