@@ -904,6 +904,14 @@ class EnhancedPlayerManager private constructor() {
         audioFeaturesManager?.setLoudness(videoId, audioConfig, audio)
     }
 
+    /** The gain saved with [videoId]'s download, for its offline copy. */
+    fun setStoredLoudness(
+        videoId: String,
+        gainDb: Float?,
+    ) {
+        audioFeaturesManager?.setStoredLoudness(videoId, gainDb)
+    }
+
     private fun observePreferences(
         context: Context,
         built: CoroutineScope,

@@ -3,6 +3,7 @@ package io.github.aedev.flow.player.sabr.integration
 import android.net.Uri
 import android.util.Log
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
+import io.github.aedev.flow.player.audio.LoudnessGain
 import io.github.aedev.flow.player.sabr.core.SabrBase64
 import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.player.stream.selectAudioVariants
@@ -32,10 +33,15 @@ data class SabrStreamInfo(
     val clientNameId: Int = SabrClientIdentity.WEB_CLIENT_NAME_ID,
     val clientVersion: String = "",
     val clientUserAgent: String = "",
+    /** The playback gain for the selected audio, which a SABR download saves with its file. */
+    val audioLoudnessGainDb: Float? = null,
 )
 
 object SabrUrlResolver {
     private const val TAG = "SabrUrlResolver"
+
+    private fun PlayerResponse.StreamingData.Format.loudnessGainIn(response: PlayerResponse): Float? =
+        LoudnessGain.gainDb(response.playerConfig?.audioConfig, loudnessDb, trackAbsoluteLoudnessLkfs)
 
     private val PREFERRED_AUDIO_ITAGS = listOf(251, 250, 249, 140, 141)
 
@@ -142,6 +148,7 @@ object SabrUrlResolver {
             videoMimeType = selectedVideo.mimeType,
             audioTrackId = selectedAudio.audioTrack?.id.orEmpty(),
             videoHeight = selectedVideo.height ?: 0,
+            audioLoudnessGainDb = selectedAudio.loudnessGainIn(playerResponse),
         )
     }
 
@@ -202,6 +209,7 @@ object SabrUrlResolver {
             audioTrackId = selectedAudio.audioTrack?.id.orEmpty(),
             targetHeight = targetHeight,
             videoHeight = selectedVideo.height ?: targetHeight,
+            audioLoudnessGainDb = selectedAudio.loudnessGainIn(playerResponse),
         )
     }
 

@@ -31,6 +31,7 @@ import io.github.aedev.flow.utils.MusicPlayerUtils
 import io.github.aedev.flow.utils.potoken.WebPoTokenSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.File
 import java.io.IOException
@@ -62,6 +63,19 @@ class DownloadUtil
         )
 
         private val songUrlCache = java.util.concurrent.ConcurrentHashMap<String, ResolvedSong>()
+
+        // A downloaded song plays from its file without a resolve, so its gain comes from the download row.
+        private val downloadedGains = java.util.concurrent.ConcurrentHashMap<String, Float>()
+
+        /** The gain of [videoId]'s song download, when [downloadedLoudnessGainDb] has already found one. */
+        fun knownDownloadedLoudnessGainDb(videoId: String): Float? = downloadedGains[videoId]
+
+        /** The gain saved with [videoId]'s finished song download, or null when it has none. */
+        suspend fun downloadedLoudnessGainDb(videoId: String): Float? =
+            downloadedGains[videoId]
+                ?: withContext(Dispatchers.IO) { runCatching { downloadDao.completedAudioLoudnessGain(videoId) }.getOrNull() }
+                    ?.also { downloadedGains[videoId] = it }
+
         private val streamHosts = StreamHostFallback()
 
         private val okHttpClient: OkHttpClient by lazy {

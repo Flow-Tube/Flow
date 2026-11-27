@@ -5,6 +5,7 @@ import io.github.aedev.flow.data.local.MusicAudioQuality
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.downloader.tags.DownloadKind
 import io.github.aedev.flow.data.video.downloader.tags.DownloadTags
+import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format.AudioTrack
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor.VideoExtractionResult
@@ -167,6 +168,27 @@ class DownloadStreamResolverTest {
         assertThat(select(request(), audio = listOf(OPUS))).isEqualTo(ResolveOutcome.NoCompatibleAudio)
         assertThat(select(request(), audio = emptyList())).isEqualTo(ResolveOutcome.Unavailable)
         assertThat(select(request(), video = emptyList())).isEqualTo(ResolveOutcome.Unavailable)
+    }
+
+    @Test
+    fun `the chosen audio's gain travels with the streams for songs and videos`() {
+        val loudAac = AAC.copy(trackAbsoluteLoudnessLkfs = -10.0)
+        val extraction = result(LADDER, listOf(loudAac, OPUS))
+        every { extraction.playerResponse.playerConfig } returns
+            PlayerResponse.PlayerConfig(
+                audioConfig =
+                    PlayerResponse.PlayerConfig.AudioConfig(
+                        loudnessDb = null,
+                        perceptualLoudnessDb = null,
+                        loudnessTargetLkfs = -14.0,
+                    ),
+            )
+
+        fun gain(request: DownloadRequest) =
+            streams(DownloadStreamResolver.select(request, extraction, emptySet(), defaults)).loudnessGainDb
+
+        assertThat(gain(request(kind = DownloadKind.MUSIC, audioOnly = true))).isEqualTo(-4f)
+        assertThat(gain(request())).isEqualTo(-4f)
     }
 
     private companion object {

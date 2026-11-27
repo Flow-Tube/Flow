@@ -16,13 +16,13 @@ import androidx.room.PrimaryKey
             entity = DownloadEntity::class,
             parentColumns = ["videoId"],
             childColumns = ["videoId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["videoId"]),
-        Index(value = ["filePath"], unique = true)
-    ]
+        Index(value = ["filePath"], unique = true),
+    ],
 )
 data class DownloadItemEntity(
     @PrimaryKey(autoGenerate = true)
@@ -37,7 +37,9 @@ data class DownloadItemEntity(
     val mimeType: String = "",
     val downloadedBytes: Long = 0L,
     val totalBytes: Long = 0L,
-    val status: DownloadItemStatus = DownloadItemStatus.PENDING
+    val status: DownloadItemStatus = DownloadItemStatus.PENDING,
+    /** The playback gain YouTube's loudness data gave the downloaded audio, for normalizing it offline. */
+    val loudnessGainDb: Float? = null,
 )
 
 /**
@@ -46,8 +48,9 @@ data class DownloadItemEntity(
 enum class DownloadFileType {
     /** A video file (may contain both video+audio if muxed, or video-only for DASH) */
     VIDEO,
+
     /** An audio-only file */
-    AUDIO
+    AUDIO,
 }
 
 /**
@@ -59,5 +62,5 @@ enum class DownloadItemStatus {
     PAUSED,
     COMPLETED,
     FAILED,
-    CANCELLED
+    CANCELLED,
 }

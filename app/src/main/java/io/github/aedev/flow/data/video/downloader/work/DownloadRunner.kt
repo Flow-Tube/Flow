@@ -250,6 +250,7 @@ class DownloadRunner
                             DownloadStreamPolicy.audioLanguageLabel(it.audio) ?: context.getString(R.string.audio_track_original)
                         },
                     savedQuality = fetched.substitutedFor?.let { quality },
+                    loudnessGainDb = fetched.loudnessGainDb,
                     wantedQuality =
                         fetched.substitutedFor?.let {
                             DownloadStreamPolicy.videoQualityLabel(
@@ -319,7 +320,7 @@ class DownloadRunner
             val qualityInstead = ready.savedQuality?.let { saved -> ready.wantedQuality?.let { saved to it } }
             val path = placed.path
             val mimeType = if (request.wantsAudioOnly) "audio/mp4" else "video/mp4"
-            downloadDao.completeItem(itemId, path, placed.fileName, ready.extension, mimeType, ready.quality, size)
+            downloadDao.completeItem(itemId, path, placed.fileName, ready.extension, mimeType, ready.quality, size, ready.loudnessGainDb)
             cover?.let { DownloadCovers.save(context, request.videoId, it) }?.let { downloadDao.updateThumbnailPath(request.videoId, it) }
             if (!DownloadFiles.isDocument(path)) downloads.scanFile(path, mimeType)
             downloads.emitProgress(DownloadProgressUpdate(request.videoId, itemId, size, size, DownloadItemStatus.COMPLETED))

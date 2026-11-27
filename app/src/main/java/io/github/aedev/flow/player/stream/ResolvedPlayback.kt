@@ -44,6 +44,8 @@ sealed interface ResolvedPlayback {
         val needsSponsorBlockBackfill: Boolean = false,
         /** What the download row knows about the video, for a screen opened with only its id. */
         val downloadedVideo: Video? = null,
+        /** The gain saved with the download; there is no player response to read one from. */
+        val loudnessGainDb: Float? = null,
     ) : ResolvedPlayback
 
     /** A live stream, from the manifest InnerTube produced. */

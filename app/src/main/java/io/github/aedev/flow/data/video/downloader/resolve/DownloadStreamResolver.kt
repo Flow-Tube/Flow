@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.video.DownloadStreamPolicy
 import io.github.aedev.flow.data.video.downloader.request.DownloadRequest
 import io.github.aedev.flow.data.video.playsSmoothlyHere
 import io.github.aedev.flow.innertube.models.response.PlayerResponse.StreamingData.Format
+import io.github.aedev.flow.player.audio.LoudnessGain
 import io.github.aedev.flow.player.quality.VideoDecoderSupport
 import io.github.aedev.flow.player.stream.CaptionFormat
 import io.github.aedev.flow.player.stream.CaptionTrackResolver
@@ -31,6 +32,8 @@ data class ResolvedStreams(
     val captions: List<ResolvedCaption> = emptyList(),
     /** The chosen track was not on offer, so [audio] is another one. */
     val audioTrackSwapped: Boolean = false,
+    /** The playback gain for [audio], saved with the download so it plays normalized offline. */
+    val loudnessGainDb: Float? = null,
 )
 
 sealed interface ResolveOutcome {
@@ -146,9 +149,21 @@ class DownloadStreamResolver
                             ResolveOutcome.Unavailable
                         }
 
+                val gainDb =
+                    LoudnessGain.gainDb(
+                        result.playerResponse.playerConfig?.audioConfig,
+                        audio.loudnessDb,
+                        audio.trackAbsoluteLoudnessLkfs,
+                    )
                 if (request.wantsAudioOnly) {
                     return ResolveOutcome.Resolved(
-                        ResolvedStreams(video = null, audio = audio, durationMs = durationMs, audioTrackSwapped = trackSwapped),
+                        ResolvedStreams(
+                            video = null,
+                            audio = audio,
+                            durationMs = durationMs,
+                            audioTrackSwapped = trackSwapped,
+                            loudnessGainDb = gainDb,
+                        ),
                     )
                 }
 
@@ -158,7 +173,11 @@ class DownloadStreamResolver
                         .filterNot { it.itag in avoidItags }
                 request.videoItag
                     ?.let { itag -> videoFormats.firstOrNull { it.itag == itag } }
-                    ?.let { return ResolveOutcome.Resolved(ResolvedStreams(it, audio, durationMs, audioTrackSwapped = trackSwapped)) }
+                    ?.let {
+                        return ResolveOutcome.Resolved(
+                            ResolvedStreams(it, audio, durationMs, audioTrackSwapped = trackSwapped, loudnessGainDb = gainDb),
+                        )
+                    }
 
                 // Left to choose, a download keeps to what this device plays smoothly, as playback's Auto does.
                 val candidates = videoFormats.filter(playsSmoothly).ifEmpty { videoFormats }
@@ -173,7 +192,9 @@ class DownloadStreamResolver
                         .rankCodecs(atHeight.map(DownloadStreamPolicy::videoCodecKey), request.videoCodec ?: defaults.codec)
                         .firstOrNull() ?: return ResolveOutcome.Unavailable
                 val video = atHeight.first { DownloadStreamPolicy.videoCodecKey(it) == codec }
-                return ResolveOutcome.Resolved(ResolvedStreams(video, audio, durationMs, audioTrackSwapped = trackSwapped))
+                return ResolveOutcome.Resolved(
+                    ResolvedStreams(video, audio, durationMs, audioTrackSwapped = trackSwapped, loudnessGainDb = gainDb),
+                )
             }
 
             private fun VideoExtractionResult.durationMs(): Long =
