@@ -5332,4 +5332,22 @@
     <string name="player_appearance_animated_artwork_quality_medium">Orta</string>
     <string name="player_appearance_animated_artwork_quality_high">Yüksek</string>
     <string name="shorts_no_captions">Bu Shorts\'un altyazısı yok</string>
+    <string name="music_refresh_failed">Müzik yenilenemedi</string>
+    <plurals name="notifications_removed_count">
+        <item quantity="one">%d bildirim kaldırıldı</item>
+        <item quantity="other">%d bildirim kaldırıldı</item>
+    </plurals>
+    <plurals name="notifications_channel_uploads">
+        <item quantity="one">%d video yüklendi</item>
+        <item quantity="other">%d video yüklendi</item>
+    </plurals>
+    <string name="notifications_channel_open">Gösterilen videolar</string>
+    <string name="notifications_channel_closed">Gizlenen videolar</string>
+    <string name="settings_loading_animation_title">Yükleme animasyonu</string>
+    <string name="settings_loading_animation_keywords">yükleme ekranı, iskelet, yer tutucu, parıltı, nabız</string>
+    <string name="loading_animation_pulse">Nabız</string>
+    <string name="loading_animation_subtle_pulse">Hafif nabız</string>
+    <string name="loading_animation_shimmer">Parıltı</string>
+    <string name="content_settings_search_keyboard_title">Aramada klavyeyi aç</string>
+    <string name="content_settings_search_keyboard_subtitle">Arama açılır açılmaz arama alanına odaklan</string>
 </resources>
