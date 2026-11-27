@@ -187,6 +187,15 @@ internal object ContentIndex {
             section = R.string.settings_section_subscriptions,
             destination = page,
         )
+    val subsSearchGlobal =
+        SettingEntry(
+            key = "content.subs.search_global",
+            title = R.string.content_settings_subs_search_global_title,
+            summary = R.string.content_settings_subs_search_global_subtitle,
+            section = R.string.settings_section_subscriptions,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
+        )
     val shortsContent =
         SettingEntry(
             key = "content.shorts.enabled",
@@ -338,6 +347,7 @@ internal object ContentIndex {
             hideUnplayableSubs,
             subsRefreshOnStartup,
             subsCheckedCount,
+            subsSearchGlobal,
             shortsContent,
             channelShortsTab,
             hideWatchedShorts,
