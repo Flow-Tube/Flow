@@ -304,6 +304,15 @@ internal object ContentIndex {
             destination = page,
             availability = SettingAvailability.NotOnTv,
         )
+    val exploreStart =
+        SettingEntry(
+            key = "content.explore.start",
+            title = R.string.content_settings_explore_start_title,
+            summary = R.string.content_settings_explore_start_subtitle,
+            section = R.string.nav_explore,
+            destination = page,
+            availability = SettingAvailability.NotOnTv,
+        )
 
     val all =
         listOf(
@@ -343,5 +352,6 @@ internal object ContentIndex {
             openLinks,
             sharedLinks,
             searchKeyboard,
+            exploreStart,
         )
 }

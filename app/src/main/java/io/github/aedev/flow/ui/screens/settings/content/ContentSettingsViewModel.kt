@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.settings.content
 
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.aedev.flow.data.local.ExploreStartCategory
 import io.github.aedev.flow.data.local.FeedAutoplay
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.local.SharedLinkAction
@@ -57,6 +58,7 @@ class ContentSettingsViewModel
         val countImportedAsWatched = preferences.countImportedAsWatched.asState(false)
         val sharedLinkAction = preferences.sharedLinkAction.asState(SharedLinkAction.ASK_WHILE_PLAYING)
         val searchKeyboard = preferences.searchAutoKeyboard.asState(true)
+        val exploreStart = preferences.exploreStartCategory.asState(ExploreStartCategory.LAST)
 
         val notes = preferences.notesEnabled.asState(true)
         val channelNotes = preferences.channelNotesEnabled.asState(true)
@@ -124,6 +126,8 @@ class ContentSettingsViewModel
         fun setSharedLinkAction(value: SharedLinkAction) = write { preferences.setSharedLinkAction(value) }
 
         fun setSearchKeyboard(value: Boolean) = write { preferences.setSearchAutoKeyboard(value) }
+
+        fun setExploreStart(value: ExploreStartCategory) = write { preferences.setExploreStartCategory(value) }
 
         fun setNotes(value: Boolean) = write { preferences.setNotesEnabled(value) }
 

@@ -10,13 +10,15 @@ import io.github.aedev.flow.innertube.pages.renderer.videoOrNull
  *
  * The feed is not a flat list of videos: a creator query returns a channel card, a "Latest from"
  * shelf, inline Shorts strips and a community-posts shelf interleaved with the results, in the
- * order YouTube arranged them. [sections] preserves that order.
+ * order YouTube arranged them. [sections] preserves that order. [ageGated] marks a page where
+ * YouTube asked a signed-out viewer to confirm their age instead of listing results.
  */
 data class SearchResultsPage(
     val header: SearchHeader = SearchHeader(),
     val sections: List<SearchSection> = emptyList(),
     val estimatedResults: Long? = null,
     val continuation: String? = null,
+    val ageGated: Boolean = false,
 )
 
 /** Present on the first page only; a continuation carries the chips but no filter dialog. */
