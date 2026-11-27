@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.ui.components.shared.videoMetadataLine
+import io.github.aedev.flow.ui.theme.cardTitleSmall
 
 /** Thumbnail on the left, details on the right: lists, side panes and search rows. */
 @Composable
@@ -61,7 +62,7 @@ internal fun VideoCardRow(
         ) {
             Text(
                 text = state.title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.cardTitleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

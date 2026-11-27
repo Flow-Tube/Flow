@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,7 +34,18 @@ internal fun CategoryTabBar(
     onSelect: (ExploreDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val rowState = rememberLazyListState()
+    // A swipe can land on a chip scrolled out of the row, so the row follows it into view.
+    LaunchedEffect(selected) {
+        val index = CATEGORY_TABS.indexOfFirst { it.destination == selected }
+        val info = rowState.layoutInfo
+        val item = info.visibleItemsInfo.firstOrNull { it.index == index }
+        val fullyVisible =
+            item != null && item.offset >= info.viewportStartOffset && item.offset + item.size <= info.viewportEndOffset
+        if (index >= 0 && !fullyVisible) rowState.animateScrollToItem(index)
+    }
     LazyRow(
+        state = rowState,
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(ChipSpacing),
         contentPadding = PaddingValues(horizontal = RowHorizontalPadding),
