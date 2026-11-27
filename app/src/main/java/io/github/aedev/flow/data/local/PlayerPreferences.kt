@@ -2565,7 +2565,7 @@ class PlayerPreferences(
         }
     }
 
-    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com, once chosen (#1641). */
+    /** Videos and Shorts are turned down to YouTube's loudness level, as on youtube.com (#1641). */
     val videoVolumeNormalizationEnabled: Flow<Boolean> =
         context.playerPreferencesDataStore.data
             .map { preferences -> preferences[Keys.VIDEO_VOLUME_NORMALIZATION] ?: DEFAULT_VIDEO_VOLUME_NORMALIZATION }
@@ -5569,8 +5569,8 @@ const val DEFAULT_NEW_SETTINGS_HIGHLIGHT_DAYS = 7
 
 private val FirstSeenSerializer = MapSerializer(String.serializer(), Long.serializer())
 
-/** Loud videos play at their own level unless the user turns levelling on. */
-const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = false
+/** Loud videos are turned down to YouTube's loudness level until the user turns levelling off. */
+const val DEFAULT_VIDEO_VOLUME_NORMALIZATION = true
 
 const val DEFAULT_VIDEO_STABLE_VOLUME = false
 

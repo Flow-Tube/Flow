@@ -118,6 +118,7 @@ class PlaybackSettingsViewModel
         val endlessRadio = preferences.musicEndlessRadioEnabled.asState(true)
         val musicVideoSwitch = preferences.musicVideoSwitch.asState(false)
         val pauseMusicWhenMuted = preferences.pauseMusicWhenMuted.asState(false)
+        val musicNormalizeVolume = preferences.musicLoudnessNormalizationEnabled.asState(true)
         val pauseVideoWhenMuted = preferences.pauseVideoWhenMuted.asState(false)
         val musicResume = preferences.musicResumeLongTracks.asState(false)
         val crossfadeEnabled = preferences.musicCrossfadeEnabled.asState(false)
@@ -327,6 +328,8 @@ class PlaybackSettingsViewModel
         fun setNormalizeVolume(value: Boolean) = write { preferences.setVideoVolumeNormalizationEnabled(value) }
 
         fun setStableVolume(value: Boolean) = write { preferences.setVideoStableVolume(value) }
+
+        fun setMusicNormalizeVolume(value: Boolean) = write { preferences.setMusicLoudnessNormalizationEnabled(value) }
 
         fun setLyricsProviderEnabled(
             name: String,
