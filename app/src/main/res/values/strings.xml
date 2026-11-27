@@ -1712,6 +1712,9 @@
     <string name="playback_speed_multiplier_precise">%1$.2f×</string>
     <string name="player_settings_normalize_volume">Normalize volume</string>
     <string name="player_settings_normalize_volume_summary">Turn loud videos down to the same level, like youtube.com</string>
+    <string name="player_settings_stable_volume">Stable volume</string>
+    <string name="player_settings_stable_volume_summary">Even out loud and quiet parts</string>
+    <string name="player_settings_stable_volume_unavailable">Not available for this video</string>
     <string name="player_settings_display">Display</string>
     <string name="player_settings_ambient_mode">Ambient mode</string>
     <string name="player_settings_spherical_view">360° view</string>

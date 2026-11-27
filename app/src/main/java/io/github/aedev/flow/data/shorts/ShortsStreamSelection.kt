@@ -2,6 +2,7 @@ package io.github.aedev.flow.data.shorts
 
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.stream.VideoCodecUtils
+import io.github.aedev.flow.player.stream.selectAudioVariants
 import java.util.Locale
 
 /**
@@ -41,12 +42,17 @@ internal fun List<PlayerResponse.StreamingData.Format>.sortedForPlayback(preferr
             .thenByDescending { it.averageBitrate ?: it.bitrate },
     )
 
-/** The best-sounding format in [preferredLanguage], else the original track, else anything. */
+/** The best-sounding format in [preferredLanguage], else the original track, else anything; [stable] takes DRC copies. */
 internal fun selectShortAudioFormat(
     formats: List<PlayerResponse.StreamingData.Format>,
     preferredLanguage: String,
+    stable: Boolean = false,
 ): PlayerResponse.StreamingData.Format? {
-    val sorted = formats.sortedByDescending { (it.averageBitrate ?: it.bitrate) + if (it.mimeType.contains("webm", true)) 10_000 else 0 }
+    val sorted =
+        formats.selectAudioVariants(stable).sortedByDescending {
+            (it.averageBitrate ?: it.bitrate) +
+                if (it.mimeType.contains("webm", true)) 10_000 else 0
+        }
     if (preferredLanguage.isBlank() || preferredLanguage == "original") {
         return sorted.firstOrNull { it.isOriginal } ?: sorted.firstOrNull()
     }

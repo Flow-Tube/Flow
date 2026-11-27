@@ -8,6 +8,7 @@ import io.github.aedev.flow.data.local.DEFAULT_BACKGROUND_PLAY_ENABLED
 import io.github.aedev.flow.data.local.DEFAULT_CROSSFADE_MS
 import io.github.aedev.flow.data.local.DEFAULT_KEEP_PLAYING_AFTER_SWIPE
 import io.github.aedev.flow.data.local.DEFAULT_SPEED_SWIPE_STEP
+import io.github.aedev.flow.data.local.DEFAULT_VIDEO_STABLE_VOLUME
 import io.github.aedev.flow.data.local.DEFAULT_VIDEO_VOLUME_NORMALIZATION
 import io.github.aedev.flow.data.local.DoubleTapSeekZone
 import io.github.aedev.flow.data.local.PlayerOverlayPreferences
@@ -117,6 +118,7 @@ class PlaybackSettingsViewModel
         val endlessRadio = preferences.musicEndlessRadioEnabled.asState(true)
         val musicVideoSwitch = preferences.musicVideoSwitch.asState(false)
         val pauseMusicWhenMuted = preferences.pauseMusicWhenMuted.asState(false)
+        val musicNormalizeVolume = preferences.musicLoudnessNormalizationEnabled.asState(true)
         val pauseVideoWhenMuted = preferences.pauseVideoWhenMuted.asState(false)
         val musicResume = preferences.musicResumeLongTracks.asState(false)
         val crossfadeEnabled = preferences.musicCrossfadeEnabled.asState(false)
@@ -148,6 +150,7 @@ class PlaybackSettingsViewModel
         val lyricsSponsorBlockTiming = preferences.lyricsSponsorBlockTiming.asState(false)
         val lyricsOnDemand = preferences.lyricsOnDemand.asState(false)
         val normalizeVolume = preferences.videoVolumeNormalizationEnabled.asState(DEFAULT_VIDEO_VOLUME_NORMALIZATION)
+        val stableVolume = preferences.videoStableVolume.asState(DEFAULT_VIDEO_STABLE_VOLUME)
         val lyricsProviders =
             combine(preferences.lyricsProviderOrder, preferences.allLyricsProviderEnabledStates()) { order, enabled ->
                 LyricsProviderOrder.resolve(order).map { LyricsProviderState(it, enabled[it] ?: true) }
@@ -323,6 +326,10 @@ class PlaybackSettingsViewModel
         fun setLyricsOnDemand(value: Boolean) = write { preferences.setLyricsOnDemand(value) }
 
         fun setNormalizeVolume(value: Boolean) = write { preferences.setVideoVolumeNormalizationEnabled(value) }
+
+        fun setStableVolume(value: Boolean) = write { preferences.setVideoStableVolume(value) }
+
+        fun setMusicNormalizeVolume(value: Boolean) = write { preferences.setMusicLoudnessNormalizationEnabled(value) }
 
         fun setLyricsProviderEnabled(
             name: String,
