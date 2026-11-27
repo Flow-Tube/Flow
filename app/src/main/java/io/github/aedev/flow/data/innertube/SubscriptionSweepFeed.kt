@@ -1,6 +1,7 @@
 package io.github.aedev.flow.data.innertube
 
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.subscriptions.StreamedUploadDate
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 
 /** Merge regular and shorts lists with independent caps, sorted by date. */
@@ -47,19 +48,22 @@ internal fun List<Video>.mergeDuplicateVideos(): List<Video> {
             val bestDescription =
                 candidates.firstOrNull { it.description.isNotBlank() }?.description
                     ?: primary.description
+            val isLive = candidates.any { it.isLive }
+            val isUpcoming = candidates.any { it.isUpcoming && it.timestamp > now + 60_000L }
+            val streamed = !isLive && !isUpcoming && candidates.any { StreamedUploadDate.isMarked(it.uploadDate) }
 
             primary.copy(
                 duration = candidates.maxOf { it.duration },
                 viewCount = candidates.maxOf { it.viewCount },
                 thumbnailUrl = bestVideoThumbnail,
-                uploadDate = timestampSource.uploadDate,
+                uploadDate = StreamedUploadDate.markedIf(streamed, timestampSource.uploadDate),
                 timestamp = timestampSource.timestamp,
                 timestampIsExact = timestampSource.timestampIsExact,
                 description = bestDescription,
                 channelThumbnailUrl = bestChannelThumbnail,
                 isShort = candidates.any { it.isShort },
-                isLive = candidates.any { it.isLive },
-                isUpcoming = candidates.any { it.isUpcoming && it.timestamp > now + 60_000L },
+                isLive = isLive,
+                isUpcoming = isUpcoming,
             )
         }.sortedByDescending { it.timestamp }
 }

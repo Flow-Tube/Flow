@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.settings.scrobbling
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +24,13 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.scrobble.AudioscrobblerKeys
 import io.github.aedev.flow.data.scrobble.ScrobbleService
+import io.github.aedev.flow.data.scrobble.ScrobbleWebhook
+import io.github.aedev.flow.data.scrobble.isWebhookAddress
 import io.github.aedev.flow.ui.components.shared.FlowAlertDialog
 
 private val FieldSpacing = 8.dp
 
-internal enum class ScrobbleDialogKind { SIGN_IN, SIGN_OUT, OWN_KEY, OFFER_IMPORT }
+internal enum class ScrobbleDialogKind { SIGN_IN, SIGN_OUT, OWN_KEY, OFFER_IMPORT, WEBHOOK }
 
 @Composable
 internal fun ScrobbleService.label(): String =
@@ -176,6 +179,62 @@ internal fun OwnKeyDialog(
             }) { Text(stringResource(R.string.btn_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } },
+    )
+}
+
+/** Adds a webhook, or edits [current] with a delete button beside Cancel. */
+@Composable
+internal fun WebhookDialog(
+    current: ScrobbleWebhook?,
+    onSave: (name: String, url: String) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by rememberSaveable { mutableStateOf(current?.name.orEmpty()) }
+    var url by rememberSaveable { mutableStateOf(current?.url.orEmpty()) }
+    FlowAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.scrobbling_webhook_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(FieldSpacing)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.scrobbling_webhook_name)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(R.string.scrobbling_webhook_url)) },
+                    supportingText = { Text(stringResource(R.string.scrobbling_webhook_url_note)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(name, url)
+                    onDismiss()
+                },
+                enabled = isWebhookAddress(url),
+            ) { Text(stringResource(R.string.btn_save)) }
+        },
+        dismissButton = {
+            Row {
+                if (current != null) {
+                    TextButton(onClick = {
+                        onDelete()
+                        onDismiss()
+                    }) { Text(stringResource(R.string.delete)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) }
+            }
+        },
     )
 }
 

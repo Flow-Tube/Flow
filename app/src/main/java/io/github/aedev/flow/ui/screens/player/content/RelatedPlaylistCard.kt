@@ -38,6 +38,8 @@ import io.github.aedev.flow.ui.components.shared.card.VideoCardDefaults
 import io.github.aedev.flow.ui.components.shared.card.VideoCardLayout
 import io.github.aedev.flow.ui.components.shared.focusLift
 import io.github.aedev.flow.ui.components.shared.pressScale
+import io.github.aedev.flow.ui.theme.cardTitle
+import io.github.aedev.flow.ui.theme.cardTitleSmall
 
 /**
  * How a playlist sits among the related videos: the same [layout], [thumbnailWidth], [inset] and
@@ -90,7 +92,7 @@ internal fun RelatedPlaylistCard(
                 PlaylistThumbnail(card, badge, metrics.thumbnailWidth, MaterialTheme.shapes.medium, Modifier)
                 Spacer(modifier = Modifier.width(VideoCardDefaults.Inset))
                 Column(modifier = Modifier.weight(1f)) {
-                    PlaylistTitle(card.playlist.name, MaterialTheme.typography.titleSmall)
+                    PlaylistTitle(card.playlist.name, MaterialTheme.typography.cardTitleSmall)
                     Spacer(modifier = Modifier.height(VideoCardDefaults.RowTitleGap))
                     byline?.let { PlaylistLine(it, maxLines = 1) }
                     details?.let { PlaylistLine(it, maxLines = 2) }
@@ -107,7 +109,7 @@ internal fun RelatedPlaylistCard(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(VideoCardDefaults.StackedTextSpacing),
                     ) {
-                        PlaylistTitle(card.playlist.name, MaterialTheme.typography.titleMedium)
+                        PlaylistTitle(card.playlist.name, MaterialTheme.typography.cardTitle)
                         val line =
                             when {
                                 byline != null && details != null -> stringResource(R.string.video_metadata_short_template, byline, details)

@@ -402,6 +402,8 @@ class PlayerPreferences(
         val SEARCH_IS_GRID_MODE = booleanPreferencesKey("search_is_grid_mode")
         val CHANNEL_IS_GRID_VIEW = booleanPreferencesKey("channel_is_grid_view")
         val CATEGORIES_IS_LIST_VIEW = booleanPreferencesKey("categories_is_list_view")
+        val EXPLORE_START_CATEGORY = stringPreferencesKey("explore_start_category")
+        val EXPLORE_LAST_CATEGORY = stringPreferencesKey("explore_last_category")
 
         // Video card inline like/dislike action buttons
         val VIDEO_CARD_ACTIONS_ENABLED = booleanPreferencesKey("video_card_actions_enabled")
@@ -4527,6 +4529,27 @@ class PlayerPreferences(
     suspend fun setCategoriesIsListView(isList: Boolean) {
         context.playerPreferencesDataStore.edit { preferences ->
             preferences[Keys.CATEGORIES_IS_LIST_VIEW] = isList
+        }
+    }
+
+    val exploreStartCategory: Flow<ExploreStartCategory> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> ExploreStartCategory.fromString(preferences[Keys.EXPLORE_START_CATEGORY]) }
+
+    suspend fun setExploreStartCategory(category: ExploreStartCategory) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.EXPLORE_START_CATEGORY] = category.name
+        }
+    }
+
+    /** The name of the [io.github.aedev.flow.innertube.pages.explore.ExploreDestination] last opened. */
+    val exploreLastCategory: Flow<String?> =
+        context.playerPreferencesDataStore.data
+            .map { preferences -> preferences[Keys.EXPLORE_LAST_CATEGORY] }
+
+    suspend fun setExploreLastCategory(name: String) {
+        context.playerPreferencesDataStore.edit { preferences ->
+            preferences[Keys.EXPLORE_LAST_CATEGORY] = name
         }
     }
 
