@@ -49,4 +49,58 @@ class UpcomingPollParseTest {
         assertThat(poll.isPlayable).isFalse()
         assertThat(poll.isUpcoming).isFalse()
     }
+
+    private fun details(extra: String) = """"videoDetails":{"videoId":"v","title":"T","author":"A","channelId":"UC1"$extra}"""
+
+    @Test
+    fun `a scheduled stream is upcoming by its status whatever the reason says`() {
+        val offline =
+            response(
+                """"playabilityStatus":{"status":"LIVE_STREAM_OFFLINE","reason":"La emisión en directo comenzará pronto"},""" +
+                    details(""","isUpcoming":true,"isLiveContent":true"""),
+            )
+
+        val upcoming = UpcomingPremiereProbe.upcomingOf(offline, nowMs = 0L)
+
+        assertThat(upcoming.isUpcoming).isTrue()
+        assertThat(upcoming.details?.isScheduledLive).isTrue()
+    }
+
+    @Test
+    fun `a premiere is upcoming by its flag and is not a scheduled stream`() {
+        val premiere =
+            response(
+                """"playabilityStatus":{"status":"UNPLAYABLE","reason":"El estreno empezará en 2 horas"},""" +
+                    details(""","isUpcoming":true,"isLiveContent":false"""),
+            )
+
+        val upcoming = UpcomingPremiereProbe.upcomingOf(premiere, nowMs = 0L)
+
+        assertThat(upcoming.isUpcoming).isTrue()
+        assertThat(upcoming.details?.isScheduledLive).isFalse()
+    }
+
+    @Test
+    fun `wording alone no longer makes a video upcoming`() {
+        val refused =
+            response(
+                """"playabilityStatus":{"status":"UNPLAYABLE","reason":"This premiere will begin when the scheduled time comes"},""" +
+                    details(""),
+            )
+
+        assertThat(UpcomingPremiereProbe.upcomingOf(refused, nowMs = 0L)).isEqualTo(UpcomingPremiere.NOT_UPCOMING)
+        assertThat(UpcomingPremiereProbe.pollOf(refused).isUpcoming).isFalse()
+    }
+
+    @Test
+    fun `a start time already past gives no countdown`() {
+        val offline =
+            response(
+                """"playabilityStatus":{"status":"LIVE_STREAM_OFFLINE","liveStreamability":{"liveStreamabilityRenderer":""" +
+                    """{"offlineSlate":{"liveStreamOfflineSlateRenderer":{"scheduledStartTime":"1000"}}}}}""",
+            )
+
+        assertThat(UpcomingPremiereProbe.upcomingOf(offline, nowMs = 2_000_000L).scheduledStartMs).isNull()
+        assertThat(UpcomingPremiereProbe.upcomingOf(offline, nowMs = 0L).scheduledStartMs).isEqualTo(1_000_000L)
+    }
 }

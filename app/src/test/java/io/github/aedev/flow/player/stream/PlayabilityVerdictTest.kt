@@ -243,4 +243,26 @@ class PlayabilityVerdictTest {
         assertThat(PlayabilityVerdict.refusal(status.copy(reason = "Sign in to confirm you're not a bot"), hasVideoDetails = false))
             .isEqualTo("BOT_WALL, reason=Sign in to confirm you're not a bot")
     }
+
+    @Test
+    fun `an age or content check is named by its status in any language`() {
+        val age = "ANDROID_VR: status=AGE_CHECK_REQUIRED, reason=Es posible que este video no sea apto para todos los usuarios"
+        val verification = "IOS: status=AGE_VERIFICATION_REQUIRED, reason=Bestätige dein Alter"
+        val content = "WEB: status=CONTENT_CHECK_REQUIRED, reason=Le contenu suivant peut choquer"
+
+        listOf(age, verification, content).forEach {
+            assertThat(PlayabilityVerdict.refusalOf(listOf(it))?.kind).isEqualTo(RefusalKind.AGE_RESTRICTED)
+        }
+    }
+
+    @Test
+    fun `a sign-in status is read by its reason, since it also covers bot checks and private videos`() {
+        val ageSignIn = "ANDROID_VR: status=LOGIN_REQUIRED, reason=Sign in to confirm your age"
+        val privateVideo = "IOS: status=LOGIN_REQUIRED, reason=This video is private"
+        val signIn = "MWEB: status=LOGIN_REQUIRED, reason=Please sign in"
+
+        assertThat(PlayabilityVerdict.refusalOf(listOf(ageSignIn))?.kind).isEqualTo(RefusalKind.AGE_RESTRICTED)
+        assertThat(PlayabilityVerdict.refusalOf(listOf(privateVideo))?.kind).isEqualTo(RefusalKind.PRIVATE)
+        assertThat(PlayabilityVerdict.refusalOf(listOf(signIn))).isNull()
+    }
 }

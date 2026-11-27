@@ -367,6 +367,7 @@ data class PlayerResponse(
         val isLiveContent: Boolean? = null,
         val isLiveDvrEnabled: Boolean? = null,
         val isPostLiveDvr: Boolean? = null,
+        val isUpcoming: Boolean? = null,
         val keywords: List<String>? = null,
         val latencyClass: String? = null,
         /** False when the creator hides the video's likes. */
