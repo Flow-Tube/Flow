@@ -153,5 +153,16 @@ fun flowTypography(family: FontFamily): Typography {
     )
 }
 
+/**
+ * A video card's title: [Typography.titleMedium] with tighter leading, so a two-line title reads as one
+ * block and the details under it stand apart (#2437).
+ */
+val Typography.cardTitle: TextStyle
+    get() = titleMedium.copy(lineHeight = 20.sp)
+
+/** [cardTitle] for a row or dense card, from [Typography.titleSmall]. */
+val Typography.cardTitleSmall: TextStyle
+    get() = titleSmall.copy(lineHeight = 18.sp)
+
 /** The type scale in the system font, for surfaces that cannot take the user's font (widgets). */
 val Typography: Typography = flowTypography(FlowFontFamily)
