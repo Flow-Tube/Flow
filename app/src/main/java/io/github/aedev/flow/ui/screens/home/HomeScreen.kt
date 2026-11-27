@@ -74,6 +74,7 @@ fun HomeScreen(
     onOpenPreview: (Video, positionMs: Long) -> Unit,
     onShortClick: (ShortsQueueSource) -> Unit,
     onSearchClick: () -> Unit,
+    showSearchAction: Boolean = true,
     onNavigateToHistory: () -> Unit = {},
     onOpenShortsFeed: () -> Unit = {},
     onPlayMix: (videos: List<Video>, title: String) -> Unit = { _, _ -> },
@@ -180,11 +181,13 @@ fun HomeScreen(
                             null
                         },
                     actions = {
-                        IconButton(onClick = onSearchClick) {
-                            Icon(
-                                Icons.Outlined.Search,
-                                contentDescription = stringResource(R.string.search),
-                            )
+                        if (showSearchAction) {
+                            IconButton(onClick = onSearchClick) {
+                                Icon(
+                                    Icons.Outlined.Search,
+                                    contentDescription = stringResource(R.string.search),
+                                )
+                            }
                         }
                     },
                 )

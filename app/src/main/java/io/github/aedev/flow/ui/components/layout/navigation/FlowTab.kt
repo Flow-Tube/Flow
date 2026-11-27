@@ -100,6 +100,12 @@ fun visibleFlowTabs(
         .filter(enabled::contains)
 }
 
+/** Whether top bars keep their search button; a Search tab behind "More" still counts as a tab. */
+fun topBarSearchVisible(
+    tabs: List<FlowTab>,
+    hide: Boolean,
+): Boolean = !(hide && FlowTab.Search in tabs)
+
 fun resolveDefaultFlowTab(
     preferredId: Int,
     order: List<Int>,

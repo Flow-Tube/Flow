@@ -133,4 +133,25 @@ class FlowTabTest {
             visibleFlowTabs(listOf(3, 0), NavigationVisibility(downloads = true)).last(),
         )
     }
+
+    @Test
+    fun topBarSearchHidesOnlyWhenAskedAndSearchIsATab() {
+        val withSearch = listOf(FlowTab.Home, FlowTab.Subscriptions, FlowTab.Search)
+        val withoutSearch = listOf(FlowTab.Home, FlowTab.Subscriptions)
+
+        assertFalse(topBarSearchVisible(withSearch, hide = true))
+        assertTrue(topBarSearchVisible(withSearch, hide = false))
+        assertTrue(topBarSearchVisible(withoutSearch, hide = true))
+        assertTrue(topBarSearchVisible(withoutSearch, hide = false))
+    }
+
+    @Test
+    fun aSearchTabBehindMoreStillHidesTheTopBarSearch() {
+        val tabs = FlowTab.entries.toList()
+        val (shown, overflow) = splitTabsForOverflow(tabs, capacity = 5)
+
+        assertFalse(FlowTab.Search in shown)
+        assertTrue(FlowTab.Search in overflow)
+        assertFalse(topBarSearchVisible(tabs, hide = true))
+    }
 }

@@ -48,6 +48,7 @@ import io.github.aedev.flow.ui.components.layout.navigation.NavigationVisibility
 import io.github.aedev.flow.ui.components.layout.navigation.flowUsesNavigationRail
 import io.github.aedev.flow.ui.components.layout.navigation.rememberFlowNavigationScrollState
 import io.github.aedev.flow.ui.components.layout.navigation.resolveDefaultFlowTab
+import io.github.aedev.flow.ui.components.layout.navigation.topBarSearchVisible
 import io.github.aedev.flow.ui.components.layout.navigation.visibleFlowTabs
 import io.github.aedev.flow.ui.components.layout.topbar.ProvideFlowGlobalActions
 import io.github.aedev.flow.ui.components.music.common.ProvideMusicPlaybackState
@@ -132,6 +133,7 @@ fun FlowApp(
     val bottomNavHideOnScroll by preferences.bottomNavHideOnScroll.collectAsState(initial = true)
     val bottomNavLook by preferences.bottomNavLook.collectAsState(initial = NavBarLook())
     val searchShowsNavBar by preferences.searchShowsNavBar.collectAsState(initial = false)
+    val hideTopSearchWithTab by preferences.hideTopSearchWithTab.collectAsState(initial = false)
     val innerPagesShowNavBar by preferences.innerPagesShowNavBar.collectAsState(initial = false)
     val sleepTimerCloseAppOnExpiry by preferences.sleepTimerCloseAppOnExpiry.collectAsState(
         initial = SleepTimerManager.preferredCloseAppOnExpiry,
@@ -533,6 +535,7 @@ fun FlowApp(
                                                 openDownloads = openDownloads,
                                                 searchExitTab = { exitTab(currentNavigationTabs, FlowTab.Search) },
                                                 searchIsTab = { FlowTab.Search in currentNavigationTabs },
+                                                showTopBarSearch = { topBarSearchVisible(currentNavigationTabs, hideTopSearchWithTab) },
                                             )
                                         }
                                     }

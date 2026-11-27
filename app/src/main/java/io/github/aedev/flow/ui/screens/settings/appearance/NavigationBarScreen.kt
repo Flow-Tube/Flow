@@ -11,6 +11,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Slideshow
 import androidx.compose.material.icons.outlined.Swipe
 import androidx.compose.material.icons.outlined.UnfoldLess
@@ -52,6 +53,7 @@ internal fun NavigationBarScreen(
     val scroll by viewModel.navScroll.collectAsStateWithLifecycle()
     val miniBeside by viewModel.navMiniBeside.collectAsStateWithLifecycle()
     val searchShowsBar by viewModel.searchShowsNavBar.collectAsStateWithLifecycle()
+    val hideTopSearch by viewModel.hideTopSearchWithTab.collectAsStateWithLifecycle()
     val innerPagesShowBar by viewModel.innerPagesShowNavBar.collectAsStateWithLifecycle()
     val order by viewModel.navTabOrder.collectAsStateWithLifecycle()
     val defaultIndex by viewModel.defaultNavTabIndex.collectAsStateWithLifecycle()
@@ -119,6 +121,9 @@ internal fun NavigationBarScreen(
             )
             switch(NavigationBarIndex.music, visibility.music, viewModel::setMusicTab, icon = Icons.Outlined.MusicNote)
             switch(NavigationBarIndex.search, visibility.search, viewModel::setSearchTab, icon = Icons.Outlined.Search)
+            if (visibility.search) {
+                switch(NavigationBarIndex.hideTopSearch, hideTopSearch, viewModel::setHideTopSearchWithTab, icon = Icons.Outlined.SearchOff)
+            }
             switch(NavigationBarIndex.explore, visibility.categories, viewModel::setExploreTab, icon = Icons.Outlined.Explore)
             switch(NavigationBarIndex.downloads, visibility.downloads, viewModel::setDownloadsTab, icon = Icons.Outlined.Download)
             switch(NavigationBarIndex.hideOnScroll, hideOnScroll, viewModel::setHideNavOnScroll, icon = Icons.Outlined.UnfoldLess)
