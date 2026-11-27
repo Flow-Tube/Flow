@@ -77,12 +77,16 @@ class CategoriesViewModel
         private val preferences: PlayerPreferences,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
-        private val _uiState = MutableStateFlow(CategoriesUiState())
+        private val _uiState = MutableStateFlow(CategoriesUiState(isLoading = true))
         val uiState: StateFlow<CategoriesUiState> = _uiState.asStateFlow()
+
+        /** Null until the preference is read, so nothing with Shorts is drawn before it is known. */
+        private val shortsEnabled: StateFlow<Boolean?> =
+            preferences.shortsContentEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), null)
 
         /** The shelves to draw: [CategoriesUiState.shelves] without Shorts while they are switched off (#1507). */
         val visibleShelves: StateFlow<List<FeedShelf>> =
-            combine(_uiState.map { it.shelves }.distinctUntilChanged(), preferences.shortsContentEnabled) { shelves, shortsEnabled ->
+            combine(_uiState.map { it.shelves }.distinctUntilChanged(), shortsEnabled.filterNotNull()) { shelves, shortsEnabled ->
                 if (shortsEnabled) shelves else shelves.withoutShorts()
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), emptyList())
 
@@ -151,15 +155,24 @@ class CategoriesViewModel
 
         private var loadJob: Job? = null
 
+        /** Set once anything has been loaded, so a tap during the start read is not overridden. */
+        private var started = false
+
         init {
             viewModelScope.launch {
                 _uiState.update { it.copy(isListView = preferences.categoriesIsListView.first()) }
             }
-            load(CATEGORY_TABS.first().destination)
+            viewModelScope.launch {
+                val start = exploreStartDestination(preferences.exploreStartCategory.first(), preferences.exploreLastCategory.first())
+                if (started) return@launch
+                _uiState.update { it.copy(selected = start) }
+                load(start)
+            }
         }
 
         fun select(destination: ExploreDestination) {
             if (_uiState.value.selected == destination) return
+            viewModelScope.launch { preferences.setExploreLastCategory(destination.name) }
             _uiState.update {
                 CategoriesUiState(
                     selected = destination,
@@ -168,6 +181,31 @@ class CategoriesViewModel
                 )
             }
             load(destination)
+        }
+
+        /**
+         * A category beside the selected one, seen mid-swipe: what the cache holds for its first
+         * sub-tab, or a skeleton. It never loads, so swiping across categories fetches nothing until
+         * one settles. The paged Gaming grid lives only in the selected page and is never cached.
+         */
+        fun preview(destination: ExploreDestination): CategoriesUiState {
+            val key = CacheKey(destination, destination.params)
+            // Iterating leaves an access-ordered map's order alone, where get() would count as a use.
+            val cached =
+                cache.entries
+                    .firstOrNull { it.key == key }
+                    ?.value
+                    .takeIf { destination.kind != ExploreSectionKind.GRID }
+            val shelves = cached?.shelves.orEmpty()
+            return CategoriesUiState(
+                selected = destination,
+                sectionKind = destination.kind,
+                shelves = if (shortsEnabled.value == true) shelves else shelves.withoutShorts(),
+                chartEntries = cached?.chartEntries.orEmpty(),
+                chartTitle = cached?.chartTitle,
+                isLoading = cached == null,
+                isListView = _uiState.value.isListView,
+            )
         }
 
         /** Opens a shelf's "see all" as a paged grid, keeping the destination tab selected. */
@@ -221,6 +259,7 @@ class CategoriesViewModel
             params: String? = destination.params,
         ) {
             loadJob?.cancel()
+            started = true
             val key = CacheKey(destination, params)
             val cached = cache[key]
             _uiState.update {
@@ -381,5 +420,5 @@ private const val PAGE_SIZE = 20
 private const val PREFETCH_DISTANCE = 6
 private const val SUBSCRIPTION_GRACE_MS = 5_000L
 private const val CACHE_TTL_MS = 5 * 60 * 1000L
-private const val CACHE_ENTRIES = 4
+private const val CACHE_ENTRIES = 7
 private const val CACHE_LOAD_FACTOR = 0.75f

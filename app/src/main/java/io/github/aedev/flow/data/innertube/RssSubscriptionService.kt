@@ -6,6 +6,7 @@ import io.github.aedev.flow.data.shorts.ChannelReelIndex
 import io.github.aedev.flow.data.subscriptions.ChannelRssClient
 import io.github.aedev.flow.data.subscriptions.ChannelRssEntry
 import io.github.aedev.flow.data.subscriptions.ChannelUploadsClient
+import io.github.aedev.flow.data.subscriptions.StreamedUploadDate
 import io.github.aedev.flow.data.subscriptions.classifiedFromVerdicts
 import io.github.aedev.flow.utils.ThumbnailUrlResolver
 import io.github.aedev.flow.utils.formatYouTubeRelativeTime
@@ -472,6 +473,7 @@ class RssSubscriptionService
                     ?.let { ThumbnailUrlResolver.resolveChannelAvatar(it) }
                     .orEmpty()
             val shortIds = uploads.shorts.mapTo(HashSet()) { it.id }
+            val liveTabIds = uploads.live.mapTo(HashSet()) { it.id }
             val videos =
                 (uploads.videos + uploads.shorts + uploads.live)
                     .distinctBy { it.id }
@@ -481,6 +483,7 @@ class RssSubscriptionService
                             channelName = uploads.owner.name,
                             channelAvatar = channelAvatar,
                             fromShortsTab = video.id in shortIds,
+                            fromLiveTab = video.id in liveTabIds,
                             rssUploadTimeMillis = rssDateMap[video.id],
                             minimumDateMillis = minimumDateMillis,
                         )
@@ -495,6 +498,7 @@ class RssSubscriptionService
             channelName: String,
             channelAvatar: String,
             fromShortsTab: Boolean,
+            fromLiveTab: Boolean,
             rssUploadTimeMillis: Long?,
             minimumDateMillis: Long,
         ): Video? {
@@ -504,6 +508,8 @@ class RssSubscriptionService
             if (uploadedAt <= minimumDateMillis) return null
 
             val upcoming = isUpcoming || uploadedAt > System.currentTimeMillis() + 60_000L
+            // The tab says it in any language; the text says it only when the tab was asked in English.
+            val streamed = !upcoming && !isLive && (fromLiveTab || StreamedUploadDate.isMarked(uploadDate))
             return copy(
                 channelName = this.channelName.ifBlank { channelName }.ifBlank { UNKNOWN_LABEL },
                 channelId = channelId,
@@ -512,7 +518,7 @@ class RssSubscriptionService
                     if (upcoming && uploadDate.isNotBlank()) {
                         uploadDate
                     } else {
-                        formatRelativeTime(uploadedAt)
+                        StreamedUploadDate.markedIf(streamed, formatRelativeTime(uploadedAt))
                     },
                 timestamp = uploadedAt,
                 timestampIsExact = rssUploadTimeMillis != null,

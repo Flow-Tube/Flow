@@ -80,8 +80,14 @@ class LockScreenPlayerActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         // Woken without a lock (no lock screen, or within the lock delay): nothing to sit over.
-        val interactive = getSystemService(PowerManager::class.java).isInteractive
-        if (interactive && !keyguardLocked()) finish()
+        finishIfUnlocked()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Some phones let a fingerprint unlock while this window covers the lock and send no
+        // USER_PRESENT; the window regains focus once the lock is gone (#2208).
+        if (hasFocus) finishIfUnlocked()
     }
 
     override fun onDestroy() {
@@ -101,11 +107,25 @@ class LockScreenPlayerActivity : ComponentActivity() {
 
     private fun keyguardLocked() = getSystemService(KeyguardManager::class.java).isKeyguardLocked
 
+    private fun finishIfUnlocked() {
+        val interactive = getSystemService(PowerManager::class.java).isInteractive
+        if (interactive && !keyguardLocked()) finish()
+    }
+
     private fun unlock() {
+        if (!keyguardLocked()) {
+            finish()
+            return
+        }
         getSystemService(KeyguardManager::class.java).requestDismissKeyguard(
             this,
             object : KeyguardManager.KeyguardDismissCallback() {
                 override fun onDismissSucceeded() = finish()
+
+                // Android answers with an error when there is no lock left to dismiss.
+                override fun onDismissError() {
+                    if (!keyguardLocked()) finish()
+                }
             },
         )
     }
