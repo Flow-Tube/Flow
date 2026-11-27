@@ -212,11 +212,15 @@ class ChannelViewModel
                     onSuccess = { page ->
                         val header = page.header
                         val channelId = header.id.ifBlank { browseId }
+                        val preferVideos = playerPreferences.channelOpensOnVideos.first()
+                        // Chosen with the tabs, not after: the pager settles on its first page as soon as
+                        // the tabs land and would otherwise select Home before onTabsResolved runs.
                         _uiState.update {
                             it.copy(
                                 channelId = channelId,
                                 header = header,
                                 tabs = page.tabs,
+                                selectedTab = it.selectedTab ?: initialChannelTab(page.tabs, preferVideos),
                                 isLoading = false,
                             )
                         }
@@ -270,9 +274,7 @@ class ChannelViewModel
             val channelId = state.channelId ?: return
             tabController.reset(channelId, channelOwner())
             if (landingKind != null && landing != null) tabController.seedSections(landingKind, landing)
-            val first = state.selectedTab ?: state.tabs.firstOrNull()?.kind ?: return
-            _uiState.update { it.copy(selectedTab = first) }
-            ensureTabLoaded(first)
+            ensureTabLoaded(state.selectedTab ?: return)
         }
 
         private fun ensureTabLoaded(kind: ChannelTabKind) {

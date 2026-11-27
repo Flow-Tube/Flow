@@ -18,7 +18,7 @@ data class ChannelUiState(
     val videosError: String? = null,
     val isSubscribed: Boolean = false,
     val isNotificationsEnabled: Boolean = false,
-    /** Null until the tab list lands: the channel decides which tab is first, not the app. */
+    /** Null until the tab list lands, then [initialChannelTab]: the channel's first tab, or Videos when preferred. */
     val selectedTab: ChannelTabKind? = null,
     val searchActive: Boolean = false,
     val searchQuery: String = "",

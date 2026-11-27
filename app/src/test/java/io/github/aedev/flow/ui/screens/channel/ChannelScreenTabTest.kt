@@ -6,6 +6,7 @@ import io.github.aedev.flow.innertube.pages.channel.ChannelTabDescriptor
 import io.github.aedev.flow.innertube.pages.channel.ChannelTabKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -171,5 +172,30 @@ class ChannelScreenTabTest {
         val resolved = tabs(listOf(descriptor(ChannelTabKind.Videos), descriptor(ChannelTabKind.Live, title = "  ")))
 
         assertFalse(resolved.any { it.kind == ChannelTabKind.Live })
+    }
+
+    private val homeVideosLive =
+        listOf(descriptor(ChannelTabKind.Home), descriptor(ChannelTabKind.Videos), descriptor(ChannelTabKind.Live))
+
+    @Test
+    fun `a channel opens on Videos when preferred and present`() {
+        assertEquals(ChannelTabKind.Videos, initialChannelTab(homeVideosLive, preferVideos = true))
+    }
+
+    @Test
+    fun `a channel without Videos opens on its first tab even when Videos is preferred`() {
+        val tabs = listOf(descriptor(ChannelTabKind.Home), descriptor(ChannelTabKind.Playlists))
+
+        assertEquals(ChannelTabKind.Home, initialChannelTab(tabs, preferVideos = true))
+    }
+
+    @Test
+    fun `a channel opens on its first tab when Videos is not preferred`() {
+        assertEquals(ChannelTabKind.Home, initialChannelTab(homeVideosLive, preferVideos = false))
+    }
+
+    @Test
+    fun `no tabs means no initial tab`() {
+        assertNull(initialChannelTab(emptyList(), preferVideos = true))
     }
 }

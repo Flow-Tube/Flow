@@ -1498,6 +1498,8 @@
     <string name="content_settings_shorts_content_subtitle">Hide Shorts everywhere. Saved Shorts and history are kept.</string>
     <string name="content_settings_channel_shorts_tab_title">Shorts tab on channels</string>
     <string name="content_settings_channel_shorts_tab_subtitle">Keep a channel\'s Shorts tab while Shorts are hidden</string>
+    <string name="content_settings_channel_videos_tab_title">Open channels on Videos</string>
+    <string name="content_settings_channel_videos_tab_subtitle">Start on Videos instead of Home</string>
     <string name="content_settings_hide_watched_shorts_title">Hide watched Shorts</string>
     <string name="content_settings_hide_watched_shorts_subtitle">Keep Shorts you finished out of shelves and the Shorts feed</string>
     <string name="content_settings_hide_watched_suggestions_title">Hide watched videos from suggestions</string>
@@ -4751,6 +4753,7 @@
     <string name="settings_section_watched">Watched videos</string>
     <string name="settings_section_sharing">Sharing</string>
     <string name="settings_section_links">Links</string>
+    <string name="settings_section_channels">Channels</string>
     <string name="content_settings_open_links_title">Open YouTube links in Flow</string>
     <string name="content_settings_open_links_subtitle">Choose which links open here</string>
     <string name="content_settings_open_links_all">On for every YouTube address</string>

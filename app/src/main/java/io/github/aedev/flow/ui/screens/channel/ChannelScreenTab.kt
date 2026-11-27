@@ -42,6 +42,12 @@ internal fun channelScreenTabs(
     }
 }
 
+/** The tab a freshly opened channel lands on: Videos when the user prefers it and the channel has one. */
+internal fun initialChannelTab(
+    tabs: List<ChannelTabDescriptor>,
+    preferVideos: Boolean,
+): ChannelTabKind? = tabs.firstOrNull { preferVideos && it.kind == ChannelTabKind.Videos }?.kind ?: tabs.firstOrNull()?.kind
+
 private fun ChannelHeader?.hasAboutContent(): Boolean =
     this != null &&
         (
