@@ -83,6 +83,13 @@ class PlayerLoadDecisionsTest {
     }
 
     @Test
+    fun `beginning a load drops the ended-stream flag of the video before`() {
+        val before = VideoPlayerUiState(cachedVideo = video("vid_a"), isArchivedLivestream = true)
+
+        assertThat(before.beginLoadFor("vid_b").isArchivedLivestream).isFalse()
+    }
+
+    @Test
     fun `beginning a load for a different video keeps no avatar at all`() {
         val before = VideoPlayerUiState(cachedVideo = video("vid_a").copy(channelThumbnailUrl = "avatar.jpg"))
 

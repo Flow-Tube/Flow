@@ -123,6 +123,7 @@ internal fun VideoPlayerUiState.applyLiveStreams(
         errorOffersSessionReset = false,
         hlsUrl = hlsUrl,
         isLive = true,
+        isArchivedLivestream = false,
         isUpcoming = false,
         upcomingReleaseTimeMs = null,
         innerTubeVideoFormats = emptyList(),
