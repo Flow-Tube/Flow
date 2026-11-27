@@ -58,6 +58,8 @@ data class SearchUiState(
     val header: SearchHeader = SearchHeader(),
     /** The query runs as typed, without YouTube's spelling correction. */
     val exactQuery: Boolean = false,
+    /** YouTube answered with its age check, so the results are YouTube Music's videos. */
+    val musicFallback: Boolean = false,
 )
 
 @HiltViewModel
@@ -116,6 +118,7 @@ class SearchViewModel
                                 onHeader = ::onHeader,
                                 watchedVideos = watchedVideos,
                                 exclusions = { neuroEngine.feedExclusions() },
+                                onMusicFallback = ::onMusicFallback,
                             )
                         },
                     ).flow
@@ -235,7 +238,11 @@ class SearchViewModel
         suspend fun opensKeyboard(): Boolean = preferences.searchAutoKeyboard.first()
 
         private fun onHeader(header: SearchHeader) {
-            _uiState.update { it.copy(header = header) }
+            _uiState.update { it.copy(header = header, musicFallback = false) }
+        }
+
+        private fun onMusicFallback() {
+            _uiState.update { it.copy(musicFallback = true) }
         }
 
         // A search page opened for a query runs it once; a recreated process shows it again without

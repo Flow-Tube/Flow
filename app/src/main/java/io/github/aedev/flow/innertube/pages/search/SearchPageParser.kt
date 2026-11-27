@@ -24,8 +24,13 @@ fun JsonObject.toSearchResultsPage(): SearchResultsPage {
     val seen = mutableSetOf<String>()
     var continuation: String? = null
     var correction: SearchCorrection? = null
+    var ageGated = false
 
     feedEntries().forEach { entry ->
+        if (entry.isSignInPromo()) {
+            ageGated = true
+            return@forEach
+        }
         entry.continuationToken()?.let {
             continuation = it
             return@forEach
@@ -48,8 +53,24 @@ fun JsonObject.toSearchResultsPage(): SearchResultsPage {
         sections = sections,
         estimatedResults = this["estimatedResults"].stringOrNull()?.toLongOrNull(),
         continuation = continuation,
+        ageGated = ageGated,
     )
 }
+
+/**
+ * The "Confirm your age" panel YouTube sends a signed-out viewer in place of results. Its title is
+ * translated, so it is told apart from the "No results found" panel by its sign-in button.
+ */
+private fun JsonObject.isSignInPromo(): Boolean =
+    this["backgroundPromoRenderer"]
+        .objectOrNull()
+        ?.get("ctaButton")
+        .objectOrNull()
+        ?.get("buttonRenderer")
+        .objectOrNull()
+        ?.get("navigationEndpoint")
+        .objectOrNull()
+        ?.get("signInEndpoint") != null
 
 /**
  * The first page nests the feed under `twoColumnSearchResultsRenderer`; a continuation returns it
