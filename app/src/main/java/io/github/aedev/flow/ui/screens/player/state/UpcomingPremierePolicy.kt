@@ -94,6 +94,7 @@ internal object UpcomingPremierePolicy {
             thumbnailUrl = base.thumbnailUrl.ifBlank { details?.thumbnailUrl.orEmpty() },
             description = base.description.ifBlank { details?.description.orEmpty() },
             isUpcoming = true,
+            isScheduledLive = base.isScheduledLive || details?.isScheduledLive == true,
             timestamp = releaseMs ?: base.timestamp,
         )
     }

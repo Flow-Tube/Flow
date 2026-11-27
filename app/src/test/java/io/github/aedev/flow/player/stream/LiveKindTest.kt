@@ -4,15 +4,18 @@ import com.google.common.truth.Truth.assertThat
 import io.github.aedev.flow.data.shorts.reelExtraction
 import org.junit.Test
 
-/** What the player is told a video is, read off the two live flags of `videoDetails`. */
+/** What the player is told a video is, read off the live flags of `videoDetails`. */
 class LiveKindTest {
     private fun kind(
         isLive: Boolean?,
         isLiveContent: Boolean?,
+        isPostLiveDvr: Boolean? = null,
+        manifestOnly: Boolean = false,
     ): String {
         val base = reelExtraction(emptyList(), emptyList())
-        val details = base.playerResponse.videoDetails!!.copy(isLive = isLive, isLiveContent = isLiveContent)
-        return liveKindOf(base.copy(playerResponse = base.playerResponse.copy(videoDetails = details)))
+        val details =
+            base.playerResponse.videoDetails!!.copy(isLive = isLive, isLiveContent = isLiveContent, isPostLiveDvr = isPostLiveDvr)
+        return liveKindOf(base.copy(playerResponse = base.playerResponse.copy(videoDetails = details), isLive = manifestOnly))
     }
 
     @Test
@@ -22,9 +25,20 @@ class LiveKindTest {
     }
 
     @Test
-    fun `an ended stream is post-live`() {
-        assertThat(kind(isLive = false, isLiveContent = true)).isEqualTo("POST_LIVE_STREAM")
-        assertThat(kind(isLive = null, isLiveContent = true)).isEqualTo("POST_LIVE_STREAM")
+    fun `an ended stream still in its DVR window is post-live`() {
+        assertThat(kind(isLive = false, isLiveContent = true, isPostLiveDvr = true)).isEqualTo("POST_LIVE_STREAM")
+        assertThat(kind(isLive = null, isLiveContent = null, isPostLiveDvr = true)).isEqualTo("POST_LIVE_STREAM")
+    }
+
+    @Test
+    fun `an old replay is an ordinary video`() {
+        assertThat(kind(isLive = false, isLiveContent = true)).isEqualTo("VIDEO_STREAM")
+        assertThat(kind(isLive = null, isLiveContent = true, isPostLiveDvr = false)).isEqualTo("VIDEO_STREAM")
+    }
+
+    @Test
+    fun `a replay that came back as a manifest alone plays from it`() {
+        assertThat(kind(isLive = null, isLiveContent = true, manifestOnly = true)).isEqualTo("POST_LIVE_STREAM")
     }
 
     @Test

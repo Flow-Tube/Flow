@@ -53,6 +53,22 @@ class UpcomingPremierePolicyTest {
     }
 
     @Test
+    fun `a probed scheduled stream is not shown as a premiere`() {
+        val details =
+            UpcomingDetails(
+                title = "Launch",
+                channelName = "Agency",
+                channelId = "UCagency",
+                thumbnailUrl = "",
+                description = "",
+                isScheduledLive = true,
+            )
+
+        assertThat(UpcomingPremierePolicy.upcomingVideo("vid", cached = null, releaseMs = now, details = details).isScheduledLive).isTrue()
+        assertThat(UpcomingPremierePolicy.upcomingVideo("vid", cached = null, releaseMs = now, details = null).isScheduledLive).isFalse()
+    }
+
+    @Test
     fun `a video that is not upcoming has no release time`() {
         assertThat(
             UpcomingPremierePolicy.releaseTimeFor(video(isUpcoming = false, timestamp = now + 3_600_000L), now),

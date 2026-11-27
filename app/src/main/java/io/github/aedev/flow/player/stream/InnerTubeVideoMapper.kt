@@ -46,14 +46,17 @@ internal object InnerTubeVideoMapper {
             ?: 0L
 
     /**
-     * Live while it is running, post-live once it has ended, an ordinary video otherwise. The
-     * extractor reported these as one enum; the player response splits them across two flags.
+     * Live while it is running, post-live while its DVR window is still served, an ordinary video
+     * otherwise. `isLiveContent` stays true on every replay for good, so it says nothing about how to
+     * play one: an old replay is a plain video. A result that came back as a manifest alone can only
+     * be played from that manifest, whatever the flags say.
      */
     fun streamType(result: InnerTubeVideoStreamExtractor.VideoExtractionResult): StreamType {
         val details = result.playerResponse.videoDetails
         return when {
             details?.isLive == true -> StreamType.LIVE_STREAM
-            details?.isLiveContent == true -> StreamType.POST_LIVE_STREAM
+            details?.isPostLiveDvr == true -> StreamType.POST_LIVE_STREAM
+            result.isLive -> StreamType.POST_LIVE_STREAM
             else -> StreamType.VIDEO_STREAM
         }
     }

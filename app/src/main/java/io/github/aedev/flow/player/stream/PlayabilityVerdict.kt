@@ -91,6 +91,14 @@ private val RefusalPatterns: List<Pair<RefusalKind, Regex>> =
         RefusalKind.RECORDING_UNAVAILABLE to Regex("""live stream recording is not available""", RegexOption.IGNORE_CASE),
         RefusalKind.UNAVAILABLE to Regex("""video (is )?unavailable""", RegexOption.IGNORE_CASE),
     )
+
+// YouTube's own status names the gate in every language; the reason text is the fallback.
+private val RefusalStatuses =
+    mapOf(
+        "AGE_CHECK_REQUIRED" to RefusalKind.AGE_RESTRICTED,
+        "AGE_VERIFICATION_REQUIRED" to RefusalKind.AGE_RESTRICTED,
+        "CONTENT_CHECK_REQUIRED" to RefusalKind.AGE_RESTRICTED,
+    )
 private val CopyrightClaimant = Regex("""copyright removal request by (.+?)(?:, (?:subreason|messages)=|, details=yes|$)""")
 
 /**
@@ -221,7 +229,8 @@ internal object PlayabilityVerdict {
                 StatusPattern.containsMatchIn(it) && !NotAskedReason.containsMatchIn(it) && !NoAnswerReason.containsMatchIn(it)
             }
         val kind =
-            RefusalPatterns.firstOrNull { (_, pattern) -> answered.any(pattern::containsMatchIn) }?.first
+            answered.firstNotNullOfOrNull { RefusalStatuses[StatusPattern.find(it)?.groupValues?.get(1)] }
+                ?: RefusalPatterns.firstOrNull { (_, pattern) -> answered.any(pattern::containsMatchIn) }?.first
                 ?: return null
         val claimant =
             if (kind == RefusalKind.COPYRIGHT_REMOVED) {

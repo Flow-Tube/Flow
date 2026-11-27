@@ -37,6 +37,7 @@ data class UpcomingDetails(
     val channelId: String,
     val thumbnailUrl: String,
     val description: String,
+    val isScheduledLive: Boolean = false,
 )
 
 /**
@@ -49,35 +50,7 @@ class UpcomingPremiereProbe
     constructor() {
         suspend fun probe(videoId: String): UpcomingPremiere =
             try {
-                val response = fetch(videoId) ?: return UpcomingPremiere.NOT_UPCOMING
-                val status = response.playabilityStatus
-                if (!looksUpcoming(response)) return UpcomingPremiere.NOT_UPCOMING
-                val scheduledMs =
-                    status.liveStreamability
-                        ?.liveStreamabilityRenderer
-                        ?.offlineSlate
-                        ?.liveStreamOfflineSlateRenderer
-                        ?.scheduledStartTime
-                        ?.toLongOrNull()
-                        ?.times(1000L)
-                        // A start time in the past is a stream that already began: no countdown to show.
-                        ?.takeIf { it > System.currentTimeMillis() }
-                val details =
-                    response.videoDetails?.let { video ->
-                        UpcomingDetails(
-                            title = video.title.orEmpty(),
-                            channelName = video.author.orEmpty(),
-                            channelId = video.channelId,
-                            thumbnailUrl =
-                                video.thumbnail
-                                    ?.thumbnails
-                                    ?.maxByOrNull { it.width ?: 0 }
-                                    ?.url
-                                    .orEmpty(),
-                            description = video.shortDescription.orEmpty(),
-                        )
-                    }
-                UpcomingPremiere(isUpcoming = true, scheduledStartMs = scheduledMs, details = details)
+                fetch(videoId)?.let { upcomingOf(it, System.currentTimeMillis()) } ?: UpcomingPremiere.NOT_UPCOMING
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -102,6 +75,40 @@ class UpcomingPremiereProbe
         internal companion object {
             private const val PROBE_TIMEOUT_MS = 6_000L
 
+            internal fun upcomingOf(
+                response: PlayerResponse,
+                nowMs: Long,
+            ): UpcomingPremiere {
+                if (!looksUpcoming(response)) return UpcomingPremiere.NOT_UPCOMING
+                val scheduledMs =
+                    response.playabilityStatus.liveStreamability
+                        ?.liveStreamabilityRenderer
+                        ?.offlineSlate
+                        ?.liveStreamOfflineSlateRenderer
+                        ?.scheduledStartTime
+                        ?.toLongOrNull()
+                        ?.times(1000L)
+                        // A start time in the past is a stream that already began: no countdown to show.
+                        ?.takeIf { it > nowMs }
+                val details =
+                    response.videoDetails?.let { video ->
+                        UpcomingDetails(
+                            title = video.title.orEmpty(),
+                            channelName = video.author.orEmpty(),
+                            channelId = video.channelId,
+                            thumbnailUrl =
+                                video.thumbnail
+                                    ?.thumbnails
+                                    ?.maxByOrNull { it.width ?: 0 }
+                                    ?.url
+                                    .orEmpty(),
+                            description = video.shortDescription.orEmpty(),
+                            isScheduledLive = video.isLiveContent == true,
+                        )
+                    }
+                return UpcomingPremiere(isUpcoming = true, scheduledStartMs = scheduledMs, details = details)
+            }
+
             internal fun pollOf(response: PlayerResponse): UpcomingPoll {
                 val renderer = response.playabilityStatus.liveStreamability?.liveStreamabilityRenderer
                 return UpcomingPoll(
@@ -120,16 +127,16 @@ class UpcomingPremiereProbe
                     streamingData?.adaptiveFormats?.isNotEmpty() == true
             }
 
+            /** Read from the status enum and `videoDetails.isUpcoming`; the reason text is translated. */
             private fun looksUpcoming(response: PlayerResponse): Boolean {
                 val status = response.playabilityStatus
-                val reason = status.reason.orEmpty()
                 return !hasMedia(response) && (
-                    status.status.equals("LIVE_STREAM_OFFLINE", ignoreCase = true) ||
-                        status.liveStreamability != null ||
-                        reason.contains("premiere", ignoreCase = true) ||
-                        reason.contains("will begin", ignoreCase = true) ||
-                        reason.contains("scheduled", ignoreCase = true)
+                    status.status.equals(LIVE_STREAM_OFFLINE, ignoreCase = true) ||
+                        response.videoDetails?.isUpcoming == true ||
+                        status.liveStreamability != null
                 )
             }
+
+            private const val LIVE_STREAM_OFFLINE = "LIVE_STREAM_OFFLINE"
         }
     }
