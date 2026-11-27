@@ -278,6 +278,26 @@ class CategoriesViewModelTest {
         }
 
     @Test
+    fun `a neighbour seen mid-swipe shows its cached page without fetching`() =
+        runTest(testDispatcher) {
+            every { YouTube.exploreDestination(any(), any()) } returns flowOf(pageOf("Live now"))
+            every { preferences.shortsContentEnabled } returns flowOf(true)
+            val viewModel = viewModel()
+            advanceUntilIdle()
+            viewModel.select(ExploreDestination.SPORTS)
+            advanceUntilIdle()
+
+            val live = viewModel.preview(ExploreDestination.LIVE)
+            val fashion = viewModel.preview(ExploreDestination.FASHION)
+
+            assertThat(live.shelves.mapNotNull(FeedShelf::title)).containsExactly("Live now")
+            assertThat(live.isLoading).isFalse()
+            assertThat(fashion.isLoading).isTrue()
+            verify(exactly = 0) { YouTube.exploreDestination(ExploreDestination.FASHION.browseId, any()) }
+            assertThat(viewModel.uiState.value.selected).isEqualTo(ExploreDestination.SPORTS)
+        }
+
+    @Test
     fun `a region change drops what the tabs had cached`() =
         runTest(testDispatcher) {
             every { YouTube.exploreDestination(any(), any()) } returns flowOf(pageOf("Live now"))
