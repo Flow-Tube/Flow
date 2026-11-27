@@ -22,6 +22,7 @@ import io.github.aedev.flow.player.stream.VideoCodecUtils
 import io.github.aedev.flow.player.stream.durationMs
 import io.github.aedev.flow.player.stream.playableAudioFormats
 import io.github.aedev.flow.player.stream.playableVideoFormats
+import io.github.aedev.flow.player.stream.selectAudioVariants
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -166,6 +167,7 @@ class ShortsStreamResolver internal constructor(
         val audioConfig = result.playerResponse.playerConfig?.audioConfig
         return result
             .playableAudioFormats()
+            .selectAudioVariants()
             .groupBy { it.audioTrack?.id ?: it.audioLanguageTag ?: "default" }
             .mapNotNull { (_, group) ->
                 val best = group.maxByOrNull { it.averageBitrate ?: it.bitrate } ?: return@mapNotNull null
