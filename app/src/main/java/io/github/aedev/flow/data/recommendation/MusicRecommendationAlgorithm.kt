@@ -264,7 +264,7 @@ class MusicRecommendationAlgorithm
                             val tracks =
                                 quickPicks.items
                                     .filterIsInstance<SongItem>()
-                                    .filterNot { it.isVideoSong }
+                                    .filterNot { it.isVideoTrack }
                                     .map { mapSongItem(it) }
                             if (tracks.isNotEmpty()) {
                                 Log.d(TAG, "Using Home Page Quick Picks: ${tracks.size}")
@@ -420,7 +420,7 @@ class MusicRecommendationAlgorithm
             seenIds: MutableSet<String>,
         ) {
             synchronized(seenIds) {
-                if (song.id !in seenIds && !song.isVideoSong) {
+                if (song.id !in seenIds && !song.isVideoTrack) {
                     seenIds.add(song.id)
                     candidates.add(mapSongItem(song))
                 }
@@ -438,7 +438,7 @@ class MusicRecommendationAlgorithm
                 views = parseViewCount(song.viewCountText),
                 album = song.album?.name ?: "",
                 isExplicit = song.explicit,
-                isVideoSong = song.isVideoSong,
+                isVideoSong = song.isVideoTrack,
                 albumId = song.album?.id,
                 artists = song.artists.map { MusicArtist(name = it.name, id = it.id) },
             )
@@ -451,7 +451,7 @@ class MusicRecommendationAlgorithm
                     if (searchResults != null) {
                         return@withContext searchResults.items
                             .filterIsInstance<SongItem>()
-                            .filterNot { it.isVideoSong }
+                            .filterNot { it.isVideoTrack }
                             .map { mapSongItem(it) }
                     }
                 } catch (e: Exception) {

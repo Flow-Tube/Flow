@@ -151,6 +151,6 @@ internal fun convertSongToMusicTrack(item: SongItem): MusicTrack =
         album = item.album?.name ?: "Unknown Album",
         channelId = item.artists.firstOrNull()?.id ?: "",
         isExplicit = item.explicit,
-        isVideoSong = item.isVideoSong,
+        isVideoSong = item.isVideoTrack,
         artists = item.artists.map { MusicArtist(it.name, it.id) },
     )

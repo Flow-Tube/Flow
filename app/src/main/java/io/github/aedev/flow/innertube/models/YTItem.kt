@@ -1,6 +1,8 @@
 package io.github.aedev.flow.innertube.models
 
-import io.github.aedev.flow.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
+import io.github.aedev.flow.innertube.models.MusicResponsiveListItemRenderer.Companion.MUSIC_VIDEO_TYPE_PODCAST_EPISODE
+import io.github.aedev.flow.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
+import io.github.aedev.flow.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_UGC
 
 sealed class YTItem {
     abstract val id: String
@@ -36,8 +38,19 @@ data class SongItem(
     val viewCountText: String? = null,
     val likeCountText: String? = null,
 ) : YTItem() {
+    /** An official or user-made music video; a song, an official audio upload and a podcast episode are not. */
     val isVideoSong: Boolean
-        get() = musicVideoType != null && musicVideoType != MUSIC_VIDEO_TYPE_ATV
+        get() = musicVideoType == MUSIC_VIDEO_TYPE_OMV || musicVideoType == MUSIC_VIDEO_TYPE_UGC
+
+    val isPodcastEpisode: Boolean
+        get() = musicVideoType == MUSIC_VIDEO_TYPE_PODCAST_EPISODE
+
+    /**
+     * What the music player's track calls a video: anything that must stay out of song shelves and
+     * audio-only pools. A podcast episode is no music video, but it is no song either.
+     */
+    val isVideoTrack: Boolean
+        get() = isVideoSong || isPodcastEpisode
 
     override val shareLink: String
         get() = "https://music.youtube.com/watch?v=$id"

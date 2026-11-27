@@ -31,4 +31,11 @@ class PlaybackSpeedPolicyTest {
         assertThat(PlaybackSpeedPolicy.isMusic(null, null, true)).isTrue()
         assertThat(PlaybackSpeedPolicy.isMusic(null, "Gaming", false)).isFalse()
     }
+
+    @Test
+    fun `a podcast episode is not music, even opened in the music player`() {
+        assertThat(PlaybackSpeedPolicy.isMusic("MUSIC_VIDEO_TYPE_PODCAST_EPISODE", null, true)).isFalse()
+        assertThat(PlaybackSpeedPolicy.isMusic("MUSIC_VIDEO_TYPE_PODCAST_EPISODE", "Music", false)).isFalse()
+        assertThat(PlaybackSpeedPolicy.isMusic("MUSIC_VIDEO_TYPE_ATV", null, false)).isTrue()
+    }
 }

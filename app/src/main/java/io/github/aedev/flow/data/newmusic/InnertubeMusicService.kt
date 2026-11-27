@@ -492,7 +492,7 @@ object InnertubeMusicService {
                         item.artists.map {
                             MusicArtist(it.name, it.id)
                         },
-                    isVideoSong = item.isVideoSong,
+                    isVideoSong = item.isVideoTrack,
                     views = parseCount(item.viewCountText),
                     likes = parseCount(item.likeCountText),
                 )
