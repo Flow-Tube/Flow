@@ -68,6 +68,10 @@ private fun JsonElement.selectedTabContent(): JsonElement =
         .firstNotNullOfOrNull { tab ->
             val renderer = tab.objectOrNull()?.get("tabRenderer").objectOrNull() ?: return@firstNotNullOfOrNull null
             if (renderer["selected"].stringOrNull() != "true") return@firstNotNullOfOrNull null
-            renderer["content"].objectOrNull()?.get("sectionListRenderer")
+            val content = renderer["content"].objectOrNull() ?: return@firstNotNullOfOrNull null
+            // Topic channels such as Music send an empty section list beside a rich grid of shelves.
+            content["sectionListRenderer"]?.takeIf { it.objectOrNull()?.get("contents") != null }
+                ?: content["richGridRenderer"]
+                ?: content["sectionListRenderer"]
         }
         ?: this
