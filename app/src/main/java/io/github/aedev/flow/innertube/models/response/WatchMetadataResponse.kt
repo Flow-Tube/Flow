@@ -1,10 +1,13 @@
 package io.github.aedev.flow.innertube.models.response
 
 import io.github.aedev.flow.data.model.VideoCollaborator
+import io.github.aedev.flow.innertube.pages.renderer.ContentSignals
 import io.github.aedev.flow.innertube.pages.renderer.collaboratorDialog
 import io.github.aedev.flow.utils.relativedate.RelativeUploadDateParser
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 
 @Serializable
@@ -96,14 +99,20 @@ data class WatchMetadataResponse(
         val compactVideoRenderer: CompactVideo? = null,
         val compactAutoplayRenderer: CompactAutoplay? = null,
         val itemSectionRenderer: ItemSection? = null,
-        val lockupViewModel: LockupViewModel? = null,
+        /** Kept raw: what the item is lives in badges and commands the typed model does not carry. */
+        val lockupViewModel: JsonObject? = null,
     ) {
         fun videos(hl: String? = null): List<CompactVideo> =
             buildList {
-                compactVideoRenderer?.let(::add)
+                compactVideoRenderer?.withContentSignals(hl)?.let(::add)
                 compactAutoplayRenderer?.contents?.flatMapTo(this) { it.videos(hl) }
                 itemSectionRenderer?.contents?.flatMapTo(this) { it.videos(hl) }
-                lockupViewModel?.toCompactVideo(hl)?.let(::add)
+                lockupViewModel
+                    ?.let { raw ->
+                        runCatching { lockupJson.decodeFromJsonElement(LockupViewModel.serializer(), raw) }
+                            .getOrNull()
+                            ?.toCompactVideo(hl, ContentSignals.of(raw))
+                    }?.let(::add)
             }
     }
 
@@ -130,11 +139,33 @@ data class WatchMetadataResponse(
         val resolvedChannelId: String? = null,
         val channelHandle: String? = null,
         val channelAvatarUrl: String? = null,
+        val badges: JsonArray? = null,
+        val thumbnailOverlays: JsonArray? = null,
+        val navigationEndpoint: JsonObject? = null,
         @Transient val collaborators: List<VideoCollaborator> = emptyList(),
+        @Transient val isShort: Boolean = false,
+        @Transient val membersOnlyText: String? = null,
     ) {
         fun channelId(): String? =
             resolvedChannelId
                 ?: longBylineText?.firstBrowseId()?.takeIf { it.startsWith("UC") }
+
+        internal fun withContentSignals(hl: String?): CompactVideo {
+            val renderer =
+                JsonObject(
+                    buildMap {
+                        badges?.let { put("badges", it) }
+                        thumbnailOverlays?.let { put("thumbnailOverlays", it) }
+                        navigationEndpoint?.let { put("navigationEndpoint", it) }
+                    },
+                )
+            val signals = ContentSignals.of(renderer)
+            return copy(
+                isLive = isLive || signals.isLive(hl) { viewCountText?.text().mentionsLiveViewers() },
+                isShort = isShort || signals.isShort,
+                membersOnlyText = membersOnlyText ?: signals.membersOnlyLabel,
+            )
+        }
     }
 
     @Serializable
@@ -144,7 +175,10 @@ data class WatchMetadataResponse(
         val contentImage: LockupContentImage? = null,
         val metadata: LockupMetadataWrap? = null,
     ) {
-        fun toCompactVideo(hl: String? = null): CompactVideo? {
+        internal fun toCompactVideo(
+            hl: String? = null,
+            signals: ContentSignals = ContentSignals.of(JsonObject(emptyMap())),
+        ): CompactVideo? {
             if (contentId.isNullOrBlank()) return null
             if (contentType != null && contentType != "LOCKUP_CONTENT_TYPE_VIDEO") return null
 
@@ -159,9 +193,7 @@ data class WatchMetadataResponse(
 
             fun MetadataPart.content(): String? = text?.content?.takeIf { it.isNotBlank() }
             val metadataTexts = metadataParts.mapNotNull { it.content() }
-            val live =
-                contentImage?.thumbnailViewModel?.hasLiveBadge() == true ||
-                    metadataTexts.any { it.contains("watching", ignoreCase = true) || it.contains("viewer", ignoreCase = true) }
+            val live = signals.isLive(hl) { metadataTexts.any { it.mentionsLiveViewers() } }
 
             // The view-count part is identified by its leading icon, not by its wording: the text is
             // a bare "342K" with no "views" in it, and every other row is localised.
@@ -224,6 +256,8 @@ data class WatchMetadataResponse(
                 channelHandle = avatar?.channelHandle(),
                 channelAvatarUrl = avatar?.avatarUrl() ?: lead?.thumbnailUrl,
                 collaborators = collaborators,
+                isShort = signals.isShort,
+                membersOnlyText = signals.membersOnlyLabel,
             )
         }
 
@@ -255,18 +289,6 @@ data class WatchMetadataResponse(
         val image: ThumbList? = null,
         val overlays: List<ThumbnailOverlay> = emptyList(),
     ) {
-        fun hasLiveBadge(): Boolean =
-            overlays.any { overlay ->
-                overlay.thumbnailOverlayBadgeViewModel
-                    ?.thumbnailBadges
-                    .orEmpty()
-                    .any { it.thumbnailBadgeViewModel?.isLive() == true } ||
-                    overlay.thumbnailBottomOverlayViewModel
-                        ?.badges
-                        .orEmpty()
-                        .any { it.thumbnailBadgeViewModel?.isLive() == true }
-            }
-
         fun durationText(): String? =
             overlays.firstNotNullOfOrNull { overlay ->
                 overlay.thumbnailOverlayBadgeViewModel
@@ -306,12 +328,7 @@ data class WatchMetadataResponse(
         val text: String? = null,
         val animatedText: String? = null,
         val badgeStyle: String? = null,
-    ) {
-        fun isLive(): Boolean =
-            badgeStyle?.contains("LIVE", ignoreCase = true) == true ||
-                text?.contains("live", ignoreCase = true) == true ||
-                animatedText?.contains("live", ignoreCase = true) == true
-    }
+    )
 
     @Serializable
     data class LockupMetadataWrap(
@@ -572,5 +589,10 @@ data class WatchMetadataResponse(
      */
     companion object {
         private const val VIEW_COUNT_ICON = "PLAY_ARROW_OUTLINED"
+
+        private val lockupJson = Json { ignoreUnknownKeys = true }
+
+        private fun String?.mentionsLiveViewers(): Boolean =
+            this?.contains("watching", ignoreCase = true) == true || this?.contains("viewer", ignoreCase = true) == true
     }
 }

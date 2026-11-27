@@ -320,8 +320,14 @@ class FeedItemParsersTest {
 
     @Test
     fun `a live lockup is marked live from its watching count`() {
+        val previous = YouTube.locale
+        YouTube.locale = YouTubeLocale(gl = "US", hl = "en")
         val parsed =
-            item(lockup("live1", "LOCKUP_CONTENT_TYPE_VIDEO", "The WAN Show", rows = row("32K watching")))
+            try {
+                item(lockup("live1", "LOCKUP_CONTENT_TYPE_VIDEO", "The WAN Show", rows = row("32K watching")))
+            } finally {
+                YouTube.locale = previous
+            }
 
         assertTrue((parsed as FeedItem.VideoItem).video.isLive)
     }

@@ -21,11 +21,6 @@ private const val PLAYLIST_PAGE_BROWSE_PREFIX = "VL"
 
 private const val LOCKUP_CONTENT_TYPE_COURSE = "LOCKUP_CONTENT_TYPE_COURSE"
 
-// A channel's Home tab lists the reels it collaborated on as plain video lockups of this type.
-private const val LOCKUP_CONTENT_TYPE_SHORT = "LOCKUP_CONTENT_TYPE_SHORT"
-
-private const val LIVE_BADGE_STYLE = "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE"
-
 internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
     val contentId = this["contentId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
     val metadata = this["metadata"].objectOrNull()?.get("lockupMetadataViewModel").objectOrNull()
@@ -37,7 +32,7 @@ internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
     val itemOwner = byline?.let { owner.copy(id = it.id, name = it.name, avatarUrl = it.avatarUrl, handle = it.handle) } ?: owner
     val parts = metadata.metadataParts().filterNot { it == byline?.name }
     val badges = lockupBadges()
-    val membersOnly = metadata.membersOnlyBadge()
+    val signals = ContentSignals.of(this)
 
     val contentType = this["contentType"].stringOrNull()
     return when (contentType) {
@@ -71,15 +66,15 @@ internal fun JsonObject.toLockupItem(owner: FeedItemOwner): FeedItem? {
 
         "LOCKUP_CONTENT_TYPE_SHORTS" -> {
             FeedItem.ShortItem(
-                lockupVideo(contentId, title, parts, badges, itemOwner, collaborators).copy(isShort = true, duration = 0),
+                lockupVideo(contentId, title, parts, badges, signals, itemOwner, collaborators).copy(isShort = true, duration = 0),
             )
         }
 
         else -> {
             FeedItem.VideoItem(
-                lockupVideo(contentId, title, parts, badges, itemOwner, collaborators).copy(
-                    membersOnlyText = membersOnly,
-                    isShort = contentType == LOCKUP_CONTENT_TYPE_SHORT,
+                lockupVideo(contentId, title, parts, badges, signals, itemOwner, collaborators).copy(
+                    membersOnlyText = signals.membersOnlyLabel,
+                    isShort = signals.isShort,
                 ),
             )
         }
@@ -91,16 +86,17 @@ private fun JsonObject.lockupVideo(
     title: String,
     parts: List<String>,
     badges: List<String>,
+    signals: ContentSignals,
     owner: FeedItemOwner,
     collaborators: List<VideoCollaborator>,
 ): Video {
-    val (viewsText, uploadText, uploadTimestamp) = lockupDateAndViews(parts, YouTube.locale.hl)
+    val hl = YouTube.locale.hl
+    val (viewsText, uploadText, uploadTimestamp) = lockupDateAndViews(parts, hl)
     val duration = badges.firstNotNullOfOrNull(::parseDurationText) ?: 0
-    // The badge's style says live in every language; its text ("LIVE", "EN DIRECTO") is translated.
     val isLive =
-        lockupBadgeModels().any { it["badgeStyle"].stringOrNull() == LIVE_BADGE_STYLE } ||
-            viewsText?.contains("watching", ignoreCase = true) == true ||
-            badges.any { it.marksLive() }
+        signals.isLive(hl) {
+            viewsText?.contains("watching", ignoreCase = true) == true || badges.any { it.marksLive() }
+        }
     // A stream that has not started carries a badge that is neither a duration nor LIVE ("Upcoming"),
     // and its date row is the scheduled start, already rendered by the server.
     val isUpcoming = !isLive && duration == 0 && badges.any { it.marksUpcoming() }
@@ -155,18 +151,6 @@ private fun List<VideoCollaborator>.bylineOwner(parts: List<String>): FeedItemOw
     val lead = firstOrNull() ?: return null
     val name = parts.firstOrNull { lead.name in it } ?: return null
     return FeedItemOwner(id = lead.channelId, name = name, avatarUrl = lead.thumbnailUrl)
-}
-
-/** Members-only videos carry the badge instead of a view count, which is why their views row is bare. */
-private fun JsonObject?.membersOnlyBadge(): String? {
-    var label: String? = null
-    this?.forEachObject { node ->
-        if (label != null) return@forEachObject
-        val badge = node["badgeViewModel"].objectOrNull() ?: return@forEachObject
-        if (badge["badgeStyle"].stringOrNull() != "BADGE_MEMBERS_ONLY") return@forEachObject
-        label = badge["badgeText"].youtubeText()?.takeIf(String::isNotBlank)
-    }
-    return label
 }
 
 /** The first metadata part that links to a channel, as the owner it names. */

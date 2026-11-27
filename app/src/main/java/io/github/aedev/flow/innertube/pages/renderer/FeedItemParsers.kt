@@ -77,20 +77,15 @@ private fun JsonObject.toVideoRendererItem(owner: FeedItemOwner): FeedItem? {
     val title = this["title"].youtubeText()?.takeIf(String::isNotBlank) ?: return null
     val viewsText = this["viewCountText"].youtubeText()
     val uploadText = this["publishedTimeText"].youtubeText().orEmpty()
-    val upcomingStartMs =
-        this["upcomingEventData"]
-            .objectOrNull()
-            ?.get("startTime")
-            .stringOrNull()
-            ?.toLongOrNull()
-            ?.times(1000L)
-    val timeStatus = this["thumbnailOverlays"].timeStatusStyle()
+    val hl = YouTube.locale.hl
+    val signals = ContentSignals.of(this)
     val badges = this["badges"].metadataBadges()
     val (snippet, highlights) = this["detailedMetadataSnippets"].matchedSnippet()
-    val isLive = timeStatus == TIME_STATUS_LIVE || this["badges"].hasLiveBadge() || viewsText.mentionsWatching()
-    val isUpcoming = upcomingStartMs != null
+    val isLive = signals.isLive(hl) { viewsText?.contains("watching", ignoreCase = true) == true }
+    val isUpcoming = !isLive && signals.liveState == LiveState.UPCOMING
+    val upcomingStartMs = signals.scheduledStart?.takeIf { isUpcoming }?.times(1000L)
     val collaborators = videoRendererCollaborators()
-    val isShort = timeStatus == TIME_STATUS_SHORTS || opensReelPlayer()
+    val isShort = signals.isShort
     val video =
         Video(
             id = videoId,
@@ -108,13 +103,14 @@ private fun JsonObject.toVideoRendererItem(owner: FeedItemOwner): FeedItem? {
             // date it has none of. An upcoming row's "1 waiting" is nobody's view count, so it goes.
             viewCount = if (isUpcoming) 0L else parseYouTubeViewCount(viewsText),
             uploadDate = upcomingStartMs?.let(::premiereDateText) ?: uploadText,
-            timestamp = upcomingStartMs ?: RelativeUploadDateParser.parse(uploadText, YouTube.locale.hl) ?: 0L,
+            timestamp = upcomingStartMs ?: RelativeUploadDateParser.parse(uploadText, hl) ?: 0L,
             channelThumbnailUrl = bylineAvatarUrl() ?: owner.avatarUrl,
             channelThumbnailUrls = collaborators.avatarUrls(),
             collaborators = collaborators,
             isLive = isLive,
             isUpcoming = isUpcoming,
             isShort = isShort,
+            membersOnlyText = signals.membersOnlyLabel,
             isVerifiedChannel = this["ownerBadges"].hasVerifiedBadge(),
             badges = badges,
             snippet = snippet,
@@ -134,31 +130,6 @@ private fun JsonObject.toVideoRendererItem(owner: FeedItemOwner): FeedItem? {
     return if (isShort) FeedItem.ShortItem(video) else FeedItem.VideoItem(video)
 }
 
-/** A Short can arrive as a plain video row, and then tapping it opens the reel player, not the watch page. */
-private fun JsonObject.opensReelPlayer(): Boolean {
-    val endpoint = this["navigationEndpoint"].objectOrNull() ?: return false
-    return endpoint["reelWatchEndpoint"] != null ||
-        endpoint["commandMetadata"]
-            .objectOrNull()
-            ?.get("webCommandMetadata")
-            .objectOrNull()
-            ?.get("webPageType")
-            .stringOrNull() == "WEB_PAGE_TYPE_SHORTS"
-}
-
-/**
- * The explore destinations ship live rows with no `badges` array at all, so the overlay is the only
- * signal that survives a locale where "watching" is not the word.
- */
-private fun JsonElement?.timeStatusStyle(): String? =
-    arrayOrNull()
-        .orEmpty()
-        .firstNotNullOfOrNull { it.objectOrNull()?.get("thumbnailOverlayTimeStatusRenderer").objectOrNull() }
-        ?.get("style")
-        .stringOrNull()
-
-private fun String?.mentionsWatching(): Boolean = this?.contains("watching", ignoreCase = true) == true
-
 private fun JsonObject.videoRendererCollaborators(): List<VideoCollaborator> =
     listOf("ownerText", "shortBylineText", "longBylineText", "avatar")
         .firstNotNullOfOrNull { key -> this[key].collaboratorDialog().takeIf { it.isNotEmpty() } }
@@ -168,9 +139,6 @@ private fun JsonObject.videoRendererCollaborators(): List<VideoCollaborator> =
 private fun JsonObject.bylineName(): String? =
     listOf("ownerText", "shortBylineText", "longBylineText")
         .firstNotNullOfOrNull { this[it].youtubeText()?.takeIf(String::isNotBlank) }
-
-private const val TIME_STATUS_LIVE = "LIVE"
-private const val TIME_STATUS_SHORTS = "SHORTS"
 
 private fun JsonObject.toPlaylistRendererItem(): FeedItem? {
     val playlistId = this["playlistId"].stringOrNull()?.takeIf(String::isNotBlank) ?: return null
@@ -314,12 +282,6 @@ private fun JsonElement?.hasVerifiedBadge(): Boolean =
         .orEmpty()
         .mapNotNull { it.objectOrNull()?.get("metadataBadgeRenderer").objectOrNull() }
         .any { it["style"].stringOrNull()?.contains("VERIFIED") == true }
-
-private fun JsonElement?.hasLiveBadge(): Boolean =
-    arrayOrNull()
-        .orEmpty()
-        .mapNotNull { it.objectOrNull()?.get("metadataBadgeRenderer").objectOrNull() }
-        .any { it["style"].stringOrNull() == "BADGE_STYLE_TYPE_LIVE_NOW" }
 
 /** The runs YouTube marked `bold` are the query terms it matched; the UI emphasises those ranges. */
 private fun JsonElement?.matchedSnippet(): Pair<String, List<IntRange>> {

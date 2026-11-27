@@ -48,7 +48,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -881,12 +880,6 @@ internal fun parseDurationTextToSeconds(text: String?): Int {
     }
 }
 
-internal fun String?.isLiveViewCountText(): Boolean {
-    if (isNullOrBlank()) return false
-    val lower = lowercase(Locale.US)
-    return lower.contains("watching") || lower.contains("viewer")
-}
-
 /**
  * Process-lifetime memo for video categories. Separate from the repository so the keep/skip rules
  * can be exercised without standing one up; a category never changes, so there is no TTL.
@@ -929,7 +922,6 @@ internal object WatchMetadataVideoMapper {
         resp.relatedVideos(YouTube.locale.hl).mapNotNull { cv ->
             val id = cv.videoId ?: return@mapNotNull null
             val viewText = cv.viewCountText?.text()
-            val isLive = cv.isLive || viewText.isLiveViewCountText()
             val uploadDateText = cv.publishedTimeText?.text() ?: ""
             Video(
                 id = id,
@@ -943,14 +935,16 @@ internal object WatchMetadataVideoMapper {
                     cv.channelAvatarUrl?.let(ThumbnailUrlResolver::resolveChannelAvatar).orEmpty(),
                 channelThumbnailUrls = cv.collaborators.map { it.thumbnailUrl }.filter { it.isNotBlank() },
                 collaborators = cv.collaborators,
-                duration = if (isLive) 0 else parseDurationTextToSeconds(cv.lengthText?.text()),
+                duration = if (cv.isLive) 0 else parseDurationTextToSeconds(cv.lengthText?.text()),
                 viewCount = parseYouTubeViewCount(viewText),
                 uploadDate = uploadDateText,
                 // Video.timestamp defaults to now(), which made every related item
                 // look brand new — defeating the age filter and shorts-shelf sort.
                 // Parse the real age; 0 means unknown (callers fall back to text).
                 timestamp = RelativeUploadDateParser.parse(uploadDateText, YouTube.locale.hl) ?: 0L,
-                isLive = isLive,
+                isLive = cv.isLive,
+                isShort = cv.isShort,
+                membersOnlyText = cv.membersOnlyText,
                 channelHandle = cv.channelHandle,
             )
         }
