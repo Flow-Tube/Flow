@@ -17,6 +17,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,8 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -34,6 +37,15 @@ class MusicSearchHistoryTest {
     private val testDispatcher = StandardTestDispatcher()
     private val history: SearchHistoryRepository = mockk(relaxed = true)
     private var deepFlow = false
+
+    /**
+     * The summary request runs on the real network pool. A test that ends before it is made can
+     * have it land while the next test has re-mocked YouTube but not stubbed it yet, failing that
+     * test; each test waits for it instead.
+     */
+    private val summaryRequested = CompletableDeferred<Unit>()
+
+    private suspend fun awaitSummaryRequest() = withContext(Dispatchers.Default) { withTimeout(5_000) { summaryRequested.await() } }
 
     /**
      * The ViewModel loads on the app's own pools, so its work can outlive the test. Clearing it
@@ -62,7 +74,10 @@ class MusicSearchHistoryTest {
         every { history.getSearchHistoryFlow(any()) } returns flowOf(emptyList())
         mockkObject(InnertubeMusicService, YouTube)
         coEvery { InnertubeMusicService.fetchMoodAndGenres() } returns emptyList()
-        coEvery { YouTube.searchSummary(any()) } returns Result.failure(IllegalStateException("offline"))
+        coEvery { YouTube.searchSummary(any()) } answers {
+            summaryRequested.complete(Unit)
+            Result.failure(IllegalStateException("offline"))
+        }
     }
 
     @After
@@ -77,6 +92,7 @@ class MusicSearchHistoryTest {
         runTest(testDispatcher) {
             viewModel().performSearch("  raga  ", SearchType.TEXT)
             testDispatcher.scheduler.runCurrent()
+            awaitSummaryRequest()
 
             coVerify(exactly = 1) { history.saveSearchQuery("raga", SearchType.TEXT, SearchHistoryScope.MUSIC) }
         }
@@ -87,6 +103,7 @@ class MusicSearchHistoryTest {
             deepFlow = true
             viewModel().performSearch("raga", SearchType.TEXT)
             testDispatcher.scheduler.runCurrent()
+            awaitSummaryRequest()
 
             coVerify(exactly = 0) { history.saveSearchQuery(any(), any(), any(), any()) }
         }
