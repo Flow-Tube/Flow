@@ -2,7 +2,7 @@ package io.github.aedev.flow.player.dlna
 
 import io.github.aedev.flow.innertube.models.response.PlayerResponse
 import io.github.aedev.flow.player.RepeatMode
-import io.github.aedev.flow.player.stream.preferNonDrc
+import io.github.aedev.flow.player.stream.selectAudioVariants
 
 /** What a renderer reported when the phone last asked: its transport state and where it was, in ms. */
 internal data class CastStatus(
@@ -74,7 +74,7 @@ internal object CastQueuePolicy {
         formats: List<PlayerResponse.StreamingData.Format>,
         playing: PlayerResponse.StreamingData.Format?,
     ): PlayerResponse.StreamingData.Format? {
-        val aac = formats.filter { it.mimeType.startsWith("audio/mp4") && !it.url.isNullOrEmpty() }.preferNonDrc()
+        val aac = formats.filter { it.mimeType.startsWith("audio/mp4") && !it.url.isNullOrEmpty() }.selectAudioVariants()
         val sameTrack = aac.filter { it.audioTrack?.id == playing?.audioTrack?.id }.ifEmpty { aac }
         return sameTrack.maxByOrNull { it.bitrate }
     }

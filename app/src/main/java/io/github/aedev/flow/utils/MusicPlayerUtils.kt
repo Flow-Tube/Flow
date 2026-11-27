@@ -14,7 +14,7 @@ import io.github.aedev.flow.player.stream.ClientGateTracker
 import io.github.aedev.flow.player.stream.InnerTubeVideoStreamExtractor
 import io.github.aedev.flow.player.stream.PlaybackBlockedException
 import io.github.aedev.flow.player.stream.VideoUnavailableException
-import io.github.aedev.flow.player.stream.preferNonDrc
+import io.github.aedev.flow.player.stream.selectAudioVariants
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -195,7 +195,7 @@ object MusicPlayerUtils {
         val audioFormats =
             formats
                 .filter { format -> format.audioTrack?.isAutoDubbed != true && !format.url.isNullOrEmpty() }
-                .preferNonDrc()
+                .selectAudioVariants()
 
         if (audioFormats.isEmpty()) {
             Log.d(TAG, "No audio formats found")
