@@ -1,10 +1,12 @@
 package io.github.aedev.flow.ui.screens.settings.scrobbling
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Webhook
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,14 +22,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.scrobble.ScrobbleService
 import io.github.aedev.flow.data.scrobble.ScrobbleSettings
+import io.github.aedev.flow.data.scrobble.ScrobbleWebhook
 import io.github.aedev.flow.ui.components.settings.SettingsGroupScope
 import io.github.aedev.flow.ui.components.settings.SettingsPage
 import io.github.aedev.flow.ui.components.settings.nav
 import io.github.aedev.flow.ui.components.settings.switch
 import io.github.aedev.flow.ui.components.shared.FlowNavRow
 import io.github.aedev.flow.ui.screens.settings.index.ScrobblingIndex
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-/** Last.fm, Libre.fm and ListenBrainz accounts, the viewer's own Last.fm key, and what gets sent. */
+/** Last.fm, Libre.fm and ListenBrainz accounts, webhooks, the viewer's own Last.fm key, and what gets sent. */
 @Composable
 internal fun ScrobblingScreen(
     onBack: (() -> Unit)?,
@@ -42,6 +46,7 @@ internal fun ScrobblingScreen(
     LaunchedEffect(viewModel) { viewModel.messages.collect { snackbarHostState.showSnackbar(it) } }
     var dialog by rememberSaveable { mutableStateOf<ScrobbleDialogKind?>(null) }
     var dialogService by rememberSaveable { mutableStateOf(ScrobbleService.LASTFM) }
+    var dialogWebhookId by rememberSaveable { mutableStateOf<String?>(null) }
     val waiting = settings.pending.values.sum()
     val waitingLabel = pluralStringResource(R.plurals.scrobbling_waiting, waiting, waiting)
 
@@ -96,6 +101,23 @@ internal fun ScrobblingScreen(
                 }
             }
         }
+        group(key = "scrobbling.webhooks", header = R.string.scrobbling_webhooks, footer = R.string.scrobbling_webhooks_footer) {
+            settings.webhooks.forEach { webhook ->
+                webhookRow(webhook) {
+                    dialogWebhookId = webhook.id
+                    dialog = ScrobbleDialogKind.WEBHOOK
+                }
+            }
+            nav(
+                ScrobblingIndex.addWebhook,
+                icon = Icons.Outlined.Add,
+                showChevron = false,
+                onClick = {
+                    dialogWebhookId = null
+                    dialog = ScrobbleDialogKind.WEBHOOK
+                },
+            )
+        }
         group(key = "scrobbling.options", header = R.string.scrobbling_options) {
             switch(ScrobblingIndex.nowPlaying, settings.nowPlaying, viewModel::setNowPlaying)
             switch(ScrobblingIndex.sendLikes, settings.sendLikes, viewModel::setSendLikes)
@@ -132,6 +154,16 @@ internal fun ScrobblingScreen(
 
         ScrobbleDialogKind.OWN_KEY -> {
             OwnKeyDialog(settings.ownKeys, onSave = { viewModel.setOwnKeys(true, it) }, onDismiss = { dialog = null })
+        }
+
+        ScrobbleDialogKind.WEBHOOK -> {
+            val editing = dialogWebhookId?.let { id -> settings.webhooks.firstOrNull { it.id == id } }
+            WebhookDialog(
+                current = editing,
+                onSave = { name, url -> viewModel.saveWebhook(dialogWebhookId, name, url) },
+                onDelete = { editing?.let { viewModel.removeWebhook(it.id) } },
+                onDismiss = { dialog = null },
+            )
         }
 
         null -> {
@@ -171,6 +203,23 @@ private fun SettingsGroupScope.account(
             showChevron = false,
             shape = shape,
             onClick = { onOpen(if (account != null) ScrobbleDialogKind.SIGN_OUT else ScrobbleDialogKind.SIGN_IN) },
+        )
+    }
+}
+
+private fun SettingsGroupScope.webhookRow(
+    webhook: ScrobbleWebhook,
+    onClick: () -> Unit,
+) {
+    row("scrobbling.webhook.${webhook.id}") { shape ->
+        val host = webhook.url.toHttpUrlOrNull()?.host ?: webhook.url
+        FlowNavRow(
+            title = webhook.name.ifBlank { host },
+            supportingText = host,
+            leadingIcon = Icons.Outlined.Webhook,
+            showChevron = false,
+            shape = shape,
+            onClick = onClick,
         )
     }
 }
