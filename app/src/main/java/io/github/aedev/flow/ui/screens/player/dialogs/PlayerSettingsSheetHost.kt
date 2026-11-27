@@ -133,6 +133,7 @@ internal fun PlayerSettingsSheetHost(
         onAutoplayToggle = { viewModel.toggleAutoplay(it) },
         onSkipSilenceToggle = { viewModel.toggleSkipSilence(it) },
         onVolumeNormalizationToggle = { viewModel.toggleVolumeNormalization(it) },
+        onStableVolumeToggle = { scope.launch { playerPreferences.setVideoStableVolume(it) } },
         subtitleStyle = screenState.subtitleStyle,
         onSubtitleStyleChange = { style ->
             screenState.subtitleStyle = style

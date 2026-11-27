@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material.icons.outlined.MoreTime
+import androidx.compose.material.icons.rounded.Compress
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.runtime.Composable
@@ -40,7 +41,7 @@ private const val PLAYBACK_ROWS = 3
 private const val AUDIO_ROWS = 1
 private const val CAPTION_ROWS = 2
 private const val OVERLAY_ROWS = 3
-private const val EFFECT_ROWS = 3
+private const val EFFECT_ROWS = 4
 private const val DISPLAY_ROWS = 2
 
 @Composable
@@ -59,6 +60,7 @@ internal fun PlayerSettingsMainPage(
     onSkipSilenceToggle: (Boolean) -> Unit,
     onVolumeNormalizationToggle: (Boolean) -> Unit,
     onAmbientModeToggle: (Boolean) -> Unit,
+    onStableVolumeToggle: (Boolean) -> Unit = {},
     ambientGlowEnabled: Boolean? = null,
     onAmbientGlowToggle: (Boolean) -> Unit = {},
     sponsorBlockSegmentCount: Int = 0,
@@ -223,6 +225,16 @@ internal fun PlayerSettingsMainPage(
             checked = playerState.isVolumeNormalizationEnabled,
             shape = flowRowGroupShape(2, EFFECT_ROWS),
             onCheckedChange = onVolumeNormalizationToggle,
+        )
+        FlowSwitchRow(
+            leadingIcon = Icons.Rounded.Compress,
+            title = stringResource(R.string.player_settings_stable_volume),
+            supportingText =
+                stringResource(R.string.player_settings_stable_volume_unavailable).takeUnless { playerState.isStableVolumeAvailable },
+            checked = playerState.isStableVolumeEnabled,
+            enabled = playerState.isStableVolumeAvailable,
+            shape = flowRowGroupShape(3, EFFECT_ROWS),
+            onCheckedChange = onStableVolumeToggle,
         )
     }
 

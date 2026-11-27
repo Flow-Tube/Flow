@@ -79,6 +79,7 @@ internal fun SettingsListScope.playbackSections(
             valueText = { equalizerSummary() },
         )
         switch(PlaybackIndex.normalizeVolume, viewModel.normalizeVolume, viewModel::setNormalizeVolume)
+        switch(PlaybackIndex.stableVolume, viewModel.stableVolume, viewModel::setStableVolume)
     }
     group(key = "playback.speed", header = R.string.settings_section_speed) {
         switch(PlaybackIndex.rememberSpeed, viewModel.rememberSpeed, viewModel::setRememberSpeed)

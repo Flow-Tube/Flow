@@ -121,14 +121,15 @@ class ShortsStreamResolver internal constructor(
     ): ShortPlaybackStreams? {
         ShortsStartupTrace.onRequested(videoId)
         val codecKey = playerPreferences.videoCodecPriority.first()
-        val key = "$videoId|$targetHeight|$preferredAudioLanguage|$codecKey"
+        val stableVolume = playerPreferences.videoStableVolume.first()
+        val key = "$videoId|$targetHeight|$preferredAudioLanguage|$codecKey|$stableVolume"
         cached(streams, key)?.let {
             ShortsStartupTrace.onStreamsResolved(videoId, cached = true, strategy = "cache")
             return it
         }
         return streamCoalescer.run(key) {
             val result = extraction(videoId) ?: return@run null
-            val resolved = result.toPlaybackStreams(targetHeight, preferredAudioLanguage, codecKey) ?: return@run null
+            val resolved = result.toPlaybackStreams(targetHeight, preferredAudioLanguage, codecKey, stableVolume) ?: return@run null
             synchronized(streams) { streams[key] = Expiring(resolved, expiryOf(result)) }
             ShortsStartupTrace.onStreamsResolved(videoId, cached = false, strategy = result.usedClient.clientName)
             resolved
@@ -165,9 +166,10 @@ class ShortsStreamResolver internal constructor(
         val result = extraction(videoId) ?: return emptyList()
         val durationMs = result.durationMs()
         val audioConfig = result.playerResponse.playerConfig?.audioConfig
+        val stableVolume = playerPreferences.videoStableVolume.first()
         return result
             .playableAudioFormats()
-            .selectAudioVariants()
+            .selectAudioVariants(stableVolume)
             .groupBy { it.audioTrack?.id ?: it.audioLanguageTag ?: "default" }
             .mapNotNull { (_, group) ->
                 val best = group.maxByOrNull { it.averageBitrate ?: it.bitrate } ?: return@mapNotNull null
@@ -231,11 +233,12 @@ class ShortsStreamResolver internal constructor(
         targetHeight: Int,
         preferredAudioLanguage: String,
         codecKey: String,
+        stableVolume: Boolean,
     ): ShortPlaybackStreams? {
         val videoFormats = playableVideoFormats()
         val video = selectShortVideoFormat(videoFormats, targetHeight, codecKey) ?: return null
         val videoUrl = video.url ?: return null
-        val audio = selectShortAudioFormat(playableAudioFormats(), preferredAudioLanguage)
+        val audio = selectShortAudioFormat(playableAudioFormats(), preferredAudioLanguage, stableVolume)
         val durationMs = durationMs()
         return ShortPlaybackStreams(
             videoUrl = videoUrl,

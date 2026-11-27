@@ -174,6 +174,14 @@ internal object PlaybackIndex {
             section = R.string.eq_settings_section,
             destination = page,
         )
+    val stableVolume =
+        SettingEntry(
+            key = "playback.stable_volume",
+            title = R.string.player_settings_stable_volume,
+            summary = R.string.player_settings_stable_volume_summary,
+            section = R.string.eq_settings_section,
+            destination = page,
+        )
     val castButton =
         SettingEntry(
             key = "playback.cast_button",
@@ -470,6 +478,7 @@ internal object PlaybackIndex {
             playDuringCalls,
             pauseVideoWhenMuted,
             normalizeVolume,
+            stableVolume,
             rememberSpeed,
             musicNormalSpeed,
             speedPerChannel,
