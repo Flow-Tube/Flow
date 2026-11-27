@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.categories
 
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
+import io.github.aedev.flow.data.local.ExploreStartCategory
 import io.github.aedev.flow.data.local.PlayerPreferences
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.innertube.YouTube
@@ -11,6 +12,7 @@ import io.github.aedev.flow.innertube.pages.explore.ExploreSectionKind
 import io.github.aedev.flow.innertube.pages.explore.MusicVideoChart
 import io.github.aedev.flow.innertube.pages.renderer.FeedShelf
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -38,6 +40,8 @@ class CategoriesViewModelTest {
         mockk(relaxed = true) {
             every { categoriesIsListView } returns flowOf(false)
             every { trendingRegion } returns flowOf("US")
+            every { exploreStartCategory } returns flowOf(ExploreStartCategory.LAST)
+            every { exploreLastCategory } returns flowOf(null)
         }
 
     private val repository: YouTubeRepository = mockk(relaxed = true)
@@ -70,6 +74,56 @@ class CategoriesViewModelTest {
 
             assertThat(state.selected).isEqualTo(CATEGORY_TABS.first().destination)
             assertThat(state.isLoading).isTrue()
+        }
+
+    @Test
+    fun `a cold start fetches only the category visited last`() =
+        runTest(testDispatcher) {
+            every { preferences.exploreLastCategory } returns flowOf(ExploreDestination.SPORTS.name)
+
+            val viewModel = viewModel()
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.selected).isEqualTo(ExploreDestination.SPORTS)
+            verify(exactly = 1) { YouTube.exploreDestination(ExploreDestination.SPORTS.browseId, any()) }
+            verify(exactly = 0) { YouTube.exploreDestination(ExploreDestination.LIVE.browseId, any()) }
+        }
+
+    @Test
+    fun `a chosen start category wins over the last one`() =
+        runTest(testDispatcher) {
+            every { preferences.exploreStartCategory } returns flowOf(ExploreStartCategory.NEWS)
+            every { preferences.exploreLastCategory } returns flowOf(ExploreDestination.SPORTS.name)
+
+            val viewModel = viewModel()
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.selected).isEqualTo(ExploreDestination.NEWS)
+        }
+
+    @Test
+    fun `a tab tapped before the start category is read is kept`() =
+        runTest(testDispatcher) {
+            every { preferences.exploreLastCategory } returns flowOf(ExploreDestination.SPORTS.name)
+            val viewModel = viewModel()
+
+            viewModel.select(ExploreDestination.MUSIC)
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.selected).isEqualTo(ExploreDestination.MUSIC)
+            verify(exactly = 0) { YouTube.exploreDestination(ExploreDestination.SPORTS.browseId, any()) }
+        }
+
+    @Test
+    fun `selecting a tab remembers it as the last category`() =
+        runTest(testDispatcher) {
+            val viewModel = viewModel()
+            advanceUntilIdle()
+
+            viewModel.select(ExploreDestination.GAMING)
+            advanceUntilIdle()
+
+            coVerify { preferences.setExploreLastCategory(ExploreDestination.GAMING.name) }
         }
 
     @Test

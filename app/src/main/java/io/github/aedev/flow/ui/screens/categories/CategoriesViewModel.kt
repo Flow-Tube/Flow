@@ -77,7 +77,7 @@ class CategoriesViewModel
         private val preferences: PlayerPreferences,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
-        private val _uiState = MutableStateFlow(CategoriesUiState())
+        private val _uiState = MutableStateFlow(CategoriesUiState(isLoading = true))
         val uiState: StateFlow<CategoriesUiState> = _uiState.asStateFlow()
 
         /** The shelves to draw: [CategoriesUiState.shelves] without Shorts while they are switched off (#1507). */
@@ -151,15 +151,24 @@ class CategoriesViewModel
 
         private var loadJob: Job? = null
 
+        /** Set once anything has been loaded, so a tap during the start read is not overridden. */
+        private var started = false
+
         init {
             viewModelScope.launch {
                 _uiState.update { it.copy(isListView = preferences.categoriesIsListView.first()) }
             }
-            load(CATEGORY_TABS.first().destination)
+            viewModelScope.launch {
+                val start = exploreStartDestination(preferences.exploreStartCategory.first(), preferences.exploreLastCategory.first())
+                if (started) return@launch
+                _uiState.update { it.copy(selected = start) }
+                load(start)
+            }
         }
 
         fun select(destination: ExploreDestination) {
             if (_uiState.value.selected == destination) return
+            viewModelScope.launch { preferences.setExploreLastCategory(destination.name) }
             _uiState.update {
                 CategoriesUiState(
                     selected = destination,
@@ -221,6 +230,7 @@ class CategoriesViewModel
             params: String? = destination.params,
         ) {
             loadJob?.cancel()
+            started = true
             val key = CacheKey(destination, params)
             val cached = cache[key]
             _uiState.update {
@@ -381,5 +391,5 @@ private const val PAGE_SIZE = 20
 private const val PREFETCH_DISTANCE = 6
 private const val SUBSCRIPTION_GRACE_MS = 5_000L
 private const val CACHE_TTL_MS = 5 * 60 * 1000L
-private const val CACHE_ENTRIES = 4
+private const val CACHE_ENTRIES = 7
 private const val CACHE_LOAD_FACTOR = 0.75f
