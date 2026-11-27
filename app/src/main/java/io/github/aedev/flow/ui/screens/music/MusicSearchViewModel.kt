@@ -48,7 +48,7 @@ class MusicSearchViewModel
         private val privacyGate: PrivacyGate,
         @ApplicationContext private val context: Context,
         private val aiList: AiListRepository,
-        preferences: PlayerPreferences,
+        private val preferences: PlayerPreferences,
     ) : ViewModel() {
         /** Deep Flow asks the keyboard not to learn what is typed here. */
         val deepFlowActive: StateFlow<Boolean> =
@@ -56,6 +56,8 @@ class MusicSearchViewModel
 
         private val _query = MutableStateFlow("")
         val query: StateFlow<String> = _query.asStateFlow()
+
+        suspend fun opensKeyboard(): Boolean = preferences.searchAutoKeyboard.first()
 
         val matchingHistory: StateFlow<List<SearchHistoryItem>> =
             combine(searchHistory.getSearchHistoryFlow(SearchHistoryScope.MUSIC), _query) { history, typed ->

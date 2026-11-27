@@ -57,4 +57,27 @@ class SkeletonPulseTest {
         assertEquals(0f, skeletonPulseAt(100f, 1200, 120), 0f)
         assertEquals(0f, skeletonPulseAt(120f, 1200, 120), 0f)
     }
+
+    @Test
+    fun `the sweep runs from 0 to 1 once per period`() {
+        assertEquals(0f, skeletonSweepAt(0f, 1500), 0f)
+        assertEquals(0.5f, skeletonSweepAt(750f, 1500), 1e-6f)
+        assertEquals(0f, skeletonSweepAt(1500f, 1500), 1e-6f)
+        assertEquals(0.2f, skeletonSweepAt(4800f, 1500), 1e-4f)
+    }
+
+    @Test
+    fun `a parked clock leaves the band past the end`() {
+        assertEquals(1f, skeletonSweepAt(SKELETON_CLOCK_SPAN_MILLIS.toFloat(), 1500), 0f)
+        assertEquals(1060f, skeletonSweepCentre(1f, span = 1000f, halfWidth = 60f), 1e-3f)
+    }
+
+    @Test
+    fun `the band enters and leaves the span whole`() {
+        val span = 1000f
+        val halfWidth = 60f
+        assertEquals(-halfWidth, skeletonSweepCentre(0f, span, halfWidth), 1e-3f)
+        assertEquals(span / 2f, skeletonSweepCentre(0.5f, span, halfWidth), 1e-3f)
+        assertEquals(span + halfWidth, skeletonSweepCentre(1f, span, halfWidth), 1e-3f)
+    }
 }

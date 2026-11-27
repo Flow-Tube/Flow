@@ -46,6 +46,8 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,6 +58,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -64,6 +67,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -209,6 +213,12 @@ class MusicViewModel
                     }
             }
         }
+
+        private val homeRefresh = AtomicReference<MusicHomeRefresh?>(null)
+        private val refreshFailureEvents = Channel<Unit>(Channel.CONFLATED)
+
+        /** One event per pull to refresh that brought back nothing new. */
+        internal val refreshFailures: Flow<Unit> = refreshFailureEvents.receiveAsFlow()
 
         @Volatile
         private var shelvesStale = false
@@ -592,6 +602,8 @@ class MusicViewModel
          */
         private fun loadMusicContent(force: Boolean = false) {
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
+                // A pull to refresh keeps the shelves on screen until the network answers.
+                if (force) return@launch
                 val cachedTrending = MusicCache.getTrendingMusic(100)
                 val cachedResult =
                     try {
@@ -677,6 +689,7 @@ class MusicViewModel
                             )
                         }
                     }
+                    if (force) settleRefresh(MusicRefreshLeg.CHARTS, ok = !trending.isNullOrEmpty())
 
                     // First composition of the multi-lane Quick Picks: seeds from the
                     // current track (if any) and history, discovery lane from the charts.
@@ -733,6 +746,7 @@ class MusicViewModel
                 if (_uiState.value.trendingSongs.isNotEmpty() || homeSections.isNotEmpty()) {
                     _uiState.update { it.copy(isLoading = false) }
                 }
+                if (force) settleRefresh(MusicRefreshLeg.HOME, ok = homeSections.isNotEmpty())
             }
 
             // 3. SECONDARY: History (Disk IO)
@@ -1292,11 +1306,22 @@ class MusicViewModel
         }
 
         fun refresh() {
+            if (homeChipFeed.refresh()) return
+            if (!homeRefresh.compareAndSet(null, MusicHomeRefresh())) return
             relatedCache.clear()
             artistDetailsCache.clear()
-            if (homeChipFeed.refresh()) return
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isRefreshing = true) }
             loadMusicContent(force = true)
+        }
+
+        private fun settleRefresh(
+            leg: MusicRefreshLeg,
+            ok: Boolean,
+        ) {
+            val progress = homeRefresh.updateAndGet { it?.settle(leg, ok) } ?: return
+            if (!progress.isSettled || !homeRefresh.compareAndSet(progress, null)) return
+            _uiState.update { it.copy(isRefreshing = false) }
+            if (progress.isFailed) refreshFailureEvents.trySend(Unit)
         }
 
         /**
@@ -1515,6 +1540,7 @@ data class MusicUiState(
     val moodsAndGenres: List<MoodAndGenres> = emptyList(),
     val selectedGenre: String? = null,
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val downloadedTrackIds: Set<String> = emptySet(),
     val artistDetails: ArtistDetails? = null,

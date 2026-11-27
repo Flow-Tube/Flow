@@ -56,6 +56,7 @@ class ContentSettingsViewModel
         val watchedThreshold = preferences.watchedThreshold.asState(WatchedThreshold.ALMOST_FINISHED)
         val countImportedAsWatched = preferences.countImportedAsWatched.asState(false)
         val sharedLinkAction = preferences.sharedLinkAction.asState(SharedLinkAction.ASK_WHILE_PLAYING)
+        val searchKeyboard = preferences.searchAutoKeyboard.asState(true)
 
         val notes = preferences.notesEnabled.asState(true)
         val channelNotes = preferences.channelNotesEnabled.asState(true)
@@ -121,6 +122,8 @@ class ContentSettingsViewModel
         fun setCountImportedAsWatched(value: Boolean) = write { preferences.setCountImportedAsWatched(value) }
 
         fun setSharedLinkAction(value: SharedLinkAction) = write { preferences.setSharedLinkAction(value) }
+
+        fun setSearchKeyboard(value: Boolean) = write { preferences.setSearchAutoKeyboard(value) }
 
         fun setNotes(value: Boolean) = write { preferences.setNotesEnabled(value) }
 

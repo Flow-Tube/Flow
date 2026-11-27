@@ -50,6 +50,24 @@ internal fun lyricsRowOffsets(
     return map
 }
 
+/** How a row moves to a new target offset. */
+internal enum class LyricsRowMove { SNAP, CASCADE, FOLLOW }
+
+/**
+ * While the user has scrolled away, the active row is held, so a new target can only come from a
+ * row measured late; the rows still follow it, or a row that wraps lands on the one below (#2422).
+ */
+internal fun lyricsRowMove(
+    isInitialLayout: Boolean,
+    motionEnabled: Boolean,
+    autoScroll: Boolean,
+): LyricsRowMove =
+    when {
+        isInitialLayout || !motionEnabled -> LyricsRowMove.SNAP
+        autoScroll -> LyricsRowMove.CASCADE
+        else -> LyricsRowMove.FOLLOW
+    }
+
 /** How far the user may drag the list: the last row stays [bottomMarginPx] from the top edge. */
 internal fun lyricsMinScrollOffset(
     items: List<LyricsListItem>,

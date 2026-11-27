@@ -64,7 +64,7 @@ fun MusicSearchScreen(
             viewModel.onQueryChange(initialQuery)
             viewModel.performSearch(initialQuery)
             keyboardController?.hide()
-        } else {
+        } else if (viewModel.opensKeyboard()) {
             delay(FOCUS_DELAY_MS)
             focusRequester.requestFocus()
             keyboardController?.show()

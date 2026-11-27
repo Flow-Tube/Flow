@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.settings.appearance
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
+import androidx.compose.material.icons.outlined.Animation
 import androidx.compose.material.icons.outlined.AppShortcut
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.EdgesensorHigh
@@ -30,6 +31,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.local.AppFontSelection
 import io.github.aedev.flow.data.local.HomeFeedColumns
 import io.github.aedev.flow.data.local.HomeViewMode
+import io.github.aedev.flow.data.local.LoadingAnimation
 import io.github.aedev.flow.data.local.VideoCardStyle
 import io.github.aedev.flow.platform.AppUiMode
 import io.github.aedev.flow.ui.components.settings.SettingsDestination
@@ -85,6 +87,7 @@ internal fun AppearanceScreen(
     var showIconDialog by rememberSaveable { mutableStateOf(false) }
     var showInterfaceDialog by rememberSaveable { mutableStateOf(false) }
     var showNewSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    var showLoadingAnimationDialog by rememberSaveable { mutableStateOf(false) }
     val highlightNewSettings by viewModel.newSettingsHighlight.collectAsStateWithLifecycle()
 
     val themeSummary =
@@ -166,6 +169,10 @@ internal fun AppearanceScreen(
                 viewModel::setSkeletonGradient,
                 icon = Icons.Outlined.Gradient,
             )
+            choice(AppearanceIndex.loadingAnimation, onClick = { showLoadingAnimationDialog = true }, icon = Icons.Outlined.Animation) {
+                val animation by viewModel.loadingAnimation.collectAsStateWithLifecycle()
+                stringResource(loadingAnimationLabel(animation))
+            }
             switch(
                 AppearanceIndex.marquee,
                 viewModel.marqueeEnabled,
@@ -257,6 +264,17 @@ internal fun AppearanceScreen(
         )
     }
 
+    if (showLoadingAnimationDialog) {
+        val animation by viewModel.loadingAnimation.collectAsStateWithLifecycle()
+        FlowChoiceDialog(
+            title = stringResource(R.string.settings_loading_animation_title),
+            options = LoadingAnimation.entries.map { FlowChoice(it, stringResource(loadingAnimationLabel(it))) },
+            selected = animation,
+            onSelect = viewModel::setLoadingAnimation,
+            onDismiss = { showLoadingAnimationDialog = false },
+        )
+    }
+
     if (showInterfaceDialog) {
         FlowChoiceDialog(
             title = stringResource(R.string.interface_mode_title),
@@ -273,6 +291,13 @@ internal fun AppearanceScreen(
 
 @Composable
 private fun newSettingsDaysLabel(days: Int): String = pluralStringResource(R.plurals.settings_highlight_new_days, days, days)
+
+private fun loadingAnimationLabel(animation: LoadingAnimation): Int =
+    when (animation) {
+        LoadingAnimation.PULSE -> R.string.loading_animation_pulse
+        LoadingAnimation.SUBTLE_PULSE -> R.string.loading_animation_subtle_pulse
+        LoadingAnimation.SHIMMER -> R.string.loading_animation_shimmer
+    }
 
 private fun interfaceModeLabel(mode: AppUiMode): Int =
     when (mode) {

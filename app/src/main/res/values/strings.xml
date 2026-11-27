@@ -22,6 +22,7 @@
     <string name="home_load_more_failed">Couldn\'t load more videos</string>
     <string name="home_load_more_failed_body">Check your connection</string>
     <string name="home_refresh_failed">Couldn\'t refresh your feed</string>
+    <string name="music_refresh_failed">Couldn\'t refresh music</string>
     <plurals name="subscriptions_refresh_progress_template">
         <item quantity="one">Refreshing %1$d of %2$d channel</item>
         <item quantity="other">Refreshing %1$d of %2$d channels</item>
@@ -4570,6 +4571,11 @@
     <string name="settings_skeleton_gradient_title">Gradient loading placeholders</string>
     <string name="settings_skeleton_gradient_summary">Tint placeholders with your theme or the video\'s colors</string>
     <string name="settings_skeleton_gradient_keywords">gradient, loading screen, skeleton, shimmer</string>
+    <string name="settings_loading_animation_title">Loading animation</string>
+    <string name="settings_loading_animation_keywords">loading screen, skeleton, placeholder, shimmer, pulse</string>
+    <string name="loading_animation_pulse">Pulse</string>
+    <string name="loading_animation_subtle_pulse">Subtle pulse</string>
+    <string name="loading_animation_shimmer">Shimmer</string>
     <string name="settings_marquee_title">Scrolling text</string>
     <string name="settings_marquee_summary">Scroll long titles and names. Turn off on slower devices</string>
     <string name="settings_marquee_keywords">marquee, scrolling title, artist name, low end, performance</string>
@@ -4750,6 +4756,8 @@
     <string name="content_settings_open_links_system_asks">Android asks which app to use</string>
     <string name="content_settings_shared_links_title">Shared links</string>
     <string name="content_settings_shared_links_subtitle">What a video shared to Flow does</string>
+    <string name="content_settings_search_keyboard_title">Open keyboard on search</string>
+    <string name="content_settings_search_keyboard_subtitle">Focus the search field as soon as search opens</string>
     <string name="content_settings_shared_links_dialog_body">Links you tap in other apps always play.</string>
     <string name="content_settings_shared_links_play">Play right away</string>
     <string name="content_settings_shared_links_ask_while_playing">Ask while something plays</string>
