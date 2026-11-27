@@ -77,6 +77,7 @@ internal fun VideoPlayerUiState.beginLoadFor(videoId: String): VideoPlayerUiStat
         isUpcoming = false,
         upcomingReleaseTimeMs = null,
         isLive = false,
+        isArchivedLivestream = false,
         isLiveChatAvailable = false,
         liveChatMessages = emptyList(),
         isLiveChatLoading = false,

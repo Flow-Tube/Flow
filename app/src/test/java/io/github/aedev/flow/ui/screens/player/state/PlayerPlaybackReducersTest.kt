@@ -141,6 +141,7 @@ class PlayerPlaybackReducersTest {
                 errorHint = "hint",
                 innerTubeVideoFormats = listOf(mockk(relaxed = true)),
                 isUpcoming = true,
+                isArchivedLivestream = true,
                 upcomingReleaseTimeMs = 12L,
             )
 
@@ -148,6 +149,7 @@ class PlayerPlaybackReducersTest {
 
         assertThat(next.hlsUrl).isEqualTo("https://example.invalid/live.m3u8")
         assertThat(next.isLive).isTrue()
+        assertThat(next.isArchivedLivestream).isFalse()
         assertThat(next.isLoading).isFalse()
         assertThat(next.error).isNull()
         assertThat(next.errorHint).isNull()
