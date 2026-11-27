@@ -4323,4 +4323,17 @@
     <string name="cover_shape_clam_shell">クラムシェル</string>
     <string name="cover_shape_pentagon">ペンタゴン</string>
     <string name="cover_shape_cookie_4">クッキー4</string>
+    <string name="cover_shape_cookie_6">クッキー6</string>
+    <string name="cover_shape_cookie_7">クッキー7</string>
+    <string name="cover_shape_cookie_9">クッキー9</string>
+    <string name="cover_shape_cookie_12">クッキー12</string>
+    <string name="cover_shape_ghostish">ゴースト</string>
+    <string name="cover_shape_clover_4">クローバー4</string>
+    <string name="cover_shape_clover_8">クローバー8</string>
+    <string name="cover_shape_burst">バースト</string>
+    <string name="cover_shape_flower">フラワー</string>
+    <string name="cover_shape_pixel_circle">ピクセルサークル</string>
+    <string name="cover_shape_pixel_triangle">ピクセル三角形</string>
+    <string name="cover_shape_heart">ハート</string>
+    <string name="player_appearance_cover_shapes_title">カバー形状</string>
 </resources>
