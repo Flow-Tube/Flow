@@ -7,12 +7,14 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * Widens a stereo image: more of the side signal, then a little of each channel, delayed like an
- * early reflection and dulled the way the far ear hears it, fed into the other. A delay this long
- * reads as space, where a sub-millisecond one arrives in phase and narrows the low end instead.
- * Android's Spatializer leaves stereo alone by
- * default, Virtualizer depends on the device and Media3's channel mixer has no delay or filter, so
- * this runs in the player's own chain. Off is an exact pass-through, and every change glides.
+ * Widens a stereo image: more of the side signal, then the usual headphone crossfeed (the Bauer/bs2b
+ * design). Each ear gets the other channel dulled the way the far ear hears it and a fraction of a
+ * millisecond late, and the same dulled share of its own channel comes off, so a centred voice stays
+ * flat and only the low end of the sides draws in. The delay must stay well under the ~5 ms where a
+ * copy is heard as a repeat: the earlier 15 ms reflection doubled every centred voice (#1980).
+ * Android's Spatializer leaves stereo alone by default, Virtualizer depends on the device, Media3's
+ * channel mixer has no delay or filter and no bs2b library is on the classpath, so this runs in the
+ * player's own chain. Off is an exact pass-through, and every change glides.
  */
 internal class SpatialStage(
     sampleRate: Int,
@@ -24,6 +26,8 @@ internal class SpatialStage(
     private var delayIndex = 0
     private var dulledLeft = 0.0
     private var dulledRight = 0.0
+    private var ownDulledLeft = 0.0
+    private var ownDulledRight = 0.0
 
     private var width = 1.0
     private var crossfeed = 0.0
@@ -46,7 +50,7 @@ internal class SpatialStage(
     ) {
         targetWidth = widthOf(sound)
         targetCrossfeed = crossfeedOf(sound)
-        targetLevel = levelFor(targetWidth, targetCrossfeed)
+        targetLevel = levelFor(targetWidth)
         if (rampFrames <= 0) {
             width = targetWidth
             crossfeed = targetCrossfeed
@@ -66,6 +70,8 @@ internal class SpatialStage(
         delayIndex = 0
         dulledLeft = 0.0
         dulledRight = 0.0
+        ownDulledLeft = 0.0
+        ownDulledRight = 0.0
     }
 
     /** Replaces the left and right samples in [frame]. */
@@ -74,14 +80,16 @@ internal class SpatialStage(
         val right = frame[1]
         dulledLeft += lowPass * (delayedRight[delayIndex] - dulledLeft)
         dulledRight += lowPass * (delayedLeft[delayIndex] - dulledRight)
+        ownDulledLeft += lowPass * (left - ownDulledLeft)
+        ownDulledRight += lowPass * (right - ownDulledRight)
         delayedLeft[delayIndex] = left
         delayedRight[delayIndex] = right
         delayIndex = (delayIndex + 1) % delaySamples
 
         val mid = (left + right) / 2
         val side = (left - right) / 2 * width
-        frame[0] = (mid + side + crossfeed * dulledLeft) * level
-        frame[1] = (mid - side + crossfeed * dulledRight) * level
+        frame[0] = (mid + side + crossfeed * (dulledLeft - ownDulledLeft)) * level
+        frame[1] = (mid - side + crossfeed * (dulledRight - ownDulledRight)) * level
         stepRamp()
     }
 
@@ -100,8 +108,8 @@ internal class SpatialStage(
     }
 
     private companion object {
-        const val CROSSFEED_DELAY_SECONDS = 0.015
-        const val CROSSFEED_CUTOFF_HZ = 2_700.0
+        const val CROSSFEED_DELAY_SECONDS = 0.0003
+        const val CROSSFEED_CUTOFF_HZ = 700.0
 
         /** Side energy of typical music relative to its mid; the level keeps that music about as loud. */
         const val TYPICAL_SIDE_ENERGY = 0.16
@@ -109,9 +117,9 @@ internal class SpatialStage(
         fun widthOf(sound: EqSpatialSound): Double =
             when (sound) {
                 EqSpatialSound.OFF -> 1.0
-                EqSpatialSound.LOW -> 1.5
-                EqSpatialSound.MEDIUM -> 2.0
-                EqSpatialSound.HIGH -> 2.5
+                EqSpatialSound.LOW -> 1.3
+                EqSpatialSound.MEDIUM -> 1.6
+                EqSpatialSound.HIGH -> 2.0
             }
 
         fun crossfeedOf(sound: EqSpatialSound): Double =
@@ -122,13 +130,10 @@ internal class SpatialStage(
                 EqSpatialSound.HIGH -> 0.2
             }
 
-        fun levelFor(
-            width: Double,
-            crossfeed: Double,
-        ): Double {
+        fun levelFor(width: Double): Double {
             if (width == 1.0) return 1.0
             val energy = (1 + TYPICAL_SIDE_ENERGY * width * width) / (1 + TYPICAL_SIDE_ENERGY)
-            return 1 / (sqrt(energy) * (1 + crossfeed / 2))
+            return 1 / sqrt(energy)
         }
     }
 }

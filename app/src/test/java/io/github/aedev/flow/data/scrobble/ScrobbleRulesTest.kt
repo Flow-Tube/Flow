@@ -37,6 +37,14 @@ class ScrobbleRulesTest {
         val entry = ScrobbleRules.entryFor(track(id = "local_9", album = "Unknown Album"), 200_000, 0)!!
         assertThat(entry.album).isEmpty()
         assertThat(entry.fromYouTube).isFalse()
+        assertThat(entry.thumbnailUrl).isEmpty()
+    }
+
+    @Test
+    fun `the entry keeps the video id and web artwork for webhooks`() {
+        val entry = ScrobbleRules.entryFor(track(), 200_000, 0)!!
+        assertThat(entry.videoId).isEqualTo("abc")
+        assertThat(entry.thumbnailUrl).startsWith("https://")
     }
 
     @Test
@@ -46,7 +54,7 @@ class ScrobbleRulesTest {
 
     @Test
     fun `a love uses the same artist as the scrobble`() {
-        assertThat(ScrobbleRules.loveFor(track(), loved = true)).isEqualTo(LoveEntry("Artist", "Song", loved = true))
+        assertThat(ScrobbleRules.loveFor(track(), loved = true)).isEqualTo(LoveEntry("Artist", "Song", loved = true, videoId = "abc"))
     }
 
     @Test

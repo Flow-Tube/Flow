@@ -64,6 +64,7 @@ private fun enrichedRow(
             response.playabilityStatus.status.equals("LIVE_STREAM_OFFLINE", ignoreCase = true)
     // isLiveContent stays true once a stream has ended; only isLive says it is on air now.
     val isLive = !isUpcoming && details.isLive == true
+    val streamed = !isUpcoming && !isLive && details.isLiveContent == true
     val duration = details.lengthSeconds.toIntOrNull()?.takeIf { it > 0 } ?: 0
     if (!isUpcoming && !isLive && duration <= 0 && !video.isLive) return null
 
@@ -86,7 +87,7 @@ private fun enrichedRow(
         isUpcoming = isUpcoming,
         isScheduledLive = isUpcoming && details.isLiveContent == true,
         timestamp = scheduledStartMs ?: video.timestamp,
-        uploadDate = scheduledStartMs?.let(::premiereDateText) ?: video.uploadDate,
+        uploadDate = scheduledStartMs?.let(::premiereDateText) ?: StreamedUploadDate.markedIf(streamed, video.uploadDate),
     )
 }
 
@@ -103,5 +104,10 @@ internal fun Video.withPlayerMetadata(enriched: Video): Video =
         isUpcoming = enriched.isUpcoming,
         isScheduledLive = enriched.isScheduledLive,
         timestamp = if (enriched.isUpcoming) enriched.timestamp else timestamp,
-        uploadDate = if (enriched.isUpcoming) enriched.uploadDate else uploadDate,
+        uploadDate =
+            when {
+                enriched.isUpcoming -> enriched.uploadDate
+                StreamedUploadDate.isMarked(enriched.uploadDate) -> StreamedUploadDate.marked(uploadDate)
+                else -> uploadDate
+            },
     )
