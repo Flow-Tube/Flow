@@ -30,6 +30,9 @@ import kotlin.coroutines.CoroutineContext
  * nothing, whether the watched filter, blocking or de-duplication emptied them, the search ends there
  * instead of walking every page YouTube has. A page that hands back the token it was loaded with ends
  * it too: Paging refuses the same key twice in a row.
+ *
+ * A first page that is only YouTube's age check is answered from YouTube Music's video results
+ * instead, in one request with no further pages, and [onMusicFallback] tells the screen to say so.
  */
 class SearchPagingSource(
     private val query: String,
@@ -40,6 +43,8 @@ class SearchPagingSource(
     private val watchedVideos: WatchedVideoLookup = WatchedVideoLookup { emptySet() },
     private val exactQuery: Boolean = false,
     private val loadContext: CoroutineContext = PerformanceDispatcher.networkIO,
+    private val musicVideoSearch: MusicVideoSearch = DefaultMusicVideoSearch,
+    private val onMusicFallback: () -> Unit = {},
     private val exclusions: suspend () -> FeedExclusions = { FeedExclusions.NONE },
 ) : PagingSource<String, SearchResultItem>() {
     override fun getRefreshKey(state: PagingState<String, SearchResultItem>): String? = null
@@ -62,17 +67,19 @@ class SearchPagingSource(
             do {
                 val requested = continuation
                 val page = loadPage(query, filter.toSearchParams(exactQuery), requested)
-                if (params.key == null && requests == 0) onHeader(page.header)
+                val firstPage = params.key == null && requests == 0
+                if (firstPage) onHeader(page.header)
                 requests++
+                val musicFallback = firstPage && page.needsMusicFallback(filter.contentType)
                 val items =
-                    if (filter.contentType == ContentType.SHORTS) {
-                        page.toShortsResults(shortsEnabled)
-                    } else {
-                        page.toResultItems(shortsEnabled)
+                    when {
+                        musicFallback -> musicVideoSearch(query).map { SearchResultItem.VideoResult(it) }.also { onMusicFallback() }
+                        filter.contentType == ContentType.SHORTS -> page.toShortsResults(shortsEnabled)
+                        else -> page.toResultItems(shortsEnabled)
                     }.withoutHidden(hidden)
                 results +=
                     loadedItemKeys.filter(items.watchFiltered()) { it.identityKey() }
-                continuation = page.continuation.takeUnless { it == requested }
+                continuation = page.continuation.takeUnless { musicFallback || it == requested }
             } while (watchState != WatchState.ANY &&
                 results.size < MIN_FILTERED_PAGE &&
                 continuation != null &&

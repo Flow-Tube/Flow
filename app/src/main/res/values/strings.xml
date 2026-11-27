@@ -5485,4 +5485,5 @@
     <string name="search_showing_results_for">Showing results for %1$s</string>
     <string name="search_instead_for">Search instead for %1$s</string>
     <string name="search_did_you_mean">Did you mean %1$s</string>
+    <string name="search_age_check_music_results">YouTube asks to sign in for this search. Showing results from YouTube Music.</string>
 </resources>
